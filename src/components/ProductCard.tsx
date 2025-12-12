@@ -49,7 +49,7 @@ const ProductCard = ({
         <p className="text-xs text-muted-foreground uppercase tracking-wide">
           {category}
         </p>
-        <h3 className="font-medium text-card-foreground line-clamp-2">{name}</h3>
+        <h3 className="font-heading font-medium text-card-foreground line-clamp-2">{name}</h3>
         
         {/* Rating */}
         <div className="flex items-center gap-1">

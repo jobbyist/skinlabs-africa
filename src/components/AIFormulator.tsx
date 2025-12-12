@@ -126,7 +126,7 @@ const AIFormulator = () => {
               <Sparkles className="h-4 w-4" />
               AI-Powered
             </div>
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
               Custom Skincare Formulator
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
@@ -149,7 +149,7 @@ const AIFormulator = () => {
             {/* Step 1: Skin Type */}
             {step === 1 && (
               <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-card-foreground">
+                <h3 className="text-xl font-heading font-semibold text-card-foreground">
                   What's your skin type?
                 </h3>
                 <RadioGroup
@@ -181,7 +181,7 @@ const AIFormulator = () => {
             {step === 2 && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold text-card-foreground">
+                  <h3 className="text-xl font-heading font-semibold text-card-foreground">
                     What are your main skin concerns?
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -221,7 +221,7 @@ const AIFormulator = () => {
                   <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
                     <Sparkles className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold text-card-foreground mb-2">
+                  <h3 className="text-xl font-heading font-semibold text-card-foreground mb-2">
                     Your Personalized Skincare Routine
                   </h3>
                   <p className="text-sm text-muted-foreground">
@@ -249,7 +249,7 @@ const AIFormulator = () => {
             {isLoading && (
               <div className="text-center py-12">
                 <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-card-foreground mb-2">
+                <h3 className="text-xl font-heading font-semibold text-card-foreground mb-2">
                   Analyzing Your Skin Profile...
                 </h3>
                 <p className="text-muted-foreground">

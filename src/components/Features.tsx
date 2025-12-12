@@ -31,7 +31,7 @@ const Features = () => {
           <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
             Why Choose Us
           </p>
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
             Science Meets Beauty
           </h2>
         </div>
@@ -45,7 +45,7 @@ const Features = () => {
               <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mb-4">
                 <feature.icon className="h-6 w-6 text-accent-foreground" />
               </div>
-              <h3 className="font-semibold text-card-foreground mb-2">{feature.title}</h3>
+              <h3 className="font-heading font-semibold text-card-foreground mb-2">{feature.title}</h3>
               <p className="text-sm text-muted-foreground">{feature.description}</p>
             </div>
           ))}

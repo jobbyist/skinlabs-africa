@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,47 +21,48 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 15%;
 
-    --primary: 350 60% 55%;
+    --primary: 0 0% 15%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 30% 96%;
+    --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 20%;
 
-    --muted: 30 20% 96%;
+    --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 350 40% 94%;
-    --accent-foreground: 350 60% 40%;
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 25%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 15% 90%;
-    --input: 30 15% 90%;
-    --ring: 350 60% 55%;
+    --border: 0 0% 85%;
+    --input: 0 0% 85%;
+    --ring: 0 0% 15%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 350 60% 55%;
+    --sidebar-primary: 0 0% 15%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 350 40% 94%;
-    --sidebar-accent-foreground: 350 60% 40%;
-    --sidebar-border: 30 15% 90%;
-    --sidebar-ring: 350 60% 55%;
+    --sidebar-accent: 0 0% 90%;
+    --sidebar-accent-foreground: 0 0% 25%;
+    --sidebar-border: 0 0% 85%;
+    --sidebar-ring: 0 0% 15%;
 
-    --chart-1: 350 60% 55%;
-    --chart-2: 30 50% 70%;
-    --chart-3: 180 30% 60%;
-    --chart-4: 350 40% 70%;
-    --chart-5: 30 40% 80%;
+    --chart-1: 0 0% 20%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 30%;
+    --chart-5: 0 0% 50%;
 
     --sidebar: 0 0% 98%;
 
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, serif;
     --font-mono: 'Space Mono', ui-monospace, monospace;
+    --font-heading: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
     --shadow-2xs: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
     --shadow-xs: 0 1px 3px 0 hsl(0 0% 0% / 0.04);
@@ -75,15 +77,14 @@ All colors MUST be HSL.
     --spacing: 0.25rem;
 
     /* SKINLABS brand colors */
-    --rose: 350 60% 55%;
-    --rose-light: 350 40% 94%;
-    --coral: 15 70% 60%;
-    --cream: 30 30% 96%;
     --charcoal: 0 0% 25%;
+    --grey-light: 0 0% 90%;
+    --grey: 0 0% 50%;
+    --grey-dark: 0 0% 30%;
     
     /* Gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(350 40% 96%) 0%, hsl(30 30% 98%) 50%, hsl(0 0% 100%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(350 60% 55%) 0%, hsl(15 70% 60%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0 0% 96%) 0%, hsl(0 0% 98%) 50%, hsl(0 0% 100%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(0 0% 15%) 0%, hsl(0 0% 30%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(0 0% 100% / 0.7) 100%);
   }
 
