@@ -24,7 +24,7 @@ const Hero = () => {
               AI-Powered Skincare Technology
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-foreground leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-foreground leading-tight">
               Next Generation
               <span className="block text-primary">Skincare Science</span>
             </h1>

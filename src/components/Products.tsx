@@ -51,7 +51,7 @@ const Products = () => {
           <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
             Our Collection
           </p>
-          <h2 className="text-3xl md:text-4xl font-serif font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
             Premium Skincare Technology
           </h2>
           <p className="text-muted-foreground">
