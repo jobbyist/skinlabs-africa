@@ -63,12 +63,44 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+This project is configured to automatically deploy to GitHub Pages when changes are pushed to the `main` branch.
 
-## Can I connect a custom domain to my Lovable project?
+### GitHub Pages Deployment
 
-Yes, you can!
+The site is deployed to: **https://skinlabs.co.za**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+#### Automatic Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Every push to the `main` branch triggers the GitHub Actions workflow that:
+1. Checks out the code
+2. Sets up Bun 1.3.4
+3. Installs dependencies
+4. Builds the project
+5. Deploys to GitHub Pages
+
+#### Manual Deployment
+
+You can also trigger a manual deployment from the GitHub Actions tab by running the "Deploy to GitHub Pages" workflow manually.
+
+#### GitHub Pages Settings
+
+To ensure the deployment works correctly, make sure GitHub Pages is configured in your repository settings:
+
+1. Go to Settings > Pages
+2. Under "Build and deployment", set Source to "GitHub Actions"
+3. The custom domain `skinlabs.co.za` should be configured automatically via the CNAME file
+
+#### DNS Configuration
+
+For the custom domain to work, you need to configure DNS records:
+
+- Add an A record pointing to GitHub Pages IPs:
+  - 185.199.108.153
+  - 185.199.109.153
+  - 185.199.110.153
+  - 185.199.111.153
+- Or add a CNAME record pointing to: `jobbyist.github.io`
+
+### Alternative: Lovable Deployment
+
+You can also deploy via [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) by clicking Share -> Publish.
