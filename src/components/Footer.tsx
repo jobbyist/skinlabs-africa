@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Instagram, Twitter, Facebook, Youtube } from "lucide-react";
-import logo from "@/assets/skinlabs-logo.png";
+import logo from "@/assets/skinlabs-logo-white.svg";
 
 const Footer = () => {
   const links = {
@@ -22,7 +22,7 @@ const Footer = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <img src={logo} alt="SKINLABS" className="h-8 brightness-0 invert mb-4" />
+            <img src={logo} alt="SKINLABS" className="w-[100px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
               Next generation skincare technology for radiant, healthy skin. 
               Powered by science and AI.
