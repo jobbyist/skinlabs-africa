@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Sparkles, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Sparkles, ChevronRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const skinTypes = [
   { value: "dry", label: "Dry", description: "Tight, flaky, lacks moisture" },
@@ -28,6 +30,8 @@ const AIFormulator = () => {
   const [step, setStep] = useState(1);
   const [skinType, setSkinType] = useState("");
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [recommendation, setRecommendation] = useState<string | null>(null);
 
   const toggleConcern = (concern: string) => {
     setSelectedConcerns((prev) =>
@@ -39,7 +43,78 @@ const AIFormulator = () => {
     );
   };
 
+  const getAIRecommendation = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("skincare-ai", {
+        body: { skinType, concerns: selectedConcerns },
+      });
+
+      if (error) {
+        console.error("Error calling skincare-ai:", error);
+        toast.error("Failed to generate recommendation. Please try again.");
+        return;
+      }
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setRecommendation(data.recommendation);
+      setStep(3);
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNext = () => {
+    if (step === 2) {
+      getAIRecommendation();
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  const resetFormulator = () => {
+    setStep(1);
+    setSkinType("");
+    setSelectedConcerns([]);
+    setRecommendation(null);
+  };
+
   const progress = (step / 3) * 100;
+
+  // Parse recommendation into sections for better display
+  const formatRecommendation = (text: string) => {
+    return text.split('\n').map((line, index) => {
+      if (line.startsWith('##') || line.startsWith('**')) {
+        return (
+          <h4 key={index} className="font-semibold text-card-foreground mt-4 mb-2">
+            {line.replace(/[#*]/g, '').trim()}
+          </h4>
+        );
+      }
+      if (line.trim().startsWith('-') || line.trim().match(/^\d+\./)) {
+        return (
+          <p key={index} className="text-muted-foreground ml-4 mb-1">
+            {line.trim()}
+          </p>
+        );
+      }
+      if (line.trim()) {
+        return (
+          <p key={index} className="text-muted-foreground mb-2">
+            {line}
+          </p>
+        );
+      }
+      return null;
+    });
+  };
 
   return (
     <section id="ai-formulator" className="py-20 bg-background">
@@ -139,44 +214,52 @@ const AIFormulator = () => {
               </div>
             )}
 
-            {/* Step 3: Results */}
-            {step === 3 && (
-              <div className="text-center space-y-6">
-                <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto">
-                  <Sparkles className="h-10 w-10 text-primary" />
-                </div>
-                <div>
+            {/* Step 3: AI Results */}
+            {step === 3 && recommendation && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Sparkles className="h-8 w-8 text-primary" />
+                  </div>
                   <h3 className="text-xl font-semibold text-card-foreground mb-2">
-                    Your Custom Formula is Ready!
+                    Your Personalized Skincare Routine
                   </h3>
-                  <p className="text-muted-foreground">
-                    Based on your {skinType} skin type and concerns with{" "}
-                    {selectedConcerns.join(", ").toLowerCase()}, we've created
-                    a personalized skincare routine.
+                  <p className="text-sm text-muted-foreground">
+                    Based on your {skinType} skin and concerns with {selectedConcerns.join(", ").toLowerCase()}
                   </p>
                 </div>
-                <div className="bg-secondary/50 rounded-xl p-6 text-left space-y-4">
-                  <h4 className="font-medium text-card-foreground">Recommended Routine:</h4>
-                  <div className="space-y-3">
-                    {["Gentle Cleansing Foam", "Hydrating Essence", "Targeted Treatment Serum", "Moisturizing Barrier Cream"].map((item, i) => (
-                      <div key={item} className="flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm flex items-center justify-center">
-                          {i + 1}
-                        </span>
-                        <span className="text-card-foreground">{item}</span>
-                      </div>
-                    ))}
-                  </div>
+                
+                <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
+                  {formatRecommendation(recommendation)}
                 </div>
-                <Button size="lg" className="gap-2">
-                  Shop Your Routine
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                  <Button size="lg" className="gap-2">
+                    Shop Recommended Products
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={resetFormulator}>
+                    Start Over
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Loading state */}
+            {isLoading && (
+              <div className="text-center py-12">
+                <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-card-foreground mb-2">
+                  Analyzing Your Skin Profile...
+                </h3>
+                <p className="text-muted-foreground">
+                  Our AI is creating your personalized routine
+                </p>
               </div>
             )}
 
             {/* Navigation */}
-            {step < 3 && (
+            {step < 3 && !isLoading && (
               <div className="flex justify-between mt-8 pt-6 border-t border-border">
                 <Button
                   variant="ghost"
@@ -186,15 +269,24 @@ const AIFormulator = () => {
                   Back
                 </Button>
                 <Button
-                  onClick={() => setStep(step + 1)}
+                  onClick={handleNext}
                   disabled={
                     (step === 1 && !skinType) ||
                     (step === 2 && selectedConcerns.length === 0)
                   }
                   className="gap-2"
                 >
-                  {step === 2 ? "Get My Formula" : "Continue"}
-                  <ChevronRight className="h-4 w-4" />
+                  {step === 2 ? (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Get AI Recommendation
+                    </>
+                  ) : (
+                    <>
+                      Continue
+                      <ChevronRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             )}
