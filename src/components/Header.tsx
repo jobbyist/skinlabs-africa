@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LanguageCurrencySelector from "@/components/LanguageCurrencySelector";
 import logo from "@/assets/skinlabs-logo-black.svg";
 
 const Header = () => {
@@ -20,7 +21,7 @@ const Header = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="SKINLABS" className="w-[150px] h-auto" />
+            <img src={logo} alt="SKINLABS" className="w-[120px] h-auto" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -38,6 +39,7 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
+            <LanguageCurrencySelector />
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingBag className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
@@ -73,6 +75,9 @@ const Header = () => {
                   {link.label}
                 </a>
               ))}
+              <div className="pt-2 border-t border-border">
+                <LanguageCurrencySelector />
+              </div>
               <Button variant="default" className="w-full gap-2 mt-2">
                 <Sparkles className="h-4 w-4" />
                 Get Started
