@@ -34,7 +34,7 @@ const products = [
   },
   {
     id: 4,
-    name: "Vitamin C Brightening Serum",
+    name: "SkinLabs® Classic Body Oil Serums",
     category: "Serums",
     price: 64.99,
     image: productSerum,
