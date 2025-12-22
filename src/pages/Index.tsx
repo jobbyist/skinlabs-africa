@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import NotificationBar from "@/components/NotificationBar";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Products from "@/components/Products";
@@ -22,6 +23,7 @@ const Index = () => {
       </Helmet>
 
       <div className="min-h-screen bg-background">
+        <NotificationBar />
         <Header />
         <main>
           <Hero />

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Menu, X, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LanguageCurrencySelector from "@/components/LanguageCurrencySelector";
-import logo from "@/assets/skinlabs-logo-black.svg";
+import logo from "@/assets/newskinlabs.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
