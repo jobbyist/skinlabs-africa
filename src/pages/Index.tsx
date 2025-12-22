@@ -8,6 +8,7 @@ import AIFormulator from "@/components/AIFormulator";
 import Features from "@/components/Features";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
+import CookieConsent from "@/components/CookieConsent";
 
 const Index = () => {
   return (
@@ -34,6 +35,7 @@ const Index = () => {
           <Newsletter />
         </main>
         <Footer />
+        <CookieConsent />
       </div>
     </>
   );
