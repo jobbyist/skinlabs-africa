@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { DollarSign } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,16 +39,20 @@ const CurrencyConverter = () => {
     localStorage.setItem("selectedCurrency", JSON.stringify(selectedCurrency));
   }, [selectedCurrency]);
 
-  const convertPrice = (priceInZAR: number): string => {
+  const convertPrice = useCallback((priceInZAR: number): string => {
     const convertedPrice = priceInZAR * exchangeRates[selectedCurrency.code];
     return `${selectedCurrency.symbol}${convertedPrice.toFixed(2)}`;
-  };
+  }, [selectedCurrency]);
 
   // Expose conversion function globally for use in product cards
   useEffect(() => {
-    (window as any).convertPrice = convertPrice;
-    (window as any).selectedCurrency = selectedCurrency;
-  }, [selectedCurrency]);
+    interface WindowWithConversion extends Window {
+      convertPrice?: (price: number) => string;
+      selectedCurrency?: typeof selectedCurrency;
+    }
+    (window as WindowWithConversion).convertPrice = convertPrice;
+    (window as WindowWithConversion).selectedCurrency = selectedCurrency;
+  }, [selectedCurrency, convertPrice]);
 
   return (
     <DropdownMenu>
