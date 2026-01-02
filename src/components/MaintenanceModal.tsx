@@ -31,41 +31,35 @@ const MaintenanceModal = () => {
 
     let activeTime = 0;
     let lastInteractionTime = Date.now();
-    let timerStarted = false;
+    let intervalId: NodeJS.Timeout | null = null;
 
     // Track active browsing time
     const trackActivity = () => {
       lastInteractionTime = Date.now();
-      if (!timerStarted) {
-        timerStarted = true;
-        startTimer();
-      }
-    };
+      if (!intervalId) {
+        intervalId = setInterval(() => {
+          const currentTime = Date.now();
+          const timeSinceLastInteraction = currentTime - lastInteractionTime;
 
-    const startTimer = () => {
-      const interval = setInterval(() => {
-        const currentTime = Date.now();
-        const timeSinceLastInteraction = currentTime - lastInteractionTime;
+          // Only count time if user was active in the last 5 seconds
+          if (timeSinceLastInteraction < 5000) {
+            activeTime += 1000;
 
-        // Only count time if user was active in the last 5 seconds
-        if (timeSinceLastInteraction < 5000) {
-          activeTime += 1000;
-
-          // Show modal after 30 seconds of active browsing
-          if (activeTime >= ACTIVE_BROWSING_DURATION) {
-            setIsOpen(true);
-            clearInterval(interval);
-            // Remove event listeners after modal is shown
-            window.removeEventListener("mousemove", trackActivity);
-            window.removeEventListener("keydown", trackActivity);
-            window.removeEventListener("scroll", trackActivity);
-            window.removeEventListener("click", trackActivity);
+            // Show modal after 30 seconds of active browsing
+            if (activeTime >= ACTIVE_BROWSING_DURATION) {
+              setIsOpen(true);
+              if (intervalId) {
+                clearInterval(intervalId);
+              }
+              // Remove event listeners after modal is shown
+              window.removeEventListener("mousemove", trackActivity);
+              window.removeEventListener("keydown", trackActivity);
+              window.removeEventListener("scroll", trackActivity);
+              window.removeEventListener("click", trackActivity);
+            }
           }
-        }
-      }, 1000);
-
-      // Cleanup interval on unmount
-      return () => clearInterval(interval);
+        }, 1000);
+      }
     };
 
     // Listen for user interactions
@@ -74,8 +68,11 @@ const MaintenanceModal = () => {
     window.addEventListener("scroll", trackActivity);
     window.addEventListener("click", trackActivity);
 
-    // Cleanup event listeners on unmount
+    // Cleanup event listeners and interval on unmount
     return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
       window.removeEventListener("mousemove", trackActivity);
       window.removeEventListener("keydown", trackActivity);
       window.removeEventListener("scroll", trackActivity);
@@ -91,14 +88,17 @@ const MaintenanceModal = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (contactMethod === "email" && email) {
+    if (contactMethod === "email" && email.trim()) {
       toast.success("Thank you! We'll notify you via email when we reopen.");
       localStorage.setItem(MAINTENANCE_MODAL_KEY, "true");
       setIsOpen(false);
-    } else if (contactMethod === "sms" && phone) {
+    } else if (contactMethod === "sms" && phone.trim()) {
       toast.success("Thank you! We'll notify you via SMS when we reopen.");
       localStorage.setItem(MAINTENANCE_MODAL_KEY, "true");
       setIsOpen(false);
+    } else {
+      // Show error if no value provided
+      toast.error(`Please enter a valid ${contactMethod === "email" ? "email address" : "phone number"}.`);
     }
   };
 
