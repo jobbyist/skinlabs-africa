@@ -11,16 +11,18 @@ serve(async (req) => {
   }
 
   try {
-    const { skinType, concerns } = await req.json();
+    const { skinType, concerns, age, lifestyle, environment, currentProducts, allergies, skinImage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating skincare recommendations for:", { skinType, concerns });
+    console.log("Generating skincare recommendations for:", { skinType, concerns, age, lifestyle, environment });
 
-    const systemPrompt = `You are an expert dermatologist and skincare formulation specialist at SKINLABS, a premium skincare technology brand. You create personalized skincare routines based on individual skin profiles.
+    const systemPrompt = `You are an expert skincare formulation specialist and AI advisor at SKINLABS, a premium skincare technology brand. You create personalized skincare routines based on individual skin profiles. 
+
+IMPORTANT: You are NOT a dermatologist and should never refer to yourself as one. You provide general skincare advice and recommendations, but users should consult with licensed dermatologists for medical concerns.
 
 Your recommendations should:
 - Be science-backed and evidence-based
@@ -29,18 +31,28 @@ Your recommendations should:
 - Include both morning and evening routines
 - Mention key ingredients to look for
 - Be warm, professional, and encouraging
+- Always remind users that for medical skin conditions, they should consult a licensed dermatologist
 
 Format your response as a structured routine with clear steps.`;
 
-    const userPrompt = `Create a personalized skincare routine for someone with ${skinType} skin type who is concerned about: ${concerns.join(", ")}.
+    const userPrompt = `Create a personalized skincare routine for someone with the following profile:
+- Skin Type: ${skinType}
+- Main Concerns: ${concerns.join(", ")}
+- Age Range: ${age || "Not specified"}
+- Lifestyle: ${lifestyle || "Not specified"}
+- Environment: ${environment || "Not specified"}
+- Current Products: ${currentProducts || "Not specified"}
+- Known Allergies/Sensitivities: ${allergies || "None specified"}
+${skinImage ? "- A skin image was provided for visual reference" : ""}
 
 Provide:
-1. A complete morning routine (4-5 steps)
-2. A complete evening routine (4-5 steps)
-3. Key ingredients to look for based on their concerns
+1. A complete morning routine (4-6 steps)
+2. A complete evening routine (4-6 steps)
+3. Key ingredients to look for based on their concerns and profile
 4. One weekly treatment recommendation
+5. Important notes about their specific needs
 
-Be specific with product recommendations from our SKINLABS collection when possible.`;
+Be specific with product recommendations from our SKINLABS collection when possible. Remember to remind them to consult a dermatologist for any medical skin conditions.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
