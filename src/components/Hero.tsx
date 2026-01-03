@@ -41,7 +41,15 @@ const Hero = () => {
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2 text-base px-8">
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="gap-2 text-base px-8"
+                onClick={() => {
+                  const element = document.getElementById('ai-formulator');
+                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
                 <Sparkles className="h-4 w-4" />
                 Try AI Formulator
               </Button>
