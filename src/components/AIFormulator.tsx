@@ -517,7 +517,7 @@ const AIFormulator = () => {
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      capture="user"
+                      capture="environment"
                       onChange={handleImageUpload}
                       className="hidden"
                     />
