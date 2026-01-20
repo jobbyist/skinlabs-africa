@@ -15,8 +15,6 @@ const currencies = [
   { code: "USD", name: "US Dollar", symbol: "$" },
   { code: "EUR", name: "Euro", symbol: "€" },
   { code: "GBP", name: "British Pound", symbol: "£" },
-  { code: "NGN", name: "Nigerian Naira", symbol: "₦" },
-  { code: "KES", name: "Kenyan Shilling", symbol: "KSh" },
 ];
 
 // Exchange rates relative to ZAR (base currency)
@@ -25,8 +23,6 @@ const exchangeRates: Record<string, number> = {
   USD: 0.055,
   EUR: 0.052,
   GBP: 0.044,
-  NGN: 85.5,
-  KES: 7.1,
 };
 
 const CurrencyConverter = () => {
@@ -52,6 +48,7 @@ const CurrencyConverter = () => {
     }
     (window as WindowWithConversion).convertPrice = convertPrice;
     (window as WindowWithConversion).selectedCurrency = selectedCurrency;
+    window.dispatchEvent(new CustomEvent("currency-change", { detail: selectedCurrency }));
   }, [selectedCurrency, convertPrice]);
 
   return (
