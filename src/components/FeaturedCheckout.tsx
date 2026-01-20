@@ -258,7 +258,7 @@ const FeaturedCheckout = ({ products }: FeaturedCheckoutProps) => {
         ) : (
           <Button className="gap-2" asChild>
             <a
-              href="https://shop.skinlabs.co.za/checkout"
+              href={import.meta.env.VITE_CHECKOUT_URL || "https://shop.skinlabs.co.za/checkout"}
               target="_blank"
               rel="noopener noreferrer"
             >

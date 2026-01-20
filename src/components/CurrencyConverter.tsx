@@ -27,12 +27,17 @@ const exchangeRates: Record<string, number> = {
 
 const CurrencyConverter = () => {
   const [selectedCurrency, setSelectedCurrency] = useState(() => {
-    const saved = localStorage.getItem("selectedCurrency");
-    return saved ? JSON.parse(saved) : currencies[0];
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("selectedCurrency");
+      return saved ? JSON.parse(saved) : currencies[0];
+    }
+    return currencies[0];
   });
 
   useEffect(() => {
-    localStorage.setItem("selectedCurrency", JSON.stringify(selectedCurrency));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedCurrency", JSON.stringify(selectedCurrency));
+    }
   }, [selectedCurrency]);
 
   const convertPrice = useCallback((priceInZAR: number): string => {
