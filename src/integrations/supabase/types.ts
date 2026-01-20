@@ -14,7 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          subscription_started_at: string | null
+          subscription_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          subscription_started_at?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          subscription_started_at?: string | null
+          subscription_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skincare_recommendations: {
+        Row: {
+          age_range: string | null
+          allergies: string | null
+          concerns: string[]
+          created_at: string
+          current_products: string | null
+          email_sent_to: string | null
+          environment: string | null
+          id: string
+          lifestyle: string | null
+          recommendation: string
+          skin_type: string
+          user_id: string
+        }
+        Insert: {
+          age_range?: string | null
+          allergies?: string | null
+          concerns: string[]
+          created_at?: string
+          current_products?: string | null
+          email_sent_to?: string | null
+          environment?: string | null
+          id?: string
+          lifestyle?: string | null
+          recommendation: string
+          skin_type: string
+          user_id: string
+        }
+        Update: {
+          age_range?: string | null
+          allergies?: string | null
+          concerns?: string[]
+          created_at?: string
+          current_products?: string | null
+          email_sent_to?: string | null
+          environment?: string | null
+          id?: string
+          lifestyle?: string | null
+          recommendation?: string
+          skin_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
