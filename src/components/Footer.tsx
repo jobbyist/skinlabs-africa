@@ -1,19 +1,44 @@
 import { Link } from "react-router-dom";
-import { Instagram, Twitter, Facebook, Youtube } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
 import logo from "@/assets/skinlabs-logo-white.svg";
 
 const Footer = () => {
   const links = {
-    shop: ["All Products", "Devices", "Serums", "Custom Formulas", "Gift Sets"],
-    company: ["About Us", "Our Science", "Sustainability", "Careers", "Press"],
-    support: ["Contact", "FAQ", "Shipping", "Returns", "Track Order"],
+    shop: [
+      { label: "All Products", href: "/products" },
+      { label: "Devices", href: "/devices" },
+      { label: "Serums", href: "/serums" },
+      { label: "Custom Formulas", href: "/custom-formulas" },
+      { label: "Gift Sets", href: "/gift-sets" },
+    ],
+    company: [
+      { label: "About Us", href: "/about" },
+      { label: "Our Science", href: "/our-science" },
+      { label: "Sustainability", href: "/sustainability" },
+      { label: "Careers", href: "/careers" },
+      { label: "Press", href: "/press" },
+    ],
+    support: [
+      { label: "Contact", href: "/contact" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Shipping", href: "/shipping" },
+      { label: "Returns", href: "/returns" },
+      { label: "Track Order", href: "/track-order" },
+    ],
   };
 
   const socials = [
-    { icon: Instagram, href: "#" },
-    { icon: Twitter, href: "#" },
-    { icon: Facebook, href: "#" },
-    { icon: Youtube, href: "#" },
+    { icon: Instagram, href: "https://instagram.com/skinlabsza", label: "@skinlabsza" },
+    { icon: Facebook, href: "http://facebook.com/skinlabs.co.za/", label: "Facebook" },
+    { 
+      icon: () => (
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+        </svg>
+      ),
+      href: "https://tiktok.com/@skinlabsza",
+      label: "TikTok"
+    },
   ];
 
   return (
@@ -27,6 +52,16 @@ const Footer = () => {
               Next generation skincare technology for radiant, healthy skin. 
               Powered by science and AI.
             </p>
+            
+            {/* Contact Information */}
+            <div className="mb-6">
+              <p className="text-sm font-semibold text-background mb-3">Contact Us</p>
+              <div className="space-y-2 text-sm text-background/70">
+                <p>Email: <a href="mailto:support@skinlabs.co.za" className="hover:text-background">support@skinlabs.co.za</a></p>
+                <p>Phone: <a href="tel:+27128806560" className="hover:text-background">+27 12 880 6560</a></p>
+                <p>WhatsApp: <a href="https://wa.me/27680200749" className="hover:text-background">+27 68 020 0749</a></p>
+              </div>
+            </div>
             
             {/* App Store Badges */}
             <div className="mb-6">
@@ -56,7 +91,10 @@ const Footer = () => {
                 <a
                   key={i}
                   href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
+                  aria-label={social.label}
                 >
                   <social.icon className="h-5 w-5" />
                 </a>
@@ -69,10 +107,10 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Shop</h4>
             <ul className="space-y-2">
               {links.shop.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -83,10 +121,10 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               {links.company.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -97,10 +135,10 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2">
               {links.support.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -113,9 +151,9 @@ const Footer = () => {
             © {new Date().getFullYear()} SKINLABS. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-background/50">
-            <a href="#" className="hover:text-background transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-background transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-background transition-colors">Cookie Policy</a>
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
           </div>
         </div>
       </div>
