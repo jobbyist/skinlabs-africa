@@ -52,7 +52,7 @@ export const useAuth = () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/#ai-formulator`,
+        redirectTo: `${window.location.origin}/ai-formulator`,
       },
     });
     return { data, error };

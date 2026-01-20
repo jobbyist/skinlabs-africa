@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ const SubscriptionPaywallModal = ({
 
   const benefits = [
     { icon: Sparkles, text: "AI-powered personalized skincare routine" },
+    { icon: Mail, text: "Email delivery of your full routine" },
     { icon: Users, text: "Dermatologist approved recommendations" },
     { icon: Truck, text: "Customized skincare kits delivered monthly" },
     { icon: Shield, text: "30-day money-back guarantee" },
@@ -302,7 +304,15 @@ const SubscriptionPaywallModal = ({
             </div>
 
             <p className="text-xs text-center text-muted-foreground mt-4">
-              By subscribing, you agree to our Terms of Service and Privacy Policy.
+              By subscribing, you agree to our{" "}
+              <Link to="/terms-of-service" className="text-primary hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link to="/privacy-policy" className="text-primary hover:underline">
+                Privacy Policy
+              </Link>
+              .
             </p>
           </>
         )}

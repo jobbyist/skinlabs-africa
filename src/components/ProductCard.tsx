@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ShoppingBag, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,8 +40,11 @@ const ProductCard = ({
           size="icon"
           variant="secondary"
           className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+          asChild
         >
-          <ShoppingBag className="h-4 w-4" />
+          <Link to="/products" aria-label={`View ${name}`}>
+            <ShoppingBag className="h-4 w-4" />
+          </Link>
         </Button>
       </div>
 

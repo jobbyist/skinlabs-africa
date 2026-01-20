@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Sparkles, ShoppingCart, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import edibleSkincareImage from "@/assets/mockups/8D790EEC-CCBE-4E0A-8286-917092BB7A1D.png";
@@ -87,12 +88,16 @@ const EdibleSkincare = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Pre-Order Now
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/edible-skincare">
+                  <ShoppingCart className="h-5 w-5" />
+                  Pre-Order Now
+                </Link>
               </Button>
-              <Button size="lg" variant="outline">
-                Learn More
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/edible-skincare">
+                  Learn More
+                </Link>
               </Button>
             </div>
           </div>

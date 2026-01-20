@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
@@ -58,6 +59,8 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRecommendation, setSelectedRecommendation] = useState<Recommendation | null>(null);
+  const totalMilestones = 5;
+  const journeyProgress = Math.min((recommendations.length / totalMilestones) * 100, 100);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -223,6 +226,58 @@ const Dashboard = () => {
             )}
           </Card>
 
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <CardTitle>Skincare Journey Tracker</CardTitle>
+                  <CardDescription>
+                    {recommendations.length === 0
+                      ? "Start your first routine to begin tracking progress."
+                      : `You have ${recommendations.length} AI routines logged.`}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                  <span>Journey milestones</span>
+                  <span>{Math.min(recommendations.length, totalMilestones)} / {totalMilestones}</span>
+                </div>
+                <Progress value={journeyProgress} className="h-2" />
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-muted-foreground">Latest routine</p>
+                  <p className="font-medium text-card-foreground">
+                    {recommendations[0] ? formatDate(recommendations[0].created_at) : "Not yet"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-muted-foreground">Email delivery</p>
+                  <p className="font-medium text-card-foreground">
+                    {profile?.email || user?.email || "Add on next subscription"}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-muted-foreground">Next check-in</p>
+                  <p className="font-medium text-card-foreground">
+                    {recommendations[0]
+                      ? `${new Date(new Date(recommendations[0].created_at).getTime() + 1000 * 60 * 60 * 24 * 30).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}`
+                      : "After your first routine"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Recommendations List */}
             <div className="lg:col-span-1 space-y-4">
@@ -235,7 +290,7 @@ const Dashboard = () => {
                   <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground mb-4">No recommendations yet</p>
                   <Button asChild>
-                    <Link to="/#ai-formulator">
+                    <Link to="/ai-formulator">
                       Get Your First Routine
                     </Link>
                   </Button>
@@ -381,9 +436,9 @@ const Dashboard = () => {
                         Shop our recommended products to achieve your best skin.
                       </p>
                       <Button asChild>
-                        <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
+                        <Link to="/products">
                           Shop Recommended Products
-                        </a>
+                        </Link>
                       </Button>
                     </div>
                   </CardContent>
