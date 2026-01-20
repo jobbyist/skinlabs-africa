@@ -2,9 +2,6 @@ import episode1 from "@/assets/hero-skincare.jpg";
 import episode2 from "@/assets/hero-body-oils.png";
 import episode3 from "@/assets/product-led-mask.jpg";
 import episode4 from "@/assets/product-microcurrent.jpg";
-import episode5 from "@/assets/product-serum.jpg";
-import episode6 from "@/assets/product-ultrasonic.jpg";
-import episode7 from "@/assets/newskinlabs.png";
 
 export const podcastEpisodes = [
   {
@@ -55,34 +52,5 @@ export const podcastEpisodes = [
       "Episode four is all about ingredient drama. We separate facts from fear around retinoids, acids, and preservatives, and explain how to read labels with confidence. You will walk away knowing which ingredients to prioritize for your goals and skin type.",
     duration: "19 min",
   },
-  {
-    id: 5,
-    title: "Episode 5: Luxury vs Dupe",
-    image: episode5,
-    description:
-      "Is prestige skincare worth it? We compare luxury formulas to accessible alternatives and reveal when splurging makes a real difference.",
-    audioScript:
-      "In episode five we compare luxury skincare with smart dupes. We analyze formulation quality, packaging stability, and the actives that justify a splurge. Plus, we share wallet-friendly swaps that still deliver visible results.",
-    duration: "21 min",
-  },
-  {
-    id: 6,
-    title: "Episode 6: Beauty Tech",
-    image: episode6,
-    description:
-      "A tour of the latest beauty devices, from LED masks to microcurrent tools, with expert advice on how to use them safely at home.",
-    audioScript:
-      "Episode six explores beauty tech. We break down LED masks, microcurrent tools, and ultrasonic devices, along with safe at-home routines that maximize results. Learn which features matter, how often to use them, and who should skip them.",
-    duration: "24 min",
-  },
-  {
-    id: 7,
-    title: "Episode 7: Skincare Addiction",
-    image: episode7,
-    description:
-      "When does a routine become too much? We discuss skinimalism, mindful shopping, and building a sustainable ritual that actually works.",
-    audioScript:
-      "In episode seven we talk about skincare addiction and skinimalism. We explore how to simplify routines, avoid overbuying, and create a sustainable ritual that still meets your goals. Expect mindset tips and practical product edits.",
-    duration: "17 min",
-  },
+
 ];
