@@ -121,8 +121,9 @@ const EdibleSkincare = () => {
                   <div className="space-y-4">
                     <AudioNarrationPlayer
                       label="Audio overview"
+                      audioSrc="/pouches.m4a"
                       text={edibleNarration}
-                      supportingText="Press play for a narrated summary of the upcoming offering."
+                      supportingText="Press play to listen to the audio overview."
                     />
                     <div className="rounded-2xl border border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
                       <p className="font-medium text-foreground mb-2">What to expect</p>

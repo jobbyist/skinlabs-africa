@@ -65,8 +65,9 @@ const PodcastSection = ({
               </div>
               <AudioNarrationPlayer
                 label="Episode audio"
+                audioSrc={episode.audioFile}
                 text={episode.audioScript}
-                supportingText="Listen to a narrated preview of this episode."
+                supportingText="Listen to this episode."
               />
             </article>
           ))}
