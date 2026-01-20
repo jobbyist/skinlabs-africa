@@ -1,32 +1,21 @@
-const podcastData = [
-    { 
-        episode: 1, 
-        title: "Beef Tallow Skincare: Miracle or Major Risk?", 
-        description: "Unpacking the TikTok Trend.", 
-        image: "/public/IMG_3749.png",
-        audio: "/public/Ep 1 - Beef_Tallow_Skincare_Miracle_or_Major_Risk_Unpacking_the_TikTok_Trend.mp3",
+export const podcastEpisodes = [
+    {
+        title: 'Episode 1',
+        imageUrl: '/IMG_3749.png',
+        audioUrl: '/Ep 1 - Beef_Tallow_Skincare_Miracle_or_Major_Risk_Unpacking_the_TikTok_Trend.mp3',
+        description: 'Description for Episode 1',
     },
-    // other episodes...
+    {
+        title: 'Episode 2',
+        imageUrl: 'placeholder_image_url',
+        audioUrl: 'placeholder_audio_url',
+        description: 'Description for Episode 2',
+    },
+    {
+        title: 'Episode 3',
+        imageUrl: 'placeholder_image_url',
+        audioUrl: 'placeholder_audio_url',
+        description: 'Description for Episode 3',
+    },
+    // Add more episodes as needed, maintaining structure
 ];
-
-const PodcastSection = () => {
-    return (
-        <section>
-            {podcastData.map(episode => (
-                <div key={episode.episode}>
-                    <h3>{episode.title}</h3>
-                    <p>{episode.description}</p>
-                    {episode.episode === 1 && (
-                        <audio controls>
-                            <source src={episode.audio} type="audio/mpeg" />
-                            Your browser does not support the audio element.
-                        </audio>
-                    )}
-                    {episode.episode !== 1 && <img src={episode.image} alt={episode.title}/>}  
-                </div>
-            ))}
-        </section>
-    );
-};
-
-export default PodcastSection;
