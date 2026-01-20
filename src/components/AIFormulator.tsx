@@ -769,6 +769,15 @@ const AIFormulator = () => {
           previewContent={recommendation}
           skinType={skinType}
           concerns={selectedConcerns}
+          age={age}
+          lifestyle={lifestyle}
+          environment={environment}
+          currentProducts={currentProducts}
+          allergies={allergies}
+          onSubscriptionComplete={() => {
+            setHasSubscription(true);
+            setStep(7);
+          }}
         />
       )}
     </>
