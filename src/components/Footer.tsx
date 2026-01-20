@@ -4,16 +4,34 @@ import logo from "@/assets/skinlabs-logo-white.svg";
 
 const Footer = () => {
   const links = {
-    shop: ["All Products", "Devices", "Serums", "Custom Formulas", "Gift Sets"],
-    company: ["About Us", "Our Science", "Sustainability", "Careers", "Press"],
-    support: ["Contact", "FAQ", "Shipping", "Returns", "Track Order"],
+    shop: [
+      { label: "All Products", href: "/shop/all-products" },
+      { label: "Devices", href: "/shop/devices" },
+      { label: "Serums", href: "/shop/serums" },
+      { label: "Custom Formulas", href: "/shop/custom-formulas" },
+      { label: "Gift Sets", href: "/shop/gift-sets" },
+    ],
+    company: [
+      { label: "About Us", href: "/about" },
+      { label: "Our Science", href: "/company/our-science" },
+      { label: "Sustainability", href: "/company/sustainability" },
+      { label: "Careers", href: "/company/careers" },
+      { label: "Press", href: "/company/press" },
+    ],
+    support: [
+      { label: "Contact", href: "/contact" },
+      { label: "FAQ", href: "/support/faq" },
+      { label: "Shipping", href: "/support/shipping" },
+      { label: "Returns", href: "/support/returns" },
+      { label: "Track Order", href: "/support/track-order" },
+    ],
   };
 
   const socials = [
-    { icon: Instagram, href: "#" },
-    { icon: Twitter, href: "#" },
-    { icon: Facebook, href: "#" },
-    { icon: Youtube, href: "#" },
+    { icon: Instagram, href: "/social/instagram" },
+    { icon: Twitter, href: "/social/twitter" },
+    { icon: Facebook, href: "/social/facebook" },
+    { icon: Youtube, href: "/social/youtube" },
   ];
 
   return (
@@ -53,13 +71,13 @@ const Footer = () => {
             
             <div className="flex gap-4">
               {socials.map((social, i) => (
-                <a
+                <Link
                   key={i}
-                  href={social.href}
+                  to={social.href}
                   className="w-10 h-10 rounded-full bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
                 >
                   <social.icon className="h-5 w-5" />
-                </a>
+                </Link>
               ))}
             </div>
           </div>
@@ -69,10 +87,13 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Shop</h4>
             <ul className="space-y-2">
               {links.shop.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-background/70 hover:text-background transition-colors"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -83,10 +104,13 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               {links.company.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-background/70 hover:text-background transition-colors"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -97,10 +121,13 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2">
               {links.support.map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link}
-                  </a>
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-background/70 hover:text-background transition-colors"
+                  >
+                    {link.label}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -113,9 +140,9 @@ const Footer = () => {
             © {new Date().getFullYear()} SKINLABS. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-background/50">
-            <a href="#" className="hover:text-background transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-background transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-background transition-colors">Cookie Policy</a>
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
           </div>
         </div>
       </div>

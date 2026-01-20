@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Link } from "react-router-dom";
 import { 
   Sparkles, 
   ChevronRight, 
@@ -688,10 +689,10 @@ const AIFormulator = () => {
 
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button size="lg" className="gap-2" asChild>
-                      <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
+                      <Link to="/products">
                         Shop Recommended Products
                         <ChevronRight className="h-4 w-4" />
-                      </a>
+                      </Link>
                     </Button>
                     <Button variant="outline" size="lg" onClick={resetFormulator}>
                       Start Over
