@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ShoppingBag, Sparkles } from "lucide-react";
+import { Menu, X, ShoppingBag, Sparkles, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LanguageCurrencySelector from "@/components/LanguageCurrencySelector";
 import CurrencyConverter from "@/components/CurrencyConverter";
+import { useAuth } from "@/hooks/use-auth";
 import logo from "@/assets/newskinlabs.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useAuth();
 
   const navLinks = [
     { label: "Products", href: "#products" },
@@ -36,21 +38,40 @@ const Header = () => {
                 {link.label}
               </a>
             ))}
+            {user && (
+              <Link
+                to="/dashboard"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Dashboard
+              </Link>
+            )}
           </nav>
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
             <LanguageCurrencySelector />
             <CurrencyConverter />
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingBag className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                0
-              </span>
+            {user && (
+              <Button variant="ghost" size="icon" asChild>
+                <Link to="/dashboard">
+                  <LayoutDashboard className="h-5 w-5" />
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="relative" asChild>
+              <a href="https://shop.skinlabs.co.za/cart" target="_blank" rel="noopener noreferrer">
+                <ShoppingBag className="h-5 w-5" />
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                  0
+                </span>
+              </a>
             </Button>
-            <Button variant="default" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Get Started
+            <Button variant="default" className="gap-2" asChild>
+              <a href="#ai-formulator">
+                <Sparkles className="h-4 w-4" />
+                Get Started
+              </a>
             </Button>
           </div>
 
@@ -77,15 +98,26 @@ const Header = () => {
                   {link.label}
                 </a>
               ))}
+              {user && (
+                <Link
+                  to="/dashboard"
+                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dashboard
+                </Link>
+              )}
               <div className="pt-2 border-t border-border">
                 <LanguageCurrencySelector />
               </div>
               <div className="pt-2">
                 <CurrencyConverter />
               </div>
-              <Button variant="default" className="w-full gap-2 mt-2">
-                <Sparkles className="h-4 w-4" />
-                Get Started
+              <Button variant="default" className="w-full gap-2 mt-2" asChild>
+                <a href="#ai-formulator" onClick={() => setIsMenuOpen(false)}>
+                  <Sparkles className="h-4 w-4" />
+                  Get Started
+                </a>
               </Button>
             </nav>
           </div>
