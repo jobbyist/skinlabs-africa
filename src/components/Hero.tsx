@@ -1,6 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-skincare.jpg";
+import heroImage from "@/assets/hero-body-oils.png";
 
 const Hero = () => {
   return (
@@ -77,7 +77,7 @@ const Hero = () => {
             <div className="relative rounded-2xl overflow-hidden shadow-2xl">
               <img
                 src={heroImage}
-                alt="Premium skincare products"
+                alt="SKINLABS Classic Body Oil Serums - Plant-powered formulations"
                 className="w-full h-auto object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent" />
