@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { Link } from "react-router-dom";
 import { 
   Sparkles, 
   ChevronRight, 
@@ -689,10 +688,10 @@ const AIFormulator = () => {
 
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button size="lg" className="gap-2" asChild>
-                      <Link to="/products">
+                      <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
                         Shop Recommended Products
                         <ChevronRight className="h-4 w-4" />
-                      </Link>
+                      </a>
                     </Button>
                     <Button variant="outline" size="lg" onClick={resetFormulator}>
                       Start Over
@@ -770,15 +769,6 @@ const AIFormulator = () => {
           previewContent={recommendation}
           skinType={skinType}
           concerns={selectedConcerns}
-          age={age}
-          lifestyle={lifestyle}
-          environment={environment}
-          currentProducts={currentProducts}
-          allergies={allergies}
-          onSubscriptionComplete={() => {
-            setHasSubscription(true);
-            setStep(7);
-          }}
         />
       )}
     </>

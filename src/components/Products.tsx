@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
 import FeaturedCheckout from "@/components/FeaturedCheckout";
 import productLedMask from "@/assets/product-led-mask.jpg";
@@ -73,13 +72,13 @@ const Products = () => {
 
         {/* View all link */}
         <div className="text-center mt-10">
-          <Link
-            to="/products"
+          <a
+            href="#"
             className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
           >
             View All Products
             <span aria-hidden="true">→</span>
-          </Link>
+          </a>
         </div>
       </div>
     </section>

@@ -98,15 +98,12 @@ const EdibleSkincare = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="gap-2" asChild>
-                <a
-                  href="https://shop.skinlabs.co.za/collections/edible-pouches"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  Pre-Order Now
-                </a>
+              <Button size="lg" className="gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Pre-Order Now
+              </Button>
+              <Button size="lg" variant="outline">
+                Learn More
               </Button>
               <Dialog>
                 <DialogTrigger asChild>
