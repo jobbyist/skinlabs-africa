@@ -4,6 +4,7 @@ import { Menu, X, ShoppingBag, Sparkles, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import logo from "@/assets/newskinlabs.png";
+import CurrencyConverter from "@/components/CurrencyConverter";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,6 +49,7 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
+            <CurrencyConverter />
             {user && (
               <Button variant="ghost" size="icon" asChild>
                 <Link to="/dashboard">
@@ -103,6 +105,7 @@ const Header = () => {
                   Dashboard
                 </Link>
               )}
+              <CurrencyConverter />
               <Button variant="default" className="w-full gap-2 mt-2" asChild>
                 <Link to="/ai-formulator" onClick={() => setIsMenuOpen(false)}>
                   <Sparkles className="h-4 w-4" />
