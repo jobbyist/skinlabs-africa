@@ -1,6 +1,4 @@
-import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
-import FeaturedCheckout from "@/components/FeaturedCheckout";
 import productLedMask from "@/assets/product-led-mask.jpg";
 import productUltrasonic from "@/assets/product-ultrasonic.jpg";
 import productMicrocurrent from "@/assets/product-microcurrent.jpg";
@@ -62,6 +60,22 @@ const Products = () => {
           </p>
         </div>
 
+        {/* Category tabs */}
+        <div className="flex justify-center gap-4 mb-10">
+          {["All", "Devices", "Serums", "Custom"].map((tab, index) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                index === 0
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-muted-foreground hover:text-foreground border border-border"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
         {/* Products grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.map((product) => (
@@ -69,17 +83,15 @@ const Products = () => {
           ))}
         </div>
 
-        <FeaturedCheckout products={products} />
-
         {/* View all link */}
         <div className="text-center mt-10">
-          <Link
-            to="/products"
+          <a
+            href="#"
             className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
           >
             View All Products
             <span aria-hidden="true">→</span>
-          </Link>
+          </a>
         </div>
       </div>
     </section>

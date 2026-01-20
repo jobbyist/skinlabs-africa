@@ -1,15 +1,6 @@
 import { Sparkles, ShoppingCart, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import AudioNarrationPlayer from "@/components/AudioNarrationPlayer";
-import edibleSkincareImage from "@/assets/hero-skincare.jpg";
+import edibleSkincareImage from "@/assets/mockups/8D790EEC-CCBE-4E0A-8286-917092BB7A1D.png";
 
 const EdibleSkincare = () => {
   const flavors = [
@@ -28,8 +19,6 @@ const EdibleSkincare = () => {
   ];
 
   const retailers = ["Takealot", "Amazon", "Other Retail Outlets"];
-  const edibleNarration =
-    "Skinlabs edible skincare pouches are designed for glow-from-within rituals. Each pouch blends organic botanicals, skin-supporting vitamins, and hydration boosters to help calm breakouts, strengthen the skin barrier, and support radiant texture. Expect delicious flavors, sugar-conscious formulas, and clinically guided routines created by the Skinlabs team. Pre-orders open soon, and early access members will receive launch bundles and guided plans tailored to their skin goals.";
 
   return (
     <section id="edible-skincare" className="py-20 bg-gradient-to-b from-background to-secondary/30">
@@ -98,47 +87,13 @@ const EdibleSkincare = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="gap-2" asChild>
-                <a
-                  href="https://shop.skinlabs.co.za/collections/edible-pouches"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  Pre-Order Now
-                </a>
+              <Button size="lg" className="gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                Pre-Order Now
               </Button>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="lg" variant="outline">
-                    Learn More
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Edible Skincare Pouches Preview</DialogTitle>
-                    <DialogDescription>
-                      Listen to the narrated breakdown and review the highlights below.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <AudioNarrationPlayer
-                      label="Audio overview"
-                      text={edibleNarration}
-                      supportingText="Press play for a narrated summary of the upcoming offering."
-                    />
-                    <div className="rounded-2xl border border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
-                      <p className="font-medium text-foreground mb-2">What to expect</p>
-                      <ul className="list-disc list-inside space-y-2">
-                        <li>Organic botanical blends crafted for daily skin support.</li>
-                        <li>Glow-focused nutrients like vitamin C, zinc, and collagen allies.</li>
-                        <li>Flavor-forward pouches designed for consistent routines.</li>
-                        <li>Early access bundles and guided usage plans.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button size="lg" variant="outline">
+                Learn More
+              </Button>
             </div>
           </div>
 

@@ -6,7 +6,6 @@ import EdibleSkincare from "@/components/EdibleSkincare";
 import AIFormulator from "@/components/AIFormulator";
 import Features from "@/components/Features";
 import Newsletter from "@/components/Newsletter";
-import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
 import MaintenanceModal from "@/components/MaintenanceModal";
@@ -33,7 +32,6 @@ const Index = () => {
           <AIFormulator />
           <Features />
           <Newsletter />
-          <PodcastSection />
         </main>
         <Footer />
         <CookieConsent />
