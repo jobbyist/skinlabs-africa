@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ interface AudioNarrationPlayerProps {
 const AudioNarrationPlayer = ({ label, text, supportingText }: AudioNarrationPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSupported, setIsSupported] = useState(true);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   useEffect(() => {
     setIsSupported(typeof window !== "undefined" && "speechSynthesis" in window);
@@ -41,6 +42,7 @@ const AudioNarrationPlayer = ({ label, text, supportingText }: AudioNarrationPla
     utterance.pitch = 1;
     utterance.onend = () => setIsPlaying(false);
     utterance.onerror = () => setIsPlaying(false);
+    utteranceRef.current = utterance;
     window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
   };
