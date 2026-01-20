@@ -52,7 +52,7 @@ const GetStarted = () => {
                       <span className="text-sm font-medium text-primary">Premium Membership</span>
                     </div>
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="text-5xl font-bold text-foreground">$4.99</span>
+                      <span className="text-5xl font-bold text-foreground">R49.99</span>
                       <span className="text-muted-foreground">/month</span>
                     </div>
                     <p className="text-sm text-muted-foreground">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 const BrandCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -25,13 +25,13 @@ const BrandCarousel = () => {
     return () => clearInterval(interval);
   }, [brands.length]);
 
-  const getVisibleBrands = () => {
+  const getVisibleBrands = useMemo(() => {
     const visible = [];
     for (let i = 0; i < 5; i++) {
       visible.push(brands[(currentIndex + i) % brands.length]);
     }
     return visible;
-  };
+  }, [currentIndex, brands.length]);
 
   return (
     <section className="py-16 bg-gradient-to-b from-background to-secondary/10">
@@ -51,7 +51,7 @@ const BrandCarousel = () => {
 
         <div className="relative overflow-hidden">
           <div className="flex gap-6 justify-center items-center">
-            {getVisibleBrands().map((brand, index) => (
+            {getVisibleBrands.map((brand, index) => (
               <div
                 key={`${brand.name}-${index}`}
                 className="flex-shrink-0 w-48 h-32 rounded-xl shadow-lg flex items-center justify-center transition-all duration-500 hover:scale-105"
