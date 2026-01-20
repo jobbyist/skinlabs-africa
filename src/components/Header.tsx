@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import LanguageCurrencySelector from "@/components/LanguageCurrencySelector";
 import CurrencyConverter from "@/components/CurrencyConverter";
 import logo from "@/assets/newskinlabs.png";
+import CurrencyConverter from "@/components/CurrencyConverter";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
