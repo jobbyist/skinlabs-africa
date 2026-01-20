@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ShoppingBag, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useCurrency } from "@/hooks/use-currency";
 
 interface ProductCardProps {
   name: string;
@@ -22,6 +23,7 @@ const ProductCard = ({
   rating,
   badge,
 }: ProductCardProps) => {
+  const { formatPrice } = useCurrency();
   return (
     <div className="group bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300">
       {/* Image container */}
@@ -71,11 +73,11 @@ const ProductCard = ({
         {/* Price */}
         <div className="flex items-center gap-2 pt-1">
           <span className="font-semibold text-card-foreground">
-            ${price.toFixed(2)}
+            {formatPrice(price)}
           </span>
           {originalPrice && (
             <span className="text-sm text-muted-foreground line-through">
-              ${originalPrice.toFixed(2)}
+              {formatPrice(originalPrice)}
             </span>
           )}
         </div>
