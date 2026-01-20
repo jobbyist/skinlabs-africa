@@ -32,6 +32,8 @@ const AudioNarrationPlayer = ({ label, text, audioSrc, supportingText }: AudioNa
       }
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current.load();
         audioRef.current = null;
       }
     };
@@ -48,7 +50,7 @@ const AudioNarrationPlayer = ({ label, text, audioSrc, supportingText }: AudioNa
   };
 
   const startPlayback = () => {
-    if (useAudioFile) {
+    if (useAudioFile && audioSrc) {
       if (!audioRef.current) {
         audioRef.current = new Audio(audioSrc);
         audioRef.current.addEventListener("timeupdate", () => {
@@ -71,8 +73,8 @@ const AudioNarrationPlayer = ({ label, text, audioSrc, supportingText }: AudioNa
       }
       audioRef.current.play();
       setIsPlaying(true);
-    } else {
-      if (typeof window === "undefined" || !("speechSynthesis" in window) || !text) {
+    } else if (text) {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         return;
       }
 
