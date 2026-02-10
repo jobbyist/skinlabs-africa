@@ -44,7 +44,7 @@ export const podcastEpisodes = [
     id: 4,
     title: "Episode 4: Ingredient Drama",
     image: episode4,
-    thumbnail: "/ep4skinlabs.jpg",
+    thumbnail: "/ep4skinlabs.PNG",
     audioFile: "/ep4skinlabs.mp3",
     description:
       "We separate facts from fear around buzzy ingredients like retinoids, acids, and preservatives, and explain how to read labels with confidence.",
