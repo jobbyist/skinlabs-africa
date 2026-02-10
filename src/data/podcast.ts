@@ -1,7 +1,7 @@
-import episode1 from "@/assets/hero-skincare.jpg";
-import episode2 from "@/assets/hero-body-oils.png";
-import episode3 from "@/assets/product-led-mask.jpg";
-import episode4 from "@/assets/product-microcurrent.jpg";
+import episode1 from "@/assets/ep1skinlabs.PNG";
+import episode2 from "@/assets/ep2skinlabs.PNG";
+import episode3 from "@/assets/ep3skinlabs.PNG";
+import episode4 from "@/assets/ep4skinlabs.PNG";
 
 export const podcastEpisodes = [
   {
