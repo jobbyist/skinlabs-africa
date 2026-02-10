@@ -10,6 +10,7 @@ interface SubscriptionPaywallModalProps {
   previewContent: string;
   skinType: string;
   concerns: string[];
+  onPaymentSuccess?: () => void;
 }
 
 const SubscriptionPaywallModal = ({
@@ -18,30 +19,34 @@ const SubscriptionPaywallModal = ({
   previewContent,
   skinType,
   concerns,
+  onPaymentSuccess,
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleSubscribe = () => {
     setIsProcessing(true);
-    // For now, redirect to a placeholder payment page
-    // In production, this would integrate with Stripe
+    // PayFast integration will be connected here
+    // For now, simulate and call onPaymentSuccess
     setTimeout(() => {
-      window.open("https://shop.skinlabs.co.za/pages/subscribe", "_blank");
       setIsProcessing(false);
+      if (onPaymentSuccess) {
+        onPaymentSuccess();
+      } else {
+        window.open("https://shop.skinlabs.co.za/pages/subscribe", "_blank");
+      }
     }, 500);
   };
 
   const benefits = [
     { icon: Sparkles, text: "AI-powered personalized skincare routine" },
-    { icon: Users, text: "Dermatologist approved recommendations" },
-    { icon: Truck, text: "Customized skincare kits delivered monthly" },
+    { icon: Users, text: "Dermatologist-reviewed recommendations" },
+    { icon: Truck, text: "Customized skincare kits delivered to your door" },
     { icon: Shield, text: "30-day money-back guarantee" },
   ];
 
-  // Show only first part of the recommendation as a teaser
   const getPreviewSnippet = () => {
-    const lines = previewContent.split('\n').slice(0, 6);
-    return lines.join('\n') + '\n\n...';
+    const lines = previewContent.split("\n").slice(0, 6);
+    return lines.join("\n") + "\n\n...";
   };
 
   return (
@@ -52,7 +57,7 @@ const SubscriptionPaywallModal = ({
             <Crown className="h-8 w-8 text-primary" />
           </div>
           <DialogTitle className="text-2xl font-heading">
-            Unlock Your Full Skincare Routine
+            Unlock Your Full Skincare Report
           </DialogTitle>
           <DialogDescription className="text-base">
             Your personalized {skinType} skin routine is ready!
@@ -64,16 +69,15 @@ const SubscriptionPaywallModal = ({
           <div className="text-sm text-muted-foreground whitespace-pre-line">
             {getPreviewSnippet()}
           </div>
-          {/* Blur overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent flex items-end justify-center pb-4">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Lock className="h-4 w-4" />
-              <span className="text-sm font-medium">Subscribe to unlock full routine</span>
+              <span className="text-sm font-medium">Subscribe to unlock full report</span>
             </div>
           </div>
         </div>
 
-        {/* Concerns addressed */}
+        {/* Concerns */}
         <div className="flex flex-wrap gap-2 justify-center mb-4">
           {concerns.slice(0, 3).map((concern) => (
             <Badge key={concern} variant="secondary" className="text-xs">
@@ -87,7 +91,7 @@ const SubscriptionPaywallModal = ({
           )}
         </div>
 
-        {/* Benefits list */}
+        {/* Benefits */}
         <div className="space-y-3 mb-6">
           {benefits.map((benefit, index) => (
             <div key={index} className="flex items-center gap-3">
@@ -102,7 +106,7 @@ const SubscriptionPaywallModal = ({
         {/* Pricing */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center mb-4">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold text-primary">$4.99</span>
+            <span className="text-4xl font-bold text-primary">R99</span>
             <span className="text-muted-foreground">/month</span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -111,9 +115,9 @@ const SubscriptionPaywallModal = ({
         </div>
 
         {/* CTA */}
-        <Button 
-          size="lg" 
-          className="w-full gap-2" 
+        <Button
+          size="lg"
+          className="w-full gap-2"
           onClick={handleSubscribe}
           disabled={isProcessing}
         >
@@ -122,7 +126,7 @@ const SubscriptionPaywallModal = ({
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Subscribe & Unlock My Routine
+              Subscribe & Unlock My Report
             </>
           )}
         </Button>
@@ -135,7 +139,7 @@ const SubscriptionPaywallModal = ({
           </div>
           <div className="flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3" />
-            <span>Dermatologist Approved</span>
+            <span>Dermatologist Reviewed</span>
           </div>
         </div>
       </DialogContent>
