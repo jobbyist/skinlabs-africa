@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import type { User, Session } from "@supabase/supabase-js";
 
 export const useAuth = () => {
@@ -8,17 +9,17 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Listen for auth changes first
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Then get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -39,6 +40,9 @@ export const useAuth = () => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
     });
     return { data, error };
   };
@@ -48,14 +52,11 @@ export const useAuth = () => {
     return { error };
   };
 
-  const signInWithOAuth = async (provider: "google" | "github") => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/#ai-formulator`,
-      },
+  const signInWithOAuth = async (provider: "google" | "apple") => {
+    const { error } = await lovable.auth.signInWithOAuth(provider, {
+      redirect_uri: window.location.origin,
     });
-    return { data, error };
+    return { data: null, error: error || null };
   };
 
   return {

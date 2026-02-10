@@ -51,7 +51,10 @@ export type Database = {
         Row: {
           age_range: string | null
           allergies: string | null
+          book_consultation: boolean | null
           concerns: string[]
+          contact_name: string | null
+          contact_whatsapp: string | null
           created_at: string
           current_products: string | null
           email_sent_to: string | null
@@ -60,12 +63,16 @@ export type Database = {
           lifestyle: string | null
           recommendation: string
           skin_type: string
+          status: string
           user_id: string
         }
         Insert: {
           age_range?: string | null
           allergies?: string | null
+          book_consultation?: boolean | null
           concerns: string[]
+          contact_name?: string | null
+          contact_whatsapp?: string | null
           created_at?: string
           current_products?: string | null
           email_sent_to?: string | null
@@ -74,12 +81,16 @@ export type Database = {
           lifestyle?: string | null
           recommendation: string
           skin_type: string
+          status?: string
           user_id: string
         }
         Update: {
           age_range?: string | null
           allergies?: string | null
+          book_consultation?: boolean | null
           concerns?: string[]
+          contact_name?: string | null
+          contact_whatsapp?: string | null
           created_at?: string
           current_products?: string | null
           email_sent_to?: string | null
@@ -88,6 +99,7 @@ export type Database = {
           lifestyle?: string | null
           recommendation?: string
           skin_type?: string
+          status?: string
           user_id?: string
         }
         Relationships: []

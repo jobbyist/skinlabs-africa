@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -18,73 +18,89 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Support both legacy format and new quiz format
     let userPrompt: string;
 
     if (body.quizAnswers) {
-      // New 20-question quiz format
-      const { quizAnswers, skinImage } = body;
-      console.log("Generating skincare recommendations from quiz answers:", quizAnswers.length, "questions");
+      const { quizAnswers, skinImage, contactName } = body;
+      console.log("Generating skincare recommendations from quiz:", quizAnswers.length, "questions");
 
       const answersText = quizAnswers
         .map((qa: { question: string; answer: string }) => `- ${qa.question}\n  Answer: ${qa.answer}`)
         .join("\n");
 
-      userPrompt = `Create a personalized skincare routine based on the following skin profile quiz answers:
+      userPrompt = `Create a comprehensive, personalized skincare report for ${contactName || "this person"} based on the following skin assessment quiz:
 
 ${answersText}
 
 ${skinImage ? "- A skin image was provided for visual reference" : ""}
 
-Based on these answers, provide:
-1. A skin type assessment (oily, dry, combination, sensitive, normal, or dehydrated)
-2. Top skin concerns identified from the answers
-3. A complete morning routine (4-6 steps) with specific product types and key ingredients
-4. A complete evening routine (4-6 steps) with specific product types and key ingredients
-5. Key active ingredients to look for based on their profile
-6. One weekly treatment recommendation
-7. Important notes and lifestyle tips specific to their needs
+Generate a detailed report with EXACTLY these sections:
 
-Be specific with product recommendations from our SKINLABS collection when possible. Remember to remind them to consult a dermatologist for any medical skin conditions.`;
+## 1. SKIN PROFILE
+- Skin type classification (oily/dry/combination/sensitive/normal/dehydrated)
+- Dehydration status assessment
+- Sensitivity & barrier status
+- Acne risk flags
+- Pigmentation risk flags
+- Aging risk flags
+
+## 2. MORNING ROUTINE (AM)
+Provide exact step-by-step order (4-6 steps) with:
+- Step number
+- Product type (e.g., gentle foaming cleanser)
+- Key ingredients to look for
+- Brief reason why
+
+## 3. EVENING ROUTINE (PM)
+Provide exact step-by-step order (4-6 steps) with same detail as AM.
+
+## 4. ACTIVES SCHEDULE
+- Week 1-2: Introduction plan
+- Week 3-4: Building tolerance
+- Ongoing: Maintenance
+- IMPORTANT: List what actives NOT to combine
+
+## 5. PRODUCT-TYPE RECOMMENDATIONS
+Based on their climate, budget, and sensitivity:
+- Cleanser type recommendation
+- Moisturizer texture recommendation
+- SPF format recommendation
+- Active ingredient recommendations
+- Adapted to their specific constraints
+
+## 6. IMPORTANT NOTES
+- Lifestyle-specific tips
+- Reminder to consult a licensed dermatologist for medical skin conditions
+- Note that this report is AI-generated and reviewed by skincare professionals
+
+Keep the tone warm, professional, and encouraging. Be specific with product type recommendations from the SKINLABS collection when possible.`;
     } else {
-      // Legacy format
       const { skinType, concerns, age, lifestyle, environment, currentProducts, allergies, skinImage } = body;
-      console.log("Generating skincare recommendations for:", { skinType, concerns, age, lifestyle, environment });
+      console.log("Generating skincare recommendations (legacy):", { skinType, concerns });
 
-      userPrompt = `Create a personalized skincare routine for someone with the following profile:
+      userPrompt = `Create a personalized skincare routine for someone with:
 - Skin Type: ${skinType}
-- Main Concerns: ${concerns.join(", ")}
-- Age Range: ${age || "Not specified"}
+- Concerns: ${concerns?.join(", ") || "Not specified"}
+- Age: ${age || "Not specified"}
 - Lifestyle: ${lifestyle || "Not specified"}
 - Environment: ${environment || "Not specified"}
 - Current Products: ${currentProducts || "Not specified"}
-- Known Allergies/Sensitivities: ${allergies || "None specified"}
-${skinImage ? "- A skin image was provided for visual reference" : ""}
+- Allergies: ${allergies || "None"}
+${skinImage ? "- Skin image provided" : ""}
 
-Provide:
-1. A complete morning routine (4-6 steps)
-2. A complete evening routine (4-6 steps)
-3. Key ingredients to look for based on their concerns and profile
-4. One weekly treatment recommendation
-5. Important notes about their specific needs
-
-Be specific with product recommendations from our SKINLABS collection when possible. Remember to remind them to consult a dermatologist for any medical skin conditions.`;
+Provide AM/PM routines, key ingredients, weekly treatment, and important notes.`;
     }
 
-    const systemPrompt = `You are an expert skincare formulation specialist and AI advisor at SKINLABS, a premium skincare technology brand. You create personalized skincare routines based on individual skin profiles. 
+    const systemPrompt = `You are an expert skincare formulation specialist and AI advisor at SKINLABS, a premium skincare technology brand based in South Africa. You create personalized skincare routines based on individual skin profiles.
 
-IMPORTANT: You are NOT a dermatologist and should never refer to yourself as one. You provide general skincare advice and recommendations, but users should consult with licensed dermatologists for medical concerns.
+IMPORTANT: You are NOT a dermatologist. You provide general skincare advice. Users should consult licensed dermatologists for medical concerns.
 
-Your recommendations should:
-- Be science-backed and evidence-based
-- Include specific product types (cleanser, toner, serum, moisturizer, SPF, treatment)
-- Explain WHY each product is recommended for their specific concerns
-- Include both morning and evening routines
-- Mention key ingredients to look for
-- Be warm, professional, and encouraging
-- Always remind users that for medical skin conditions, they should consult a licensed dermatologist
-
-Format your response as a structured routine with clear steps.`;
+Your recommendations should be:
+- Science-backed and evidence-based
+- Include specific product types with key ingredients
+- Explain WHY each product is recommended
+- Warm, professional, and encouraging
+- Formatted with clear markdown headers and bullet points`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
