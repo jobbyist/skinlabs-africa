@@ -15,7 +15,7 @@ const formSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
   lastName: z.string().min(2, "Last name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
+  phone: z.string().min(10, "Please enter a valid phone number").regex(/^\+?[0-9\s\-()]+$/, "Phone number can only contain numbers, spaces, hyphens, parentheses, and optional leading +"),
   city: z.string().min(2, "City/Town is required"),
   country: z.string().min(2, "Country is required"),
 });
@@ -67,7 +67,8 @@ const Openhaus = () => {
   }, []);
 
   const onSubmit = async (data: FormData) => {
-    // Here you would typically send the data to your backend
+    // TODO: Send data to backend API endpoint for persistence
+    // Example: await fetch('/api/waitlist', { method: 'POST', body: JSON.stringify(data) })
     console.log("Form submitted:", data);
     
     toast({
