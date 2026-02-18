@@ -1,7 +1,7 @@
 import episode1 from "@/assets/ep1skinlabs.PNG";
 import episode2 from "@/assets/ep2skinlabs.PNG";
 import episode3 from "@/assets/ep3skinlabs.PNG";
-import episode4 from "@/assets/ep4skinlabs.PNG";
+import episode4 from "@/assets/ep4skinlabs.jpg";
 
 export const podcastEpisodes = [
   {

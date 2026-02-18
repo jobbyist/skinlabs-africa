@@ -36,7 +36,7 @@ const Hero = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
-                <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
+                <a href="/openhaus">
                   Explore Products
                   <ArrowRight className="h-4 w-4" />
                 </a>

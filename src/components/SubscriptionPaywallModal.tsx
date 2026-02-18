@@ -32,7 +32,7 @@ const SubscriptionPaywallModal = ({
       if (onPaymentSuccess) {
         onPaymentSuccess();
       } else {
-        window.open("https://shop.skinlabs.co.za/pages/subscribe", "_blank");
+        window.location.href = "/openhaus";
       }
     }, 500);
   };
