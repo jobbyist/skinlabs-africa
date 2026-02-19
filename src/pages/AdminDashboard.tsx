@@ -35,10 +35,23 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [filter, setFilter] = useState("all");
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (user) fetchSubmissions();
+    if (user) {
+      checkAdmin();
+    }
   }, [user]);
+
+  const checkAdmin = async () => {
+    const { data, error } = await supabase.rpc("has_role", {
+      _user_id: user!.id,
+      _role: "admin",
+    });
+    setIsAdmin(!!data);
+    if (data) fetchSubmissions();
+    else setLoading(false);
+  };
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -84,12 +97,27 @@ const AdminDashboard = () => {
     delivered: submissions.filter((s) => s.status === "delivered").length,
   };
 
-  if (authLoading || loading) {
+  if (authLoading || loading || isAdmin === null) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20 flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+            <p className="text-muted-foreground">You do not have permission to access this page.</p>
+          </div>
         </main>
         <Footer />
       </div>

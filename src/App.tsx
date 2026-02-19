@@ -32,6 +32,7 @@ import Openhaus from "./pages/Openhaus";
 import PodcastPage from "./pages/PodcastPage";
 import EdiblePouches from "./pages/EdiblePouches";
 import ScrollToTop from "./components/ScrollToTop";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const AppContent = () => {
   return (
     <>
       <ScrollToTop />
+      <PWAInstallPrompt />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<GetStarted />} />
