@@ -49,7 +49,7 @@ const PodcastSection = ({
                 <img
                   src={episode.image}
                   alt={episode.title}
-                  className="h-40 w-full rounded-2xl object-cover sm:h-32 sm:w-48"
+                  className="h-40 w-full rounded-2xl object-contain sm:h-32 sm:w-48"
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-4">
