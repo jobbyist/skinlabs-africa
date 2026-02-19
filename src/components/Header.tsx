@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ShoppingBag, Sparkles, User, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, ShoppingBag, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CurrencyConverter from "@/components/CurrencyConverter";
 import AuthDialog from "@/components/AuthDialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { toast } from "sonner";
 import logo from "@/assets/newskinlabs.png";
 
@@ -13,6 +14,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
+  const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
     { label: "Products", href: "/products" },
@@ -71,12 +73,16 @@ const Header = () => {
                       {userInitial}
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className="flex items-center gap-2">
                         <LayoutDashboard className="h-4 w-4" />
                         Dashboard
                       </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={redirectToOpenhaus} disabled={openhausLoading} className="flex items-center gap-2">
+                      <ExternalLink className="h-4 w-4" />
+                      {openhausLoading ? "Connecting..." : "OpenHaus Market"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
