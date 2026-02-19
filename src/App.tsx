@@ -27,6 +27,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import AdminDashboard from "./pages/AdminDashboard";
+import Openhaus from "./pages/Openhaus";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -74,6 +75,9 @@ const App = () => (
             
             {/* Admin */}
             <Route path="/admin" element={<AdminDashboard />} />
+            
+            {/* OPENHAUS Coming Soon */}
+            <Route path="/openhaus" element={<Openhaus />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

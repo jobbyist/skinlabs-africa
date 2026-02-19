@@ -575,7 +575,7 @@ const AIFormulator = () => {
 
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button size="lg" className="flex-1 gap-2" asChild>
-                      <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
+                      <a href="/openhaus">
                         Browse SKINLABS Products
                         <ChevronRight className="h-4 w-4" />
                       </a>
@@ -606,7 +606,7 @@ const AIFormulator = () => {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button size="lg" className="gap-2" asChild>
-                      <a href="https://shop.skinlabs.co.za" target="_blank" rel="noopener noreferrer">
+                      <a href="/openhaus">
                         Shop Recommended Products
                         <ChevronRight className="h-4 w-4" />
                       </a>
