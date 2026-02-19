@@ -28,6 +28,7 @@ import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import AdminDashboard from "./pages/AdminDashboard";
 import Openhaus from "./pages/Openhaus";
+import PodcastPage from "./pages/PodcastPage";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,9 @@ const App = () => (
             
             {/* OPENHAUS Coming Soon */}
             <Route path="/openhaus" element={<Openhaus />} />
+            
+            {/* Podcast */}
+            <Route path="/stream" element={<PodcastPage />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
