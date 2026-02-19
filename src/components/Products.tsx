@@ -14,14 +14,6 @@ const products = [
     image: productBodyOilSerum,
     rating: 5,
     badge: "Bestseller",
-    variants: [
-      "Butterfly Pea Flower & Chamomile",
-      "Moringa",
-      "Aloe Vera and Hemp",
-      "Sea Salt",
-      "Rosewater and Citrus",
-      "Yoni, Lemongrass and Bergamot",
-    ],
   },
   {
     id: 2,
@@ -30,11 +22,6 @@ const products = [
     price: 249,
     image: productBodyBarBundle,
     rating: 4,
-    variants: [
-      "ACTIVATED CHARCOAL infused with LEMONGRASS",
-      "LICORICE ROOT infused with COCONUT EXTRACT",
-      "NIACINAMIDE infused with ROSEWATER",
-    ],
   },
   {
     id: 3,
@@ -43,13 +30,6 @@ const products = [
     price: 395,
     image: productFoamingScrub,
     rating: 5,
-    variants: [
-      "Healing Himalayan Rose",
-      "Brightening Turmeric, Papaya & Carrot",
-      "Soothing Licorice Root",
-    ],
-    customNote:
-      "Custom body scrub formulations can be requested by contacting our support team.",
   },
   {
     id: 4,
@@ -59,11 +39,6 @@ const products = [
     image: productFacialMoisturizer,
     rating: 5,
     badge: "New!",
-    variants: [
-      "Pomegranate + Goji Berry enhanced with SPF30",
-      "Turmeric + Sandalwood enhanced with SPF15",
-      "Peppermint + Blue Chamomile enhanced with SPF10",
-    ],
   },
 ];
 
@@ -71,35 +46,24 @@ const Products = () => {
   return (
     <section id="products" className="py-20 bg-secondary/30">
       <div className="container mx-auto px-4">
-        {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
-            Our Collection
-          </p>
-          <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-            Premium Skincare Collection
-          </h2>
+          <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">Our Collection</p>
+          <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">Premium Skincare Collection</h2>
           <p className="text-muted-foreground">
-            Curated selection of next-generation skincare formulations
-            crafted from organically sourced ingredients.
+            Curated selection of next-generation skincare formulations crafted from organically sourced ingredients.
           </p>
         </div>
 
-        {/* Products grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard key={product.id} {...product} />
           ))}
         </div>
 
-        <FeaturedCheckout products={products} />
+        <FeaturedCheckout />
 
-        {/* View all link */}
         <div className="text-center mt-10">
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
-          >
+          <a href="#" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
             View All Products
             <span aria-hidden="true">→</span>
           </a>
