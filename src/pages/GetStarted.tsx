@@ -1,10 +1,17 @@
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Check, Sparkles, Crown, ShieldCheck, Gift } from "lucide-react";
+import { Check, Sparkles, Crown, ShieldCheck, Gift, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const GetStarted = () => {
+  const { user } = useAuth();
+  const [processing, setProcessing] = useState(false);
+
   const features = [
     "AI-Powered Custom Skincare Routine Formulator",
     "Skincare Results Tracking System",
@@ -17,6 +24,46 @@ const GetStarted = () => {
     "Priority Customer Support",
     "30-Day Money Back Guarantee",
   ];
+
+  const handleSubscribe = async () => {
+    if (!user) {
+      toast.error("Please sign in first to subscribe");
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("payfast-payment", {
+        body: {
+          type: "subscription",
+          userId: user.id,
+          email: user.email,
+          returnUrl: `${window.location.origin}/get-started?payment=success`,
+          cancelUrl: `${window.location.origin}/get-started?payment=cancelled`,
+        },
+      });
+      if (error) throw error;
+      if (data?.paymentUrl && data?.paymentData) {
+        // Create form and submit to PayFast
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.paymentUrl;
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      }
+    } catch (err: any) {
+      toast.error("Failed to initiate payment. Please try again.");
+      console.error(err);
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <>
@@ -71,13 +118,22 @@ const GetStarted = () => {
                     ))}
                   </div>
 
-                  <Button className="w-full h-14 text-lg gap-2" size="lg">
-                    <Sparkles className="h-5 w-5" />
-                    Start Your Free Trial
+                  <Button
+                    className="w-full h-14 text-lg gap-2"
+                    size="lg"
+                    onClick={handleSubscribe}
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-5 w-5" />
+                    )}
+                    {processing ? "Processing..." : "Subscribe Now — R99/month"}
                   </Button>
 
                   <p className="text-center text-sm text-muted-foreground mt-6">
-                    Your subscription will begin after the 30-day trial period. Cancel anytime within 30 days for a full refund.
+                    Your subscription will begin immediately. Cancel anytime within 30 days for a full refund.
                   </p>
                 </div>
 
