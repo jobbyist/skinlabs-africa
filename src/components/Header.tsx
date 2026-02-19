@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, ShoppingBag, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import CurrencySelector from "@/components/CurrencySelector";
 import logo from "@/assets/newskinlabs.png";
 
 const Header = () => {
@@ -38,6 +39,7 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
+            <CurrencySelector />
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingBag className="h-5 w-5" />
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
@@ -65,6 +67,10 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <nav className="flex flex-col gap-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Currency</span>
+                <CurrencySelector />
+              </div>
               {navLinks.map((link) => (
                 <Link
                   key={link.label}

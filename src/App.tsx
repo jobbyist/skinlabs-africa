@@ -29,6 +29,7 @@ import CookiePolicy from "./pages/CookiePolicy";
 import AdminDashboard from "./pages/AdminDashboard";
 import Openhaus from "./pages/Openhaus";
 import PodcastPage from "./pages/PodcastPage";
+import EdiblePouches from "./pages/EdiblePouches";
 import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,9 @@ const App = () => (
             
             {/* Podcast */}
             <Route path="/stream" element={<PodcastPage />} />
+            
+            {/* Edible Pouches Pre-Order */}
+            <Route path="/edible-pouches" element={<EdiblePouches />} />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -6,16 +6,16 @@ import { Button } from "@/components/ui/button";
 
 const GetStarted = () => {
   const features = [
-    "AI-Powered Custom Skincare Routine Formulator",
-    "Skincare Results Tracking System",
-    "Free Sample Kits from SkinLabs Product Development Team",
-    "Regular Giveaways and Discounts from Partners",
-    "Skincare Guides and Resources",
-    "Weekly Podcast Series: SkinDeep by SkinLabs®",
-    "Early Access to New Product Releases",
-    "Priority Customer Support",
-    "Exclusive Member-Only Content",
-    "30-Day Money Back Guarantee"
+    "AI-Powered Custom Skincare Routine Formulator - Get personalized routines tailored to your unique skin goals",
+    "Skincare Results Tracking System - Monitor your progress with detailed analytics and insights",
+    "Access to OPENHAUS Marketplace - Shop exclusive offerings from our catalog and top South African skincare brands",
+    "Loyalty Program - Redeem points for free sample kits from the SkinLabs product development team",
+    "Sponsored Giveaways and Discounts - Exclusive deals from our partners and sponsors",
+    "Exclusive Skincare Guides and Resources - Expert-curated content to enhance your skincare journey",
+    "Full Access to SkinDeep by SkinLabs® Podcast - Weekly episodes with no interruptions",
+    "Early Access to New Product Releases - Be the first to try our latest innovations",
+    "Priority Customer Support - Get help when you need it from our dedicated team",
+    "30-Day Money Back Guarantee - Try risk-free with our satisfaction guarantee"
   ];
 
   return (
@@ -39,10 +39,10 @@ const GetStarted = () => {
                     <Sparkles className="h-8 w-8 text-primary" />
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
-                    Unlock Your Best Skin
+                    Upgrade to Premium
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Get unlimited access to our most powerful features and transform your skincare routine
+                    Unlock all premium features and transform your skincare journey with our most powerful tools
                   </p>
                 </div>
 
@@ -52,7 +52,7 @@ const GetStarted = () => {
                       <span className="text-sm font-medium text-primary">Premium Membership</span>
                     </div>
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="text-5xl font-bold text-foreground">R49.99</span>
+                      <span className="text-5xl font-bold text-foreground">R99</span>
                       <span className="text-muted-foreground">/month</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -73,7 +73,7 @@ const GetStarted = () => {
 
                   <Button className="w-full h-14 text-lg gap-2" size="lg">
                     <Sparkles className="h-5 w-5" />
-                    Start Your Free Trial
+                    Upgrade to Premium - R99/month
                   </Button>
 
                   <p className="text-center text-sm text-muted-foreground mt-6">

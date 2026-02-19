@@ -83,7 +83,7 @@ const FeaturedCheckout = ({ products }: FeaturedCheckoutProps) => {
   };
 
   return (
-    <div className="mt-16 rounded-3xl border border-border bg-background p-6 shadow-sm md:p-10">
+    <div className="mt-16 rounded-3xl border border-border bg-background p-4 sm:p-6 shadow-sm md:p-10 mx-2 sm:mx-0">
       <div className="mb-8">
         <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
           Express Checkout

@@ -1,5 +1,6 @@
 import { Sparkles, ShoppingCart, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -98,9 +99,11 @@ const EdibleSkincare = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Pre-Order Now
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/edible-pouches">
+                  <ShoppingCart className="h-5 w-5" />
+                  Pre-Order Now
+                </Link>
               </Button>
               <Dialog>
                 <DialogTrigger asChild>
