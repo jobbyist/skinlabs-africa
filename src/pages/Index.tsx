@@ -2,7 +2,6 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import Products from "@/components/Products";
-import BrandCarousel from "@/components/BrandCarousel";
 import EdibleSkincare from "@/components/EdibleSkincare";
 import AIFormulator from "@/components/AIFormulator";
 import Features from "@/components/Features";
@@ -10,7 +9,6 @@ import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
-import MaintenanceModal from "@/components/MaintenanceModal";
 
 const Index = () => {
   return (
@@ -29,7 +27,6 @@ const Index = () => {
         <Header />
         <main>
           <Hero />
-          <BrandCarousel />
           <Products />
           <EdibleSkincare />
           <AIFormulator />
@@ -39,7 +36,6 @@ const Index = () => {
         </main>
         <Footer />
         <CookieConsent />
-        <MaintenanceModal />
       </div>
     </>
   );

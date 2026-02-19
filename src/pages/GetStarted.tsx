@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Crown, ShieldCheck, Gift } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,23 +8,23 @@ const GetStarted = () => {
   const features = [
     "AI-Powered Custom Skincare Routine Formulator",
     "Skincare Results Tracking System",
-    "Free Sample Kits from SkinLabs Product Development Team",
-    "Regular Giveaways and Discounts from Partners",
-    "Skincare Guides and Resources",
-    "Weekly Podcast Series: SkinDeep by SkinLabs®",
-    "Early Access to New Product Releases",
+    "Access to the exclusive OPENHAUS marketplace",
+    "Loyalty program with redeemable points for free sample kits",
+    "Sponsored giveaways and discounts from partners",
+    "Exclusive skincare guides and resources",
+    "Full, uninterrupted access to SkinDeep by SkinLabs® podcast",
+    "Early access to new product releases",
     "Priority Customer Support",
-    "Exclusive Member-Only Content",
-    "30-Day Money Back Guarantee"
+    "30-Day Money Back Guarantee",
   ];
 
   return (
     <>
       <Helmet>
-        <title>Get Started - Premium Membership | SKINLABS</title>
+        <title>Get Started - Premium SkinLabs® Account | SKINLABS</title>
         <meta
           name="description"
-          content="Unlock all premium features on SKINLABS for just $4.99/month. AI-powered skincare formulations, tracking, exclusive content, and more."
+          content="Upgrade to a premium SkinLabs® account for R99/month. Unlock AI-powered skincare formulations, OPENHAUS marketplace, loyalty rewards, and more."
         />
       </Helmet>
 
@@ -36,23 +36,23 @@ const GetStarted = () => {
               <div className="max-w-4xl mx-auto">
                 <div className="text-center mb-12">
                   <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
-                    <Sparkles className="h-8 w-8 text-primary" />
+                    <Crown className="h-8 w-8 text-primary" />
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
-                    Unlock Your Best Skin
+                    Upgrade to Premium
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Get unlimited access to our most powerful features and transform your skincare routine
+                    Unlock all features on our platform and transform your skincare journey with a premium SkinLabs® account
                   </p>
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 shadow-xl">
                   <div className="text-center mb-8">
                     <div className="inline-block bg-primary/10 rounded-full px-4 py-1 mb-4">
-                      <span className="text-sm font-medium text-primary">Premium Membership</span>
+                      <span className="text-sm font-medium text-primary">Premium SkinLabs® Account</span>
                     </div>
                     <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="text-5xl font-bold text-foreground">R49.99</span>
+                      <span className="text-5xl font-bold text-foreground">R99</span>
                       <span className="text-muted-foreground">/month</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -84,7 +84,7 @@ const GetStarted = () => {
                 <div className="mt-16 grid md:grid-cols-3 gap-8">
                   <div className="text-center">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">🔬</span>
+                      <ShieldCheck className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">Science-Backed</h3>
                     <p className="text-sm text-muted-foreground">
@@ -93,7 +93,7 @@ const GetStarted = () => {
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">🤖</span>
+                      <Sparkles className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">AI-Powered</h3>
                     <p className="text-sm text-muted-foreground">
@@ -102,11 +102,11 @@ const GetStarted = () => {
                   </div>
                   <div className="text-center">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-2xl">✨</span>
+                      <Gift className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="font-semibold text-foreground mb-2">Exclusive Access</h3>
                     <p className="text-sm text-muted-foreground">
-                      Be first to access new features and products
+                      OPENHAUS marketplace, loyalty rewards, and early releases
                     </p>
                   </div>
                 </div>

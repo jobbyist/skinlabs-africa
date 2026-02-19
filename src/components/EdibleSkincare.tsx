@@ -98,9 +98,11 @@ const EdibleSkincare = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Pre-Order Now
+              <Button size="lg" className="gap-2" asChild>
+                <a href="/edible-pouches">
+                  <ShoppingCart className="h-5 w-5" />
+                  Pre-Order Now
+                </a>
               </Button>
               <Dialog>
                 <DialogTrigger asChild>
