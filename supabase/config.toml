@@ -6,5 +6,5 @@ verify_jwt = false
 [functions.payfast-payment]
 verify_jwt = false
 
-[functions.payfast-payment]
+[functions.auth-token-exchange]
 verify_jwt = false
