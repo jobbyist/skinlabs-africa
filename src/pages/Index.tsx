@@ -20,7 +20,7 @@ const Index = () => {
           content="Discover next generation skincare with SKINLABS. AI-powered custom formulations and premium imported skincare technology devices for radiant, healthy skin."
         />
         <meta name="keywords" content="skincare, AI skincare, custom formulations, skincare technology, LED mask, microcurrent, serums" />
-        <link rel="canonical" href="https://skinlabs.com" />
+        <link rel="canonical" href="https://skinlabs.co.za" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

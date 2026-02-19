@@ -2,7 +2,10 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Sparkles, Shield, Lock, Crown, Truck, Users } from "lucide-react";
+import { CheckCircle2, Sparkles, Shield, Lock, Crown, Truck, Users, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SubscriptionPaywallModalProps {
   open: boolean;
@@ -22,19 +25,46 @@ const SubscriptionPaywallModal = ({
   onPaymentSuccess,
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const { user } = useAuth();
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
+    if (!user) {
+      toast.error("Please sign in first to subscribe");
+      return;
+    }
+
     setIsProcessing(true);
-    // PayFast integration will be connected here
-    // For now, simulate and call onPaymentSuccess
-    setTimeout(() => {
-      setIsProcessing(false);
-      if (onPaymentSuccess) {
-        onPaymentSuccess();
-      } else {
-        window.location.href = "/openhaus";
+    try {
+      const { data, error } = await supabase.functions.invoke("payfast-payment", {
+        body: {
+          type: "subscription",
+          userId: user.id,
+          email: user.email,
+          returnUrl: `${window.location.origin}/ai-formulator?payment=success`,
+          cancelUrl: `${window.location.origin}/ai-formulator?payment=cancelled`,
+        },
+      });
+      if (error) throw error;
+      if (data?.paymentUrl && data?.paymentData) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.paymentUrl;
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
       }
-    }, 500);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to initiate payment. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const benefits = [
@@ -122,7 +152,10 @@ const SubscriptionPaywallModal = ({
           disabled={isProcessing}
         >
           {isProcessing ? (
-            "Processing..."
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Processing...
+            </>
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
