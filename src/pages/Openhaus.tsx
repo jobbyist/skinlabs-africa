@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import openhausImage from "/openhaus.png";
 
 const formSchema = z.object({
@@ -24,6 +25,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const Openhaus = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -67,16 +69,37 @@ const Openhaus = () => {
   }, []);
 
   const onSubmit = async (data: FormData) => {
-    // TODO: Send data to backend API endpoint for persistence
-    // Example: await fetch('/api/waitlist', { method: 'POST', body: JSON.stringify(data) })
-    console.log("Form submitted:", data);
-    
-    toast({
-      title: "Successfully Joined! 🎉",
-      description: "You've been added to the OPENHAUS early bird waiting list. Check your email for confirmation.",
-    });
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("openhaus_waitlist")
+        .insert({
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+          phone: data.phone,
+          city: data.city,
+          country: data.country,
+        });
 
-    reset();
+      if (error) throw error;
+
+      toast({
+        title: "Successfully Joined! 🎉",
+        description: "You've been added to the OPENHAUS early bird waiting list. Check your email for confirmation.",
+      });
+
+      reset();
+    } catch (err) {
+      console.error("Waitlist submission error:", err);
+      toast({
+        title: "Something went wrong",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -145,7 +168,7 @@ const Openhaus = () => {
                         href="/get-started"
                         className="text-primary hover:underline font-medium"
                       >
-                        Click here to become a premium member for R49 per month
+                        Click here to become a premium member for R99 per month
                       </a>
                     </p>
                   </div>
@@ -154,87 +177,38 @@ const Openhaus = () => {
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">First Name</Label>
-                        <Input
-                          id="firstName"
-                          placeholder="John"
-                          {...register("firstName")}
-                          className={errors.firstName ? "border-destructive" : ""}
-                        />
-                        {errors.firstName && (
-                          <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                        )}
+                        <Input id="firstName" placeholder="John" {...register("firstName")} className={errors.firstName ? "border-destructive" : ""} />
+                        {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="lastName">Last Name</Label>
-                        <Input
-                          id="lastName"
-                          placeholder="Doe"
-                          {...register("lastName")}
-                          className={errors.lastName ? "border-destructive" : ""}
-                        />
-                        {errors.lastName && (
-                          <p className="text-sm text-destructive">{errors.lastName.message}</p>
-                        )}
+                        <Input id="lastName" placeholder="Doe" {...register("lastName")} className={errors.lastName ? "border-destructive" : ""} />
+                        {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="john@example.com"
-                          {...register("email")}
-                          className={errors.email ? "border-destructive" : ""}
-                        />
-                        {errors.email && (
-                          <p className="text-sm text-destructive">{errors.email.message}</p>
-                        )}
+                        <Input id="email" type="email" placeholder="john@example.com" {...register("email")} className={errors.email ? "border-destructive" : ""} />
+                        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="+27 12 345 6789"
-                          {...register("phone")}
-                          className={errors.phone ? "border-destructive" : ""}
-                        />
-                        {errors.phone && (
-                          <p className="text-sm text-destructive">{errors.phone.message}</p>
-                        )}
+                        <Input id="phone" type="tel" placeholder="+27 12 345 6789" {...register("phone")} className={errors.phone ? "border-destructive" : ""} />
+                        {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="city">City/Town</Label>
-                        <Input
-                          id="city"
-                          placeholder="Johannesburg"
-                          {...register("city")}
-                          className={errors.city ? "border-destructive" : ""}
-                        />
-                        {errors.city && (
-                          <p className="text-sm text-destructive">{errors.city.message}</p>
-                        )}
+                        <Input id="city" placeholder="Johannesburg" {...register("city")} className={errors.city ? "border-destructive" : ""} />
+                        {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="country">Country</Label>
-                        <Input
-                          id="country"
-                          placeholder="South Africa"
-                          {...register("country")}
-                          className={errors.country ? "border-destructive" : ""}
-                        />
-                        {errors.country && (
-                          <p className="text-sm text-destructive">{errors.country.message}</p>
-                        )}
+                        <Input id="country" placeholder="South Africa" {...register("country")} className={errors.country ? "border-destructive" : ""} />
+                        {errors.country && <p className="text-sm text-destructive">{errors.country.message}</p>}
                       </div>
                     </div>
 
-                    <Button type="submit" size="lg" className="w-full text-lg">
-                      Join the Waiting List
+                    <Button type="submit" size="lg" className="w-full text-lg" disabled={isSubmitting}>
+                      {isSubmitting ? "Submitting..." : "Join the Waiting List"}
                     </Button>
                   </form>
                 </div>

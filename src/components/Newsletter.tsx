@@ -3,15 +3,37 @@ import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      toast.success("Thank you for subscribing!");
+    if (!email) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .insert({ email });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("You're already subscribed!");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Thank you for subscribing!");
+      }
       setEmail("");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,8 +57,8 @@ const Newsletter = () => {
               className="flex-1"
               required
             />
-            <Button type="submit" className="gap-2">
-              Subscribe
+            <Button type="submit" className="gap-2" disabled={loading}>
+              {loading ? "Subscribing..." : "Subscribe"}
               <Send className="h-4 w-4" />
             </Button>
           </form>

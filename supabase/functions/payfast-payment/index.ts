@@ -123,6 +123,16 @@ Deno.serve(async (req) => {
               subscription_started_at: new Date().toISOString(),
             })
             .eq("user_id", userId);
+        } else if (type === "preorder") {
+          await supabase
+            .from("preorders")
+            .insert({
+              user_id: userId,
+              product_type: "edible_pouches",
+              amount: 299.00,
+              status: "complete",
+              payment_id: data.pf_payment_id || mPaymentId,
+            });
         }
       }
 
