@@ -27,8 +27,9 @@ const CurrencySelector = () => {
       new CustomEvent("currency-change", { detail: selectedCurrency })
     );
     
-    // Update global window object
-    (window as any).selectedCurrency = selectedCurrency;
+    // Update global window object with proper typing
+    const windowWithCurrency = window as Window & { selectedCurrency?: CurrencyInfo };
+    windowWithCurrency.selectedCurrency = selectedCurrency;
   };
 
   return (
