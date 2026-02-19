@@ -31,7 +31,9 @@ const Hero = () => {
           playsInline
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-background/60" />
+        {/* Dark animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/50" />
       </div>
 
       {/* Play/Pause button */}
@@ -55,12 +57,12 @@ const Hero = () => {
               AI-Powered Skincare Technology
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-foreground leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
               Next Generation
-              <span className="block text-primary">Skincare Science</span>
+              <span className="block text-primary drop-shadow-md">Skincare Science</span>
             </h1>
             
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+            <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
               Discover personalized skincare formulations powered by AI and curated 
               collection of premium imported skincare technology devices.
             </p>
@@ -89,16 +91,16 @@ const Hero = () => {
             {/* Stats */}
             <div className="flex gap-8 justify-center lg:justify-start pt-4">
               <div>
-                <p className="text-3xl font-bold text-foreground">50K+</p>
-                <p className="text-sm text-muted-foreground">Happy Customers</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">3.7K+</p>
+                <p className="text-sm font-semibold text-foreground/80">Happy Members</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-foreground">100+</p>
-                <p className="text-sm text-muted-foreground">Products</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">100%</p>
+                <p className="text-sm font-semibold text-foreground/80">Locally Sourced</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-foreground">15+</p>
-                <p className="text-sm text-muted-foreground">Countries</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">4.75/5</p>
+                <p className="text-sm font-semibold text-foreground/80">Avg. Ratings</p>
               </div>
             </div>
           </div>

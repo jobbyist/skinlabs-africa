@@ -8,11 +8,13 @@ const PodcastPage = () => {
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>The Skin Deep Podcast | Skinlabs</title>
-        <meta
-          name="description"
-          content="Stream the Skin Deep Podcast for expert skincare conversations, product science breakdowns, and mindful beauty routines."
-        />
-        <link rel="canonical" href="https://skinlabs.com/stream" />
+        <meta name="description" content="Stream the Skin Deep Podcast for expert skincare conversations, product science breakdowns, and mindful beauty routines." />
+        <link rel="canonical" href="https://skinlabs.co.za/stream" />
+        <meta property="og:title" content="The Skin Deep Podcast | Skinlabs" />
+        <meta property="og:description" content="Stream the Skin Deep Podcast for expert skincare conversations and product science breakdowns." />
+        <meta property="og:url" content="https://skinlabs.co.za/stream" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       </Helmet>
       <Header />
       <main className="pt-20">

@@ -31,10 +31,13 @@ const About = () => {
     <>
       <Helmet>
         <title>About Us - Our Story | SKINLABS</title>
-        <meta
-          name="description"
-          content="Learn about SkinLabs' mission to revolutionize skincare through science, technology, and personalized solutions for every skin type."
-        />
+        <meta name="description" content="Learn about SkinLabs' mission to revolutionize skincare through science, technology, and personalized solutions for every skin type." />
+        <link rel="canonical" href="https://skinlabs.co.za/about" />
+        <meta property="og:title" content="About Us - Our Story | SKINLABS" />
+        <meta property="og:description" content="Learn about SkinLabs' mission to revolutionize skincare through science, technology, and personalized solutions." />
+        <meta property="og:url" content="https://skinlabs.co.za/about" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

@@ -30,10 +30,13 @@ const Products = () => {
     <>
       <Helmet>
         <title>Products - Premium Skincare | SKINLABS</title>
-        <meta
-          name="description"
-          content="Discover our range of science-backed skincare products including serums, devices, and custom formulas tailored to your skin's needs."
-        />
+        <meta name="description" content="Discover our range of science-backed skincare products including serums, devices, and custom formulas tailored to your skin's needs." />
+        <link rel="canonical" href="https://skinlabs.co.za/products" />
+        <meta property="og:title" content="Premium Skincare Products | SKINLABS" />
+        <meta property="og:description" content="Science-backed skincare products including serums, devices, and custom formulas." />
+        <meta property="og:url" content="https://skinlabs.co.za/products" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

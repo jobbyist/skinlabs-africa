@@ -92,6 +92,19 @@ const EdiblePouches = () => {
       <Helmet>
         <title>Pre-Order Edible Skincare Pouches | SKINLABS</title>
         <meta name="description" content="Back our self-hosted crowdfunding campaign and be among the first 250 backers to get the SkinLabs® Edible Skincare Pouches bundle at a discounted price of R299." />
+        <link rel="canonical" href="https://skinlabs.co.za/edible-pouches" />
+        <meta property="og:title" content="Pre-Order Edible Skincare Pouches | SKINLABS" />
+        <meta property="og:description" content="Be among the first 250 backers to get SkinLabs® Edible Skincare Pouches at R299." />
+        <meta property="og:url" content="https://skinlabs.co.za/edible-pouches" />
+        <meta property="og:type" content="product" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": "SkinLabs Edible Skincare Pouches",
+          "description": "Bundled pack featuring all 3 flavour variants of edible skincare pouches.",
+          "offers": { "@type": "Offer", "price": "299", "priceCurrency": "ZAR", "availability": "https://schema.org/PreOrder" }
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
