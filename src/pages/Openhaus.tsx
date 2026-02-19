@@ -106,10 +106,13 @@ const Openhaus = () => {
     <>
       <Helmet>
         <title>OPENHAUS by Skinlabs - Coming Soon</title>
-        <meta
-          name="description"
-          content="Join the OPENHAUS by Skinlabs waiting list and unlock exclusive rewards, free product samples, sponsored giveaways & discounts when we launch!"
-        />
+        <meta name="description" content="Join the OPENHAUS by Skinlabs waiting list and unlock exclusive rewards, free product samples, sponsored giveaways & discounts when we launch!" />
+        <link rel="canonical" href="https://skinlabs.co.za/openhaus" />
+        <meta property="og:title" content="OPENHAUS by Skinlabs - Coming Soon" />
+        <meta property="og:description" content="Join the OPENHAUS waiting list for exclusive rewards, free samples & discounts!" />
+        <meta property="og:url" content="https://skinlabs.co.za/openhaus" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/openhaus.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
