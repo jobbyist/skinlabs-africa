@@ -1,45 +1,44 @@
 import ProductCard from "./ProductCard";
 import FeaturedCheckout from "@/components/FeaturedCheckout";
-import productLedMask from "@/assets/product-led-mask.jpg";
-import productUltrasonic from "@/assets/product-ultrasonic.jpg";
-import productMicrocurrent from "@/assets/product-microcurrent.jpg";
-import productSerum from "@/assets/product-serum.jpg";
+import productBodyOilSerum from "@/assets/product-body-oil-serum.png";
+import productBodyBarBundle from "@/assets/product-body-bar-bundle.png";
+import productFoamingScrub from "@/assets/product-foaming-scrub.jpeg";
+import productFacialMoisturizer from "@/assets/product-facial-moisturizer.png";
 
 const products = [
   {
     id: 1,
-    name: "LED Phototherapy Mask Pro",
-    category: "Devices",
-    price: 299.99,
-    originalPrice: 399.99,
-    image: productLedMask,
+    name: "SkinLabs® Classic Body Oil Serum [50ml]",
+    category: "Serums",
+    price: 225,
+    image: productBodyOilSerum,
     rating: 5,
     badge: "Bestseller",
   },
   {
     id: 2,
-    name: "Ultrasonic Skin Scrubber",
-    category: "Devices",
-    price: 89.99,
-    image: productUltrasonic,
+    name: "SkinLabs® Body Bar Bundle [100g x 3]",
+    category: "Body Care",
+    price: 249,
+    image: productBodyBarBundle,
     rating: 4,
   },
   {
     id: 3,
-    name: "Microcurrent Face Sculptor",
-    category: "Devices",
-    price: 199.99,
-    image: productMicrocurrent,
+    name: "SkinLabs® Foaming Body Scrub [250ml]",
+    category: "Body Care",
+    price: 395,
+    image: productFoamingScrub,
     rating: 5,
-    badge: "New",
   },
   {
     id: 4,
-    name: "SkinLabs® Classic Body Oil Serums",
-    category: "Serums",
-    price: 64.99,
-    image: productSerum,
+    name: "SkinLabs® Advanced Facial Moisturizer [50ml]",
+    category: "Moisturizers",
+    price: 295,
+    image: productFacialMoisturizer,
     rating: 5,
+    badge: "New!",
   },
 ];
 
@@ -53,11 +52,11 @@ const Products = () => {
             Our Collection
           </p>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-            Premium Skincare Technology
+            Premium Skincare Collection
           </h2>
           <p className="text-muted-foreground">
-            Curated selection of next-generation skincare devices and formulations
-            imported from leading laboratories worldwide.
+            Curated selection of next-generation skincare formulations
+            crafted from organically sourced ingredients.
           </p>
         </div>
 

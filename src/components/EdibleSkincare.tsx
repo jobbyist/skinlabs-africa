@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import AudioNarrationPlayer from "@/components/AudioNarrationPlayer";
-import edibleSkincareImage from "@/assets/hero-skincare.jpg";
+import edibleSkincareImage from "@/assets/edible-skincare-pouches.png";
 
 const EdibleSkincare = () => {
   const flavors = [
@@ -101,9 +101,6 @@ const EdibleSkincare = () => {
               <Button size="lg" className="gap-2">
                 <ShoppingCart className="h-5 w-5" />
                 Pre-Order Now
-              </Button>
-              <Button size="lg" variant="outline">
-                Learn More
               </Button>
               <Dialog>
                 <DialogTrigger asChild>
