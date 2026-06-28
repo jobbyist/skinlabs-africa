@@ -110,6 +110,20 @@ const AIFormulator = () => {
       }
 
       setRecommendation(data.recommendation);
+
+      // Auto-download the personalized PDF report
+      try {
+        downloadSkincarePdf({
+          clientName: contactName || "Client",
+          email: contactEmail,
+          recommendation: data.recommendation,
+          skinType: derivedSkinType,
+        });
+        toast.success("Your personalized skincare PDF has been downloaded!");
+      } catch (pdfErr) {
+        console.warn("PDF generation failed:", pdfErr);
+      }
+
       if (!hasSubscription) {
         setShowPaywall(true);
       } else {
