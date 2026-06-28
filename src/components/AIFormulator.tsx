@@ -591,6 +591,24 @@ const AIFormulator = () => {
                   )}
 
                   <div className="flex flex-col sm:flex-row gap-3">
+                    {recommendation && (
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="flex-1 gap-2"
+                        onClick={() =>
+                          downloadSkincarePdf({
+                            clientName: contactName || "Client",
+                            email: contactEmail,
+                            recommendation,
+                            skinType: derivedSkinType,
+                          })
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                        Download PDF Again
+                      </Button>
+                    )}
                     <Button size="lg" className="flex-1 gap-2" asChild>
                       <a href="/openhaus">
                         Browse SKINLABS Products
