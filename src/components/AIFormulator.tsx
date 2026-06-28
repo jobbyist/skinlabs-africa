@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   Mail,
   Calendar,
+  Download,
 } from "lucide-react";
+import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -90,7 +92,8 @@ const AIFormulator = () => {
       const { data, error } = await supabase.functions.invoke("skincare-ai", {
         body: {
           quizAnswers,
-          skinImage: skinImage ? "provided" : null,
+          // Send the actual base64 data URL so Gemini can analyse the selfie
+          skinImage: skinImage && photoConsent ? skinImage : null,
           contactName,
           contactEmail,
         },
