@@ -83,9 +83,11 @@ const Products = () => {
                   <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
                     Try our AI-powered formulator to get personalized product recommendations based on your unique skin profile
                   </p>
-                  <Button size="lg" className="gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    Try AI Formulator
+                  <Button size="lg" className="gap-2" asChild>
+                    <a href="/ai-formulator">
+                      <Sparkles className="h-5 w-5" />
+                      Try AI Formulator
+                    </a>
                   </Button>
                 </div>
               </div>
