@@ -167,11 +167,12 @@ Deno.serve(async (req) => {
       }
 
       // Generate a magic link that auto-signs in on the target domain
+      const safeRedirect = isAllowedRedirect(redirect_to) ? (redirect_to as string) : DEFAULT_REDIRECT;
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
         email: user.email!,
         options: {
-          redirectTo: redirect_to || "https://openhaus.skinlabs.co.za",
+          redirectTo: safeRedirect,
         },
       });
 
