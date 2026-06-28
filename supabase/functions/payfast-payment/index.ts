@@ -13,13 +13,32 @@ function generateSignature(data: Record<string, string>, passPhrase: string): st
     .map((key) => `${key}=${encodeURIComponent(data[key]).replace(/%20/g, "+")}`)
     .join("&");
 
-  const signatureString = passPhrase ? `${params}&passphrase=${encodeURIComponent(passPhrase).replace(/%20/g, "+")}` : params;
+  const signatureString = passPhrase
+    ? `${params}&passphrase=${encodeURIComponent(passPhrase).replace(/%20/g, "+")}`
+    : params;
 
   const encoder = new TextEncoder();
   const dataBytes = encoder.encode(signatureString);
   const hashBuffer = new Uint8Array(crypto.subtle.digestSync("MD5", dataBytes));
-  return Array.from(hashBuffer).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(hashBuffer)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
+
+// Constant-time string comparison to avoid timing attacks
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+const EXPECTED_AMOUNTS: Record<string, number> = {
+  subscription: 99.0,
+  preorder: 299.0,
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,18 +50,82 @@ Deno.serve(async (req) => {
     const merchantKey = Deno.env.get("PAYFAST_MERCHANT_KEY")!;
     const passphrase = Deno.env.get("PAYFAST_PASSPHRASE")!;
 
+    // Handle PayFast ITN (Instant Transaction Notification)
+    const url = new URL(req.url);
+    if (url.searchParams.get("notify") === "true") {
+      const formData = await req.formData();
+      const data: Record<string, string> = {};
+      formData.forEach((value, key) => {
+        data[key] = value.toString();
+      });
+
+      // --- SIGNATURE VERIFICATION (security fix) ---
+      const receivedSignature = data.signature || "";
+      if (!receivedSignature) {
+        console.warn("ITN: missing signature");
+        return new Response("Invalid signature", { status: 400 });
+      }
+
+      const { signature: _ignored, ...verifyFields } = data;
+      const expectedSignature = generateSignature(verifyFields, passphrase);
+
+      if (!safeEqual(receivedSignature.toLowerCase(), expectedSignature.toLowerCase())) {
+        console.warn("ITN: signature mismatch");
+        return new Response("Invalid signature", { status: 400 });
+      }
+
+      // --- AMOUNT VALIDATION ---
+      const mPaymentId = data.m_payment_id || "";
+      const parts = mPaymentId.split("_");
+      const type = parts[0];
+      const userId = parts[1];
+
+      const expectedAmount = EXPECTED_AMOUNTS[type];
+      const receivedAmount = parseFloat(data.amount_gross || "0");
+
+      if (!expectedAmount || Math.abs(receivedAmount - expectedAmount) > 0.01) {
+        console.warn("ITN: amount mismatch", { type, expectedAmount, receivedAmount });
+        return new Response("Invalid amount", { status: 400 });
+      }
+
+      const paymentStatus = data.payment_status;
+      if (paymentStatus === "COMPLETE" && userId) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+        if (type === "subscription") {
+          await supabase
+            .from("profiles")
+            .update({
+              subscription_status: "active",
+              subscription_started_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId);
+        } else if (type === "preorder") {
+          await supabase.from("preorders").insert({
+            user_id: userId,
+            product_type: "edible_pouches",
+            amount: 299.0,
+            status: "complete",
+            payment_id: data.pf_payment_id || mPaymentId,
+          });
+        }
+      }
+
+      return new Response("OK", { status: 200 });
+    }
+
     if (req.method === "POST") {
       const body = await req.json();
       const { type, userId, email, name } = body;
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-      // Determine payment details based on type
       let amount: string;
       let itemName: string;
       let itemDescription: string;
-      let subscriptionType = 0; // 0 = once-off, 1 = subscription
+      let subscriptionType = 0;
 
       if (type === "subscription") {
         amount = "99.00";
@@ -79,8 +162,8 @@ Deno.serve(async (req) => {
         paymentData.subscription_type = "1";
         paymentData.billing_date = new Date().toISOString().split("T")[0];
         paymentData.recurring_amount = amount;
-        paymentData.frequency = "3"; // Monthly
-        paymentData.cycles = "0"; // Indefinite
+        paymentData.frequency = "3";
+        paymentData.cycles = "0";
       }
 
       const signature = generateSignature(paymentData, passphrase);
@@ -95,54 +178,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle PayFast ITN (Instant Transaction Notification)
-    const url = new URL(req.url);
-    if (url.searchParams.get("notify") === "true") {
-      const formData = await req.formData();
-      const data: Record<string, string> = {};
-      formData.forEach((value, key) => {
-        data[key] = value.toString();
-      });
-
-      const paymentStatus = data.payment_status;
-      const mPaymentId = data.m_payment_id || "";
-      const parts = mPaymentId.split("_");
-      const type = parts[0];
-      const userId = parts[1];
-
-      if (paymentStatus === "COMPLETE" && userId) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-        if (type === "subscription") {
-          await supabase
-            .from("profiles")
-            .update({
-              subscription_status: "active",
-              subscription_started_at: new Date().toISOString(),
-            })
-            .eq("user_id", userId);
-        } else if (type === "preorder") {
-          await supabase
-            .from("preorders")
-            .insert({
-              user_id: userId,
-              product_type: "edible_pouches",
-              amount: 299.00,
-              status: "complete",
-              payment_id: data.pf_payment_id || mPaymentId,
-            });
-        }
-      }
-
-      return new Response("OK", { status: 200 });
-    }
-
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

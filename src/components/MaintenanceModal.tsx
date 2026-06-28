@@ -31,7 +31,7 @@ const MaintenanceModal = () => {
 
     let activeTime = 0;
     let lastInteractionTime = Date.now();
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     // Track active browsing time
     const trackActivity = () => {
