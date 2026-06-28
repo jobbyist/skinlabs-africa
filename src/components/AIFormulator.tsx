@@ -640,6 +640,22 @@ const AIFormulator = () => {
                     {formatRecommendation(recommendation)}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() =>
+                        downloadSkincarePdf({
+                          clientName: contactName || "Client",
+                          email: contactEmail,
+                          recommendation: recommendation!,
+                          skinType: derivedSkinType,
+                        })
+                      }
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </Button>
                     <Button size="lg" className="gap-2" asChild>
                       <a href="/openhaus">
                         Shop Recommended Products
