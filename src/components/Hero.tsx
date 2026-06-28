@@ -74,17 +74,16 @@ const Hero = () => {
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
+              <Button
+                variant="outline"
+                size="lg"
                 className="gap-2 text-base px-8"
-                onClick={() => {
-                  const element = document.getElementById('ai-formulator');
-                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+                asChild
               >
-                <Sparkles className="h-4 w-4" />
-                Try AI Formulator
+                <a href="/ai-formulator">
+                  <Sparkles className="h-4 w-4" />
+                  Try AI Formulator
+                </a>
               </Button>
             </div>
 

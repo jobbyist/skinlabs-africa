@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Sparkles, Package, Crown, FileText, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import MFASettingsCard from "@/components/MFASettingsCard";
 
 interface Profile {
   subscription_status: string | null;
@@ -90,6 +91,10 @@ const UserDashboard = () => {
                 Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
               </h1>
               <p className="text-muted-foreground mb-8">{user?.email}</p>
+              <div className="mb-8">
+                <MFASettingsCard />
+              </div>
+
 
               <div className="grid md:grid-cols-3 gap-6 mb-10">
                 {/* Subscription Status */}
