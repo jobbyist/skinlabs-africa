@@ -14,6 +14,19 @@ const ALLOWED_DOMAINS = [
   "https://skinlabs-openhaus.lovable.app",
 ];
 
+const DEFAULT_REDIRECT = "https://openhaus.skinlabs.co.za";
+
+function isAllowedRedirect(target: unknown): target is string {
+  if (typeof target !== "string") return false;
+  try {
+    const u = new URL(target);
+    const origin = `${u.protocol}//${u.host}`;
+    return ALLOWED_DOMAINS.includes(origin);
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -154,11 +167,12 @@ Deno.serve(async (req) => {
       }
 
       // Generate a magic link that auto-signs in on the target domain
+      const safeRedirect = isAllowedRedirect(redirect_to) ? (redirect_to as string) : DEFAULT_REDIRECT;
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "magiclink",
         email: user.email!,
         options: {
-          redirectTo: redirect_to || "https://openhaus.skinlabs.co.za",
+          redirectTo: safeRedirect,
         },
       });
 
