@@ -8,3 +8,7 @@ verify_jwt = false
 
 [functions.auth-token-exchange]
 verify_jwt = false
+
+[functions.preorder-count]
+verify_jwt = false
+
