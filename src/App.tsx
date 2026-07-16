@@ -16,7 +16,9 @@ import Contact from "./pages/Contact";
 import Devices from "./pages/Devices";
 import Serums from "./pages/Serums";
 import CustomFormulas from "./pages/CustomFormulas";
-import GiftSets from "./pages/GiftSets";
+import BundledKits from "./pages/BundledKits";
+import Business from "./pages/Business";
+import { Navigate } from "react-router-dom";
 import OurScience from "./pages/OurScience";
 import Sustainability from "./pages/Sustainability";
 import Careers from "./pages/Careers";
@@ -59,7 +61,9 @@ const AppContent = () => {
         <Route path="/devices" element={<Devices />} />
         <Route path="/serums" element={<Serums />} />
         <Route path="/custom-formulas" element={<CustomFormulas />} />
-        <Route path="/gift-sets" element={<GiftSets />} />
+        <Route path="/bundled-kits" element={<BundledKits />} />
+        <Route path="/gift-sets" element={<Navigate to="/bundled-kits" replace />} />
+        <Route path="/business" element={<Business />} />
         
         {/* Company Routes */}
         <Route path="/our-science" element={<OurScience />} />
