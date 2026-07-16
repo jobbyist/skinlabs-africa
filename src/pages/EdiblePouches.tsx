@@ -22,11 +22,14 @@ const EdiblePouches = () => {
 
   useEffect(() => {
     const fetchBackerCount = async () => {
-      const { data, error } = await supabase.rpc("get_preorder_count", {
-        p_product_type: "edible_pouches",
+      const { data, error } = await supabase.functions.invoke("preorder-count", {
+        method: "GET",
+        headers: {},
+        body: undefined,
+        // @ts-expect-error - query params supported via URL
       });
-      if (!error && data != null) {
-        setBackersCount(Number(data) || 0);
+      if (!error && data?.count != null) {
+        setBackersCount(Number(data.count) || 0);
       }
     };
     fetchBackerCount();
