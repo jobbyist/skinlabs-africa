@@ -1,319 +1,265 @@
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Check, Clock, Package, Shield, Users, TrendingUp } from "lucide-react";
+import { ShoppingCart, Clock, CheckCircle2, MapPin, Package, Users, ArrowRight, Mail, MessageCircle, Phone, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { useCurrency } from "@/hooks/use-currency";
+import { Progress } from "@/components/ui/progress";
+import AuthDialog from "@/components/AuthDialog";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import edibleImage from "@/assets/edible-skincare-pouches.png";
+
+const BACKERS_TARGET = 250;
+const CAMPAIGN_END = "30 June 2026";
 
 const EdiblePouches = () => {
-  const { formatPrice } = useCurrency();
-  const preOrderPrice = 299;
+  const { user } = useAuth();
+  const [authOpen, setAuthOpen] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [backersCount, setBackersCount] = useState(0);
 
-  const benefits = [
-    "Exclusive discounted price of R299 (save 40% off retail price)",
-    "Bundled pack featuring all variants of Edible Skincare Pouches",
-    "Early access to this revolutionary product before retail launch",
-    "Backer's Guide via email/WhatsApp with real-time updates",
-    "Access to online Product Roadmap Tracking Tool",
-    "Dashboard access to track your package progress",
-    "Support innovative South African skincare development",
+  useEffect(() => {
+    const fetchBackerCount = async () => {
+      const { data, error } = await supabase.rpc("get_preorder_count", {
+        p_product_type: "edible_pouches",
+      });
+      if (!error && data != null) {
+        setBackersCount(Number(data) || 0);
+      }
+    };
+    fetchBackerCount();
+  }, []);
+
+  const progressPercent = (backersCount / BACKERS_TARGET) * 100;
+
+  const handleBackCampaign = async () => {
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
+    setProcessing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("payfast-payment", {
+        body: {
+          type: "preorder",
+          userId: user.id,
+          email: user.email,
+          returnUrl: `${window.location.origin}/edible-pouches?payment=success`,
+          cancelUrl: `${window.location.origin}/edible-pouches?payment=cancelled`,
+        },
+      });
+      if (error) throw error;
+      if (data?.paymentUrl && data?.paymentData) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = data.paymentUrl;
+        Object.entries(data.paymentData).forEach(([key, value]) => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = value as string;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to initiate payment. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const flavors = [
+    { name: "Bubblegum Pop", description: "Sweet and playful with natural fruit extracts" },
+    { name: "Creamy Cheesecake", description: "Rich and indulgent with nourishing ingredients" },
+    { name: "Blueberry Dreams", description: "Antioxidant-rich with a delightful berry blend" },
   ];
 
-  const timeline = [
-    {
-      phase: "Current Phase",
-      title: "Production & Regulatory Compliance",
-      description: "Finalizing formulations and obtaining necessary approvals",
-    },
-    {
-      phase: "Next Phase",
-      title: "Manufacturing",
-      description: "Large-scale production of all variants",
-    },
-    {
-      phase: "Final Phase",
-      title: "Fulfillment & Delivery",
-      description: "Package preparation and delivery to backers",
-    },
+  const roadmapSteps = [
+    { label: "Research & Development", status: "done" },
+    { label: "Formulation & Testing", status: "done" },
+    { label: "Production & Regulatory Compliance", status: "current" },
+    { label: "Manufacturing & Packaging", status: "upcoming" },
+    { label: "Fulfilment & Delivery", status: "upcoming" },
   ];
 
   return (
     <>
       <Helmet>
-        <title>Edible Skincare Pouches - Pre-Order Campaign | SKINLABS</title>
-        <meta
-          name="description"
-          content="Join our crowdfunding campaign to bring revolutionary Edible Skincare Pouches to market. Pre-order now for R299 and get exclusive early access."
-        />
+        <title>Pre-Order Edible Skincare Pouches | SKINLABS</title>
+        <meta name="description" content="Back our self-hosted crowdfunding campaign and be among the first 250 backers to get the SkinLabs® Edible Skincare Pouches bundle at a discounted price of R299." />
+        <link rel="canonical" href="https://skinlabs.co.za/edible-pouches" />
+        <meta property="og:title" content="Pre-Order Edible Skincare Pouches | SKINLABS" />
+        <meta property="og:description" content="Be among the first 250 backers to get SkinLabs® Edible Skincare Pouches at R299." />
+        <meta property="og:url" content="https://skinlabs.co.za/edible-pouches" />
+        <meta property="og:type" content="product" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Product",
+          "name": "SkinLabs Edible Skincare Pouches",
+          "description": "Bundled pack featuring all 3 flavour variants of edible skincare pouches.",
+          "offers": { "@type": "Offer", "price": "299", "priceCurrency": "ZAR", "availability": "https://schema.org/PreOrder" }
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20">
-          {/* Hero Section */}
-          <section className="py-20 bg-gradient-to-b from-primary/10 to-background">
+          {/* Hero */}
+          <section className="py-16 md:py-24 bg-gradient-to-b from-secondary/10 to-background">
             <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto text-center">
-                <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6">
-                  <Users className="h-4 w-4" />
-                  <span className="text-sm font-semibold">Limited to 250 Backers</span>
-                </div>
-
-                <h1 className="text-4xl md:text-6xl font-heading font-bold text-foreground mb-6">
-                  Edible Skincare Pouches
-                  <span className="block text-primary mt-2">Pre-Order Campaign</span>
-                </h1>
-
-                <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                  Be part of bringing the first-ever edible skincare pouches in Africa to market. 
-                  Support innovation and get exclusive early access to this revolutionary product.
-                </p>
-
-                <div className="flex items-center justify-center gap-2 mb-8">
-                  <span className="text-5xl font-bold text-foreground">{formatPrice(preOrderPrice)}</span>
-                  <div className="text-left">
-                    <span className="text-sm text-muted-foreground block">one-time payment</span>
-                    <span className="text-sm text-muted-foreground line-through">R499</span>
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                  <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full mb-6 text-sm font-semibold">
+                    <Package className="h-4 w-4" />
+                    Self-Hosted Crowdfunding Campaign
                   </div>
-                </div>
+                  <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
+                    Edible Skincare Pouches
+                  </h1>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    Help us bring this groundbreaking innovation to market. Back our campaign and receive a bundled pack featuring all variants of our Edible Skincare Pouches at an exclusive discounted price.
+                  </p>
 
-                <Button size="lg" className="gap-2 text-lg h-14 px-8">
-                  <Package className="h-5 w-5" />
-                  Pre-Order Now
-                </Button>
-
-                <p className="text-sm text-muted-foreground mt-4">
-                  Campaign ends when we reach 250 backers or by June 30, 2026
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* What You Get Section */}
-          <section className="py-20">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4 text-center">
-                  What's Included in Your Bundle
-                </h2>
-                <p className="text-lg text-muted-foreground mb-12 text-center">
-                  Complete collection of all Edible Skincare Pouch variants at an exclusive discount
-                </p>
-
-                <div className="grid md:grid-cols-3 gap-6 mb-12">
-                  <div className="bg-card border border-border rounded-2xl p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">🍬</span>
+                  {/* Price */}
+                  <div className="bg-card border border-border rounded-2xl p-6 mb-6">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-4xl font-bold text-foreground">R299</span>
+                      <span className="text-muted-foreground">once-off</span>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">Bubblegum Pop</h3>
                     <p className="text-sm text-muted-foreground">
-                      Sweet and playful with natural fruit extracts
+                      Bundled pack featuring all 3 flavour variants
                     </p>
                   </div>
 
-                  <div className="bg-card border border-border rounded-2xl p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">🍰</span>
+                  {/* Progress */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className="font-medium text-foreground flex items-center gap-1">
+                        <Users className="h-4 w-4" /> {backersCount} backers
+                      </span>
+                      <span className="text-muted-foreground">{BACKERS_TARGET} target</span>
                     </div>
-                    <h3 className="font-semibold text-foreground mb-2">Creamy Cheesecake</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Rich and indulgent with nourishing ingredients
+                    <Progress value={progressPercent} className="h-3" />
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Campaign ends {CAMPAIGN_END} or when target is reached
                     </p>
                   </div>
 
-                  <div className="bg-card border border-border rounded-2xl p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">🫐</span>
-                    </div>
-                    <h3 className="font-semibold text-foreground mb-2">Blueberry Dreams</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Antioxidant-rich with a delightful berry blend
-                    </p>
-                  </div>
+                  <Button size="lg" className="gap-2 w-full sm:w-auto" onClick={handleBackCampaign} disabled={processing}>
+                    {processing ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShoppingCart className="h-5 w-5" />}
+                    {processing ? "Processing..." : "Back This Campaign — R299"}
+                  </Button>
                 </div>
 
-                <div className="bg-card border border-border rounded-2xl p-8">
-                  <h3 className="text-2xl font-heading font-bold text-foreground mb-6">
-                    Backer Benefits
-                  </h3>
-                  <div className="space-y-4">
-                    {benefits.map((benefit, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
-                          <Check className="h-4 w-4 text-primary" />
-                        </div>
-                        <span className="text-foreground">{benefit}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-3xl blur-3xl" />
+                  <img
+                    src={edibleImage}
+                    alt="Edible Skincare Pouches bundle"
+                    className="relative rounded-2xl shadow-2xl w-full"
+                  />
                 </div>
               </div>
             </div>
           </section>
 
-          {/* Campaign Details Section */}
-          <section className="py-20 bg-secondary/30">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-12 text-center">
-                  Campaign Details
-                </h2>
-
-                <div className="grid md:grid-cols-2 gap-8 mb-12">
-                  <div className="bg-card border border-border rounded-2xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Clock className="h-6 w-6 text-primary" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-foreground">Campaign Timeline</h3>
-                    </div>
-                    <p className="text-muted-foreground mb-4">
-                      This is a self-hosted crowdfunding campaign to bring our innovative product to market. 
-                      We're seeking 250 backers to help us reach our production target.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Deadline:</strong> June 30, 2026 or when we reach 250 backers (whichever comes first)
-                    </p>
+          {/* What You Get */}
+          <section className="py-16 bg-secondary/30">
+            <div className="container mx-auto px-4 max-w-4xl">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-8 text-center">What's Included</h2>
+              <div className="grid sm:grid-cols-3 gap-6">
+                {flavors.map((f) => (
+                  <div key={f.name} className="bg-card border border-border rounded-2xl p-6 text-center">
+                    <h3 className="font-semibold text-foreground mb-2">{f.name}</h3>
+                    <p className="text-sm text-muted-foreground">{f.description}</p>
                   </div>
-
-                  <div className="bg-card border border-border rounded-2xl p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Shield className="h-6 w-6 text-primary" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-foreground">Money-Back Guarantee</h3>
-                    </div>
-                    <p className="text-muted-foreground mb-4">
-                      In the unlikely event that we are unable to reach our target by the deadline, 
-                      the campaign will be cancelled.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      <strong>If cancelled:</strong> All backers will receive a full refund plus a complimentary 
-                      discount voucher from the SkinLabs team.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Product Development Timeline */}
-                <div className="bg-card border border-border rounded-2xl p-8">
-                  <h3 className="text-2xl font-heading font-bold text-foreground mb-6 flex items-center gap-2">
-                    <TrendingUp className="h-6 w-6 text-primary" />
-                    Product Development Timeline
-                  </h3>
-                  <div className="space-y-6">
-                    {timeline.map((item, index) => (
-                      <div key={index} className="flex gap-4">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            index === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                          }`}>
-                            {index + 1}
-                          </div>
-                          {index < timeline.length - 1 && (
-                            <div className="w-0.5 h-full bg-border mt-2" />
-                          )}
-                        </div>
-                        <div className="flex-1 pb-6">
-                          <p className="text-sm text-primary font-medium mb-1">{item.phase}</p>
-                          <h4 className="font-semibold text-foreground mb-2">{item.title}</h4>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* How It Works Section */}
-          <section className="py-20">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-12 text-center">
-                  How It Works
-                </h2>
-
-                <div className="space-y-8">
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary">1</span>
-                    </div>
+          {/* How It Works */}
+          <section className="py-16">
+            <div className="container mx-auto px-4 max-w-3xl">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-8 text-center">How It Works</h2>
+              <div className="space-y-6">
+                {[
+                  { step: "1", title: "Place your pre-order", desc: "Secure your spot as one of the first 250 backers at the discounted price of R299." },
+                  { step: "2", title: "Receive your Backer's Guide", desc: "You'll receive a comprehensive guide via email and/or WhatsApp with everything you need to know, including access to our live Product Roadmap Tracking Tool." },
+                  { step: "3", title: "Track your package", desc: "Log in to your dashboard on our website to track the progress of your package in real time." },
+                ].map((item) => (
+                  <div key={item.step} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">{item.step}</div>
                     <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-2">Pre-Order Your Bundle</h3>
-                      <p className="text-muted-foreground">
-                        Secure your exclusive bundle pack at the discounted pre-order price of {formatPrice(preOrderPrice)}.
-                      </p>
+                      <h3 className="font-semibold text-foreground">{item.title}</h3>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
                     </div>
                   </div>
-
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary">2</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-2">Receive Your Backer's Guide</h3>
-                      <p className="text-muted-foreground">
-                        After placing your pre-order, you'll receive a comprehensive Backer's Guide via email and/or WhatsApp 
-                        with all the important details about the product development process.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary">3</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-2">Track Progress in Real-Time</h3>
-                      <p className="text-muted-foreground">
-                        Stay updated on the current status of the product through our online Product Roadmap Tracking Tool. 
-                        You can also log in to your dashboard on our website to track your package progress.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-6">
-                    <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-bold text-primary">4</span>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-2">Receive Your Package</h3>
-                      <p className="text-muted-foreground">
-                        Once production and regulatory compliance is complete, your bundle will be prepared and delivered 
-                        according to the expected turnaround time communicated in your Backer's Guide.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* CTA Section */}
-          <section className="py-20 bg-primary/5">
-            <div className="container mx-auto px-4">
-              <div className="max-w-3xl mx-auto text-center">
-                <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-6">
-                  Be Part of This Innovation
-                </h2>
-                <p className="text-lg text-muted-foreground mb-8">
-                  Join the movement to bring the first edible skincare pouches in Africa to market. 
-                  Support local innovation and get exclusive early access.
-                </p>
-                <Button size="lg" className="gap-2 text-lg h-14 px-8">
-                  <Package className="h-5 w-5" />
-                  Secure Your Pre-Order - {formatPrice(preOrderPrice)}
-                </Button>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Limited to 250 backers • Campaign ends June 30, 2026
-                </p>
+          {/* Product Roadmap */}
+          <section className="py-16 bg-secondary/30">
+            <div className="container mx-auto px-4 max-w-3xl">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-8 text-center">Product Roadmap</h2>
+              <div className="space-y-4">
+                {roadmapSteps.map((step, i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      step.status === "done" ? "bg-primary text-primary-foreground" :
+                      step.status === "current" ? "bg-primary/20 border-2 border-primary text-primary" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
+                      {step.status === "done" ? <CheckCircle2 className="h-5 w-5" /> : <span className="text-xs font-bold">{i + 1}</span>}
+                    </div>
+                    <p className={`font-medium ${step.status === "current" ? "text-primary" : step.status === "done" ? "text-foreground" : "text-muted-foreground"}`}>
+                      {step.label}
+                      {step.status === "current" && <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">In Progress</span>}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Campaign Terms */}
+          <section className="py-16">
+            <div className="container mx-auto px-4 max-w-3xl">
+              <h2 className="text-3xl font-heading font-bold text-foreground mb-6 text-center">Campaign Terms</h2>
+              <div className="bg-card border border-border rounded-2xl p-6 md:p-8 space-y-4 text-sm text-muted-foreground">
+                <p>• This pre-order campaign is limited to <strong className="text-foreground">250 backers</strong> and will end as soon as we reach the target.</p>
+                <p>• In the unlikely event that we are unable to reach the target by the end of <strong className="text-foreground">June 2026</strong>, the campaign will be cancelled and all backers will receive a <strong className="text-foreground">full refund</strong> and a complimentary discount voucher from the SkinLabs team.</p>
+                <p>• The product is currently in the <strong className="text-foreground">production and regulatory compliance</strong> phase. Estimated delivery timelines will be communicated via the Backer's Guide and Product Roadmap Tracking Tool.</p>
+              </div>
+
+              <div className="mt-8 text-center">
+                <p className="text-sm text-muted-foreground mb-4">Have questions about the campaign?</p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <a href="mailto:support@skinlabs.co.za" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                    <Mail className="h-4 w-4" /> support@skinlabs.co.za
+                  </a>
+                  <a href="tel:0128806560" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                    <Phone className="h-4 w-4" /> 012 880 6560
+                  </a>
+                  <a href="https://wa.me/27128806560" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                </div>
               </div>
             </div>
           </section>
         </main>
         <Footer />
       </div>
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </>
   );
 };

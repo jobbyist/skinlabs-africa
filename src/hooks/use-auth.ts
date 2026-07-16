@@ -9,7 +9,6 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth changes first
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -18,7 +17,6 @@ export const useAuth = () => {
       setLoading(false);
     });
 
-    // Then get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -29,10 +27,7 @@ export const useAuth = () => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { data, error };
   };
 
@@ -40,9 +35,7 @@ export const useAuth = () => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
+      options: { emailRedirectTo: window.location.origin },
     });
     return { data, error };
   };
@@ -59,6 +52,42 @@ export const useAuth = () => {
     return { data: null, error: error || null };
   };
 
+  /** Passwordless magic link */
+  const signInWithMagicLink = async (email: string) => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    return { data, error };
+  };
+
+  /** Multi-factor authentication (TOTP) helpers */
+  const enrollMFA = async (friendlyName = "Authenticator app") => {
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName,
+    });
+    return { data, error };
+  };
+
+  const challengeAndVerifyMFA = async (factorId: string, code: string) => {
+    const { data, error } = await supabase.auth.mfa.challengeAndVerify({
+      factorId,
+      code,
+    });
+    return { data, error };
+  };
+
+  const listMFAFactors = async () => {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    return { data, error };
+  };
+
+  const unenrollMFA = async (factorId: string) => {
+    const { data, error } = await supabase.auth.mfa.unenroll({ factorId });
+    return { data, error };
+  };
+
   return {
     user,
     session,
@@ -67,5 +96,10 @@ export const useAuth = () => {
     signUp,
     signOut,
     signInWithOAuth,
+    signInWithMagicLink,
+    enrollMFA,
+    challengeAndVerifyMFA,
+    listMFAFactors,
+    unenrollMFA,
   };
 };

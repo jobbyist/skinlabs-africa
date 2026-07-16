@@ -31,10 +31,13 @@ const OurScience = () => {
     <>
       <Helmet>
         <title>Our Science - Research & Methodology | SKINLABS</title>
-        <meta
-          name="description"
-          content="Learn about the science behind SkinLabs. Our research-driven approach combines dermatology, chemistry, and AI to create effective skincare."
-        />
+        <meta name="description" content="Learn about the science behind SkinLabs. Our research-driven approach combines dermatology, chemistry, and AI to create effective skincare." />
+        <link rel="canonical" href="https://skinlabs.co.za/our-science" />
+        <meta property="og:title" content="Our Science - Research & Methodology | SKINLABS" />
+        <meta property="og:description" content="Research-driven skincare combining dermatology, chemistry, and AI." />
+        <meta property="og:url" content="https://skinlabs.co.za/our-science" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

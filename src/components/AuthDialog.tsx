@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mail, KeyRound, Sparkles } from "lucide-react";
 
 interface AuthDialogProps {
   open: boolean;
@@ -14,19 +14,19 @@ interface AuthDialogProps {
 }
 
 const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
-  const { signIn, signUp, signInWithOAuth } = useAuth();
+  const { signIn, signUp, signInWithOAuth, signInWithMagicLink } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const { error } = await signIn(email, password);
     setIsLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
+    if (error) toast.error(error.message);
+    else {
       toast.success("Signed in successfully!");
       onOpenChange(false);
     }
@@ -37,10 +37,9 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(true);
     const { error } = await signUp(email, password);
     setIsLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Account created! Please check your email for verification.");
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Account created! Check your email for verification.");
       onOpenChange(false);
     }
   };
@@ -49,18 +48,39 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(true);
     const { error } = await signInWithOAuth("google");
     setIsLoading(false);
+    if (error) toast.error(error.message);
+  };
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email");
+      return;
+    }
+    setIsLoading(true);
+    const { error } = await signInWithMagicLink(email);
+    setIsLoading(false);
     if (error) {
       toast.error(error.message);
+    } else {
+      setMagicLinkSent(true);
+      toast.success("Magic link sent! Check your inbox.");
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) setMagicLinkSent(false);
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Sign in to continue</DialogTitle>
+          <DialogTitle>Sign in to SKINLABS</DialogTitle>
           <DialogDescription>
-            Access your personalized AI skincare formulator
+            Access your personalized AI skincare formulator and dashboard
           </DialogDescription>
         </DialogHeader>
 
@@ -88,11 +108,57 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
           </div>
         </div>
 
-        <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        <Tabs defaultValue="magic" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="magic" className="gap-1 text-xs">
+              <Sparkles className="h-3 w-3" /> Magic link
+            </TabsTrigger>
+            <TabsTrigger value="signin" className="gap-1 text-xs">
+              <KeyRound className="h-3 w-3" /> Sign in
+            </TabsTrigger>
+            <TabsTrigger value="signup" className="gap-1 text-xs">
+              <Mail className="h-3 w-3" /> Sign up
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="magic">
+            {magicLinkSent ? (
+              <div className="space-y-3 text-center py-6">
+                <div className="w-12 h-12 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">Check your inbox</p>
+                <p className="text-xs text-muted-foreground">
+                  We sent a magic sign-in link to <strong>{email}</strong>. Click the link in the email to sign in — no password needed.
+                </p>
+                <Button variant="ghost" size="sm" onClick={() => setMagicLinkSent(false)}>
+                  Use a different email
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleMagicLink} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-magic">Email</Label>
+                  <Input
+                    id="email-magic"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    We'll email you a secure one-tap sign-in link — no password required.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                  {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <Sparkles className="h-4 w-4" />
+                  Send magic link
+                </Button>
+              </form>
+            )}
+          </TabsContent>
 
           <TabsContent value="signin">
             <form onSubmit={handleSignIn} className="space-y-4">
@@ -119,7 +185,8 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password-signup">Password</Label>
-                <Input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                <Input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+                <p className="text-xs text-muted-foreground">Minimum 8 characters. Avoid common/leaked passwords.</p>
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

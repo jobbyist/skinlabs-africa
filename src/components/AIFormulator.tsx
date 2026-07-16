@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   Mail,
   Calendar,
+  Download,
 } from "lucide-react";
+import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -90,7 +92,8 @@ const AIFormulator = () => {
       const { data, error } = await supabase.functions.invoke("skincare-ai", {
         body: {
           quizAnswers,
-          skinImage: skinImage ? "provided" : null,
+          // Send the actual base64 data URL so Gemini can analyse the selfie
+          skinImage: skinImage && photoConsent ? skinImage : null,
           contactName,
           contactEmail,
         },
@@ -107,6 +110,20 @@ const AIFormulator = () => {
       }
 
       setRecommendation(data.recommendation);
+
+      // Auto-download the personalized PDF report
+      try {
+        downloadSkincarePdf({
+          clientName: contactName || "Client",
+          email: contactEmail,
+          recommendation: data.recommendation,
+          skinType: derivedSkinType,
+        });
+        toast.success("Your personalized skincare PDF has been downloaded!");
+      } catch (pdfErr) {
+        console.warn("PDF generation failed:", pdfErr);
+      }
+
       if (!hasSubscription) {
         setShowPaywall(true);
       } else {
@@ -574,6 +591,24 @@ const AIFormulator = () => {
                   )}
 
                   <div className="flex flex-col sm:flex-row gap-3">
+                    {recommendation && (
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="flex-1 gap-2"
+                        onClick={() =>
+                          downloadSkincarePdf({
+                            clientName: contactName || "Client",
+                            email: contactEmail,
+                            recommendation,
+                            skinType: derivedSkinType,
+                          })
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                        Download PDF Again
+                      </Button>
+                    )}
                     <Button size="lg" className="flex-1 gap-2" asChild>
                       <a href="/openhaus">
                         Browse SKINLABS Products
@@ -605,6 +640,22 @@ const AIFormulator = () => {
                     {formatRecommendation(recommendation)}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    <Button
+                      size="lg"
+                      variant="secondary"
+                      className="gap-2"
+                      onClick={() =>
+                        downloadSkincarePdf({
+                          clientName: contactName || "Client",
+                          email: contactEmail,
+                          recommendation: recommendation!,
+                          skinType: derivedSkinType,
+                        })
+                      }
+                    >
+                      <Download className="h-4 w-4" />
+                      Download PDF
+                    </Button>
                     <Button size="lg" className="gap-2" asChild>
                       <a href="/openhaus">
                         Shop Recommended Products

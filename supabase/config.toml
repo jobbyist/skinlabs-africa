@@ -2,3 +2,9 @@ project_id = "lxbknnvzkxgmvifksyze"
 
 [functions.skincare-ai]
 verify_jwt = false
+
+[functions.payfast-payment]
+verify_jwt = false
+
+[functions.auth-token-exchange]
+verify_jwt = false

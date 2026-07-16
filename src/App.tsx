@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { Analytics } from "@vercel/analytics/react";
+import { useCartSync } from "@/hooks/useCartSync";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import GetStarted from "./pages/GetStarted";
@@ -30,9 +32,73 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Openhaus from "./pages/Openhaus";
 import PodcastPage from "./pages/PodcastPage";
 import EdiblePouches from "./pages/EdiblePouches";
+import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
+
+const AppContent = () => {
+  useCartSync();
+  
+  return (
+    <>
+      <ScrollToTop />
+      <PWAInstallPrompt />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/get-started" element={<GetStarted />} />
+        
+        {/* Header Navigation Routes */}
+        <Route path="/products" element={<Products />} />
+        <Route path="/ai-formulator" element={<AIFormulator />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        
+        {/* Shop Routes */}
+        <Route path="/devices" element={<Devices />} />
+        <Route path="/serums" element={<Serums />} />
+        <Route path="/custom-formulas" element={<CustomFormulas />} />
+        <Route path="/gift-sets" element={<GiftSets />} />
+        
+        {/* Company Routes */}
+        <Route path="/our-science" element={<OurScience />} />
+        <Route path="/sustainability" element={<Sustainability />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/press" element={<Press />} />
+        
+        {/* Support Routes */}
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/shipping" element={<Shipping />} />
+        <Route path="/returns" element={<Returns />} />
+        <Route path="/track-order" element={<TrackOrder />} />
+        
+        {/* Legal Routes */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
+        
+        {/* Admin */}
+        <Route path="/admin" element={<AdminDashboard />} />
+        
+        {/* OPENHAUS Coming Soon */}
+        <Route path="/openhaus" element={<Openhaus />} />
+        
+        {/* Podcast */}
+        <Route path="/stream" element={<PodcastPage />} />
+        
+        {/* Edible Pouches Pre-Order */}
+        <Route path="/edible-pouches" element={<EdiblePouches />} />
+        
+        {/* User Dashboard */}
+        <Route path="/dashboard" element={<UserDashboard />} />
+        
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
 
 const App = () => (
   <HelmetProvider>
@@ -41,56 +107,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/get-started" element={<GetStarted />} />
-            
-            {/* Header Navigation Routes */}
-            <Route path="/products" element={<Products />} />
-            <Route path="/ai-formulator" element={<AIFormulator />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            
-            {/* Shop Routes */}
-            <Route path="/devices" element={<Devices />} />
-            <Route path="/serums" element={<Serums />} />
-            <Route path="/custom-formulas" element={<CustomFormulas />} />
-            <Route path="/gift-sets" element={<GiftSets />} />
-            
-            {/* Company Routes */}
-            <Route path="/our-science" element={<OurScience />} />
-            <Route path="/sustainability" element={<Sustainability />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/press" element={<Press />} />
-            
-            {/* Support Routes */}
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/shipping" element={<Shipping />} />
-            <Route path="/returns" element={<Returns />} />
-            <Route path="/track-order" element={<TrackOrder />} />
-            
-            {/* Legal Routes */}
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
-            <Route path="/cookie-policy" element={<CookiePolicy />} />
-            
-            {/* Admin */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            
-            {/* OPENHAUS Coming Soon */}
-            <Route path="/openhaus" element={<Openhaus />} />
-            
-            {/* Podcast */}
-            <Route path="/stream" element={<PodcastPage />} />
-            
-            {/* Edible Pouches Pre-Order */}
-            <Route path="/edible-pouches" element={<EdiblePouches />} />
-            
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppContent />
         </BrowserRouter>
+        <Analytics />
       </TooltipProvider>
     </QueryClientProvider>
   </HelmetProvider>

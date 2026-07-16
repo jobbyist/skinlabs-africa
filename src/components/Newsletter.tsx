@@ -3,15 +3,37 @@ import { Send, Video, Calendar, Star, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      toast.success("You'll be notified when this feature goes live!");
+    if (!email) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from("newsletter_subscribers")
+        .insert({ email });
+
+      if (error) {
+        if (error.code === "23505") {
+          toast.info("You're already subscribed!");
+        } else {
+          throw error;
+        }
+      } else {
+        toast.success("Thank you for subscribing!");
+      }
       setEmail("");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,77 +65,24 @@ const Newsletter = () => {
             network at discounted rates.
           </p>
 
-          {/* Benefits Grid */}
-          <div className="grid md:grid-cols-3 gap-6 mb-10">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="bg-card border border-border rounded-2xl p-6 text-center">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                  <benefit.icon className="h-6 w-6 text-primary" />
-                </div>
-                <p className="text-sm text-foreground">{benefit.text}</p>
-              </div>
-            ))}
-          </div>
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1"
+              required
+            />
+            <Button type="submit" className="gap-2" disabled={loading}>
+              {loading ? "Subscribing..." : "Subscribe"}
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
 
-          {/* Key Features */}
-          <div className="bg-card border border-border rounded-2xl p-8 mb-8">
-            <h3 className="text-xl font-semibold text-foreground mb-4 text-center">
-              Get Informed Answers & Solutions With Ease
-            </h3>
-            <p className="text-muted-foreground text-center mb-6">
-              Anywhere, anytime via our in-app video chat feature
-            </p>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                <p className="text-sm text-muted-foreground">
-                  Compare rates from multiple specialists
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                <p className="text-sm text-muted-foreground">
-                  Discounted rates for premium members
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                <p className="text-sm text-muted-foreground">
-                  Book appointments in minutes
-                </p>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                <p className="text-sm text-muted-foreground">
-                  Top-rated dermatologists in our network
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA Form */}
-          <div className="text-center">
-            <p className="text-foreground font-semibold mb-4">
-              Be Notified When This Feature Goes Live
-            </p>
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1"
-                required
-              />
-              <Button type="submit" className="gap-2">
-                Notify Me
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-            <p className="text-xs text-muted-foreground mt-4">
-              By subscribing, you agree to our Privacy Policy and consent to receive updates.
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            By subscribing, you agree to our Privacy Policy and consent to receive updates.
+          </p>
         </div>
       </div>
     </section>

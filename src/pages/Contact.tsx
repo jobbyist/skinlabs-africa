@@ -33,10 +33,13 @@ const Contact = () => {
     <>
       <Helmet>
         <title>Contact Us - Get In Touch | SKINLABS</title>
-        <meta
-          name="description"
-          content="Contact SkinLabs for support, inquiries, or feedback. Reach us via email, phone, or WhatsApp. We're here to help with your skincare needs."
-        />
+        <meta name="description" content="Contact SkinLabs for support, inquiries, or feedback. Reach us via email, phone, or WhatsApp. We're here to help with your skincare needs." />
+        <link rel="canonical" href="https://skinlabs.co.za/contact" />
+        <meta property="og:title" content="Contact Us | SKINLABS" />
+        <meta property="og:description" content="Contact SkinLabs for support, inquiries, or feedback. Reach us via email, phone, or WhatsApp." />
+        <meta property="og:url" content="https://skinlabs.co.za/contact" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

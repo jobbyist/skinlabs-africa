@@ -1,35 +1,68 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { useState, useRef } from "react";
+import { ArrowRight, Sparkles, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroImage from "@/assets/hero-body-oils.png";
+import heroVideo from "@/assets/hero-video.mp4";
 
 const Hero = () => {
+  const [isPlaying, setIsPlaying] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-      {/* Background gradient */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{ background: "var(--gradient-hero)" }}
-      />
-      
-      {/* Decorative circles */}
-      <div className="absolute top-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-10 w-72 h-72 bg-accent/30 rounded-full blur-3xl" />
+      {/* Video Background */}
+      <div className="absolute inset-0 z-0">
+        <video
+          ref={videoRef}
+          src={heroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        {/* Dark animated gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/50" />
+      </div>
+
+      {/* Play/Pause button */}
+      <button
+        onClick={togglePlay}
+        className="absolute bottom-6 right-6 z-20 h-10 w-10 rounded-full bg-background/50 backdrop-blur-sm border border-border flex items-center justify-center hover:bg-background/70 transition-colors"
+        aria-label={isPlaying ? "Pause video" : "Play video"}
+      >
+        {isPlaying ? (
+          <Pause className="h-4 w-4 text-foreground" />
+        ) : (
+          <Play className="h-4 w-4 text-foreground" />
+        )}
+      </button>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Content */}
-          <div className="space-y-8 text-center lg:text-left">
+        <div className="max-w-2xl mx-auto text-center lg:text-left lg:mx-0">
+          <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
               <Sparkles className="h-4 w-4" />
               AI-Powered Skincare Technology
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-foreground leading-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
               Next Generation
-              <span className="block text-primary">Skincare Science</span>
+              <span className="block text-primary drop-shadow-md">Skincare Science</span>
             </h1>
             
-            <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0">
+            <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
               Discover personalized skincare formulations powered by AI and curated 
               collection of premium imported skincare technology devices.
             </p>
@@ -41,58 +74,32 @@ const Hero = () => {
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
+              <Button
+                variant="outline"
+                size="lg"
                 className="gap-2 text-base px-8"
-                onClick={() => {
-                  const element = document.getElementById('ai-formulator');
-                  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
+                asChild
               >
-                <Sparkles className="h-4 w-4" />
-                Try AI Formulator
+                <a href="/ai-formulator">
+                  <Sparkles className="h-4 w-4" />
+                  Try AI Formulator
+                </a>
               </Button>
             </div>
 
             {/* Stats */}
             <div className="flex gap-8 justify-center lg:justify-start pt-4">
               <div>
-                <p className="text-3xl font-bold text-foreground">50K+</p>
-                <p className="text-sm text-muted-foreground">Happy Customers</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">3.7K+</p>
+                <p className="text-sm font-semibold text-foreground/80">Happy Members</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-foreground">100+</p>
-                <p className="text-sm text-muted-foreground">Products</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">100%</p>
+                <p className="text-sm font-semibold text-foreground/80">Locally Sourced</p>
               </div>
               <div>
-                <p className="text-3xl font-bold text-foreground">15+</p>
-                <p className="text-sm text-muted-foreground">Countries</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Hero Image */}
-          <div className="relative">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src={heroImage}
-                alt="SKINLABS Classic Body Oil Serums - Plant-powered formulations"
-                className="w-full h-auto object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/20 to-transparent" />
-            </div>
-            
-            {/* Floating card */}
-            <div className="absolute -bottom-6 -left-6 bg-card p-4 rounded-xl shadow-lg border border-border hidden md:block">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 text-accent-foreground" />
-                </div>
-                <div>
-                  <p className="font-semibold text-card-foreground">AI Formulation</p>
-                  <p className="text-sm text-muted-foreground">Custom blends for you</p>
-                </div>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">4.75/5</p>
+                <p className="text-sm font-semibold text-foreground/80">Avg. Ratings</p>
               </div>
             </div>
           </div>
