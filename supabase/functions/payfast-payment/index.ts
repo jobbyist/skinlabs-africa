@@ -6,6 +6,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ALLOWED_RETURN_ORIGINS = [
+  "https://skinlabs.co.za",
+  "https://www.skinlabs.co.za",
+  "https://openhaus.skinlabs.co.za",
+  "https://skinlabsza.lovable.app",
+  "https://skinlabs-openhaus.lovable.app",
+];
+
+function isSafeReturnUrl(url: unknown): url is string {
+  if (typeof url !== "string") return false;
+  try {
+    const u = new URL(url);
+    return ALLOWED_RETURN_ORIGINS.includes(`${u.protocol}//${u.host}`);
+  } catch {
+    return false;
+  }
+}
+
 function generateSignature(data: Record<string, string>, passPhrase: string): string {
   const params = Object.keys(data)
     .filter((key) => data[key] !== "")
@@ -25,7 +43,6 @@ function generateSignature(data: Record<string, string>, passPhrase: string): st
     .join("");
 }
 
-// Constant-time string comparison to avoid timing attacks
 function safeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let result = 0;
@@ -40,6 +57,9 @@ const EXPECTED_AMOUNTS: Record<string, number> = {
   preorder: 299.0,
 };
 
+const DEFAULT_RETURN = "https://skinlabs.co.za/get-started?payment=success";
+const DEFAULT_CANCEL = "https://skinlabs.co.za/get-started?payment=cancelled";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,7 +70,7 @@ Deno.serve(async (req) => {
     const merchantKey = Deno.env.get("PAYFAST_MERCHANT_KEY")!;
     const passphrase = Deno.env.get("PAYFAST_PASSPHRASE")!;
 
-    // Handle PayFast ITN (Instant Transaction Notification)
+    // Handle PayFast ITN
     const url = new URL(req.url);
     if (url.searchParams.get("notify") === "true") {
       const formData = await req.formData();
@@ -59,7 +79,6 @@ Deno.serve(async (req) => {
         data[key] = value.toString();
       });
 
-      // --- SIGNATURE VERIFICATION (security fix) ---
       const receivedSignature = data.signature || "";
       if (!receivedSignature) {
         console.warn("ITN: missing signature");
@@ -74,7 +93,6 @@ Deno.serve(async (req) => {
         return new Response("Invalid signature", { status: 400 });
       }
 
-      // --- AMOUNT VALIDATION ---
       const mPaymentId = data.m_payment_id || "";
       const parts = mPaymentId.split("_");
       const type = parts[0];
@@ -117,8 +135,35 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST") {
+      // --- AUTH: require JWT and derive userId server-side ---
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims?.sub) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const authedUserId = claimsData.claims.sub as string;
+      const authedEmail = (claimsData.claims.email as string | undefined) ?? "";
+
       const body = await req.json();
-      const { type, userId, email, name } = body;
+      const { type, name } = body;
 
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
@@ -137,12 +182,17 @@ Deno.serve(async (req) => {
         itemName = "Edible Skincare Pouches Bundle Pre-Order";
         itemDescription = "Pre-order bundle - All variants of Edible Skincare Pouches";
       } else {
-        throw new Error("Invalid payment type");
+        return new Response(
+          JSON.stringify({ error: "Invalid payment type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
-      const returnUrl = body.returnUrl || `${req.headers.get("origin")}/get-started?payment=success`;
-      const cancelUrl = body.cancelUrl || `${req.headers.get("origin")}/get-started?payment=cancelled`;
+      const returnUrl = isSafeReturnUrl(body.returnUrl) ? body.returnUrl : DEFAULT_RETURN;
+      const cancelUrl = isSafeReturnUrl(body.cancelUrl) ? body.cancelUrl : DEFAULT_CANCEL;
       const notifyUrl = `${supabaseUrl}/functions/v1/payfast-payment?notify=true`;
+
+      const safeName = typeof name === "string" ? name.slice(0, 100) : "";
 
       const paymentData: Record<string, string> = {
         merchant_id: merchantId,
@@ -150,9 +200,9 @@ Deno.serve(async (req) => {
         return_url: returnUrl,
         cancel_url: cancelUrl,
         notify_url: notifyUrl,
-        name_first: name || "",
-        email_address: email || "",
-        m_payment_id: `${type}_${userId}_${Date.now()}`,
+        name_first: safeName,
+        email_address: authedEmail,
+        m_payment_id: `${type}_${authedUserId}_${Date.now()}`,
         amount,
         item_name: itemName,
         item_description: itemDescription,
@@ -180,8 +230,9 @@ Deno.serve(async (req) => {
 
     return new Response("Method not allowed", { status: 405, headers: corsHeaders });
   } catch (error) {
+    console.error("payfast-payment error:", error);
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
+      JSON.stringify({ error: "Payment processing failed. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
