@@ -22,14 +22,19 @@ const EdiblePouches = () => {
 
   useEffect(() => {
     const fetchBackerCount = async () => {
-      const { data, error } = await supabase.functions.invoke("preorder-count", {
-        method: "GET",
-        headers: {},
-        body: undefined,
-        // @ts-expect-error - query params supported via URL
-      });
-      if (!error && data?.count != null) {
-        setBackersCount(Number(data.count) || 0);
+      try {
+        const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetch(
+          `https://${projectRef}.supabase.co/functions/v1/preorder-count?product_type=edible_pouches`,
+          { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } }
+        );
+        const json = await res.json();
+        if (res.ok && json?.count != null) {
+          setBackersCount(Number(json.count) || 0);
+        }
+      } catch (e) {
+        console.error("preorder count fetch failed", e);
       }
     };
     fetchBackerCount();
