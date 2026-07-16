@@ -41,6 +41,111 @@ export type Database = {
         }
         Relationships: []
       }
+      business_enquiries: {
+        Row: {
+          budget_range: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          id: string
+          project_brief: string | null
+          services_interested: string[] | null
+          status: string
+          timeline: string | null
+          updated_at: string
+        }
+        Insert: {
+          budget_range?: string | null
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          project_brief?: string | null
+          services_interested?: string[] | null
+          status?: string
+          timeline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          budget_range?: string | null
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          project_brief?: string | null
+          services_interested?: string[] | null
+          status?: string
+          timeline?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      custom_formula_requests: {
+        Row: {
+          allergens: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          delivery_address: string | null
+          id: string
+          key_ingredients: string | null
+          notes: string | null
+          product_type: string
+          scent_preference: string | null
+          skin_goals: string[] | null
+          status: string
+          texture_preference: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          allergens?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          delivery_address?: string | null
+          id?: string
+          key_ingredients?: string | null
+          notes?: string | null
+          product_type: string
+          scent_preference?: string | null
+          skin_goals?: string[] | null
+          status?: string
+          texture_preference?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          allergens?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          delivery_address?: string | null
+          id?: string
+          key_ingredients?: string | null
+          notes?: string | null
+          product_type?: string
+          scent_preference?: string | null
+          skin_goals?: string[] | null
+          status?: string
+          texture_preference?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -127,32 +232,95 @@ export type Database = {
       }
       profiles: {
         Row: {
+          allergies: string[] | null
           created_at: string
+          date_of_birth: string | null
           email: string | null
           full_name: string | null
+          gender: string | null
           id: string
+          notes: string | null
+          phone: string | null
+          preferred_routine_time: string | null
+          race_ethnicity: string | null
+          skin_color: string | null
+          skin_conditions: string[] | null
           subscription_started_at: string | null
           subscription_status: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          allergies?: string[] | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
+          notes?: string | null
+          phone?: string | null
+          preferred_routine_time?: string | null
+          race_ethnicity?: string | null
+          skin_color?: string | null
+          skin_conditions?: string[] | null
           subscription_started_at?: string | null
           subscription_status?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          allergies?: string[] | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
+          gender?: string | null
           id?: string
+          notes?: string | null
+          phone?: string | null
+          preferred_routine_time?: string | null
+          race_ethnicity?: string | null
+          skin_color?: string | null
+          skin_conditions?: string[] | null
           subscription_started_at?: string | null
           subscription_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skin_journey_entries: {
+        Row: {
+          created_at: string
+          entry_date: string
+          id: string
+          mood: string | null
+          notes: string | null
+          photo_url: string | null
+          skin_condition_rating: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          skin_condition_rating?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          id?: string
+          mood?: string | null
+          notes?: string | null
+          photo_url?: string | null
+          skin_condition_rating?: number | null
           updated_at?: string
           user_id?: string
         }
