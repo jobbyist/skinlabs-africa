@@ -1,0 +1,127 @@
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
+
+const FITZPATRICK = ["I — Very Fair", "II — Fair", "III — Medium", "IV — Olive", "V — Brown", "VI — Deep"];
+
+const ProfileTab = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    full_name: "",
+    phone: "",
+    date_of_birth: "",
+    gender: "",
+    race_ethnicity: "",
+    skin_color: "",
+    allergies: "",
+    skin_conditions: "",
+    preferred_routine_time: "both",
+    notes: "",
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("*").eq("user_id", user.id).single().then(({ data }) => {
+      if (data) {
+        setForm({
+          full_name: data.full_name || "",
+          phone: (data as any).phone || "",
+          date_of_birth: (data as any).date_of_birth || "",
+          gender: (data as any).gender || "",
+          race_ethnicity: (data as any).race_ethnicity || "",
+          skin_color: (data as any).skin_color || "",
+          allergies: ((data as any).allergies || []).join(", "),
+          skin_conditions: ((data as any).skin_conditions || []).join(", "),
+          preferred_routine_time: (data as any).preferred_routine_time || "both",
+          notes: (data as any).notes || "",
+        });
+      }
+      setLoading(false);
+    });
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setSaving(true);
+    const { error } = await supabase.from("profiles").update({
+      full_name: form.full_name || null,
+      phone: form.phone || null,
+      date_of_birth: form.date_of_birth || null,
+      gender: form.gender || null,
+      race_ethnicity: form.race_ethnicity || null,
+      skin_color: form.skin_color || null,
+      allergies: form.allergies ? form.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      skin_conditions: form.skin_conditions ? form.skin_conditions.split(",").map((s) => s.trim()).filter(Boolean) : [],
+      preferred_routine_time: form.preferred_routine_time || null,
+      notes: form.notes || null,
+    } as any).eq("user_id", user.id);
+    setSaving(false);
+    if (error) return toast.error("Could not save profile");
+    toast.success("Profile updated");
+  };
+
+  if (loading) return <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your Profile</CardTitle>
+        <CardDescription>Details we use to personalise your skincare recommendations.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
+          <div><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
+          <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+          <div><Label>Date of birth</Label><Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
+          <div>
+            <Label>Gender</Label>
+            <Select value={form.gender} onValueChange={(v) => setForm({ ...form, gender: v })}>
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="non-binary">Non-binary</SelectItem>
+                <SelectItem value="prefer-not">Prefer not to say</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div><Label>Race / Ethnicity</Label><Input value={form.race_ethnicity} onChange={(e) => setForm({ ...form, race_ethnicity: e.target.value })} /></div>
+          <div>
+            <Label>Skin color (Fitzpatrick)</Label>
+            <Select value={form.skin_color} onValueChange={(v) => setForm({ ...form, skin_color: v })}>
+              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+              <SelectContent>{FITZPATRICK.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Preferred routine time</Label>
+            <Select value={form.preferred_routine_time} onValueChange={(v) => setForm({ ...form, preferred_routine_time: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="am">AM only</SelectItem>
+                <SelectItem value="pm">PM only</SelectItem>
+                <SelectItem value="both">AM & PM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div><Label>Allergies (comma-separated)</Label><Input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} placeholder="fragrance, nut oils, retinol" /></div>
+        <div><Label>Skin conditions (comma-separated)</Label><Input value={form.skin_conditions} onChange={(e) => setForm({ ...form, skin_conditions: e.target.value })} placeholder="eczema, rosacea, hyperpigmentation" /></div>
+        <div><Label>Notes for our formulators</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} /></div>
+        <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save profile</Button>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default ProfileTab;
