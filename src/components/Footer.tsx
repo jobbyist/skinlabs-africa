@@ -9,7 +9,7 @@ const Footer = () => {
       { label: "Devices", href: "/devices" },
       { label: "Serums", href: "/serums" },
       { label: "Custom Formulas", href: "/custom-formulas" },
-      { label: "Gift Sets", href: "/gift-sets" },
+      { label: "Bundled Kits", href: "/bundled-kits" },
     ],
     company: [
       { label: "About Us", href: "/about" },
