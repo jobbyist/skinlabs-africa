@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ShoppingBag, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import CurrencyConverter from "@/components/CurrencyConverter";
@@ -17,10 +17,11 @@ const Header = () => {
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
-    { label: "Products", href: "/products" },
-    { label: "AI Formulator", href: "/ai-formulator" },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
+    { label: "Newsroom", href: "/newsroom" },
+    { label: "Reviews", href: "/reviews" },
+    { label: "Podcast", href: "/stream" },
+    { label: "Consultations", href: "/consultations" },
+    { label: "Pricing", href: "/pricing" },
   ];
 
   const handleSignOut = async () => {
@@ -45,7 +46,7 @@ const Header = () => {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
                 <Link
                   key={link.label}
@@ -58,13 +59,13 @@ const Header = () => {
             </nav>
 
             {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               <CurrencyConverter />
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingBag className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
-                  0
-                </span>
+              <Button variant="outline" className="gap-2" asChild>
+                <Link to="/ai-formulator">
+                  <Sparkles className="h-4 w-4" />
+                  Build My AI Routine
+                </Link>
               </Button>
               {!loading && user ? (
                 <DropdownMenu>
@@ -100,7 +101,7 @@ const Header = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center gap-1">
+            <div className="lg:hidden flex items-center gap-1">
               <CurrencyConverter />
               <button
                 className="p-2"
@@ -113,7 +114,7 @@ const Header = () => {
 
           {/* Mobile Navigation */}
           {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-border">
+            <div className="lg:hidden py-4 border-t border-border">
               <nav className="flex flex-col gap-4">
                 {navLinks.map((link) => (
                   <Link
