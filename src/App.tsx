@@ -33,6 +33,13 @@ import CookiePolicy from "./pages/CookiePolicy";
 import AdminDashboard from "./pages/AdminDashboard";
 import Openhaus from "./pages/Openhaus";
 import PodcastPage from "./pages/PodcastPage";
+import EpisodePage from "./pages/EpisodePage";
+import Pricing from "./pages/Pricing";
+import Newsroom from "./pages/Newsroom";
+import Reviews from "./pages/Reviews";
+import Consultations from "./pages/Consultations";
+import Preloader from "./components/Preloader";
+import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import EdiblePouches from "./pages/EdiblePouches";
 import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
@@ -45,6 +52,7 @@ const AppContent = () => {
   
   return (
     <>
+      <Preloader />
       <ScrollToTop />
       <PWAInstallPrompt />
       <Routes>
@@ -90,6 +98,13 @@ const AppContent = () => {
         
         {/* Podcast */}
         <Route path="/stream" element={<PodcastPage />} />
+        <Route path="/stream/:slug" element={<EpisodePage />} />
+
+        {/* Content platform */}
+        <Route path="/newsroom" element={<Newsroom />} />
+        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/consultations" element={<Consultations />} />
         
         {/* Edible Pouches Pre-Order */}
         <Route path="/edible-pouches" element={<EdiblePouches />} />
@@ -111,7 +126,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppContent />
+          <PodcastPlayerProvider>
+            <AppContent />
+          </PodcastPlayerProvider>
         </BrowserRouter>
         <Analytics />
       </TooltipProvider>
