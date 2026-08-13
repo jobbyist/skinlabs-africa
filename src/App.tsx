@@ -2,10 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Analytics } from "@vercel/analytics/react";
-import { useCartSync } from "@/hooks/useCartSync";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import GetStarted from "./pages/GetStarted";
@@ -47,8 +46,13 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
+const LegacyStreamRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/podcast/${slug}`} replace />;
+};
+
 const AppContent = () => {
-  useCartSync();
+
   
   return (
     <>
@@ -97,8 +101,11 @@ const AppContent = () => {
         <Route path="/openhaus" element={<Openhaus />} />
         
         {/* Podcast */}
-        <Route path="/stream" element={<PodcastPage />} />
-        <Route path="/stream/:slug" element={<EpisodePage />} />
+        <Route path="/podcast" element={<PodcastPage />} />
+        <Route path="/podcast/:slug" element={<EpisodePage />} />
+        <Route path="/stream" element={<Navigate to="/podcast" replace />} />
+        <Route path="/stream/:slug" element={<LegacyStreamRedirect />} />
+
 
         {/* Content platform */}
         <Route path="/newsroom" element={<Newsroom />} />

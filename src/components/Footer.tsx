@@ -5,11 +5,12 @@ import logo from "@/assets/skinlabs-logo-white.svg";
 const Footer = () => {
   const links = {
     shop: [
-      { label: "All Products", href: "/products" },
-      { label: "Devices", href: "/devices" },
-      { label: "Serums", href: "/serums" },
-      { label: "Custom Formulas", href: "/custom-formulas" },
-      { label: "Bundled Kits", href: "/bundled-kits" },
+      { label: "The Daily Skinny", href: "/newsroom" },
+      { label: "AI Formulator", href: "/ai-formulator" },
+      { label: "Product Reviews", href: "/reviews" },
+      { label: "Podcast", href: "/podcast" },
+      { label: "Consultations", href: "/consultations" },
+      { label: "Membership Plans", href: "/pricing" },
     ],
     company: [
       { label: "About Us", href: "/about" },
@@ -22,11 +23,11 @@ const Footer = () => {
     support: [
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/faq" },
-      { label: "Shipping", href: "/shipping" },
-      { label: "Returns", href: "/returns" },
-      { label: "Track Order", href: "/track-order" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
     ],
   };
+
 
   const socials = [
     { icon: Instagram, href: "https://instagram.com/skinlabsza", label: "@skinlabsza" },
@@ -50,8 +51,8 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
-              Next generation skincare technology for radiant, healthy skin. 
-              Powered by science and AI.
+              South Africa's AI-powered skincare intelligence platform. Daily skin science,
+              independent local reviews and personalised routines.
             </p>
             
             {/* Contact Information */}
@@ -59,10 +60,10 @@ const Footer = () => {
               <p className="text-sm font-semibold text-background mb-3">Contact Us</p>
               <div className="space-y-2 text-sm text-background/70">
                 <p>Email: <a href="mailto:support@skinlabs.co.za" className="hover:text-background">support@skinlabs.co.za</a></p>
-                <p>Phone: <a href="tel:+27128806560" className="hover:text-background">+27 12 880 6560</a></p>
                 <p>WhatsApp: <a href="https://wa.me/27680200749" className="hover:text-background">+27 68 020 0749</a></p>
               </div>
             </div>
+
             
             {/* App Store Badges */}
             <div className="mb-6">
@@ -105,7 +106,7 @@ const Footer = () => {
 
           {/* Shop links */}
           <div>
-            <h4 className="font-semibold mb-4">Shop</h4>
+            <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2">
               {links.shop.map((link) => (
                 <li key={link.label}>

@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Mail, Phone, MessageCircle, MapPin } from "lucide-react";
+import { Mail, MessageCircle, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,6 @@ const Contact = () => {
       description: "We'll respond within 24 hours"
     },
     {
-      icon: <Phone className="h-6 w-6" />,
-      title: "Phone",
-      value: "+27 12 880 6560",
-      action: "tel:+27128806560",
-      description: "Mon-Fri, 9AM-5PM SAST"
-    },
-    {
       icon: <MessageCircle className="h-6 w-6" />,
       title: "WhatsApp",
       value: "+27 68 020 0749",
@@ -28,6 +21,7 @@ const Contact = () => {
       description: "Chat with us instantly"
     }
   ];
+
 
   return (
     <>
@@ -57,7 +51,7 @@ const Contact = () => {
                   </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6 mb-12">
+                <div className="grid md:grid-cols-2 gap-6 mb-12">
                   {contactMethods.map((method, index) => (
                     <a
                       key={index}

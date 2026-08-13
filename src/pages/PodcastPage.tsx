@@ -38,17 +38,17 @@ const PodcastPage = () => {
           name="description"
           content="Stream The Skin Deep Podcast: weekly South African skincare conversations, ingredient science breakdowns and show notes with timestamps."
         />
-        <link rel="canonical" href="https://skinlabs.co.za/stream" />
+        <link rel="canonical" href="https://skinlabs.co.za/podcast" />
         <meta property="og:title" content="The Skin Deep Podcast | SkinLabs" />
         <meta property="og:description" content="Weekly SA skincare conversations and ingredient science breakdowns." />
-        <meta property="og:url" content="https://skinlabs.co.za/stream" />
+        <meta property="og:url" content="https://skinlabs.co.za/podcast" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "PodcastSeries",
           name: "The Skin Deep Podcast",
-          url: "https://skinlabs.co.za/stream",
+          url: "https://skinlabs.co.za/podcast",
           description: "Weekly South African skincare conversations and ingredient science breakdowns.",
         })}</script>
       </Helmet>
@@ -137,7 +137,7 @@ const PodcastPage = () => {
                   <h2 className="font-heading text-lg font-bold text-foreground">{episode.title}</h2>
                   <p className="text-sm text-muted-foreground">{episode.description}</p>
                   <Button asChild variant="link" className="mt-auto justify-start px-0">
-                    <Link to={`/stream/${episode.slug}`}>Show notes & transcript →</Link>
+                    <Link to={`/podcast/${episode.slug}`}>Show notes & transcript →</Link>
                   </Button>
                 </div>
               </motion.article>

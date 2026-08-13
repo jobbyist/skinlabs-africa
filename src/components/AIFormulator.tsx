@@ -24,9 +24,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useMembership } from "@/hooks/use-membership";
+import GatedOverlay from "@/components/GatedOverlay";
 import AuthDialog from "@/components/AuthDialog";
 import SubscriptionPaywallModal from "@/components/SubscriptionPaywallModal";
 import { QUESTIONS } from "@/data/quiz";
+
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 // Steps: 0=intro, 1-20=quiz, 21=photo, 22=email capture, 23=loading/results
@@ -36,7 +39,9 @@ const STEP_RESULTS = TOTAL_QUESTIONS + 3;
 
 const AIFormulator = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
@@ -258,6 +263,23 @@ const AIFormulator = () => {
       return null;
     });
   };
+
+  /** Free preview = skin profile + basic routine. Everything after is premium. */
+  const splitRecommendation = (text: string) => {
+    const lines = text.split("\n");
+    const cutIndex = lines.findIndex((line) =>
+      /actives?\s+(schedule|calendar)|weekly\s+actives|advanced|product[- ]type recommendations|ingredient (deep dive|strategy)/i.test(
+        line,
+      ),
+    );
+    const splitAt = cutIndex > 0 ? cutIndex : Math.ceil(lines.length * 0.4);
+    return {
+      preview: lines.slice(0, splitAt).join("\n"),
+      advanced: lines.slice(splitAt).join("\n").trim(),
+    };
+  };
+
+
 
   return (
     <>
@@ -591,7 +613,7 @@ const AIFormulator = () => {
                   )}
 
                   <div className="flex flex-col sm:flex-row gap-3">
-                    {recommendation && (
+                    {recommendation && isMember && (
                       <Button
                         size="lg"
                         variant="secondary"
@@ -609,12 +631,21 @@ const AIFormulator = () => {
                         Download PDF Again
                       </Button>
                     )}
+                    {recommendation && !isMember && (
+                      <Button size="lg" variant="secondary" className="flex-1 gap-2" asChild>
+                        <a href="/pricing">
+                          <Download className="h-4 w-4" />
+                          Unlock PDF export
+                        </a>
+                      </Button>
+                    )}
                     <Button size="lg" className="flex-1 gap-2" asChild>
-                      <a href="/openhaus">
-                        Browse SKINLABS Products
+                      <a href="/reviews">
+                        Explore SA Product Reviews
                         <ChevronRight className="h-4 w-4" />
                       </a>
                     </Button>
+
                     <Button variant="outline" size="lg" onClick={resetFormulator} className="flex-1">
                       Start Over
                     </Button>
@@ -637,28 +668,50 @@ const AIFormulator = () => {
                     </p>
                   </div>
                   <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
-                    {formatRecommendation(recommendation)}
+                    {formatRecommendation(splitRecommendation(recommendation).preview)}
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                    <Button
-                      size="lg"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={() =>
-                        downloadSkincarePdf({
-                          clientName: contactName || "Client",
-                          email: contactEmail,
-                          recommendation: recommendation!,
-                          skinType: derivedSkinType,
-                        })
-                      }
+                  {splitRecommendation(recommendation).advanced && (
+                    <GatedOverlay
+                      locked={!isMember}
+                      title="Advanced recommendations are premium"
+                      message="Unlock your actives schedule, ingredient strategy and product-type recommendations with a Glow Insider or VIP membership."
+                      ctaLabel="Unlock with membership"
+                      ctaHref="/pricing"
                     >
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </Button>
+                      <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
+                        {formatRecommendation(splitRecommendation(recommendation).advanced)}
+                      </div>
+                    </GatedOverlay>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    {isMember ? (
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="gap-2"
+                        onClick={() =>
+                          downloadSkincarePdf({
+                            clientName: contactName || "Client",
+                            email: contactEmail,
+                            recommendation: recommendation!,
+                            skinType: derivedSkinType,
+                          })
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                        Download PDF
+                      </Button>
+                    ) : (
+                      <Button size="lg" variant="secondary" className="gap-2" asChild>
+                        <a href="/pricing">
+                          <Download className="h-4 w-4" />
+                          Unlock PDF export
+                        </a>
+                      </Button>
+                    )}
                     <Button size="lg" className="gap-2" asChild>
-                      <a href="/openhaus">
-                        Shop Recommended Products
+                      <a href="/reviews">
+                        See Recommended Products
                         <ChevronRight className="h-4 w-4" />
                       </a>
                     </Button>
@@ -666,6 +719,7 @@ const AIFormulator = () => {
                       Start Over
                     </Button>
                   </div>
+
                 </div>
               )}
 

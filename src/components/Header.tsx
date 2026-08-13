@@ -17,9 +17,9 @@ const Header = () => {
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
-    { label: "Newsroom", href: "/newsroom" },
+    { label: "The Daily Skinny", href: "/newsroom" },
     { label: "Reviews", href: "/reviews" },
-    { label: "Podcast", href: "/stream" },
+    { label: "Podcast", href: "/podcast" },
     { label: "Consultations", href: "/consultations" },
     { label: "Pricing", href: "/pricing" },
   ];

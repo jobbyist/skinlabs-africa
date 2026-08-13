@@ -6,13 +6,13 @@ import NewsroomFeed from "@/components/NewsroomFeed";
 const Newsroom = () => (
   <>
     <Helmet>
-      <title>Skincare Newsroom — Daily SA Skin Science Briefings | SkinLabs</title>
+      <title>The Daily Skinny — Daily SA Skincare Briefings | SkinLabs</title>
       <meta
         name="description"
         content="A daily briefing of global skincare research and regulation, summarised and translated into what it means for South African skin, climate and products."
       />
       <link rel="canonical" href="https://skinlabs.co.za/newsroom" />
-      <meta property="og:title" content="Skincare Newsroom — Daily SA Skin Science Briefings | SkinLabs" />
+      <meta property="og:title" content="The Daily Skinny — Daily SA Skincare Briefings | SkinLabs" />
       <meta property="og:description" content="Daily skincare science, decoded for South African skin." />
       <meta property="og:url" content="https://skinlabs.co.za/newsroom" />
       <meta property="og:type" content="website" />

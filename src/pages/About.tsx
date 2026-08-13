@@ -7,25 +7,26 @@ const About = () => {
   const values = [
     {
       icon: <Heart className="h-8 w-8" />,
-      title: "Customer First",
-      description: "Your skin health and satisfaction are our top priorities"
+      title: "Independent",
+      description: "No affiliate deals, no gifted samples — our reviews and briefings answer to readers only"
     },
     {
       icon: <Award className="h-8 w-8" />,
-      title: "Science-Backed",
-      description: "Every product is formulated with proven ingredients and research"
+      title: "Evidence-Led",
+      description: "Every briefing and routine is grounded in published dermatology research"
     },
     {
       icon: <Users className="h-8 w-8" />,
-      title: "Inclusivity",
-      description: "Skincare solutions for all skin types and tones"
+      title: "Built for SA Skin",
+      description: "Written for local climate, water, shelves and melanin-rich skin — not imported advice"
     },
     {
       icon: <Target className="h-8 w-8" />,
-      title: "Innovation",
-      description: "Leveraging AI and technology to revolutionize skincare"
+      title: "AI Where It Helps",
+      description: "AI translates research into a routine you can actually follow, reviewed against clinical guidance"
     }
   ];
+
 
   return (
     <>
@@ -51,7 +52,7 @@ const About = () => {
                     About SkinLabs
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Revolutionizing skincare through science, technology, and personalization
+                    An independent skin science platform built for South Africa
                   </p>
                 </div>
 
@@ -59,16 +60,24 @@ const About = () => {
                   <h2 className="text-3xl font-bold text-foreground mb-6">Our Story</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p>
-                      Founded with a vision to make professional-grade skincare accessible to everyone, SkinLabs combines cutting-edge technology with dermatological expertise to deliver personalized skincare solutions.
+                      SkinLabs started because skincare advice reaching South Africans was written for
+                      other climates, other shelves and often other skin. We rebuilt it locally: a daily
+                      editorial brief, independent product reviews scored against SA conditions, a podcast
+                      and an AI formulator that turns dermatology research into a routine you can follow.
                     </p>
                     <p>
-                      We believe that everyone deserves healthy, radiant skin. That's why we've developed an AI-powered platform that analyzes your unique skin profile and creates customized routines tailored to your specific needs.
+                      We are content-first rather than a storefront. That means no affiliate deals, no
+                      gifted samples and no pressure to sell you a product — our members fund the work,
+                      so the work answers to them.
                     </p>
                     <p>
-                      Our team of dermatologists, chemists, and AI specialists work together to ensure every product and recommendation is backed by science and delivers real results.
+                      Every briefing is summarised from credible global sources and then translated into
+                      what it means here: high year-round UV, Highveld dryness, coastal humidity, hard
+                      municipal water, local pricing and the realities of melanin-rich skin.
                     </p>
                   </div>
                 </div>
+
 
                 <div className="mb-12">
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Our Values</h2>
@@ -89,12 +98,14 @@ const About = () => {
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
                   <h2 className="text-3xl font-bold text-foreground mb-4">
-                    Join Our Mission
+                    Join the community
                   </h2>
                   <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                    Be part of the skincare revolution. Discover personalized solutions that actually work for your unique skin.
+                    Become a member for unlimited daily briefings, full product reviews and your
+                    complete AI skincare routine.
                   </p>
                 </div>
+
               </div>
             </div>
           </section>
