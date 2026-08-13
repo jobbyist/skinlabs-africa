@@ -36,29 +36,16 @@ const Preloader = () => {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
-          <motion.svg
-            viewBox="0 0 320 60"
-            className="w-56 md:w-72 text-foreground"
+          <motion.img
+            src={wordmark.url}
+            alt="SkinLabs"
+            style={{ width: 250, height: "auto" }}
+            className="dark:invert"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-          >
-            <motion.text
-              x="160"
-              y="42"
-              textAnchor="middle"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-              className="font-heading"
-              style={{ fontSize: 40, letterSpacing: 6, fontWeight: 800 }}
-              initial={{ pathLength: 0, fillOpacity: 0 }}
-              animate={{ pathLength: 1, fillOpacity: 1 }}
-              transition={{ pathLength: { duration: 1.2, ease: "easeInOut" }, fillOpacity: { delay: 1, duration: 0.5 } }}
-            >
-              SKINLABS
-            </motion.text>
-          </motion.svg>
+          />
+
 
           <p className="mt-3 text-xs uppercase tracking-[0.35em] text-muted-foreground">
             Skin intelligence, locally grounded
