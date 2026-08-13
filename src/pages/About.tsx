@@ -98,12 +98,14 @@ const About = () => {
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
                   <h2 className="text-3xl font-bold text-foreground mb-4">
-                    Join Our Mission
+                    Join the community
                   </h2>
                   <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                    Be part of the skincare revolution. Discover personalized solutions that actually work for your unique skin.
+                    Become a member for unlimited daily briefings, full product reviews and your
+                    complete AI skincare routine.
                   </p>
                 </div>
+
               </div>
             </div>
           </section>
