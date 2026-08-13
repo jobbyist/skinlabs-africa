@@ -54,24 +54,24 @@ const Hero = () => {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
               <Sparkles className="h-4 w-4" />
-              AI-Powered Skincare Technology
+              South Africa's Skin Intelligence Platform
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
-              Next Generation
-              <span className="block text-primary drop-shadow-md">Skincare Science</span>
+              Smarter Skincare,
+              <span className="block text-primary drop-shadow-md">Made for SA Skin</span>
             </h1>
             
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
-              Discover personalized skincare formulations powered by AI and curated 
-              collection of premium imported skincare technology devices.
+              Daily skin science briefings, independent local product reviews, a podcast and an AI
+              formulator that builds a routine around your skin, your climate and your budget.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
-                <a href="/#products">
-                  Explore Products
-                  <ArrowRight className="h-4 w-4" />
+                <a href="/ai-formulator">
+                  <Sparkles className="h-4 w-4" />
+                  Start Your Skin Analysis
                 </a>
               </Button>
               <Button
@@ -80,9 +80,9 @@ const Hero = () => {
                 className="gap-2 text-base px-8"
                 asChild
               >
-                <a href="/ai-formulator">
-                  <Sparkles className="h-4 w-4" />
-                  Try AI Formulator
+                <a href="/newsroom">
+                  Read The Daily Skinny
+                  <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
             </div>
@@ -91,17 +91,18 @@ const Hero = () => {
             <div className="flex gap-8 justify-center lg:justify-start pt-4">
               <div>
                 <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">3.7K+</p>
-                <p className="text-sm font-semibold text-foreground/80">Happy Members</p>
+                <p className="text-sm font-semibold text-foreground/80">Community Members</p>
               </div>
               <div>
-                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">100%</p>
-                <p className="text-sm font-semibold text-foreground/80">Locally Sourced</p>
+                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">Daily</p>
+                <p className="text-sm font-semibold text-foreground/80">SA Skin Briefings</p>
               </div>
               <div>
                 <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">4.75/5</p>
-                <p className="text-sm font-semibold text-foreground/80">Avg. Ratings</p>
+                <p className="text-sm font-semibold text-foreground/80">Member Rating</p>
               </div>
             </div>
+
           </div>
         </div>
       </div>
