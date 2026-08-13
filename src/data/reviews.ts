@@ -13,7 +13,15 @@ export interface ProductReview {
   verdict: string;
   full_review: string;
   key_ingredients: string[];
+  retailers: RetailerListing[];
   isNew?: boolean;
+}
+
+export interface RetailerListing {
+  retailer: "Clicks" | "Dis-Chem" | "Takealot" | "Brand Direct" | "Dermastore" | "Faithful to Nature";
+  price_zar: number;
+  in_stock: boolean;
+  url: string;
 }
 
 /** 0–10 scores. Climate = performance in SA heat, sun and dryness. */
@@ -34,6 +42,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "Skoon's sensitive fluid is built around a minimal, fragrance-free base that suits reactive and post-procedure skin. Texture is the standout: it absorbs in seconds and layers cleanly under mineral sunscreen, which is where most local moisturisers fail. Hydration holds through a full Highveld workday, though very dry skin types will want an occlusive on top at night. Value is fair rather than cheap, and the 50ml tube lasts roughly ten weeks with twice-daily use.",
     key_ingredients: ["Glycerin", "Squalane", "Panthenol"],
+    retailers: [{ retailer: "Dermastore", price_zar: 395, in_stock: true, url: "https://www.dermastore.co.za/" }, { retailer: "Clicks", price_zar: 409, in_stock: true, url: "https://clicks.co.za/" }, { retailer: "Brand Direct", price_zar: 385, in_stock: true, url: "https://skoonskin.com/" }, { retailer: "Takealot", price_zar: 429, in_stock: false, url: "https://www.takealot.com/" }],
     isNew: true,
   },
   {
@@ -52,6 +61,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "This is the cleanser we most often recommend to users mid-barrier-reset. The low-foam formula avoids the tight, squeaky finish that hard municipal water tends to amplify, and it removes SPF adequately as a second cleanse. It will not fully dissolve heavy waterproof sunscreen on its own, so pair it with an oil cleanse on beach days. Excellent value per millilitre for a locally formulated product.",
     key_ingredients: ["Glycerin", "Allantoin", "Sodium PCA"],
+    retailers: [{ retailer: "Brand Direct", price_zar: 275, in_stock: true, url: "https://swiitchbeauty.co.za/" }, { retailer: "Takealot", price_zar: 289, in_stock: true, url: "https://www.takealot.com/" }, { retailer: "Clicks", price_zar: 295, in_stock: false, url: "https://clicks.co.za/" }, { retailer: "Dis-Chem", price_zar: 289, in_stock: true, url: "https://www.dischem.co.za/" }],
   },
   {
     id: "standard-beauty-niacinamide",
@@ -69,6 +79,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "At under R200 this is the most accessible niacinamide serum in South Africa, and the 10% concentration does measurable work on post-inflammatory marks over eight to twelve weeks. The trade-off is texture: it is slightly tacky and needs a full minute to set before moisturiser. Users with reactive skin should start at alternate days, since 10% is above the comfort threshold for many Fitzpatrick IV–VI users prone to flushing.",
     key_ingredients: ["Niacinamide 10%", "Zinc PCA"],
+    retailers: [{ retailer: "Clicks", price_zar: 189, in_stock: true, url: "https://clicks.co.za/" }, { retailer: "Dis-Chem", price_zar: 185, in_stock: true, url: "https://www.dischem.co.za/" }, { retailer: "Takealot", price_zar: 199, in_stock: true, url: "https://www.takealot.com/" }, { retailer: "Brand Direct", price_zar: 179, in_stock: true, url: "https://standardbeauty.co.za/" }],
   },
   {
     id: "lelive-marula-spf",
@@ -86,6 +97,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "Most mineral sunscreens ash out on melanin-rich skin. Lelive's tinted marula formula is the clearest local answer to that problem, blending to a natural satin finish across a wide tonal range. Climate performance is the highest in our review set: it holds through humid coastal conditions without sliding, and the tint adds visible-light defence, which matters for melasma. SPF 30 rather than 50 is the only real limitation, so reapply diligently on long outdoor days.",
     key_ingredients: ["Zinc Oxide", "Marula Oil", "Iron Oxides"],
+    retailers: [{ retailer: "Brand Direct", price_zar: 450, in_stock: true, url: "https://lelive.co.za/" }, { retailer: "Takealot", price_zar: 479, in_stock: true, url: "https://www.takealot.com/" }, { retailer: "Clicks", price_zar: 469, in_stock: false, url: "https://clicks.co.za/" }, { retailer: "Dis-Chem", price_zar: 465, in_stock: false, url: "https://www.dischem.co.za/" }],
     isNew: true,
   },
   {
@@ -104,6 +116,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "Nothing clever here, and that is the appeal: a clean blend of local plant oils that seals damp skin after a shower. It sits heavier than a lotion in summer humidity, so treat it as a winter and post-bath product. Fragrance is naturally derived and noticeable, which will not suit highly reactive users.",
     key_ingredients: ["Olive Oil", "Marula Oil", "Vitamin E"],
+    retailers: [{ retailer: "Faithful to Nature", price_zar: 215, in_stock: true, url: "https://www.faithful-to-nature.co.za/" }, { retailer: "Clicks", price_zar: 229, in_stock: true, url: "https://clicks.co.za/" }, { retailer: "Dis-Chem", price_zar: 225, in_stock: true, url: "https://www.dischem.co.za/" }, { retailer: "Takealot", price_zar: 239, in_stock: true, url: "https://www.takealot.com/" }],
   },
   {
     id: "dermastore-barrier-cream",
@@ -121,6 +134,7 @@ export const productReviews: ProductReview[] = [
     full_review:
       "A serious ceramide-and-cholesterol formula that measurably shortens barrier recovery time. Applied to damp skin twice daily, most users report reduced stinging within three to five days. It is rich, so oily skin types should reserve it for night use. Price is the main obstacle, but per week of use during a flare it remains cheaper than a dermatology consult.",
     key_ingredients: ["Ceramide NP", "Cholesterol", "Fatty Acids"],
+    retailers: [{ retailer: "Dermastore", price_zar: 520, in_stock: true, url: "https://www.dermastore.co.za/" }, { retailer: "Brand Direct", price_zar: 520, in_stock: true, url: "https://www.dermastore.co.za/" }, { retailer: "Takealot", price_zar: 559, in_stock: false, url: "https://www.takealot.com/" }, { retailer: "Dis-Chem", price_zar: 549, in_stock: false, url: "https://www.dischem.co.za/" }],
   },
 ];
 
