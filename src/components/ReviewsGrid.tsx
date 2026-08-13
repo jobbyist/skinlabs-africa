@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Star } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import GatedOverlay from "@/components/GatedOverlay";
+import ProductReviewModal from "@/components/ProductReviewModal";
 import { overallScore, productReviews, reviewCategories, type ProductReview } from "@/data/reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
-import { useMembership } from "@/hooks/use-membership";
 import { cn } from "@/lib/utils";
+
 
 const ScoreBar = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-1">
