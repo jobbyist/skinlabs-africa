@@ -3,6 +3,11 @@ import episode2 from "@/assets/ep2skinlabs.PNG";
 import episode3 from "@/assets/ep3skinlabs.PNG";
 import episode4 from "@/assets/ep4skinlabs.jpg";
 
+/**
+ * Terminology: always "The Skin Deep Podcast" (not "podcast feed"), episodes
+ * release every Wednesday and are always free to stream — only full
+ * transcripts are a membership benefit. Keep this consistent across new copy.
+ */
 export interface PodcastEpisode {
   id: number;
   slug: string;
@@ -159,11 +164,22 @@ export const podcastTopics = Array.from(
   new Set(podcastEpisodes.flatMap((episode) => episode.topics)),
 );
 
-/** Next Wednesday release date (episodes drop weekly on Wednesdays). */
+/** Next Wednesday release date (episodes drop weekly on Wednesdays at 06:00 UTC). */
 export const getNextEpisodeDate = () => {
   const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+  const currentHour = now.getUTCHours();
+
+  // If it's Wednesday (day 3) and before 06:00 UTC, return today at 06:00
+  if (dayOfWeek === 3 && currentHour < 6) {
+    const next = new Date(now);
+    next.setUTCHours(6, 0, 0, 0);
+    return next;
+  }
+
+  // Otherwise, calculate next Wednesday
   const next = new Date(now);
-  const daysUntilWednesday = (3 - now.getUTCDay() + 7) % 7 || 7;
+  const daysUntilWednesday = (3 - dayOfWeek + 7) % 7 || 7;
   next.setUTCDate(now.getUTCDate() + daysUntilWednesday);
   next.setUTCHours(6, 0, 0, 0);
   return next;

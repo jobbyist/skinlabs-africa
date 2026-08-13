@@ -24,7 +24,17 @@ export interface RetailerListing {
   url: string;
 }
 
-/** 0–10 scores. Climate = performance in SA heat, sun and dryness. */
+/**
+ * 0–10 scores. Climate = performance in SA heat, sun and dryness.
+ * Terminology: scores/verdict/retailer pricing are always free to view;
+ * only `full_review` and `key_ingredients` are membership-gated. Keep this
+ * split consistent across new copy and new review entries.
+ *
+ * This array is now also the fallback/seed data for `useProductReviews`
+ * (src/hooks/use-product-reviews.ts), which reads from Supabase
+ * (`products`/`retailer_listings`, see the products_and_retailers
+ * migration) once that migration has been applied to the live project.
+ */
 export const productReviews: ProductReview[] = [
   {
     id: "skoon-sensitive-fluid",

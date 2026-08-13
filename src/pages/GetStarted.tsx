@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useSearchParams } from "react-router-dom";
 import { Check, Sparkles, Crown, ShieldCheck, Gift, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,10 +8,16 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AuthDialog from "@/components/AuthDialog";
+import { trackEvent } from "@/lib/analytics";
+
+const ALLOWED_PLANS = ["glow-insider", "vip"];
 
 const GetStarted = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [processing, setProcessing] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const features = [
     "AI-Powered Custom Skincare Routine Formulator",
@@ -26,15 +33,32 @@ const GetStarted = () => {
   ];
 
   const handleSubscribe = async () => {
-    if (!user) {
-      toast.error("Please sign in first to subscribe");
+    if (!user || user.is_anonymous || !user.email) {
+      setShowAuthDialog(true);
       return;
     }
+
+    const plan = searchParams.get("plan") ?? "glow-insider";
+
+    // Validate plan parameter
+    if (!ALLOWED_PLANS.includes(plan)) {
+      toast.error("Invalid plan selected. Please choose a valid membership plan.");
+      return;
+    }
+
+    // Block checkout for Explorer (free tier)
+    if (plan === "Explorer" || plan === "explorer") {
+      toast.error("Explorer is a free tier. No payment required.");
+      return;
+    }
+
     setProcessing(true);
+    trackEvent("subscription_checkout_started", { source: "get_started", plan });
     try {
       const { data, error } = await supabase.functions.invoke("payfast-payment", {
         body: {
           type: "subscription",
+          plan,
           userId: user.id,
           email: user.email,
           returnUrl: `${window.location.origin}/get-started?payment=success`,
@@ -172,6 +196,7 @@ const GetStarted = () => {
         </main>
         <Footer />
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </>
   );
 };

@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MFASettingsCard from "@/components/MFASettingsCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
+import SavedTab from "@/components/dashboard/SavedTab";
 
 interface Profile {
   subscription_status: string | null;
@@ -75,6 +76,7 @@ const UserDashboard = () => {
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="journey">Skin Journey</TabsTrigger>
                   <TabsTrigger value="reports">AI Reports</TabsTrigger>
+                  <TabsTrigger value="saved">Saved</TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
                 </TabsList>
 
@@ -151,6 +153,8 @@ const UserDashboard = () => {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                <TabsContent value="saved"><SavedTab /></TabsContent>
 
                 <TabsContent value="security"><MFASettingsCard /></TabsContent>
               </Tabs>

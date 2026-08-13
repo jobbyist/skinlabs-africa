@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound, Sparkles } from "lucide-react";
+import { trackEvent, identifyUser } from "@/lib/analytics";
 
 interface AuthDialogProps {
   open: boolean;
@@ -23,10 +24,12 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await signIn(email, password);
+    const { data, error } = await signIn(email, password);
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
+      if (data?.user) identifyUser(data.user.id);
+      trackEvent("sign_in_completed");
       toast.success("Signed in successfully!");
       onOpenChange(false);
     }
@@ -35,10 +38,13 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const { error } = await signUp(email, password);
+    trackEvent("sign_up_started");
+    const { data, error } = await signUp(email, password);
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
+      if (data?.user) identifyUser(data.user.id);
+      trackEvent("sign_up_completed");
       toast.success("Account created! Check your email for verification.");
       onOpenChange(false);
     }
@@ -80,7 +86,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <DialogHeader>
           <DialogTitle>Sign in to SKINLABS</DialogTitle>
           <DialogDescription>
-            Access your personalized AI skincare formulator and dashboard
+            Create an account to save your progress and access your data across devices. Upgrade to a paid membership to unlock unlimited Newsroom reads, full review breakdowns, and more.
           </DialogDescription>
         </DialogHeader>
 

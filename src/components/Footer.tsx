@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Instagram, Facebook } from "lucide-react";
 import logo from "@/assets/skinlabs-logo-white.svg";
 
 const Footer = () => {
+  const { t } = useTranslation();
   const links = {
-    shop: [
+    platform: [
       { label: "The Daily Skinny", href: "/newsroom" },
       { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Product Reviews", href: "/reviews" },
       { label: "Podcast", href: "/podcast" },
-      { label: "Consultations", href: "/consultations" },
+      { label: "Book a Consultation", href: "/book-consultation" },
       { label: "Membership Plans", href: "/pricing" },
     ],
     company: [
@@ -51,13 +53,12 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
-              South Africa's AI-powered skincare intelligence platform. Daily skin science,
-              independent local reviews and personalised routines.
+              {t("footer.tagline")}
             </p>
-            
+
             {/* Contact Information */}
             <div className="mb-6">
-              <p className="text-sm font-semibold text-background mb-3">Contact Us</p>
+              <p className="text-sm font-semibold text-background mb-3">{t("footer.contactUs")}</p>
               <div className="space-y-2 text-sm text-background/70">
                 <p>Email: <a href="mailto:support@skinlabs.co.za" className="hover:text-background">support@skinlabs.co.za</a></p>
                 <p>WhatsApp: <a href="https://wa.me/27680200749" className="hover:text-background">+27 68 020 0749</a></p>
@@ -67,7 +68,7 @@ const Footer = () => {
             
             {/* App Store Badges */}
             <div className="mb-6">
-              <p className="text-sm font-semibold text-background mb-3">Coming Soon</p>
+              <p className="text-sm font-semibold text-background mb-3">{t("footer.comingSoon")}</p>
               <div className="flex flex-col gap-3">
                 <div className="bg-background/10 border border-background/20 rounded-lg px-4 py-2 flex items-center gap-3 max-w-[200px]">
                   <svg className="w-6 h-6 text-background" fill="currentColor" viewBox="0 0 24 24">
@@ -104,11 +105,11 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Shop links */}
+          {/* Platform links */}
           <div>
-            <h4 className="font-semibold mb-4">Platform</h4>
+            <h4 className="font-semibold mb-4">{t("footer.platformHeading")}</h4>
             <ul className="space-y-2">
-              {links.shop.map((link) => (
+              {links.platform.map((link) => (
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
                     {link.label}
@@ -120,7 +121,7 @@ const Footer = () => {
 
           {/* Company links */}
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
+            <h4 className="font-semibold mb-4">{t("footer.companyHeading")}</h4>
             <ul className="space-y-2">
               {links.company.map((link) => (
                 <li key={link.label}>
@@ -134,7 +135,7 @@ const Footer = () => {
 
           {/* Support links */}
           <div>
-            <h4 className="font-semibold mb-4">Support</h4>
+            <h4 className="font-semibold mb-4">{t("footer.supportHeading")}</h4>
             <ul className="space-y-2">
               {links.support.map((link) => (
                 <li key={link.label}>
@@ -150,12 +151,12 @@ const Footer = () => {
         {/* Bottom */}
         <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-background/50">
-            © {new Date().getFullYear()} SKINLABS. All rights reserved.
+            © {new Date().getFullYear()} SKINLABS. {t("footer.rightsReserved")}
           </p>
           <div className="flex gap-6 text-sm text-background/50">
-            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
-            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
-            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">{t("footer.privacyPolicy")}</Link>
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">{t("footer.termsOfService")}</Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">{t("footer.cookiePolicy")}</Link>
           </div>
         </div>
       </div>

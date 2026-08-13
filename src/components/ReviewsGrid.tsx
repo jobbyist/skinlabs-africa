@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Star } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import ProductReviewModal from "@/components/ProductReviewModal";
-import { overallScore, productReviews, reviewCategories, type ProductReview } from "@/data/reviews";
+import { overallScore } from "@/data/reviews";
+import { useProductReviews } from "@/hooks/use-product-reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
+import BrandMark from "@/components/BrandMark";
 import { cn } from "@/lib/utils";
 
 
@@ -40,12 +41,23 @@ const ReviewsGrid = ({
   
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
-  const [selected, setSelected] = useState<ProductReview | null>(null);
+  const { data: productReviews = [] } = useProductReviews();
+  const reviewCategories = useMemo(
+    () => Array.from(new Set(productReviews.map((review) => review.category))),
+    [productReviews],
+  );
+
+  // Reset category to "All" if the current selection is no longer valid
+  useEffect(() => {
+    if (category !== "All" && !reviewCategories.includes(category)) {
+      setCategory("All");
+    }
+  }, [category, reviewCategories]);
 
   const filtered = useMemo(() => {
     const base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
     return limit ? base.slice(0, limit) : base;
-  }, [category, limit]);
+  }, [category, limit, productReviews]);
 
   return (
     <section id="reviews" className="bg-secondary/30 py-20">
@@ -88,7 +100,7 @@ const ReviewsGrid = ({
             >
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand}</p>
+                  <BrandMark name={review.brand} type="brand" className="mb-1.5 h-6" />
                   <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
                     {review.product_name}
                   </h3>
@@ -121,9 +133,12 @@ const ReviewsGrid = ({
               <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
 
               <div className="mt-auto flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={() => setSelected(review)}>
+                <Link
+                  to={`/reviews/${review.id}`}
+                  className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground"
+                >
                   Full breakdown
-                </Button>
+                </Link>
                 <button
                   onClick={() => toggleLike(review.id)}
                   aria-label="Like review"
@@ -136,9 +151,6 @@ const ReviewsGrid = ({
           ))}
         </div>
       </div>
-
-      <ProductReviewModal review={selected} onOpenChange={(open) => !open && setSelected(null)} />
-
     </section>
   );
 };

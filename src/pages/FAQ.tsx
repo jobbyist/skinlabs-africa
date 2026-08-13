@@ -1,88 +1,92 @@
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { HelpCircle, MessageCircle, Search } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const FAQ = () => {
+  const { t } = useTranslation();
   const categories = [
     {
-      title: "General Questions",
+      title: t("faq.categoryGeneral"),
       questions: [
         {
           q: "What is SkinLabs?",
-          a: "SkinLabs is a personalized skincare platform that uses AI technology to create custom skincare routines based on your unique skin profile, concerns, and goals."
+          a: "SkinLabs is South Africa's independent, content-first skincare intelligence platform: a free AI routine assessment, daily skincare science briefings, honest local product reviews, a weekly podcast and virtual consultations with SA practitioners."
         },
         {
-          q: "How does the AI formulator work?",
-          a: "Our AI analyzes your skin type, concerns, lifestyle, and environmental factors to recommend the optimal combination of products and active ingredients for your specific needs."
+          q: "How does the AI Formulator work?",
+          a: "Answer 20 quick questions about your skin — no account required. Our AI analyses your skin type, concerns, climate and lifestyle to generate a personalised AM/PM routine and actives schedule, grounded in dermatology reference knowledge."
         },
         {
-          q: "Are your products suitable for all skin types?",
-          a: "Yes! We offer products for all skin types including sensitive, oily, dry, combination, and mature skin. Our AI formulator personalizes recommendations for your specific skin."
+          q: "Is SkinLabs an online shop?",
+          a: "No. SkinLabs doesn't sell or ship physical products. We're an independent media and AI platform — our reviews link out to where each product is actually sold across South African retailers."
         }
       ]
     },
     {
-      title: "Products & Ingredients",
+      title: t("faq.categoryFormulator"),
       questions: [
         {
-          q: "Are your products cruelty-free?",
-          a: "Yes, all SkinLabs products are cruelty-free and never tested on animals. We're certified by leading animal welfare organizations."
+          q: "Do I need an account to try the AI Formulator?",
+          a: "No — you can complete the entire assessment and get a free routine preview without signing up. Creating an account (or upgrading) just lets you save your report and unlock the full ingredient-level breakdown."
         },
         {
-          q: "Do you use parabens or sulfates?",
-          a: "No, all our products are free from parabens, sulfates, phthalates, and other harmful chemicals. We only use clean, science-backed ingredients."
-        },
-        {
-          q: "How long do products last?",
-          a: "Most products have a shelf life of 12-18 months unopened. Once opened, we recommend using them within 6-12 months for optimal effectiveness."
+          q: "Is the AI recommendation medical advice?",
+          a: "No. It's general skincare guidance grounded in dermatology reference material and reviewed by skincare professionals, not a diagnosis. For medical skin conditions, please consult a licensed dermatologist — you can book one directly via Consultations."
         }
       ]
     },
     {
-      title: "Orders & Shipping",
+      title: t("faq.categoryMembership"),
       questions: [
         {
-          q: "What are the shipping costs?",
-          a: "We offer free shipping on orders over R500. For orders under R500, standard shipping is R60 and takes 3-5 business days."
+          q: "What does Glow Explorer (free) include?",
+          a: "One full Daily Skinny briefing per day, podcast previews, a basic AI routine result and community review scores — no credit card required."
         },
         {
-          q: "Do you ship internationally?",
-          a: "Currently, we ship within South Africa only. International shipping is coming soon - subscribe to our newsletter for updates."
-        },
-        {
-          q: "Can I track my order?",
-          a: "Yes! Once your order ships, you'll receive a tracking number via email. You can also track your order on our Track Order page."
+          q: "What do I get with Glow Insider or VIP?",
+          a: "Unlimited Newsroom access, the full AI routine report with PDF download, complete podcast library, full review breakdowns, and — on VIP — a monthly virtual derm consultation. See Pricing for the full breakdown."
         }
       ]
     },
     {
-      title: "Returns & Refunds",
+      title: t("faq.categoryReviews"),
       questions: [
         {
-          q: "What is your return policy?",
-          a: "We offer a 30-day money-back guarantee. If you're not satisfied with your purchase, return it within 30 days for a full refund."
+          q: "Are your product reviews sponsored?",
+          a: "No. Reviews are scored independently on efficacy, value, texture and South African climate performance, with rand pricing compared across local retailers. We disclose when a review sample was gifted."
         },
         {
-          q: "How do I return a product?",
-          a: "Contact our support team at support@skinlabs.co.za to initiate a return. We'll provide you with return instructions and a prepaid shipping label."
-        },
-        {
-          q: "When will I receive my refund?",
-          a: "Refunds are processed within 5-7 business days after we receive your return. The amount will be credited back to your original payment method."
+          q: "When does a new podcast episode drop?",
+          a: "The Skin Deep Podcast releases every Wednesday. Every episode is free to stream, with a live countdown to the next drop on the podcast hub."
         }
       ]
     }
   ];
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: categories.flatMap((category) =>
+      category.questions.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    ),
+  };
+
   return (
     <>
       <Helmet>
-        <title>FAQ - Frequently Asked Questions | SKINLABS</title>
+        <title>FAQ — Frequently Asked Questions | SKINLABS</title>
         <meta
           name="description"
-          content="Find answers to common questions about SkinLabs products, shipping, returns, and our AI-powered skincare formulator."
+          content="Answers to common questions about the SkinLabs AI Formulator, membership pricing, product reviews and The Skin Deep Podcast."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/faq" />
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -96,10 +100,10 @@ const FAQ = () => {
                     <HelpCircle className="h-8 w-8 text-primary" />
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
-                    Frequently Asked Questions
+                    {t("faq.title")}
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Find answers to common questions about our products and services
+                    {t("faq.subtitle")}
                   </p>
                 </div>
 

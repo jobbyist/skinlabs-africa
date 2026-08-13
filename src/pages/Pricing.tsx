@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Check, Sparkles } from "lucide-react";
 import Header from "@/components/Header";
@@ -8,64 +9,67 @@ import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
-const plans = [
-  {
-    id: "explorer",
-    name: "Glow Explorer",
-    price: 0,
-    tagline: "Start reading, start learning",
-    features: [
-      "One Newsroom briefing per day",
-      "Podcast episode previews",
-      "Basic AI skin quiz result",
-      "Community review scores",
-    ],
-    cta: "Start free",
-  },
-  {
-    id: "insider",
-    name: "Glow Insider",
-    price: 99,
-    tagline: "The full skincare intelligence toolkit",
-    highlight: true,
-    features: [
-      "Unlimited Newsroom access",
-      "Full AI routine report + PDF download",
-      "Complete podcast library and show notes",
-      "Full product review breakdowns",
-      "Monthly routine re-analysis",
-      "Member-only ingredient deep dives",
-    ],
-    cta: "Become an Insider",
-  },
-  {
-    id: "vip",
-    name: "Glow VIP",
-    price: 299,
-    tagline: "Add real practitioners to your routine",
-    features: [
-      "Everything in Glow Insider",
-      "One virtual derm consultation per month",
-      "Priority booking with SA practitioners",
-      "Personalised quarterly routine review",
-      "Early access to new SkinLabs tools",
-    ],
-    cta: "Go VIP",
-  },
-];
-
 const Pricing = () => {
-  const { user } = useAuth();
+  const { t } = useTranslation();
+  const { user, isAnonymous } = useAuth();
   const { tier } = useMembership();
   const [authOpen, setAuthOpen] = useState(false);
 
+  const plans = [
+    {
+      id: "explorer",
+      name: t("pricing.explorer.name"),
+      price: 0,
+      tagline: t("pricing.explorer.tagline"),
+      features: [
+        t("pricing.explorer.feature1"),
+        t("pricing.explorer.feature2"),
+        t("pricing.explorer.feature3"),
+        t("pricing.explorer.feature4"),
+      ],
+      cta: t("pricing.explorer.cta"),
+    },
+    {
+      id: "insider",
+      name: t("pricing.insider.name"),
+      price: 99,
+      tagline: t("pricing.insider.tagline"),
+      highlight: true,
+      features: [
+        t("pricing.insider.feature1"),
+        t("pricing.insider.feature2"),
+        t("pricing.insider.feature3"),
+        t("pricing.insider.feature4"),
+        t("pricing.insider.feature5"),
+        t("pricing.insider.feature6"),
+      ],
+      cta: t("pricing.insider.cta"),
+    },
+    {
+      id: "vip",
+      name: t("pricing.vip.name"),
+      price: 299,
+      tagline: t("pricing.vip.tagline"),
+      features: [
+        t("pricing.vip.feature1"),
+        t("pricing.vip.feature2"),
+        t("pricing.vip.feature3"),
+        t("pricing.vip.feature4"),
+        t("pricing.vip.feature5"),
+      ],
+      cta: t("pricing.vip.cta"),
+    },
+  ];
+
   const handleSelect = (planId: string) => {
-    if (!user) {
+    if (!user || isAnonymous) {
       setAuthOpen(true);
       return;
     }
+    trackEvent("subscription_checkout_started", { plan: planId, source: "pricing" });
     window.location.href = `/get-started?plan=${planId}`;
   };
 
@@ -90,13 +94,12 @@ const Pricing = () => {
         <main className="pt-28 pb-24">
           <div className="container mx-auto px-4">
             <div className="mx-auto mb-14 max-w-2xl text-center">
-              <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Membership</p>
+              <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">{t("pricing.eyebrow")}</p>
               <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">
-                Skincare intelligence, priced in rands
+                {t("pricing.title")}
               </h1>
               <p className="text-muted-foreground">
-                No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South African
-                skin, climate and shelves.
+                {t("pricing.subtitle")}
               </p>
             </div>
 
@@ -115,14 +118,14 @@ const Pricing = () => {
                 >
                   {plan.highlight && (
                     <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      <Sparkles className="h-3 w-3" /> Most popular
+                      <Sparkles className="h-3 w-3" /> {t("pricing.mostPopular")}
                     </span>
                   )}
                   <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
                   <div className="mt-6 flex items-end gap-1">
                     <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.price}</span>
-                    <span className="pb-1 text-sm text-muted-foreground">/month</span>
+                    <span className="pb-1 text-sm text-muted-foreground">{t("pricing.perMonth")}</span>
                   </div>
                   <ul className="mt-6 flex-1 space-y-3">
                     {plan.features.map((feature) => (
@@ -138,7 +141,7 @@ const Pricing = () => {
                     disabled={tier === plan.id}
                     onClick={() => handleSelect(plan.id)}
                   >
-                    {tier === plan.id ? "Your current plan" : plan.cta}
+                    {tier === plan.id ? t("pricing.yourCurrentPlan") : plan.cta}
                   </Button>
                 </motion.div>
               ))}

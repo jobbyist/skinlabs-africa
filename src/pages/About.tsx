@@ -63,7 +63,7 @@ const About = () => {
       title: "Virtual Consultations",
       description: "One-on-one skincare consultations with our expert team.",
       highlight: "Personalized guidance",
-      link: "/consultations"
+      link: "/book-consultation"
     },
     {
       icon: <Users className="h-6 w-6" />,

@@ -19,10 +19,10 @@ const Consultations = () => {
           name="description"
           content="Book virtual skincare consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability, included with Glow VIP membership."
         />
-        <link rel="canonical" href="https://skinlabs.co.za/consultations" />
+        <link rel="canonical" href="https://skinlabs.co.za/book-consultation" />
         <meta property="og:title" content="Virtual Derm Consultations — SA Practitioners | SkinLabs" />
         <meta property="og:description" content="Book virtual consultations with SA dermatologists and aesthetic practitioners." />
-        <meta property="og:url" content="https://skinlabs.co.za/consultations" />
+        <meta property="og:url" content="https://skinlabs.co.za/book-consultation" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
       </Helmet>

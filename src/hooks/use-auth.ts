@@ -31,7 +31,28 @@ export const useAuth = () => {
     return { data, error };
   };
 
+  /**
+   * Starts a real (anonymous) Supabase session with zero signup friction, so
+   * visitors can complete the full AI Formulator flow before ever creating an
+   * account. The resulting JWT works with every edge function that already
+   * requires auth (they don't need to know the difference).
+   */
+  const signInAnonymously = async () => {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    return { data, error };
+  };
+
+  /**
+   * If the current session is anonymous, upgrade it in place (same user_id,
+   * so any quiz answers/recommendations already saved carry over) instead of
+   * creating a brand new account.
+   */
   const signUp = async (email: string, password: string) => {
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (currentSession?.user?.is_anonymous) {
+      const { data, error } = await supabase.auth.updateUser({ email, password });
+      return { data, error };
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -88,13 +109,17 @@ export const useAuth = () => {
     return { data, error };
   };
 
+  const isAnonymous = user?.is_anonymous ?? false;
+
   return {
     user,
     session,
     loading,
+    isAnonymous,
     signIn,
     signUp,
     signOut,
+    signInAnonymously,
     signInWithOAuth,
     signInWithMagicLink,
     enrollMFA,

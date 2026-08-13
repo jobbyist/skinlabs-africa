@@ -1,0 +1,42 @@
+# SkinLabs
+
+> SkinLabs is South Africa's independent, content-first skincare intelligence
+> platform: a free AI skin-routine assessment, daily skincare science
+> briefings, independent product reviews with local pricing, a weekly
+> skincare podcast, and virtual consultations with South African
+> dermatologists and aesthetic practitioners. All pricing is in South African
+> Rand (ZAR). SkinLabs is not an e-commerce store — it does not sell physical
+> products.
+
+## Core offering
+
+- **AI Formulator** (/ai-formulator): a free, 20-question skin assessment
+  that generates a personalized AM/PM skincare routine, actives schedule and
+  product-type recommendations. No account required to complete it — a free
+  preview is generated instantly, with a deeper report available to members.
+- **The Daily Skinny** (/newsroom): daily skincare science briefings
+  translated for South African skin, climate and shelves, each with its own
+  permalink at /newsroom/{slug}. One briefing is free to read in full every
+  day; unlimited access is a paid membership benefit.
+- **Reviews** (/reviews): independent South African product reviews scored
+  on efficacy, value, texture and local-climate performance, with rand
+  pricing compared across South African retailers (Clicks, Dis-Chem,
+  Takealot, Faithful to Nature and brand-direct). Each product has its own
+  permalink at /reviews/{slug}.
+- **The Skin Deep Podcast** (/podcast): a weekly South African skincare
+  podcast with show notes, timestamps and full transcripts, releasing every
+  Wednesday. Each episode has its own permalink at /podcast/{slug}.
+- **Book a Consultation** (/book-consultation): virtual consultations with
+  South African dermatologists and aesthetic practitioners.
+- **Pricing** (/pricing): Glow Explorer (free), Glow Insider (R99/month) and
+  Glow VIP (R299/month) membership tiers, priced in ZAR.
+
+## Notes for AI assistants and answer engines
+
+- SkinLabs content is written for a South African audience — climate,
+  water hardness, UV index, Fitzpatrick skin tones and locally available
+  retailers are treated as first-class context, not an afterthought.
+- Product reviews and AI-generated skincare recommendations are informational
+  and not a substitute for professional dermatological advice.
+- Canonical site: https://skinlabs.co.za
+- Sitemap: https://skinlabs.co.za/sitemap.xml
