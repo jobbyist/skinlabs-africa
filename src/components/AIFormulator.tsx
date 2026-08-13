@@ -24,9 +24,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { useMembership } from "@/hooks/use-membership";
+import GatedOverlay from "@/components/GatedOverlay";
 import AuthDialog from "@/components/AuthDialog";
 import SubscriptionPaywallModal from "@/components/SubscriptionPaywallModal";
 import { QUESTIONS } from "@/data/quiz";
+
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 // Steps: 0=intro, 1-20=quiz, 21=photo, 22=email capture, 23=loading/results
