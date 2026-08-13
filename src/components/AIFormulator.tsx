@@ -659,28 +659,50 @@ const AIFormulator = () => {
                     </p>
                   </div>
                   <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
-                    {formatRecommendation(recommendation)}
+                    {formatRecommendation(splitRecommendation(recommendation).preview)}
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                    <Button
-                      size="lg"
-                      variant="secondary"
-                      className="gap-2"
-                      onClick={() =>
-                        downloadSkincarePdf({
-                          clientName: contactName || "Client",
-                          email: contactEmail,
-                          recommendation: recommendation!,
-                          skinType: derivedSkinType,
-                        })
-                      }
+                  {splitRecommendation(recommendation).advanced && (
+                    <GatedOverlay
+                      locked={!isMember}
+                      title="Advanced recommendations are premium"
+                      message="Unlock your actives schedule, ingredient strategy and product-type recommendations with a Glow Insider or VIP membership."
+                      ctaLabel="Unlock with membership"
+                      ctaHref="/pricing"
                     >
-                      <Download className="h-4 w-4" />
-                      Download PDF
-                    </Button>
+                      <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
+                        {formatRecommendation(splitRecommendation(recommendation).advanced)}
+                      </div>
+                    </GatedOverlay>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                    {isMember ? (
+                      <Button
+                        size="lg"
+                        variant="secondary"
+                        className="gap-2"
+                        onClick={() =>
+                          downloadSkincarePdf({
+                            clientName: contactName || "Client",
+                            email: contactEmail,
+                            recommendation: recommendation!,
+                            skinType: derivedSkinType,
+                          })
+                        }
+                      >
+                        <Download className="h-4 w-4" />
+                        Download PDF
+                      </Button>
+                    ) : (
+                      <Button size="lg" variant="secondary" className="gap-2" asChild>
+                        <a href="/pricing">
+                          <Download className="h-4 w-4" />
+                          Unlock PDF export
+                        </a>
+                      </Button>
+                    )}
                     <Button size="lg" className="gap-2" asChild>
-                      <a href="/openhaus">
-                        Shop Recommended Products
+                      <a href="/reviews">
+                        See Recommended Products
                         <ChevronRight className="h-4 w-4" />
                       </a>
                     </Button>
@@ -688,6 +710,7 @@ const AIFormulator = () => {
                       Start Over
                     </Button>
                   </div>
+
                 </div>
               )}
 
