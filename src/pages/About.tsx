@@ -7,25 +7,26 @@ const About = () => {
   const values = [
     {
       icon: <Heart className="h-8 w-8" />,
-      title: "Customer First",
-      description: "Your skin health and satisfaction are our top priorities"
+      title: "Independent",
+      description: "No affiliate deals, no gifted samples — our reviews and briefings answer to readers only"
     },
     {
       icon: <Award className="h-8 w-8" />,
-      title: "Science-Backed",
-      description: "Every product is formulated with proven ingredients and research"
+      title: "Evidence-Led",
+      description: "Every briefing and routine is grounded in published dermatology research"
     },
     {
       icon: <Users className="h-8 w-8" />,
-      title: "Inclusivity",
-      description: "Skincare solutions for all skin types and tones"
+      title: "Built for SA Skin",
+      description: "Written for local climate, water, shelves and melanin-rich skin — not imported advice"
     },
     {
       icon: <Target className="h-8 w-8" />,
-      title: "Innovation",
-      description: "Leveraging AI and technology to revolutionize skincare"
+      title: "AI Where It Helps",
+      description: "AI translates research into a routine you can actually follow, reviewed against clinical guidance"
     }
   ];
+
 
   return (
     <>
