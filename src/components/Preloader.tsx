@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import wordmark from "@/assets/skinlabs-wordmark.png.asset.json";
+
 
 const SESSION_KEY = "skinlabs-preloader-shown";
 
