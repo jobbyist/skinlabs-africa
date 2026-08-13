@@ -31,5 +31,7 @@ CREATE POLICY "Users update their own podcast comments" ON public.podcast_commen
 CREATE POLICY "Users delete their own podcast comments" ON public.podcast_comments FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_podcast_likes_episode ON public.podcast_likes(episode_slug);
+CREATE INDEX IF NOT EXISTS idx_podcast_likes_user ON public.podcast_likes(user_id);
 CREATE INDEX IF NOT EXISTS idx_podcast_comments_episode ON public.podcast_comments(episode_slug);
+CREATE INDEX IF NOT EXISTS idx_podcast_comments_user ON public.podcast_comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_podcast_comments_parent ON public.podcast_comments(parent_comment_id);
