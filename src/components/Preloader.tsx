@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import wordmark from "@/assets/skinlabs-wordmark.png.asset.json";
+import logo from "@/assets/newskinlabs.png";
 
 
 const SESSION_KEY = "skinlabs-preloader-shown";
@@ -39,7 +39,7 @@ const Preloader = () => {
           transition={{ duration: 0.5, ease: "easeInOut" }}
         >
           <motion.img
-            src={wordmark.url}
+            src={logo}
             alt="SkinLabs"
             style={{ width: 250, height: "auto" }}
             className="dark:invert"

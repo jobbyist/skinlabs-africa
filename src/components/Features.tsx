@@ -1,25 +1,25 @@
-import { Sparkles, Leaf, Shield, Truck } from "lucide-react";
+import { Sparkles, Newspaper, Star, Mic } from "lucide-react";
 
 const features = [
   {
     icon: Sparkles,
-    title: "AI-Powered Formulations",
-    description: "Personalized skincare routines created by advanced AI analysis of your unique skin profile.",
+    title: "AI-Powered Routines",
+    description: "Premium personalized skincare routines with progress trackers and dermatologist-approved product recommendations.",
   },
   {
-    icon: Leaf,
-    title: "Clean Ingredients",
-    description: "All products feature clinically-tested, cruelty-free ingredients backed by science.",
+    icon: Newspaper,
+    title: "The Daily Skinny",
+    description: "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
   },
   {
-    icon: Shield,
-    title: "Dermatologist Approved",
-    description: "Every product and device is reviewed and approved by board-certified dermatologists.",
+    icon: Star,
+    title: "Independent Reviews",
+    description: "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples.",
   },
   {
-    icon: Truck,
-    title: "Free Global Shipping",
-    description: "Enjoy complimentary worldwide shipping on all orders over $100.",
+    icon: Mic,
+    title: "Expert Podcast",
+    description: "Weekly episodes featuring dermatologists, interviews, and deep-dives into skincare science.",
   },
 ];
 
@@ -32,7 +32,7 @@ const Features = () => {
             Why Choose Us
           </p>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
-            Science Meets Beauty
+            Independent Skincare Intelligence for South Africa
           </h2>
         </div>
 

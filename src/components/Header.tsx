@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import CurrencyConverter from "@/components/CurrencyConverter";
 import AuthDialog from "@/components/AuthDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
@@ -60,7 +59,6 @@ const Header = () => {
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2">
-              <CurrencyConverter />
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
@@ -102,7 +100,6 @@ const Header = () => {
 
             {/* Mobile Menu Button */}
             <div className="lg:hidden flex items-center gap-1">
-              <CurrencyConverter />
               <button
                 className="p-2"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}

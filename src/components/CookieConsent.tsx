@@ -3,7 +3,6 @@ import { X, Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const COOKIE_CONSENT_KEY = "skinlabs_cookie_consent";
-const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 
 const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -13,21 +12,8 @@ const CookieConsent = () => {
     const consentData = localStorage.getItem(COOKIE_CONSENT_KEY);
     
     if (!consentData) {
-      // First visit - show banner
+      // First visit only - show banner
       setIsVisible(true);
-    } else {
-      try {
-        const { timestamp } = JSON.parse(consentData);
-        const daysSinceConsent = Date.now() - timestamp;
-        
-        // Show banner again after 30 days
-        if (daysSinceConsent >= THIRTY_DAYS) {
-          setIsVisible(true);
-        }
-      } catch (error) {
-        // If there's an error parsing, show the banner
-        setIsVisible(true);
-      }
     }
   }, []);
 

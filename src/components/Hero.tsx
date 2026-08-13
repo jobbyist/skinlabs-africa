@@ -36,19 +36,6 @@ const Hero = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/50" />
       </div>
 
-      {/* Play/Pause button */}
-      <button
-        onClick={togglePlay}
-        className="absolute bottom-6 right-6 z-20 h-10 w-10 rounded-full bg-background/50 backdrop-blur-sm border border-border flex items-center justify-center hover:bg-background/70 transition-colors"
-        aria-label={isPlaying ? "Pause video" : "Play video"}
-      >
-        {isPlaying ? (
-          <Pause className="h-4 w-4 text-foreground" />
-        ) : (
-          <Play className="h-4 w-4 text-foreground" />
-        )}
-      </button>
-
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-2xl mx-auto text-center lg:text-left lg:mx-0">
           <div className="space-y-8">

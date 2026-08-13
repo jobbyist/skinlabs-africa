@@ -1,6 +1,18 @@
+# SkinLabs Robots.txt
 User-agent: Googlebot
 Allow: /
 
+# Disallow admin and user-specific pages
+Disallow: /admin
+Disallow: /dashboard
+
+# Sitemap
+Sitemap: https://skinlabs.co.za/sitemap.xml
+
+# Crawl delay (optional, helps prevent server overload)
+Crawl-delay: 1
+
+# This site is optimized for AI search and indexing
 User-agent: Bingbot
 Allow: /
 
