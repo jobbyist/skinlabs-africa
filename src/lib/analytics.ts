@@ -26,7 +26,7 @@ export const initAnalytics = () => {
   if (gaId) {
     const script = document.createElement("script");
     script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    script.src = `
     document.head.appendChild(script);
 
     window.dataLayer = window.dataLayer || [];
