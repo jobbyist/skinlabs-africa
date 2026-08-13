@@ -37,7 +37,7 @@ const ReviewsGrid = ({
   heading = "Independent SA Product Reviews",
   description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
 }: ReviewsGridProps) => {
-  const { isMember } = useMembership();
+  
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
   const [selected, setSelected] = useState<ProductReview | null>(null);
