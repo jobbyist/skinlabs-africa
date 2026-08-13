@@ -290,6 +290,63 @@ export type Database = {
         }
         Relationships: []
       }
+      review_comments: {
+        Row: {
+          body: string
+          created_at: string
+          display_name: string | null
+          id: string
+          review_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          review_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          review_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      review_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          liked: boolean
+          rating: number
+          review_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          liked?: boolean
+          rating: number
+          review_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          liked?: boolean
+          rating?: number
+          review_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       skin_journey_entries: {
         Row: {
           created_at: string
