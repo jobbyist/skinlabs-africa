@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Menu, X, Sparkles, LogOut, LayoutDashboard, ExternalLink, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -10,19 +11,24 @@ import { toast } from "sonner";
 import logo from "@/assets/newskinlabs.png";
 
 const Header = () => {
+  const { t, i18n } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
-    { label: "AI Formulator", href: "/ai-formulator" },
-    { label: "The Daily Skinny", href: "/newsroom" },
-    { label: "Podcast", href: "/podcast" },
-    { label: "Reviews", href: "/reviews" },
-    { label: "Book a Consultation", href: "/book-consultation" },
-    { label: "Pricing", href: "/pricing" },
+    { label: t("header.navAiFormulator"), href: "/ai-formulator" },
+    { label: t("header.navNewsroom"), href: "/newsroom" },
+    { label: t("header.navPodcast"), href: "/podcast" },
+    { label: t("header.navReviews"), href: "/reviews" },
+    { label: t("header.navConsultation"), href: "/book-consultation" },
+    { label: t("header.navPricing"), href: "/pricing" },
   ];
+
+  const toggleLanguage = () => {
+    void i18n.changeLanguage(i18n.language === "af" ? "en" : "af");
+  };
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -49,7 +55,7 @@ const Header = () => {
             <nav className="hidden lg:flex items-center gap-6">
               {navLinks.map((link) => (
                 <Link
-                  key={link.label}
+                  key={link.href}
                   to={link.href}
                   className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
@@ -60,14 +66,22 @@ const Header = () => {
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-3">
+              <button
+                onClick={toggleLanguage}
+                aria-label="Switch language"
+                className="hidden items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1.5 text-xs font-semibold uppercase text-foreground hover:bg-secondary xl:inline-flex"
+              >
+                <Languages className="h-3.5 w-3.5" />
+                {i18n.language === "af" ? "EN" : "AF"}
+              </button>
               <span className="hidden items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-semibold text-foreground xl:inline-flex">
-                🇿🇦 ZA (ZAR)
+                {t("header.zaBadge")}
               </span>
               <Button size="lg" className="gap-2 shadow-lg shadow-primary/20" asChild>
                 <Link to="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
-                  <span className="hidden xl:inline">Start My Free Skincare Routine Assessment</span>
-                  <span className="xl:hidden">Start Free Assessment</span>
+                  <span className="hidden xl:inline">{t("header.ctaFull")}</span>
+                  <span className="xl:hidden">{t("header.ctaShort")}</span>
                 </Link>
               </Button>
               {!loading && user ? (
@@ -81,23 +95,23 @@ const Header = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className="flex items-center gap-2">
                         <LayoutDashboard className="h-4 w-4" />
-                        Dashboard
+                        {t("header.dashboard")}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={redirectToOpenhaus} disabled={openhausLoading} className="flex items-center gap-2">
                       <ExternalLink className="h-4 w-4" />
-                      {openhausLoading ? "Connecting..." : "OpenHaus Market"}
+                      {openhausLoading ? "Connecting..." : t("header.openhausMarket")}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2">
                       <LogOut className="h-4 w-4" />
-                      Sign Out
+                      {t("header.signOut")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
                 <Button variant="ghost" className="gap-2" onClick={() => setAuthOpen(true)}>
-                  Sign In
+                  {t("header.signIn")}
                 </Button>
               )}
             </div>
@@ -119,7 +133,7 @@ const Header = () => {
               <nav className="flex flex-col gap-4">
                 {navLinks.map((link) => (
                   <Link
-                    key={link.label}
+                    key={link.href}
                     to={link.href}
                     className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                     onClick={() => setIsMenuOpen(false)}
@@ -131,13 +145,23 @@ const Header = () => {
                 <Button size="lg" className="w-full gap-2 mt-2" asChild onClick={() => setIsMenuOpen(false)}>
                   <Link to="/ai-formulator">
                     <Sparkles className="h-4 w-4" />
-                    Start My Free Skincare Routine Assessment
+                    {t("header.ctaFull")}
                   </Link>
                 </Button>
 
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-semibold text-foreground">
-                  🇿🇦 ZA (ZAR)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-semibold text-foreground">
+                    {t("header.zaBadge")}
+                  </span>
+                  <button
+                    onClick={toggleLanguage}
+                    aria-label="Switch language"
+                    className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2.5 py-1.5 text-xs font-semibold uppercase text-foreground hover:bg-secondary"
+                  >
+                    <Languages className="h-3.5 w-3.5" />
+                    {i18n.language === "af" ? "EN" : "AF"}
+                  </button>
+                </div>
 
                 {!loading && user ? (
                   <>
@@ -146,16 +170,16 @@ const Header = () => {
                       className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Dashboard
+                      {t("header.dashboard")}
                     </Link>
                     <Button variant="outline" className="w-full gap-2" onClick={() => { handleSignOut(); setIsMenuOpen(false); }}>
                       <LogOut className="h-4 w-4" />
-                      Sign Out
+                      {t("header.signOut")}
                     </Button>
                   </>
                 ) : (
                   <Button variant="outline" className="w-full gap-2" onClick={() => { setAuthOpen(true); setIsMenuOpen(false); }}>
-                    Sign In
+                    {t("header.signIn")}
                   </Button>
                 )}
               </nav>

@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
-import { overallScore, productReviews } from "@/data/reviews";
+import { overallScore } from "@/data/reviews";
+import { useProductReviews } from "@/hooks/use-product-reviews";
 import { toast } from "sonner";
 import { trackEvent } from "@/lib/analytics";
+import BrandMark from "@/components/BrandMark";
 import { cn } from "@/lib/utils";
 
 interface CommentRow {
@@ -26,6 +28,7 @@ const ReviewDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { isMember } = useMembership();
+  const { data: productReviews = [] } = useProductReviews();
   const review = productReviews.find((r) => r.id === slug);
 
   const [rating, setRating] = useState(0);
@@ -169,7 +172,7 @@ const ReviewDetail = () => {
 
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm uppercase tracking-wide text-muted-foreground">{review.brand}</p>
+                <BrandMark name={review.brand} type="brand" className="mb-2 h-8" />
                 <h1 className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                   {review.product_name}
                 </h1>
@@ -215,7 +218,7 @@ const ReviewDetail = () => {
                     rel="noopener noreferrer"
                     className={cn("flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-accent", index > 0 && "border-t border-border")}
                   >
-                    <span className="font-medium text-foreground">{entry.retailer}</span>
+                    <BrandMark name={entry.retailer} type="retailer" className="h-5" />
                     <span className="flex items-center gap-3">
                       <span className={cn("text-xs", entry.in_stock ? "text-primary" : "text-muted-foreground line-through")}>
                         {entry.in_stock ? "In stock" : "Out of stock"}

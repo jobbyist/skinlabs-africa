@@ -1,0 +1,99 @@
+{
+  "header": {
+    "navAiFormulator": "KI-Formuleerder",
+    "navNewsroom": "Die Daaglikse Skinny",
+    "navPodcast": "Podsending",
+    "navReviews": "Resensies",
+    "navConsultation": "Bespreek 'n Konsultasie",
+    "navPricing": "Pryse",
+    "ctaFull": "Begin My Gratis Velversorgingsroetine-Assessering",
+    "ctaShort": "Begin Gratis Assessering",
+    "zaBadge": "🇿🇦 ZA (ZAR)",
+    "signIn": "Meld Aan",
+    "signOut": "Meld Af",
+    "dashboard": "Kontroleskerm",
+    "openhausMarket": "OpenHaus Mark"
+  },
+  "footer": {
+    "platformHeading": "Platform",
+    "companyHeading": "Maatskappy",
+    "supportHeading": "Ondersteuning",
+    "tagline": "Suid-Afrika se KI-aangedrewe velversorging-intelligensieplatform. Daaglikse velwetenskap, onafhanklike plaaslike resensies en persoonlike roetines.",
+    "contactUs": "Kontak Ons",
+    "comingSoon": "Binnekort Beskikbaar",
+    "rightsReserved": "Alle regte voorbehou.",
+    "privacyPolicy": "Privaatheidsbeleid",
+    "termsOfService": "Diensvoorwaardes",
+    "cookiePolicy": "Koekiebeleid"
+  },
+  "hero": {
+    "badge": "Suid-Afrika se Vel-Intelligensieplatform",
+    "titleLine1": "Slimmer Velversorging,",
+    "titleLine2": "Gemaak vir SA Vel",
+    "subtitle": "'n Gratis KI-roetine-assessering, daaglikse velwetenskap-opsommings, onafhanklike plaaslike produkresensies en 'n weeklikse podsending — gebou rondom jou vel, jou klimaat en jou begroting. Geen kaart, geen verbintenis, geen slaggat nie.",
+    "ctaPrimary": "Begin My Gratis Velversorgingsroetine-Assessering",
+    "ctaSecondary": "Lees Die Daaglikse Skinny",
+    "statMembersLabel": "Gemeenskapslede",
+    "statBriefingsValue": "Daagliks",
+    "statBriefingsLabel": "SA Vel-Opsommings",
+    "statRatingLabel": "Lidgraderin"
+  },
+  "features": {
+    "eyebrow": "Gratis Om Te Begin",
+    "title": "Regte Velversorging-Intelligensie, Geen Betaalmuur Vooraf Nie",
+    "item1Title": "Gratis KI-Roetine-Assessering",
+    "item1Desc": "Voltooi die volledige 20-vraag velassessering en kry 'n persoonlike oggend-/aandroetine — gratis, geen rekening nodig om dit te probeer nie.",
+    "item2Title": "Die Daaglikse Skinny",
+    "item2Desc": "Daaglikse opsommings van wêreldwye velwetenskap, vertaal vir Suid-Afrikaanse vel, klimaat en rakke. Een volledige opsomming elke dag gratis.",
+    "item3Title": "Onafhanklike Resensies",
+    "item3Desc": "Eerlike, onbevooroordeelde resensies van SA velversorgingsprodukte sonder affiliasie-ooreenkomste of geskenkmonsters — puntetellings en pryse altyd gratis om te blaai.",
+    "item4Title": "Gratis Weeklikse Podsending",
+    "item4Desc": "Die Skin Deep Podcast: nuwe episodes elke Woensdag, gratis om te stroom, met wysernotas en tydstempels."
+  },
+  "pricing": {
+    "eyebrow": "Lidmaatskap",
+    "title": "Velversorging-intelligensie, geprys in rand",
+    "subtitle": "Probeer die volledige KI-Formuleerder, lees 'n gratis Daaglikse Skinny-opsomming en stroom die hele podsending — geen kaart nodig nie. Lidmaatskap gaan net dieper: volledige transkripsies, gestoorde verslae en volledige resensie-ontledings, gebou vir Suid-Afrikaanse vel, klimaat en rakke.",
+    "mostPopular": "Gewildste",
+    "yourCurrentPlan": "Jou huidige plan",
+    "perMonth": "/maand",
+    "explorer": {
+      "name": "Glow Explorer",
+      "tagline": "Alles wat jy nodig het om te begin — werklik gratis, vir altyd",
+      "cta": "Begin gratis",
+      "feature1": "Volledige KI-Formuleerder-assessering, geen rekening nodig nie",
+      "feature2": "Een volledige Daaglikse Skinny-opsomming per dag",
+      "feature3": "Elke podsending-episode, gratis om te stroom, plus wysernotas",
+      "feature4": "Resensiepunte, uitsprake en randpryse vir elke produk"
+    },
+    "insider": {
+      "name": "Glow Insider",
+      "tagline": "Vir wanneer jy die volle diepte wil hê, nie net die opskrif nie",
+      "cta": "Word 'n Insider",
+      "feature1": "Onbeperkte Daaglikse Skinny — elke opsomming, elke dag",
+      "feature2": "Volledige KI-roetineverslag + PDF-aflaai, gestoor op jou kontroleskerm",
+      "feature3": "Volledige episode-transkripsies, deursoekbaar, vir elke episode",
+      "feature4": "Volledige resensie-ontledings: bestanddele- en veltipe-passingnotas",
+      "feature5": "Maandelikse roetine-heranalise soos jou vel verander",
+      "feature6": "Lede-eksklusiewe bestanddeel-diepte-analises"
+    },
+    "vip": {
+      "name": "Glow VIP",
+      "tagline": "Voeg regte praktisyns by jou roetine",
+      "cta": "Word VIP",
+      "feature1": "Alles in Glow Insider",
+      "feature2": "Een virtuele dermkonsultasie per maand",
+      "feature3": "Prioriteitbesprekings met SA-praktisyns",
+      "feature4": "Persoonlike kwartaallikse roetine-oorsig",
+      "feature5": "Vroeë toegang tot nuwe SkinLabs-nutsmiddels"
+    }
+  },
+  "faq": {
+    "title": "Gereelde Vrae",
+    "subtitle": "Vind antwoorde op algemene vrae oor ons platform en dienste",
+    "categoryGeneral": "Algemene Vrae",
+    "categoryFormulator": "KI-Formuleerder & Roetines",
+    "categoryMembership": "Lidmaatskap & Pryse",
+    "categoryReviews": "Resensies & Podsending"
+  }
+}

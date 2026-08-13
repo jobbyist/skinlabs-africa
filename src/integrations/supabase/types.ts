@@ -289,6 +289,66 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string
+          full_review: string
+          id: string
+          is_new: boolean
+          key_ingredients: string[]
+          local_price_zar: number
+          product_name: string
+          score_climate: number
+          score_efficacy: number
+          score_texture: number
+          score_value: number
+          skin_type_match: string[]
+          updated_at: string
+          verdict: string
+          where_to_buy: string
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string
+          full_review: string
+          id: string
+          is_new?: boolean
+          key_ingredients?: string[]
+          local_price_zar: number
+          product_name: string
+          score_climate: number
+          score_efficacy: number
+          score_texture: number
+          score_value: number
+          skin_type_match?: string[]
+          updated_at?: string
+          verdict: string
+          where_to_buy: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string
+          full_review?: string
+          id?: string
+          is_new?: boolean
+          key_ingredients?: string[]
+          local_price_zar?: number
+          product_name?: string
+          score_climate?: number
+          score_efficacy?: number
+          score_texture?: number
+          score_value?: number
+          skin_type_match?: string[]
+          updated_at?: string
+          verdict?: string
+          where_to_buy?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           allergies: string[] | null
@@ -348,6 +408,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      retailer_listings: {
+        Row: {
+          id: string
+          in_stock: boolean
+          price_zar: number
+          product_id: string
+          retailer: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          id?: string
+          in_stock?: boolean
+          price_zar: number
+          product_id: string
+          retailer: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          id?: string
+          in_stock?: boolean
+          price_zar?: number
+          product_id?: string
+          retailer?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "retailer_listings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_comments: {
         Row: {

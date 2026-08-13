@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Star } from "lucide-react";
-import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
+import { overallScore } from "@/data/reviews";
+import { useProductReviews } from "@/hooks/use-product-reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
+import BrandMark from "@/components/BrandMark";
 import { cn } from "@/lib/utils";
 
 
@@ -39,11 +41,16 @@ const ReviewsGrid = ({
   
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
+  const { data: productReviews = [] } = useProductReviews();
+  const reviewCategories = useMemo(
+    () => Array.from(new Set(productReviews.map((review) => review.category))),
+    [productReviews],
+  );
 
   const filtered = useMemo(() => {
     const base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
     return limit ? base.slice(0, limit) : base;
-  }, [category, limit]);
+  }, [category, limit, productReviews]);
 
   return (
     <section id="reviews" className="bg-secondary/30 py-20">
@@ -86,7 +93,7 @@ const ReviewsGrid = ({
             >
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand}</p>
+                  <BrandMark name={review.brand} type="brand" className="mb-1.5 h-6" />
                   <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
                     {review.product_name}
                   </h3>

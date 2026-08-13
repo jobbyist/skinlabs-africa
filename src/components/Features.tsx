@@ -1,38 +1,25 @@
+import { useTranslation } from "react-i18next";
 import { Sparkles, Newspaper, Star, Mic } from "lucide-react";
 
-const features = [
-  {
-    icon: Sparkles,
-    title: "Free AI Routine Assessment",
-    description: "Complete the full 20-question skin assessment and get a personalized AM/PM routine — free, no account required to try it.",
-  },
-  {
-    icon: Newspaper,
-    title: "The Daily Skinny",
-    description: "Daily briefings of global skincare science translated for South African skin, climate and shelves. One full briefing free every day.",
-  },
-  {
-    icon: Star,
-    title: "Independent Reviews",
-    description: "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples — scores and pricing always free to browse.",
-  },
-  {
-    icon: Mic,
-    title: "Free Weekly Podcast",
-    description: "The Skin Deep Podcast: new episodes every Wednesday, free to stream, with show notes and timestamps.",
-  },
-];
-
 const Features = () => {
+  const { t } = useTranslation();
+
+  const features = [
+    { icon: Sparkles, title: t("features.item1Title"), description: t("features.item1Desc") },
+    { icon: Newspaper, title: t("features.item2Title"), description: t("features.item2Desc") },
+    { icon: Star, title: t("features.item3Title"), description: t("features.item3Desc") },
+    { icon: Mic, title: t("features.item4Title"), description: t("features.item4Desc") },
+  ];
+
   return (
     <section id="about" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
-            Free to Start
+            {t("features.eyebrow")}
           </p>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
-            Real Skincare Intelligence, No Paywall Upfront
+            {t("features.title")}
           </h2>
         </div>
 

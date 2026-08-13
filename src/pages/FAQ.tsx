@@ -1,12 +1,14 @@
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { HelpCircle, MessageCircle, Search } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const FAQ = () => {
+  const { t } = useTranslation();
   const categories = [
     {
-      title: "General Questions",
+      title: t("faq.categoryGeneral"),
       questions: [
         {
           q: "What is SkinLabs?",
@@ -23,7 +25,7 @@ const FAQ = () => {
       ]
     },
     {
-      title: "AI Formulator & Routines",
+      title: t("faq.categoryFormulator"),
       questions: [
         {
           q: "Do I need an account to try the AI Formulator?",
@@ -36,7 +38,7 @@ const FAQ = () => {
       ]
     },
     {
-      title: "Membership & Pricing",
+      title: t("faq.categoryMembership"),
       questions: [
         {
           q: "What does Glow Explorer (free) include?",
@@ -49,7 +51,7 @@ const FAQ = () => {
       ]
     },
     {
-      title: "Reviews & Podcast",
+      title: t("faq.categoryReviews"),
       questions: [
         {
           q: "Are your product reviews sponsored?",
@@ -98,10 +100,10 @@ const FAQ = () => {
                     <HelpCircle className="h-8 w-8 text-primary" />
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">
-                    Frequently Asked Questions
+                    {t("faq.title")}
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Find answers to common questions about our products and services
+                    {t("faq.subtitle")}
                   </p>
                 </div>
 

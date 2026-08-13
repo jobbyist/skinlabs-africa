@@ -1,0 +1,99 @@
+{
+  "header": {
+    "navAiFormulator": "AI Formulator",
+    "navNewsroom": "The Daily Skinny",
+    "navPodcast": "Podcast",
+    "navReviews": "Reviews",
+    "navConsultation": "Book a Consultation",
+    "navPricing": "Pricing",
+    "ctaFull": "Start My Free Skincare Routine Assessment",
+    "ctaShort": "Start Free Assessment",
+    "zaBadge": "🇿🇦 ZA (ZAR)",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "dashboard": "Dashboard",
+    "openhausMarket": "OpenHaus Market"
+  },
+  "footer": {
+    "platformHeading": "Platform",
+    "companyHeading": "Company",
+    "supportHeading": "Support",
+    "tagline": "South Africa's AI-powered skincare intelligence platform. Daily skin science, independent local reviews and personalised routines.",
+    "contactUs": "Contact Us",
+    "comingSoon": "Coming Soon",
+    "rightsReserved": "All rights reserved.",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "cookiePolicy": "Cookie Policy"
+  },
+  "hero": {
+    "badge": "South Africa's Skin Intelligence Platform",
+    "titleLine1": "Smarter Skincare,",
+    "titleLine2": "Made for SA Skin",
+    "subtitle": "A free AI routine assessment, daily skin science briefings, independent local product reviews and a weekly podcast — built around your skin, your climate and your budget. No card, no commitment, no catch.",
+    "ctaPrimary": "Start My Free Skincare Routine Assessment",
+    "ctaSecondary": "Read The Daily Skinny",
+    "statMembersLabel": "Community Members",
+    "statBriefingsValue": "Daily",
+    "statBriefingsLabel": "SA Skin Briefings",
+    "statRatingLabel": "Member Rating"
+  },
+  "features": {
+    "eyebrow": "Free to Start",
+    "title": "Real Skincare Intelligence, No Paywall Upfront",
+    "item1Title": "Free AI Routine Assessment",
+    "item1Desc": "Complete the full 20-question skin assessment and get a personalized AM/PM routine — free, no account required to try it.",
+    "item2Title": "The Daily Skinny",
+    "item2Desc": "Daily briefings of global skincare science translated for South African skin, climate and shelves. One full briefing free every day.",
+    "item3Title": "Independent Reviews",
+    "item3Desc": "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples — scores and pricing always free to browse.",
+    "item4Title": "Free Weekly Podcast",
+    "item4Desc": "The Skin Deep Podcast: new episodes every Wednesday, free to stream, with show notes and timestamps."
+  },
+  "pricing": {
+    "eyebrow": "Membership",
+    "title": "Skincare intelligence, priced in rands",
+    "subtitle": "Try the full AI Formulator, read a free Daily Skinny briefing and stream the whole podcast — no card required. Membership just goes deeper: full transcripts, saved reports and complete review breakdowns, built for South African skin, climate and shelves.",
+    "mostPopular": "Most popular",
+    "yourCurrentPlan": "Your current plan",
+    "perMonth": "/month",
+    "explorer": {
+      "name": "Glow Explorer",
+      "tagline": "Everything you need to get started — genuinely free, forever",
+      "cta": "Start free",
+      "feature1": "Full AI Formulator assessment, no account required",
+      "feature2": "One complete Daily Skinny briefing per day",
+      "feature3": "Every podcast episode, free to stream, plus show notes",
+      "feature4": "Review scores, verdicts and rand pricing for every product"
+    },
+    "insider": {
+      "name": "Glow Insider",
+      "tagline": "For when you want the full depth, not just the headline",
+      "cta": "Become an Insider",
+      "feature1": "Unlimited Daily Skinny — every briefing, every day",
+      "feature2": "Full AI routine report + PDF download, saved to your dashboard",
+      "feature3": "Full episode transcripts, searchable, for every episode",
+      "feature4": "Complete review breakdowns: ingredients & skin-type match notes",
+      "feature5": "Monthly routine re-analysis as your skin changes",
+      "feature6": "Member-only ingredient deep dives"
+    },
+    "vip": {
+      "name": "Glow VIP",
+      "tagline": "Add real practitioners to your routine",
+      "cta": "Go VIP",
+      "feature1": "Everything in Glow Insider",
+      "feature2": "One virtual derm consultation per month",
+      "feature3": "Priority booking with SA practitioners",
+      "feature4": "Personalised quarterly routine review",
+      "feature5": "Early access to new SkinLabs tools"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to common questions about our platform and services",
+    "categoryGeneral": "General Questions",
+    "categoryFormulator": "AI Formulator & Routines",
+    "categoryMembership": "Membership & Pricing",
+    "categoryReviews": "Reviews & Podcast"
+  }
+}

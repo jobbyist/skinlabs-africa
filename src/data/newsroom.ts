@@ -1,9 +1,9 @@
-import cover1 from "@/assets/hero-skincare.jpg";
-import cover2 from "@/assets/product-serum.jpg";
-import cover3 from "@/assets/banner-skincare.png";
-import cover4 from "@/assets/product-facial-moisturizer.png";
-import cover5 from "@/assets/product-body-oil-serum.png";
-import cover6 from "@/assets/product-led-mask.jpg";
+import cover1 from "@/assets/newsroom/spf-sunscreen-application.jpg";
+import cover2 from "@/assets/newsroom/niacinamide-serum-dropper.jpg";
+import cover3 from "@/assets/newsroom/winter-barrier-moisturiser.jpg";
+import cover4 from "@/assets/newsroom/retinaldehyde-retinol-bottle.jpg";
+import cover5 from "@/assets/newsroom/hard-water-showerhead.jpg";
+import cover6 from "@/assets/newsroom/teledermatology-video-consult.jpg";
 
 export interface NewsArticle {
   id: string;
