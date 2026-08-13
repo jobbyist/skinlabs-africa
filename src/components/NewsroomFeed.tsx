@@ -17,8 +17,9 @@ interface NewsroomFeedProps {
 
 const NewsroomFeed = ({
   limit,
-  heading = "The SkinLabs Newsroom",
-  description = "A daily brief of global skincare science, translated into what it means for South African skin, climate and shelves.",
+  heading = "The Daily Skinny",
+  description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
+
 }: NewsroomFeedProps) => {
   const { isMember } = useMembership();
   const { likedIds, savedIds, toggleLike, toggleSave, viewedArticleIds, lastViewDate, recordArticleView } =
