@@ -97,6 +97,9 @@ const AppContent = () => {
         {/* Podcast */}
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
+        <Route path="/stream" element={<Navigate to="/podcast" replace />} />
+        <Route path="/stream/:slug" element={<LegacyStreamRedirect />} />
+
 
         {/* Content platform */}
         <Route path="/newsroom" element={<Newsroom />} />
