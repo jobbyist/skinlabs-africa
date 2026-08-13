@@ -613,7 +613,7 @@ const AIFormulator = () => {
                   )}
 
                   <div className="flex flex-col sm:flex-row gap-3">
-                    {recommendation && (
+                    {recommendation && isMember && (
                       <Button
                         size="lg"
                         variant="secondary"
@@ -631,12 +631,21 @@ const AIFormulator = () => {
                         Download PDF Again
                       </Button>
                     )}
+                    {recommendation && !isMember && (
+                      <Button size="lg" variant="secondary" className="flex-1 gap-2" asChild>
+                        <a href="/pricing">
+                          <Download className="h-4 w-4" />
+                          Unlock PDF export
+                        </a>
+                      </Button>
+                    )}
                     <Button size="lg" className="flex-1 gap-2" asChild>
-                      <a href="/openhaus">
-                        Browse SKINLABS Products
+                      <a href="/reviews">
+                        Explore SA Product Reviews
                         <ChevronRight className="h-4 w-4" />
                       </a>
                     </Button>
+
                     <Button variant="outline" size="lg" onClick={resetFormulator} className="flex-1">
                       Start Over
                     </Button>
