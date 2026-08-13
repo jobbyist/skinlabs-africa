@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X, Gauge } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { useAudio, formatDuration } from "@/context/AudioContext";
 import { podcastEpisodes } from "@/data/podcast";
@@ -9,10 +10,14 @@ import { podcastEpisodes } from "@/data/podcast";
 const PodcastPlayer = () => {
   const { current, isPlaying, progress, duration, speed, toggle, close, skip, cycleSpeed, seekToPercent, playEpisode } =
     useAudio();
+  const [dragging, setDragging] = useState(false);
+  const [dragValue, setDragValue] = useState(0);
 
   const nextEpisode = current
     ? podcastEpisodes[(podcastEpisodes.findIndex((e) => e.id === current.id) + 1) % podcastEpisodes.length]
     : null;
+
+  const sliderValue = dragging ? dragValue : (duration ? (progress / duration) * 100 : 0);
 
   return (
     <AnimatePresence>
@@ -39,8 +44,15 @@ const PodcastPlayer = () => {
               <div className="flex items-center gap-2">
                 <span className="hidden text-[11px] tabular-nums text-white/60 sm:inline">{formatDuration(progress)}</span>
                 <Slider
-                  value={[duration ? (progress / duration) * 100 : 0]}
-                  onValueChange={([v]) => seekToPercent(v)}
+                  value={[sliderValue]}
+                  onValueChange={([v]) => {
+                    setDragging(true);
+                    setDragValue(v);
+                  }}
+                  onValueCommit={([v]) => {
+                    seekToPercent(v);
+                    setDragging(false);
+                  }}
                   className="flex-1"
                   aria-label="Seek"
                 />
@@ -49,20 +61,22 @@ const PodcastPlayer = () => {
             </div>
 
             <div className="flex items-center gap-1">
-              <button onClick={() => skip(-15)} aria-label="Back 15 seconds" className="rounded-full p-2 hover:bg-white/10">
+              <button type="button" onClick={() => skip(-15)} aria-label="Back 15 seconds" className="rounded-full p-2 hover:bg-white/10">
                 <SkipBack className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={toggle}
                 aria-label={isPlaying ? "Pause" : "Play"}
                 className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-black"
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </button>
-              <button onClick={() => skip(15)} aria-label="Forward 15 seconds" className="rounded-full p-2 hover:bg-white/10">
+              <button type="button" onClick={() => skip(15)} aria-label="Forward 15 seconds" className="rounded-full p-2 hover:bg-white/10">
                 <SkipForward className="h-4 w-4" />
               </button>
               <button
+                type="button"
                 onClick={cycleSpeed}
                 aria-label="Playback speed"
                 className="hidden items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold hover:bg-white/10 sm:flex"
@@ -72,13 +86,14 @@ const PodcastPlayer = () => {
               </button>
               {nextEpisode && (
                 <button
+                  type="button"
                   onClick={() => playEpisode(nextEpisode, 0)}
                   className="hidden rounded-full px-2 py-1 text-xs font-medium text-white/70 hover:bg-white/10 lg:block"
                 >
                   Next up
                 </button>
               )}
-              <button onClick={close} aria-label="Close player" className="rounded-full p-2 hover:bg-white/10">
+              <button type="button" onClick={close} aria-label="Close player" className="rounded-full p-2 hover:bg-white/10">
                 <X className="h-4 w-4" />
               </button>
             </div>

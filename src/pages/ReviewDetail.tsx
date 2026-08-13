@@ -28,7 +28,7 @@ const ReviewDetail = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { isMember } = useMembership();
-  const { data: productReviews = [] } = useProductReviews();
+  const { data: productReviews = [], isLoading, isFetching } = useProductReviews();
   const review = productReviews.find((r) => r.id === slug);
 
   const [rating, setRating] = useState(0);
@@ -74,6 +74,19 @@ const ReviewDetail = () => {
     if (review) trackEvent("review_viewed", { review_id: review.id, brand: review.brand });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [review?.id]);
+
+  // Wait for loading/fetching to settle before redirecting for no match
+  if (isLoading || isFetching) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 pt-32 pb-24 text-center">
+          <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!review) return <Navigate to="/reviews" replace />;
 
@@ -145,12 +158,14 @@ const ReviewDetail = () => {
           brand: { "@type": "Brand", name: review.brand },
           category: review.category,
           description: review.verdict,
-          aggregateRating: {
-            "@type": "AggregateRating",
-            ratingValue: score,
-            bestRating: 10,
-            reviewCount: Math.max(1, likeCount),
-          },
+          ...(avgRating !== null && {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: avgRating,
+              bestRating: 5,
+              reviewCount: likeCount,
+            },
+          }),
           offers: sortedRetailers.map((r) => ({
             "@type": "Offer",
             price: r.price_zar,

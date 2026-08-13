@@ -9,13 +9,10 @@ import { allRoutes } from "./routes.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BASE_URL = "https://skinlabs.co.za";
 
-const today = new Date().toISOString().split("T")[0];
-
 const urlElements = allRoutes()
   .map(
     (route) => `  <url>
     <loc>${BASE_URL}${route.loc}</loc>
-    <lastmod>${today}</lastmod>
     <changefreq>${route.changefreq}</changefreq>
     <priority>${route.priority.toFixed(1)}</priority>
   </url>`,

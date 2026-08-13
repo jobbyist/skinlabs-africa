@@ -14,7 +14,7 @@ const Header = () => {
   const { t, i18n } = useTranslation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, isAnonymous, signOut } = useAuth();
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
@@ -84,7 +84,7 @@ const Header = () => {
                   <span className="xl:hidden">{t("header.ctaShort")}</span>
                 </Link>
               </Button>
-              {!loading && user ? (
+              {!loading && user && !isAnonymous ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="rounded-full w-9 h-9 text-sm font-semibold">
@@ -163,7 +163,7 @@ const Header = () => {
                   </button>
                 </div>
 
-                {!loading && user ? (
+                {!loading && user && !isAnonymous ? (
                   <>
                     <Link
                       to="/dashboard"

@@ -28,7 +28,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
-      if (data?.user) identifyUser(data.user.id, { email: data.user.email });
+      if (data?.user) identifyUser(data.user.id);
       trackEvent("sign_in_completed");
       toast.success("Signed in successfully!");
       onOpenChange(false);
@@ -43,7 +43,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
-      if (data?.user) identifyUser(data.user.id, { email: data.user.email });
+      if (data?.user) identifyUser(data.user.id);
       trackEvent("sign_up_completed");
       toast.success("Account created! Check your email for verification.");
       onOpenChange(false);
@@ -86,7 +86,7 @@ const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <DialogHeader>
           <DialogTitle>Sign in to SKINLABS</DialogTitle>
           <DialogDescription>
-            Save your AI routine, unlock unlimited Newsroom reads and full review breakdowns, and pick up right where you left off on any device.
+            Create an account to save your progress and access your data across devices. Upgrade to a paid membership to unlock unlimited Newsroom reads, full review breakdowns, and more.
           </DialogDescription>
         </DialogHeader>
 

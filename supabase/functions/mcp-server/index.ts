@@ -126,14 +126,36 @@ const TOOLS = [
 
 // ---- Tool implementations ----
 
-async function callTool(name: string, args: Record<string, unknown>) {
+async function callTool(name: string, args: Record<string, unknown>, req: Request) {
   switch (name) {
     case "get_skin_assessment_questions":
       return { questions: QUIZ_QUESTIONS };
 
     case "analyze_skin_profile": {
+      // Authentication check: validate shared secret or JWT
+      const authHeader = req.headers.get("authorization");
+      const MCP_SHARED_SECRET = Deno.env.get("MCP_SHARED_SECRET");
+      if (MCP_SHARED_SECRET) {
+        if (!authHeader || authHeader !== `Bearer ${MCP_SHARED_SECRET}`) {
+          throw new Error("Unauthorized: invalid or missing authentication");
+        }
+      }
+      // If MCP_SHARED_SECRET is not set, the function is open (legacy/dev mode)
+
       const answers = args.answers as Array<{ question: string; answer: string }> | undefined;
       if (!answers?.length) throw new Error("`answers` is required and must be non-empty.");
+
+      // Size limits to prevent abuse
+      const MAX_ANSWERS = 50;
+      const MAX_ANSWER_LENGTH = 500;
+      if (answers.length > MAX_ANSWERS) {
+        throw new Error(`Too many answers: maximum ${MAX_ANSWERS} allowed`);
+      }
+      for (const qa of answers) {
+        if (qa.answer && qa.answer.length > MAX_ANSWER_LENGTH) {
+          throw new Error(`Answer too long: maximum ${MAX_ANSWER_LENGTH} characters per answer`);
+        }
+      }
 
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured on this function.");
@@ -245,15 +267,21 @@ serve(async (req) => {
 
   try {
     switch (method) {
-      case "initialize":
+      case "initialize": {
+        const SUPPORTED_VERSIONS = ["2025-03-26"];
+        const clientVersion = (params as { protocolVersion?: string }).protocolVersion;
+        const protocolVersion = clientVersion && SUPPORTED_VERSIONS.includes(clientVersion)
+          ? clientVersion
+          : SUPPORTED_VERSIONS[0];
         return Response.json(
           jsonRpcResult(id, {
-            protocolVersion: "2025-03-26",
+            protocolVersion,
             capabilities: { tools: {} },
             serverInfo: { name: "skinlabs-mcp-server", version: "0.1.0" },
           }),
           { headers: corsHeaders },
         );
+      }
 
       case "notifications/initialized":
         // Notifications have no id and expect no body — 202 Accepted.
@@ -265,11 +293,20 @@ serve(async (req) => {
       case "tools/call": {
         const toolName = params.name as string;
         const toolArgs = (params.arguments as Record<string, unknown>) ?? {};
-        const output = await callTool(toolName, toolArgs);
-        return Response.json(
-          jsonRpcResult(id, { content: [{ type: "text", text: JSON.stringify(output) }] }),
-          { headers: corsHeaders },
-        );
+        try {
+          const output = await callTool(toolName, toolArgs, req);
+          return Response.json(
+            jsonRpcResult(id, { content: [{ type: "text", text: JSON.stringify(output) }] }),
+            { headers: corsHeaders },
+          );
+        } catch (toolError) {
+          // Tool-execution errors return as 200 OK with isError:true per MCP convention
+          const errorMessage = toolError instanceof Error ? toolError.message : String(toolError);
+          return Response.json(
+            jsonRpcResult(id, { content: [{ type: "text", text: JSON.stringify({ isError: true, error: errorMessage }) }] }),
+            { status: 200, headers: corsHeaders },
+          );
+        }
       }
 
       default:

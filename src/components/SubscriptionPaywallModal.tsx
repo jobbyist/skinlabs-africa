@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,12 +28,23 @@ const SubscriptionPaywallModal = ({
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [pendingCheckout, setPendingCheckout] = useState(false);
   const { user } = useAuth();
+
+  // Resume checkout when anonymous user completes auth
+  useEffect(() => {
+    if (pendingCheckout && user && !user.is_anonymous && user.email) {
+      setPendingCheckout(false);
+      setShowAuthDialog(false);
+      onOpenChange(true);
+    }
+  }, [pendingCheckout, user, onOpenChange]);
 
   const handleSubscribe = async () => {
     // Anonymous quiz-takers need a real, identified account (email) before we
     // can charge them — send them to sign up instead of dropping the request.
     if (!user || user.is_anonymous || !user.email) {
+      setPendingCheckout(true);
       onOpenChange(false);
       setShowAuthDialog(true);
       return;

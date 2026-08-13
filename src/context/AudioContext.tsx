@@ -99,10 +99,16 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   const cycleSpeed = useCallback(() => {
     setSpeed((prev) => {
       const next = SPEEDS[(SPEEDS.indexOf(prev) + 1) % SPEEDS.length];
-      if (audioRef.current) audioRef.current.playbackRate = next;
       return next;
     });
   }, []);
+
+  // Apply playback rate separately when speed changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speed;
+    }
+  }, [speed]);
 
   const seekToPercent = useCallback((percent: number) => {
     const audio = audioRef.current;
@@ -112,9 +118,14 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    let lastSaveTime = 0;
+    const SAVE_INTERVAL = 2000; // Persist to localStorage every 2 seconds
+
     const onTime = () => {
       setProgress(audio.currentTime);
-      if (current) {
+      const now = Date.now();
+      if (current && now - lastSaveTime >= SAVE_INTERVAL) {
+        lastSaveTime = now;
         const positions = readPositions();
         positions[current.slug] = audio.currentTime;
         localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
@@ -126,6 +137,12 @@ export const AudioProvider = ({ children }: { children: ReactNode }) => {
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnded);
     return () => {
+      // Flush the latest position on cleanup before removing listeners
+      if (current && audio.currentTime > 0) {
+        const positions = readPositions();
+        positions[current.slug] = audio.currentTime;
+        localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
+      }
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnded);

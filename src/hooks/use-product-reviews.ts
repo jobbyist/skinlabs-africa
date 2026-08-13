@@ -19,8 +19,18 @@ export const useProductReviews = () => {
       ]);
 
       if (productsError || retailersError || !products || products.length === 0) {
+        if (productsError) console.error("Failed to fetch products:", productsError);
+        if (retailersError) console.error("Failed to fetch retailers:", retailersError);
         return staticProductReviews;
       }
+
+      // Build a map for O(1) retailer lookups instead of O(n*m) filtering
+      const retailersByProduct = new Map<string, typeof retailers>();
+      (retailers ?? []).forEach((r) => {
+        const existing = retailersByProduct.get(r.product_id) ?? [];
+        existing.push(r);
+        retailersByProduct.set(r.product_id, existing);
+      });
 
       return products.map((p) => ({
         id: p.id,
@@ -38,14 +48,12 @@ export const useProductReviews = () => {
         full_review: p.full_review,
         key_ingredients: p.key_ingredients,
         isNew: p.is_new,
-        retailers: (retailers ?? [])
-          .filter((r) => r.product_id === p.id)
-          .map((r) => ({
-            retailer: r.retailer as RetailerListing["retailer"],
-            price_zar: r.price_zar,
-            in_stock: r.in_stock,
-            url: r.url,
-          })),
+        retailers: (retailersByProduct.get(p.id) ?? []).map((r) => ({
+          retailer: r.retailer as RetailerListing["retailer"],
+          price_zar: r.price_zar,
+          in_stock: r.in_stock,
+          url: r.url,
+        })),
       }));
     },
     staleTime: 5 * 60 * 1000,
