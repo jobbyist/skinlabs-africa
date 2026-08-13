@@ -156,7 +156,7 @@ const NewsroomFeed = ({
               <GatedOverlay
                 locked={isLockedFor(openArticle)}
                 title="Daily free read used"
-                message="Glow Insider members get unlimited access to every Newsroom briefing, plus the full SA breakdown."
+                message="Glow Insider members get unlimited access to every Daily Skinny briefing, plus the full SA breakdown."
               >
                 <div className="space-y-5 py-2">
                   <div>
