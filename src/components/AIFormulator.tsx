@@ -51,7 +51,10 @@ const AIFormulator = () => {
   useEffect(() => {
     if (!authLoading && !user && !anonAttempted.current) {
       anonAttempted.current = true;
-      void signInAnonymously();
+      signInAnonymously().catch((err) => {
+        console.error("Anonymous sign-in failed:", err);
+        toast.error("Could not start session. Please try signing in or refresh the page.");
+      });
     }
   }, [authLoading, user, signInAnonymously]);
 
