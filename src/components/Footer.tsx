@@ -50,8 +50,8 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
-              Next generation skincare technology for radiant, healthy skin. 
-              Powered by science and AI.
+              South Africa's AI-powered skincare intelligence platform. Daily skin science,
+              independent local reviews and personalised routines.
             </p>
             
             {/* Contact Information */}
@@ -59,10 +59,10 @@ const Footer = () => {
               <p className="text-sm font-semibold text-background mb-3">Contact Us</p>
               <div className="space-y-2 text-sm text-background/70">
                 <p>Email: <a href="mailto:support@skinlabs.co.za" className="hover:text-background">support@skinlabs.co.za</a></p>
-                <p>Phone: <a href="tel:+27128806560" className="hover:text-background">+27 12 880 6560</a></p>
                 <p>WhatsApp: <a href="https://wa.me/27680200749" className="hover:text-background">+27 68 020 0749</a></p>
               </div>
             </div>
+
             
             {/* App Store Badges */}
             <div className="mb-6">
