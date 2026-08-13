@@ -72,27 +72,26 @@ const TermsOfService = () => {
                   </div>
 
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Products and Orders</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-4">Content and AI Recommendations</h2>
                     <div className="space-y-4 text-muted-foreground">
-                      <p>All product descriptions, images, prices, and availability are subject to change without notice.</p>
+                      <p>SkinLabs does not sell or ship physical products. AI Formulator recommendations, Newsroom briefings, and product reviews are provided for general informational purposes and are subject to change without notice.</p>
                       <p>We reserve the right to:</p>
                       <ul className="list-disc list-inside space-y-2 ml-4">
-                        <li>Limit quantities of products</li>
-                        <li>Refuse any order</li>
-                        <li>Discontinue any product at any time</li>
-                        <li>Correct pricing errors</li>
+                        <li>Update or correct any AI-generated recommendation, review, or briefing at any time</li>
+                        <li>Suspend or discontinue any feature of the platform</li>
+                        <li>Correct pricing errors on membership plans</li>
                       </ul>
-                      <p>We do our best to ensure that product descriptions and colors are accurate, but we cannot guarantee that your display will accurately show the actual color.</p>
+                      <p>Retailer pricing and stock information shown in Reviews is sourced independently and may change without notice — always confirm current pricing on the retailer's own site before purchasing.</p>
                     </div>
                   </div>
 
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Payment Terms</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-4">Membership & Payment Terms</h2>
                     <p className="text-muted-foreground mb-4">
-                      Payment is due at the time of purchase. We accept major credit cards and other payment methods as displayed on our checkout page.
+                      Glow Insider and Glow VIP are recurring monthly subscriptions billed in South African Rand (ZAR). Payment is processed securely via PayFast and is due at the start of each billing cycle. You may cancel at any time from your account dashboard, effective at the end of the current billing period.
                     </p>
                     <p className="text-muted-foreground">
-                      By providing payment information, you represent and warrant that you are authorized to use the designated payment method and authorize us to charge your payment method for the total amount of your purchase.
+                      By providing payment information, you represent and warrant that you are authorized to use the designated payment method and authorize us to charge your payment method for each recurring subscription period until cancelled.
                     </p>
                   </div>
 

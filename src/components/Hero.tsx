@@ -50,15 +50,16 @@ const Hero = () => {
             </h1>
             
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
-              Daily skin science briefings, independent local product reviews, a podcast and an AI
-              formulator that builds a routine around your skin, your climate and your budget.
+              A free AI routine assessment, daily skin science briefings, independent local product
+              reviews and a weekly podcast — built around your skin, your climate and your budget.
+              No card, no commitment, no catch.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
                 <a href="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
-                  Start Your Skin Analysis
+                  Start My Free Skincare Routine Assessment
                 </a>
               </Button>
               <Button

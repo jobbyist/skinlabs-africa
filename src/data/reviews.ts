@@ -24,7 +24,12 @@ export interface RetailerListing {
   url: string;
 }
 
-/** 0–10 scores. Climate = performance in SA heat, sun and dryness. */
+/**
+ * 0–10 scores. Climate = performance in SA heat, sun and dryness.
+ * Terminology: scores/verdict/retailer pricing are always free to view;
+ * only `full_review` and `key_ingredients` are membership-gated. Keep this
+ * split consistent across new copy and new review entries.
+ */
 export const productReviews: ProductReview[] = [
   {
     id: "skoon-sensitive-fluid",

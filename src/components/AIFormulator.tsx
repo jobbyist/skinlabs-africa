@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Sparkles,
   ChevronRight,
@@ -29,6 +29,7 @@ import GatedOverlay from "@/components/GatedOverlay";
 import AuthDialog from "@/components/AuthDialog";
 import SubscriptionPaywallModal from "@/components/SubscriptionPaywallModal";
 import { QUESTIONS } from "@/data/quiz";
+import { trackEvent } from "@/lib/analytics";
 
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
@@ -38,9 +39,21 @@ const STEP_EMAIL = TOTAL_QUESTIONS + 2;
 const STEP_RESULTS = TOTAL_QUESTIONS + 3;
 
 const AIFormulator = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signInAnonymously } = useAuth();
   const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const anonAttempted = useRef(false);
+
+  // Give every visitor a real (anonymous) session with zero signup friction
+  // so the entire quiz flow — including the AI call — works before they ever
+  // create an account. Session upgrades to a permanent account transparently
+  // if/when they sign up later (see use-auth.ts signUp).
+  useEffect(() => {
+    if (!authLoading && !user && !anonAttempted.current) {
+      anonAttempted.current = true;
+      void signInAnonymously();
+    }
+  }, [authLoading, user, signInAnonymously]);
 
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -115,6 +128,7 @@ const AIFormulator = () => {
       }
 
       setRecommendation(data.recommendation);
+      trackEvent("ai_formulator_completed", { skin_type: derivedSkinType, has_photo: Boolean(skinImage) });
 
       // Auto-download the personalized PDF report
       try {
@@ -130,6 +144,7 @@ const AIFormulator = () => {
       }
 
       if (!hasSubscription) {
+        trackEvent("paywall_shown", { source: "ai_formulator" });
         setShowPaywall(true);
       } else {
         setStep(STEP_RESULTS);
@@ -196,7 +211,7 @@ const AIFormulator = () => {
     return concerns.slice(0, 4);
   })();
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <section id="ai-formulator" className="py-20 bg-background">
         <div className="container mx-auto px-4">
@@ -205,53 +220,6 @@ const AIFormulator = () => {
           </div>
         </div>
       </section>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <section id="ai-formulator" className="py-20 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
-                <Sparkles className="h-4 w-4" />
-                Premium Service
-              </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                AI Formulator — Your Personalized Skincare Journey
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Get personalized skincare routines, progress trackers, and dermatologist-approved 
-                product recommendations tailored to your unique skin profile.
-              </p>
-              
-              <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-                {["Personalized AM/PM Routines", "Weekly Actives Schedule", "SA Product Recommendations"].map((feature, i) => (
-                  <div key={i} className="bg-card border border-border rounded-xl p-4">
-                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-card-foreground font-medium">{feature}</p>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button size="lg" asChild className="gap-2">
-                  <a href="/pricing">
-                    <Sparkles className="h-4 w-4" />
-                    Upgrade to Access
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowAuthDialog(true)} className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                  Sign In
-              </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
-      </>
     );
   }
 
@@ -393,13 +361,30 @@ const AIFormulator = () => {
 
                   <Button
                     size="lg"
-                    onClick={() => setStep(1)}
+                    onClick={() => {
+                      trackEvent("ai_formulator_started");
+                      setStep(1);
+                    }}
                     disabled={!popiaConsent}
                     className="w-full gap-2"
                   >
                     Start My Skin Analysis
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+
+                  {!isMember && (
+                    <p className="text-center text-sm text-muted-foreground">
+                      Already a member?{" "}
+                      <button
+                        type="button"
+                        onClick={() => setShowAuthDialog(true)}
+                        className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                      >
+                        Sign in
+                      </button>{" "}
+                      to unlock your full report instantly.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -811,6 +796,8 @@ const AIFormulator = () => {
           }}
         />
       )}
+
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </>
   );
 };

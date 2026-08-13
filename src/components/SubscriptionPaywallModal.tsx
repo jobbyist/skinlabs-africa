@@ -6,6 +6,8 @@ import { CheckCircle2, Sparkles, Shield, Lock, Crown, Truck, Users, Loader2 } fr
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AuthDialog from "@/components/AuthDialog";
+import { trackEvent } from "@/lib/analytics";
 
 interface SubscriptionPaywallModalProps {
   open: boolean;
@@ -25,15 +27,20 @@ const SubscriptionPaywallModal = ({
   onPaymentSuccess,
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const { user } = useAuth();
 
   const handleSubscribe = async () => {
-    if (!user) {
-      toast.error("Please sign in first to subscribe");
+    // Anonymous quiz-takers need a real, identified account (email) before we
+    // can charge them — send them to sign up instead of dropping the request.
+    if (!user || user.is_anonymous || !user.email) {
+      onOpenChange(false);
+      setShowAuthDialog(true);
       return;
     }
 
     setIsProcessing(true);
+    trackEvent("subscription_checkout_started", { source: "ai_formulator_paywall" });
     try {
       const { data, error } = await supabase.functions.invoke("payfast-payment", {
         body: {
@@ -80,6 +87,7 @@ const SubscriptionPaywallModal = ({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-center pb-2">
@@ -177,6 +185,8 @@ const SubscriptionPaywallModal = ({
         </div>
       </DialogContent>
     </Dialog>
+    <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
+    </>
   );
 };
 

@@ -200,6 +200,65 @@ export type Database = {
         }
         Relationships: []
       }
+      podcast_comments: {
+        Row: {
+          body: string
+          created_at: string
+          display_name: string | null
+          episode_slug: string
+          id: string
+          parent_comment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          display_name?: string | null
+          episode_slug: string
+          id?: string
+          parent_comment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          display_name?: string | null
+          episode_slug?: string
+          id?: string
+          parent_comment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "podcast_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcast_likes: {
+        Row: {
+          created_at: string
+          episode_slug: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          episode_slug: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          episode_slug?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       preorders: {
         Row: {
           amount: number

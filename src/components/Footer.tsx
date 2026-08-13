@@ -4,12 +4,12 @@ import logo from "@/assets/skinlabs-logo-white.svg";
 
 const Footer = () => {
   const links = {
-    shop: [
+    platform: [
       { label: "The Daily Skinny", href: "/newsroom" },
       { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Product Reviews", href: "/reviews" },
       { label: "Podcast", href: "/podcast" },
-      { label: "Consultations", href: "/consultations" },
+      { label: "Book a Consultation", href: "/book-consultation" },
       { label: "Membership Plans", href: "/pricing" },
     ],
     company: [
@@ -104,11 +104,11 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Shop links */}
+          {/* Platform links */}
           <div>
             <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2">
-              {links.shop.map((link) => (
+              {links.platform.map((link) => (
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
                     {link.label}

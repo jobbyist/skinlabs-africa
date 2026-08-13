@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,14 +7,23 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { usePodcastPlayer } from "@/components/PodcastPlayer";
+import { useAudio } from "@/context/AudioContext";
 import { getNextEpisodeDate, podcastEpisodes, podcastTopics } from "@/data/podcast";
 import { cn } from "@/lib/utils";
 
+const getCountdownParts = () => {
+  const diffMs = Math.max(0, getNextEpisodeDate().getTime() - Date.now());
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+  return { days, hours, minutes };
+};
+
 const PodcastPage = () => {
-  const { playEpisode, current } = usePodcastPlayer();
+  const { playEpisode, current } = useAudio();
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("All");
+  const [countdown, setCountdown] = useState(() => getCountdownParts());
 
   const episodes = useMemo(() => {
     return podcastEpisodes.filter((episode) => {
@@ -23,6 +32,11 @@ const PodcastPage = () => {
       return matchesTopic && haystack.includes(query.toLowerCase());
     });
   }, [query, topic]);
+
+  useEffect(() => {
+    const interval = setInterval(() => setCountdown(getCountdownParts()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const nextDrop = getNextEpisodeDate().toLocaleDateString("en-ZA", {
     weekday: "long",
@@ -61,7 +75,28 @@ const PodcastPage = () => {
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
             <p className="text-muted-foreground">
               Weekly conversations on skincare culture, ingredient science and mindful routines — grounded in South
-              African skin, climate and shelves. New episode every {nextDrop}.
+              African skin, climate and shelves. Free to stream, every Wednesday.
+            </p>
+          </div>
+
+          <div className="mb-10 flex flex-wrap items-center gap-4 rounded-3xl border border-border bg-card p-5">
+            <div className="flex items-center gap-3">
+              {[
+                { label: "days", value: countdown.days },
+                { label: "hrs", value: countdown.hours },
+                { label: "min", value: countdown.minutes },
+              ].map((unit) => (
+                <div key={unit.label} className="flex flex-col items-center rounded-2xl bg-primary px-4 py-2 text-primary-foreground">
+                  <span className="font-heading text-2xl font-extrabold leading-none tabular-nums">
+                    {String(unit.value).padStart(2, "0")}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wide opacity-80">{unit.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Next episode drops <span className="font-semibold text-foreground">{nextDrop}</span> — free for every
+              listener, no account required.
             </p>
           </div>
 

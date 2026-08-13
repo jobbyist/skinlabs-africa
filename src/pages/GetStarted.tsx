@@ -7,10 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AuthDialog from "@/components/AuthDialog";
+import { trackEvent } from "@/lib/analytics";
 
 const GetStarted = () => {
   const { user } = useAuth();
   const [processing, setProcessing] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const features = [
     "AI-Powered Custom Skincare Routine Formulator",
@@ -26,11 +29,12 @@ const GetStarted = () => {
   ];
 
   const handleSubscribe = async () => {
-    if (!user) {
-      toast.error("Please sign in first to subscribe");
+    if (!user || user.is_anonymous || !user.email) {
+      setShowAuthDialog(true);
       return;
     }
     setProcessing(true);
+    trackEvent("subscription_checkout_started", { source: "get_started" });
     try {
       const { data, error } = await supabase.functions.invoke("payfast-payment", {
         body: {
@@ -172,6 +176,7 @@ const GetStarted = () => {
         </main>
         <Footer />
       </div>
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </>
   );
 };

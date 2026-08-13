@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
+import { Menu, X, Sparkles, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -16,10 +16,11 @@ const Header = () => {
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
+    { label: "AI Formulator", href: "/ai-formulator" },
     { label: "The Daily Skinny", href: "/newsroom" },
-    { label: "Reviews", href: "/reviews" },
     { label: "Podcast", href: "/podcast" },
-    { label: "Consultations", href: "/consultations" },
+    { label: "Reviews", href: "/reviews" },
+    { label: "Book a Consultation", href: "/book-consultation" },
     { label: "Pricing", href: "/pricing" },
   ];
 
@@ -58,11 +59,15 @@ const Header = () => {
             </nav>
 
             {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-2">
-              <Button variant="outline" className="gap-2" asChild>
+            <div className="hidden lg:flex items-center gap-3">
+              <span className="hidden items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-semibold text-foreground xl:inline-flex">
+                🇿🇦 ZA (ZAR)
+              </span>
+              <Button size="lg" className="gap-2 shadow-lg shadow-primary/20" asChild>
                 <Link to="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
-                  Build My AI Routine
+                  <span className="hidden xl:inline">Start My Free Skincare Routine Assessment</span>
+                  <span className="xl:hidden">Start Free Assessment</span>
                 </Link>
               </Button>
               {!loading && user ? (
@@ -91,9 +96,8 @@ const Header = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button variant="default" className="gap-2" onClick={() => setAuthOpen(true)}>
-                  <Sparkles className="h-4 w-4" />
-                  Get Started
+                <Button variant="ghost" className="gap-2" onClick={() => setAuthOpen(true)}>
+                  Sign In
                 </Button>
               )}
             </div>
@@ -123,6 +127,18 @@ const Header = () => {
                     {link.label}
                   </Link>
                 ))}
+
+                <Button size="lg" className="w-full gap-2 mt-2" asChild onClick={() => setIsMenuOpen(false)}>
+                  <Link to="/ai-formulator">
+                    <Sparkles className="h-4 w-4" />
+                    Start My Free Skincare Routine Assessment
+                  </Link>
+                </Button>
+
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border bg-secondary/60 px-3 py-1.5 text-xs font-semibold text-foreground">
+                  🇿🇦 ZA (ZAR)
+                </span>
+
                 {!loading && user ? (
                   <>
                     <Link
@@ -132,15 +148,14 @@ const Header = () => {
                     >
                       Dashboard
                     </Link>
-                    <Button variant="outline" className="w-full gap-2 mt-2" onClick={() => { handleSignOut(); setIsMenuOpen(false); }}>
+                    <Button variant="outline" className="w-full gap-2" onClick={() => { handleSignOut(); setIsMenuOpen(false); }}>
                       <LogOut className="h-4 w-4" />
                       Sign Out
                     </Button>
                   </>
                 ) : (
-                  <Button variant="default" className="w-full gap-2 mt-2" onClick={() => { setAuthOpen(true); setIsMenuOpen(false); }}>
-                    <Sparkles className="h-4 w-4" />
-                    Get Started
+                  <Button variant="outline" className="w-full gap-2" onClick={() => { setAuthOpen(true); setIsMenuOpen(false); }}>
+                    Sign In
                   </Button>
                 )}
               </nav>

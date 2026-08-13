@@ -3,23 +3,23 @@ import { Sparkles, Newspaper, Star, Mic } from "lucide-react";
 const features = [
   {
     icon: Sparkles,
-    title: "AI-Powered Routines",
-    description: "Premium personalized skincare routines with progress trackers and dermatologist-approved product recommendations.",
+    title: "Free AI Routine Assessment",
+    description: "Complete the full 20-question skin assessment and get a personalized AM/PM routine — free, no account required to try it.",
   },
   {
     icon: Newspaper,
     title: "The Daily Skinny",
-    description: "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
+    description: "Daily briefings of global skincare science translated for South African skin, climate and shelves. One full briefing free every day.",
   },
   {
     icon: Star,
     title: "Independent Reviews",
-    description: "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples.",
+    description: "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples — scores and pricing always free to browse.",
   },
   {
     icon: Mic,
-    title: "Expert Podcast",
-    description: "Weekly episodes featuring dermatologists, interviews, and deep-dives into skincare science.",
+    title: "Free Weekly Podcast",
+    description: "The Skin Deep Podcast: new episodes every Wednesday, free to stream, with show notes and timestamps.",
   },
 ];
 
@@ -29,10 +29,10 @@ const Features = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
-            Why Choose Us
+            Free to Start
           </p>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
-            Independent Skincare Intelligence for South Africa
+            Real Skincare Intelligence, No Paywall Upfront
           </h2>
         </div>
 

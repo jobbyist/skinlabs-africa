@@ -3,6 +3,11 @@ import episode2 from "@/assets/ep2skinlabs.PNG";
 import episode3 from "@/assets/ep3skinlabs.PNG";
 import episode4 from "@/assets/ep4skinlabs.jpg";
 
+/**
+ * Terminology: always "The Skin Deep Podcast" (not "podcast feed"), episodes
+ * release every Wednesday and are always free to stream — only full
+ * transcripts are a membership benefit. Keep this consistent across new copy.
+ */
 export interface PodcastEpisode {
   id: number;
   slug: string;

@@ -21,6 +21,10 @@ export interface NewsArticle {
 /**
  * Seed briefing set. In production these rows are replaced daily by the
  * Firecrawl scraper + Gemini summariser pipeline.
+ *
+ * Terminology: always "The Daily Skinny" (not "the blog"/"newsroom feed"),
+ * always "briefing" (not "post"/"article" in UI copy), always "SA breakdown"
+ * for the local-context section — keep this consistent across new copy.
  */
 export const newsArticles: NewsArticle[] = [
   {

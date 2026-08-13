@@ -8,6 +8,7 @@ import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 const plans = [
@@ -15,12 +16,12 @@ const plans = [
     id: "explorer",
     name: "Glow Explorer",
     price: 0,
-    tagline: "Start reading, start learning",
+    tagline: "Everything you need to get started — genuinely free, forever",
     features: [
-      "One Newsroom briefing per day",
-      "Podcast episode previews",
-      "Basic AI skin quiz result",
-      "Community review scores",
+      "Full AI Formulator assessment, no account required",
+      "One complete Daily Skinny briefing per day",
+      "Every podcast episode, free to stream, plus show notes",
+      "Review scores, verdicts and rand pricing for every product",
     ],
     cta: "Start free",
   },
@@ -28,14 +29,14 @@ const plans = [
     id: "insider",
     name: "Glow Insider",
     price: 99,
-    tagline: "The full skincare intelligence toolkit",
+    tagline: "For when you want the full depth, not just the headline",
     highlight: true,
     features: [
-      "Unlimited Newsroom access",
-      "Full AI routine report + PDF download",
-      "Complete podcast library and show notes",
-      "Full product review breakdowns",
-      "Monthly routine re-analysis",
+      "Unlimited Daily Skinny — every briefing, every day",
+      "Full AI routine report + PDF download, saved to your dashboard",
+      "Full episode transcripts, searchable, for every episode",
+      "Complete review breakdowns: ingredients & skin-type match notes",
+      "Monthly routine re-analysis as your skin changes",
       "Member-only ingredient deep dives",
     ],
     cta: "Become an Insider",
@@ -66,6 +67,7 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
+    trackEvent("subscription_checkout_started", { plan: planId, source: "pricing" });
     window.location.href = `/get-started?plan=${planId}`;
   };
 
@@ -95,8 +97,9 @@ const Pricing = () => {
                 Skincare intelligence, priced in rands
               </h1>
               <p className="text-muted-foreground">
-                No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South African
-                skin, climate and shelves.
+                Try the full AI Formulator, read a free Daily Skinny briefing and stream the whole podcast — no card
+                required. Membership just goes deeper: full transcripts, saved reports and complete review
+                breakdowns, built for South African skin, climate and shelves.
               </p>
             </div>
 

@@ -1,15 +1,19 @@
 import { useEffect, useState } from "react";
-import { Heart, Loader2, Star } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Link, Navigate, useParams } from "react-router-dom";
+import { ArrowLeft, Heart, Loader2, Star } from "lucide-react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
+import GatedOverlay from "@/components/GatedOverlay";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import GatedOverlay from "@/components/GatedOverlay";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { overallScore, productReviews } from "@/data/reviews";
 import { toast } from "sonner";
+import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import type { ProductReview } from "@/data/reviews";
 
 interface CommentRow {
   id: string;
@@ -18,14 +22,12 @@ interface CommentRow {
   created_at: string;
 }
 
-interface ProductReviewModalProps {
-  review: ProductReview | null;
-  onOpenChange: (open: boolean) => void;
-}
-
-const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) => {
+const ReviewDetail = () => {
+  const { slug } = useParams();
   const { user } = useAuth();
   const { isMember } = useMembership();
+  const review = productReviews.find((r) => r.id === slug);
+
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -65,8 +67,14 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
     };
   }, [review, user]);
 
+  useEffect(() => {
+    if (review) trackEvent("review_viewed", { review_id: review.id, brand: review.brand });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [review?.id]);
+
+  if (!review) return <Navigate to="/reviews" replace />;
+
   const persist = async (nextRating: number, nextLiked: boolean) => {
-    if (!review) return;
     if (!user) {
       toast.error("Sign in to rate and like reviews.");
       return;
@@ -90,7 +98,7 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
   };
 
   const postComment = async () => {
-    if (!review || !body.trim()) return;
+    if (!body.trim()) return;
     if (!user) {
       toast.error("Sign in to join the discussion.");
       return;
@@ -116,37 +124,70 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
     toast.success("Comment posted");
   };
 
-  const sortedRetailers = review ? [...review.retailers].sort((a, b) => a.price_zar - b.price_zar) : [];
+  const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
+  const score = overallScore(review);
 
   return (
-    <Dialog open={Boolean(review)} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        {review && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-left font-heading">
-                {review.brand} — {review.product_name}
-              </DialogTitle>
-            </DialogHeader>
+    <>
+      <SEO
+        title={`${review.brand} ${review.product_name} Review — SA Pricing & Verdict`}
+        description={review.verdict}
+        canonical={`https://skinlabs.co.za/reviews/${review.id}`}
+        ogType="article"
+        keywords={`${review.product_name} review, ${review.brand} South Africa, ${review.category} review`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: `${review.brand} ${review.product_name}`,
+          brand: { "@type": "Brand", name: review.brand },
+          category: review.category,
+          description: review.verdict,
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: score,
+            bestRating: 10,
+            reviewCount: Math.max(1, likeCount),
+          },
+          offers: sortedRetailers.map((r) => ({
+            "@type": "Offer",
+            price: r.price_zar,
+            priceCurrency: "ZAR",
+            availability: r.in_stock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            url: r.url,
+            seller: { "@type": "Organization", name: r.retailer },
+          })),
+        }}
+      />
 
-            <p className="text-sm text-muted-foreground">{review.verdict}</p>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-24 pb-24">
+          <div className="container mx-auto max-w-3xl px-4">
+            <Link to="/reviews" className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> Back to Reviews
+            </Link>
+
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-wide text-muted-foreground">{review.brand}</p>
+                <h1 className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
+                  {review.product_name}
+                </h1>
+              </div>
+              <div className="flex shrink-0 flex-col items-center rounded-2xl bg-primary px-4 py-3 text-primary-foreground">
+                <span className="font-heading text-2xl font-extrabold leading-none">{score}</span>
+                <span className="text-[10px] uppercase tracking-wide opacity-80">score</span>
+              </div>
+            </div>
+
+            <p className="mb-6 text-base leading-relaxed text-muted-foreground">{review.verdict}</p>
 
             {/* Community signals */}
-            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
+            <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    aria-label={`Rate ${value} stars`}
-                    onClick={() => persist(value, liked)}
-                    className="p-0.5"
-                  >
-                    <Star
-                      className={cn(
-                        "h-5 w-5 transition-colors",
-                        value <= rating ? "fill-primary text-primary" : "text-muted-foreground",
-                      )}
-                    />
+                  <button key={value} aria-label={`Rate ${value} stars`} onClick={() => persist(value, liked)} className="p-0.5">
+                    <Star className={cn("h-5 w-5 transition-colors", value <= rating ? "fill-primary text-primary" : "text-muted-foreground")} />
                   </button>
                 ))}
               </div>
@@ -163,8 +204,8 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
             </div>
 
             {/* Store availability & price comparison */}
-            <div>
-              <h4 className="mb-2 text-sm font-semibold text-foreground">Where to buy — SA price comparison</h4>
+            <div className="mb-6">
+              <h2 className="mb-2 text-sm font-semibold text-foreground">Where to buy — SA price comparison</h2>
               <div className="overflow-hidden rounded-2xl border border-border">
                 {sortedRetailers.map((entry, index) => (
                   <a
@@ -172,19 +213,11 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
                     href={entry.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-accent",
-                      index > 0 && "border-t border-border",
-                    )}
+                    className={cn("flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-accent", index > 0 && "border-t border-border")}
                   >
                     <span className="font-medium text-foreground">{entry.retailer}</span>
                     <span className="flex items-center gap-3">
-                      <span
-                        className={cn(
-                          "text-xs",
-                          entry.in_stock ? "text-primary" : "text-muted-foreground line-through",
-                        )}
-                      >
+                      <span className={cn("text-xs", entry.in_stock ? "text-primary" : "text-muted-foreground line-through")}>
                         {entry.in_stock ? "In stock" : "Out of stock"}
                       </span>
                       <span className="font-semibold text-foreground">R{entry.price_zar}</span>
@@ -200,9 +233,9 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
               message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes."
             >
               <div className="space-y-4 py-2">
-                <p className="text-sm leading-relaxed text-foreground">{review.full_review}</p>
+                <p className="text-base leading-relaxed text-foreground">{review.full_review}</p>
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h4>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h3>
                   <div className="flex flex-wrap gap-2">
                     {review.key_ingredients.map((ingredient) => (
                       <span key={ingredient} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
@@ -212,15 +245,15 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
                   </div>
                 </div>
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold text-foreground">Best suited to</h4>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Best suited to</h3>
                   <p className="text-sm text-muted-foreground">{review.skin_type_match.join(", ")}</p>
                 </div>
               </div>
             </GatedOverlay>
 
             {/* Comments */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-foreground">Member discussion</h4>
+            <div className="mt-8 space-y-3 border-t border-border pt-8">
+              <h2 className="text-sm font-semibold text-foreground">Member discussion</h2>
               <Textarea
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
@@ -250,11 +283,12 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
                 </ul>
               )}
             </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 };
 
-export default ProductReviewModal;
+export default ReviewDetail;

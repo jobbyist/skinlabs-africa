@@ -6,6 +6,18 @@ Allow: /
 Disallow: /admin
 Disallow: /dashboard
 
+# Retired e-commerce routes (redirect client-side, no content to index)
+Disallow: /products
+Disallow: /devices
+Disallow: /serums
+Disallow: /bundled-kits
+Disallow: /gift-sets
+Disallow: /custom-formulas
+Disallow: /edible-pouches
+Disallow: /shipping
+Disallow: /returns
+Disallow: /track-order
+
 # Sitemap
 Sitemap: https://skinlabs.co.za/sitemap.xml
 

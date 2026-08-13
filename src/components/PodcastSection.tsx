@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
-import AudioNarrationPlayer from "@/components/AudioNarrationPlayer";
+import { Clock, Pause, Play } from "lucide-react";
+import { useAudio } from "@/context/AudioContext";
 import { podcastEpisodes } from "@/data/podcast";
+import { cn } from "@/lib/utils";
 
 interface PodcastSectionProps {
   heading?: string;
@@ -10,9 +12,11 @@ interface PodcastSectionProps {
 
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
-  description = "Seven audio-first episodes exploring skincare culture, product science, and mindful routines. Tap play to hear each narration and browse the transcript-ready summaries below.",
+  description = "Weekly audio conversations on skincare culture, ingredient science and mindful routines. Tap play to start listening — it follows you to whatever page you go to next.",
   showCta = true,
 }: PodcastSectionProps) => {
+  const { current, isPlaying, playEpisode, toggle } = useAudio();
+
   return (
     <section id="skin-deep-podcast" className="py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -39,39 +43,47 @@ const PodcastSection = ({
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-2">
-          {podcastEpisodes.map((episode) => (
-            <article
-              key={episode.id}
-              className="flex flex-col gap-4 rounded-3xl border border-border bg-card p-6 shadow-sm"
-            >
-              <div className="flex flex-col gap-4 sm:flex-row">
-                <img
-                  src={episode.image}
-                  alt={episode.title}
-                  loading="lazy"
-                  className="h-48 w-full rounded-2xl object-cover sm:h-40 sm:w-56 sm:shrink-0"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-xl font-semibold text-foreground">{episode.title}</h3>
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      {episode.duration}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {episode.description}
-                  </p>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {podcastEpisodes.slice(0, 4).map((episode) => {
+            const isCurrent = current?.id === episode.id;
+            return (
+              <article
+                key={episode.id}
+                className={cn(
+                  "flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm",
+                  isCurrent ? "border-primary" : "border-border",
+                )}
+              >
+                <div className="relative aspect-square overflow-hidden bg-muted">
+                  <img
+                    src={episode.image}
+                    alt={`${episode.title} cover art`}
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                  />
+                  <button
+                    onClick={() => (isCurrent ? toggle() : playEpisode(episode))}
+                    aria-label={isCurrent && isPlaying ? `Pause ${episode.title}` : `Play ${episode.title}`}
+                    className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+                  >
+                    {isCurrent && isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  </button>
                 </div>
-              </div>
-              <AudioNarrationPlayer
-                label="Episode audio"
-                audioSrc={episode.audioFile}
-                text={episode.audioScript}
-                supportingText="Listen to this episode."
-              />
-            </article>
-          ))}
+                <div className="flex flex-1 flex-col gap-2 p-4">
+                  <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" /> {episode.duration}
+                  </span>
+                  <h3 className="text-sm font-semibold text-foreground leading-snug">{episode.title}</h3>
+                  <Link
+                    to={`/podcast/${episode.slug}`}
+                    className="mt-auto text-xs font-medium text-primary hover:underline"
+                  >
+                    Show notes & transcript →
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </section>

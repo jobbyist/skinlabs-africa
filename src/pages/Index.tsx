@@ -37,6 +37,14 @@ const Index = () => {
           "contactPoint": { "@type": "ContactPoint", "telephone": "+27128806560", "contactType": "customer service" },
           "sameAs": ["https://wa.me/27680200749"]
         })}</script>
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "SkinLabs",
+          "url": "https://skinlabs.co.za",
+          "description": "South Africa's independent, content-first AI skincare intelligence platform.",
+          "inLanguage": "en-ZA"
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
