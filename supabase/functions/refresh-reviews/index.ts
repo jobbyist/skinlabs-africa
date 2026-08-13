@@ -70,10 +70,11 @@ serve(async (req) => {
       // const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       // const summary = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", { ... });
 
+      // TODO: Implement real scraping/summarization — this is just a scaffold.
       results.push({ product_id: product.id, status: "skipped — FIRECRAWL_API_KEY not configured" });
     }
 
-    return new Response(JSON.stringify({ refreshed: results.length, results }), {
+    return new Response(JSON.stringify({ scaffolded: results.length, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {

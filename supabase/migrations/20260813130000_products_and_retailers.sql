@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS public.retailer_listings (
   price_zar INTEGER NOT NULL,
   in_stock BOOLEAN NOT NULL DEFAULT true,
   url TEXT NOT NULL,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (retailer, product_id)
 );
 GRANT SELECT ON public.retailer_listings TO anon, authenticated;
 GRANT ALL ON public.retailer_listings TO service_role;
@@ -96,4 +97,5 @@ INSERT INTO public.retailer_listings (product_id, retailer, price_zar, in_stock,
 ('dermastore-barrier-cream', 'Dermastore', 520, true, 'https://www.dermastore.co.za/'),
 ('dermastore-barrier-cream', 'Brand Direct', 520, true, 'https://www.dermastore.co.za/'),
 ('dermastore-barrier-cream', 'Takealot', 559, false, 'https://www.takealot.com/'),
-('dermastore-barrier-cream', 'Dis-Chem', 549, false, 'https://www.dischem.co.za/');
+('dermastore-barrier-cream', 'Dis-Chem', 549, false, 'https://www.dischem.co.za/')
+ON CONFLICT (retailer, product_id) DO NOTHING;

@@ -33,6 +33,7 @@ const EpisodePage = () => {
 
   const [likeCount, setLikeCount] = useState(0);
   const [liked, setLiked] = useState(false);
+  const [likePending, setLikePending] = useState(false);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [body, setBody] = useState("");
   const [replyBody, setReplyBody] = useState("");
@@ -45,27 +46,32 @@ const EpisodePage = () => {
     let active = true;
     const load = async () => {
       setLoading(true);
-      const [{ data: likeRows }, { data: commentRows }] = await Promise.all([
-        supabase.from("podcast_likes").select("user_id").eq("episode_slug", episode.slug),
-        supabase
-          .from("podcast_comments")
-          .select("id, user_id, display_name, body, created_at, parent_comment_id")
-          .eq("episode_slug", episode.slug)
-          .order("created_at", { ascending: true })
-          .limit(200),
-      ]);
-      if (!active) return;
-      const rows = likeRows ?? [];
-      setLikeCount(rows.length);
-      setLiked(Boolean(user && rows.some((r) => r.user_id === user.id)));
-      setComments(commentRows ?? []);
-      setLoading(false);
+      try {
+        const [{ data: likeRows, error: likesError }, { data: commentRows, error: commentsError }] = await Promise.all([
+          supabase.from("podcast_likes").select("user_id").eq("episode_slug", episode.slug),
+          supabase
+            .from("podcast_comments")
+            .select("id, user_id, display_name, body, created_at, parent_comment_id")
+            .eq("episode_slug", episode.slug)
+            .order("created_at", { ascending: true })
+            .limit(200),
+        ]);
+        if (likesError) console.error("Failed to load likes:", likesError);
+        if (commentsError) console.error("Failed to load comments:", commentsError);
+        if (!active) return;
+        const rows = likeRows ?? [];
+        setLikeCount(rows.length);
+        setLiked(Boolean(user && rows.some((r) => r.user_id === user.id)));
+        setComments(commentRows ?? []);
+      } finally {
+        if (active) setLoading(false);
+      }
     };
     void load();
     return () => {
       active = false;
     };
-  }, [episode, user]);
+  }, [episode, user?.id]);
 
   if (!episode) {
     return (
@@ -89,18 +95,36 @@ const EpisodePage = () => {
       toast.error("Sign in to like this episode.");
       return;
     }
-    if (liked) {
-      await supabase.from("podcast_likes").delete().eq("user_id", user.id).eq("episode_slug", episode.slug);
-      setLiked(false);
-      setLikeCount((c) => Math.max(0, c - 1));
-    } else {
-      const { error } = await supabase.from("podcast_likes").insert({ user_id: user.id, episode_slug: episode.slug });
-      if (error) {
-        toast.error("Could not save your like.");
-        return;
+    if (likePending) return;
+
+    setLikePending(true);
+    const wasLiked = liked;
+    try {
+      if (liked) {
+        const { error } = await supabase.from("podcast_likes").delete().eq("user_id", user.id).eq("episode_slug", episode.slug);
+        if (error) {
+          toast.error("Could not remove your like.");
+          return;
+        }
+        setLiked(false);
+        setLikeCount((c) => Math.max(0, c - 1));
+      } else {
+        const { error } = await supabase.from("podcast_likes").insert({ user_id: user.id, episode_slug: episode.slug });
+        if (error) {
+          toast.error("Could not save your like.");
+          return;
+        }
+        setLiked(true);
+        setLikeCount((c) => c + 1);
       }
-      setLiked(true);
-      setLikeCount((c) => c + 1);
+    } catch (err) {
+      console.error("toggleLike error:", err);
+      toast.error("Something went wrong.");
+      // Revert optimistic update on error
+      setLiked(wasLiked);
+      setLikeCount((c) => wasLiked ? c + 1 : Math.max(0, c - 1));
+    } finally {
+      setLikePending(false);
     }
   };
 
@@ -111,30 +135,33 @@ const EpisodePage = () => {
       return;
     }
     setPosting(true);
-    const { data, error } = await supabase
-      .from("podcast_comments")
-      .insert({
-        user_id: user.id,
-        episode_slug: episode.slug,
-        parent_comment_id: parentCommentId,
-        display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Member",
-        body: text.trim(),
-      })
-      .select("id, user_id, display_name, body, created_at, parent_comment_id")
-      .single();
-    setPosting(false);
-    if (error || !data) {
-      toast.error("Could not post your comment.");
-      return;
+    try {
+      const { data, error } = await supabase
+        .from("podcast_comments")
+        .insert({
+          user_id: user.id,
+          episode_slug: episode.slug,
+          parent_comment_id: parentCommentId,
+          display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Member",
+          body: text.trim(),
+        })
+        .select("id, user_id, display_name, body, created_at, parent_comment_id")
+        .single();
+      if (error || !data) {
+        toast.error("Could not post your comment.");
+        return;
+      }
+      setComments((prev) => [...prev, data]);
+      if (parentCommentId) {
+        setReplyBody("");
+        setReplyingTo(null);
+      } else {
+        setBody("");
+      }
+      toast.success("Comment posted");
+    } finally {
+      setPosting(false);
     }
-    setComments((prev) => [...prev, data]);
-    if (parentCommentId) {
-      setReplyBody("");
-      setReplyingTo(null);
-    } else {
-      setBody("");
-    }
-    toast.success("Comment posted");
   };
 
   const topLevelComments = comments.filter((c) => !c.parent_comment_id);
@@ -182,8 +209,10 @@ const EpisodePage = () => {
               {episode.duration} · Published {episode.publishedAt}
             </p>
             <button
+              type="button"
               onClick={toggleLike}
-              className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-accent"
+              disabled={likePending}
+              className="mx-auto mt-3 flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Heart className={cn("h-4 w-4", liked && "fill-primary text-primary")} />
               {likeCount} {likeCount === 1 ? "like" : "likes"}
@@ -272,6 +301,7 @@ const EpisodePage = () => {
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   placeholder={user ? "What did you think of this episode?" : "Sign in to join the discussion"}
+                  aria-label="Write a comment"
                   maxLength={2000}
                   rows={3}
                 />
@@ -295,6 +325,7 @@ const EpisodePage = () => {
                           {new Date(comment.created_at).toLocaleDateString("en-ZA")}
                         </p>
                         <button
+                          type="button"
                           onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
                           className="text-[10px] font-semibold uppercase tracking-wide text-primary hover:underline"
                         >
@@ -323,6 +354,7 @@ const EpisodePage = () => {
                             value={replyBody}
                             onChange={(event) => setReplyBody(event.target.value)}
                             placeholder="Write a reply…"
+                            aria-label="Write a reply"
                             maxLength={2000}
                             rows={2}
                           />

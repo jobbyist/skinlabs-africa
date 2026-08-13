@@ -9,7 +9,9 @@ GRANT SELECT, INSERT, DELETE ON public.podcast_likes TO authenticated;
 GRANT SELECT ON public.podcast_likes TO anon;
 GRANT ALL ON public.podcast_likes TO service_role;
 ALTER TABLE public.podcast_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read podcast likes" ON public.podcast_likes;
 CREATE POLICY "Anyone can read podcast likes" ON public.podcast_likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users manage their own podcast likes" ON public.podcast_likes;
 CREATE POLICY "Users manage their own podcast likes" ON public.podcast_likes FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE TABLE IF NOT EXISTS public.podcast_comments (
@@ -25,9 +27,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.podcast_comments TO authenticated
 GRANT SELECT ON public.podcast_comments TO anon;
 GRANT ALL ON public.podcast_comments TO service_role;
 ALTER TABLE public.podcast_comments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can read podcast comments" ON public.podcast_comments;
 CREATE POLICY "Anyone can read podcast comments" ON public.podcast_comments FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users insert their own podcast comments" ON public.podcast_comments;
 CREATE POLICY "Users insert their own podcast comments" ON public.podcast_comments FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users update their own podcast comments" ON public.podcast_comments;
 CREATE POLICY "Users update their own podcast comments" ON public.podcast_comments FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users delete their own podcast comments" ON public.podcast_comments;
 CREATE POLICY "Users delete their own podcast comments" ON public.podcast_comments FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 CREATE INDEX IF NOT EXISTS idx_podcast_likes_episode ON public.podcast_likes(episode_slug);

@@ -42,6 +42,7 @@ const AIFormulator = () => {
   const { user, loading: authLoading, signInAnonymously } = useAuth();
   const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [anonAuthError, setAnonAuthError] = useState(false);
   const anonAttempted = useRef(false);
 
   // Give every visitor a real (anonymous) session with zero signup friction
@@ -53,8 +54,14 @@ const AIFormulator = () => {
       anonAttempted.current = true;
       signInAnonymously().catch((err) => {
         console.error("Anonymous sign-in failed:", err);
+        setAnonAuthError(true);
         toast.error("Could not start session. Please try signing in or refresh the page.");
       });
+    }
+    // Reset attempt guard if user session goes back to null (e.g., sign-out)
+    if (!user && anonAttempted.current && !authLoading) {
+      anonAttempted.current = false;
+      setAnonAuthError(false);
     }
   }, [authLoading, user, signInAnonymously]);
 
@@ -64,7 +71,6 @@ const AIFormulator = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [popiaConsent, setPopiaConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
@@ -146,7 +152,7 @@ const AIFormulator = () => {
         console.warn("PDF generation failed:", pdfErr);
       }
 
-      if (!hasSubscription) {
+      if (!isMember) {
         trackEvent("paywall_shown", { source: "ai_formulator" });
         setShowPaywall(true);
       } else {
@@ -214,12 +220,25 @@ const AIFormulator = () => {
     return concerns.slice(0, 4);
   })();
 
-  if (authLoading || !user) {
+  if (authLoading || (!user && !anonAuthError)) {
     return (
       <section id="ai-formulator" className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (anonAuthError && !user) {
+    return (
+      <section id="ai-formulator" className="py-20 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center space-y-4">
+            <p className="text-muted-foreground">Could not start session automatically.</p>
+            <Button onClick={() => setShowAuthDialog(true)}>Sign in to continue</Button>
           </div>
         </div>
       </section>
@@ -661,7 +680,7 @@ const AIFormulator = () => {
               )}
 
               {/* ─── Results step (for subscribers viewing immediately) ─── */}
-              {step === STEP_RESULTS && recommendation && hasSubscription && !showConfirmation && (
+              {step === STEP_RESULTS && recommendation && isMember && !showConfirmation && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">

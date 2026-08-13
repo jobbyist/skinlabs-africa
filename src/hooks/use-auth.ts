@@ -109,10 +109,13 @@ export const useAuth = () => {
     return { data, error };
   };
 
+  const isAnonymous = user?.is_anonymous ?? false;
+
   return {
     user,
     session,
     loading,
+    isAnonymous,
     signIn,
     signUp,
     signOut,

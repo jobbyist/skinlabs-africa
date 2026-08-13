@@ -16,9 +16,10 @@ const BrandMark = ({ name, type, className }: BrandMarkProps) => {
       <span className="inline-flex items-center">
         <img
           src={logo}
-          alt={`${name} logo`}
+          alt=""
           className={cn("h-full w-auto max-w-full object-contain", className)}
           loading="lazy"
+          aria-hidden="true"
         />
         {/* Keep the brand/retailer name as real, crawlable text alongside the logo image. */}
         <span className="sr-only">{name}</span>

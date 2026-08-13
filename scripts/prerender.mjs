@@ -48,6 +48,16 @@ function startServer() {
   const server = createServer(async (req, res) => {
     const urlPath = decodeURIComponent(req.url.split("?")[0]);
     let filePath = path.join(distDir, urlPath);
+
+    // Path traversal protection: ensure resolved path is within distDir
+    const resolvedPath = path.resolve(filePath);
+    const resolvedDistDir = path.resolve(distDir);
+    if (!resolvedPath.startsWith(resolvedDistDir + path.sep) && resolvedPath !== resolvedDistDir) {
+      res.writeHead(403);
+      res.end("Forbidden");
+      return;
+    }
+
     if (!(await fileExists(filePath))) {
       // SPA fallback — serve the shell for any route without a matching file
       filePath = path.join(distDir, "index.html");
@@ -62,7 +72,7 @@ function startServer() {
       res.end("Not found");
     }
   });
-  return new Promise((resolve) => server.listen(PORT, () => resolve(server)));
+  return new Promise((resolve) => server.listen(PORT, "127.0.0.1", () => resolve(server)));
 }
 
 async function main() {
@@ -80,36 +90,45 @@ async function main() {
   }
 
   const server = await startServer();
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
+  let browser;
+  const failedRoutes = [];
+  try {
+    browser = await chromium.launch();
+    const page = await browser.newPage();
 
-  const routes = allRoutes();
-  console.log(`[prerender] rendering ${routes.length} routes…`);
+    const routes = allRoutes();
+    console.log(`[prerender] rendering ${routes.length} routes…`);
 
-  for (const route of routes) {
-    const url = `http://localhost:${PORT}${route.loc}`;
-    try {
-      await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-      // Let react-helmet-async / async data effects settle after network idle.
-      await page.waitForTimeout(250);
-      const html = await page.content();
+    for (const route of routes) {
+      const url = `http://localhost:${PORT}${route.loc}`;
+      try {
+        await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
+        // Let react-helmet-async / async data effects settle after network idle.
+        await page.waitForTimeout(250);
+        const html = await page.content();
 
-      const outDir = route.loc === "/" ? distDir : path.join(distDir, route.loc);
-      await mkdir(outDir, { recursive: true });
-      await writeFile(path.join(outDir, "index.html"), html);
-    } catch (err) {
-      console.warn(`[prerender] failed for ${route.loc}: ${err.message}`);
+        const outDir = route.loc === "/" ? distDir : path.join(distDir, route.loc);
+        await mkdir(outDir, { recursive: true });
+        await writeFile(path.join(outDir, "index.html"), html);
+      } catch (err) {
+        console.warn(`[prerender] failed for ${route.loc}: ${err.message}`);
+        failedRoutes.push(route.loc);
+      }
     }
+
+    // GitHub Pages 404 fallback so unprerendered/deep-linked paths still boot
+    // the SPA router client-side instead of showing a bare GH Pages 404.
+    await copyFile(path.join(distDir, "index.html"), path.join(distDir, "404.html"));
+
+    console.log("[prerender] done.");
+    if (failedRoutes.length > 0) {
+      console.error(`[prerender] ${failedRoutes.length} route(s) failed to render.`);
+      process.exit(1);
+    }
+  } finally {
+    if (browser) await browser.close();
+    server.close();
   }
-
-  await browser.close();
-  server.close();
-
-  // GitHub Pages 404 fallback so unprerendered/deep-linked paths still boot
-  // the SPA router client-side instead of showing a bare GH Pages 404.
-  await copyFile(path.join(distDir, "index.html"), path.join(distDir, "404.html"));
-
-  console.log("[prerender] done.");
 }
 
 main();

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Star } from "lucide-react";
@@ -46,6 +46,13 @@ const ReviewsGrid = ({
     () => Array.from(new Set(productReviews.map((review) => review.category))),
     [productReviews],
   );
+
+  // Reset category to "All" if the current selection is no longer valid
+  useEffect(() => {
+    if (category !== "All" && !reviewCategories.includes(category)) {
+      setCategory("All");
+    }
+  }, [category, reviewCategories]);
 
   const filtered = useMemo(() => {
     const base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);

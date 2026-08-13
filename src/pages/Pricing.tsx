@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 
 const Pricing = () => {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const { tier } = useMembership();
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -65,7 +65,7 @@ const Pricing = () => {
   ];
 
   const handleSelect = (planId: string) => {
-    if (!user) {
+    if (!user || isAnonymous) {
       setAuthOpen(true);
       return;
     }

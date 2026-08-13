@@ -27,6 +27,16 @@ Crawl-delay: 1
 # This site is optimized for AI search and indexing
 User-agent: Bingbot
 Allow: /
+Disallow: /products
+Disallow: /devices
+Disallow: /serums
+Disallow: /bundled-kits
+Disallow: /gift-sets
+Disallow: /custom-formulas
+Disallow: /edible-pouches
+Disallow: /shipping
+Disallow: /returns
+Disallow: /track-order
 
 User-agent: Twitterbot
 Allow: /
@@ -36,3 +46,15 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /products
+Disallow: /devices
+Disallow: /serums
+Disallow: /bundled-kits
+Disallow: /gift-sets
+Disallow: /custom-formulas
+Disallow: /edible-pouches
+Disallow: /shipping
+Disallow: /returns
+Disallow: /track-order
