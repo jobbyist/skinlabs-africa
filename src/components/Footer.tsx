@@ -106,7 +106,7 @@ const Footer = () => {
 
           {/* Shop links */}
           <div>
-            <h4 className="font-semibold mb-4">Shop</h4>
+            <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2">
               {links.shop.map((link) => (
                 <li key={link.label}>
