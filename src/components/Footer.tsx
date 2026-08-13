@@ -5,11 +5,12 @@ import logo from "@/assets/skinlabs-logo-white.svg";
 const Footer = () => {
   const links = {
     shop: [
-      { label: "All Products", href: "/products" },
-      { label: "Devices", href: "/devices" },
-      { label: "Serums", href: "/serums" },
-      { label: "Custom Formulas", href: "/custom-formulas" },
-      { label: "Bundled Kits", href: "/bundled-kits" },
+      { label: "The Daily Skinny", href: "/newsroom" },
+      { label: "AI Formulator", href: "/ai-formulator" },
+      { label: "Product Reviews", href: "/reviews" },
+      { label: "Podcast", href: "/podcast" },
+      { label: "Consultations", href: "/consultations" },
+      { label: "Membership Plans", href: "/pricing" },
     ],
     company: [
       { label: "About Us", href: "/about" },
@@ -22,11 +23,11 @@ const Footer = () => {
     support: [
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/faq" },
-      { label: "Shipping", href: "/shipping" },
-      { label: "Returns", href: "/returns" },
-      { label: "Track Order", href: "/track-order" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Privacy Policy", href: "/privacy-policy" },
     ],
   };
+
 
   const socials = [
     { icon: Instagram, href: "https://instagram.com/skinlabsza", label: "@skinlabsza" },
