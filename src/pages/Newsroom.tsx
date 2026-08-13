@@ -9,14 +9,26 @@ const Newsroom = () => (
       <title>The Daily Skinny — Daily SA Skincare Briefings | SkinLabs</title>
       <meta
         name="description"
-        content="A daily briefing of global skincare research and regulation, summarised and translated into what it means for South African skin, climate and products."
+        content="A daily brief of global skincare science, translated into what it means for South African skin, climate and shelves. Available as premium PDF magazine for members."
       />
+      <meta name="keywords" content="skincare news South Africa, daily skincare briefing, SA skincare science, skincare research, skincare education" />
       <link rel="canonical" href="https://skinlabs.co.za/newsroom" />
       <meta property="og:title" content="The Daily Skinny — Daily SA Skincare Briefings | SkinLabs" />
-      <meta property="og:description" content="Daily skincare science, decoded for South African skin." />
+      <meta property="og:description" content="Daily brief of global skincare science for South African skin, climate and shelves." />
       <meta property="og:url" content="https://skinlabs.co.za/newsroom" />
       <meta property="og:type" content="website" />
+      <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
       <meta name="twitter:card" content="summary_large_image" />
+      <script type="application/ld+json">{JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "NewsMediaOrganization",
+        "name": "The Daily Skinny by SkinLabs",
+        "url": "https://skinlabs.co.za/newsroom",
+        "logo": "https://skinlabs.co.za/pwa-512.png",
+        "description": "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
+        "sameAs": ["https://wa.me/27680200749"],
+        "publishingPrinciples": "https://skinlabs.co.za/about"
+      })}</script>
     </Helmet>
 
     <div className="min-h-screen bg-background">

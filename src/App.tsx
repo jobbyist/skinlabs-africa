@@ -43,6 +43,7 @@ import EdiblePouches from "./pages/EdiblePouches";
 import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import PivotAnnouncementModal from "./components/PivotAnnouncementModal";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,7 @@ const AppContent = () => {
       <Preloader />
       <ScrollToTop />
       <PWAInstallPrompt />
+      <PivotAnnouncementModal />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<GetStarted />} />

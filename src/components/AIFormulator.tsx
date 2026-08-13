@@ -216,18 +216,37 @@ const AIFormulator = () => {
             <div className="max-w-4xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                 <Sparkles className="h-4 w-4" />
-                AI-Powered
+                Premium Service
               </div>
               <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                Custom Skincare Formulator
+                AI Formulator — Your Personalized Skincare Journey
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Sign in to access your personalized skincare routine powered by AI.
+                Get personalized skincare routines, progress trackers, and dermatologist-approved 
+                product recommendations tailored to your unique skin profile.
               </p>
-              <Button size="lg" onClick={() => setShowAuthDialog(true)} className="gap-2">
+              
+              <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+                {["Personalized AM/PM Routines", "Weekly Actives Schedule", "SA Product Recommendations"].map((feature, i) => (
+                  <div key={i} className="bg-card border border-border rounded-xl p-4">
+                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-2" />
+                    <p className="text-sm text-card-foreground font-medium">{feature}</p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button size="lg" asChild className="gap-2">
+                  <a href="/pricing">
+                    <Sparkles className="h-4 w-4" />
+                    Upgrade to Access
+                  </a>
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => setShowAuthDialog(true)} className="gap-2">
                 <Sparkles className="h-4 w-4" />
-                Sign In to Continue
+                  Sign In
               </Button>
+              </div>
             </div>
           </div>
         </section>

@@ -18,7 +18,7 @@ interface NewsroomFeedProps {
 const NewsroomFeed = ({
   limit,
   heading = "The Daily Skinny",
-  description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
+  description = "A daily brief of global skincare science, translated into what it means for South African skin, climate and shelves. Also available as a premium digital magazine-format PDF download for Glow Insider and VIP members.",
 
 }: NewsroomFeedProps) => {
   const { isMember } = useMembership();

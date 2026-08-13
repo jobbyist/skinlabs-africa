@@ -31,11 +31,19 @@ const Careers = () => {
       type: "Full-time"
     }
   ];
-
+        <title>Careers — Join the SkinLabs Team | SKINLABS</title>
   const benefits = [
     {
-      icon: <Heart className="h-6 w-6" />,
+          content="Join SkinLabs and help build South Africa's leading independent skincare platform. Volunteer opportunities for guest writers and podcast contributors."
       title: "Health & Wellness",
+        <meta name="keywords" content="SkinLabs careers, skincare jobs South Africa, guest writer opportunity, skincare content writer, volunteer positions" />
+        <link rel="canonical" href="https://skinlabs.co.za/careers" />
+        <meta property="og:title" content="Careers — Join the SkinLabs Team" />
+        <meta property="og:description" content="Join our team and help build SA's leading independent skincare platform." />
+        <meta property="og:url" content="https://skinlabs.co.za/careers" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta name="twitter:card" content="summary_large_image" />
       description: "Comprehensive medical aid and wellness programs"
     },
     {
