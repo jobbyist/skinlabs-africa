@@ -46,7 +46,13 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
+const LegacyStreamRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/podcast/${slug}`} replace />;
+};
+
 const AppContent = () => {
+
   
   return (
     <>
