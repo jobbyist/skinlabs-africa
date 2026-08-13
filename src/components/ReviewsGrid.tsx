@@ -138,43 +138,8 @@ const ReviewsGrid = ({
         </div>
       </div>
 
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
-          {selected && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-left font-heading">
-                  {selected.brand} — {selected.product_name}
-                </DialogTitle>
-              </DialogHeader>
-              <p className="text-sm text-muted-foreground">{selected.verdict}</p>
-              <GatedOverlay
-                locked={!isMember}
-                title="Full review is member-only"
-                message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes."
-              >
-                <div className="space-y-4 py-2">
-                  <p className="text-sm leading-relaxed text-foreground">{selected.full_review}</p>
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selected.key_ingredients.map((ingredient) => (
-                        <span key={ingredient} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
-                          {ingredient}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold text-foreground">Best suited to</h4>
-                    <p className="text-sm text-muted-foreground">{selected.skin_type_match.join(", ")}</p>
-                  </div>
-                </div>
-              </GatedOverlay>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ProductReviewModal review={selected} onOpenChange={(open) => !open && setSelected(null)} />
+
     </section>
   );
 };
