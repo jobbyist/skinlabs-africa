@@ -19,7 +19,7 @@ const Header = () => {
   const navLinks = [
     { label: "Newsroom", href: "/newsroom" },
     { label: "Reviews", href: "/reviews" },
-    { label: "Podcast", href: "/stream" },
+    { label: "Podcast", href: "/podcast" },
     { label: "Consultations", href: "/consultations" },
     { label: "Pricing", href: "/pricing" },
   ];

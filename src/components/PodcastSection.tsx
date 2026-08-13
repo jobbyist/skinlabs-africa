@@ -30,7 +30,7 @@ const PodcastSection = ({
           </div>
           {showCta && (
             <Link
-              to="/stream"
+              to="/podcast"
               className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
             >
               Visit the podcast hub

@@ -22,7 +22,7 @@ const EpisodePage = () => {
         <main className="container mx-auto px-4 pt-32 pb-24 text-center">
           <h1 className="font-heading text-2xl font-bold text-foreground">Episode not found</h1>
           <Button asChild className="mt-6">
-            <Link to="/stream">Back to the podcast hub</Link>
+            <Link to="/podcast">Back to the podcast hub</Link>
           </Button>
         </main>
         <Footer />
@@ -35,10 +35,10 @@ const EpisodePage = () => {
       <Helmet>
         <title>{`${episode.title} — The Skin Deep Podcast | SkinLabs`}</title>
         <meta name="description" content={episode.description} />
-        <link rel="canonical" href={`https://skinlabs.co.za/stream/${episode.slug}`} />
+        <link rel="canonical" href={`https://skinlabs.co.za/podcast/${episode.slug}`} />
         <meta property="og:title" content={`${episode.title} — The Skin Deep Podcast`} />
         <meta property="og:description" content={episode.description} />
-        <meta property="og:url" content={`https://skinlabs.co.za/stream/${episode.slug}`} />
+        <meta property="og:url" content={`https://skinlabs.co.za/podcast/${episode.slug}`} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
@@ -47,7 +47,7 @@ const EpisodePage = () => {
           name: episode.title,
           description: episode.description,
           datePublished: episode.publishedAt,
-          url: `https://skinlabs.co.za/stream/${episode.slug}`,
+          url: `https://skinlabs.co.za/podcast/${episode.slug}`,
         })}</script>
       </Helmet>
 
