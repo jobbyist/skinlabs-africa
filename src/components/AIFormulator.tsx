@@ -39,7 +39,9 @@ const STEP_RESULTS = TOTAL_QUESTIONS + 3;
 
 const AIFormulator = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
