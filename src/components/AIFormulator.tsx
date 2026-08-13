@@ -264,6 +264,23 @@ const AIFormulator = () => {
     });
   };
 
+  /** Free preview = skin profile + basic routine. Everything after is premium. */
+  const splitRecommendation = (text: string) => {
+    const lines = text.split("\n");
+    const cutIndex = lines.findIndex((line) =>
+      /actives?\s+(schedule|calendar)|weekly\s+actives|advanced|product[- ]type recommendations|ingredient (deep dive|strategy)/i.test(
+        line,
+      ),
+    );
+    const splitAt = cutIndex > 0 ? cutIndex : Math.ceil(lines.length * 0.4);
+    return {
+      preview: lines.slice(0, splitAt).join("\n"),
+      advanced: lines.slice(splitAt).join("\n").trim(),
+    };
+  };
+
+
+
   return (
     <>
       <section id="ai-formulator" className="py-20 bg-background">
