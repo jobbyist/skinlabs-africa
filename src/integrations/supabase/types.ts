@@ -146,6 +146,216 @@ export type Database = {
         }
         Relationships: []
       }
+      news_article_engagement: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          kind: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_article_engagement_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_article_views: {
+        Row: {
+          article_id: string
+          id: string
+          view_date: string
+          views: number
+        }
+        Insert: {
+          article_id: string
+          id?: string
+          view_date?: string
+          views?: number
+        }
+        Update: {
+          article_id?: string
+          id?: string
+          view_date?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_article_views_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_articles: {
+        Row: {
+          body_markdown: string
+          cover_credit_name: string | null
+          cover_credit_url: string | null
+          cover_image_alt: string | null
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string
+          id: string
+          inline_images: Json
+          json_ld: Json | null
+          key_takeaways: string[]
+          publish_date: string
+          reading_time: string
+          sa_context_tag: string
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          source_name: string
+          source_url: string
+          status: string
+          title: string
+          updated_at: string
+          view_count: number
+          word_count: number
+        }
+        Insert: {
+          body_markdown?: string
+          cover_credit_name?: string | null
+          cover_credit_url?: string | null
+          cover_image_alt?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          id?: string
+          inline_images?: Json
+          json_ld?: Json | null
+          key_takeaways?: string[]
+          publish_date?: string
+          reading_time?: string
+          sa_context_tag?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          source_name?: string
+          source_url?: string
+          status?: string
+          title: string
+          updated_at?: string
+          view_count?: number
+          word_count?: number
+        }
+        Update: {
+          body_markdown?: string
+          cover_credit_name?: string | null
+          cover_credit_url?: string | null
+          cover_image_alt?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          id?: string
+          inline_images?: Json
+          json_ld?: Json | null
+          key_takeaways?: string[]
+          publish_date?: string
+          reading_time?: string
+          sa_context_tag?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          source_name?: string
+          source_url?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+          word_count?: number
+        }
+        Relationships: []
+      }
+      news_comments: {
+        Row: {
+          article_id: string
+          author_name: string
+          body: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          author_name?: string
+          body: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          author_name?: string
+          body?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "news_comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      news_sync_runs: {
+        Row: {
+          ai_calls: number
+          articles_created: number
+          created_at: string
+          detail: string | null
+          firecrawl_calls: number
+          id: string
+          run_date: string
+          status: string
+        }
+        Insert: {
+          ai_calls?: number
+          articles_created?: number
+          created_at?: string
+          detail?: string | null
+          firecrawl_calls?: number
+          id?: string
+          run_date?: string
+          status?: string
+        }
+        Update: {
+          ai_calls?: number
+          articles_created?: number
+          created_at?: string
+          detail?: string | null
+          firecrawl_calls?: number
+          id?: string
+          run_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -471,6 +681,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      register_article_view: { Args: { p_article_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
