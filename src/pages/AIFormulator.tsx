@@ -28,9 +28,9 @@ const AIFormulatorPage = () => {
           "applicationCategory": "HealthApplication",
           "operatingSystem": "Web",
           "url": "https://skinlabs.co.za/ai-formulator",
-          "description": "Personalized AI-generated skincare routines grounded in dermatology literature, with downloadable PDF reports.",
           "description": "Premium AI-powered service for personalized skincare routines, trackers and dermatologist-approved product recommendations.",
           "offers": { "@type": "Offer", "price": "99", "priceCurrency": "ZAR" }
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
