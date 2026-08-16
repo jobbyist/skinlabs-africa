@@ -176,6 +176,13 @@ export type Database = {
             referencedRelation: "news_articles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "news_article_engagement_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       news_article_views: {
@@ -203,6 +210,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_article_views_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -319,6 +333,13 @@ export type Database = {
             columns: ["article_id"]
             isOneToOne: false
             referencedRelation: "news_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "news_comments_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "news_articles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -527,6 +548,24 @@ export type Database = {
         }
         Relationships: []
       }
+      review_details: {
+        Row: {
+          created_at: string
+          full_review: string
+          review_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_review: string
+          review_id: string
+        }
+        Update: {
+          created_at?: string
+          full_review?: string
+          review_id?: string
+        }
+        Relationships: []
+      }
       review_ratings: {
         Row: {
           created_at: string
@@ -670,9 +709,84 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      news_articles_public: {
+        Row: {
+          cover_credit_name: string | null
+          cover_credit_url: string | null
+          cover_image_alt: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          excerpt: string | null
+          id: string | null
+          json_ld: Json | null
+          key_takeaways: string[] | null
+          publish_date: string | null
+          reading_time: string | null
+          sa_context_tag: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string | null
+          source_name: string | null
+          source_url: string | null
+          title: string | null
+          view_count: number | null
+          word_count: number | null
+        }
+        Insert: {
+          cover_credit_name?: string | null
+          cover_credit_url?: string | null
+          cover_image_alt?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          id?: string | null
+          json_ld?: Json | null
+          key_takeaways?: string[] | null
+          publish_date?: string | null
+          reading_time?: string | null
+          sa_context_tag?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          title?: string | null
+          view_count?: number | null
+          word_count?: number | null
+        }
+        Update: {
+          cover_credit_name?: string | null
+          cover_credit_url?: string | null
+          cover_image_alt?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          id?: string | null
+          json_ld?: Json | null
+          key_takeaways?: string[] | null
+          publish_date?: string | null
+          reading_time?: string | null
+          sa_context_tag?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          title?: string | null
+          view_count?: number | null
+          word_count?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_article_body: {
+        Args: { p_slug: string }
+        Returns: {
+          body_markdown: string
+          inline_images: Json
+        }[]
+      }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
       has_role: {
         Args: {
@@ -681,6 +795,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_member: { Args: { _user_id: string }; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
     }
     Enums: {
