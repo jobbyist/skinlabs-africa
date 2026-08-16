@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Bookmark, Clock, ExternalLink, Heart, MapPin } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import GatedOverlay from "@/components/GatedOverlay";
-import { newsArticles, type NewsArticle } from "@/data/newsroom";
+import { ArrowUpRight, Bookmark, Clock, Eye, Heart, Loader2, MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { useEngagementStore } from "@/stores/engagementStore";
-import { useMembership } from "@/hooks/use-membership";
+import { useNewsArticles, type NewsArticleSummary } from "@/hooks/use-news-articles";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface NewsroomFeedProps {
   limit?: number;
@@ -18,30 +18,62 @@ interface NewsroomFeedProps {
 const NewsroomFeed = ({
   limit,
   heading = "The Daily Skinny",
-  description = "A daily brief of global skincare science, translated into what it means for South African skin, climate and shelves. Also available as a premium digital magazine-format PDF download for Glow Insider and VIP members.",
-
+  description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
 }: NewsroomFeedProps) => {
-  const { isMember } = useMembership();
-  const { likedIds, savedIds, toggleLike, toggleSave, viewedArticleIds, lastViewDate, recordArticleView } =
-    useEngagementStore();
-  const [openArticle, setOpenArticle] = useState<NewsArticle | null>(null);
+  const { user } = useAuth();
+  const { articles, loading } = useNewsArticles(limit);
+  const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
+  const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
+  const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const viewedToday = lastViewDate === today ? viewedArticleIds : [];
-  const freeQuotaUsed = !isMember && viewedToday.length >= 1;
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      if (!user) {
+        setRemoteLiked([]);
+        setRemoteSaved([]);
+        return;
+      }
+      const { data } = await supabase
+        .from("news_article_engagement")
+        .select("article_id, kind")
+        .eq("user_id", user.id);
+      if (!active) return;
+      setRemoteLiked((data ?? []).filter((r) => r.kind === "like").map((r) => r.article_id));
+      setRemoteSaved((data ?? []).filter((r) => r.kind === "save").map((r) => r.article_id));
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
-  const articles = limit ? newsArticles.slice(0, limit) : newsArticles;
+  const isLiked = (id: string) => (user ? remoteLiked.includes(id) : likedIds.includes(id));
+  const isSaved = (id: string) => (user ? remoteSaved.includes(id) : savedIds.includes(id));
 
-  const isLockedFor = (article: NewsArticle) =>
-    !isMember && freeQuotaUsed && !viewedToday.includes(article.id);
-
-  const handleOpen = (article: NewsArticle) => {
-    if (isLockedFor(article)) {
-      setOpenArticle(article);
+  const handleEngagement = async (article: NewsArticleSummary, kind: "like" | "save") => {
+    if (!user) {
+      kind === "like" ? toggleLike(article.id) : toggleSave(article.id);
+      toast.message("Sign in to sync your saved briefings across devices.");
       return;
     }
-    recordArticleView(article.id);
-    setOpenArticle(article);
+    const current = kind === "like" ? remoteLiked : remoteSaved;
+    const setter = kind === "like" ? setRemoteLiked : setRemoteSaved;
+    const active = current.includes(article.id);
+    setter(active ? current.filter((x) => x !== article.id) : [...current, article.id]);
+
+    if (active) {
+      await supabase
+        .from("news_article_engagement")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("article_id", article.id)
+        .eq("kind", kind);
+    } else {
+      await supabase
+        .from("news_article_engagement")
+        .insert({ user_id: user.id, article_id: article.id, kind });
+    }
   };
 
   return (
@@ -53,17 +85,19 @@ const NewsroomFeed = ({
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
             <p className="text-muted-foreground">{description}</p>
           </div>
-          {!isMember && (
-            <p className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground">
-              {freeQuotaUsed ? "Free daily read used" : "1 free briefing today"}
-            </p>
-          )}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article, index) => {
-            const locked = isLockedFor(article);
-            return (
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : articles.length === 0 ? (
+          <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
+            The next briefing publishes at 6am SAST. Check back shortly.
+          </p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article, index) => (
               <motion.article
                 key={article.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -73,30 +107,36 @@ const NewsroomFeed = ({
                 whileHover={{ y: -4 }}
                 className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
               >
-                <button onClick={() => handleOpen(article)} className="relative block aspect-[16/10] overflow-hidden text-left">
-                  <img
-                    src={article.cover_image_url}
-                    alt={article.article_title}
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
+                <Link to={`/newsroom/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
+                  {article.cover_image_url && (
+                    <img
+                      src={article.cover_image_url}
+                      alt={article.cover_image_alt || article.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  )}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-3 py-1 text-[11px] font-semibold text-foreground backdrop-blur">
                     <MapPin className="h-3 w-3" /> {article.sa_context_tag}
                   </span>
-                </button>
+                </Link>
 
                 <div className="flex flex-1 flex-col gap-3 p-6">
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                     <span>{article.source_name}</span>
                     <span className="inline-flex items-center gap-1">
                       <Clock className="h-3 w-3" /> {article.reading_time}
                     </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Eye className="h-3 w-3" /> {article.view_count.toLocaleString()}
+                    </span>
                   </div>
                   <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
-                    {article.article_title}
+                    <Link to={`/newsroom/${article.slug}`}>{article.title}</Link>
                   </h3>
+                  <p className="text-sm text-muted-foreground">{article.excerpt}</p>
                   <ul className="space-y-1.5">
-                    {article.key_takeaways.slice(0, locked ? 1 : 3).map((takeaway) => (
+                    {article.key_takeaways.slice(0, 3).map((takeaway) => (
                       <li key={takeaway} className="flex gap-2 text-sm text-muted-foreground">
                         <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
                         {takeaway}
@@ -105,92 +145,36 @@ const NewsroomFeed = ({
                   </ul>
 
                   <div className="mt-auto flex items-center justify-between pt-4">
-                    <button
-                      onClick={() => handleOpen(article)}
+                    <Link
+                      to={`/newsroom/${article.slug}`}
                       className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                     >
-                      {locked ? "Unlock briefing" : "Read the SA breakdown"}
+                      Read the SA breakdown
                       <ArrowUpRight className="h-4 w-4" />
-                    </button>
+                    </Link>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => toggleLike(article.id)}
+                        onClick={() => handleEngagement(article, "like")}
                         aria-label="Like article"
                         className="rounded-full p-2 hover:bg-accent"
                       >
-                        <Heart
-                          className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")}
-                        />
+                        <Heart className={cn("h-4 w-4", isLiked(article.id) && "fill-primary text-primary")} />
                       </button>
                       <button
-                        onClick={() => toggleSave(article.id)}
+                        onClick={() => handleEngagement(article, "save")}
                         aria-label="Save article"
                         className="rounded-full p-2 hover:bg-accent"
                       >
-                        <Bookmark
-                          className={cn("h-4 w-4", savedIds.includes(article.id) && "fill-primary text-primary")}
-                        />
+                        <Bookmark className={cn("h-4 w-4", isSaved(article.id) && "fill-primary text-primary")} />
                       </button>
                     </div>
                   </div>
                 </div>
               </motion.article>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      <Dialog open={Boolean(openArticle)} onOpenChange={(open) => !open && setOpenArticle(null)}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-          {openArticle && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="pr-6 text-left font-heading text-xl leading-snug">
-                  {openArticle.article_title}
-                </DialogTitle>
-              </DialogHeader>
-              <p className="text-xs text-muted-foreground">
-                {openArticle.source_name} · {openArticle.publish_date} · {openArticle.reading_time}
-              </p>
-
-              <GatedOverlay
-                locked={isLockedFor(openArticle)}
-                title="Daily free read used"
-                message="Glow Insider members get unlimited access to every Daily Skinny briefing, plus the full SA breakdown."
-              >
-                <div className="space-y-5 py-2">
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      Key takeaways
-                    </h4>
-                    <ul className="space-y-2">
-                      {openArticle.key_takeaways.map((takeaway) => (
-                        <li key={takeaway} className="flex gap-2 text-sm text-foreground">
-                          <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                          {takeaway}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                      What this means for SA skin
-                    </h4>
-                    <p className="text-sm leading-relaxed text-foreground">{openArticle.sa_breakdown}</p>
-                  </div>
-                </div>
-              </GatedOverlay>
-
-              <Button variant="outline" asChild className="w-full gap-2">
-                <a href={openArticle.original_url} target="_blank" rel="noopener noreferrer">
-                  Read the original source
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };
