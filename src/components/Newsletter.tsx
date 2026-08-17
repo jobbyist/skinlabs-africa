@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, Video, Calendar, Star, CheckCircle2 } from "lucide-react";
+import { Video, Calendar, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ const Newsletter = () => {
           throw error;
         }
       } else {
-        toast.success("Thank you for subscribing!");
+        toast.success("You're on the early access list! We'll notify you when consultations launch.");
       }
       setEmail("");
     } catch (err) {
@@ -50,25 +50,34 @@ const Newsletter = () => {
           {/* Badge */}
           <div className="flex justify-center mb-6">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="text-sm font-semibold">Exclusive for Premium Members</span>
+              <Sparkles className="h-4 w-4" />
+              <span className="text-sm font-semibold">Coming Soon - Early Access</span>
             </div>
           </div>
 
           {/* Heading */}
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4 text-center">
-            Book A Virtual Consultation With A Licensed Dermatologist
+            Get Early Access to Virtual Dermatologist Consultations
           </h2>
           <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl mx-auto">
-            We're introducing an exclusive feature for premium users to connect with qualified specialists. 
-            Browse our directory, compare rates, and book appointments with top-rated dermatologists in our 
-            network at discounted rates.
+            Sign up now for priority access to our upcoming virtual consultation platform. Connect with 
+            HPCSA-registered dermatologists through secure video sessions at exclusive member rates.
           </p>
+
+          {/* Benefits Grid */}
+          <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+            {benefits.map((benefit, i) => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 text-center">
+                <benefit.icon className="h-6 w-6 text-primary mx-auto mb-2" />
+                <p className="text-sm text-card-foreground">{benefit.text}</p>
+              </div>
+            ))}
+          </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <Input
               type="email"
-              placeholder="Enter your email"
+              placeholder="Enter your email for early access"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="flex-1"
@@ -77,11 +86,11 @@ const Newsletter = () => {
             <Button type="submit" className="gap-2" disabled={loading}>
               {loading ? "Subscribing..." : "Subscribe"}
               <Send className="h-4 w-4" />
-            </Button>
+              <Sparkles className="h-4 w-4" />
           </form>
 
           <p className="text-xs text-muted-foreground mt-4">
-            By subscribing, you agree to our Privacy Policy and consent to receive updates.
+          <p className="text-xs text-muted-foreground mt-4 text-center">
           </p>
         </div>
       </div>
