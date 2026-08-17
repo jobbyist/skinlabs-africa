@@ -57,7 +57,7 @@ const GetStarted = () => {
         document.body.appendChild(form);
         form.submit();
       }
-    } catch (err: any) {
+    } catch (err) {
       toast.error("Failed to initiate payment. Please try again.");
       console.error(err);
     } finally {

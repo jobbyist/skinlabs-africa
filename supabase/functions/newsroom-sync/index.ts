@@ -83,7 +83,13 @@ async function firecrawlSearch(query: string, limit: number): Promise<FirecrawlR
     throw new Error(`Firecrawl ${res.status}: ${JSON.stringify(payload)?.slice(0, 300)}`);
   }
 
-  const rows: any[] = Array.isArray(payload?.data)
+  interface FirecrawlRow {
+    url?: string;
+    title?: string;
+    description?: string;
+    markdown?: string;
+  }
+  const rows: FirecrawlRow[] = Array.isArray(payload?.data)
     ? payload.data
     : Array.isArray(payload?.data?.web)
       ? payload.data.web
@@ -279,7 +285,7 @@ Deno.serve(async (req) => {
       .from("news_sync_runs")
       .select("articles_created")
       .eq("run_date", today);
-    const createdToday = (runsToday ?? []).reduce((sum, r: any) => sum + (r.articles_created ?? 0), 0);
+    const createdToday = (runsToday ?? []).reduce((sum, r: { articles_created: number | null }) => sum + (r.articles_created ?? 0), 0);
     const remaining = Math.max(0, MAX_ARTICLES_PER_DAY - createdToday);
 
     if (remaining === 0) {
@@ -308,7 +314,7 @@ Deno.serve(async (req) => {
       .from("news_articles")
       .select("source_url")
       .in("source_url", urls.length ? urls : ["_none_"]);
-    const seen = new Set((existing ?? []).map((r: any) => r.source_url));
+    const seen = new Set((existing ?? []).map((r: { source_url: string | null }) => r.source_url));
 
     const fresh = candidates.filter((c) => {
       if (seen.has(c.url)) return false;

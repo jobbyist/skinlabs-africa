@@ -151,9 +151,8 @@ Adapted to the client's climate, budget, sensitivity, and consistency level:
 
 Tone: warm, professional, encouraging, evidence-led. Cite the client's own quiz answers when justifying choices. Be specific.`;
 
-    const systemPrompt = `You are SKINLABS' senior AI skincare formulator. You produce dermatologist-grade personalized skincare routines for clients in South Africa. You are NOT a dermatologist — always remind users to consult one for medical concerns.
     const userTextPrompt = isPremiumMember ? userTextPromptPremium : userTextPromptFree;
-    
+
     const systemPromptPremium = `You are SKINLABS' senior AI skincare formulator. You produce dermatologist-grade personalized skincare routines for clients in South Africa. You are NOT a dermatologist — always remind users to consult one for medical concerns.
 You MUST ground every recommendation in the dermatology reference knowledge below. Do not invent ingredients or concentrations outside this reference. Adapt strictly to the client's quiz answers and (when provided) selfie.
 

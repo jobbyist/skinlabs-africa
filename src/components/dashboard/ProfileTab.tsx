@@ -35,15 +35,15 @@ const ProfileTab = () => {
       if (data) {
         setForm({
           full_name: data.full_name || "",
-          phone: (data as any).phone || "",
-          date_of_birth: (data as any).date_of_birth || "",
-          gender: (data as any).gender || "",
-          race_ethnicity: (data as any).race_ethnicity || "",
-          skin_color: (data as any).skin_color || "",
-          allergies: ((data as any).allergies || []).join(", "),
-          skin_conditions: ((data as any).skin_conditions || []).join(", "),
-          preferred_routine_time: (data as any).preferred_routine_time || "both",
-          notes: (data as any).notes || "",
+          phone: data.phone || "",
+          date_of_birth: data.date_of_birth || "",
+          gender: data.gender || "",
+          race_ethnicity: data.race_ethnicity || "",
+          skin_color: data.skin_color || "",
+          allergies: (data.allergies || []).join(", "),
+          skin_conditions: (data.skin_conditions || []).join(", "),
+          preferred_routine_time: data.preferred_routine_time || "both",
+          notes: data.notes || "",
         });
       }
       setLoading(false);
@@ -64,7 +64,7 @@ const ProfileTab = () => {
       skin_conditions: form.skin_conditions ? form.skin_conditions.split(",").map((s) => s.trim()).filter(Boolean) : [],
       preferred_routine_time: form.preferred_routine_time || null,
       notes: form.notes || null,
-    } as any).eq("user_id", user.id);
+    }).eq("user_id", user.id);
     setSaving(false);
     if (error) return toast.error("Could not save profile");
     toast.success("Profile updated");
