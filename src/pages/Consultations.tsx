@@ -25,6 +25,18 @@ const Consultations = () => {
         <meta property="og:url" content="https://skinlabs.co.za/consultations" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "MedicalBusiness",
+          name: "SkinLabs Virtual Derm Consultations",
+          description: "Virtual skincare consultations with independent, HPCSA-registered South African dermatologists and aesthetic practitioners.",
+          url: "https://skinlabs.co.za/consultations",
+          areaServed: "ZA",
+          availableService: {
+            "@type": "MedicalTherapy",
+            name: "Virtual dermatology consultation",
+          },
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

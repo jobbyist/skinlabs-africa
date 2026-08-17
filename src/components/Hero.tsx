@@ -45,8 +45,8 @@ const Hero = () => {
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
-              Smarter Skincare,
-              <span className="block text-primary drop-shadow-md">Made for SA Skin</span>
+              Skincare Intelligence,
+              <span className="block text-primary drop-shadow-md">Locally Grounded</span>
             </h1>
             
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">

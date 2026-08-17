@@ -14,6 +14,8 @@ interface SubscriptionPaywallModalProps {
   skinType: string;
   concerns: string[];
   onPaymentSuccess?: () => void;
+  /** Called when an anonymous visitor tries to subscribe — should open the sign-in dialog. */
+  onRequireAuth?: () => void;
 }
 
 const SubscriptionPaywallModal = ({
@@ -23,13 +25,18 @@ const SubscriptionPaywallModal = ({
   skinType,
   concerns,
   onPaymentSuccess,
+  onRequireAuth,
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
 
   const handleSubscribe = async () => {
     if (!user) {
-      toast.error("Please sign in first to subscribe");
+      if (onRequireAuth) {
+        onRequireAuth();
+      } else {
+        toast.error("Please sign in first to subscribe");
+      }
       return;
     }
 
@@ -155,6 +162,11 @@ const SubscriptionPaywallModal = ({
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
               Processing...
+            </>
+          ) : !user ? (
+            <>
+              <Sparkles className="h-4 w-4" />
+              Sign In to Subscribe
             </>
           ) : (
             <>

@@ -37,6 +37,22 @@ const Products = () => {
         <meta property="og:url" content="https://skinlabs.co.za/products" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "SkinLabs Products",
+          url: "https://skinlabs.co.za/products",
+          description: "Science-backed skincare categories: serums & treatments, devices, and custom formulas.",
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: categories.map((category, index) => ({
+              "@type": "ListItem",
+              position: index + 1,
+              name: category.title,
+              description: category.description,
+            })),
+          },
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

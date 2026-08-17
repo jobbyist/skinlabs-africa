@@ -65,6 +65,16 @@ const Business = () => {
         <meta property="og:title" content="SkinLabs® for Business" />
         <meta property="og:description" content="Turnkey formulation, manufacturing, distribution and marketing services for beauty and wellness brands." />
         <meta property="og:type" content="website" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Service",
+          serviceType: "Beauty and wellness brand development",
+          name: "SkinLabs for Business",
+          description: "End-to-end formulation, manufacturing, packaging, R&D, distribution, fulfilment and marketing services for beauty and wellness brands.",
+          provider: { "@type": "Organization", name: "SkinLabs", url: "https://skinlabs.co.za" },
+          areaServed: "ZA",
+          url: "https://skinlabs.co.za/business",
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

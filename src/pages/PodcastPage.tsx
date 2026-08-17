@@ -113,7 +113,7 @@ const PodcastPage = () => {
                     src={episode.image}
                     alt={`${episode.title} cover art`}
                     loading="lazy"
-                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <button
                     onClick={() => playEpisode(episode)}

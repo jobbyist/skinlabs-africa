@@ -44,6 +44,28 @@ const Devices = () => {
           name="description"
           content="Shop professional-grade skincare devices including LED therapy, microcurrent, cleansing tools, and steamers for salon-quality results at home."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/devices" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "SkinLabs Devices",
+          itemListElement: devices.map((device, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+              "@type": "Product",
+              name: device.name,
+              description: device.description,
+              brand: { "@type": "Brand", name: "SkinLabs" },
+              offers: {
+                "@type": "Offer",
+                price: device.price.replace(/[^0-9.]/g, ""),
+                priceCurrency: "ZAR",
+                url: "https://skinlabs.co.za/devices",
+              },
+            },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

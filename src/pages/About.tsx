@@ -109,16 +109,15 @@ const About = () => {
   return (
     <>
       <Helmet>
-        <title>About Us - Our Story | SKINLABS</title>
         <title>About SkinLabs — Independent SA Skincare Platform | SKINLABS</title>
         <meta name="description" content="Learn about SkinLabs: An independent skin science platform with daily briefings, honest product reviews, AI routines, and a podcast—all built for South African skin." />
         <meta name="keywords" content="about SkinLabs, skincare platform South Africa, independent skincare reviews, AI skincare, skincare science SA" />
-        <meta property="og:title" content="About Us - Our Story | SKINLABS" />
+        <link rel="canonical" href="https://skinlabs.co.za/about" />
         <meta property="og:title" content="About SkinLabs — Independent SA Skincare Platform" />
         <meta property="og:description" content="Independent skin science platform with daily briefings, honest product reviews, and AI routines for South African skin." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://skinlabs.co.za/about" />
         <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
-      </Helmet>
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
@@ -134,6 +133,7 @@ const About = () => {
             "description": "Content and community-first skincare platform for South Africa"
           }
         })}</script>
+      </Helmet>
 
       <div className="min-h-screen bg-background">
         <Header />

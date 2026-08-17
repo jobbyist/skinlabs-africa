@@ -35,6 +35,28 @@ const CustomFormulas = () => {
         <title>Custom Formulas - Lab-Formulated Skincare | SKINLABS</title>
         <meta name="description" content="Bespoke skincare formulated in the SkinLabs lab. Custom serums, moisturizers, cleansers and scrubs made to your unique skin profile." />
         <link rel="canonical" href="https://skinlabs.co.za/custom-formulas" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "SkinLabs Custom Formulas",
+          itemListElement: formulas.map((formula, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+              "@type": "Service",
+              name: `Custom ${formula.name}`,
+              description: formula.description,
+              provider: { "@type": "Organization", name: "SkinLabs" },
+              areaServed: "ZA",
+              offers: {
+                "@type": "Offer",
+                price: formula.price.replace(/[^0-9.]/g, ""),
+                priceCurrency: "ZAR",
+                url: "https://skinlabs.co.za/custom-formulas",
+              },
+            },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

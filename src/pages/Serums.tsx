@@ -44,6 +44,28 @@ const Serums = () => {
           name="description"
           content="Shop powerful serums including Vitamin C, Hyaluronic Acid, Retinol, and Niacinamide. Science-backed formulas for visible results."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/serums" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "SkinLabs Serums",
+          itemListElement: serums.map((serum, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+              "@type": "Product",
+              name: serum.name,
+              description: serum.description,
+              brand: { "@type": "Brand", name: "SkinLabs" },
+              offers: {
+                "@type": "Offer",
+                price: serum.price.replace(/[^0-9.]/g, ""),
+                priceCurrency: "ZAR",
+                url: "https://skinlabs.co.za/serums",
+              },
+            },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

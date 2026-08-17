@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { useLocation } from "react-router-dom";
 
 interface SEOProps {
   title: string;
@@ -19,8 +20,9 @@ const SEO = ({
   keywords,
   jsonLd,
 }: SEOProps) => {
+  const { pathname } = useLocation();
   const fullTitle = title.includes("SKINLABS") ? title : `${title} | SKINLABS`;
-  const url = canonical || `https://skinlabs.co.za${window.location.pathname}`;
+  const url = canonical || `https://skinlabs.co.za${pathname}`;
 
   return (
     <Helmet>

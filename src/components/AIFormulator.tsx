@@ -38,7 +38,7 @@ const STEP_EMAIL = TOTAL_QUESTIONS + 2;
 const STEP_RESULTS = TOTAL_QUESTIONS + 3;
 
 const AIFormulator = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
@@ -48,7 +48,6 @@ const AIFormulator = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [hasSubscription, setHasSubscription] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [popiaConsent, setPopiaConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
@@ -129,10 +128,11 @@ const AIFormulator = () => {
         console.warn("PDF generation failed:", pdfErr);
       }
 
-      if (!hasSubscription) {
+      // Everyone lands on the results step and sees the free preview;
+      // non-members additionally get an upsell paywall nudge for the full report.
+      setStep(STEP_RESULTS);
+      if (!isMember) {
         setShowPaywall(true);
-      } else {
-        setStep(STEP_RESULTS);
       }
     } catch (error) {
       console.error("Error:", error);
@@ -196,65 +196,6 @@ const AIFormulator = () => {
     return concerns.slice(0, 4);
   })();
 
-  if (authLoading) {
-    return (
-      <section id="ai-formulator" className="py-20 bg-background">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <section id="ai-formulator" className="py-20 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
-                <Sparkles className="h-4 w-4" />
-                Premium Service
-              </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                AI Formulator — Your Personalized Skincare Journey
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Get personalized skincare routines, progress trackers, and dermatologist-approved 
-                product recommendations tailored to your unique skin profile.
-              </p>
-              
-              <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-                {["Personalized AM/PM Routines", "Weekly Actives Schedule", "SA Product Recommendations"].map((feature, i) => (
-                  <div key={i} className="bg-card border border-border rounded-xl p-4">
-                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-card-foreground font-medium">{feature}</p>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button size="lg" asChild className="gap-2">
-                  <a href="/pricing">
-                    <Sparkles className="h-4 w-4" />
-                    Upgrade to Access
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowAuthDialog(true)} className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                  Sign In
-              </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
-      </>
-    );
-  }
-
   const formatRecommendation = (text: string) => {
     return text.split("\n").map((line, index) => {
       if (line.startsWith("##") || line.startsWith("**")) {
@@ -309,13 +250,14 @@ const AIFormulator = () => {
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                 <Sparkles className="h-4 w-4" />
-                AI-Powered Skincare Analysis
+                Free to Start — AI-Powered Skincare Analysis
               </div>
               <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
                 Custom Skincare Formulator
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Get your personalized skin profile, AM/PM routine, actives schedule & product recommendations.
+                Take the quiz and get your free skin profile & starter routine instantly. Unlock your
+                actives schedule and full product-type recommendations with a Glow Insider or VIP membership.
               </p>
             </div>
 
@@ -672,8 +614,8 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {/* ─── Results step (for subscribers viewing immediately) ─── */}
-              {step === STEP_RESULTS && recommendation && hasSubscription && !showConfirmation && (
+              {/* ─── Results step: free preview for everyone, advanced section gated ─── */}
+              {step === STEP_RESULTS && recommendation && !showConfirmation && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
@@ -696,6 +638,7 @@ const AIFormulator = () => {
                       message="Unlock your actives schedule, ingredient strategy and product-type recommendations with a Glow Insider or VIP membership."
                       ctaLabel="Unlock with membership"
                       ctaHref="/pricing"
+                      onSignIn={!user ? () => setShowAuthDialog(true) : undefined}
                     >
                       <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
                         {formatRecommendation(splitRecommendation(recommendation).advanced)}
@@ -805,12 +748,18 @@ const AIFormulator = () => {
           previewContent={recommendation}
           skinType={derivedSkinType}
           concerns={derivedConcerns}
+          onRequireAuth={() => {
+            setShowPaywall(false);
+            setShowAuthDialog(true);
+          }}
           onPaymentSuccess={() => {
             setShowPaywall(false);
             setShowConfirmation(true);
           }}
         />
       )}
+
+      <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
     </>
   );
 };

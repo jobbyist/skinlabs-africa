@@ -14,28 +14,22 @@ serve(async (req) => {
   }
 
   try {
-    // ---- AUTH ----
+    // ---- AUTH (optional) ----
+    // The quiz + free preview are open to anonymous visitors. When a valid
+    // user session is present we identify the user so the recommendation can
+    // be persisted to their account; otherwise we proceed anonymously.
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
+      global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
-    if (authError || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let userId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData } = await supabaseAuth.auth.getClaims(token).catch(() => ({ data: null }));
+      userId = claimsData?.claims?.sub ?? null;
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -171,22 +165,23 @@ Output rules:
 
     if (!recommendation) throw new Error("No recommendation returned by AI");
 
-    // Persist (best-effort) — does not block the response
-    try {
-      const userId = claimsData.claims.sub;
-      const skinType = /skin type[^\n]*?(oily|dry|combination|sensitive|normal|dehydrated)/i
-        .exec(recommendation)?.[1]
-        ?.toLowerCase() ?? "unknown";
-      await supabaseAuth.from("skincare_recommendations").insert({
-        user_id: userId,
-        skin_type: skinType,
-        concerns: [],
-        recommendation,
-        status: "delivered",
-        contact_name: contactName ?? null,
-      });
-    } catch (persistErr) {
-      console.warn("Could not persist recommendation:", persistErr);
+    // Persist (best-effort, signed-in users only) — does not block the response
+    if (userId) {
+      try {
+        const skinType = /skin type[^\n]*?(oily|dry|combination|sensitive|normal|dehydrated)/i
+          .exec(recommendation)?.[1]
+          ?.toLowerCase() ?? "unknown";
+        await supabaseAuth.from("skincare_recommendations").insert({
+          user_id: userId,
+          skin_type: skinType,
+          concerns: [],
+          recommendation,
+          status: "delivered",
+          contact_name: contactName ?? null,
+        });
+      } catch (persistErr) {
+        console.warn("Could not persist recommendation:", persistErr);
+      }
     }
 
     return new Response(JSON.stringify({ recommendation }), {

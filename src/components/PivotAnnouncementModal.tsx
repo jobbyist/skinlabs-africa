@@ -1,71 +1,88 @@
 import { useState, useEffect } from "react";
-import { X, Info } from "lucide-react";
+import { Sparkles, Newspaper, Users, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const ANNOUNCEMENT_KEY = "skinlabs_pivot_announcement_seen";
+const SHOW_DELAY_MS = 30000;
+
+const PILLARS = [
+  { icon: Newspaper, label: "Daily skin science briefings" },
+  { icon: Sparkles, label: "AI-powered personalized routines" },
+  { icon: Users, label: "Honest, independent product reviews" },
+  { icon: Mic, label: "The Skin Deep Podcast" },
+];
 
 const PivotAnnouncementModal = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    // Check if user has already seen the announcement
     const hasSeenAnnouncement = localStorage.getItem(ANNOUNCEMENT_KEY);
-    
     if (!hasSeenAnnouncement) {
-      // Show modal after 30 seconds for new visitors
-      const timer = setTimeout(() => {
-        setIsOpen(true);
-      }, 30000); // 30 seconds
-
+      const timer = setTimeout(() => setIsOpen(true), SHOW_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, []);
 
   const handleClose = () => {
     setIsOpen(false);
-    // Mark announcement as seen
     localStorage.setItem(ANNOUNCEMENT_KEY, "true");
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Info className="h-6 w-6 text-primary" />
-              </div>
-              <DialogTitle className="text-xl font-heading font-bold text-foreground">
-                Important Update
+      <DialogContent className="overflow-hidden p-0 sm:max-w-lg">
+        {/* Header banner */}
+        <div className="relative bg-gradient-to-br from-primary via-primary to-primary/80 px-6 pb-8 pt-7 text-primary-foreground">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary-foreground/10 blur-3xl"
+          />
+          <div className="relative">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide">
+              <Sparkles className="h-3 w-3" />
+              New Chapter
+            </span>
+            <DialogHeader className="mt-3 text-left">
+              <DialogTitle className="font-heading text-2xl font-bold leading-tight text-primary-foreground">
+                SkinLabs® is Evolving
               </DialogTitle>
-            </div>
+            </DialogHeader>
+            <p className="mt-2 text-sm leading-relaxed text-primary-foreground/80">
+              We've pivoted from an AI-powered e-commerce platform to a content and
+              community-first ecosystem — built specifically for South African skin
+              and climate.
+            </p>
           </div>
-        </DialogHeader>
-        
-        <div className="space-y-4 pt-4">
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-foreground">
-              SkinLabs® is Evolving
-            </h3>
-            <p className="text-muted-foreground leading-relaxed">
-              We've pivoted from an AI-powered e-commerce platform to a{" "}
-              <strong className="text-foreground">content and community-first ecosystem</strong>.
-            </p>
-            <p className="text-muted-foreground leading-relaxed">
-              Our focus is now on delivering independent skincare education, daily science briefings, 
-              honest product reviews, and AI-powered personalized routines—all designed specifically 
-              for South African skin and climate.
-            </p>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-5 px-6 py-6">
+          <div className="grid grid-cols-2 gap-3">
+            {PILLARS.map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex items-start gap-2.5 rounded-xl border border-border bg-secondary/30 p-3"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <Icon className="h-4 w-4 text-primary" />
+                </span>
+                <span className="text-xs font-medium leading-snug text-card-foreground">
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="flex flex-col gap-2.5 pt-1 sm:flex-row">
             <Button onClick={handleClose} variant="outline" className="flex-1">
-              Got it
+              Got it, thanks
             </Button>
-            <Button asChild className="flex-1">
-              <a href="/about">Learn More</a>
+            <Button asChild className="flex-1 gap-1.5" onClick={handleClose}>
+              <a href="/about">
+                Read our story
+                <Sparkles className="h-3.5 w-3.5" />
+              </a>
             </Button>
           </div>
         </div>

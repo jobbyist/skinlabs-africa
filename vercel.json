@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "bun run build:ssr",
+  "installCommand": "bun install",
+  "outputDirectory": "dist/client",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|favicon\\.ico|robots\\.txt|sitemap\\.xml|manifest|sw\\.js|.*\\.(?:png|jpg|jpeg|svg|ico|webp|gif|mp3|mp4|m4a|woff|woff2|css|js|json|xml|txt)$).*)",
+      "destination": "/api"
+    }
+  ]
+}

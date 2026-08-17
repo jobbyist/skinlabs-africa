@@ -55,11 +55,13 @@ const EpisodePage = () => {
       <main className="pt-24 pb-28">
         <div className="container mx-auto grid gap-10 px-4 lg:grid-cols-[320px_1fr]">
           <div>
-            <img
-              src={episode.image}
-              alt={`${episode.title} cover art`}
-              className="w-full rounded-3xl border border-border bg-muted object-contain"
-            />
+            <div className="aspect-square w-full overflow-hidden rounded-3xl border border-border bg-muted">
+              <img
+                src={episode.image}
+                alt={`${episode.title} cover art`}
+                className="h-full w-full object-cover"
+              />
+            </div>
             <Button className="mt-4 w-full gap-2" onClick={() => playEpisode(episode)}>
               <Play className="h-4 w-4" /> Play episode
             </Button>

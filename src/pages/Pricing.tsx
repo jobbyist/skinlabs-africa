@@ -83,6 +83,27 @@ const Pricing = () => {
         <meta property="og:url" content="https://skinlabs.co.za/pricing" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: "SkinLabs Membership",
+          description: "Skincare intelligence membership: AI routines, daily briefings, product reviews and podcast access for South African skin.",
+          brand: { "@type": "Brand", name: "SkinLabs" },
+          offers: plans.map((plan) => ({
+            "@type": "Offer",
+            name: plan.name,
+            description: plan.tagline,
+            price: plan.price,
+            priceCurrency: "ZAR",
+            url: "https://skinlabs.co.za/pricing",
+            priceSpecification: {
+              "@type": "UnitPriceSpecification",
+              price: plan.price,
+              priceCurrency: "ZAR",
+              billingDuration: "P1M",
+            },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">

@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,6 +46,7 @@ import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import PivotAnnouncementModal from "./components/PivotAnnouncementModal";
+import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +55,7 @@ const LegacyStreamRedirect = () => {
   return <Navigate to={`/podcast/${slug}`} replace />;
 };
 
-const AppContent = () => {
+export const AppContent = () => {
 
   
   return (
@@ -62,6 +64,7 @@ const AppContent = () => {
       <ScrollToTop />
       <PWAInstallPrompt />
       <PivotAnnouncementModal />
+      <BottomNav />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<GetStarted />} />
@@ -130,21 +133,37 @@ const AppContent = () => {
   );
 };
 
-const App = () => (
-  <HelmetProvider>
+interface AppProvidersProps {
+  children: ReactNode;
+  /** Populated by react-helmet-async during server-side rendering; omit on the client. */
+  helmetContext?: object;
+}
+
+/**
+ * Shared providers used by both the client entry (BrowserRouter) and the
+ * server entry (StaticRouter) — router + route tree are supplied by the caller.
+ */
+export const AppProviders = ({ children, helmetContext }: AppProvidersProps) => (
+  <HelmetProvider context={helmetContext}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
-          <PodcastPlayerProvider>
-            <AppContent />
-          </PodcastPlayerProvider>
-        </BrowserRouter>
+        {children}
         <Analytics />
       </TooltipProvider>
     </QueryClientProvider>
   </HelmetProvider>
+);
+
+const App = () => (
+  <AppProviders>
+    <BrowserRouter>
+      <PodcastPlayerProvider>
+        <AppContent />
+      </PodcastPlayerProvider>
+    </BrowserRouter>
+  </AppProviders>
 );
 
 export default App;

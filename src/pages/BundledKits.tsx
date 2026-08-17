@@ -42,6 +42,27 @@ const BundledKits = () => {
         <title>Bundled Kits — Curated Skincare Systems | SKINLABS</title>
         <meta name="description" content="Curated bundled skincare kits from SkinLabs. Complete multi-product systems formulated to work together for measurable results." />
         <link rel="canonical" href="https://skinlabs.co.za/bundled-kits" />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "SkinLabs Bundled Kits",
+          itemListElement: kits.map((kit, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            item: {
+              "@type": "Product",
+              name: kit.name,
+              description: kit.description,
+              brand: { "@type": "Brand", name: "SkinLabs" },
+              offers: {
+                "@type": "Offer",
+                price: kit.price.replace(/[^0-9.]/g, ""),
+                priceCurrency: "ZAR",
+                url: "https://skinlabs.co.za/bundled-kits",
+              },
+            },
+          })),
+        })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
