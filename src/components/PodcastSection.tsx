@@ -1,7 +1,12 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Play, Clock } from "lucide-react";
+import { Play, Clock, Lock } from "lucide-react";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { podcastEpisodes } from "@/data/podcast";
+import { useAuth } from "@/hooks/use-auth";
+import { useMembership } from "@/hooks/use-membership";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PodcastSectionProps {
   heading?: string;
@@ -17,6 +22,67 @@ const PodcastSection = ({
   limit,
 }: PodcastSectionProps) => {
   const { playEpisode, current } = usePodcastPlayer();
+  const { user } = useAuth();
+  const { isMember } = useMembership();
+  const [playsThisMonth, setPlaysThisMonth] = useState(0);
+  const [loadingPlays, setLoadingPlays] = useState(true);
+
+  useEffect(() => {
+    const fetchPlaysThisMonth = async () => {
+      if (!user) {
+        setLoadingPlays(false);
+        return;
+      }
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from("podcast_plays")
+        .select("id")
+        .eq("user_id", user.id)
+        .gte("played_at", startOfMonth.toISOString());
+
+      if (!error && data) {
+        setPlaysThisMonth(data.length);
+      }
+      setLoadingPlays(false);
+    };
+
+    fetchPlaysThisMonth();
+  }, [user]);
+
+  const handlePlayEpisode = async (episode: typeof podcastEpisodes[0]) => {
+    // Premium members have unlimited access
+    if (isMember) {
+      playEpisode(episode);
+      return;
+    }
+
+    // Free users and unauthenticated users limited to 2 per month
+    if (!user || playsThisMonth >= 2) {
+      toast.error("You've reached your monthly limit of 2 podcast episodes. Upgrade to Glow Insider for unlimited access!", {
+        duration: 5000,
+        action: {
+          label: "Upgrade",
+          onClick: () => window.location.href = "/pricing"
+        }
+      });
+      return;
+    }
+
+    // Track the play
+    if (user) {
+      await supabase.from("podcast_plays").insert({
+        user_id: user.id,
+        episode_slug: episode.slug,
+        episode_title: episode.title
+      });
+      setPlaysThisMonth(prev => prev + 1);
+    }
+    playEpisode(episode);
+  };
 
   return (
     <section id="skin-deep-podcast" className="py-20 bg-background">
@@ -44,6 +110,17 @@ const PodcastSection = ({
           )}
         </div>
 
+        {/* Usage indicator for free users */}
+        {!isMember && user && !loadingPlays && (
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/50 rounded-full text-sm">
+              <span className="text-muted-foreground">
+                {playsThisMonth}/2 free episodes used this month
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {(limit ? podcastEpisodes.slice(0, limit) : podcastEpisodes).map((episode) => (
             <article
@@ -60,11 +137,20 @@ const PodcastSection = ({
                   className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
                 <button
-                  onClick={() => playEpisode(episode)}
+                  onClick={() => handlePlayEpisode(episode)}
                   aria-label={`Play ${episode.title}`}
-                  className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+                  className={`absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 ${
+                    !isMember && (!user || playsThisMonth >= 2)
+                      ? "bg-muted text-muted-foreground cursor-not-allowed"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                  disabled={!isMember && (!user || playsThisMonth >= 2)}
                 >
-                  <Play className="h-5 w-5" />
+                  {!isMember && (!user || playsThisMonth >= 2) ? (
+                    <Lock className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5" />
+                  )}
                 </button>
               </div>
               <div className="flex flex-1 flex-col gap-3 p-6">

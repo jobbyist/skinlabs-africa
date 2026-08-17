@@ -134,13 +134,15 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-background/95 backdrop-blur-lg"
+            className="fixed bottom-0 left-0 right-0 z-[60] border-t-2 border-primary/20 bg-gradient-to-t from-background via-background/98 to-background/95 backdrop-blur-xl shadow-2xl"
           >
-            <div className="container mx-auto flex items-center gap-3 px-3 py-2 md:gap-4 md:px-4 md:py-3">
+            <div className="container mx-auto flex items-center gap-3 px-4 py-3 md:gap-5 md:px-6 md:py-4">
+              {/* Episode Artwork */}
               <Link to={`/podcast/${current.slug}`} className="shrink-0">
-                <img src={current.image} alt={current.title} className="h-11 w-11 rounded-lg object-cover md:h-12 md:w-12" />
+                <img src={current.image} alt={current.title} className="h-14 w-14 rounded-xl object-cover shadow-lg ring-2 ring-primary/20 transition-transform hover:scale-105 md:h-16 md:w-16" />
               </Link>
 
+              {/* Progress and Title */}
               <div className="min-w-0 flex-1">
                 <Link to={`/podcast/${current.slug}`} className="block truncate text-sm font-semibold text-foreground hover:underline">
                   {current.title}
@@ -152,26 +154,27 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
                     onValueChange={([v]) => {
                       if (audioRef.current && duration) audioRef.current.currentTime = (v / 100) * duration;
                     }}
-                    className="flex-1"
+                    className="flex-1 [&_[role=slider]]:h-3.5 [&_[role=slider]]:w-3.5 [&_[role=slider]]:border-2 [&_[role=slider]]:border-primary [&_[role=slider]]:shadow-md"
                     aria-label="Seek"
                   />
                   <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">{format(duration)}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
-                <button onClick={() => skip(-15)} aria-label="Back 15 seconds" className="rounded-full p-2 hover:bg-accent">
-                  <SkipBack className="h-4 w-4" />
+              {/* Controls */}
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => skip(-15)} aria-label="Back 15 seconds" className="rounded-full p-2.5 transition-all hover:bg-primary/10 hover:text-primary">
+                  <SkipBack className="h-4 w-4 md:h-5 md:w-5" />
                 </button>
                 <button
                   onClick={toggle}
                   aria-label={isPlaying ? "Pause" : "Play"}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl md:h-12 md:w-12"
                 >
-                  {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {isPlaying ? <Pause className="h-5 w-5 md:h-6 md:w-6" /> : <Play className="h-5 w-5 md:h-6 md:w-6" />}
                 </button>
-                <button onClick={() => skip(15)} aria-label="Forward 15 seconds" className="rounded-full p-2 hover:bg-accent">
-                  <SkipForward className="h-4 w-4" />
+                <button onClick={() => skip(15)} aria-label="Forward 15 seconds" className="rounded-full p-2.5 transition-all hover:bg-primary/10 hover:text-primary">
+                  <SkipForward className="h-4 w-4 md:h-5 md:w-5" />
                 </button>
                 <button
                   onClick={cycleSpeed}
@@ -184,12 +187,12 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
                 {nextEpisode && (
                   <button
                     onClick={() => playEpisode(nextEpisode, 0)}
-                    className="hidden rounded-full px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-accent lg:block"
+                    className="hidden rounded-lg bg-accent/50 px-3 py-1.5 text-xs font-medium transition-all hover:bg-accent lg:block"
                   >
                     Next up
                   </button>
                 )}
-                <button onClick={close} aria-label="Close player" className="rounded-full p-2 hover:bg-accent">
+                <button onClick={close} aria-label="Close player" className="rounded-full p-2 transition-all hover:bg-destructive/10 hover:text-destructive">
                   <X className="h-4 w-4" />
                 </button>
               </div>

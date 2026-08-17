@@ -48,6 +48,7 @@ const AIFormulator = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [resultTier, setResultTier] = useState<"free" | "premium">("free");
   const [hasSubscription, setHasSubscription] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [popiaConsent, setPopiaConsent] = useState(false);
@@ -115,6 +116,7 @@ const AIFormulator = () => {
       }
 
       setRecommendation(data.recommendation);
+      setResultTier(data.tier || (isMember ? "premium" : "free"));
 
       // Auto-download the personalized PDF report
       try {
@@ -317,7 +319,18 @@ const AIFormulator = () => {
               <p className="text-muted-foreground max-w-xl mx-auto">
                 Get your personalized skin profile, AM/PM routine, actives schedule & product recommendations.
               </p>
-            </div>
+              {!isMember && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
+                  <Shield className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-muted-foreground">
+                    Free tier: Basic analysis • 
+                    <a href="/pricing" className="text-primary hover:underline ml-1">
+                      Upgrade for comprehensive results
+                    </a>
+                  </span>
+                </div>
+              )}
+              <p className="text-muted-foreground max-w-xl mx-auto">
 
             {/* Form card */}
             <div className="bg-card rounded-2xl border border-border p-6 md:p-10 shadow-lg">
@@ -675,6 +688,15 @@ const AIFormulator = () => {
               {/* ─── Results step (for subscribers viewing immediately) ─── */}
               {step === STEP_RESULTS && recommendation && hasSubscription && !showConfirmation && (
                 <div className="space-y-6">
+                    {resultTier === "free" && (
+                      <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-sm">
+                        <Shield className="h-4 w-4 text-primary" />
+                        <span className="text-muted-foreground">
+                          Basic Analysis • 
+                          <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for full results</a>
+                        </span>
+                      </div>
+                    )}
                   <div className="text-center">
                     <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
                       <Sparkles className="h-10 w-10 text-primary" />
