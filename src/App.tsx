@@ -35,6 +35,7 @@ import PodcastPage from "./pages/PodcastPage";
 import EpisodePage from "./pages/EpisodePage";
 import Pricing from "./pages/Pricing";
 import Newsroom from "./pages/Newsroom";
+import NewsroomArticle from "./pages/NewsroomArticle";
 import Reviews from "./pages/Reviews";
 import Consultations from "./pages/Consultations";
 import Preloader from "./components/Preloader";
@@ -111,6 +112,7 @@ const AppContent = () => {
 
         {/* Content platform */}
         <Route path="/newsroom" element={<Newsroom />} />
+        <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
