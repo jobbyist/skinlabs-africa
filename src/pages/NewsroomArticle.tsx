@@ -70,10 +70,12 @@ const NewsroomArticle = () => {
     setBodyLoading(true);
     void (async () => {
       const { data } = await supabase.rpc("get_article_body", { p_slug: slug });
-      const row = Array.isArray(data) ? data[0] : null;
-      setBody((row as { body_markdown?: string } | null)?.body_markdown ?? null);
-      const imgs = (row as { inline_images?: InlineImage[] } | null)?.inline_images;
-      setInlineImages(Array.isArray(imgs) ? imgs : []);
+      const row = (Array.isArray(data) ? data[0] : null) as
+        | { body_markdown?: string; inline_images?: unknown }
+        | null;
+      setBody(row?.body_markdown ?? null);
+      const imgs = row?.inline_images;
+      setInlineImages(Array.isArray(imgs) ? (imgs as InlineImage[]) : []);
       setBodyLoading(false);
     })();
   }, [article, slug, isMember, membershipLoading]);
