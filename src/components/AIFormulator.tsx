@@ -330,7 +330,7 @@ const AIFormulator = () => {
                   </span>
                 </div>
               )}
-              <p className="text-muted-foreground max-w-xl mx-auto">
+            </div>
 
             {/* Form card */}
             <div className="bg-card rounded-2xl border border-border p-6 md:p-10 shadow-lg">

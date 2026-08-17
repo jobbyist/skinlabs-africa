@@ -27,8 +27,6 @@ export const sitemapUrls: SitemapUrl[] = [
   // Company
   { loc: '/careers', changefreq: 'monthly', priority: 0.6 },
   { loc: '/press', changefreq: 'monthly', priority: 0.5 },
-  { loc: '/our-science', changefreq: 'monthly', priority: 0.7 },
-  { loc: '/sustainability', changefreq: 'monthly', priority: 0.6 },
   
   // Support
   { loc: '/faq', changefreq: 'monthly', priority: 0.6 },

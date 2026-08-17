@@ -1,10 +1,27 @@
+import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen, PlayCircle } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import {
+  Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen, PlayCircle,
+  Microscope, Beaker, Brain, Leaf, Recycle, Package, Check, Crown,
+} from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const About = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.replace("#", "");
+    const timeout = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => clearTimeout(timeout);
+  }, [location.hash]);
+
   const values = [
     {
       icon: <Heart className="h-8 w-8" />,
@@ -27,7 +44,6 @@ const About = () => {
       description: "AI translates research into a routine you can actually follow, reviewed against clinical guidance"
     }
   ];
-
 
   const keyFeatures = [
     {
@@ -106,26 +122,104 @@ const About = () => {
       description: "Upgraded AI Formulator to premium service with personalized routines, trackers and product recommendations."
     }
   ];
+
+  const sciencePillars = [
+    {
+      icon: <Microscope className="h-8 w-8" />,
+      title: "Research-Driven",
+      description: "Every briefing and score is backed by peer-reviewed dermatological research and clinical studies"
+    },
+    {
+      icon: <Beaker className="h-8 w-8" />,
+      title: "Transparent Scoring",
+      description: "Products are scored on efficacy, value, texture and SA climate fit using disclosed ingredient concentrations"
+    },
+    {
+      icon: <Brain className="h-8 w-8" />,
+      title: "AI Technology",
+      description: "Our AI Formulator analyses thousands of skin profiles to recommend the optimal routine and actives"
+    },
+    {
+      icon: <Award className="h-8 w-8" />,
+      title: "Editorial Standards",
+      description: "Every claim a brand can't substantiate is flagged, capped, or disclosed — not quietly repeated"
+    }
+  ];
+
+  const sustainabilityInitiatives = [
+    {
+      icon: <Leaf className="h-8 w-8" />,
+      title: "Editorial Independence",
+      description: "No affiliate deals or gifted samples influence a score — our members fund the work, not brands",
+      stats: "100% Independent"
+    },
+    {
+      icon: <Recycle className="h-8 w-8" />,
+      title: "Locally Sourced Guidance",
+      description: "We prioritise recommending SA-formulated and recyclable-packaged products where the evidence supports it",
+      stats: "SA-First"
+    },
+    {
+      icon: <Package className="h-8 w-8" />,
+      title: "Digital-First Platform",
+      description: "A content and community platform with no physical shipping footprint — briefings, not boxes",
+      stats: "Zero Shipping"
+    },
+    {
+      icon: <Heart className="h-8 w-8" />,
+      title: "Responsible Recommendations",
+      description: "We flag mineral-oil, fragrance and sustainability trade-offs honestly, even in well-loved products",
+      stats: "Disclosed"
+    }
+  ];
+
+  const membershipPlans = [
+    {
+      id: "explorer",
+      name: "Glow Explorer",
+      price: 0,
+      tagline: "Start reading, start learning",
+      features: ["One Newsroom briefing per day", "Podcast episode previews", "Basic AI skin quiz result", "Community review scores"],
+      cta: "Start free",
+    },
+    {
+      id: "insider",
+      name: "Glow Insider",
+      price: 99,
+      tagline: "The full skincare intelligence toolkit",
+      highlight: true,
+      features: ["Unlimited Newsroom access", "Full AI routine report + PDF download", "Complete podcast library and show notes", "Full product review breakdowns", "Monthly routine re-analysis"],
+      cta: "Become an Insider",
+    },
+    {
+      id: "vip",
+      name: "Glow VIP",
+      price: 299,
+      tagline: "Add real practitioners to your routine",
+      features: ["Everything in Glow Insider", "One virtual derm consultation per month", "Priority booking with SA practitioners", "Personalised quarterly routine review"],
+      cta: "Go VIP",
+    },
+  ];
+
   return (
     <>
       <Helmet>
-        <title>About Us - Our Story | SKINLABS</title>
         <title>About SkinLabs — Independent SA Skincare Platform | SKINLABS</title>
-        <meta name="description" content="Learn about SkinLabs: An independent skin science platform with daily briefings, honest product reviews, AI routines, and a podcast—all built for South African skin." />
-        <meta name="keywords" content="about SkinLabs, skincare platform South Africa, independent skincare reviews, AI skincare, skincare science SA" />
-        <meta property="og:title" content="About Us - Our Story | SKINLABS" />
+        <meta name="description" content="Learn about SkinLabs: an independent skin science platform with daily briefings, honest product reviews, our research methodology, sustainability commitments, and membership plans — all built for South African skin." />
+        <meta name="keywords" content="about SkinLabs, skincare platform South Africa, independent skincare reviews, AI skincare, skincare science SA, sustainability, our science" />
+        <link rel="canonical" href="https://skinlabs.co.za/about" />
         <meta property="og:title" content="About SkinLabs — Independent SA Skincare Platform" />
-        <meta property="og:description" content="Independent skin science platform with daily briefings, honest product reviews, and AI routines for South African skin." />
+        <meta property="og:description" content="Independent skin science platform with daily briefings, honest product reviews, our science, sustainability commitments and AI routines for South African skin." />
+        <meta property="og:url" content="https://skinlabs.co.za/about" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
-      </Helmet>
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "AboutPage",
           "name": "About SkinLabs",
           "url": "https://skinlabs.co.za/about",
-          "description": "Independent skin science platform built for South Africa with daily briefings, product reviews, AI routines, and educational content.",
+          "description": "Independent skin science platform built for South Africa with daily briefings, product reviews, our research methodology, sustainability commitments, AI routines, and membership plans.",
           "mainEntity": {
             "@type": "Organization",
             "name": "SkinLabs",
@@ -134,6 +228,7 @@ const About = () => {
             "description": "Content and community-first skincare platform for South Africa"
           }
         })}</script>
+      </Helmet>
 
       <div className="min-h-screen bg-background">
         <Header />
@@ -172,7 +267,6 @@ const About = () => {
                   </div>
                 </div>
 
-
                 <div className="mb-12">
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Our Journey</h2>
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-10">
@@ -183,7 +277,7 @@ const About = () => {
                             <div className="absolute left-[19px] top-10 bottom-0 w-px bg-border" />
                           )}
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary border-2 border-primary/20 relative z-10">
-                            {item.year.length > 4 ? item.year.slice(-2) : item.year.slice(-2)}
+                            {item.year.slice(-2)}
                           </div>
                           <div className="flex-1 pb-6">
                             <div className="flex items-baseline gap-2 mb-1">
@@ -229,7 +323,7 @@ const About = () => {
                   </div>
                 </div>
 
-                <div className="bg-card border border-border rounded-3xl p-8 md:p-10 mb-12">
+                <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
                   <div className="text-center mb-6">
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                       <PlayCircle className="h-8 w-8 text-primary" />
@@ -241,6 +335,7 @@ const About = () => {
                     <p className="text-muted-foreground">Video player placeholder</p>
                   </div>
                 </div>
+
                 <div className="mb-12">
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Our Values</h2>
                   <div className="grid md:grid-cols-2 gap-6">
@@ -258,6 +353,186 @@ const About = () => {
                   </div>
                 </div>
 
+                {/* Our Science (merged from /our-science) */}
+                <div id="science" className="mb-12 scroll-mt-24">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                      <Microscope className="h-8 w-8 text-primary" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-foreground mb-3">Our Science</h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                      Where dermatological research meets transparent, disclosed editorial scoring
+                    </p>
+                  </div>
+
+                  <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
+                    <h3 className="text-2xl font-bold text-foreground mb-6">Our Approach</h3>
+                    <div className="space-y-4 text-muted-foreground">
+                      <p>
+                        Every product review is scored out of 10 on four axes — Efficacy, Value, Texture and
+                        SA Climate Match — derived from disclosed active concentrations, published
+                        dermatological evidence, and SA retail pricing, not from independent lab or clinical
+                        testing. Where a brand's claim outpaces what its formula can support, we cap the
+                        score and say so.
+                      </p>
+                      <p>
+                        Our AI Formulator applies the same evidence-first standard: it translates dermatology
+                        research into a routine matched to your skin type, climate zone and budget, reviewed
+                        against clinical guidance rather than trend cycles.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 mb-8">
+                    {sciencePillars.map((pillar, index) => (
+                      <div key={index} className="bg-card border border-border rounded-2xl p-6">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                          {pillar.icon}
+                        </div>
+                        <h3 className="text-xl font-semibold text-foreground mb-2">{pillar.title}</h3>
+                        <p className="text-muted-foreground">{pillar.description}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-card border border-border rounded-3xl p-8 md:p-10">
+                    <h3 className="text-xl font-bold text-foreground mb-6">Our Scoring Process</h3>
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-2">1. Ingredient &amp; Evidence Review</h4>
+                        <p className="text-sm text-muted-foreground">
+                          We compare disclosed active concentrations against published dermatology and
+                          cosmetic-chemistry evidence for those actives at those levels.
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-2">2. Value Benchmarking</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Price-per-ml is benchmarked against comparable SA products from brand sites and
+                          major local stockists, captured at the research date.
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-2">3. SA Climate Reasoning</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Formulation science is reasoned across the dry Highveld, humid KZN coast and windy
+                          Western Cape belt — not climate-chamber testing.
+                        </p>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-2">4. Editorial Disclosure</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Every product page carries our methodology and a consumer-protection disclaimer:
+                          scores are editorial opinions, not claims of independent lab or clinical testing.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sustainability (merged from /sustainability) */}
+                <div id="sustainability" className="mb-12 scroll-mt-24">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                      <Leaf className="h-8 w-8 text-primary" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-foreground mb-3">Sustainability</h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                      Building a more honest, lower-footprint way to give skincare advice
+                    </p>
+                  </div>
+
+                  <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
+                    <h3 className="text-2xl font-bold text-foreground mb-6">Our Commitment</h3>
+                    <div className="space-y-4 text-muted-foreground">
+                      <p>
+                        As a content and community-first platform, our biggest sustainability lever is
+                        editorial honesty: we never let affiliate deals or gifted samples influence a
+                        score, and we flag mineral-oil bases, synthetic fragrance and packaging trade-offs
+                        even in well-loved products.
+                      </p>
+                      <p>
+                        We also carry a lighter footprint by design — SkinLabs is a digital briefing,
+                        review and consultation platform with no warehousing or shipping operations, and we
+                        prioritise recommending SA-formulated, recyclable-packaged products where the
+                        evidence supports it.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-6 mb-8">
+                    {sustainabilityInitiatives.map((initiative, index) => (
+                      <div key={index} className="bg-card border border-border rounded-2xl p-8">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
+                          {initiative.icon}
+                        </div>
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xl font-semibold text-foreground">{initiative.title}</h3>
+                          <span className="text-primary font-bold text-sm">{initiative.stats}</span>
+                        </div>
+                        <p className="text-muted-foreground">{initiative.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Membership upsell */}
+                <div id="membership" className="mb-12 scroll-mt-24">
+                  <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+                      <Crown className="h-8 w-8 text-primary" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-foreground mb-3">Become a Member</h2>
+                    <p className="text-muted-foreground max-w-2xl mx-auto">
+                      SkinLabs is funded by members, not brands — that independence is what keeps every
+                      score honest. Choose the tier that matches how deep you want to go.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    {membershipPlans.map((plan) => (
+                      <div
+                        key={plan.id}
+                        className={cn(
+                          "relative flex flex-col rounded-3xl border bg-card p-8",
+                          plan.highlight ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
+                        )}
+                      >
+                        {plan.highlight && (
+                          <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                            <Sparkles className="h-3 w-3" /> Most popular
+                          </span>
+                        )}
+                        <h3 className="font-heading text-xl font-bold text-foreground">{plan.name}</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                        <div className="mt-6 flex items-end gap-1">
+                          <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.price}</span>
+                          <span className="pb-1 text-sm text-muted-foreground">/month</span>
+                        </div>
+                        <ul className="mt-6 flex-1 space-y-3">
+                          {plan.features.map((feature) => (
+                            <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                              <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                        <Button className="mt-8 w-full" variant={plan.highlight ? "default" : "outline"} asChild>
+                          <a href={plan.id === "explorer" ? "/get-started" : `/get-started?plan=${plan.id}`}>
+                            {plan.cta}
+                          </a>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="mt-8 text-center">
+                    <Button variant="link" asChild>
+                      <a href="/pricing">Compare all plan details →</a>
+                    </Button>
+                  </p>
+                </div>
+
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
                   <h2 className="text-3xl font-bold text-foreground mb-4">
                     Join the community
@@ -266,6 +541,9 @@ const About = () => {
                     Become a member for unlimited daily briefings, full product reviews and your
                     complete AI skincare routine.
                   </p>
+                  <Button size="lg" asChild>
+                    <a href="/get-started">Get started free</a>
+                  </Button>
                 </div>
 
               </div>

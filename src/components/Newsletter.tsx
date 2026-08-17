@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Video, Calendar, Star, Sparkles } from "lucide-react";
+import { Video, Calendar, Star, Sparkles, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -86,11 +86,11 @@ const Newsletter = () => {
             <Button type="submit" className="gap-2" disabled={loading}>
               {loading ? "Subscribing..." : "Subscribe"}
               <Send className="h-4 w-4" />
-              <Sparkles className="h-4 w-4" />
+            </Button>
           </form>
 
-          <p className="text-xs text-muted-foreground mt-4">
           <p className="text-xs text-muted-foreground mt-4 text-center">
+            We'll never share your email. Unsubscribe anytime.
           </p>
         </div>
       </div>

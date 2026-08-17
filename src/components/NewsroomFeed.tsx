@@ -53,7 +53,11 @@ const NewsroomFeed = ({
 
   const handleEngagement = async (article: NewsArticleSummary, kind: "like" | "save") => {
     if (!user) {
-      kind === "like" ? toggleLike(article.id) : toggleSave(article.id);
+      if (kind === "like") {
+        toggleLike(article.id);
+      } else {
+        toggleSave(article.id);
+      }
       toast.message("Sign in to sync your saved briefings across devices.");
       return;
     }

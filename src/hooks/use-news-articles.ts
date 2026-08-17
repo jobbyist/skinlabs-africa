@@ -34,7 +34,7 @@ export const useNewsArticles = (limit?: number) => {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      let query = (supabase as any)
+      let query = supabase
         .from("news_articles_public")
         .select(SELECT_COLUMNS)
         .order("publish_date", { ascending: false })
@@ -42,7 +42,7 @@ export const useNewsArticles = (limit?: number) => {
       if (limit) query = query.limit(limit);
       const { data } = await query;
       if (!active) return;
-      setArticles((data as NewsArticleSummary[]) ?? []);
+      setArticles((data as unknown as NewsArticleSummary[]) ?? []);
       setLoading(false);
     };
     void load();
@@ -62,13 +62,13 @@ export const useNewsArticle = (slug?: string) => {
     let active = true;
     const load = async () => {
       if (!slug) return;
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("news_articles_public")
         .select(SELECT_COLUMNS)
         .eq("slug", slug)
         .maybeSingle();
       if (!active) return;
-      setArticle((data as NewsArticleSummary) ?? null);
+      setArticle((data as unknown as NewsArticleSummary) ?? null);
       setLoading(false);
     };
     void load();

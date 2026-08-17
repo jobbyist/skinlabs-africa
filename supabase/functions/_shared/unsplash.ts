@@ -12,6 +12,14 @@ export interface UnsplashImage {
 
 const UTM = "?utm_source=SkinLabs&utm_medium=referral";
 
+interface UnsplashResult {
+  id: string;
+  alt_description?: string | null;
+  description?: string | null;
+  urls?: { regular?: string; full?: string };
+  user?: { name?: string; links?: { html?: string } };
+}
+
 export async function searchUnsplash(query: string, exclude: Set<string> = new Set()): Promise<UnsplashImage | null> {
   const key = Deno.env.get("UNSPLASH_ACCESS_KEY");
   if (!key) return null;
@@ -31,7 +39,7 @@ export async function searchUnsplash(query: string, exclude: Set<string> = new S
   }
 
   const data = await res.json();
-  const results: any[] = Array.isArray(data?.results) ? data.results : [];
+  const results: UnsplashResult[] = Array.isArray(data?.results) ? data.results : [];
   const pick = results.find((r) => r?.id && !exclude.has(r.id)) ?? results[0];
   if (!pick) return null;
   exclude.add(pick.id);

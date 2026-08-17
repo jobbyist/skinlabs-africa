@@ -27,11 +27,11 @@ const SkinJourneyTab = () => {
   const load = async () => {
     if (!user) return;
     const { data } = await supabase.from("skin_journey_entries").select("*").eq("user_id", user.id).order("entry_date", { ascending: false });
-    setEntries((data as any) || []);
+    setEntries(data || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { void load(); }, [user]);
 
   const add = async () => {
     if (!user) return;
