@@ -9,6 +9,7 @@ import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
+import WelcomeOverlay from "@/components/WelcomeOverlay";
 
 const Index = () => {
   return (
@@ -52,6 +53,7 @@ const Index = () => {
         </main>
         <Footer />
         <CookieConsent />
+        <WelcomeOverlay />
       </div>
     </>
   );
