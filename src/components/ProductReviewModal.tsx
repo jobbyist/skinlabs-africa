@@ -9,7 +9,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import type { ProductReview } from "@/data/reviews";
+import { 
+  type ProductReview, 
+  seededComments, 
+  seededRatings, 
+  getSeededAverageRating, 
+  getSeededLikeCount 
+} from "@/data/reviews";
 
 interface CommentRow {
   id: string;
@@ -72,8 +78,21 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
       if (!active) return;
       const rows = ratings ?? [];
       setLikeCount(rows.filter((r) => r.liked).length);
-      setAvgRating(rows.length ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : null);
+      
+      // Calculate average rating, including seeded ratings if no user ratings exist
+      if (rows.length > 0) {
+        setAvgRating(rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length);
+      } else {
+        setAvgRating(getSeededAverageRating(review.id));
+      }
+      
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
+      
+      // If no user ratings, add seeded like count
+      if (rows.length === 0) {
+        setLikeCount(getSeededLikeCount(review.id));
+      }
+      
       setRating(mine?.rating ?? 0);
       setLiked(Boolean(mine?.liked));
       setComments(commentRows ?? []);
@@ -138,6 +157,11 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
 
   const sortedRetailers = review ? [...review.retailers].sort((a, b) => a.price_zar - b.price_zar) : [];
 
+  
+  // Get seeded comments if no real comments exist
+  const displayComments = comments.length === 0 && review 
+    ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` }))
+    : comments;
   return (
     <Dialog open={Boolean(review)} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
@@ -256,11 +280,11 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
 
               {loading ? (
                 <p className="text-xs text-muted-foreground">Loading discussion…</p>
-              ) : comments.length === 0 ? (
+              ) : displayComments.length === 0 ? (
                 <p className="text-xs text-muted-foreground">No comments yet — be the first.</p>
               ) : (
                 <ul className="space-y-3">
-                  {comments.map((comment) => (
+                  {displayComments.map((comment) => (
                     <li key={comment.id} className="rounded-2xl border border-border bg-card p-3">
                       <p className="text-xs font-semibold text-foreground">{comment.display_name || "Member"}</p>
                       <p className="mt-1 text-sm text-muted-foreground">{comment.body}</p>
