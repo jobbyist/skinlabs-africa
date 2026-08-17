@@ -14,8 +14,8 @@ const Footer = () => {
     ],
     company: [
       { label: "About Us", href: "/about" },
-      { label: "Our Science", href: "/our-science" },
-      { label: "Sustainability", href: "/sustainability" },
+      { label: "Our Science", href: "/about#science" },
+      { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Careers", href: "/careers" },
       { label: "Press", href: "/press" },

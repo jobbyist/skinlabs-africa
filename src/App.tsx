@@ -18,8 +18,6 @@ import CustomFormulas from "./pages/CustomFormulas";
 import BundledKits from "./pages/BundledKits";
 import Business from "./pages/Business";
 import { Navigate } from "react-router-dom";
-import OurScience from "./pages/OurScience";
-import Sustainability from "./pages/Sustainability";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
 import FAQ from "./pages/FAQ";
@@ -45,6 +43,7 @@ import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import PivotAnnouncementModal from "./components/PivotAnnouncementModal";
+import FloatingBottomNav from "./components/FloatingBottomNav";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +61,7 @@ const AppContent = () => {
       <ScrollToTop />
       <PWAInstallPrompt />
       <PivotAnnouncementModal />
+      <FloatingBottomNav />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<GetStarted />} />
@@ -81,8 +81,8 @@ const AppContent = () => {
         <Route path="/business" element={<Business />} />
         
         {/* Company Routes */}
-        <Route path="/our-science" element={<OurScience />} />
-        <Route path="/sustainability" element={<Sustainability />} />
+        <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
+        <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/press" element={<Press />} />
         
