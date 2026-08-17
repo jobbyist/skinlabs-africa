@@ -11,7 +11,7 @@ interface PodcastSectionProps {
 
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
-  description = "Weekly conversations on  skincare culture, ingredient  science and mindful routines — grounded in South African skin, climate and shelves. New episode every Wednesday.",
+  description = "Weekly conversations on skincare culture, ingredient science and mindful routines — grounded in South African skin, climate and shelves. New episode every Wednesday.",
   showCta = true,
 }: PodcastSectionProps) => {
   const { playEpisode, current } = usePodcastPlayer();
