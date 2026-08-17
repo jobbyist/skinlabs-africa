@@ -111,6 +111,7 @@ const AppContent = () => {
 
         {/* Content platform */}
         <Route path="/newsroom" element={<Newsroom />} />
+        <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
