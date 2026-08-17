@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -16,11 +16,11 @@ const Header = () => {
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
-    { label: "The Daily Skinny", href: "/newsroom" },
-    { label: "Reviews", href: "/reviews" },
-    { label: "Podcast", href: "/podcast" },
-    { label: "Consultations", href: "/consultations" },
-    { label: "Pricing", href: "/pricing" },
+    { label: "Briefings", href: "/newsroom", icon: Newspaper },
+    { label: "Reviews", href: "/reviews", icon: Star },
+    { label: "Podcast", href: "/podcast", icon: Mic },
+    { label: "Consultations", href: "/consultations", icon: Calendar },
+    { label: "Pricing", href: "/pricing", icon: DollarSign },
   ];
 
   const handleSignOut = async () => {
@@ -50,8 +50,9 @@ const Header = () => {
                 <Link
                   key={link.label}
                   to={link.href}
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
+                  <link.icon className="h-4 w-4" />
                   {link.label}
                 </Link>
               ))}
@@ -117,9 +118,10 @@ const Header = () => {
                   <Link
                     key={link.label}
                     to={link.href}
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                     onClick={() => setIsMenuOpen(false)}
                   >
+                    <link.icon className="h-4 w-4" />
                     {link.label}
                   </Link>
                 ))}
