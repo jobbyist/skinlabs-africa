@@ -43,10 +43,10 @@ const Index = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main>
-          <Hero />
+          <NewsroomFeed limit={3} />
           <NewsroomFeed limit={3} />
           <AIFormulator />
-          <ReviewsGrid limit={3} />
+          <PodcastSection limit={3} />
           <PodcastSection />
           <Features />
           <Newsletter />

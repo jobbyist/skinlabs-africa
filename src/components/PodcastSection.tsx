@@ -7,12 +7,14 @@ interface PodcastSectionProps {
   heading?: string;
   description?: string;
   showCta?: boolean;
+  limit?: number;
 }
 
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
   description = "Weekly conversations on skincare culture, ingredient science and mindful routines — grounded in South African skin, climate and shelves. New episode every Wednesday.",
   showCta = true,
+  limit,
 }: PodcastSectionProps) => {
   const { playEpisode, current } = usePodcastPlayer();
 
@@ -43,7 +45,7 @@ const PodcastSection = ({
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {podcastEpisodes.map((episode) => (
+          {(limit ? podcastEpisodes.slice(0, limit) : podcastEpisodes).map((episode) => (
             <article
               key={episode.id}
               className={`group flex flex-col overflow-hidden rounded-3xl border bg-card transition-all hover:shadow-lg ${
