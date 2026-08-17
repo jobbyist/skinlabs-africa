@@ -35,7 +35,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Welcome to episode one of The Skin Deep Podcast. Today we explore the weirdest skincare rituals trending online, from snail mucin to edible serums. We break down which ingredients are backed by dermatology research, how to spot gimmicks, and when a quirky routine can still support the skin barrier.",
     duration: "18 min",
     topics: ["Ingredient Science", "Trends"],
-    publishedAt: "2026-01-07",
+    publishedAt: "2025-01-29",
     showNotes: [
       "Why snail mucin works for some barriers and not others",
       "Edible skincare: what the SA regulatory landscape allows",
@@ -71,7 +71,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Episode two dives into the skincare fails we see most often: over-exfoliation, ingredient clashes, and rushing new actives. Hear the reset routines that calm inflammation and restore hydration.",
     duration: "22 min",
     topics: ["Barrier Repair", "Routine Building"],
-    publishedAt: "2026-01-14",
+    publishedAt: "2025-02-05",
     showNotes: [
       "The five-day barrier reset protocol",
       "Signs you have over-exfoliated (and what to stop immediately)",
@@ -106,7 +106,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "In episode three we decode the glass skin trend: hydration layering, gentle exfoliation, peptides, and habits that build lasting luminosity.",
     duration: "20 min",
     topics: ["Hydration", "Trends"],
-    publishedAt: "2026-01-21",
+    publishedAt: "2025-02-12",
     showNotes: [
       "Layering order for humid KZN coastal climates",
       "Peptides vs. growth factors: what the evidence says",
@@ -136,7 +136,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Episode four is all about ingredient drama. We separate facts from fear around retinoids, acids, and preservatives, and explain how to read labels with confidence.",
     duration: "19 min",
     topics: ["Retinoids 101", "Ingredient Science"],
-    publishedAt: "2026-01-28",
+    publishedAt: "2025-02-19",
     showNotes: [
       "Retinol + AHA: when the conflict is real",
       "Preservatives are not the enemy",
