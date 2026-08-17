@@ -34,6 +34,26 @@ const ProductReviewModal = ({ review, onOpenChange }: ProductReviewModalProps) =
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fullReview, setFullReview] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!review || !isMember) {
+      setFullReview(null);
+      return;
+    }
+    void (async () => {
+      const { data } = await supabase
+        .from("review_details")
+        .select("full_review")
+        .eq("review_id", review.id)
+        .maybeSingle();
+      if (active) setFullReview(data?.full_review ?? null);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [review, isMember]);
 
   useEffect(() => {
     if (!review) return;
