@@ -38,7 +38,7 @@ const PodcastSection = ({
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("podcast_plays")
         .select("id")
         .eq("user_id", user.id)
@@ -74,7 +74,7 @@ const PodcastSection = ({
 
     // Track the play
     if (user) {
-      await supabase.from("podcast_plays").insert({
+      await (supabase as any).from("podcast_plays").insert({
         user_id: user.id,
         episode_slug: episode.slug,
         episode_title: episode.title
