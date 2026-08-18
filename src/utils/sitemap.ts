@@ -24,10 +24,6 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: '/ai-formulator', changefreq: 'weekly', priority: 0.9 },
   { loc: '/consultations', changefreq: 'monthly', priority: 0.8 },
   
-  // Company
-  { loc: '/careers', changefreq: 'monthly', priority: 0.6 },
-  { loc: '/press', changefreq: 'monthly', priority: 0.5 },
-  
   // Support
   { loc: '/faq', changefreq: 'monthly', priority: 0.6 },
   { loc: '/shipping', changefreq: 'monthly', priority: 0.5 },

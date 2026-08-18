@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import type { User, Session } from "@supabase/supabase-js";
 
 export const useAuth = () => {
@@ -45,18 +44,13 @@ export const useAuth = () => {
     return { error };
   };
 
-  const signInWithOAuth = async (provider: "google" | "apple") => {
-    const { error } = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
-    });
-    return { data: null, error: error || null };
-  };
-
-  /** Passwordless magic link */
-  const signInWithMagicLink = async (email: string) => {
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
+  /** Optional email verification, initiated by the user from the dashboard. */
+  const sendEmailVerification = async () => {
+    if (!user?.email) return { data: null, error: new Error("No email on this account") };
+    const { data, error } = await supabase.auth.resend({
+      type: "signup",
+      email: user.email,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
     });
     return { data, error };
   };
@@ -95,8 +89,7 @@ export const useAuth = () => {
     signIn,
     signUp,
     signOut,
-    signInWithOAuth,
-    signInWithMagicLink,
+    sendEmailVerification,
     enrollMFA,
     challengeAndVerifyMFA,
     listMFAFactors,

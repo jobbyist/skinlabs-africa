@@ -10,6 +10,7 @@ import { Sparkles, Package, Crown, FileText, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import MFASettingsCard from "@/components/MFASettingsCard";
+import EmailVerificationCard from "@/components/EmailVerificationCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
 
@@ -159,7 +160,10 @@ const UserDashboard = () => {
                   </Card>
                 </TabsContent>
 
-                <TabsContent value="security"><MFASettingsCard /></TabsContent>
+                <TabsContent value="security" className="space-y-6">
+                  <EmailVerificationCard />
+                  <MFASettingsCard />
+                </TabsContent>
               </Tabs>
             </div>
           </section>
