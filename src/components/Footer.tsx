@@ -17,8 +17,6 @@ const Footer = () => {
       { label: "Our Science", href: "/about#science" },
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
-      { label: "Careers", href: "/careers" },
-      { label: "Press", href: "/press" },
     ],
     support: [
       { label: "Contact", href: "/contact" },
