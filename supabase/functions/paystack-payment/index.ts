@@ -21,7 +21,13 @@ function safeCallback(url: unknown): string {
   if (typeof url !== "string") return fallback;
   try {
     const u = new URL(url);
-    return ALLOWED_CALLBACK_ORIGINS.includes(`${u.protocol}//${u.host}`) ? url : fallback;
+    if (u.protocol !== "https:") return fallback;
+    const origin = `${u.protocol}//${u.host}`;
+    const allowed =
+      ALLOWED_CALLBACK_ORIGINS.includes(origin) ||
+      u.hostname.endsWith(".lovable.app") ||
+      u.hostname.endsWith(".lovableproject.com");
+    return allowed ? url : fallback;
   } catch {
     return fallback;
   }
