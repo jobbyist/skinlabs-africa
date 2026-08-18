@@ -20,6 +20,9 @@ export default defineConfig(({ mode, isSsrBuild }) => ({
   ...(mode === "ssrclient" && !isSsrBuild
     ? { build: { rollupOptions: { input: "index.ssr.html" } } }
     : {}),
+  // react-helmet-async ships CJS; bundle it for SSR so Node's ESM/CJS
+  // interop doesn't drop its named exports at runtime.
+  ssr: { noExternal: ["react-helmet-async"] },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
