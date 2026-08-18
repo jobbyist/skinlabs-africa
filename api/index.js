@@ -8,7 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const templatePath = path.resolve(__dirname, "../dist/client/index.ssr.html");
+const templatePath = path.resolve(__dirname, "../dist/client/ssr/index.ssr.html");
 const template = fs.readFileSync(templatePath, "utf-8");
 
 let renderPromise;

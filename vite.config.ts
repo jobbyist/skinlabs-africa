@@ -11,14 +11,18 @@ export default defineConfig(({ mode, isSsrBuild }) => ({
     host: "::",
     port: 8080,
   },
-  // The SSR client build (`bun run build:client`) uses index.ssr.html, which
-  // hydrates via src/entry-client.tsx instead of src/main.tsx. The plain
+  // The SSR client build (`bun run build:client`) uses ssr/index.ssr.html,
+  // which hydrates via src/entry-client.tsx instead of src/main.tsx. It's
+  // nested in ssr/ (rather than sitting in the output root as index.ssr.html)
+  // so Vercel's filesystem-based static routing — which is checked before
+  // rewrites — has no HTML file to implicitly serve for "/", forcing every
+  // route including "/" through the rewrite to the SSR function. The plain
   // GitHub Pages build (`bun run build`) is untouched and keeps using
   // index.html + src/main.tsx (client-only render, no hydration). The SSR
   // server bundle (`--ssr src/entry-server.tsx`) supplies its own entry via
   // the CLI flag and must not have rollupOptions.input overridden here.
   ...(mode === "ssrclient" && !isSsrBuild
-    ? { build: { rollupOptions: { input: "index.ssr.html" } } }
+    ? { build: { rollupOptions: { input: "ssr/index.ssr.html" } } }
     : {}),
   // react-helmet-async ships CJS; bundle it for SSR so Node's ESM/CJS
   // interop doesn't drop its named exports at runtime.

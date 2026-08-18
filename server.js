@@ -31,11 +31,11 @@ app.use(/.*/, async (req, res) => {
     let render;
 
     if (!isProd) {
-      template = await fs.readFile(path.resolve(__dirname, "index.ssr.html"), "utf-8");
+      template = await fs.readFile(path.resolve(__dirname, "ssr/index.ssr.html"), "utf-8");
       template = await vite.transformIndexHtml(url, template);
       render = (await vite.ssrLoadModule("/src/entry-server.tsx")).render;
     } else {
-      template = await fs.readFile(path.resolve(__dirname, "dist/client/index.ssr.html"), "utf-8");
+      template = await fs.readFile(path.resolve(__dirname, "dist/client/ssr/index.ssr.html"), "utf-8");
       render = (await import("./dist/server/entry-server.js")).render;
     }
 
