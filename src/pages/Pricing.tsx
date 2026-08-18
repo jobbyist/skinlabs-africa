@@ -60,13 +60,31 @@ const Pricing = () => {
   const { user } = useAuth();
   const { tier } = useMembership();
   const [authOpen, setAuthOpen] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<PaystackPlan | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  const beginCheckout = async (planId: PaystackPlan) => {
+    setProcessing(planId);
+    const { error } = await startPaystackCheckout(planId);
+    if (error) {
+      setProcessing(null);
+      toast.error(error.message);
+    }
+  };
 
   const handleSelect = (planId: string) => {
+    if (planId === "explorer") {
+      if (!user) setAuthOpen(true);
+      else window.location.href = "/dashboard";
+      return;
+    }
+    const plan = planId as PaystackPlan;
     if (!user) {
+      setPendingPlan(plan);
       setAuthOpen(true);
       return;
     }
-    window.location.href = `/get-started?plan=${planId}`;
+    void beginCheckout(plan);
   };
 
   return (
