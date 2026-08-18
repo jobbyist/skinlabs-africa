@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import type { User, Session } from "@supabase/supabase-js";
 
 export const useAuth = () => {
@@ -90,8 +89,7 @@ export const useAuth = () => {
     signIn,
     signUp,
     signOut,
-    signInWithOAuth,
-    signInWithMagicLink,
+    sendEmailVerification,
     enrollMFA,
     challengeAndVerifyMFA,
     listMFAFactors,
