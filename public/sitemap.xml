@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <!-- Main Pages -->
   <url>
     <loc>https://skinlabs.co.za/</loc>
@@ -17,7 +19,7 @@
     <loc>https://skinlabs.co.za/pricing</loc>
     <lastmod>2025-01-15</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <changefreq>monthly</changefreq>
   </url>
   <url>
     <loc>https://skinlabs.co.za/contact</loc>
@@ -27,7 +29,7 @@
   </url>
   
   <!-- Content Pages -->
-  <url>
+  <!-- Content Pages - Key pages for Rich Results -->
     <loc>https://skinlabs.co.za/newsroom</loc>
     <lastmod>2025-01-15</lastmod>
     <changefreq>daily</changefreq>
