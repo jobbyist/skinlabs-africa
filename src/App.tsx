@@ -1,45 +1,49 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Analytics } from "@vercel/analytics/react";
 import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import GetStarted from "./pages/GetStarted";
-import Products from "./pages/Products";
-import AIFormulator from "./pages/AIFormulator";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Devices from "./pages/Devices";
-import Serums from "./pages/Serums";
-import CustomFormulas from "./pages/CustomFormulas";
-import BundledKits from "./pages/BundledKits";
-import Business from "./pages/Business";
-import { Navigate } from "react-router-dom";
-import FAQ from "./pages/FAQ";
-import Shipping from "./pages/Shipping";
-import Returns from "./pages/Returns";
-import TrackOrder from "./pages/TrackOrder";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import CookiePolicy from "./pages/CookiePolicy";
-import AdminDashboard from "./pages/AdminDashboard";
-import Openhaus from "./pages/Openhaus";
-import PodcastPage from "./pages/PodcastPage";
-import EpisodePage from "./pages/EpisodePage";
-import Pricing from "./pages/Pricing";
-import Newsroom from "./pages/Newsroom";
-import NewsroomArticle from "./pages/NewsroomArticle";
-import Reviews from "./pages/Reviews";
-import Consultations from "./pages/Consultations";
 import Preloader from "./components/Preloader";
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
-import EdiblePouches from "./pages/EdiblePouches";
-import UserDashboard from "./pages/UserDashboard";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
+
+// Every other route is code-split — only the landing page is bundled eagerly,
+// keeping the initial payload small as the site's page count grows.
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Products = lazy(() => import("./pages/Products"));
+const AIFormulator = lazy(() => import("./pages/AIFormulator"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Devices = lazy(() => import("./pages/Devices"));
+const Serums = lazy(() => import("./pages/Serums"));
+const CustomFormulas = lazy(() => import("./pages/CustomFormulas"));
+const BundledKits = lazy(() => import("./pages/BundledKits"));
+const Business = lazy(() => import("./pages/Business"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Shipping = lazy(() => import("./pages/Shipping"));
+const Returns = lazy(() => import("./pages/Returns"));
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Openhaus = lazy(() => import("./pages/Openhaus"));
+const PodcastPage = lazy(() => import("./pages/PodcastPage"));
+const EpisodePage = lazy(() => import("./pages/EpisodePage"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Newsroom = lazy(() => import("./pages/Newsroom"));
+const NewsroomArticle = lazy(() => import("./pages/NewsroomArticle"));
+const Reviews = lazy(() => import("./pages/Reviews"));
+const ProductReview = lazy(() => import("./pages/ProductReview"));
+const Consultations = lazy(() => import("./pages/Consultations"));
+const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 
 const queryClient = new QueryClient();
 
@@ -48,18 +52,25 @@ const LegacyStreamRedirect = () => {
   return <Navigate to={`/podcast/${slug}`} replace />;
 };
 
+const RouteFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
+
 const AppContent = () => {
 
-  
+
   return (
     <>
       <Preloader />
       <ScrollToTop />
       <FloatingBottomNav />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/get-started" element={<GetStarted />} />
-        
+        <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
+
         {/* Header Navigation Routes */}
         <Route path="/products" element={<Products />} />
         <Route path="/ai-formulator" element={<AIFormulator />} />
@@ -106,6 +117,7 @@ const AppContent = () => {
         <Route path="/newsroom" element={<Newsroom />} />
         <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/reviews/:slug" element={<ProductReview />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
         
@@ -118,6 +130,7 @@ const AppContent = () => {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </>
   );
 };

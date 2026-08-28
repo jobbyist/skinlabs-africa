@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ProductReviewModal from "@/components/ProductReviewModal";
-import { overallScore, productReviews, reviewCategories, type ProductReview } from "@/data/reviews";
+import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +40,6 @@ const ReviewsGrid = ({
   
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
-  const [selected, setSelected] = useState<ProductReview | null>(null);
 
   const filtered = useMemo(() => {
     const base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
@@ -121,8 +120,8 @@ const ReviewsGrid = ({
               <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
 
               <div className="mt-auto flex items-center justify-between">
-                <Button variant="outline" size="sm" onClick={() => setSelected(review)}>
-                  Full breakdown
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
                 </Button>
                 <button
                   onClick={() => toggleLike(review.id)}
@@ -136,9 +135,6 @@ const ReviewsGrid = ({
           ))}
         </div>
       </div>
-
-      <ProductReviewModal review={selected} onOpenChange={(open) => !open && setSelected(null)} />
-
     </section>
   );
 };

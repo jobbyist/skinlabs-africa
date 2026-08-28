@@ -2,10 +2,14 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Sparkles, Shield, Lock, Crown, Truck, Users, Loader2 } from "lucide-react";
+import { CheckCircle2, Sparkles, Shield, Lock, Crown, Gift, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
+import { startPaystackCheckout } from "@/lib/paystack";
+import { startFreeTrial } from "@/lib/trial";
+import { getPlan } from "@/data/plans";
 import { toast } from "sonner";
+
+const insiderPlan = getPlan("insider")!;
 
 interface SubscriptionPaywallModalProps {
   open: boolean;
@@ -25,6 +29,7 @@ const SubscriptionPaywallModal = ({
   onPaymentSuccess,
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isStartingTrial, setIsStartingTrial] = useState(false);
   const { user } = useAuth();
 
   const handleSubscribe = async () => {
@@ -32,46 +37,36 @@ const SubscriptionPaywallModal = ({
       toast.error("Please sign in first to subscribe");
       return;
     }
-
     setIsProcessing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("payfast-payment", {
-        body: {
-          type: "subscription",
-          userId: user.id,
-          email: user.email,
-          returnUrl: `${window.location.origin}/ai-formulator?payment=success`,
-          cancelUrl: `${window.location.origin}/ai-formulator?payment=cancelled`,
-        },
-      });
-      if (error) throw error;
-      if (data?.paymentUrl && data?.paymentData) {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = data.paymentUrl;
-        Object.entries(data.paymentData).forEach(([key, value]) => {
-          const input = document.createElement("input");
-          input.type = "hidden";
-          input.name = key;
-          input.value = value as string;
-          form.appendChild(input);
-        });
-        document.body.appendChild(form);
-        form.submit();
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to initiate payment. Please try again.");
-    } finally {
+    const { error } = await startPaystackCheckout("insider");
+    if (error) {
+      toast.error(error.message);
       setIsProcessing(false);
     }
   };
 
+  const handleStartTrial = async () => {
+    if (!user) {
+      toast.error("Please sign in first to start your free trial");
+      return;
+    }
+    setIsStartingTrial(true);
+    const { error } = await startFreeTrial("insider");
+    setIsStartingTrial(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Your 7-day free trial is active — enjoy your full report!");
+    onPaymentSuccess?.();
+    onOpenChange(false);
+  };
+
   const benefits = [
-    { icon: Sparkles, text: "AI-powered personalized skincare routine" },
+    { icon: Sparkles, text: "Custom AI skincare routine, re-analysed weekly" },
     { icon: Users, text: "Dermatologist-reviewed recommendations" },
-    { icon: Truck, text: "Customized skincare kits delivered to your door" },
-    { icon: Shield, text: "30-day money-back guarantee" },
+    { icon: Gift, text: "Full newsroom, podcast and product review access" },
+    { icon: Shield, text: "Cancel anytime, no lock-in" },
   ];
 
   const getPreviewSnippet = () => {
@@ -136,33 +131,52 @@ const SubscriptionPaywallModal = ({
         {/* Pricing */}
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-center mb-4">
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold text-primary">R99</span>
+            <span className="text-4xl font-bold text-primary">R{insiderPlan.priceMonthly}</span>
             <span className="text-muted-foreground">/month</span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Cancel anytime • 30-day money-back guarantee
+            Cancel anytime, no lock-in
           </p>
         </div>
 
         {/* CTA */}
-        <Button
-          size="lg"
-          className="w-full gap-2"
-          onClick={handleSubscribe}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <>
+        <div className="space-y-2">
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full gap-2"
+            onClick={handleStartTrial}
+            disabled={isStartingTrial || isProcessing}
+          >
+            {isStartingTrial ? (
               <Loader2 className="h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Subscribe & Unlock My Report
-            </>
-          )}
-        </Button>
+            ) : (
+              <Gift className="h-4 w-4" />
+            )}
+            Start my 7-day free trial
+          </Button>
+          <Button
+            size="lg"
+            className="w-full gap-2"
+            onClick={handleSubscribe}
+            disabled={isProcessing || isStartingTrial}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Subscribe & Unlock My Report
+              </>
+            )}
+          </Button>
+        </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          No credit card required for the free trial.
+        </p>
 
         {/* Trust signals */}
         <div className="flex items-center justify-center gap-4 mt-4 text-xs text-muted-foreground">

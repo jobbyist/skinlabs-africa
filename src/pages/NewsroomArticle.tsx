@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -60,13 +61,11 @@ const NewsroomArticle = () => {
     })();
   }, [article]);
 
-  // Member-gated body
+  // Body: fully public for is_premium=false articles, member-gated (with a free
+  // weekly allowance) for everything else. The RPC itself decides what to return —
+  // we always attempt the call so public articles render for signed-out visitors too.
   useEffect(() => {
     if (!article || !slug || membershipLoading) return;
-    if (!isMember) {
-      setBody(null);
-      return;
-    }
     setBodyLoading(true);
     void (async () => {
       const { data } = await supabase.rpc("get_article_body", { p_slug: slug });
@@ -261,8 +260,8 @@ const NewsroomArticle = () => {
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : body ? (
-                <div className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary">
-                  <ReactMarkdown>{body}</ReactMarkdown>
+                <div className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary prose-table:text-sm">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
                   {inlineImages.length > 0 && (
                     <div className="not-prose mt-8 grid gap-6 sm:grid-cols-2">
                       {inlineImages.map((img) => (
@@ -282,11 +281,25 @@ const NewsroomArticle = () => {
                     </div>
                   )}
                 </div>
+              ) : user ? (
+                <div className="rounded-3xl border border-border bg-card p-8 text-center">
+                  <h2 className="font-heading text-xl font-bold text-foreground">
+                    {isMember ? "Members read the full breakdown" : "You've used this week's free briefing"}
+                  </h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                    {isMember
+                      ? "Unlock the full commentary, the SA context and the shelf-level implications with a SkinLabs membership."
+                      : "Free accounts get one full briefing every 7 days. Upgrade for unlimited daily briefings, or check back next week."}
+                  </p>
+                  <Button asChild className="mt-5">
+                    <Link to="/pricing">See membership plans</Link>
+                  </Button>
+                </div>
               ) : (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
-                  <h2 className="font-heading text-xl font-bold text-foreground">Members read the full breakdown</h2>
+                  <h2 className="font-heading text-xl font-bold text-foreground">Sign in to read this briefing</h2>
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                    Unlock the full commentary, the SA context and the shelf-level implications with a SkinLabs membership.
+                    Free accounts get one full briefing every week, no card required. Members get unlimited daily briefings.
                   </p>
                   <Button asChild className="mt-5">
                     <Link to="/pricing">See membership plans</Link>

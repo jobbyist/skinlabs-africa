@@ -168,10 +168,10 @@ const Openhaus = () => {
                       Skinlabs Premium members are automatically added to the waiting list, no
                       opt-in required.{" "}
                       <a
-                        href="/get-started"
+                        href="/pricing"
                         className="text-primary hover:underline font-medium"
                       >
-                        Click here to become a premium member for R99 per month
+                        Click here to become a Glow Insider member for R99 per month
                       </a>
                     </p>
                   </div>

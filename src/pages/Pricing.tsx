@@ -1,78 +1,57 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Gift, Sparkles } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { membershipPlans, planPrice, annualMonthlyEquivalent, ANNUAL_MONTHS_FREE, type BillingInterval, type PlanId } from "@/data/plans";
+import { startPaystackCheckout, type PaystackPlan } from "@/lib/paystack";
+import { startFreeTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-const plans = [
-  {
-    id: "explorer",
-    name: "Glow Explorer",
-    price: 0,
-    tagline: "Start reading, start learning",
-    features: [
-      "One Newsroom briefing per day",
-      "Podcast episode previews",
-      "Basic AI skin quiz result",
-      "Community review scores",
-    ],
-    cta: "Start free",
-  },
-  {
-    id: "insider",
-    name: "Glow Insider",
-    price: 99,
-    tagline: "The full skincare intelligence toolkit",
-    highlight: true,
-    features: [
-      "Unlimited Newsroom access",
-      "Full AI routine report + PDF download",
-      "Complete podcast library and show notes",
-      "Full product review breakdowns",
-      "Monthly routine re-analysis",
-      "Member-only ingredient deep dives",
-    ],
-    cta: "Become an Insider",
-  },
-  {
-    id: "vip",
-    name: "Glow VIP",
-    price: 299,
-    tagline: "Add real practitioners to your routine",
-    features: [
-      "Everything in Glow Insider",
-      "One virtual derm consultation per month",
-      "Priority booking with SA practitioners",
-      "Personalised quarterly routine review",
-      "Early access to new SkinLabs tools",
-    ],
-    cta: "Go VIP",
-  },
-];
+type PendingAction = { kind: "subscribe" | "trial"; plan: PaystackPlan } | null;
 
 const Pricing = () => {
   const { user } = useAuth();
-  const { tier } = useMembership();
+  const { tier, trialUsed } = useMembership();
+  const [interval, setInterval] = useState<BillingInterval>("monthly");
   const [authOpen, setAuthOpen] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState<PaystackPlan | null>(null);
-  const [processing, setProcessing] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
-  const beginCheckout = async (planId: PaystackPlan) => {
-    setProcessing(planId);
-    const { error } = await startPaystackCheckout(planId);
+  const beginCheckout = async (plan: PaystackPlan) => {
+    setProcessingPlan(`subscribe-${plan}`);
+    const { error } = await startPaystackCheckout(plan, interval);
     if (error) {
-      setProcessing(null);
+      setProcessingPlan(null);
       toast.error(error.message);
     }
   };
 
-  const handleSelect = (planId: string) => {
+  const beginTrial = async (plan: PaystackPlan) => {
+    setProcessingPlan(`trial-${plan}`);
+    const { error } = await startFreeTrial(plan);
+    setProcessingPlan(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Your 7-day free trial is live — no card needed.");
+    window.location.href = "/dashboard?trial=started";
+  };
+
+  const runPendingAction = (action: PendingAction) => {
+    if (!action) return;
+    if (action.kind === "subscribe") void beginCheckout(action.plan);
+    else void beginTrial(action.plan);
+  };
+
+  const handleSelect = (planId: PlanId) => {
     if (planId === "explorer") {
       if (!user) setAuthOpen(true);
       else window.location.href = "/dashboard";
@@ -80,11 +59,21 @@ const Pricing = () => {
     }
     const plan = planId as PaystackPlan;
     if (!user) {
-      setPendingPlan(plan);
+      setPendingAction({ kind: "subscribe", plan });
       setAuthOpen(true);
       return;
     }
     void beginCheckout(plan);
+  };
+
+  const handleTrial = (planId: PlanId) => {
+    const plan = planId as PaystackPlan;
+    if (!user) {
+      setPendingAction({ kind: "trial", plan });
+      setAuthOpen(true);
+      return;
+    }
+    void beginTrial(plan);
   };
 
   return (
@@ -93,11 +82,11 @@ const Pricing = () => {
         <title>Membership Plans — SkinLabs Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for unlimited AI routines and newsroom access, or Glow VIP at R299/month with virtual derm consults."
+          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for a weekly AI routine and full newsroom access, or Glow VIP at R299/month with monthly derm consults. Annual billing gets 2 months free, and Insider/VIP start with a 7-day free trial — no card required."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
         <meta property="og:title" content="Membership Plans — SkinLabs" />
-        <meta property="og:description" content="AI skincare routines, daily skincare news and virtual derm consults, priced in rands." />
+        <meta property="og:description" content="AI skincare routines, daily skincare intelligence and virtual derm consults, priced in rands. 7-day free trial, no card required." />
         <meta property="og:url" content="https://skinlabs.co.za/pricing" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -107,70 +96,135 @@ const Pricing = () => {
         <Header />
         <main className="pt-28 pb-24">
           <div className="container mx-auto px-4">
-            <div className="mx-auto mb-14 max-w-2xl text-center">
+            <div className="mx-auto mb-10 max-w-2xl text-center">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Membership</p>
               <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">
                 Skincare intelligence, priced in rands
               </h1>
               <p className="text-muted-foreground">
                 No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South African
-                skin, climate and shelves.
+                skin, climate and shelves — try Insider or VIP free for 7 days, no card required.
               </p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-              {plans.map((plan, index) => (
-                <motion.div
-                  key={plan.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.08 }}
+            <div className="mx-auto mb-12 flex w-fit items-center gap-1 rounded-full border border-border bg-card p-1">
+              {(["monthly", "annual"] as BillingInterval[]).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setInterval(option)}
                   className={cn(
-                    "relative flex flex-col rounded-3xl border bg-card p-8",
-                    plan.highlight ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
+                    "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                    interval === option
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  {plan.highlight && (
-                    <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                      <Sparkles className="h-3 w-3" /> Most popular
+                  {option === "monthly" ? "Monthly" : "Annual"}
+                  {option === "annual" && (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                        interval === "annual" ? "bg-primary-foreground/20" : "bg-primary/10 text-primary",
+                      )}
+                    >
+                      {ANNUAL_MONTHS_FREE} months free
                     </span>
                   )}
-                  <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-                  <div className="mt-6 flex items-end gap-1">
-                    <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.price}</span>
-                    <span className="pb-1 text-sm text-muted-foreground">/month</span>
-                  </div>
-                  <ul className="mt-6 flex-1 space-y-3">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button
-                    className="mt-8 w-full"
-                    variant={plan.highlight ? "default" : "outline"}
-                    disabled={tier === plan.id}
-                    onClick={() => handleSelect(plan.id)}
-                  >
-                    {tier === plan.id ? "Your current plan" : plan.cta}
-                  </Button>
-                </motion.div>
+                </button>
               ))}
             </div>
 
+            <div className="grid gap-6 lg:grid-cols-3">
+              {membershipPlans.map((plan, index) => {
+                const price = planPrice(plan, interval);
+                const isCurrentPlan = tier === plan.id;
+                const isPaidPlan = plan.id !== "explorer";
+                const trialAvailable = isPaidPlan && plan.trialEligible && !trialUsed && !isCurrentPlan;
+
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: index * 0.08 }}
+                    className={cn(
+                      "relative flex flex-col rounded-3xl border bg-card p-8",
+                      plan.highlight ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
+                    )}
+                  >
+                    {plan.highlight && (
+                      <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                        <Sparkles className="h-3 w-3" /> Most popular
+                      </span>
+                    )}
+                    <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                    <div className="mt-6 flex items-end gap-1">
+                      <span className="font-heading text-4xl font-extrabold text-foreground">R{price}</span>
+                      <span className="pb-1 text-sm text-muted-foreground">
+                        {isPaidPlan ? (interval === "annual" ? "/year" : "/month") : ""}
+                      </span>
+                    </div>
+                    {isPaidPlan && interval === "annual" && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Works out to R{annualMonthlyEquivalent(plan)}/month, billed yearly
+                      </p>
+                    )}
+                    <ul className="mt-6 flex-1 space-y-3">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
+                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-8 space-y-2">
+                      {trialAvailable && (
+                        <Button
+                          variant="outline"
+                          className="w-full gap-2"
+                          disabled={processingPlan === `trial-${plan.id}`}
+                          onClick={() => handleTrial(plan.id)}
+                        >
+                          <Gift className="h-4 w-4" />
+                          Start 7-day free trial
+                        </Button>
+                      )}
+                      <Button
+                        className="w-full"
+                        variant={plan.highlight ? "default" : "outline"}
+                        disabled={isCurrentPlan || processingPlan === `subscribe-${plan.id}`}
+                        onClick={() => handleSelect(plan.id)}
+                      >
+                        {isCurrentPlan ? "Your current plan" : plan.cta}
+                      </Button>
+                    </div>
+                    {isPaidPlan && (
+                      <p className="mt-3 text-center text-xs text-muted-foreground">No credit card required for the trial.</p>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+
             <p className="mt-10 text-center text-xs text-muted-foreground">
-              Billed monthly in ZAR. Cancel anytime from your dashboard. Consultations are provided by independent
+              Billed in ZAR. Cancel anytime from your dashboard. Consultations are provided by independent
               HPCSA-registered practitioners and are not a substitute for emergency medical care.
             </p>
           </div>
         </main>
         <Footer />
       </div>
-      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <AuthDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        onAuthenticated={() => {
+          const action = pendingAction;
+          setPendingAction(null);
+          runPendingAction(action);
+        }}
+      />
     </>
   );
 };

@@ -22,7 +22,7 @@ const FAQ = () => {
         },
         {
           q: "Is SkinLabs free to use?",
-          a: "Yes! Basic access to our AI formulator, skincare articles, and product database is completely free. We also offer premium memberships with additional features like virtual consultations and advanced skin tracking."
+          a: "Yes. The free Glow Explorer plan includes one full Newsroom briefing a week, one basic AI skin analysis a month, limited product review access and 2-minute podcast previews. Glow Insider and Glow VIP unlock unlimited briefings, weekly AI routines, full reviews and podcasts, and derm consults — and both start with a 7-day free trial, no card required."
         },
         {
           q: "Do you sell skincare products?",
@@ -233,7 +233,7 @@ const FAQ = () => {
         },
         {
           q: "Do you have a subscription service?",
-          a: "We offer optional premium memberships (R99-R299/month) for advanced features, but product recommendations and basic AI formulator access are completely free. You never need to pay to get skincare advice."
+          a: "Yes — Glow Insider (R99/month or R990/year, 2 months free) and Glow VIP (R299/month or R2990/year, 2 months free), both starting with a 7-day free trial and no card required. Basic AI formulator access and limited product reviews stay free forever on the Glow Explorer plan."
         },
         {
           q: "What payment methods do SA retailers accept?",
@@ -276,6 +276,18 @@ const FAQ = () => {
     }
   ];
 
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: categories.flatMap((category) =>
+      category.questions.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    ),
+  };
+
   return (
     <>
       <Helmet>
@@ -284,6 +296,8 @@ const FAQ = () => {
           name="description"
           content="Find answers to 50+ skincare questions covering ingredients, routines, skin types, South African climate considerations, product recommendations, and our AI formulator. Expert guidance for SA skin."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/faq" />
+        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
