@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { getNextEpisodeDate, podcastEpisodes, podcastTopics } from "@/data/podcast";
+import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 
 const PodcastPage = () => {
@@ -17,11 +18,16 @@ const PodcastPage = () => {
   const [topic, setTopic] = useState("All");
 
   const episodes = useMemo(() => {
-    return podcastEpisodes.filter((episode) => {
-      const matchesTopic = topic === "All" || episode.topics.includes(topic);
-      const haystack = `${episode.title} ${episode.description} ${episode.topics.join(" ")}`.toLowerCase();
-      return matchesTopic && haystack.includes(query.toLowerCase());
-    });
+    const byTopic = podcastEpisodes.filter((episode) => topic === "All" || episode.topics.includes(topic));
+    if (!query.trim()) return byTopic;
+    return byTopic
+      .map((episode) => ({
+        episode,
+        score: matchScore(query, episode.title, `${episode.description} ${episode.topics.join(" ")} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")}`),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.episode);
   }, [query, topic]);
 
   const nextDrop = getNextEpisodeDate().toLocaleDateString("en-ZA", {

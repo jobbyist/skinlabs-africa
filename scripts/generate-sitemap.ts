@@ -68,6 +68,11 @@ async function main() {
     urls.push(urlEntry(`${SITE}/reviews/${id}`, today, "monthly", "0.7"));
   }
 
+  const comparisonsSource = readFileSync(resolve(root, "src/data/comparisons.ts"), "utf-8");
+  for (const slug of extractQuoted(comparisonsSource, "slug")) {
+    urls.push(urlEntry(`${SITE}/reviews/versus/${slug}`, today, "monthly", "0.8"));
+  }
+
   const podcastSource = readFileSync(resolve(root, "src/data/podcast.ts"), "utf-8");
   for (const slug of extractQuoted(podcastSource, "slug")) {
     urls.push(urlEntry(`${SITE}/podcast/${slug}`, today, "monthly", "0.6"));

@@ -22,7 +22,6 @@ const Footer = () => {
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/faq" },
       { label: "Pricing", href: "/pricing" },
-      { label: "Privacy Policy", href: "/privacy-policy" },
     ],
   };
 

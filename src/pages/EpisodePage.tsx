@@ -131,7 +131,7 @@ const EpisodePage = () => {
               <GatedOverlay
                 locked={!isMember}
                 title="Transcripts are member-only"
-                message="Glow VIP members get full transcripts and searchable show notes for every episode."
+                message="Glow Insider and Glow VIP members get full transcripts and searchable show notes for every episode."
               >
                 <div className="space-y-3">
                   {episode.transcript.map((line, index) => (

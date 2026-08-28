@@ -10,8 +10,14 @@ const TermsOfService = () => {
         <title>Terms of Service - Legal Agreement | SKINLABS</title>
         <meta
           name="description"
-          content="Read SkinLabs' terms of service governing the use of our website, products, and services."
+          content="The terms governing your use of SkinLabs' website, products and services, including orders, payment and liability."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/terms-of-service" />
+        <meta property="og:title" content="Terms of Service | SKINLABS" />
+        <meta property="og:description" content="The legal terms governing use of SkinLabs' website, products and services." />
+        <meta property="og:url" content="https://skinlabs.co.za/terms-of-service" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -35,10 +41,12 @@ const TermsOfService = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
                   <h2 className="text-2xl font-bold text-foreground mb-4">Agreement to Terms</h2>
                   <p className="text-muted-foreground mb-4">
-                    By accessing or using SkinLabs' website and services ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.
+                    Here's the deal: by accessing or using SkinLabs' website and services ("Service"), you're agreeing
+                    to be bound by these Terms of Service ("Terms"). If any part of this doesn't work for you, please
+                    don't use the Service.
                   </p>
                   <p className="text-muted-foreground">
-                    These Terms apply to all visitors, users, and others who access or use the Service.
+                    These Terms apply to everyone who visits, uses, or otherwise accesses the Service.
                   </p>
                 </div>
 

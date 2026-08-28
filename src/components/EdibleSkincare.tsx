@@ -49,8 +49,8 @@ const EdibleSkincare = () => {
               Edible Skincare Pouches
             </h2>
             <p className="text-lg text-muted-foreground mb-6">
-              Introducing our revolutionary range of 100% organically formulated and naturally sourced edible skincare pouches. 
-              A groundbreaking innovation in the African skincare industry.
+              A first for African skincare: 100% organically formulated, naturally sourced edible skincare pouches —
+              skin support you eat, not just apply.
             </p>
 
             {/* Flavors */}

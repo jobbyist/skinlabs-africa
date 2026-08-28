@@ -10,8 +10,14 @@ const Returns = () => {
         <title>Returns Policy - 30-Day Guarantee | SKINLABS</title>
         <meta
           name="description"
-          content="SkinLabs offers a 30-day money-back guarantee. Learn about our hassle-free returns process and policy."
+          content="How to return a SkinLabs order: the 30-day money-back guarantee, what condition items need to be in, and how refunds get processed."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/returns" />
+        <meta property="og:title" content="Returns Policy | SKINLABS" />
+        <meta property="og:description" content="A 30-day money-back guarantee and a straightforward returns process." />
+        <meta property="og:url" content="https://skinlabs.co.za/returns" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -28,7 +34,7 @@ const Returns = () => {
                     Returns Policy
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    30-day money-back guarantee - shop with confidence
+                    A 30-day money-back guarantee, so trying something new doesn't feel risky
                   </p>
                 </div>
 
@@ -38,12 +44,12 @@ const Returns = () => {
                     30-Day Money-Back Guarantee
                   </h2>
                   <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Not satisfied with your purchase? Return it within 30 days for a full refund - no questions asked.
+                    Not right for your skin? Return it within 30 days for a full refund — no interrogation required.
                   </p>
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">How to Return an Item</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">How to return an item</h2>
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
                       <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0 font-bold">
@@ -137,10 +143,10 @@ const Returns = () => {
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 text-center">
                   <h2 className="text-2xl font-bold text-foreground mb-4">
-                    Need Help with Your Return?
+                    Need a hand with a return?
                   </h2>
                   <p className="text-muted-foreground mb-6">
-                    Our support team is here to make your return process as smooth as possible
+                    Our support team can walk you through it
                   </p>
                   <a href="mailto:support@skinlabs.co.za" className="text-primary font-medium hover:underline text-lg">
                     support@skinlabs.co.za

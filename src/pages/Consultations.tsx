@@ -17,7 +17,7 @@ const Consultations = () => {
         <title>Virtual Derm Consultations — SA Practitioners | SkinLabs</title>
         <meta
           name="description"
-          content="Book virtual skincare consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability, included with Glow VIP membership."
+          content="Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability, included with Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/consultations" />
         <meta property="og:title" content="Virtual Derm Consultations — SA Practitioners | SkinLabs" />

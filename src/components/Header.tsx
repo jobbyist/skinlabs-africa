@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
+import SiteSearch from "@/components/SiteSearch";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import logo from "@/assets/newskinlabs.png";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
@@ -60,6 +62,15 @@ const Header = () => {
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2">
+              <button
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search SkinLabs"
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Search className="h-4 w-4" />
+                <span className="hidden xl:inline">Search</span>
+                <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium xl:inline">⌘K</kbd>
+              </button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
@@ -101,6 +112,13 @@ const Header = () => {
 
             {/* Mobile Menu Button */}
             <div className="lg:hidden flex items-center gap-1">
+              <button
+                className="p-2"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search SkinLabs"
+              >
+                <Search className="h-5 w-5" />
+              </button>
               <button
                 className="p-2"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -151,6 +169,7 @@ const Header = () => {
         </div>
       </header>
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 };

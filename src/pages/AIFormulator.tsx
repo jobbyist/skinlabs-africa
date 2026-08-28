@@ -7,16 +7,16 @@ const AIFormulatorPage = () => {
   return (
     <>
       <Helmet>
-        <title>AI Formulator — Premium Personalized Skincare | SKINLABS</title>
+        <title>AI Formulator — A Routine Built Around Your Skin | SkinLabs</title>
         <meta
           name="description"
-          content="Premium AI-powered service: Get personalized skincare routines, progress trackers and dermatologist-approved product recommendations tailored to your unique skin profile."
+          content="Answer a few questions and get an AI-built AM/PM skincare routine, a progress tracker and dermatologist-reviewed product picks for your actual skin."
         />
         <link rel="canonical" href="https://skinlabs.co.za/ai-formulator" />
-        <meta property="og:title" content="AI Formulator — Premium Personalized Skincare | SKINLABS" />
+        <meta property="og:title" content="AI Formulator — A Routine Built Around Your Skin | SkinLabs" />
         <meta
           property="og:description"
-          content="Premium service: Get personalized routines, trackers and dermatologist-approved recommendations for your unique skin profile."
+          content="Answer a few questions and get an AI-built routine, progress tracker and dermatologist-reviewed product picks."
         />
         <meta property="og:url" content="https://skinlabs.co.za/ai-formulator" />
         <meta property="og:type" content="website" />
@@ -24,11 +24,11 @@ const AIFormulatorPage = () => {
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          "name": "SKINLABS AI Skincare Formulator",
+          "name": "SkinLabs AI Skincare Formulator",
           "applicationCategory": "HealthApplication",
           "operatingSystem": "Web",
           "url": "https://skinlabs.co.za/ai-formulator",
-          "description": "Premium AI-powered service for personalized skincare routines, trackers and dermatologist-approved product recommendations.",
+          "description": "AI-built skincare routines, a progress tracker and dermatologist-reviewed product recommendations for South African skin.",
           "offers": { "@type": "Offer", "price": "99", "priceCurrency": "ZAR" }
         })}</script>
       </Helmet>
@@ -36,6 +36,7 @@ const AIFormulatorPage = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20">
+          <h1 className="sr-only">AI Formulator — A Skincare Routine Built Around Your Actual Skin</h1>
           <AIFormulator />
         </main>
         <Footer />

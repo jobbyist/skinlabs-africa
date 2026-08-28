@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Bookmark, Clock, Eye, Heart, Loader2, MapPin } from "lucide-react";
+import { ArrowUpRight, Bookmark, Clock, Eye, Heart, Loader2, MapPin, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { useNewsArticles, type NewsArticleSummary } from "@/hooks/use-news-articles";
+import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -13,18 +15,33 @@ interface NewsroomFeedProps {
   limit?: number;
   heading?: string;
   description?: string;
+  searchable?: boolean;
 }
 
 const NewsroomFeed = ({
   limit,
   heading = "The Daily Skinny",
   description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
+  searchable = false,
 }: NewsroomFeedProps) => {
   const { user } = useAuth();
-  const { articles, loading } = useNewsArticles(limit);
+  const { articles: fetchedArticles, loading } = useNewsArticles(limit);
   const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
   const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
   const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+
+  const articles = useMemo(() => {
+    if (!searchable || !query.trim()) return fetchedArticles;
+    return fetchedArticles
+      .map((article) => ({
+        article,
+        score: matchScore(query, article.title, `${article.sa_context_tag} ${article.excerpt} ${article.source_name}`),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map((entry) => entry.article);
+  }, [fetchedArticles, query, searchable]);
 
   useEffect(() => {
     let active = true;
@@ -91,13 +108,26 @@ const NewsroomFeed = ({
           </div>
         </div>
 
+        {searchable && (
+          <div className="relative mb-8 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search briefings"
+              className="pl-9"
+              aria-label="Search briefings"
+            />
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : articles.length === 0 ? (
           <p className="rounded-3xl border border-dashed border-border p-10 text-center text-muted-foreground">
-            The next briefing publishes at 6am SAST. Check back shortly.
+            {searchable && query.trim() ? "No briefings match that search yet." : "The next briefing publishes at 6am SAST. Check back shortly."}
           </p>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

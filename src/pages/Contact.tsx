@@ -34,6 +34,7 @@ const Contact = () => {
         <meta property="og:url" content="https://skinlabs.co.za/contact" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -47,7 +48,7 @@ const Contact = () => {
                     Get In Touch
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Have questions? We're here to help. Reach out through any of our contact channels.
+                    Questions, feedback, or you just want to double-check something before you buy? Pick a channel.
                   </p>
                 </div>
 
@@ -61,9 +62,9 @@ const Contact = () => {
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">
                         {method.icon}
                       </div>
-                      <h3 className="text-lg font-semibold text-foreground mb-2">
+                      <h2 className="text-lg font-semibold text-foreground mb-2">
                         {method.title}
-                      </h3>
+                      </h2>
                       <p className="text-primary font-medium mb-2">{method.value}</p>
                       <p className="text-sm text-muted-foreground">{method.description}</p>
                     </a>
@@ -71,7 +72,7 @@ const Contact = () => {
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">Send Us a Message</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">Send us a message</h2>
                   <form className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                       <div>

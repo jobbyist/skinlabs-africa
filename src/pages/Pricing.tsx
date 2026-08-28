@@ -8,13 +8,13 @@ import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
-import { membershipPlans, planPrice, annualMonthlyEquivalent, ANNUAL_MONTHS_FREE, type BillingInterval, type PlanId } from "@/data/plans";
+import { membershipPlans, planPrice, annualMonthlyEquivalent, ANNUAL_MONTHS_FREE, MONEY_BACK_GUARANTEE_DAYS, type BillingInterval, type PlanId } from "@/data/plans";
 import { startPaystackCheckout, type PaystackPlan } from "@/lib/paystack";
 import { startFreeTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type PendingAction = { kind: "subscribe" | "trial"; plan: PaystackPlan } | null;
+type PendingAction = { kind: "subscribe"; plan: PaystackPlan } | { kind: "trial"; plan: "insider" } | null;
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -33,7 +33,7 @@ const Pricing = () => {
     }
   };
 
-  const beginTrial = async (plan: PaystackPlan) => {
+  const beginTrial = async (plan: "insider") => {
     setProcessingPlan(`trial-${plan}`);
     const { error } = await startFreeTrial(plan);
     setProcessingPlan(null);
@@ -67,7 +67,8 @@ const Pricing = () => {
   };
 
   const handleTrial = (planId: PlanId) => {
-    const plan = planId as PaystackPlan;
+    if (planId !== "insider") return;
+    const plan = planId;
     if (!user) {
       setPendingAction({ kind: "trial", plan });
       setAuthOpen(true);
@@ -82,11 +83,11 @@ const Pricing = () => {
         <title>Membership Plans — SkinLabs Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for a weekly AI routine and full newsroom access, or Glow VIP at R299/month with monthly derm consults. Annual billing gets 2 months free, and Insider/VIP start with a 7-day free trial — no card required."
+          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for a weekly AI routine and full newsroom access, or Glow VIP at R299/month with monthly derm consults. Annual billing gets 2 months free, Insider starts with a 7-day free trial, and every paid plan is backed by a 30-day money-back guarantee."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
         <meta property="og:title" content="Membership Plans — SkinLabs" />
-        <meta property="og:description" content="AI skincare routines, daily skincare intelligence and virtual derm consults, priced in rands. 7-day free trial, no card required." />
+        <meta property="og:description" content="AI skincare routines, daily skincare intelligence and virtual derm consults, priced in rands. 7-day free trial on Insider, plus a 30-day money-back guarantee on every paid plan." />
         <meta property="og:url" content="https://skinlabs.co.za/pricing" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -102,8 +103,9 @@ const Pricing = () => {
                 Skincare intelligence, priced in rands
               </h1>
               <p className="text-muted-foreground">
-                No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South African
-                skin, climate and shelves — try Insider or VIP free for 7 days, no card required.
+                No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South
+                African skin, climate and shelves — try Insider free for 7 days, no card required, and every paid
+                plan comes with a {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee.
               </p>
             </div>
 
@@ -200,8 +202,13 @@ const Pricing = () => {
                         {isCurrentPlan ? "Your current plan" : plan.cta}
                       </Button>
                     </div>
-                    {isPaidPlan && (
+                    {trialAvailable && (
                       <p className="mt-3 text-center text-xs text-muted-foreground">No credit card required for the trial.</p>
+                    )}
+                    {isPaidPlan && plan.moneyBackDays && (
+                      <p className="mt-1 text-center text-xs text-muted-foreground">
+                        {plan.moneyBackDays}-day money-back guarantee. Not right for your skin? Full refund.
+                      </p>
                     )}
                   </motion.div>
                 );

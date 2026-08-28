@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import NewsroomFeed from "@/components/NewsroomFeed";
+import Editorials from "@/components/Editorials";
 import ReviewsGrid from "@/components/ReviewsGrid";
 import AIFormulator from "@/components/AIFormulator";
 import Features from "@/components/Features";
@@ -44,6 +45,7 @@ const Index = () => {
         <main>
           <Hero />
           <NewsroomFeed limit={3} />
+          <Editorials />
           <AIFormulator />
           <PodcastSection />
           <Features />

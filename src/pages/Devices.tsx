@@ -39,11 +39,17 @@ const Devices = () => {
   return (
     <>
       <Helmet>
-        <title>Skincare Devices - Professional Tools | SKINLABS</title>
+        <title>Skincare Devices — LED, Microcurrent & Cleansing Tools | SKINLABS</title>
         <meta
           name="description"
-          content="Shop professional-grade skincare devices including LED therapy, microcurrent, cleansing tools, and steamers for salon-quality results at home."
+          content="LED masks, microcurrent, ultrasonic cleansing brushes and facial steamers, with rand pricing and what each device actually does for your skin."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/devices" />
+        <meta property="og:title" content="Skincare Devices | SKINLABS" />
+        <meta property="og:description" content="LED masks, microcurrent, cleansing tools and steamers, with honest notes on what each one does." />
+        <meta property="og:url" content="https://skinlabs.co.za/devices" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -57,7 +63,7 @@ const Devices = () => {
                     Skincare Devices
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Professional-grade technology for salon-quality results at home
+                    Salon-style tools for home use — here's what each one actually does
                   </p>
                 </div>
 
@@ -67,9 +73,9 @@ const Devices = () => {
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">
                         {device.icon}
                       </div>
-                      <h3 className="text-2xl font-semibold text-foreground mb-3">
+                      <h2 className="text-2xl font-semibold text-foreground mb-3">
                         {device.name}
-                      </h3>
+                      </h2>
                       <p className="text-muted-foreground mb-4">
                         {device.description}
                       </p>
@@ -91,10 +97,11 @@ const Devices = () => {
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
                   <h2 className="text-3xl font-bold text-foreground mb-4">
-                    Professional Results at Home
+                    What "professional-grade" actually means here
                   </h2>
                   <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                    All our devices are FDA-approved and clinically tested to deliver professional-grade results in the comfort of your home
+                    Every device we carry is FDA-approved and has been through clinical testing. That doesn't mean
+                    overnight transformation — consistent use over several weeks is what gets you the results.
                   </p>
                   <div className="flex flex-wrap justify-center gap-4">
                     <div className="text-center">
@@ -102,8 +109,8 @@ const Devices = () => {
                       <div className="text-sm text-muted-foreground">FDA Approved</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">Tested</div>
-                      <div className="text-sm text-muted-foreground">Clinically Proven</div>
+                      <div className="text-2xl font-bold text-primary">Studied</div>
+                      <div className="text-sm text-muted-foreground">In Clinical Trials</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary">Warranty</div>

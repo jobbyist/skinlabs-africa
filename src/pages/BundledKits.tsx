@@ -40,8 +40,13 @@ const BundledKits = () => {
     <>
       <Helmet>
         <title>Bundled Kits — Curated Skincare Systems | SKINLABS</title>
-        <meta name="description" content="Curated bundled skincare kits from SkinLabs. Complete multi-product systems formulated to work together for measurable results." />
+        <meta name="description" content="Multi-product SkinLabs kits built to layer without conflict, with rand pricing and what's actually in each box." />
         <link rel="canonical" href="https://skinlabs.co.za/bundled-kits" />
+        <meta property="og:title" content="Bundled Kits | SKINLABS" />
+        <meta property="og:description" content="Curated skincare kits formulated to work together, with rand pricing." />
+        <meta property="og:url" content="https://skinlabs.co.za/bundled-kits" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -56,7 +61,7 @@ const BundledKits = () => {
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">Bundled Kits</h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Multi-product SkinLabs systems, formulated to work together for a specific outcome.
+                    Multi-product SkinLabs systems built to work together — no guessing which serum fights which moisturiser.
                   </p>
                 </div>
 
@@ -64,7 +69,7 @@ const BundledKits = () => {
                   {kits.map((kit) => (
                     <div key={kit.name} className="bg-card border border-border rounded-2xl p-8 hover:shadow-lg transition-shadow">
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">{kit.icon}</div>
-                      <h3 className="text-2xl font-semibold text-foreground mb-3">{kit.name}</h3>
+                      <h2 className="text-2xl font-semibold text-foreground mb-3">{kit.name}</h2>
                       <p className="text-muted-foreground mb-4">{kit.description}</p>
                       <div className="text-3xl font-bold text-primary mb-4">{kit.price}</div>
                       <div className="mb-6">
@@ -84,7 +89,7 @@ const BundledKits = () => {
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 text-center">Why Buy the Kit?</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6 text-center">Why buy a kit instead of piecing it together?</h2>
                   <div className="grid md:grid-cols-3 gap-8">
                     <div className="text-center">
                       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 text-primary"><Layers className="h-6 w-6" /></div>

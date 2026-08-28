@@ -10,23 +10,23 @@ const FAQ = () => {
       questions: [
         {
           q: "What is SkinLabs?",
-          a: "SkinLabs is South Africa's AI-powered skincare platform that creates personalized routines based on your unique skin profile, concerns, lifestyle, and local climate. We combine dermatological science with local market knowledge to recommend products available in SA."
+          a: "SkinLabs is South Africa's AI-powered skincare platform. Tell us your skin, your concerns, your lifestyle and your climate, and we build a routine around it — grounded in dermatological science and local market knowledge, not guesswork."
         },
         {
           q: "Is SkinLabs only for South African users?",
-          a: "While we're designed specifically for the South African market—considering local climate, skin concerns, and product availability—anyone can use our platform. However, our product recommendations and pricing are optimized for SA."
+          a: "It's built specifically for South Africa — our local climate, common skin concerns and what's actually on shelves here — but anyone can use the platform. Just know our product picks and pricing are optimised for SA."
         },
         {
           q: "How does the AI formulator work?",
-          a: "Our AI analyzes your skin type, concerns, lifestyle, environmental factors (like Gauteng's dry climate or KZN's humidity), and budget to recommend the optimal combination of products and active ingredients available in South Africa."
+          a: "It looks at your skin type, concerns, lifestyle, environment (Gauteng's dryness, KZN's humidity, that kind of thing) and budget, then recommends the combination of products and actives that makes sense for you, from what's available in SA."
         },
         {
           q: "Is SkinLabs free to use?",
-          a: "Yes. The free Glow Explorer plan includes one full Newsroom briefing a week, one basic AI skin analysis a month, limited product review access and 2-minute podcast previews. Glow Insider and Glow VIP unlock unlimited briefings, weekly AI routines, full reviews and podcasts, and derm consults — and both start with a 7-day free trial, no card required."
+          a: "Yes. The free Glow Explorer plan includes one full Newsroom briefing a week, one basic AI skin analysis a month, limited product review access and 2-minute podcast previews. Glow Insider and Glow VIP unlock unlimited briefings, weekly AI routines, full reviews and podcasts, and derm consults. Insider starts with a 7-day free trial, no card required, and both paid plans carry a 30-day money-back guarantee."
         },
         {
           q: "Do you sell skincare products?",
-          a: "No, we don't sell products directly. Instead, we provide independent recommendations and link you to trusted South African retailers where you can purchase the products we suggest."
+          a: "No — we're not a retailer. We give you independent recommendations and link you to trusted South African retailers where you can actually buy the products we suggest."
         },
       ]
     },
@@ -35,31 +35,31 @@ const FAQ = () => {
       questions: [
         {
           q: "What skin types do you cater to?",
-          a: "We provide personalized routines for all skin types: oily, dry, combination, sensitive, and mature skin. Our AI considers your specific skin profile and South African climate conditions."
+          a: "All of them — oily, dry, combination, sensitive and mature. The AI factors in your specific skin profile plus South African climate conditions before it recommends anything."
         },
         {
           q: "Can you help with acne-prone skin?",
-          a: "Absolutely! We specialize in recommending routines for acne-prone skin using evidence-based ingredients like salicylic acid, niacinamide, and benzoyl peroxide—all available from South African brands."
+          a: "Yes. We lean on evidence-based ingredients — salicylic acid, niacinamide, benzoyl peroxide — all available from South African brands, and build a routine around what's actually driving your breakouts."
         },
         {
           q: "I have hyperpigmentation. Can you help?",
-          a: "Yes! Hyperpigmentation and post-inflammatory marks are common concerns in South Africa. We recommend products with ingredients like vitamin C, niacinamide, azelaic acid, and retinoids that are proven to address uneven skin tone."
+          a: "Yes — hyperpigmentation and post-inflammatory marks are common concerns here. We recommend ingredients like vitamin C, niacinamide, azelaic acid and retinoids, which research supports for evening out skin tone over time."
         },
         {
           q: "What about sensitive or reactive skin?",
-          a: "We have specialized routines for sensitive skin focusing on gentle, fragrance-free products that strengthen the skin barrier. We can help you avoid common irritants and build a minimal, effective routine."
+          a: "We build routines around gentle, fragrance-free products that strengthen the skin barrier rather than fight it. The goal is helping you dodge common irritants and keep the routine minimal but effective."
         },
         {
           q: "Can SkinLabs help with aging skin concerns?",
-          a: "Yes! We recommend anti-aging routines featuring retinoids, peptides, antioxidants, and sunscreen—the gold standards in preventing and addressing signs of aging like fine lines, wrinkles, and loss of firmness."
+          a: "Yes — we recommend anti-aging routines built around retinoids, peptides, antioxidants and sunscreen, which the evidence backs as the most reliable approach to fine lines, wrinkles and loss of firmness."
         },
         {
           q: "How do I know my skin type?",
-          a: "Our AI formulator includes a comprehensive skin analysis quiz that helps determine your skin type. Alternatively, observe your skin: oily skin feels greasy by midday, dry skin feels tight, combination has an oily T-zone, and sensitive skin reacts easily to products."
+          a: "Our AI formulator includes a skin analysis quiz that works this out for you. Or just pay attention: oily skin feels greasy by midday, dry skin feels tight, combination has an oily T-zone, and sensitive skin reacts easily to new products."
         },
         {
           q: "What causes dry skin in Gauteng?",
-          a: "Gauteng's high altitude and low humidity—especially in winter—accelerate trans-epidermal water loss (TEWL), making skin feel tight and flaky. We recommend richer moisturizers with ceramides and humectants sealed with occlusives."
+          a: "Gauteng's high altitude and low humidity — especially in winter — speed up trans-epidermal water loss (TEWL, or moisture escaping through your skin), which is why it feels tight and flaky. Richer moisturisers with ceramides and humectants, sealed in with an occlusive, help."
         },
       ]
     },
@@ -68,35 +68,35 @@ const FAQ = () => {
       questions: [
         {
           q: "What is niacinamide and what does it do?",
-          a: "Niacinamide (vitamin B3) is a versatile ingredient that reduces inflammation, minimizes pores, regulates oil production, and fades hyperpigmentation. It's suitable for most skin types and widely available in SA brands like Standard Beauty and Skoon."
+          a: "Niacinamide (vitamin B3) is a workhorse ingredient — it can calm inflammation, minimise the look of pores, help regulate oil, and fade hyperpigmentation. It suits most skin types and is widely available in SA brands like Standard Beauty and Skoon."
         },
         {
           q: "Are retinoids safe for all skin types?",
-          a: "Retinoids (vitamin A derivatives) are highly effective for anti-aging and acne but can cause irritation if misused. Start with a low concentration (0.25-0.5%), use 2-3 times per week initially, and always pair with sunscreen during the day."
+          a: "Retinoids (vitamin A derivatives) are genuinely effective for anti-aging and acne, but they can irritate if you rush them. Start low (0.25–0.5%), use it 2–3 times a week at first, and always pair it with sunscreen during the day."
         },
         {
           q: "What's the difference between AHAs and BHAs?",
-          a: "AHAs (like glycolic and lactic acid) are water-soluble and exfoliate the skin's surface, ideal for dryness and dullness. BHAs (like salicylic acid) are oil-soluble, penetrate pores, and work best for oily and acne-prone skin."
+          a: "AHAs (like glycolic and lactic acid) are water-soluble and work on the skin's surface — good for dryness and dullness. BHAs (like salicylic acid) are oil-soluble, get into pores, and suit oily and acne-prone skin better."
         },
         {
           q: "Do I really need vitamin C serum?",
-          a: "Vitamin C is a powerful antioxidant that brightens skin, fades dark spots, and protects against environmental damage. While not mandatory, it's highly beneficial—especially in sunny South Africa. Look for stable forms like L-ascorbic acid or ascorbyl glucoside."
+          a: "Not mandatory, but it earns its place — a solid antioxidant that can brighten skin, fade dark spots and help protect against environmental damage, especially given how much sun South Africa gets. Look for stable forms like L-ascorbic acid or ascorbyl glucoside."
         },
         {
           q: "What are ceramides?",
-          a: "Ceramides are lipids (fats) that form your skin's protective barrier. Products containing ceramides help restore and maintain barrier function, reducing water loss and sensitivity—essential in SA's harsh climates."
+          a: "Ceramides are lipids (fats) that make up your skin's protective barrier. Products containing them help restore and maintain that barrier, cutting water loss and sensitivity — which matters in SA's harsher climates."
         },
         {
           q: "Is hyaluronic acid good for dry skin?",
-          a: "Yes, but use it correctly! Hyaluronic acid is a humectant that draws moisture into skin. In dry climates like Gauteng, apply it to damp skin and seal with a moisturizer to prevent it from drawing moisture FROM your skin."
+          a: "Yes, but the technique matters. Hyaluronic acid is a humectant — it draws moisture in. In dry climates like Gauteng, apply it to damp skin and seal with a moisturiser, or it can end up pulling moisture from your skin instead of the air."
         },
         {
           q: "Are parabens and sulfates bad?",
-          a: "Not necessarily. Parabens are preservatives and sulfates are cleansing agents. While some people are sensitive to them, they're generally safe at cosmetic concentrations. However, many SA brands now offer paraben and sulfate-free alternatives."
+          a: "Not inherently. Parabens are preservatives, sulfates are cleansing agents — both are generally considered safe at the concentrations used in cosmetics, though some people are sensitive to them. Plenty of SA brands now offer paraben- and sulfate-free alternatives if you'd rather avoid them."
         },
         {
           q: "What's the deal with snail mucin?",
-          a: "Snail secretion filtrate contains glycoproteins, hyaluronic acid, and glycolic acid that can hydrate and support healing. While research is limited, many users report positive results for hydration and barrier repair."
+          a: "Snail secretion filtrate contains glycoproteins, hyaluronic acid and glycolic acid, which can support hydration and healing. The research is still fairly limited, but plenty of users report good results for hydration and barrier repair."
         },
       ]
     },
@@ -105,35 +105,35 @@ const FAQ = () => {
       questions: [
         {
           q: "What's a basic skincare routine?",
-          a: "A basic routine includes three steps: (1) Cleanser to remove dirt and oil, (2) Moisturizer to hydrate and protect, and (3) Sunscreen (SPF 30+) in the morning. This foundation works for all skin types."
+          a: "Three steps: cleanser to remove dirt and oil, moisturiser to hydrate and protect, and sunscreen (SPF 30+) in the morning. That foundation works for every skin type."
         },
         {
           q: "Should I use different products in summer vs. winter?",
-          a: "Yes! In humid summer (especially coastal regions), lighter gel moisturizers work well. In dry Gauteng winters, switch to richer creams with occlusives. Your sunscreen should remain consistent year-round."
+          a: "Yes. In humid summer — especially coastal regions — lighter gel moisturisers do the job. In dry Gauteng winters, switch to richer creams with occlusives. Sunscreen stays non-negotiable year-round either way."
         },
         {
           q: "In what order should I apply my products?",
-          a: "Apply products from thinnest to thickest: cleanser, toner/essence, serum (water-based first, then oil-based), eye cream, moisturizer, and sunscreen. At night, skip sunscreen and add retinoid or treatment after serum."
+          a: "Thinnest to thickest: cleanser, toner or essence, serum (water-based first, then oil-based), eye cream, moisturiser, then sunscreen. At night, drop the sunscreen and add your retinoid or treatment after serum instead."
         },
         {
           q: "How long before I see results?",
-          a: "It depends on the concern: hydration improves within days, acne may take 6-8 weeks, hyperpigmentation needs 8-12 weeks, and anti-aging benefits emerge after 3-6 months of consistent retinoid use. Patience is key!"
+          a: "Depends on what you're treating: hydration improves within days, acne can take 6–8 weeks, hyperpigmentation needs 8–12 weeks, and anti-aging benefits from consistent retinoid use tend to show after 3–6 months. Patience does most of the work here."
         },
         {
           q: "Can I use retinol and vitamin C together?",
-          a: "Yes, but use them at different times. Apply vitamin C in the morning (under sunscreen) and retinol at night. Starting both on the same night can cause irritation, especially for sensitive skin."
+          a: "Yes, just not at the same time. Vitamin C in the morning under sunscreen, retinol at night. Piling both on in one go can irritate skin, especially if it's sensitive."
         },
         {
           q: "What's the best time to do my skincare routine?",
-          a: "Cleanse and apply treatment products morning and night. Morning routines should always end with sunscreen. Night routines are ideal for active ingredients like retinoids and AHAs since you won't be exposed to sun."
+          a: "Cleanse and treat morning and night. Mornings should always finish with sunscreen. Nights are the better window for actives like retinoids and AHAs, since you're not heading out into the sun after."
         },
         {
           q: "How do I know if I'm over-exfoliating?",
-          a: "Signs include redness, stinging when applying products, increased sensitivity, flaking, and breakouts. If this happens, stop all acids and retinoids, focus on gentle cleansing and moisturizing, and rebuild your barrier with ceramides."
+          a: "Watch for redness, stinging when you apply products, extra sensitivity, flaking and breakouts. If that's happening, drop all acids and retinoids for a while, stick to gentle cleansing and moisturising, and rebuild your barrier with ceramides."
         },
         {
           q: "Do I need a toner?",
-          a: "Toners aren't essential but can add benefits. Hydrating toners with glycerin or hyaluronic acid boost moisture, while acid toners (with AHA/BHA) provide gentle exfoliation. Skip alcohol-based astringent toners—they're too harsh."
+          a: "Not essential, but it can help. Hydrating toners with glycerin or hyaluronic acid add moisture; acid toners (AHA/BHA) offer gentle exfoliation. Skip the alcohol-based astringent kind — those tend to do more harm than good."
         },
       ]
     },
@@ -142,27 +142,27 @@ const FAQ = () => {
       questions: [
         {
           q: "Do I need sunscreen in South Africa?",
-          a: "Absolutely! South Africa has high UV levels year-round. Sunscreen prevents sunburn, premature aging, hyperpigmentation, and skin cancer. It's the single most important anti-aging step you can take."
+          a: "Yes — South Africa runs high UV levels year-round. Sunscreen helps prevent sunburn, premature aging, hyperpigmentation and skin cancer. It's one of the most effective anti-aging steps you can actually take."
         },
         {
           q: "What SPF should I use?",
-          a: "Dermatologists recommend SPF 30 as the minimum, but SPF 50 offers more protection. Apply liberally (about a teaspoon for face and neck) and reapply every 2 hours when outdoors or after swimming/sweating."
+          a: "SPF 30 is the usual dermatologist-recommended minimum, SPF 50 gives you more headroom. Apply generously — about a teaspoon for face and neck — and reapply every 2 hours outdoors, or after swimming or sweating."
         },
         {
           q: "Chemical vs. mineral sunscreen—which is better?",
-          a: "Both work! Chemical sunscreens (avobenzone, octinoxate) absorb UV rays and are often lighter. Mineral sunscreens (zinc oxide, titanium dioxide) sit on top of skin and reflect UV—better for sensitive skin. Choose based on your preference."
+          a: "Both work. Chemical sunscreens (avobenzone, octinoxate) absorb UV rays and tend to feel lighter. Mineral sunscreens (zinc oxide, titanium dioxide) sit on top of skin and reflect UV — usually the gentler pick for sensitive skin. Pick whichever you'll actually wear every day."
         },
         {
           q: "Do I need sunscreen indoors?",
-          a: "If you're near windows, yes—UVA rays penetrate glass and contribute to aging. If you're in a windowless room all day, you can skip it. When working from home near windows, apply sunscreen in the morning."
+          a: "Near windows, yes — UVA rays get through glass and contribute to aging. Stuck in a windowless room all day, you can skip it. Working from home near a window, apply it in the morning like normal."
         },
         {
           q: "Can I use makeup with SPF instead?",
-          a: "Makeup with SPF is a bonus but shouldn't replace dedicated sunscreen. You'd need to apply a thick layer of foundation to reach the stated SPF—which isn't practical. Use sunscreen first, then makeup."
+          a: "It's a nice bonus, not a substitute. You'd need to apply foundation far thicker than anyone actually does to hit the stated SPF. Sunscreen first, makeup after."
         },
         {
           q: "What sunscreens are good for oily skin?",
-          a: "Look for oil-free, mattifying formulas or gel sunscreens. South African brands like Heliocare and Solal offer lightweight options. Ingredients like niacinamide in sunscreens can also help control oil."
+          a: "Look for oil-free, mattifying or gel formulas. South African brands like Heliocare and Solal offer lightweight options, and niacinamide in a sunscreen can help keep oil in check too."
         },
       ]
     },
@@ -171,27 +171,27 @@ const FAQ = () => {
       questions: [
         {
           q: "What South African skincare brands do you recommend?",
-          a: "We recommend local and accessible brands including Skoon, Esse, Standard Beauty, Swiitch Beauty, African Extracts, Dermastore Select, Lelive, and Clere. We also feature international brands available at Dis-Chem, Clicks, and Woolworths."
+          a: "Local, accessible brands including Skoon, Esse, Standard Beauty, Swiitch Beauty, African Extracts, Dermastore Select, Lelive and Clere — plus international brands available at Dis-Chem, Clicks and Woolworths."
         },
         {
           q: "Where can I buy the products you recommend?",
-          a: "Most recommended products are available at Clicks, Dis-Chem, Woolworths, Takealot, and specialized retailers like Dermastore. We provide direct links to where you can purchase each product."
+          a: "Most of what we recommend is available at Clicks, Dis-Chem, Woolworths, Takealot and specialist retailers like Dermastore. We link directly to where you can buy each product."
         },
         {
           q: "Are drugstore products as good as expensive ones?",
-          a: "Often, yes! Effective skincare is about ingredients, not price. Affordable brands like CeraVe, The Ordinary, and local SA brands offer excellent formulations. We focus on ingredient quality and concentration, not marketing hype."
+          a: "Often, yes. Effective skincare comes down to ingredients and concentration, not the price tag. Affordable brands like CeraVe, The Ordinary and local SA labels can hold their own — we care about what's actually in the formula, not the marketing budget behind it."
         },
         {
           q: "What's a good affordable vitamin C serum in SA?",
-          a: "Standard Beauty's 10% Vitamin C + Ferulic Acid serum is excellent and locally made. Also consider The Ordinary's vitamin C options available at some retailers or Skoon's Vitamin C serum."
+          a: "Standard Beauty's 10% Vitamin C + Ferulic Acid serum is a solid, locally made option. The Ordinary's vitamin C range (where you can find stock) or Skoon's Vitamin C serum are worth a look too."
         },
         {
           q: "Best moisturizer for dry skin under R200?",
-          a: "CeraVe Moisturizing Cream (available at Dis-Chem and Clicks) is excellent. Also consider Eucerin Dry Skin Relief, Clere Hand & Body Lotion (yes, it works on face!), or Skoon's Basic Sensitive Fluid."
+          a: "CeraVe Moisturizing Cream (Dis-Chem and Clicks) is a reliable pick. Eucerin Dry Skin Relief, Clere Hand & Body Lotion (yes, it genuinely works on your face too), or Skoon's Basic Sensitive Fluid are all worth considering."
         },
         {
           q: "Where can I find The Ordinary products in SA?",
-          a: "The Ordinary is sporadically available at select Woolworths stores and online through Dermastore and Takealot. Stock varies, so check multiple retailers or consider similar alternatives from local brands."
+          a: "Stock shows up sporadically at select Woolworths stores and online through Dermastore and Takealot. Availability varies, so check a few retailers or have a backup from a local brand in mind."
         },
       ]
     },
@@ -200,27 +200,27 @@ const FAQ = () => {
       questions: [
         {
           q: "Does SkinLabs sell products?",
-          a: "No, we're a recommendation platform, not a retailer. We provide expert guidance and link you to trusted South African retailers where you can purchase the products we recommend."
+          a: "No — we're a recommendation platform, not a retailer. We give you independent guidance and link you to trusted South African retailers where you can buy what we recommend."
         },
         {
           q: "What are typical shipping costs in SA?",
-          a: "This varies by retailer. Most offer free shipping on orders over R400-R500. Standard shipping typically costs R50-R75 and takes 2-5 business days. Clicks and Dis-Chem offer in-store pickup options."
+          a: "It varies by retailer. Most offer free shipping on orders over roughly R400–R500. Standard shipping typically runs R50–R75 and takes 2–5 business days. Clicks and Dis-Chem also offer in-store pickup."
         },
         {
           q: "How long does skincare delivery take in South Africa?",
-          a: "Major cities (Johannesburg, Cape Town, Durban, Pretoria) usually receive orders within 2-3 business days. Smaller towns may take 4-7 days. Same-day delivery is available in some areas through services like Bottles or retailer apps."
+          a: "Major cities (Johannesburg, Cape Town, Durban, Pretoria) usually see orders within 2–3 business days; smaller towns can take 4–7 days. Some areas get same-day delivery through services like Bottles or retailer apps."
         },
         {
           q: "What is your return policy?",
-          a: "Since we don't sell products directly, return policies depend on the retailer. Most SA retailers offer 30-day returns on unopened products with proof of purchase. Opened skincare products may not be returnable due to hygiene reasons."
+          a: "Since we don't sell products ourselves, returns depend on the retailer you bought from. Most SA retailers accept 30-day returns on unopened products with proof of purchase — opened skincare is often excluded for hygiene reasons."
         },
         {
           q: "Can I return opened skincare products?",
-          a: "Most retailers don't accept returns on opened skincare for hygiene reasons, but some make exceptions for allergic reactions. Always keep your receipt and check the specific retailer's policy before opening."
+          a: "Most retailers won't accept opened skincare back, for hygiene reasons, though some make exceptions for allergic reactions. Keep your receipt either way, and check the specific retailer's policy before you open anything you might need to return."
         },
         {
           q: "What if I have an allergic reaction to a product?",
-          a: "Stop using it immediately. Most retailers will accept returns for medical reasons—contact them with proof of purchase. If you experience severe reactions, consult a doctor or dermatologist."
+          a: "Stop using it straight away. Most retailers will accept a return for a medical reason if you have proof of purchase. If the reaction is severe, see a doctor or dermatologist rather than waiting it out."
         },
       ]
     },
@@ -229,19 +229,19 @@ const FAQ = () => {
       questions: [
         {
           q: "How much do recommended products typically cost?",
-          a: "Our recommendations span all budgets. Basic routines can cost R300-R600 total, mid-range routines R800-R1500, and premium options R2000+. We always offer affordable alternatives and prioritize value over price."
+          a: "It spans every budget: basic routines can run R300–R600 total, mid-range R800–R1500, and premium options R2000+. We always flag an affordable alternative where one exists — value matters more to us than price point."
         },
         {
           q: "Do you have a subscription service?",
-          a: "Yes — Glow Insider (R99/month or R990/year, 2 months free) and Glow VIP (R299/month or R2990/year, 2 months free), both starting with a 7-day free trial and no card required. Basic AI formulator access and limited product reviews stay free forever on the Glow Explorer plan."
+          a: "Yes — Glow Insider (R99/month or R990/year, 2 months free) starts with a 7-day free trial, no card required, and Glow VIP (R299/month or R2990/year, 2 months free) adds monthly derm consults. Both paid plans are backed by a 30-day money-back guarantee, so if it's not for you, you get a full refund. Basic AI formulator access and limited product reviews stay free forever on the Glow Explorer plan."
         },
         {
           q: "What payment methods do SA retailers accept?",
-          a: "Most retailers accept credit/debit cards, SnapScan, Zapper, Masterpass, and EFT. Some offer payment plans through PayJustNow, Payflex, or Mobicred for purchases over a certain amount."
+          a: "Most take credit/debit cards, SnapScan, Zapper, Masterpass and EFT. Some offer instalment options through PayJustNow, Payflex or Mobicred on larger purchases."
         },
         {
           q: "Are there any hidden costs?",
-          a: "No hidden costs from SkinLabs—we're free to use. When purchasing from retailers, be aware of shipping costs (if order is under free shipping threshold) and whether prices include VAT (they usually do)."
+          a: "None from us — SkinLabs is free to use. When you're buying from a retailer, just watch for shipping costs (if you're under their free-shipping threshold) and whether the price already includes VAT, which it usually does."
         },
       ]
     },
@@ -250,27 +250,27 @@ const FAQ = () => {
       questions: [
         {
           q: "How does South African climate affect my skincare routine?",
-          a: "SA's diverse climates require different approaches: Coastal areas (humid) need lighter products, Gauteng (dry) needs richer moisturizers, and high UV levels nationwide make sunscreen essential. Our AI factors in your location."
+          a: "SA's climates pull in different directions: coastal humidity calls for lighter products, Gauteng's dryness calls for richer moisturisers, and high UV nationwide makes sunscreen non-negotiable wherever you are. The AI factors your location into every recommendation."
         },
         {
           q: "What skincare ingredients work best for South African skin tones?",
-          a: "For melanin-rich skin common in SA: niacinamide for hyperpigmentation, gentle AHAs like mandelic acid, vitamin C for brightening, and always SPF to prevent dark spots. Avoid harsh ingredients that may cause post-inflammatory hyperpigmentation."
+          a: "For melanin-rich skin, which is common here: niacinamide for hyperpigmentation, gentle AHAs like mandelic acid, vitamin C for brightening, and SPF, always, to stop dark spots forming in the first place. Harsh, stripping ingredients are more likely to trigger post-inflammatory hyperpigmentation on deeper skin tones, so we steer around them."
         },
         {
           q: "Are international brands sold in SA authentic?",
-          a: "Stick to authorized retailers like Clicks, Dis-Chem, Woolworths, and Dermastore to ensure authenticity. Be cautious of deeply discounted products on online marketplaces—counterfeit skincare exists in SA."
+          a: "Stick to authorised retailers — Clicks, Dis-Chem, Woolworths, Dermastore — to be sure of what you're getting. Be wary of steep discounts on online marketplaces; counterfeit skincare does circulate in SA."
         },
         {
           q: "Can I use overseas skincare tips in South Africa?",
-          a: "Some translate, but not all. SA's higher UV index means sunscreen is more critical, our dry inland climate requires more occlusive moisturizers, and product availability differs. Always adapt advice to local conditions."
+          a: "Some of it translates, not all of it. SA's higher UV index makes sunscreen more critical, our dry inland climate wants more occlusive moisturisers, and product availability just isn't the same. Treat overseas advice as a starting point, not a script."
         },
         {
           q: "What's the best skincare for Johannesburg's climate?",
-          a: "Johannesburg's high altitude and low humidity cause dehydration. Focus on hydrating serums (hyaluronic acid), rich moisturizers with ceramides, and extra SPF protection. Use a humidifier in winter to combat indoor dryness."
+          a: "Johannesburg's high altitude and low humidity dry skin out fast. Hydrating serums (hyaluronic acid), rich moisturisers with ceramides, and consistent SPF do the heavy lifting — a humidifier in winter helps with the indoor dryness too."
         },
         {
           q: "Are there dermatologists I can consult in South Africa?",
-          a: "Yes! We partner with registered dermatologists and skincare professionals across SA for virtual consultations. You can also book in-person appointments—many dermatologists have practices in major cities."
+          a: "Yes — we partner with registered dermatologists and skincare professionals across SA for virtual consultations, and you can book in-person appointments too, since many of them practise in major cities."
         }
       ]
     }
@@ -294,9 +294,14 @@ const FAQ = () => {
         <title>FAQ - Frequently Asked Questions | SKINLABS</title>
         <meta
           name="description"
-          content="Find answers to 50+ skincare questions covering ingredients, routines, skin types, South African climate considerations, product recommendations, and our AI formulator. Expert guidance for SA skin."
+          content="50+ straight answers on skincare ingredients, routines, skin types, SA climate, product picks and how SkinLabs' AI formulator works."
         />
         <link rel="canonical" href="https://skinlabs.co.za/faq" />
+        <meta property="og:title" content="FAQ | SKINLABS" />
+        <meta property="og:description" content="Straight answers on skincare ingredients, routines and the SA market." />
+        <meta property="og:url" content="https://skinlabs.co.za/faq" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
       </Helmet>
 
@@ -314,7 +319,7 @@ const FAQ = () => {
                     Frequently Asked Questions
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Everything you need to know about skincare, ingredients, routines, and navigating the South African skincare market
+                    Ingredients, routines, skin types and the South African skincare market — no jargon, just answers
                   </p>
                 </div>
 
@@ -354,10 +359,10 @@ const FAQ = () => {
                 <div className="mt-16 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
                   <MessageCircle className="h-12 w-12 text-primary mx-auto mb-4" />
                   <h2 className="text-2xl font-bold text-foreground mb-4">
-                    Still Have Questions?
+                    Still have questions?
                   </h2>
                   <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                    Our customer support team is here to help. Reach out via email, phone, or WhatsApp.
+                    Our support team reads their messages — reach out via email, phone or WhatsApp.
                   </p>
                   <div className="flex flex-wrap justify-center gap-4 text-sm">
                     <a href="mailto:support@skinlabs.co.za" className="text-primary font-medium hover:underline">

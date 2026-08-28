@@ -34,7 +34,8 @@ const Newsroom = () => (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-20">
-        <NewsroomFeed />
+        <h1 className="sr-only">The Daily Skinny — Daily SA Skincare Briefings</h1>
+        <NewsroomFeed searchable />
       </main>
       <Footer />
     </div>

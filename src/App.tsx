@@ -41,6 +41,7 @@ const Newsroom = lazy(() => import("./pages/Newsroom"));
 const NewsroomArticle = lazy(() => import("./pages/NewsroomArticle"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ProductReview = lazy(() => import("./pages/ProductReview"));
+const ComparisonArticle = lazy(() => import("./pages/ComparisonArticle"));
 const Consultations = lazy(() => import("./pages/Consultations"));
 const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
@@ -117,6 +118,7 @@ const AppContent = () => {
         <Route path="/newsroom" element={<Newsroom />} />
         <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/reviews/versus/:slug" element={<ComparisonArticle />} />
         <Route path="/reviews/:slug" element={<ProductReview />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />

@@ -4,22 +4,22 @@ const features = [
   {
     icon: Sparkles,
     title: "AI-Powered Routines",
-    description: "Premium personalized skincare routines with progress trackers and dermatologist-approved product recommendations.",
+    description: "A custom routine built around your skin and re-analysed as it changes — no spreadsheet required.",
   },
   {
     icon: Newspaper,
     title: "The Daily Skinny",
-    description: "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
+    description: "Global skincare science, translated for South African skin, climate and shelves — not just reposted.",
   },
   {
     icon: Star,
     title: "Independent Reviews",
-    description: "Honest, unbiased reviews of SA skincare products with no affiliate deals or gifted samples.",
+    description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. No affiliate deals, no gifted samples.",
   },
   {
     icon: Mic,
-    title: "Expert Podcast",
-    description: "Weekly episodes featuring dermatologists, interviews, and deep-dives into skincare science.",
+    title: "The Skin Deep Podcast",
+    description: "Dermatologist interviews and ingredient deep-dives that don't take themselves too seriously. New episode weekly.",
   },
 ];
 
@@ -29,10 +29,10 @@ const Features = () => {
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">
-            Why Choose Us
+            The short version
           </p>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground">
-            Independent Skincare Intelligence for South Africa
+            Skincare intelligence, built for South African skin
           </h2>
         </div>
 

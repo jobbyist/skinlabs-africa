@@ -42,8 +42,14 @@ const CookiePolicy = () => {
         <title>Cookie Policy - How We Use Cookies | SKINLABS</title>
         <meta
           name="description"
-          content="Learn about how SkinLabs uses cookies and similar technologies to improve your browsing experience and provide personalized content."
+          content="Which cookies SkinLabs uses, what each type does, and how to manage or delete them from your browser."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/cookie-policy" />
+        <meta property="og:title" content="Cookie Policy | SKINLABS" />
+        <meta property="og:description" content="Which cookies SkinLabs uses and how to manage your preferences." />
+        <meta property="og:url" content="https://skinlabs.co.za/cookie-policy" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -65,12 +71,14 @@ const CookiePolicy = () => {
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-4">What Are Cookies?</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">What are cookies?</h2>
                   <p className="text-muted-foreground mb-4">
-                    Cookies are small text files that are placed on your device when you visit our website. They help us provide you with a better experience by remembering your preferences, understanding how you use our site, and improving our services.
+                    Cookies are small text files placed on your device when you visit our website. Nothing sinister —
+                    they help us remember your preferences, understand how you use the site, and improve it over time.
                   </p>
                   <p className="text-muted-foreground">
-                    We use both session cookies (which expire when you close your browser) and persistent cookies (which remain on your device until deleted or expired).
+                    We use session cookies (gone when you close your browser) and persistent cookies (which stick
+                    around until they expire or you delete them).
                   </p>
                 </div>
 

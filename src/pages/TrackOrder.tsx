@@ -8,11 +8,17 @@ const TrackOrder = () => {
   return (
     <>
       <Helmet>
-        <title>Track Order - Find Your Package | SKINLABS</title>
+        <title>Track Your Order | SKINLABS</title>
         <meta
           name="description"
-          content="Track your SkinLabs order in real-time. Enter your order number to see the current status and estimated delivery date."
+          content="Enter your order number and email to see where your SkinLabs package actually is, plus what each delivery status means."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/track-order" />
+        <meta property="og:title" content="Track Your Order | SKINLABS" />
+        <meta property="og:description" content="Enter your order number to check delivery status in real time." />
+        <meta property="og:url" content="https://skinlabs.co.za/track-order" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -29,13 +35,13 @@ const TrackOrder = () => {
                     Track Your Order
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Enter your order details to see real-time tracking information
+                    Enter your details below and we'll show you exactly where your order is
                   </p>
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
                   <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-                    Find Your Order
+                    Find your order
                   </h2>
                   <div className="space-y-4 mb-6">
                     <div>
@@ -64,12 +70,12 @@ const TrackOrder = () => {
                     Track Order
                   </Button>
                   <p className="text-center text-sm text-muted-foreground mt-4">
-                    You can find your order number in your confirmation email
+                    Your order number is in your confirmation email — check spam if you can't find it
                   </p>
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">Order Status Guide</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">What each status means</h2>
                   <div className="space-y-6">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
@@ -124,10 +130,10 @@ const TrackOrder = () => {
                       <Package className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Haven't received tracking?
+                      No tracking email yet?
                     </h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Tracking information is typically sent within 24-48 hours of placing your order.
+                      That's normal for the first 24-48 hours after you order — it's on its way.
                     </p>
                   </div>
                   <div className="bg-card border border-border rounded-2xl p-6">
@@ -135,20 +141,20 @@ const TrackOrder = () => {
                       <MapPin className="h-6 w-6 text-primary" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground mb-2">
-                      Tracking not updating?
+                      Status stuck for a while?
                     </h3>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Tracking can take 24 hours to update. Contact us if it's been longer.
+                      Tracking can lag by up to 24 hours. Give it a day, then get in touch if it's still stuck.
                     </p>
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 text-center">
                   <h2 className="text-2xl font-bold text-foreground mb-4">
-                    Need Help?
+                    Still stuck?
                   </h2>
                   <p className="text-muted-foreground mb-6">
-                    Contact our support team if you have questions about your order
+                    Our support team can look up your order directly
                   </p>
                   <div className="flex flex-wrap justify-center gap-4">
                     <a href="mailto:support@skinlabs.co.za" className="text-primary font-medium hover:underline">
