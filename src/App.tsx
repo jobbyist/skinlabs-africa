@@ -42,6 +42,12 @@ const NewsroomArticle = lazy(() => import("./pages/NewsroomArticle"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ProductReview = lazy(() => import("./pages/ProductReview"));
 const ComparisonArticle = lazy(() => import("./pages/ComparisonArticle"));
+const Spotlight = lazy(() => import("./pages/Spotlight"));
+const SpotlightMethodology = lazy(() => import("./pages/SpotlightMethodology"));
+const SpotlightArchive = lazy(() => import("./pages/SpotlightArchive"));
+const SpotlightBrandProfile = lazy(() => import("./pages/SpotlightBrandProfile"));
+const Seasonals = lazy(() => import("./pages/Seasonals"));
+const SeasonalHub = lazy(() => import("./pages/SeasonalHub"));
 const Consultations = lazy(() => import("./pages/Consultations"));
 const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
@@ -122,6 +128,17 @@ const AppContent = () => {
         <Route path="/reviews/:slug" element={<ProductReview />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
+
+        {/* Spotlight by SkinLabs */}
+        <Route path="/spotlight" element={<Spotlight />} />
+        <Route path="/spotlight/methodology" element={<SpotlightMethodology />} />
+        <Route path="/spotlight/archive" element={<SpotlightArchive />} />
+        <Route path="/spotlight/:brandSlug" element={<SpotlightBrandProfile />} />
+
+        {/* Seasonals by SkinLabs */}
+        <Route path="/seasonals" element={<Seasonals />} />
+        <Route path="/seasonals/spring" element={<SeasonalHub />} />
+        <Route path="/seasonals/:season" element={<SeasonalHub />} />
         
         {/* Edible Pouches Pre-Order */}
         <Route path="/edible-pouches" element={<EdiblePouches />} />

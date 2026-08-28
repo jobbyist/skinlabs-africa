@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Mic, Newspaper, Star, Swords } from "lucide-react";
+import { Award, FileText, Mic, Newspaper, Star, Sun, Swords } from "lucide-react";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
+import { spotlightRanking } from "@/data/spotlight";
+import { allSeasons, seasonHubs } from "@/data/seasonals";
 import { searchablePages } from "@/lib/search-index";
 
 interface SiteSearchProps {
@@ -51,6 +53,35 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
                 <span>{article.title}</span>
               </CommandItem>
             ))}
+          </CommandGroup>
+
+          <CommandGroup heading="Spotlight Brands">
+            {spotlightRanking.map((entry) => (
+              <CommandItem
+                key={entry.slug}
+                value={`${entry.brand} ${entry.editorial.positioningStatement} ${entry.editorial.knownFor}`}
+                onSelect={() => go(`/spotlight/${entry.slug}`)}
+              >
+                <Award />
+                <span>{entry.brand}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandGroup heading="Seasonals">
+            {allSeasons.map((season) => {
+              const hub = seasonHubs[season];
+              return (
+                <CommandItem
+                  key={season}
+                  value={`${hub.h1} ${hub.tagline} ${hub.months}`}
+                  onSelect={() => go(`/seasonals/${season}`)}
+                >
+                  <Sun />
+                  <span>{hub.h1}</span>
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
 
           <CommandGroup heading="Product Reviews">

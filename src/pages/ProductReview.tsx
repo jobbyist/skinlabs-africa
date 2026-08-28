@@ -19,6 +19,8 @@ import {
   getSeededAverageRating,
   getSeededLikeCount,
 } from "@/data/reviews";
+import { spotlightRanking } from "@/data/spotlight";
+import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -169,6 +171,10 @@ const ProductReview = () => {
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
   const displayComments = comments.length === 0 ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` })) : comments;
   const relatedReviews = productReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
+  const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
+  const seasonalFeature = allSeasons
+    .map((season) => seasonHubs[season])
+    .find((hub) => hub.productEdit.picks.some((pick) => pick.reviewId === review.id));
   const score = overallScore(review);
   const canonical = `https://skinlabs.co.za/reviews/${review.id}`;
 
@@ -285,6 +291,28 @@ const ProductReview = () => {
               ))}
             </div>
           </div>
+
+          {/* Cross-links: Spotlight and Seasonals */}
+          {(spotlightEntry || seasonalFeature) && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {spotlightEntry && (
+                <Link
+                  to={`/spotlight/${spotlightEntry.slug}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary"
+                >
+                  This brand is on Spotlight →
+                </Link>
+              )}
+              {seasonalFeature && (
+                <Link
+                  to={`/seasonals/${seasonalFeature.season}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary"
+                >
+                  Featured in {seasonalFeature.h1} →
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Full breakdown — member gated */}
           <div className="mt-8">

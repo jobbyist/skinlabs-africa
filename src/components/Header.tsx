@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -20,6 +20,8 @@ const Header = () => {
   const navLinks = [
     { label: "Briefings", href: "/newsroom", icon: Newspaper },
     { label: "Reviews", href: "/reviews", icon: Star },
+    { label: "Spotlight", href: "/spotlight", icon: Award, isNew: true },
+    { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
     { label: "Consultations", href: "/consultations", icon: Calendar },
     { label: "Pricing", href: "/pricing", icon: DollarSign },
@@ -52,10 +54,15 @@ const Header = () => {
                 <Link
                   key={link.label}
                   to={link.href}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
+                  {link.isNew && (
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
+                      New
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -141,6 +148,11 @@ const Header = () => {
                   >
                     <link.icon className="h-4 w-4" />
                     {link.label}
+                    {link.isNew && (
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
+                        New
+                      </span>
+                    )}
                   </Link>
                 ))}
                 {!loading && user ? (

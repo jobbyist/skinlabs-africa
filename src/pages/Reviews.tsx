@@ -1,10 +1,12 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Award } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewsGrid from "@/components/ReviewsGrid";
+import SpotlightRankingCard from "@/components/SpotlightRankingCard";
 import { comparisonArticles } from "@/data/comparisons";
+import { spotlightTopThree } from "@/data/spotlight";
 
 const Reviews = () => (
   <>
@@ -64,6 +66,34 @@ const Reviews = () => (
                     </span>
                   </div>
                 </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Spotlight by SkinLabs teaser */}
+        <section id="spotlight-teaser" className="border-b border-border bg-secondary/30 py-16">
+          <div className="container mx-auto px-4">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div className="max-w-2xl">
+                <p className="mb-2 flex items-center gap-1.5 text-sm font-medium uppercase tracking-wider text-primary">
+                  <Award className="h-4 w-4" /> Spotlight
+                </p>
+                <h2 className="mb-3 font-heading text-2xl font-bold text-foreground md:text-3xl">
+                  South African skincare brands worth knowing
+                </h2>
+                <p className="text-muted-foreground">
+                  A monthly, review-led ranking — computed from these same review scores, never popularity or payment.
+                </p>
+              </div>
+              <Link to="/spotlight" className="inline-flex items-center gap-2 font-medium text-primary hover:underline">
+                See the full ranking
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-3">
+              {spotlightTopThree.map((entry) => (
+                <SpotlightRankingCard key={entry.slug} entry={entry} />
               ))}
             </div>
           </div>
