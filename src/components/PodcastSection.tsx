@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Play, Clock, Lock } from "lucide-react";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
@@ -6,7 +5,6 @@ import { podcastEpisodes } from "@/data/podcast";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface PodcastSectionProps {
   heading?: string;
@@ -24,62 +22,17 @@ const PodcastSection = ({
   const { playEpisode, current } = usePodcastPlayer();
   const { user } = useAuth();
   const { isMember } = useMembership();
-  const [playsThisMonth, setPlaysThisMonth] = useState(0);
-  const [loadingPlays, setLoadingPlays] = useState(true);
 
-  useEffect(() => {
-    const fetchPlaysThisMonth = async () => {
-      if (!user) {
-        setLoadingPlays(false);
-        return;
-      }
-
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
-      const { data, error } = await (supabase as any)
-        .from("podcast_plays")
-        .select("id")
-        .eq("user_id", user.id)
-        .gte("played_at", startOfMonth.toISOString());
-
-      if (!error && data) {
-        setPlaysThisMonth(data.length);
-      }
-      setLoadingPlays(false);
-    };
-
-    fetchPlaysThisMonth();
-  }, [user]);
-
+  // Free tier: every episode is playable, capped to a 2-minute preview by
+  // PodcastPlayerProvider itself, so no separate play-count gate is needed here.
   const handlePlayEpisode = async (episode: typeof podcastEpisodes[0]) => {
-    // Premium members have unlimited access
-    if (isMember) {
-      playEpisode(episode);
-      return;
-    }
-
-    // Free users and unauthenticated users limited to 2 per month
-    if (!user || playsThisMonth >= 2) {
-      toast.error("You've reached your monthly limit of 2 podcast episodes. Upgrade to Glow Insider for unlimited access!", {
-        duration: 5000,
-        action: {
-          label: "Upgrade",
-          onClick: () => window.location.href = "/pricing"
-        }
-      });
-      return;
-    }
-
-    // Track the play
     if (user) {
-      await (supabase as any).from("podcast_plays").insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- podcast_plays isn't in the generated Supabase types yet
+      void (supabase as any).from("podcast_plays").insert({
         user_id: user.id,
         episode_slug: episode.slug,
-        episode_title: episode.title
+        episode_title: episode.title,
       });
-      setPlaysThisMonth(prev => prev + 1);
     }
     playEpisode(episode);
   };
@@ -111,11 +64,12 @@ const PodcastSection = ({
         </div>
 
         {/* Usage indicator for free users */}
-        {!isMember && user && !loadingPlays && (
+        {!isMember && (
           <div className="mb-6 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/50 rounded-full text-sm">
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {playsThisMonth}/2 free episodes used this month
+                Free tier: 2-minute previews · <Link to="/pricing" className="text-primary hover:underline">Upgrade for full episodes</Link>
               </span>
             </div>
           </div>
@@ -138,19 +92,10 @@ const PodcastSection = ({
                 />
                 <button
                   onClick={() => handlePlayEpisode(episode)}
-                  aria-label={`Play ${episode.title}`}
-                  className={`absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 ${
-                    !isMember && (!user || playsThisMonth >= 2)
-                      ? "bg-muted text-muted-foreground cursor-not-allowed"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                  disabled={!isMember && (!user || playsThisMonth >= 2)}
+                  aria-label={!isMember ? `Play ${episode.title} (2-minute preview)` : `Play ${episode.title}`}
+                  className="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
                 >
-                  {!isMember && (!user || playsThisMonth >= 2) ? (
-                    <Lock className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5" />
-                  )}
+                  <Play className="h-5 w-5" />
                 </button>
               </div>
               <div className="flex flex-1 flex-col gap-3 p-6">

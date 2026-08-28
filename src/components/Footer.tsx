@@ -49,8 +49,9 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
-              South Africa's AI-powered skincare intelligence platform. Daily skin science,
-              independent local reviews and personalised routines.
+              South Africa's independent skincare intelligence platform. Evidence-graded product
+              reviews, daily skin science briefings and AI-personalised routines — no affiliate
+              deals, no gifted samples.
             </p>
             
             {/* Contact Information */}

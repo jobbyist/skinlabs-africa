@@ -8,6 +8,7 @@ import {
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { membershipPlans } from "@/data/plans";
 import { cn } from "@/lib/utils";
 
 const About = () => {
@@ -171,34 +172,6 @@ const About = () => {
       description: "We flag mineral-oil, fragrance and sustainability trade-offs honestly, even in well-loved products",
       stats: "Disclosed"
     }
-  ];
-
-  const membershipPlans = [
-    {
-      id: "explorer",
-      name: "Glow Explorer",
-      price: 0,
-      tagline: "Start reading, start learning",
-      features: ["One Newsroom briefing per day", "Podcast episode previews", "Basic AI skin quiz result", "Community review scores"],
-      cta: "Start free",
-    },
-    {
-      id: "insider",
-      name: "Glow Insider",
-      price: 99,
-      tagline: "The full skincare intelligence toolkit",
-      highlight: true,
-      features: ["Unlimited Newsroom access", "Full AI routine report + PDF download", "Complete podcast library and show notes", "Full product review breakdowns", "Monthly routine re-analysis"],
-      cta: "Become an Insider",
-    },
-    {
-      id: "vip",
-      name: "Glow VIP",
-      price: 299,
-      tagline: "Add real practitioners to your routine",
-      features: ["Everything in Glow Insider", "One virtual derm consultation per month", "Priority booking with SA practitioners", "Personalised quarterly routine review"],
-      cta: "Go VIP",
-    },
   ];
 
   return (
@@ -506,7 +479,7 @@ const About = () => {
                         <h3 className="font-heading text-xl font-bold text-foreground">{plan.name}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
                         <div className="mt-6 flex items-end gap-1">
-                          <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.price}</span>
+                          <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.priceMonthly}</span>
                           <span className="pb-1 text-sm text-muted-foreground">/month</span>
                         </div>
                         <ul className="mt-6 flex-1 space-y-3">
@@ -518,9 +491,7 @@ const About = () => {
                           ))}
                         </ul>
                         <Button className="mt-8 w-full" variant={plan.highlight ? "default" : "outline"} asChild>
-                          <a href={plan.id === "explorer" ? "/get-started" : `/get-started?plan=${plan.id}`}>
-                            {plan.cta}
-                          </a>
+                          <a href="/pricing">{plan.cta}</a>
                         </Button>
                       </div>
                     ))}
@@ -542,7 +513,7 @@ const About = () => {
                     complete AI skincare routine.
                   </p>
                   <Button size="lg" asChild>
-                    <a href="/get-started">Get started free</a>
+                    <a href="/pricing">Get started free</a>
                   </Button>
                 </div>
 

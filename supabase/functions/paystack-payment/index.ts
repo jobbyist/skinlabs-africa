@@ -5,9 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-paystack-signature",
 };
 
-const PLANS: Record<string, { amountZar: number; name: string; status: string }> = {
-  insider: { amountZar: 99, name: "Glow Insider membership", status: "insider" },
-  vip: { amountZar: 299, name: "Glow VIP membership", status: "vip" },
+const PLANS: Record<string, { amountZar: number; name: string; status: string; interval: "monthly" | "annual" }> = {
+  insider: { amountZar: 99, name: "Glow Insider membership (monthly)", status: "insider", interval: "monthly" },
+  vip: { amountZar: 299, name: "Glow VIP membership (monthly)", status: "vip", interval: "monthly" },
+  insider_annual: { amountZar: 990, name: "Glow Insider membership (annual)", status: "insider", interval: "annual" },
+  vip_annual: { amountZar: 2990, name: "Glow VIP membership (annual)", status: "vip", interval: "annual" },
 };
 
 const ALLOWED_CALLBACK_ORIGINS = [
@@ -91,6 +93,7 @@ Deno.serve(async (req) => {
             .update({
               subscription_status: plan.status,
               subscription_started_at: new Date().toISOString(),
+              billing_interval: plan.interval,
             })
             .eq("user_id", userId);
         } else {

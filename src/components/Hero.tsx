@@ -41,17 +41,18 @@ const Hero = () => {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
               <Sparkles className="h-4 w-4" />
-              South Africa's Skin Intelligence Platform
+              South Africa's Independent Skincare Intelligence Platform
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
               Skincare Intelligence,
               <span className="block text-primary drop-shadow-md">Locally Grounded</span>
             </h1>
-            
+
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
-              Daily skin science briefings, independent local product reviews, a podcast and an AI
-              formulator that builds a routine around your skin, your climate and your budget.
+              Evidence-graded product reviews, daily skin science briefings and an AI formulator that
+              builds a routine around your skin, South Africa's climate and your budget — no affiliate
+              deals, no gifted samples.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
@@ -67,8 +68,8 @@ const Hero = () => {
                 className="gap-2 text-base px-8"
                 asChild
               >
-                <a href="/newsroom">
-                  Read The Daily Skinny
+                <a href="/pricing">
+                  Try Insider free for 7 days
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>

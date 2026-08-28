@@ -1,9 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Pause, Play, SkipBack, SkipForward, X, Gauge } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, X, Gauge, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
 import { podcastEpisodes, type PodcastEpisode } from "@/data/podcast";
+import { useMembership } from "@/hooks/use-membership";
+
+/** Free-tier episode preview cap, in seconds. */
+const PREVIEW_LIMIT_SECONDS = 120;
 
 interface PlayerContextValue {
   current: PodcastEpisode | null;
@@ -40,6 +45,7 @@ const format = (value: number) => {
 };
 
 export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => {
+  const { isMember } = useMembership();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [current, setCurrent] = useState<PodcastEpisode | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -51,17 +57,20 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
     const audio = audioRef.current;
     if (!audio) return;
     const isSame = current?.id === episode.id;
+    let target = startSeconds ?? (isSame ? undefined : readPositions()[episode.slug] ?? 0);
+    if (!isMember && target !== undefined && target >= PREVIEW_LIMIT_SECONDS) {
+      target = 0;
+    }
     if (!isSame) {
       audio.src = episode.audioFile;
-      const saved = readPositions()[episode.slug] ?? 0;
-      audio.currentTime = startSeconds ?? saved;
+      audio.currentTime = target ?? 0;
       setCurrent(episode);
-    } else if (startSeconds !== undefined) {
-      audio.currentTime = startSeconds;
+    } else if (target !== undefined) {
+      audio.currentTime = target;
     }
     audio.playbackRate = speed;
     void audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-  }, [current, speed]);
+  }, [current, isMember, speed]);
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
@@ -95,8 +104,18 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
     const audio = audioRef.current;
     if (!audio) return;
     const onTime = () => {
+      if (!isMember && audio.currentTime >= PREVIEW_LIMIT_SECONDS) {
+        audio.pause();
+        audio.currentTime = PREVIEW_LIMIT_SECONDS;
+        setIsPlaying(false);
+        setProgress(PREVIEW_LIMIT_SECONDS);
+        toast.message("That's the free preview — become a member to hear the full episode.", {
+          action: { label: "See plans", onClick: () => { window.location.href = "/pricing"; } },
+        });
+        return;
+      }
       setProgress(audio.currentTime);
-      if (current) {
+      if (current && isMember) {
         const positions = readPositions();
         positions[current.slug] = audio.currentTime;
         localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
@@ -112,7 +131,7 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [current]);
+  }, [current, isMember]);
 
   const value = useMemo(
     () => ({ current, isPlaying, playEpisode, toggle, close }),
@@ -144,8 +163,13 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
 
               {/* Progress and Title */}
               <div className="min-w-0 flex-1">
-                <Link to={`/podcast/${current.slug}`} className="block truncate text-sm font-semibold text-foreground hover:underline">
+                <Link to={`/podcast/${current.slug}`} className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground hover:underline">
                   {current.title}
+                  {!isMember && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      <Lock className="h-2.5 w-2.5" /> 2-min preview
+                    </span>
+                  )}
                 </Link>
                 <div className="flex items-center gap-2">
                   <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">{format(progress)}</span>

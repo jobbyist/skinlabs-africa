@@ -90,6 +90,21 @@ const AIFormulator = () => {
   const getAIRecommendation = async () => {
     setIsLoading(true);
     try {
+      const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
+      if (quotaError) {
+        toast.error("Could not verify your analysis quota. Please try again.");
+        return;
+      }
+      if (quotaAllowed === false) {
+        toast.error(
+          isMember
+            ? "You've used this week's AI analysis — your next one unlocks in a few days."
+            : "You've used this month's free basic analysis. Upgrade for a weekly custom routine.",
+        );
+        if (!isMember) window.location.href = "/pricing";
+        return;
+      }
+
       const quizAnswers = QUESTIONS.map((q) => ({
         question: q.title,
         answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
@@ -323,9 +338,9 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
                   <Shield className="h-3.5 w-3.5 text-primary" />
                   <span className="text-muted-foreground">
-                    Free tier: Basic analysis • 
+                    Free tier: 1 basic analysis/month •
                     <a href="/pricing" className="text-primary hover:underline ml-1">
-                      Upgrade for comprehensive results
+                      Upgrade for a weekly custom routine
                     </a>
                   </span>
                 </div>

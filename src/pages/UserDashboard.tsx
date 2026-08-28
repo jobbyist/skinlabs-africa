@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Package, Crown, FileText, Loader2 } from "lucide-react";
+import { Sparkles, Package, Crown, FileText, Loader2, Clock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
 import MFASettingsCard from "@/components/MFASettingsCard";
 import EmailVerificationCard from "@/components/EmailVerificationCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
+import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 
 import AIFormulator from "@/components/AIFormulator";
 interface Profile {
@@ -28,14 +31,30 @@ interface Recommendation { id: string; skin_type: string; concerns: string[]; cr
 const UserDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { tier, isTrialing, trialEndsAt, loading: membershipLoading } = useMembership();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) navigate("/");
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (searchParams.get("trial") !== "started") return;
+    setTrialWelcomeOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("trial");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const trialDaysLeft = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   useEffect(() => {
     if (!user) return;
@@ -56,7 +75,8 @@ const UserDashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-  const isSubscribed = profile?.subscription_status === "active";
+  const tierLabel = tier === "vip" ? "Glow VIP" : tier === "insider" ? "Glow Insider" : "Glow Explorer";
+  const isSubscribed = tier !== "explorer";
 
   return (
     <>
@@ -70,6 +90,25 @@ const UserDashboard = () => {
                 Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
               </h1>
               <p className="text-muted-foreground mb-6">{user?.email}</p>
+
+              {!membershipLoading && isTrialing && (
+                <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-medium text-foreground">
+                        {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        No card on file. Upgrade any time to keep your access after the trial ends.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm">
+                    <Link to="/pricing">Upgrade now</Link>
+                  </Button>
+                </div>
+              )}
 
               <Tabs defaultValue="overview" className="space-y-6">
                 <TabsList className="flex flex-wrap h-auto">
@@ -86,9 +125,14 @@ const UserDashboard = () => {
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
                       <CardContent>
-                        <Badge variant={isSubscribed ? "default" : "secondary"}>{isSubscribed ? "Premium" : "Free"}</Badge>
-                        {isSubscribed && profile?.subscription_started_at && (
+                        <Badge variant={isSubscribed ? "default" : "secondary"}>
+                          {tierLabel}{isTrialing ? " (trial)" : ""}
+                        </Badge>
+                        {isSubscribed && !isTrialing && profile?.subscription_started_at && (
                           <p className="text-xs text-muted-foreground mt-2">Since {new Date(profile.subscription_started_at).toLocaleDateString()}</p>
+                        )}
+                        {isTrialing && (
+                          <p className="text-xs text-muted-foreground mt-2">{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</p>
                         )}
                       </CardContent>
                     </Card>
@@ -101,6 +145,24 @@ const UserDashboard = () => {
                       <CardContent><p className="text-2xl font-bold text-foreground">{recommendations.length}</p><p className="text-xs text-muted-foreground">Skincare analyses</p></CardContent>
                     </Card>
                   </div>
+
+                  {tier === "vip" && !isTrialing && (
+                    <Card className="border-primary/30 bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                          <Crown className="h-4 w-4 text-primary" /> VIP quarterly routine review
+                        </CardTitle>
+                        <CardDescription>
+                          Book your seasonal check-in with a priority-booked practitioner — included with Glow VIP.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button size="sm" asChild>
+                          <Link to="/consultations">Book my quarterly review</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {preorders.length > 0 && (
                     <Card>
@@ -170,6 +232,12 @@ const UserDashboard = () => {
         </main>
         <Footer />
       </div>
+      <TrialWelcomeModal
+        open={trialWelcomeOpen}
+        onOpenChange={setTrialWelcomeOpen}
+        planName={tierLabel}
+        trialEndsAt={trialEndsAt}
+      />
     </>
   );
 };
