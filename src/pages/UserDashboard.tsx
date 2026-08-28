@@ -80,7 +80,11 @@ const UserDashboard = () => {
 
   return (
     <>
-      <Helmet><title>Dashboard | SKINLABS</title></Helmet>
+      <Helmet>
+        <title>Dashboard | SKINLABS</title>
+        <meta name="description" content="Manage your SkinLabs membership, saved routine and account settings." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20">

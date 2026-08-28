@@ -60,8 +60,8 @@ const Newsletter = () => {
             Get Early Access to Virtual Dermatologist Consultations
           </h2>
           <p className="text-lg text-muted-foreground mb-8 text-center max-w-2xl mx-auto">
-            Sign up now for priority access to our upcoming virtual consultation platform. Connect with 
-            HPCSA-registered dermatologists through secure video sessions at exclusive member rates.
+            Skip the waiting room. Get priority access to our virtual consultation platform and connect with
+            HPCSA-registered dermatologists over secure video, at member rates.
           </p>
 
           {/* Benefits Grid */}

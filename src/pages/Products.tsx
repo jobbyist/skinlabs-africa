@@ -29,7 +29,7 @@ const Products = () => {
   return (
     <>
       <Helmet>
-        <title>Products - Premium Skincare | SKINLABS</title>
+        <title>Products - Premium Skincare | SkinLabs</title>
         <meta name="description" content="Discover our range of science-backed skincare products including serums, devices, and custom formulas tailored to your skin's needs." />
         <link rel="canonical" href="https://skinlabs.co.za/products" />
         <meta property="og:title" content="Premium Skincare Products | SKINLABS" />

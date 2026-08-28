@@ -39,11 +39,17 @@ const Serums = () => {
   return (
     <>
       <Helmet>
-        <title>Serums - Targeted Treatments | SKINLABS</title>
+        <title>Serums — Vitamin C, Retinol & Niacinamide | SKINLABS</title>
         <meta
           name="description"
-          content="Shop powerful serums including Vitamin C, Hyaluronic Acid, Retinol, and Niacinamide. Science-backed formulas for visible results."
+          content="Targeted serums — Vitamin C, Hyaluronic Acid, Retinol and Niacinamide — with the concentrations and rand prices, so you know what you're paying for."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/serums" />
+        <meta property="og:title" content="Serums | SKINLABS" />
+        <meta property="og:description" content="Targeted serums with disclosed concentrations and rand pricing." />
+        <meta property="og:url" content="https://skinlabs.co.za/serums" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -57,7 +63,7 @@ const Serums = () => {
                     Targeted Serums
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Concentrated formulas with proven active ingredients for visible results
+                    Concentrated actives at doses that actually do something — results can vary by skin type
                   </p>
                 </div>
 
@@ -67,9 +73,9 @@ const Serums = () => {
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">
                         {serum.icon}
                       </div>
-                      <h3 className="text-2xl font-semibold text-foreground mb-3">
+                      <h2 className="text-2xl font-semibold text-foreground mb-3">
                         {serum.name}
-                      </h3>
+                      </h2>
                       <p className="text-muted-foreground mb-4">
                         {serum.description}
                       </p>
@@ -95,10 +101,11 @@ const Serums = () => {
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12">
                   <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-foreground mb-4">
-                      Why Our Serums?
+                      Why bother with our serums?
                     </h2>
                     <p className="text-muted-foreground max-w-2xl mx-auto">
-                      Every formula is developed with dermatologists and contains clinical-strength actives at optimal concentrations
+                      Every formula is developed with dermatologists, at concentrations backed by research —
+                      not just enough of an active to put it on the label.
                     </p>
                   </div>
                   <div className="grid md:grid-cols-4 gap-6">
@@ -111,12 +118,12 @@ const Serums = () => {
                       <div className="text-sm text-muted-foreground">Free</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-primary mb-1">No</div>
-                      <div className="text-sm text-muted-foreground">Harmful Ingredients</div>
+                      <div className="text-2xl font-bold text-primary mb-1">Concentrations</div>
+                      <div className="text-sm text-muted-foreground">Fully Disclosed</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-primary mb-1">Dermatologist</div>
-                      <div className="text-sm text-muted-foreground">Tested</div>
+                      <div className="text-sm text-muted-foreground">Reviewed</div>
                     </div>
                   </div>
                 </div>

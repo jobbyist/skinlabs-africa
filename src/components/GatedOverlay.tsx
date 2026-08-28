@@ -20,7 +20,7 @@ interface GatedOverlayProps {
 const GatedOverlay = ({
   locked,
   title = "Members only",
-  message = "Upgrade to a SkinLabs membership to unlock this content.",
+  message = "Upgrade to a SkinLabs membership to see the rest.",
   ctaLabel = "View membership plans",
   ctaHref = "/pricing",
   onSignIn,

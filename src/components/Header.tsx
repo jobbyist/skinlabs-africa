@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
+import SiteSearch from "@/components/SiteSearch";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { toast } from "sonner";
@@ -12,12 +13,15 @@ import logo from "@/assets/newskinlabs.png";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
   const { redirectToOpenhaus, loading: openhausLoading } = useCrossDomainAuth();
 
   const navLinks = [
     { label: "Briefings", href: "/newsroom", icon: Newspaper },
     { label: "Reviews", href: "/reviews", icon: Star },
+    { label: "Spotlight", href: "/spotlight", icon: Award, isNew: true },
+    { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
     { label: "Consultations", href: "/consultations", icon: Calendar },
     { label: "Pricing", href: "/pricing", icon: DollarSign },
@@ -50,16 +54,30 @@ const Header = () => {
                 <Link
                   key={link.label}
                   to={link.href}
-                  className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <link.icon className="h-4 w-4" />
                   {link.label}
+                  {link.isNew && (
+                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
+                      New
+                    </span>
+                  )}
                 </Link>
               ))}
             </nav>
 
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2">
+              <button
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search SkinLabs"
+                className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Search className="h-4 w-4" />
+                <span className="hidden xl:inline">Search</span>
+                <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium xl:inline">⌘K</kbd>
+              </button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/ai-formulator">
                   <Sparkles className="h-4 w-4" />
@@ -103,6 +121,13 @@ const Header = () => {
             <div className="lg:hidden flex items-center gap-1">
               <button
                 className="p-2"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search SkinLabs"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+              <button
+                className="p-2"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
               >
                 {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -123,6 +148,11 @@ const Header = () => {
                   >
                     <link.icon className="h-4 w-4" />
                     {link.label}
+                    {link.isNew && (
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
+                        New
+                      </span>
+                    )}
                   </Link>
                 ))}
                 {!loading && user ? (
@@ -151,6 +181,7 @@ const Header = () => {
         </div>
       </header>
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </>
   );
 };

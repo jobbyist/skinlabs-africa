@@ -57,7 +57,7 @@ const About = () => {
     {
       icon: <Star className="h-6 w-6" />,
       title: "Independent Product Reviews",
-      description: "Honest, unbiased reviews of SA skincare products. No affiliate deals, no gifted samples.",
+      description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. No affiliate deals, no gifted samples.",
       highlight: "Scored for local conditions",
       link: "/reviews"
     },
@@ -178,7 +178,7 @@ const About = () => {
     <>
       <Helmet>
         <title>About SkinLabs — Independent SA Skincare Platform | SKINLABS</title>
-        <meta name="description" content="Learn about SkinLabs: an independent skin science platform with daily briefings, honest product reviews, our research methodology, sustainability commitments, and membership plans — all built for South African skin." />
+        <meta name="description" content="SkinLabs is an independent skin science platform: daily briefings, honest product reviews and our scoring methodology, built for South African skin." />
         <meta name="keywords" content="about SkinLabs, skincare platform South Africa, independent skincare reviews, AI skincare, skincare science SA, sustainability, our science" />
         <link rel="canonical" href="https://skinlabs.co.za/about" />
         <meta property="og:title" content="About SkinLabs — Independent SA Skincare Platform" />

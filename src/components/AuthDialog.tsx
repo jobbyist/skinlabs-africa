@@ -53,7 +53,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
         <DialogHeader>
           <DialogTitle>Sign in to SKINLABS</DialogTitle>
           <DialogDescription>
-            Access your personalized AI skincare formulator and dashboard
+            For your AI routine, saved reviews and daily skin science briefings.
           </DialogDescription>
         </DialogHeader>
 

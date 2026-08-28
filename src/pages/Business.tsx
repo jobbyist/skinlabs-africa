@@ -42,29 +42,31 @@ const Business = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.company_name || !form.contact_name || !form.contact_email) {
-      toast.error("Please fill in company, name and email");
+      toast.error("We'll need a company, name and email before we can get back to you.");
       return;
     }
     setSubmitting(true);
     const { error } = await supabase.from("business_enquiries").insert(form);
     setSubmitting(false);
     if (error) {
-      toast.error("Could not submit — please try again.");
+      toast.error("That didn't go through — please try again.");
       return;
     }
     setDone(true);
-    toast.success("Enquiry received — our team will be in touch shortly.");
+    toast.success("Got it. Our team will be in touch shortly.");
   };
 
   return (
     <>
       <Helmet>
         <title>SkinLabs® for Business — Turnkey Beauty & Wellness Services</title>
-        <meta name="description" content="SkinLabs® for Business — end-to-end formulation, manufacturing, packaging, R&D, distribution, fulfilment and marketing services for beauty and wellness brands." />
+        <meta name="description" content="Formulation, manufacturing, packaging, R&D and distribution for beauty and wellness brands — SkinLabs® runs the product lifecycle so you can focus on customers." />
         <link rel="canonical" href="https://skinlabs.co.za/business" />
         <meta property="og:title" content="SkinLabs® for Business" />
         <meta property="og:description" content="Turnkey formulation, manufacturing, distribution and marketing services for beauty and wellness brands." />
+        <meta property="og:url" content="https://skinlabs.co.za/business" />
         <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -78,8 +80,8 @@ const Business = () => {
                   Turnkey services for beauty & wellness brands
                 </h1>
                 <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-                  From first formulation brief to fulfilment and marketing — we run the entire product lifecycle so
-                  founders and established brands can focus on customers.
+                  From first formulation brief to fulfilment and marketing, we run the product lifecycle end to end —
+                  so founders and established brands can spend their time on customers, not on chasing suppliers.
                 </p>
               </div>
 
@@ -87,7 +89,7 @@ const Business = () => {
                 {SERVICES.map((s) => (
                   <div key={s.name} className="bg-card border border-border rounded-2xl p-6">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 text-primary">{s.icon}</div>
-                    <h3 className="font-semibold text-foreground mb-2">{s.name}</h3>
+                    <h2 className="font-semibold text-foreground mb-2">{s.name}</h2>
                     <p className="text-sm text-muted-foreground">{s.desc}</p>
                   </div>
                 ))}
@@ -96,7 +98,7 @@ const Business = () => {
               <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
                 <div className="max-w-2xl mx-auto">
                   <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 text-center">Tell us about your project</h2>
-                  <p className="text-muted-foreground text-center mb-8">Our business team responds within 2 business days.</p>
+                  <p className="text-muted-foreground text-center mb-8">Our business team gets back to you within 2 business days.</p>
 
                   {done ? (
                     <div className="text-center py-12 space-y-3">

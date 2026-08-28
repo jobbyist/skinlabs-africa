@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, MapPin, Star } from "lucide-react";
+import { Heart, MapPin, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
+import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 
 
@@ -40,11 +42,22 @@ const ReviewsGrid = ({
   
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
+  const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
+    let base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
+    if (query.trim()) {
+      base = base
+        .map((review) => ({
+          review,
+          score: matchScore(query, `${review.brand} ${review.product_name}`, `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`),
+        }))
+        .filter((entry) => entry.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((entry) => entry.review);
+    }
     return limit ? base.slice(0, limit) : base;
-  }, [category, limit]);
+  }, [category, limit, query]);
 
   return (
     <section id="reviews" className="bg-secondary/30 py-20">
@@ -54,6 +67,19 @@ const ReviewsGrid = ({
           <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
           <p className="text-muted-foreground">{description}</p>
         </div>
+
+        {!limit && (
+          <div className="relative mb-6 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search product, brand or ingredient"
+              className="pl-9"
+              aria-label="Search product reviews"
+            />
+          </div>
+        )}
 
         {!limit && (
           <div className="mb-8 flex flex-wrap gap-2">
@@ -134,6 +160,10 @@ const ReviewsGrid = ({
             </motion.div>
           ))}
         </div>
+
+        {filtered.length === 0 && (
+          <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
+        )}
       </div>
     </section>
   );

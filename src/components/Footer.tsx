@@ -2,13 +2,23 @@ import { Link } from "react-router-dom";
 import { Instagram, Facebook } from "lucide-react";
 import logo from "@/assets/skinlabs-logo-white.svg";
 
+const NewBadge = () => (
+  <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground align-middle">
+    New
+  </span>
+);
+
 const Footer = () => {
   const links = {
-    shop: [
+    editorial: [
       { label: "The Daily Skinny", href: "/newsroom" },
-      { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Product Reviews", href: "/reviews" },
+      { label: "Spotlight", href: "/spotlight", isNew: true },
+      { label: "Seasonals", href: "/seasonals", isNew: true },
       { label: "Podcast", href: "/podcast" },
+    ],
+    platform: [
+      { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Consultations", href: "/consultations" },
       { label: "Membership Plans", href: "/pricing" },
     ],
@@ -21,8 +31,6 @@ const Footer = () => {
     support: [
       { label: "Contact", href: "/contact" },
       { label: "FAQ", href: "/faq" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Privacy Policy", href: "/privacy-policy" },
     ],
   };
 
@@ -44,7 +52,7 @@ const Footer = () => {
   return (
     <footer id="contact" className="bg-black text-background py-16">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
@@ -103,11 +111,26 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Shop links */}
+          {/* Editorial links */}
+          <div>
+            <h4 className="font-semibold mb-4">Editorial</h4>
+            <ul className="space-y-2">
+              {links.editorial.map((link) => (
+                <li key={link.label}>
+                  <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
+                    {link.label}
+                    {link.isNew && <NewBadge />}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Platform links */}
           <div>
             <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2">
-              {links.shop.map((link) => (
+              {links.platform.map((link) => (
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
                     {link.label}

@@ -50,9 +50,9 @@ const Hero = () => {
             </h1>
 
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
-              Evidence-graded product reviews, daily skin science briefings and an AI formulator that
-              builds a routine around your skin, South Africa's climate and your budget — no affiliate
-              deals, no gifted samples.
+              We read the ingredient list so you don't have to. Evidence-graded product reviews, daily skin
+              science briefings and an AI formulator that builds your routine around your skin, our climate
+              and your budget — no affiliate deals, no gifted samples.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

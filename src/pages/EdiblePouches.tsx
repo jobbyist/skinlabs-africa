@@ -106,6 +106,7 @@ const EdiblePouches = () => {
         <meta property="og:url" content="https://skinlabs.co.za/edible-pouches" />
         <meta property="og:type" content="product" />
         <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "Product",
@@ -131,7 +132,8 @@ const EdiblePouches = () => {
                     Edible Skincare Pouches
                   </h1>
                   <p className="text-lg text-muted-foreground mb-6">
-                    Help us bring this groundbreaking innovation to market. Back our campaign and receive a bundled pack featuring all variants of our Edible Skincare Pouches at an exclusive discounted price.
+                    A first for skincare in Africa — back the campaign and you'll get a bundled pack of every flavour,
+                    at a discounted price, before anyone else can buy it.
                   </p>
 
                   {/* Price */}

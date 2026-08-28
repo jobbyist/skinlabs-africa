@@ -34,6 +34,14 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/podcast", changefreq: "weekly", priority: "0.85" },
   { path: "/ai-formulator", changefreq: "weekly", priority: "0.9" },
   { path: "/consultations", changefreq: "monthly", priority: "0.8" },
+  { path: "/spotlight", changefreq: "monthly", priority: "0.9" },
+  { path: "/spotlight/methodology", changefreq: "monthly", priority: "0.4" },
+  { path: "/spotlight/archive", changefreq: "monthly", priority: "0.3" },
+  { path: "/seasonals", changefreq: "weekly", priority: "0.9" },
+  { path: "/seasonals/spring", changefreq: "weekly", priority: "0.95" },
+  { path: "/seasonals/summer", changefreq: "monthly", priority: "0.6" },
+  { path: "/seasonals/autumn", changefreq: "monthly", priority: "0.6" },
+  { path: "/seasonals/winter", changefreq: "monthly", priority: "0.6" },
   { path: "/devices", changefreq: "weekly", priority: "0.7" },
   { path: "/serums", changefreq: "weekly", priority: "0.7" },
   { path: "/custom-formulas", changefreq: "weekly", priority: "0.7" },
@@ -66,6 +74,16 @@ async function main() {
   const reviewsSource = readFileSync(resolve(root, "src/data/reviews.ts"), "utf-8");
   for (const id of extractQuoted(reviewsSource, "id")) {
     urls.push(urlEntry(`${SITE}/reviews/${id}`, today, "monthly", "0.7"));
+  }
+
+  const comparisonsSource = readFileSync(resolve(root, "src/data/comparisons.ts"), "utf-8");
+  for (const slug of extractQuoted(comparisonsSource, "slug")) {
+    urls.push(urlEntry(`${SITE}/reviews/versus/${slug}`, today, "monthly", "0.8"));
+  }
+
+  const spotlightSource = readFileSync(resolve(root, "src/data/spotlight.ts"), "utf-8");
+  for (const slug of extractQuoted(spotlightSource, "slug")) {
+    urls.push(urlEntry(`${SITE}/spotlight/${slug}`, today, "monthly", "0.7"));
   }
 
   const podcastSource = readFileSync(resolve(root, "src/data/podcast.ts"), "utf-8");

@@ -33,8 +33,13 @@ const CustomFormulas = () => {
     <>
       <Helmet>
         <title>Custom Formulas - Lab-Formulated Skincare | SKINLABS</title>
-        <meta name="description" content="Bespoke skincare formulated in the SkinLabs lab. Custom serums, moisturizers, cleansers and scrubs made to your unique skin profile." />
+        <meta name="description" content="Serums, moisturizers, cleansers and scrubs, formulated to spec in our lab for your skin — not mass-produced, not one-size-fits-all." />
         <link rel="canonical" href="https://skinlabs.co.za/custom-formulas" />
+        <meta property="og:title" content="Custom Formulas | SKINLABS" />
+        <meta property="og:description" content="Bespoke skincare formulated in the SkinLabs lab, built to your unique skin profile." />
+        <meta property="og:url" content="https://skinlabs.co.za/custom-formulas" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -49,7 +54,7 @@ const CustomFormulas = () => {
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">Custom Formulas</h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    SkinLabs is a formulation laboratory. Every product is built in-house, to spec, for one skin — yours.
+                    SkinLabs is a formulation lab. Every product is built in-house, to spec, for one skin — yours.
                   </p>
                 </div>
 
@@ -59,7 +64,7 @@ const CustomFormulas = () => {
                       <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto mb-4 text-xl font-bold">
                         {item.step}
                       </div>
-                      <h3 className="font-semibold text-foreground mb-2">{item.title}</h3>
+                      <h2 className="font-semibold text-foreground mb-2">{item.title}</h2>
                       <p className="text-sm text-muted-foreground">{item.description}</p>
                     </div>
                   ))}
@@ -78,7 +83,7 @@ const CustomFormulas = () => {
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
-                  <h2 className="text-2xl font-bold text-foreground mb-6 text-center">What Makes Our Custom Formulas Special?</h2>
+                  <h2 className="text-2xl font-bold text-foreground mb-6 text-center">What "custom" actually means here</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="flex items-start gap-3">
                       <Award className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
@@ -112,8 +117,8 @@ const CustomFormulas = () => {
                 </div>
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 text-center">
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Ready for Your Custom Formula?</h2>
-                  <p className="text-muted-foreground mb-6">Start with a full AI skin analysis so we can formulate against real data.</p>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Ready to build your formula?</h2>
+                  <p className="text-muted-foreground mb-6">Start with a full AI skin analysis so we're formulating against your actual data, not a guess.</p>
                   <Button size="lg" className="gap-2" asChild>
                     <Link to="/ai-formulator">
                       <Sparkles className="h-5 w-5" />

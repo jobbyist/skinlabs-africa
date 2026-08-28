@@ -10,8 +10,14 @@ const PrivacyPolicy = () => {
         <title>Privacy Policy - Your Data Protection | SKINLABS</title>
         <meta
           name="description"
-          content="Read SkinLabs' privacy policy to understand how we collect, use, and protect your personal information."
+          content="What SkinLabs collects, why, and how we protect it — including your rights over your own data and our approach to cookies."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/privacy-policy" />
+        <meta property="og:title" content="Privacy Policy | SKINLABS" />
+        <meta property="og:description" content="How SkinLabs collects, uses and protects your personal information." />
+        <meta property="og:url" content="https://skinlabs.co.za/privacy-policy" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -35,10 +41,12 @@ const PrivacyPolicy = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
                   <h2 className="text-2xl font-bold text-foreground mb-4">Introduction</h2>
                   <p className="text-muted-foreground mb-4">
-                    At SkinLabs ("we", "our", or "us"), we are committed to protecting your privacy and personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
+                    At SkinLabs ("we", "our", or "us"), protecting your privacy and personal information isn't an
+                    afterthought — it's part of how we're built. This Privacy Policy explains, in plain terms, how we
+                    collect, use, disclose and safeguard your information when you use our website and services.
                   </p>
                   <p className="text-muted-foreground">
-                    By using our services, you agree to the collection and use of information in accordance with this policy.
+                    By using our services, you're agreeing to the collection and use of information as set out below.
                   </p>
                 </div>
 

@@ -27,8 +27,14 @@ const Shipping = () => {
         <title>Shipping Information - Delivery Details | SKINLABS</title>
         <meta
           name="description"
-          content="Learn about SkinLabs shipping options, delivery times, and costs. Free shipping on orders over R500 across South Africa."
+          content="SkinLabs shipping costs and delivery times by area, plus free shipping on orders over R500 anywhere in South Africa."
         />
+        <link rel="canonical" href="https://skinlabs.co.za/shipping" />
+        <meta property="og:title" content="Shipping Information | SKINLABS" />
+        <meta property="og:description" content="Delivery times, costs and coverage across South Africa, plus free shipping over R500." />
+        <meta property="og:url" content="https://skinlabs.co.za/shipping" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -45,7 +51,7 @@ const Shipping = () => {
                     Shipping Information
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Fast, reliable delivery across South Africa
+                    Here's exactly what it costs and how long it takes to get your order
                   </p>
                 </div>
 
@@ -149,10 +155,10 @@ const Shipping = () => {
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 text-center">
                   <h2 className="text-2xl font-bold text-foreground mb-4">
-                    Need Help with Your Order?
+                    Still have a shipping question?
                   </h2>
                   <p className="text-muted-foreground mb-6">
-                    Contact our support team for assistance with shipping questions
+                    Our support team can look into it for you
                   </p>
                   <a href="mailto:support@skinlabs.co.za" className="text-primary font-medium hover:underline">
                     support@skinlabs.co.za

@@ -156,7 +156,11 @@ const AdminDashboard = () => {
 
   return (
     <>
-      <Helmet><title>Admin Dashboard | SKINLABS</title></Helmet>
+      <Helmet>
+        <title>Admin Dashboard | SKINLABS</title>
+        <meta name="description" content="SkinLabs internal admin dashboard." />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20 pb-16">

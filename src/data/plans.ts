@@ -11,12 +11,17 @@ export interface MembershipPlan {
   priceAnnual: number;
   highlight?: boolean;
   trialEligible: boolean;
+  /** Days a paid subscriber can cancel within for a full refund. Paid plans only. */
+  moneyBackDays?: number;
   cta: string;
   features: string[];
 }
 
 /** Annual billing gives members this many months free versus paying monthly. */
 export const ANNUAL_MONTHS_FREE = 2;
+
+/** Refund window applied to every paid membership plan. */
+export const MONEY_BACK_GUARANTEE_DAYS = 30;
 
 /**
  * Single source of truth for membership pricing and feature copy.
@@ -47,6 +52,7 @@ export const membershipPlans: MembershipPlan[] = [
     priceAnnual: 990,
     highlight: true,
     trialEligible: true,
+    moneyBackDays: 30,
     cta: "Become an Insider",
     features: [
       "Custom AI skincare routine",
@@ -54,6 +60,7 @@ export const membershipPlans: MembershipPlan[] = [
       "Full podcast library and show notes",
       "Full product review breakdowns",
       "Member-only ingredient deep dives",
+      "30-day money-back guarantee",
     ],
   },
   {
@@ -62,7 +69,8 @@ export const membershipPlans: MembershipPlan[] = [
     tagline: "Add real practitioners to your routine",
     priceMonthly: 299,
     priceAnnual: 2990,
-    trialEligible: true,
+    trialEligible: false,
+    moneyBackDays: 30,
     cta: "Go VIP",
     features: [
       "Everything in Glow Insider",
@@ -70,6 +78,7 @@ export const membershipPlans: MembershipPlan[] = [
       "Priority booking with SA practitioners",
       "Personalised quarterly routine review",
       "Early access to new SkinLabs tools",
+      "30-day money-back guarantee",
     ],
   },
 ];

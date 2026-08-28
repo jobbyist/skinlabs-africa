@@ -48,8 +48,8 @@ const CookieConsent = () => {
                 Cookie Consent
               </h3>
               <p className="text-sm text-muted-foreground">
-                We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. 
-                By clicking "Accept", you consent to our use of cookies.{" "}
+                We use cookies to make the site work properly, see what's actually useful, and — occasionally —
+                for marketing. Click "Accept" and we'll get out of your way.{" "}
                 <a href="/cookie-policy" className="text-primary hover:underline">
                   Learn more
                 </a>

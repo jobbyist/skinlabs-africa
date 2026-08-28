@@ -64,19 +64,19 @@ const AIFormulator = () => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size must be less than 5MB");
+        toast.error("That image is over 5MB — try a smaller one");
         return;
       }
       if (!file.type.startsWith("image/")) {
-        toast.error("Please upload a valid image file");
+        toast.error("That doesn't look like an image file — try again");
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         setSkinImage(reader.result as string);
-        toast.success("Image uploaded successfully!");
+        toast.success("Photo uploaded");
       };
-      reader.onerror = () => toast.error("Failed to read image file");
+      reader.onerror = () => toast.error("Couldn't read that image file — try again");
       reader.readAsDataURL(file);
     }
   };
@@ -92,14 +92,14 @@ const AIFormulator = () => {
     try {
       const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
       if (quotaError) {
-        toast.error("Could not verify your analysis quota. Please try again.");
+        toast.error("Couldn't check your analysis quota — please try again.");
         return;
       }
       if (quotaAllowed === false) {
         toast.error(
           isMember
             ? "You've used this week's AI analysis — your next one unlocks in a few days."
-            : "You've used this month's free basic analysis. Upgrade for a weekly custom routine.",
+            : "You've used this month's free basic analysis — upgrade for a weekly custom routine.",
         );
         if (!isMember) window.location.href = "/pricing";
         return;
@@ -122,7 +122,7 @@ const AIFormulator = () => {
 
       if (error) {
         console.error("Error calling skincare-ai:", error);
-        toast.error("Failed to generate recommendation. Please try again.");
+        toast.error("Couldn't generate your recommendation — please try again.");
         return;
       }
       if (data?.error) {
@@ -141,7 +141,7 @@ const AIFormulator = () => {
           recommendation: data.recommendation,
           skinType: derivedSkinType,
         });
-        toast.success("Your personalized skincare PDF has been downloaded!");
+        toast.success("Your skincare PDF is downloaded");
       } catch (pdfErr) {
         console.warn("PDF generation failed:", pdfErr);
       }
@@ -153,7 +153,7 @@ const AIFormulator = () => {
       }
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Something went wrong on our end — please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -236,11 +236,11 @@ const AIFormulator = () => {
                 Premium Service
               </div>
               <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                AI Formulator — Your Personalized Skincare Journey
+                AI Formulator — A Routine Built Around Your Actual Skin
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Get personalized skincare routines, progress trackers, and dermatologist-approved 
-                product recommendations tailored to your unique skin profile.
+                Answer a few questions and get an AM/PM routine, a progress tracker and product
+                recommendations reviewed by dermatologists — built around your skin, not a generic list.
               </p>
               
               <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
@@ -332,7 +332,7 @@ const AIFormulator = () => {
                 Custom Skincare Formulator
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                Get your personalized skin profile, AM/PM routine, actives schedule & product recommendations.
+                Get your skin profile, an AM/PM routine, an actives schedule and product recommendations — all built around your answers.
               </p>
               {!isMember && (
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
@@ -370,10 +370,10 @@ const AIFormulator = () => {
                       <Sparkles className="h-10 w-10 text-primary" />
                     </div>
                     <h3 className="text-2xl font-heading font-bold text-card-foreground">
-                      Ready to Transform Your Skin?
+                      Let's see what your skin actually needs
                     </h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      Complete our {TOTAL_QUESTIONS}-question skin assessment and receive:
+                      Answer our {TOTAL_QUESTIONS}-question skin assessment and you'll get:
                     </p>
                   </div>
 
@@ -603,11 +603,11 @@ const AIFormulator = () => {
                       <CheckCircle2 className="h-10 w-10 text-primary" />
                     </div>
                     <h3 className="text-2xl font-heading font-bold text-card-foreground">
-                      Thank You! Your Report is Being Prepared
+                      Thanks — your report's on its way
                     </h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      Your personalized, dermatologist-reviewed skincare report — including product
-                      recommendations — will be delivered via email
+                      Your personalised, dermatologist-reviewed skincare report — including product
+                      recommendations — lands in your email
                       {contactWhatsApp ? " and/or WhatsApp" : ""} within <strong>1–2 working days</strong>.
                     </p>
                   </div>
@@ -786,10 +786,10 @@ const AIFormulator = () => {
                     <Loader2 className="h-10 w-10 text-primary animate-spin" />
                   </div>
                   <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                    Analyzing Your Skin Profile...
+                    Reading your skin profile...
                   </h3>
                   <p className="text-muted-foreground max-w-md mx-auto">
-                    Our AI is creating a personalized routine based on your unique skin profile
+                    Building a routine around your actual answers — this takes a few seconds
                   </p>
                   <div className="flex justify-center gap-2 mt-6">
                     <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />

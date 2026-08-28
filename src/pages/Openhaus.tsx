@@ -85,16 +85,16 @@ const Openhaus = () => {
       if (error) throw error;
 
       toast({
-        title: "Successfully Joined! 🎉",
-        description: "You've been added to the OPENHAUS early bird waiting list. Check your email for confirmation.",
+        title: "You're on the list",
+        description: "Check your email for confirmation — we'll be in touch closer to launch.",
       });
 
       reset();
     } catch (err) {
       console.error("Waitlist submission error:", err);
       toast({
-        title: "Something went wrong",
-        description: "Please try again later.",
+        title: "That didn't go through",
+        description: "Please try again in a moment.",
         variant: "destructive",
       });
     } finally {
@@ -106,13 +106,14 @@ const Openhaus = () => {
     <>
       <Helmet>
         <title>OPENHAUS by Skinlabs - Coming Soon</title>
-        <meta name="description" content="Join the OPENHAUS by Skinlabs waiting list and unlock exclusive rewards, free product samples, sponsored giveaways & discounts when we launch!" />
+        <meta name="description" content="OPENHAUS is SkinLabs' upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts." />
         <link rel="canonical" href="https://skinlabs.co.za/openhaus" />
         <meta property="og:title" content="OPENHAUS by Skinlabs - Coming Soon" />
-        <meta property="og:description" content="Join the OPENHAUS waiting list for exclusive rewards, free samples & discounts!" />
+        <meta property="og:description" content="Join the OPENHAUS waiting list for launch samples, giveaways and discounts." />
         <meta property="og:url" content="https://skinlabs.co.za/openhaus" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/openhaus.png" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -121,6 +122,8 @@ const Openhaus = () => {
           <section className="py-12 md:py-20">
             <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto">
+                <h1 className="sr-only">OPENHAUS by Skinlabs — Coming Soon</h1>
+
                 {/* Hero Image */}
                 <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl">
                   <img
@@ -133,7 +136,7 @@ const Openhaus = () => {
                 {/* Countdown Timer */}
                 <div className="mb-12 text-center">
                   <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4">
-                    Launching In
+                    Launching in
                   </h2>
                   <div className="flex justify-center gap-4 md:gap-8">
                     {[
@@ -161,17 +164,15 @@ const Openhaus = () => {
                 <div className="max-w-3xl mx-auto bg-card border border-border rounded-3xl p-8 md:p-12 shadow-xl">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4">
-                      Join Our Early Bird Waiting List To Unlock Exclusive Rewards, Free Product
-                      Samples, Sponsored Giveaways &amp; Discounts When We Launch 🚀
+                      Join the early bird waiting list for launch samples, giveaways and discounts
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                      Skinlabs Premium members are automatically added to the waiting list, no
-                      opt-in required.{" "}
+                      Paid SkinLabs members are added automatically — no opt-in needed.{" "}
                       <a
                         href="/pricing"
                         className="text-primary hover:underline font-medium"
                       >
-                        Click here to become a Glow Insider member for R99 per month
+                        Or become a Glow Insider member for R99 a month
                       </a>
                     </p>
                   </div>
