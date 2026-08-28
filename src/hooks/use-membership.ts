@@ -17,10 +17,12 @@ const resolveTier = (row: ProfileMembershipRow | null): { tier: MembershipTier; 
   if (!row) return { tier: "explorer", isTrialing: false };
   const status = (row.subscription_status || "").toLowerCase();
 
+  // Active trials always take precedence
   if (status === "trial" && row.trial_ends_at && new Date(row.trial_ends_at) > new Date()) {
     const trialTier = row.trial_plan === "vip" ? "vip" : "insider";
     return { tier: trialTier, isTrialing: true };
   }
+  // Only check paid tiers if not trialing
   if (status === "vip") return { tier: "vip", isTrialing: false };
   if (status === "active" || status === "insider" || status === "premium") return { tier: "insider", isTrialing: false };
   return { tier: "explorer", isTrialing: false };
