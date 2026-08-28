@@ -284,11 +284,11 @@ const NewsroomArticle = () => {
               ) : user ? (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
                   <h2 className="font-heading text-xl font-bold text-foreground">
-                    {isMember ? "Members read the full breakdown" : "You've used this week's free briefing"}
+                    {isMember ? "Check back soon for more briefings" : "You've used this week's free briefing"}
                   </h2>
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     {isMember
-                      ? "Unlock the full commentary, the SA context and the shelf-level implications with a SkinLabs membership."
+                      ? "You've reached your weekly briefing limit. Check back in a few days for fresh intelligence."
                       : "Free accounts get one full briefing every 7 days. Upgrade for unlimited daily briefings, or check back next week."}
                   </p>
                   <Button asChild className="mt-5">
