@@ -28,7 +28,7 @@ CREATE POLICY "Anyone can submit a brand request"
     AND char_length(brand_name) BETWEEN 1 AND 200
     AND char_length(contact_name) BETWEEN 1 AND 200
     AND char_length(contact_email) BETWEEN 3 AND 255
-    AND contact_email ~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    AND contact_email ~* '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
     AND (brand_slug IS NULL OR char_length(brand_slug) <= 200)
     AND (role_at_brand IS NULL OR char_length(role_at_brand) <= 200)
     AND (official_website IS NULL OR char_length(official_website) <= 500)
