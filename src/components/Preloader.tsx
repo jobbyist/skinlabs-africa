@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Newspaper, ShieldCheck, Lock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useAuth } from "@/hooks/use-auth";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
