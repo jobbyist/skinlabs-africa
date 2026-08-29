@@ -18,6 +18,7 @@ const TermsOfService = () => {
         <meta property="og:url" content="https://skinlabs.co.za/terms-of-service" />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="robots" content="noindex, follow" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -111,16 +112,25 @@ const TermsOfService = () => {
                     </div>
                     <div className="space-y-4 text-muted-foreground">
                       <p>
-                        Every paid SkinLabs membership (Glow Insider and Glow VIP) is covered by a 30-day
-                        money-back guarantee. If a plan isn't right for you, request a full refund within
-                        30 days of your payment date and we'll process it back to your original payment
-                        method — no interrogation required.
+                        Every paid SkinLabs membership (Glow Insider and Glow VIP) purchased by direct
+                        subscription is covered by a 30-day money-back guarantee. If a plan isn't right for
+                        you, request a full refund within 30 days of your payment date and we'll process it
+                        back to your original payment method — no interrogation required.
                       </p>
-                      <p>To request a refund under this guarantee:</p>
+                      <p>
+                        <strong className="text-foreground">Important:</strong> If you start a 7-day free
+                        trial for Glow Insider, you forfeit the 30-day money-back guarantee for that plan.
+                        The free trial lets you evaluate membership without a card; choosing the trial means
+                        you waive the paid-plan money-back offer. You can skip the trial and subscribe
+                        directly (via "Become an Insider" or the equivalent paid CTA) to keep the
+                        30-day money-back guarantee.
+                      </p>
+                      <p>To request a refund under this guarantee (direct paid subscriptions only):</p>
                       <ul className="list-disc list-inside space-y-2 ml-4">
                         <li>Email support@skinlabs.co.za with your account email and the reason for cancelling</li>
                         <li>Requests must be made within 30 days of the charge you're asking to be refunded</li>
                         <li>Refunds are issued to the original payment method within 5–10 business days</li>
+                        <li>This guarantee does not apply to accounts that activated a free trial for the same plan</li>
                         <li>This guarantee applies to membership subscription charges only — it does not extend to physical products purchased through third-party retailers, which are governed by that retailer's own returns policy</li>
                       </ul>
                       <p>
