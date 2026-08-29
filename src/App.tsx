@@ -19,15 +19,8 @@ const Products = lazy(() => import("./pages/Products"));
 const AIFormulator = lazy(() => import("./pages/AIFormulator"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
-const Devices = lazy(() => import("./pages/Devices"));
-const Serums = lazy(() => import("./pages/Serums"));
-const CustomFormulas = lazy(() => import("./pages/CustomFormulas"));
-const BundledKits = lazy(() => import("./pages/BundledKits"));
 const Business = lazy(() => import("./pages/Business"));
 const FAQ = lazy(() => import("./pages/FAQ"));
-const Shipping = lazy(() => import("./pages/Shipping"));
-const Returns = lazy(() => import("./pages/Returns"));
-const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
@@ -50,7 +43,6 @@ const Seasonals = lazy(() => import("./pages/Seasonals"));
 const SeasonalHub = lazy(() => import("./pages/SeasonalHub"));
 const Consultations = lazy(() => import("./pages/Consultations"));
 const Announcements = lazy(() => import("./pages/Announcements"));
-const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 
 const queryClient = new QueryClient();
@@ -82,21 +74,25 @@ const AppContent = () => {
         <Route path="/ai-formulator" element={<AIFormulator />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-
-        <Route path="/devices" element={<Devices />} />
-        <Route path="/serums" element={<Serums />} />
-        <Route path="/custom-formulas" element={<CustomFormulas />} />
-        <Route path="/bundled-kits" element={<BundledKits />} />
-        <Route path="/gift-sets" element={<Navigate to="/bundled-kits" replace />} />
         <Route path="/business" element={<Business />} />
 
         <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
         <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />
 
         <Route path="/faq" element={<FAQ />} />
-        <Route path="/shipping" element={<Shipping />} />
-        <Route path="/returns" element={<Returns />} />
-        <Route path="/track-order" element={<TrackOrder />} />
+
+        {/* Retired commerce / ops paths → home or relevant hub */}
+        <Route path="/devices" element={<Navigate to="/" replace />} />
+        <Route path="/serums" element={<Navigate to="/" replace />} />
+        <Route path="/custom-formulas" element={<Navigate to="/" replace />} />
+        <Route path="/bundled-kits" element={<Navigate to="/" replace />} />
+        <Route path="/gift-sets" element={<Navigate to="/" replace />} />
+        <Route path="/shipping" element={<Navigate to="/faq" replace />} />
+        <Route path="/returns" element={<Navigate to="/faq" replace />} />
+        <Route path="/track-order" element={<Navigate to="/faq" replace />} />
+        <Route path="/edible-pouches" element={<Navigate to="/" replace />} />
+        <Route path="/careers" element={<Navigate to="/about" replace />} />
+        <Route path="/press" element={<Navigate to="/about" replace />} />
 
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -131,8 +127,6 @@ const AppContent = () => {
         <Route path="/seasonals" element={<Seasonals />} />
         <Route path="/seasonals/spring" element={<SeasonalHub />} />
         <Route path="/seasonals/:season" element={<SeasonalHub />} />
-
-        <Route path="/edible-pouches" element={<EdiblePouches />} />
 
         <Route path="/dashboard" element={<UserDashboard />} />
 

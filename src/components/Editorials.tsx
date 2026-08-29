@@ -4,22 +4,30 @@ import { ArrowRight, Atom } from "lucide-react";
 import { featuredEditorials } from "@/data/editorials";
 
 const Editorials = () => {
+  const cards = featuredEditorials.slice(0, 3);
+
   return (
     <section id="editorials" className="bg-background py-20">
       <div className="container mx-auto px-4">
-        <div className="mb-10 max-w-2xl">
-          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Editorials</p>
-          <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">
-            Shelf Showdown: our head-to-head comparisons
-          </h2>
-          <p className="text-muted-foreground">
-            Two products, one shelf, no forced winner. Our Shelf Showdown series pits SA skincare against itself on
-            actives, evidence and Rand value — so you know which one actually makes sense for your skin.
-          </p>
+        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Comparisons</p>
+            <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">
+              Shelf Showdown: our head-to-head comparisons
+            </h2>
+            <p className="text-muted-foreground">
+              Two products, one shelf, no forced winner. Our Shelf Showdown series pits SA skincare against itself on
+              actives, evidence and Rand value — so you know which one actually makes sense for your skin.
+            </p>
+          </div>
+          <Link to="/compare" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0">
+            Browse all shelf showdowns
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {featuredEditorials.map((editorial, index) => (
+          {cards.map((editorial, index) => (
             <motion.div
               key={editorial.slug}
               initial={{ opacity: 0, y: 20 }}

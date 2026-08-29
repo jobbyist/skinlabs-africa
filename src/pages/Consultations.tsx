@@ -9,7 +9,7 @@ import { practitioners } from "@/data/practitioners";
 import { useMembership } from "@/hooks/use-membership";
 
 const Consultations = () => {
-  const { isVip } = useMembership();
+  const { isMember, loading } = useMembership();
 
   return (
     <>
@@ -17,14 +17,9 @@ const Consultations = () => {
         <title>Virtual Derm Consultations — SA Practitioners | SkinLabs</title>
         <meta
           name="description"
-          content="Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability, included with Glow VIP."
+          content="Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability — Glow Insider and Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/consultations" />
-        <meta property="og:title" content="Virtual Derm Consultations — SA Practitioners | SkinLabs" />
-        <meta property="og:description" content="Book virtual consultations with SA dermatologists and aesthetic practitioners." />
-        <meta property="og:url" content="https://skinlabs.co.za/consultations" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -38,15 +33,16 @@ const Consultations = () => {
               </h1>
               <p className="text-muted-foreground">
                 Your AI routine gives you a plan. A virtual consultation confirms it. Book a video session with
-                HPCSA-registered dermatologists and aesthetic practitioners — included monthly with Glow VIP.
+                HPCSA-registered dermatologists and aesthetic practitioners — available to Glow Insider and Glow VIP
+                members (booking priority and included sessions for VIP).
               </p>
             </div>
 
             <GatedOverlay
-              locked={!isVip}
-              title="Booking is a Glow VIP benefit"
-              message="Glow VIP members get one virtual consultation each month plus priority booking. Non-members can still browse availability."
-              ctaLabel="Upgrade to Glow VIP"
+              locked={!loading && !isMember}
+              title="Consultations are for Glow Insider & VIP"
+              message="Browse is reserved for members. Glow Insider unlocks the directory; Glow VIP includes a monthly virtual consult."
+              ctaLabel="View membership plans"
             >
               <div className="grid gap-6 md:grid-cols-2">
                 {practitioners.map((practitioner, index) => (
@@ -61,9 +57,7 @@ const Consultations = () => {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h2 className="font-heading text-lg font-bold text-foreground">{practitioner.name}</h2>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          {practitioner.credential}
-                        </p>
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">{practitioner.credential}</p>
                       </div>
                       <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-foreground">
                         R{practitioner.virtual_fee_zar}
