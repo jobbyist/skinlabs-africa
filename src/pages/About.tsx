@@ -217,7 +217,7 @@ const About = () => {
         <meta property="og:description" content="Independent skin science platform with daily briefings, honest product reviews, our science, sustainability commitments and AI routines for South African skin." />
         <meta property="og:url" content="https://skinlabs.co.za/about" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",

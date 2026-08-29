@@ -105,7 +105,7 @@ const EdiblePouches = () => {
         <meta property="og:description" content="Be among the first 250 backers to get SkinLabs® Edible Skincare Pouches at R299." />
         <meta property="og:url" content="https://skinlabs.co.za/edible-pouches" />
         <meta property="og:type" content="product" />
-        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",

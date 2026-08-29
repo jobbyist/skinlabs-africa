@@ -65,12 +65,12 @@ const Index = () => {
         <meta property="og:description" content={seo.description} />
         <meta property="og:url" content={`${SITE_URL}/`} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content={`${SITE_URL}/pwa-512.png`} />
+        <meta property="og:image" content={`${SITE_URL}/og-image.png`} />
         <meta property="og:site_name" content={BRAND} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={seo.title} />
         <meta name="twitter:description" content={seo.description} />
-        <meta name="twitter:image" content={`${SITE_URL}/pwa-512.png`} />
+        <meta name="twitter:image" content={`${SITE_URL}/og-image.png`} />
         <script type="application/ld+json">{JSON.stringify(orgLd)}</script>
         <script type="application/ld+json">{JSON.stringify(webSiteLd)}</script>
       </Helmet>

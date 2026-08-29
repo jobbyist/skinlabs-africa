@@ -15,7 +15,7 @@ const SEO = ({
   description,
   canonical,
   ogType = "website",
-  ogImage = "https://skinlabs.co.za/pwa-512.png",
+  ogImage = "https://skinlabs.co.za/og-image.png",
   keywords,
   jsonLd,
 }: SEOProps) => {

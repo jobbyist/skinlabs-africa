@@ -36,7 +36,7 @@ const Products = () => {
         <meta property="og:description" content="Science-backed skincare products including serums, devices, and custom formulas." />
         <meta property="og:url" content="https://skinlabs.co.za/products" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

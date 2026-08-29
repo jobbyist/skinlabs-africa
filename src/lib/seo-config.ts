@@ -5,7 +5,7 @@
 
 export const BRAND = "SkinLabs®";
 export const SITE_URL = "https://skinlabs.co.za";
-export const DEFAULT_OG = `${SITE_URL}/pwa-512.png`;
+export const DEFAULT_OG = `${SITE_URL}/og-image.png`;
 
 export type PageSeo = {
   title: string;

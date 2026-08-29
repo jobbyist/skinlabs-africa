@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroVideo from "@/assets/hero-video.mp4";
@@ -24,6 +24,14 @@ const stats = [
 const Hero = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Respect prefers-reduced-motion and skip forcing an autoplaying background video onto that traffic.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches && videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    }
+  }, []);
 
   const togglePlay = () => {
     if (videoRef.current) {
