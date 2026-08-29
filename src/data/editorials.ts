@@ -1,8 +1,5 @@
 /**
- * Homepage "Editorials" feature — the 3 Shelf Showdown comparison pieces SkinLabs is
- * putting in front of every visitor this cycle. Two live under /reviews/versus (the
- * newest Shelf Showdown instalments); one lives under /newsroom (an earlier original,
- * SEO-established piece) — same franchise, same standards, different publish date.
+ * Homepage "Editorials" feature — Shelf Showdown comparison pieces.
  */
 
 export interface FeaturedEditorial {
@@ -13,6 +10,7 @@ export interface FeaturedEditorial {
   saContext: string;
   thumbnailUrl: string;
   thumbnailAlt: string;
+  comingSoon?: boolean;
 }
 
 export const featuredEditorials: FeaturedEditorial[] = [
@@ -36,11 +34,12 @@ export const featuredEditorials: FeaturedEditorial[] = [
   },
   {
     slug: "cerave-vs-cetaphil-sa-climate",
-    href: "/newsroom/cerave-vs-cetaphil-sa-climate",
+    href: "/reviews/versus/cerave-vs-cetaphil-sa-climate",
     title: "CeraVe vs Cetaphil in SA's Climate: Barrier Repair Compared",
     dek: "CeraVe's ceramide-and-MVE technology against Cetaphil's lighter approach — which barrier-repair line actually suits Highveld winters?",
     saContext: "Barrier Repair",
-    thumbnailUrl: "https://images.unsplash.com/photo-1763503836825-97f5450d155a?auto=format&fit=crop&w=800&q=80",
+    thumbnailUrl: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=800&q=80",
     thumbnailAlt: "A jar of barrier-repair moisturiser cream on a neutral background",
+    comingSoon: true,
   },
 ];
