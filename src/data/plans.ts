@@ -17,6 +17,10 @@ export interface MembershipPlan {
 export const ANNUAL_MONTHS_FREE = 2;
 export const MONEY_BACK_GUARANTEE_DAYS = 30;
 
+/** Canonical free-tier quotas — keep in sync with src/lib/access-quotas.ts */
+export const PODCAST_FREE_MONTHLY = 1;
+export const COMPARE_FREE_MONTHLY = 2;
+
 export const membershipPlans: MembershipPlan[] = [
   {
     id: "explorer",
@@ -30,8 +34,9 @@ export const membershipPlans: MembershipPlan[] = [
       "1 full Newsroom briefing per week",
       "1 basic AI skin analysis per month",
       "Limited product review access (scores & verdicts)",
-      "Stream 1 free podcast episode per month",
-      "2 free product comparison articles per month",
+      `Stream ${PODCAST_FREE_MONTHLY} free podcast episode per month`,
+      `${COMPARE_FREE_MONTHLY} free product comparison articles per month`,
+      "Public Spotlight ranking (profiles locked)",
     ],
   },
   {
@@ -49,7 +54,8 @@ export const membershipPlans: MembershipPlan[] = [
       "1 standard AI skincare analysis per week",
       "Full podcast library and show notes",
       "Unlimited product reviews & Shelf Showdowns",
-      "Spotlight brand profiles",
+      "Full Spotlight brand profiles",
+      "Practitioner directory access",
       "Member-only ingredient deep dives",
       "30-day money-back guarantee",
     ],
