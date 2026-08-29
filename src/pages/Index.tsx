@@ -11,6 +11,7 @@ import Features from "@/components/Features";
 import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
+import AffiliateBanner from "@/components/AffiliateBanner";
 
 /** Subtle section divider used between homepage blocks */
 const SectionDivider = () => (
@@ -54,12 +55,18 @@ const Index = () => {
           <Hero />
           <SectionDivider />
           <NewsroomFeed limit={3} showExploreLink />
+          <div className="container mx-auto px-4 py-8">
+            <AffiliateBanner placement="home-mid-1" />
+          </div>
           <SectionDivider />
           <SeasonalsTeaser />
           <SectionDivider />
           <Editorials />
           <SectionDivider />
           <SpotlightTeaser />
+          <div className="container mx-auto px-4 py-8">
+            <AffiliateBanner placement="home-mid-2" />
+          </div>
           <SectionDivider />
           <AIFormulator />
           <SectionDivider />

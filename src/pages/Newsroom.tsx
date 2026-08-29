@@ -34,14 +34,14 @@ const Newsroom = () => (
       <Header />
       <main className="pt-20">
         <div className="container mx-auto px-4 pt-6 pb-2">
-            <AffiliateBanner placement="newsroom-top" compact />
-          </div>
-          <NewsroomFeed />
+          <AffiliateBanner placement="newsroom-top" compact />
+        </div>
+        <NewsroomFeed />
         <div className="container mx-auto px-4 py-10">
-            <AffiliateBanner placement="newsroom-bottom" />
-          </div>
-        <Footer />
+          <AffiliateBanner placement="newsroom-bottom" />
+        </div>
       </main>
+      <Footer />
     </div>
   </>
 );
