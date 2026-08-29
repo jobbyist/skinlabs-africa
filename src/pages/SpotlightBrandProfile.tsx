@@ -7,8 +7,10 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import BrandLogo from "@/components/BrandLogo";
 import BrandRequestModal from "@/components/BrandRequestModal";
+import ArticleComments from "@/components/ArticleComments";
 import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
 import { overallScore } from "@/data/reviews";
+import { spotlightComments } from "@/data/articleComments";
 
 const EDITORIAL_DISCLAIMER =
   "Spotlight by SkinLabs is an independent editorial feature. Rankings and profiles are determined using the SkinLabs editorial methodology and available product information. Inclusion does not constitute paid endorsement. Commercial relationships, affiliate links, gifted products or other benefits are disclosed where applicable.";
@@ -199,6 +201,8 @@ const SpotlightBrandProfile = () => {
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p><span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}</p>
           </div>
+
+          <ArticleComments comments={spotlightComments[entry.slug] ?? []} />
         </div>
       </main>
       <Footer />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Check, Gift, Sparkles } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { membershipPlans, planPrice, annualMonthlyEquivalent, ANNUAL_MONTHS_FREE, MONEY_BACK_GUARANTEE_DAYS, type BillingInterval, type PlanId } from "@/data/plans";
+import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { startPaystackCheckout, type PaystackPlan } from "@/lib/paystack";
 import { startFreeTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
@@ -105,7 +107,11 @@ const Pricing = () => {
               <p className="text-muted-foreground">
                 No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South
                 African skin, climate and shelves — try Insider free for 7 days, no card required, and every paid
-                plan comes with a {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee.
+                plan comes with a{" "}
+                <Link to="/terms-of-service#money-back-guarantee" className="text-primary hover:underline">
+                  {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee
+                </Link>
+                .
               </p>
             </div>
 
@@ -177,7 +183,7 @@ const Pricing = () => {
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                           <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                          {feature}
+                          {linkifyMoneyBackGuarantee(feature)}
                         </li>
                       ))}
                     </ul>
@@ -207,7 +213,7 @@ const Pricing = () => {
                     )}
                     {isPaidPlan && plan.moneyBackDays && (
                       <p className="mt-1 text-center text-xs text-muted-foreground">
-                        {plan.moneyBackDays}-day money-back guarantee. Not right for your skin? Full refund.
+                        {linkifyMoneyBackGuarantee(`${plan.moneyBackDays}-day money-back guarantee`)}. Not right for your skin? Full refund.
                       </p>
                     )}
                   </motion.div>

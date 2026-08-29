@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun } from "lucide-react";
+import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -21,9 +21,10 @@ const Header = () => {
     { label: "Briefings", href: "/newsroom", icon: Newspaper },
     { label: "Reviews", href: "/reviews", icon: Star },
     { label: "Spotlight", href: "/spotlight", icon: Award, isNew: true },
+    { label: "Marketplace", href: "/shop", icon: ShoppingBag, isComingSoon: true },
     { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
-    { label: "Consultations", href: "/consultations", icon: Calendar },
+    { label: "Consult", href: "/consultations", icon: Calendar },
     { label: "Pricing", href: "/pricing", icon: DollarSign },
   ];
 
@@ -61,6 +62,11 @@ const Header = () => {
                   {link.isNew && (
                     <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
                       New
+                    </span>
+                  )}
+                  {link.isComingSoon && (
+                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white whitespace-nowrap">
+                      Coming Soon
                     </span>
                   )}
                 </Link>
@@ -151,6 +157,11 @@ const Header = () => {
                     {link.isNew && (
                       <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
                         New
+                      </span>
+                    )}
+                    {link.isComingSoon && (
+                      <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white whitespace-nowrap">
+                        Coming Soon
                       </span>
                     )}
                   </Link>

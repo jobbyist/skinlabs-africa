@@ -105,12 +105,12 @@ const Openhaus = () => {
   return (
     <>
       <Helmet>
-        <title>OPENHAUS by Skinlabs - Coming Soon</title>
-        <meta name="description" content="OPENHAUS is SkinLabs' upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts." />
-        <link rel="canonical" href="https://skinlabs.co.za/openhaus" />
-        <meta property="og:title" content="OPENHAUS by Skinlabs - Coming Soon" />
-        <meta property="og:description" content="Join the OPENHAUS waiting list for launch samples, giveaways and discounts." />
-        <meta property="og:url" content="https://skinlabs.co.za/openhaus" />
+        <title>Marketplace by Openhaus — Coming Soon | SKINLABS</title>
+        <meta name="description" content="Openhaus by SkinLabs® is our upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts." />
+        <link rel="canonical" href="https://skinlabs.co.za/shop" />
+        <meta property="og:title" content="Marketplace by Openhaus — Coming Soon" />
+        <meta property="og:description" content="Join the Openhaus waiting list for launch samples, giveaways and discounts." />
+        <meta property="og:url" content="https://skinlabs.co.za/shop" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/openhaus.png" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -122,7 +122,7 @@ const Openhaus = () => {
           <section className="py-12 md:py-20">
             <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto">
-                <h1 className="sr-only">OPENHAUS by Skinlabs — Coming Soon</h1>
+                <h1 className="sr-only">Marketplace by Openhaus — Coming Soon</h1>
 
                 {/* Hero Image */}
                 <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl">

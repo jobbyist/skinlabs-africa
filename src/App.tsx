@@ -12,6 +12,7 @@ import Preloader from "./components/Preloader";
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
+import CookieConsent from "./components/CookieConsent";
 
 // Every other route is code-split — only the landing page is bundled eagerly,
 // keeping the initial payload small as the site's page count grows.
@@ -49,6 +50,7 @@ const SpotlightBrandProfile = lazy(() => import("./pages/SpotlightBrandProfile")
 const Seasonals = lazy(() => import("./pages/Seasonals"));
 const SeasonalHub = lazy(() => import("./pages/SeasonalHub"));
 const Consultations = lazy(() => import("./pages/Consultations"));
+const Announcements = lazy(() => import("./pages/Announcements"));
 const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 
@@ -73,6 +75,7 @@ const AppContent = () => {
       <Preloader />
       <ScrollToTop />
       <FloatingBottomNav />
+      <CookieConsent />
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Index />} />
@@ -110,8 +113,9 @@ const AppContent = () => {
         {/* Admin */}
         <Route path="/admin" element={<AdminDashboard />} />
         
-        {/* OPENHAUS Coming Soon */}
-        <Route path="/openhaus" element={<Openhaus />} />
+        {/* OPENHAUS Marketplace — Coming Soon */}
+        <Route path="/shop" element={<Openhaus />} />
+        <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
         
         {/* Podcast */}
         <Route path="/podcast" element={<PodcastPage />} />
@@ -128,6 +132,7 @@ const AppContent = () => {
         <Route path="/reviews/:slug" element={<ProductReview />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
+        <Route path="/announcements" element={<Announcements />} />
 
         {/* Spotlight by SkinLabs */}
         <Route path="/spotlight" element={<Spotlight />} />

@@ -11,7 +11,6 @@ import Features from "@/components/Features";
 import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
-import CookieConsent from "@/components/CookieConsent";
 
 const Index = () => {
   return (
@@ -56,7 +55,6 @@ const Index = () => {
           <Newsletter />
         </main>
         <Footer />
-        <CookieConsent />
       </div>
     </>
   );
