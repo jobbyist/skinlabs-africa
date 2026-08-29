@@ -7,15 +7,22 @@ import { toast } from "sonner";
 import { publishedPodcastEpisodes, type PodcastEpisode } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 
-/** Free-tier episode preview cap, in seconds. */
 const PREVIEW_LIMIT_SECONDS = 120;
+const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+const POSITION_KEY = "skinlabs-podcast-positions";
 
 interface PlayerContextValue {
   current: PodcastEpisode | null;
   isPlaying: boolean;
+  progress: number;
+  duration: number;
+  speed: number;
   playEpisode: (episode: PodcastEpisode, startSeconds?: number) => void;
   toggle: () => void;
   close: () => void;
+  skip: (delta: number) => void;
+  cycleSpeed: () => void;
+  seek: (seconds: number) => void;
 }
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -26,9 +33,6 @@ export const usePodcastPlayer = () => {
   return ctx;
 };
 
-const SPEEDS = [1, 1.25, 1.5, 2];
-const POSITION_KEY = "skinlabs-podcast-positions";
-
 const readPositions = (): Record<string, number> => {
   try {
     return JSON.parse(localStorage.getItem(POSITION_KEY) || "{}");
@@ -37,8 +41,8 @@ const readPositions = (): Record<string, number> => {
   }
 };
 
-const format = (value: number) => {
-  if (!Number.isFinite(value)) return "0:00";
+export const formatTime = (value: number) => {
+  if (!Number.isFinite(value) || value < 0) return "0:00";
   const minutes = Math.floor(value / 60);
   const seconds = Math.floor(value % 60);
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -52,13 +56,15 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
+  const currentRef = useRef<PodcastEpisode | null>(null);
+  currentRef.current = current;
 
   const playEpisode = useCallback(
     (episode: PodcastEpisode, startSeconds?: number) => {
       if (episode.comingSoon || !episode.audioFile) return;
       const audio = audioRef.current;
       if (!audio) return;
-      const isSame = current?.id === episode.id;
+      const isSame = currentRef.current?.id === episode.id;
       let target = startSeconds ?? (isSame ? undefined : readPositions()[episode.slug] ?? 0);
       if (!isMember && target !== undefined && target >= PREVIEW_LIMIT_SECONDS) {
         target = 0;
@@ -67,8 +73,10 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
         audio.src = episode.audioFile;
         audio.currentTime = target ?? 0;
         setCurrent(episode);
+        setProgress(target ?? 0);
       } else if (target !== undefined) {
         audio.currentTime = target;
+        setProgress(target);
       }
       audio.playbackRate = speed;
       void audio
@@ -76,12 +84,12 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
         .then(() => setIsPlaying(true))
         .catch(() => setIsPlaying(false));
     },
-    [current, isMember, speed],
+    [isMember, speed],
   );
 
   const toggle = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || !current) return;
+    if (!audio || !currentRef.current) return;
     if (audio.paused) {
       void audio
         .play()
@@ -91,28 +99,45 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
       audio.pause();
       setIsPlaying(false);
     }
-  }, [current]);
+  }, []);
 
   const close = useCallback(() => {
     audioRef.current?.pause();
     setIsPlaying(false);
     setCurrent(null);
+    setProgress(0);
+    setDuration(0);
   }, []);
 
-  const skip = (delta: number) => {
+  const skip = useCallback((delta: number) => {
     const audio = audioRef.current;
-    if (audio) audio.currentTime = Math.max(0, audio.currentTime + delta);
-  };
+    if (!audio) return;
+    const next = Math.max(0, Math.min(audio.duration || Infinity, audio.currentTime + delta));
+    audio.currentTime = next;
+    setProgress(next);
+  }, []);
 
-  const cycleSpeed = () => {
-    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
-    setSpeed(next);
-    if (audioRef.current) audioRef.current.playbackRate = next;
-  };
+  const seek = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const next = Math.max(0, Math.min(audio.duration || Infinity, seconds));
+    audio.currentTime = next;
+    setProgress(next);
+  }, []);
 
+  const cycleSpeed = useCallback(() => {
+    setSpeed((prev) => {
+      const next = SPEEDS[(SPEEDS.indexOf(prev) + 1) % SPEEDS.length];
+      if (audioRef.current) audioRef.current.playbackRate = next;
+      return next;
+    });
+  }, []);
+
+  // Auto-advance to next published episode (numeric order) when one ends
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+
     const onTime = () => {
       if (!isMember && audio.currentTime >= PREVIEW_LIMIT_SECONDS) {
         audio.pause();
@@ -130,14 +155,31 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
         return;
       }
       setProgress(audio.currentTime);
-      if (current && isMember) {
+      const ep = currentRef.current;
+      if (ep && isMember) {
         const positions = readPositions();
-        positions[current.slug] = audio.currentTime;
+        positions[ep.slug] = audio.currentTime;
         localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
       }
     };
-    const onMeta = () => setDuration(audio.duration);
-    const onEnded = () => setIsPlaying(false);
+
+    const onMeta = () => setDuration(audio.duration || 0);
+
+    const onEnded = () => {
+      setIsPlaying(false);
+      const ep = currentRef.current;
+      if (!ep) return;
+      const ordered = [...publishedPodcastEpisodes].sort((a, b) => a.id - b.id);
+      const idx = ordered.findIndex((e) => e.id === ep.id);
+      if (idx >= 0 && idx < ordered.length - 1) {
+        const next = ordered[idx + 1];
+        if (next?.audioFile) {
+          // slight delay so UI settles
+          setTimeout(() => playEpisode(next, 0), 400);
+        }
+      }
+    };
+
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnded);
@@ -146,17 +188,30 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnded);
     };
-  }, [current, isMember]);
+  }, [isMember, playEpisode]);
 
   const value = useMemo(
-    () => ({ current, isPlaying, playEpisode, toggle, close }),
-    [current, isPlaying, playEpisode, toggle, close],
+    () => ({
+      current,
+      isPlaying,
+      progress,
+      duration,
+      speed,
+      playEpisode,
+      toggle,
+      close,
+      skip,
+      cycleSpeed,
+      seek,
+    }),
+    [current, isPlaying, progress, duration, speed, playEpisode, toggle, close, skip, cycleSpeed, seek],
   );
 
   const nextEpisode = current
-    ? publishedPodcastEpisodes[
-        (publishedPodcastEpisodes.findIndex((e) => e.id === current.id) + 1) % publishedPodcastEpisodes.length
-      ]
+    ? publishedPodcastEpisodes
+        .slice()
+        .sort((a, b) => a.id - b.id)
+        .find((e) => e.id > current.id)
     : null;
 
   return (
@@ -194,16 +249,20 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
                   )}
                 </Link>
                 <div className="flex items-center gap-2">
-                  <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">{format(progress)}</span>
+                  <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
+                    {formatTime(progress)}
+                  </span>
                   <Slider
                     value={[duration ? (progress / duration) * 100 : 0]}
                     onValueChange={([v]) => {
-                      if (audioRef.current && duration) audioRef.current.currentTime = (v / 100) * duration;
+                      if (duration) seek((v / 100) * duration);
                     }}
                     className="flex-1 [&_[role=slider]]:h-3.5 [&_[role=slider]]:w-3.5 [&_[role=slider]]:border-2 [&_[role=slider]]:border-foreground [&_[role=slider]]:shadow-md"
                     aria-label="Seek"
                   />
-                  <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">{format(duration)}</span>
+                  <span className="hidden text-[11px] tabular-nums text-muted-foreground sm:inline">
+                    {formatTime(duration)}
+                  </span>
                 </div>
               </div>
 
