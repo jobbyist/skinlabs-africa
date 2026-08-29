@@ -2,6 +2,9 @@ name: Debug CI Runner
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - claude/sync-lovable-production-y7aiaw
 
 jobs:
   ping:
