@@ -42,9 +42,9 @@ const Openhaus = () => {
     resolver: zodResolver(formSchema),
   });
 
-  // Countdown timer - ends March 1st, 2026 at 12:00am
+  // Countdown timer — Marketplace launch: 1 December 2026 at 00:00 SAST
   useEffect(() => {
-    const targetDate = new Date("2026-03-01T00:00:00").getTime();
+    const targetDate = new Date("2026-12-01T00:00:00+02:00").getTime();
 
     const updateCountdown = () => {
       const now = new Date().getTime();
@@ -71,16 +71,14 @@ const Openhaus = () => {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("openhaus_waitlist")
-        .insert({
-          first_name: data.firstName,
-          last_name: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          city: data.city,
-          country: data.country,
-        });
+      const { error } = await supabase.from("openhaus_waitlist").insert({
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        city: data.city,
+        country: data.country,
+      });
 
       if (error) throw error;
 
@@ -106,10 +104,10 @@ const Openhaus = () => {
     <>
       <Helmet>
         <title>Marketplace by Openhaus — Coming Soon | SKINLABS</title>
-        <meta name="description" content="Openhaus by SkinLabs® is our upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts." />
+        <meta name="description" content="Openhaus by SkinLabs® is our upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts. Launching 1 December 2026." />
         <link rel="canonical" href="https://skinlabs.co.za/shop" />
         <meta property="og:title" content="Marketplace by Openhaus — Coming Soon" />
-        <meta property="og:description" content="Join the Openhaus waiting list for launch samples, giveaways and discounts." />
+        <meta property="og:description" content="Join the Openhaus waiting list for launch samples, giveaways and discounts. Launching 1 December 2026." />
         <meta property="og:url" content="https://skinlabs.co.za/shop" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/openhaus.png" />
@@ -124,7 +122,6 @@ const Openhaus = () => {
               <div className="max-w-6xl mx-auto">
                 <h1 className="sr-only">Marketplace by Openhaus — Coming Soon</h1>
 
-                {/* Hero Image */}
                 <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl">
                   <img
                     src={openhausImage}
@@ -133,11 +130,11 @@ const Openhaus = () => {
                   />
                 </div>
 
-                {/* Countdown Timer */}
                 <div className="mb-12 text-center">
-                  <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4">
-                    Launching in
+                  <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-2">
+                    Launching 1 December 2026
                   </h2>
+                  <p className="text-muted-foreground mb-6">Countdown to Marketplace by Openhaus</p>
                   <div className="flex justify-center gap-4 md:gap-8">
                     {[
                       { label: "Days", value: timeLeft.days },
@@ -152,15 +149,12 @@ const Openhaus = () => {
                         <div className="text-3xl md:text-5xl font-bold text-primary">
                           {String(item.value).padStart(2, "0")}
                         </div>
-                        <div className="text-sm md:text-base text-muted-foreground mt-2">
-                          {item.label}
-                        </div>
+                        <div className="text-sm md:text-base text-muted-foreground mt-2">{item.label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Signup Form */}
                 <div className="max-w-3xl mx-auto bg-card border border-border rounded-3xl p-8 md:p-12 shadow-xl">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4">
@@ -168,10 +162,7 @@ const Openhaus = () => {
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       Paid SkinLabs members are added automatically — no opt-in needed.{" "}
-                      <a
-                        href="/pricing"
-                        className="text-primary hover:underline font-medium"
-                      >
+                      <a href="/pricing" className="text-primary hover:underline font-medium">
                         Or become a Glow Insider member for R99 a month
                       </a>
                     </p>

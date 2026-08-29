@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, User, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag } from "lucide-react";
+import { Menu, X, Sparkles, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -21,6 +21,7 @@ const Header = () => {
     { label: "Briefings", href: "/newsroom", icon: Newspaper },
     { label: "Reviews", href: "/reviews", icon: Star },
     { label: "Spotlight", href: "/spotlight", icon: Award, isNew: true },
+    { label: "Comparisons", href: "/compare", icon: Scale, isNew: true },
     { label: "Marketplace", href: "/shop", icon: ShoppingBag, isComingSoon: true, hideOnDesktop: true },
     { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
@@ -44,12 +45,10 @@ const Header = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
-            {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
               <img src={logo} alt="SKINLABS" className="w-[120px] h-auto" />
             </Link>
 
-            {/* Desktop Navigation — Marketplace intentionally hidden on desktop */}
             <nav className="hidden lg:flex items-center gap-6">
               {navLinks
                 .filter((link) => !link.hideOnDesktop)
@@ -75,7 +74,6 @@ const Header = () => {
               ))}
             </nav>
 
-            {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-2">
               <button
                 onClick={() => setSearchOpen(true)}
@@ -125,25 +123,16 @@ const Header = () => {
               )}
             </div>
 
-            {/* Mobile Menu Button */}
             <div className="lg:hidden flex items-center gap-1">
-              <button
-                className="p-2"
-                onClick={() => setSearchOpen(true)}
-                aria-label="Search SkinLabs"
-              >
+              <button className="p-2" onClick={() => setSearchOpen(true)} aria-label="Search SkinLabs">
                 <Search className="h-5 w-5" />
               </button>
-              <button
-                className="p-2"
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
+              <button className="p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                 {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile Navigation — Marketplace remains visible on mobile */}
           {isMenuOpen && (
             <div className="lg:hidden py-4 border-t border-border">
               <nav className="flex flex-col gap-4">
