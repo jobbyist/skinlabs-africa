@@ -7,8 +7,46 @@ import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carouse
 import { useAuth } from "@/hooks/use-auth";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
+import { comparisonArticles } from "@/data/comparisons";
+import { seasonHubs } from "@/data/seasonals";
 import logo from "@/assets/newskinlabs.png";
 import Autoplay from "embla-carousel-autoplay";
+
+interface GateSlide {
+  key: string;
+  tag: string;
+  title: string;
+  href: string;
+  image: string | null;
+  imageAlt: string;
+}
+
+const featuredComparison = comparisonArticles.find((c) => c.featured) ?? comparisonArticles[0];
+const springReset = seasonHubs.spring;
+
+/** Static picks alongside the live Daily Skinny briefings: one Shelf Showdown, one Seasonals hub. */
+const evergreenSlides: GateSlide[] = [
+  ...(featuredComparison
+    ? [
+        {
+          key: `compare-${featuredComparison.slug}`,
+          tag: featuredComparison.saContext,
+          title: featuredComparison.title,
+          href: `/reviews/versus/${featuredComparison.slug}`,
+          image: featuredComparison.thumbnail.url,
+          imageAlt: featuredComparison.thumbnail.alt,
+        },
+      ]
+    : []),
+  {
+    key: "seasonal-spring",
+    tag: springReset.eyebrow,
+    title: springReset.h1,
+    href: "/seasonals/spring",
+    image: springReset.heroImage.url,
+    imageAlt: springReset.heroImage.alt,
+  },
+];
 
 const LOADING_KEY = "skinlabs-preloader-shown";
 const GATE_KEY = "skinlabs-gate-shown";
@@ -25,6 +63,18 @@ const Preloader = () => {
   const { user, loading: authLoading } = useAuth();
   const { articles } = useNewsArticles(3);
   const autoplay = Autoplay({ delay: 3000, stopOnInteraction: true });
+
+  const gateSlides: GateSlide[] = [
+    ...articles.map((article) => ({
+      key: article.id,
+      tag: article.sa_context_tag,
+      title: article.title,
+      href: `/newsroom/${article.slug}`,
+      image: article.cover_image_url,
+      imageAlt: article.cover_image_alt || article.title,
+    })),
+    ...evergreenSlides,
+  ];
 
   const [showLoading, setShowLoading] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -159,7 +209,7 @@ const Preloader = () => {
                 ))}
               </div>
 
-              {articles.length > 0 && (
+              {gateSlides.length > 0 && (
                 <Carousel
                   className="mt-10 w-full max-w-xl mx-auto"
                   opts={{
@@ -169,16 +219,32 @@ const Preloader = () => {
                   plugins={[autoplay]}
                 >
                   <CarouselContent className="-ml-2 md:-ml-4">
-                    {articles.map((article) => (
-                      <CarouselItem key={article.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
-                        <Link to={`/newsroom/${article.slug}`} onClick={dismissGate} className="flex flex-col h-full rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary">
-                          <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                            {article.sa_context_tag}
-                          </span>
-                          <p className="line-clamp-3 text-sm font-medium text-foreground">{article.title}</p>
-                          <span className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-                            Read briefing <ArrowRight className="h-3 w-3" />
-                          </span>
+                    {gateSlides.map((slide) => (
+                      <CarouselItem key={slide.key} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                        <Link
+                          to={slide.href}
+                          onClick={dismissGate}
+                          className="flex h-full flex-col items-center overflow-hidden rounded-2xl border border-border bg-card text-center transition-colors hover:border-primary"
+                        >
+                          {slide.image && (
+                            <div className="aspect-[16/10] w-full overflow-hidden">
+                              <img
+                                src={slide.image}
+                                alt={slide.imageAlt}
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex flex-1 flex-col items-center p-4">
+                            <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                              {slide.tag}
+                            </span>
+                            <p className="line-clamp-3 text-base font-bold text-foreground">{slide.title}</p>
+                            <span className="mt-3 inline-flex items-center justify-center gap-1 text-xs text-primary">
+                              Read more <ArrowRight className="h-3 w-3" />
+                            </span>
+                          </div>
                         </Link>
                       </CarouselItem>
                     ))}
