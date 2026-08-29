@@ -6,11 +6,12 @@
   "packageManager": "bun@1.3.4",
   "scripts": {
     "dev": "vite",
-    "build": "(npm run sitemap || echo 'Sitemap generation failed, continuing build...') && vite build",
+    "build": "(npm run sitemap || echo 'Sitemap generation failed, continuing build...') && vite build && (npm run prerender || echo 'Prerendering failed, shipping the plain SPA build...')",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "sitemap": "bun run scripts/generate-sitemap.ts"
+    "sitemap": "bun run scripts/generate-sitemap.ts",
+    "prerender": "bun run scripts/prerender.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -76,6 +77,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@sparticuz/chromium": "^149.0.0",
+    "puppeteer-core": "^25.9.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.7",
