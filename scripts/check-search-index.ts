@@ -30,14 +30,15 @@ interface RouteEntry {
   component: string;
 }
 
-const routeRegex = /<Route\s+path="([^"]+)"\s+element=\{<(\w+)[^}]*\/>\}\s*\/>/g;
+const routeRegex = /<Route\s+path="([^"]+)"\s+element=\{<(\w+)[^}]*\/>\}\s*\/>/gs;
 const routes: RouteEntry[] = [];
 for (const match of appSource.matchAll(routeRegex)) {
   routes.push({ path: match[1], component: match[2] });
 }
 
 if (routes.length === 0) {
-  console.error("check-search-index: found zero <Route> declarations in src/App.tsx — regex likely out of date.");
+  console.error("check-search-index: found zero <Route> declarations in src/App.tsx — regex likely out of date or file format changed.");
+  console.error("Please verify that src/App.tsx contains <Route> declarations in the expected format.");
   process.exit(1);
 }
 
