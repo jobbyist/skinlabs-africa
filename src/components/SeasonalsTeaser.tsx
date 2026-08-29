@@ -45,20 +45,21 @@ const SeasonalsTeaser = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((card) => (
-            <Link
-              key={card.title}
-              to={card.href}
-              className="group flex flex-col rounded-3xl border border-border bg-card p-6 transition-colors hover:border-primary"
-            >
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-                <card.icon className="h-5 w-5" />
-              </span>
-              <h3 className="mt-4 font-heading text-lg font-bold text-foreground">{card.title}</h3>
-              <p className="mt-1.5 flex-1 text-sm text-muted-foreground">{card.description}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-              </span>
-            </Link>
+            <div key={card.title} className="rainbow-border-frame group rounded-3xl p-[2px]">
+              <Link
+                to={card.href}
+                className="rainbow-border-content flex h-full flex-col rounded-3xl bg-card p-6"
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+                  <card.icon className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 font-heading text-lg font-bold text-foreground">{card.title}</h3>
+                <p className="mt-1.5 flex-1 text-sm text-muted-foreground">{card.description}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                  Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            </div>
           ))}
         </div>
       </div>

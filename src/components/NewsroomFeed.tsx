@@ -150,8 +150,9 @@ const NewsroomFeed = ({
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
                 whileHover={{ y: -4 }}
-                className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
+                className="rainbow-border-frame group flex flex-col rounded-3xl p-[2px]"
               >
+                <div className="rainbow-border-content flex flex-1 flex-col overflow-hidden rounded-3xl bg-card">
                 <Link to={`/newsroom/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
                   {article.cover_image_url && (
                     <img
@@ -214,6 +215,7 @@ const NewsroomFeed = ({
                       </button>
                     </div>
                   </div>
+                </div>
                 </div>
               </motion.article>
             ))}

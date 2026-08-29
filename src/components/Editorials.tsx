@@ -34,10 +34,11 @@ const Editorials = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: index * 0.08 }}
+              className="rainbow-border-frame group h-full rounded-3xl p-[2px]"
             >
               <Link
                 to={editorial.href}
-                className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card transition-colors hover:border-foreground/30"
+                className="rainbow-border-content flex h-full flex-col overflow-hidden rounded-3xl bg-card"
               >
                 <div className="relative">
                   <img
