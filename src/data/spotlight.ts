@@ -20,7 +20,7 @@ export interface BrandEditorialOverlay {
   whyTheyMadeTheList: string;
   brandStory?: string;
   officialWebsite?: string;
-  /** Empty until the user uploads real brand assets — BrandLogo falls back to an initials badge. */
+  /** Real brand logo when available — BrandLogo falls back to initials. */
   logoUrl?: string;
   evidenceLimitation?: string;
 }
@@ -47,6 +47,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Ten reviewed products spanning serums, cleanser and sunscreen, most scoring 8+ on efficacy. Directly compared against The Ordinary in our first Shelf Showdown and held its own on stability and formulation, not just price.",
     officialWebsite: "https://skinfunctional.com",
+    logoUrl: "https://logo.clearbit.com/skinfunctional.com",
   },
   {
     brand: "Lelive",
@@ -104,6 +105,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "Five reviewed products including a clinically trusted daily antioxidant SPF. A genuinely South African scientific export, not a marketing story bolted onto an imported formula.",
     brandStory: "Founded in 1990 by Dr Des Fernandes in Cape Town, built around correcting sun-induced vitamin A deficiency in skin.",
     officialWebsite: "https://www.environskincare.com/za",
+    logoUrl: "https://logo.clearbit.com/environskincare.com",
   },
   {
     brand: "Esse",
@@ -230,6 +232,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products with the highest combined value scores of any brand in our entire dataset — small range, exceptional execution.",
     officialWebsite: "https://fundamentals-skincare.co.za",
+    logoUrl: "https://logo.clearbit.com/fundamentals-skincare.co.za",
     evidenceLimitation: "Currently 2 reviewed products — a small but consistently excellent-value sample.",
   },
   {
@@ -276,25 +279,17 @@ export interface SpotlightBrandRanking {
   brand: string;
   slug: string;
   tier: SpotlightTier;
-  /** 1-based rank within the "ranked" tier only; null for "new-on-the-radar". */
   rank: number | null;
   avgOverallScore: number;
   productCount: number;
   products: ProductReview[];
   featuredProduct: ProductReview;
   editorial: BrandEditorialOverlay;
-  /** Every entry is "New" for this inaugural edition — there's no prior snapshot to compare against. */
   movement: "New";
 }
 
 const editorialBySlug = new Map(brandEditorial.map((entry) => [entry.brand, entry]));
 
-/**
- * Groups productReviews by brand, averages overallScore() per brand (the only
- * "score" Spotlight uses — see /spotlight/methodology), and tiers brands into
- * "ranked" (2+ reviewed products) vs "new-on-the-radar" (1 product), per the
- * reference doc's own stated preference for multi-product evidence.
- */
 export function computeSpotlightRanking(reviews: ProductReview[] = productReviews): SpotlightBrandRanking[] {
   const byBrand = new Map<string, ProductReview[]>();
   for (const review of reviews) {
@@ -362,8 +357,6 @@ export const getSpotlightBrand = (slug: string) => spotlightRanking.find((entry)
 export const SPOTLIGHT_METHODOLOGY_VERSION = "Spotlight Methodology v1.0";
 export const SPOTLIGHT_EDITION_MONTH = "August 2026";
 
-/** Seeded starting like counts — a lightweight social-proof affordance only.
- * Never used as a ranking input; the ranking above is 100% review-score-derived. */
 export const seededBrandLikes: Record<string, number> = {
   "standard-beauty": 214,
   "skin-functional": 198,
