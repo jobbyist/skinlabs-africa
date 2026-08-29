@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { comparisonArticles } from "@/data/comparisons";
 import { featuredEditorials } from "@/data/editorials";
+import AffiliateBanner from "@/components/AffiliateBanner";
 
 const Compare = () => {
   // Merge published comparisons with any coming-soon editorials not already in comparisons
@@ -35,6 +36,9 @@ const Compare = () => {
         <Header />
         <main className="pt-24 pb-20">
           <section className="container mx-auto px-4">
+            <div className="mb-8">
+              <AffiliateBanner placement="compare-top" compact />
+            </div>
             <div className="mb-10 max-w-2xl">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Shelf Showdown</p>
               <h1 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-5xl">
@@ -105,6 +109,9 @@ const Compare = () => {
             </div>
           </section>
         </main>
+        <div className="container mx-auto px-4 pb-8">
+            <AffiliateBanner placement="compare-bottom" />
+          </div>
         <Footer />
       </div>
     </>
