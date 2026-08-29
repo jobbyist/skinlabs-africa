@@ -10,6 +10,7 @@ import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
 import logo from "@/assets/newskinlabs.png";
+import skinLabsPromiseBadge from "@/assets/skinlabs-promise-badge.png";
 import Autoplay from "embla-carousel-autoplay";
 
 interface GateSlide {
@@ -209,6 +210,13 @@ const Preloader = () => {
                 ))}
               </div>
 
+              <img
+                src={skinLabsPromiseBadge}
+                alt="SkinLabs® Promise: no hype, just evidence"
+                style={{ width: 120, height: "auto" }}
+                className="mx-auto mt-8 dark:invert"
+              />
+
               {gateSlides.length > 0 && (
                 <Carousel
                   className="mt-10 w-full max-w-xl mx-auto"
@@ -221,31 +229,33 @@ const Preloader = () => {
                   <CarouselContent className="-ml-2 md:-ml-4">
                     {gateSlides.map((slide) => (
                       <CarouselItem key={slide.key} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
-                        <Link
-                          to={slide.href}
-                          onClick={dismissGate}
-                          className="flex h-full flex-col items-center overflow-hidden rounded-2xl border border-border bg-card text-center transition-colors hover:border-primary"
-                        >
-                          {slide.image && (
-                            <div className="aspect-[16/10] w-full overflow-hidden">
-                              <img
-                                src={slide.image}
-                                alt={slide.imageAlt}
-                                loading="lazy"
-                                className="h-full w-full object-cover"
-                              />
+                        <div className="rainbow-border-frame h-full rounded-2xl p-[2px]">
+                          <Link
+                            to={slide.href}
+                            onClick={dismissGate}
+                            className="rainbow-border-content flex h-full flex-col items-center overflow-hidden rounded-2xl bg-card text-center"
+                          >
+                            {slide.image && (
+                              <div className="aspect-[16/10] w-full overflow-hidden">
+                                <img
+                                  src={slide.image}
+                                  alt={slide.imageAlt}
+                                  loading="lazy"
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex flex-1 flex-col items-center p-4">
+                              <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                                {slide.tag}
+                              </span>
+                              <p className="line-clamp-3 text-base font-bold text-foreground">{slide.title}</p>
+                              <span className="mt-3 inline-flex items-center justify-center gap-1 text-xs text-primary">
+                                Read more <ArrowRight className="h-3 w-3" />
+                              </span>
                             </div>
-                          )}
-                          <div className="flex flex-1 flex-col items-center p-4">
-                            <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                              {slide.tag}
-                            </span>
-                            <p className="line-clamp-3 text-base font-bold text-foreground">{slide.title}</p>
-                            <span className="mt-3 inline-flex items-center justify-center gap-1 text-xs text-primary">
-                              Read more <ArrowRight className="h-3 w-3" />
-                            </span>
-                          </div>
-                        </Link>
+                          </Link>
+                        </div>
                       </CarouselItem>
                     ))}
                   </CarouselContent>

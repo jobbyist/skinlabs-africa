@@ -146,3 +146,51 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Animated rainbow gradient border frame, used on article cards in the
+   homepage entry gate, Daily Briefing, Seasonals, Comparisons and Spotlight. */
+@layer utilities {
+  .rainbow-border-frame {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .rainbow-border-frame::before {
+    content: "";
+    position: absolute;
+    inset: -60%;
+    z-index: 0;
+    border-radius: inherit;
+    background: conic-gradient(
+      from 0deg,
+      #22d3ee,
+      #6366f1,
+      #a855f7,
+      #ec4899,
+      #f97316,
+      #facc15,
+      #22c55e,
+      #22d3ee
+    );
+    animation: rainbow-border-spin 6s linear infinite;
+  }
+
+  .rainbow-border-content {
+    position: relative;
+    z-index: 1;
+    border-radius: inherit;
+  }
+}
+
+@keyframes rainbow-border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rainbow-border-frame::before {
+    animation: none;
+  }
+}
