@@ -85,7 +85,7 @@ const Pricing = () => {
         <title>Membership Plans — SkinLabs Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month, or Glow VIP at R299/month. Stream 1 free podcast episode monthly on Explorer; full library on Insider+."
+          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month, or Glow VIP at R299/month. Explorer: 1 free podcast episode and 2 comparisons per month. Insider+: full library, Spotlight profiles and unlimited Shelf Showdowns."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
       </Helmet>
