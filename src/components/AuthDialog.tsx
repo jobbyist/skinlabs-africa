@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound } from "lucide-react";
+import logo from "@/assets/newskinlabs.png";
 
 interface AuthDialogProps {
   open: boolean;
@@ -28,7 +29,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Signed in successfully!");
+      toast.success("Welcome back.");
       onOpenChange(false);
       onAuthenticated?.();
     }
@@ -41,7 +42,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
-      toast.success("Account created — you're signed in.");
+      toast.success("You're in. Skincare without the nonsense starts here.");
       onOpenChange(false);
       onAuthenticated?.();
     }
@@ -49,61 +50,111 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Sign in to SKINLABS</DialogTitle>
-          <DialogDescription>
-            For your AI routine, saved reviews and daily skin science briefings.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md overflow-hidden p-0 gap-0">
+        <div className="border-b border-border bg-muted/40 px-6 py-5">
+          <div className="flex flex-col items-center text-center gap-3">
+            <img src={logo} alt="SkinLabs®" className="h-8 w-auto" />
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle className="font-heading text-xl">Log in or create an account</DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground">
+                Save reviews, unlock full podcast episodes and build your AI routine — grounded in SA skin and climate.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+        </div>
 
-        <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin" className="gap-1 text-xs">
-              <KeyRound className="h-3 w-3" /> Sign in
-            </TabsTrigger>
-            <TabsTrigger value="signup" className="gap-1 text-xs">
-              <Mail className="h-3 w-3" /> Sign up
-            </TabsTrigger>
-          </TabsList>
+        <div className="px-6 py-5">
+          <Tabs defaultValue={defaultTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="signin" className="gap-1.5 text-xs sm:text-sm">
+                <KeyRound className="h-3.5 w-3.5" /> Log in
+              </TabsTrigger>
+              <TabsTrigger value="signup" className="gap-1.5 text-xs sm:text-sm">
+                <Mail className="h-3.5 w-3.5" /> Sign up
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="signin">
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email-signin">Email</Label>
-                <Input id="email-signin" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password-signin">Password</Label>
-                <Input id="password-signin" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
-              </Button>
-            </form>
-          </TabsContent>
+            <TabsContent value="signin" className="mt-0">
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-signin">Email</Label>
+                  <Input
+                    id="email-signin"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password-signin">Password</Label>
+                  <Input
+                    id="password-signin"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Log in
+                </Button>
+              </form>
+            </TabsContent>
 
-          <TabsContent value="signup">
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email-signup">Email</Label>
-                <Input id="email-signup" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password-signup">Password</Label>
-                <Input id="password-signup" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
-                <p className="text-xs text-muted-foreground">
-                  Minimum 8 characters. No email confirmation needed — you can verify your email later from your dashboard.
-                </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create account
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="signup" className="mt-0">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email-signup">Email</Label>
+                  <Input
+                    id="email-signup"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password-signup">Password</Label>
+                  <Input
+                    id="password-signup"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    At least 8 characters. No confirmation email required — you can verify later from your dashboard.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create account
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <p className="mt-5 text-center text-[11px] text-muted-foreground leading-relaxed">
+            By continuing you agree to our{" "}
+            <a href="/terms-of-service" className="underline hover:text-foreground">
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/privacy-policy" className="underline hover:text-foreground">
+              Privacy Policy
+            </a>
+            .
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

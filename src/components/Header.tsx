@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Sparkles, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale } from "lucide-react";
+import { Menu, X, Atom, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -53,25 +53,25 @@ const Header = () => {
               {navLinks
                 .filter((link) => !link.hideOnDesktop)
                 .map((link) => (
-                <Link
-                  key={link.label}
-                  to={link.href}
-                  className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <link.icon className="h-4 w-4" />
-                  {link.label}
-                  {link.isNew && (
-                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
-                      New
-                    </span>
-                  )}
-                  {link.isComingSoon && (
-                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white whitespace-nowrap">
-                      Coming Soon
-                    </span>
-                  )}
-                </Link>
-              ))}
+                  <Link
+                    key={link.label}
+                    to={link.href}
+                    className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <link.icon className="h-4 w-4" />
+                    {link.label}
+                    {link.isNew && (
+                      <span className="rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground">
+                        New
+                      </span>
+                    )}
+                    {link.isComingSoon && (
+                      <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white whitespace-nowrap">
+                        Coming Soon
+                      </span>
+                    )}
+                  </Link>
+                ))}
             </nav>
 
             <div className="hidden lg:flex items-center gap-2">
@@ -86,7 +86,7 @@ const Header = () => {
               </button>
               <Button variant="outline" className="gap-2" asChild>
                 <Link to="/ai-formulator">
-                  <Sparkles className="h-4 w-4" />
+                  <Atom className="h-4 w-4" />
                   Build My AI Routine
                 </Link>
               </Button>
@@ -97,7 +97,7 @@ const Header = () => {
                       {userInitial}
                     </Button>
                   </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-48">
                     <DropdownMenuItem asChild>
                       <Link to="/dashboard" className="flex items-center gap-2">
                         <LayoutDashboard className="h-4 w-4" />
@@ -117,8 +117,8 @@ const Header = () => {
                 </DropdownMenu>
               ) : (
                 <Button variant="default" className="gap-2" onClick={() => setAuthOpen(true)}>
-                  <Sparkles className="h-4 w-4" />
-                  Get Started
+                  <LogIn className="h-4 w-4" />
+                  Log In / Sign Up
                 </Button>
               )}
             </div>
@@ -173,8 +173,8 @@ const Header = () => {
                   </>
                 ) : (
                   <Button variant="default" className="w-full gap-2 mt-2" onClick={() => { setAuthOpen(true); setIsMenuOpen(false); }}>
-                    <Sparkles className="h-4 w-4" />
-                    Get Started
+                    <LogIn className="h-4 w-4" />
+                    Log In / Sign Up
                   </Button>
                 )}
               </nav>

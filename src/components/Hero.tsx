@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { ArrowRight, Sparkles, Play, Pause } from "lucide-react";
+import { ArrowRight, Atom, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroVideo from "@/assets/hero-video.mp4";
 
@@ -20,7 +20,6 @@ const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
-      {/* Video Background */}
       <div className="absolute inset-0 z-0">
         <video
           ref={videoRef}
@@ -31,7 +30,6 @@ const Hero = () => {
           playsInline
           className="w-full h-full object-cover"
         />
-        {/* Dark animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
         <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/50" />
       </div>
@@ -40,8 +38,12 @@ const Hero = () => {
         <div className="max-w-2xl mx-auto text-center lg:text-left lg:mx-0">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
-              <Sparkles className="h-4 w-4" />
-              South Africa's Independent Skincare Intelligence Platform
+              {/* SA flag on mobile; Atom icon on larger screens */}
+              <span className="text-base leading-none md:hidden" aria-hidden="true">
+                🇿🇦
+              </span>
+              <Atom className="hidden h-4 w-4 md:inline" />
+              SA’s Premier Skincare Intelligence Hub
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
@@ -57,16 +59,11 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
                 <a href="/ai-formulator">
-                  <Sparkles className="h-4 w-4" />
+                  <Atom className="h-4 w-4" />
                   Start Your Skin Analysis
                 </a>
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="gap-2 text-base px-8"
-                asChild
-              >
+              <Button variant="outline" size="lg" className="gap-2 text-base px-8" asChild>
                 <a href="/pricing">
                   Try Insider free for 7 days
                   <ArrowRight className="h-4 w-4" />
@@ -74,7 +71,6 @@ const Hero = () => {
               </Button>
             </div>
 
-            {/* Stats */}
             <div className="flex gap-8 justify-center lg:justify-start pt-4">
               <div>
                 <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">3.7K+</p>
@@ -89,7 +85,6 @@ const Hero = () => {
                 <p className="text-sm font-semibold text-foreground/80">Member Rating</p>
               </div>
             </div>
-
           </div>
         </div>
       </div>
