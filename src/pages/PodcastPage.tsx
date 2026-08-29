@@ -13,6 +13,7 @@ import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import AffiliateBanner from "@/components/AffiliateBanner";
+import AdSlot from "@/components/AdSlot";
 
 const PodcastPage = () => {
   const { playEpisode, current, isPlaying, toggle, progress, duration, speed, skip, cycleSpeed, seek } =
@@ -66,7 +67,7 @@ const PodcastPage = () => {
       <main className="pt-24 pb-28">
         <section className="container mx-auto px-4">
           <div className="mb-8">
-            <AffiliateBanner placement="podcast-top" compact />
+            <AdSlot placement="podcast-top" compact />
           </div>
           <div className="mb-10 max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Audio series</p>
