@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, MapPin, Search, Star } from "lucide-react";
+import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
@@ -9,6 +9,7 @@ import { useEngagementStore } from "@/stores/engagementStore";
 import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 
+const PAGE_SIZE = 6;
 
 const ScoreBar = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-1">
@@ -32,17 +33,23 @@ interface ReviewsGridProps {
   limit?: number;
   heading?: string;
   description?: string;
+  /** When true (default on full /reviews page), enable SEO pagination at 6 per page */
+  paginate?: boolean;
 }
 
 const ReviewsGrid = ({
   limit,
   heading = "Independent SA Product Reviews",
   description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
+  paginate = false,
 }: ReviewsGridProps) => {
-  
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
+  const params = useParams<{ page?: string }>();
+  const navigate = useNavigate();
+
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   const filtered = useMemo(() => {
     let base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
@@ -50,14 +57,30 @@ const ReviewsGrid = ({
       base = base
         .map((review) => ({
           review,
-          score: matchScore(query, `${review.brand} ${review.product_name}`, `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`),
+          score: matchScore(
+            query,
+            `${review.brand} ${review.product_name}`,
+            `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`,
+          ),
         }))
         .filter((entry) => entry.score > 0)
         .sort((a, b) => b.score - a.score)
         .map((entry) => entry.review);
     }
-    return limit ? base.slice(0, limit) : base;
+    if (limit) return base.slice(0, limit);
+    return base;
   }, [category, limit, query]);
+
+  const totalPages = paginate && !limit ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)) : 1;
+  const page = Math.min(currentPage, totalPages);
+  const pageItems =
+    paginate && !limit ? filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : filtered;
+
+  const goToPage = (p: number) => {
+    if (p <= 1) navigate("/reviews");
+    else navigate(`/reviews/page/${p}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <section id="reviews" className="bg-secondary/30 py-20">
@@ -86,7 +109,10 @@ const ReviewsGrid = ({
             {["All", ...reviewCategories].map((item) => (
               <button
                 key={item}
-                onClick={() => setCategory(item)}
+                onClick={() => {
+                  setCategory(item);
+                  if (paginate) goToPage(1);
+                }}
                 className={cn(
                   "rounded-full border px-4 py-1.5 text-sm transition-colors",
                   category === item
@@ -101,7 +127,7 @@ const ReviewsGrid = ({
         )}
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((review, index) => (
+          {pageItems.map((review, index) => (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 20 }}
@@ -161,8 +187,44 @@ const ReviewsGrid = ({
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {pageItems.length === 0 && (
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
+        )}
+
+        {/* SEO-friendly numbered pagination */}
+        {paginate && !limit && totalPages > 1 && (
+          <nav className="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Reviews pagination">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => goToPage(page - 1)}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => goToPage(p)}
+                aria-current={p === page ? "page" : undefined}
+                className="min-w-9"
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => goToPage(page + 1)}
+              className="gap-1"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          </nav>
         )}
       </div>
     </section>
