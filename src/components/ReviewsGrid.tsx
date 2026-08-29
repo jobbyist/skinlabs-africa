@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { matchScore } from "@/lib/search-index";
@@ -46,6 +48,9 @@ const ReviewsGrid = ({
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [priceRange, setPriceRange] = useState("all");
+  const [skinType, setSkinType] = useState("all");
   const params = useParams<{ page?: string }>();
   const navigate = useNavigate();
 
@@ -53,6 +58,34 @@ const ReviewsGrid = ({
 
   const filtered = useMemo(() => {
     let base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
+    
+    // Apply price range filter
+    if (priceRange !== "all") {
+      base = base.filter((r) => {
+        const price = r.local_price_zar;
+        if (priceRange === "under-200") return price < 200;
+        if (priceRange === "200-500") return price >= 200 && price <= 500;
+        if (priceRange === "over-500") return price > 500;
+        return true;
+      });
+    }
+    
+    // Apply skin type filter
+    if (skinType !== "all") {
+      base = base.filter((r) => r.best_for_skin_types?.includes(skinType));
+    }
+    
+    // Apply sorting
+    if (sortBy === "newest") {
+      base = base.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+    } else if (sortBy === "rating") {
+      base = base.sort((a, b) => overallScore(b) - overallScore(a));
+    } else if (sortBy === "price-low") {
+      base = base.sort((a, b) => a.local_price_zar - b.local_price_zar);
+    } else if (sortBy === "price-high") {
+      base = base.sort((a, b) => b.local_price_zar - a.local_price_zar);
+    }
+    
     if (query.trim()) {
       base = base
         .map((review) => ({
@@ -70,6 +103,8 @@ const ReviewsGrid = ({
     if (limit) return base.slice(0, limit);
     return base;
   }, [category, limit, query]);
+
+  const paginatedReviews = filtered;
 
   const totalPages = paginate && !limit ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)) : 1;
   const page = Math.min(currentPage, totalPages);
@@ -108,6 +143,65 @@ const ReviewsGrid = ({
           </div>
         )}
 
+        {!limit && (
+          <>
+            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">Sort By</label>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="rating">Highest Rated</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">Price Range</label>
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All prices" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="under-200">Under R200</SelectItem>
+                    <SelectItem value="200-500">R200 - R500</SelectItem>
+                    <SelectItem value="over-500">Over R500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">Skin Type</label>
+                <Select value={skinType} onValueChange={setSkinType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All skin types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Skin Types</SelectItem>
+                    <SelectItem value="Oily">Oily</SelectItem>
+                    <SelectItem value="Dry">Dry</SelectItem>
+                    <SelectItem value="Combination">Combination</SelectItem>
+                    <SelectItem value="Sensitive">Sensitive</SelectItem>
+                    <SelectItem value="Normal">Normal</SelectItem>
+                    <SelectItem value="Mature">Mature</SelectItem>
+                    <SelectItem value="Acne-prone">Acne-prone</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-end">
+                <p className="text-sm text-muted-foreground">Showing {paginatedReviews.length} of {filtered.length} reviews</p>
+              </div>
+            </div>
+          </>
+        )}
+        
         {!limit && (
           <div className="mb-8 flex flex-wrap gap-2">
             {["All", ...reviewCategories].map((item) => (

@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Newspaper, ShieldCheck, Lock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useAuth } from "@/hooks/use-auth";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
 import logo from "@/assets/newskinlabs.png";
+import Autoplay from "embla-carousel-autoplay";
 
 const LOADING_KEY = "skinlabs-preloader-shown";
 const GATE_KEY = "skinlabs-gate-shown";
@@ -22,6 +24,7 @@ const trustMarkers = [
 const Preloader = () => {
   const { user, loading: authLoading } = useAuth();
   const { articles } = useNewsArticles(3);
+  const autoplay = Autoplay({ delay: 3000, stopOnInteraction: true });
 
   const [showLoading, setShowLoading] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -157,24 +160,30 @@ const Preloader = () => {
               </div>
 
               {articles.length > 0 && (
-                <div className="mt-10 grid gap-4 text-left sm:grid-cols-3">
-                  {articles.map((article) => (
-                    <Link
-                      key={article.id}
-                      to={`/newsroom/${article.slug}`}
-                      onClick={dismissGate}
-                      className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary"
-                    >
-                      <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
-                        {article.sa_context_tag}
-                      </span>
-                      <p className="line-clamp-3 text-sm font-medium text-foreground">{article.title}</p>
-                      <span className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
-                        Read briefing <ArrowRight className="h-3 w-3" />
-                      </span>
-                    </Link>
-                  ))}
-                </div>
+                <Carousel
+                  className="mt-10 w-full max-w-xl mx-auto"
+                  opts={{
+                    align: "start",
+                    loop: true,
+                  }}
+                  plugins={[autoplay]}
+                >
+                  <CarouselContent className="-ml-2 md:-ml-4">
+                    {articles.map((article) => (
+                      <CarouselItem key={article.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                        <Link to={`/newsroom/${article.slug}`} onClick={dismissGate} className="flex flex-col h-full rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary">
+                          <span className="mb-2 inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-foreground">
+                            {article.sa_context_tag}
+                          </span>
+                          <p className="line-clamp-3 text-sm font-medium text-foreground">{article.title}</p>
+                          <span className="mt-3 inline-flex items-center gap-1 text-xs text-primary">
+                            Read briefing <ArrowRight className="h-3 w-3" />
+                          </span>
+                        </Link>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
               )}
             </div>
           </motion.div>
