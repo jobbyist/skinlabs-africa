@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
+import { newsroomComments } from "@/data/articleComments";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -151,6 +152,14 @@ const NewsroomArticle = () => {
 
   const jsonLd = useMemo(() => article?.json_ld ?? null, [article]);
 
+  // Falls back to editorial seed comments only when this briefing has no
+  // live member comments yet — same pattern as product reviews.
+  const displayComments = useMemo(() => {
+    if (comments.length > 0 || !article) return comments;
+    const seeded = newsroomComments[article.slug] ?? [];
+    return seeded.map((c, i) => ({ id: `seeded-${i}`, author_name: c.display_name, body: c.body, created_at: c.created_at }));
+  }, [comments, article]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -215,7 +224,7 @@ const NewsroomArticle = () => {
               <span>{new Date(article.publish_date).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
               <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {(views ?? article.view_count).toLocaleString()} views</span>
-              <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {comments.length}</span>
+              <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {displayComments.length}</span>
             </div>
 
             {article.cover_image_url && (
@@ -326,7 +335,7 @@ const NewsroomArticle = () => {
             {/* Comments */}
             <section className="mt-12">
               <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-                Comments ({comments.length})
+                Comments ({displayComments.length})
               </h2>
               {user ? (
                 <div className="space-y-3">
@@ -347,7 +356,7 @@ const NewsroomArticle = () => {
               )}
 
               <div className="mt-6 space-y-5">
-                {comments.map((c) => (
+                {displayComments.map((c) => (
                   <div key={c.id} className="rounded-2xl border border-border bg-card p-4">
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span className="font-medium text-foreground">{c.author_name}</span>

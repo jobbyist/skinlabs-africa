@@ -7,8 +7,12 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import BrandLogo from "@/components/BrandLogo";
 import BrandRequestModal from "@/components/BrandRequestModal";
+import ArticleComments from "@/components/ArticleComments";
 import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
 import { overallScore } from "@/data/reviews";
+import { useMembership } from "@/hooks/use-membership";
+import GatedOverlay from "@/components/GatedOverlay";
+import { spotlightComments } from "@/data/articleComments";
 
 const EDITORIAL_DISCLAIMER =
   "Spotlight by SkinLabs is an independent editorial feature. Rankings and profiles are determined using the SkinLabs editorial methodology and available product information. Inclusion does not constitute paid endorsement. Commercial relationships, affiliate links, gifted products or other benefits are disclosed where applicable.";
@@ -16,6 +20,7 @@ const EDITORIAL_DISCLAIMER =
 const SpotlightBrandProfile = () => {
   const { brandSlug } = useParams();
   const [claimOpen, setClaimOpen] = useState(false);
+  const { isMember, loading: membershipLoading } = useMembership();
   const entry = getSpotlightBrand(brandSlug ?? "");
 
   if (!entry) {
@@ -74,6 +79,12 @@ const SpotlightBrandProfile = () => {
       <Header />
       <main className="pt-24 pb-24">
         <div className="container mx-auto max-w-3xl px-4">
+          <GatedOverlay
+            locked={!membershipLoading && !isMember}
+            title="Spotlight profiles are for members"
+            message="Glow Insider and Glow VIP members can open full brand profiles. Browse the ranking free on the Spotlight page."
+            ctaLabel="View membership plans"
+          >
           <Link to="/spotlight" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> All of Spotlight
           </Link>
@@ -133,7 +144,6 @@ const SpotlightBrandProfile = () => {
             <p className="mt-4 text-xs italic text-muted-foreground">{editorial.evidenceLimitation}</p>
           )}
 
-          {/* Featured product */}
           <div className="mt-8">
             <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Featured product</h2>
             <Link
@@ -151,7 +161,6 @@ const SpotlightBrandProfile = () => {
             </Link>
           </div>
 
-          {/* All reviewed products */}
           {entry.products.length > 1 && (
             <div className="mt-6">
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">All reviewed products</h2>
@@ -170,7 +179,6 @@ const SpotlightBrandProfile = () => {
             </div>
           )}
 
-          {/* Official links */}
           <div className="mt-8 flex flex-wrap gap-3 text-sm">
             {editorial.officialWebsite && (
               <a
@@ -199,6 +207,9 @@ const SpotlightBrandProfile = () => {
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p><span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}</p>
           </div>
+
+          <ArticleComments comments={spotlightComments[entry.slug] ?? []} />
+          </GatedOverlay>
         </div>
       </main>
       <Footer />

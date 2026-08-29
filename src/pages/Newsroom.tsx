@@ -2,6 +2,8 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsroomFeed from "@/components/NewsroomFeed";
+import AffiliateBanner from "@/components/AffiliateBanner";
+import AdSlot from "@/components/AdSlot";
 
 const Newsroom = () => (
   <>
@@ -17,25 +19,16 @@ const Newsroom = () => (
       <meta property="og:description" content="Daily brief of global skincare science for South African skin, climate and shelves." />
       <meta property="og:url" content="https://skinlabs.co.za/newsroom" />
       <meta property="og:type" content="website" />
-      <meta property="og:image" content="https://skinlabs.co.za/pwa-512.png" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <script type="application/ld+json">{JSON.stringify({
-        "@context": "https://schema.org",
-        "@type": "NewsMediaOrganization",
-        "name": "The Daily Skinny by SkinLabs",
-        "url": "https://skinlabs.co.za/newsroom",
-        "logo": "https://skinlabs.co.za/pwa-512.png",
-        "description": "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
-        "sameAs": ["https://wa.me/27680200749"],
-        "publishingPrinciples": "https://skinlabs.co.za/about"
-      })}</script>
     </Helmet>
 
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-20">
-        <h1 className="sr-only">The Daily Skinny — Daily SA Skincare Briefings</h1>
-        <NewsroomFeed searchable />
+      <main className="pt-24 pb-24">
+        <div className="container mx-auto px-4">
+          <AdSlot placement="newsroom-top" compact />
+          <NewsroomFeed />
+          <AffiliateBanner placement="newsroom-bottom" />
+        </div>
       </main>
       <Footer />
     </div>

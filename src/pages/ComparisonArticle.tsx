@@ -6,14 +6,81 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
+import { useMembership } from "@/hooks/use-membership";
+import { canReadComparison, recordComparisonRead } from "@/lib/access-quotas";
+import GatedOverlay from "@/components/GatedOverlay";
+import { useEffect } from "react";
+import { featuredEditorials } from "@/data/editorials";
+import { comparisonComments } from "@/data/articleComments";
 
 const EDITORIAL_DISCLAIMER =
   "SKINLABS's views and opinions are independent. This article is not paid or sponsored content. Product information is assessed using publicly available information, ingredient analysis, editorial research and, where applicable, product testing. Prices, availability and formulations may change.";
 
 const ComparisonArticle = () => {
   const { slug } = useParams();
+  const { isMember } = useMembership();
   const article = getComparison(slug ?? "");
+  const locked = Boolean(article) && !isMember && !canReadComparison(slug ?? "");
+
+  useEffect(() => {
+    if (article && !isMember && slug && canReadComparison(slug)) {
+      recordComparisonRead(slug);
+    }
+  }, [article, isMember, slug]);
+  const comingSoonEditorial = featuredEditorials.find((e) => e.slug === slug && e.comingSoon);
+
+  // Coming-soon comparison (e.g. CeraVe vs Cetaphil)
+  if (!article && comingSoonEditorial) {
+    return (
+      <div className="min-h-screen bg-background">
+        <SEO
+          title={`${comingSoonEditorial.title} — Coming Soon | SkinLabs`}
+          description={comingSoonEditorial.dek}
+          canonical={`https://skinlabs.co.za/reviews/versus/${comingSoonEditorial.slug}`}
+        />
+        <Header />
+        <main className="pt-24 pb-24">
+          <article className="container mx-auto max-w-3xl px-4">
+            <Link to="/compare" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> All comparisons
+            </Link>
+
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-foreground">
+              Shelf Showdown · {comingSoonEditorial.saContext} · Coming soon
+            </span>
+
+            <h1 className="mt-4 font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
+              {comingSoonEditorial.title}
+            </h1>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{comingSoonEditorial.dek}</p>
+
+            <figure className="mt-8">
+              <img
+                src={comingSoonEditorial.thumbnailUrl}
+                alt={comingSoonEditorial.thumbnailAlt}
+                className="w-full rounded-3xl object-cover opacity-90"
+                loading="lazy"
+              />
+            </figure>
+
+            <div className="mt-10 rounded-3xl border border-border bg-card p-8 text-center">
+              <p className="font-heading text-xl font-bold text-foreground">This showdown is on the way</p>
+              <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
+                We’re still comparing the evidence, the actives and how both lines hold up in South African heat,
+                dryness and UV. Check back soon — or browse published Shelf Showdowns while you wait.
+              </p>
+              <Button asChild className="mt-6">
+                <Link to="/compare">Browse Shelf Showdown</Link>
+              </Button>
+            </div>
+          </article>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!article) {
     return (
@@ -23,7 +90,7 @@ const ComparisonArticle = () => {
           <h1 className="font-heading text-2xl font-bold text-foreground">Comparison not found</h1>
           <p className="mt-2 text-muted-foreground">This Shelf Showdown may have been retired or renamed.</p>
           <Button asChild className="mt-6">
-            <Link to="/reviews">Back to Reviews</Link>
+            <Link to="/compare">Back to comparisons</Link>
           </Button>
         </main>
         <Footer />
@@ -54,9 +121,8 @@ const ComparisonArticle = () => {
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Reviews", item: "https://skinlabs.co.za/reviews" },
-          { "@type": "ListItem", position: 2, name: "Shelf Showdown", item: "https://skinlabs.co.za/reviews#shelf-showdown" },
-          { "@type": "ListItem", position: 3, name: article.title, item: canonical },
+          { "@type": "ListItem", position: 1, name: "Comparisons", item: "https://skinlabs.co.za/compare" },
+          { "@type": "ListItem", position: 2, name: article.title, item: canonical },
         ],
       },
     ],
@@ -74,12 +140,18 @@ const ComparisonArticle = () => {
       />
       <Header />
       <main className="pt-24 pb-24">
+        <GatedOverlay
+          locked={locked}
+          title="Monthly free comparison limit reached"
+          message="Glow Explorer and signed-out visitors can open 2 Shelf Showdowns per month. Upgrade for unlimited access."
+          ctaLabel="View membership plans"
+        >
         <article className="container mx-auto max-w-3xl px-4">
-          <Link to="/reviews" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-4 w-4" /> All reviews
+          <Link to="/compare" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-4 w-4" /> All comparisons
           </Link>
 
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-[11px] font-semibold text-foreground">
             Shelf Showdown · {article.saContext}
           </span>
 
@@ -107,7 +179,6 @@ const ComparisonArticle = () => {
             </figcaption>
           </figure>
 
-          {/* Products compared — required product & brand links */}
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {article.productsCompared.map((product) => (
               <div key={`${product.brand}-${product.name}`} className="rounded-2xl border border-border bg-card p-4">
@@ -133,12 +204,10 @@ const ComparisonArticle = () => {
             ))}
           </div>
 
-          {/* Body */}
           <div className="prose prose-neutral mt-10 max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary prose-table:text-sm">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.bodyMarkdown}</ReactMarkdown>
           </div>
 
-          {/* Better-for verdicts — never a universal winner */}
           <div className="mt-10">
             <h2 className="mb-4 font-heading text-lg font-bold text-foreground">Which one actually makes sense for you</h2>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -151,7 +220,6 @@ const ComparisonArticle = () => {
             </div>
           </div>
 
-          {/* Key takeaways */}
           <div className="mt-10 rounded-3xl border border-border bg-card p-6">
             <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Key takeaways</h2>
             <ul className="space-y-2">
@@ -164,12 +232,16 @@ const ComparisonArticle = () => {
             </ul>
           </div>
 
-          {/* Editorial independence disclaimer */}
           <div className="mt-8 flex gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <p><span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}</p>
+            <p>
+              <span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}
+            </p>
           </div>
+
+          <ArticleComments comments={comparisonComments[article.slug] ?? []} />
         </article>
+        </GatedOverlay>
       </main>
       <Footer />
     </div>

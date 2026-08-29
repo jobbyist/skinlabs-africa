@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface BrandLogoProps {
@@ -23,15 +24,27 @@ const initialsFor = (brand: string) =>
     .toUpperCase();
 
 /**
- * Renders a brand's logo in monochrome once `logoUrl` is set (the user uploads
- * real assets later), falling back to a generated initials badge until then —
- * no invented or guessed logo artwork is used.
+ * Renders a brand logo when `logoUrl` is set; falls back to initials on error or missing URL.
  */
 const BrandLogo = ({ brand, logoUrl, className, size = "md" }: BrandLogoProps) => {
-  if (logoUrl) {
+  const [failed, setFailed] = useState(false);
+
+  if (logoUrl && !failed) {
     return (
-      <span className={cn("inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted", sizeClasses[size], className)}>
-        <img src={logoUrl} alt={`${brand} logo`} className="h-full w-full object-contain grayscale" loading="lazy" />
+      <span
+        className={cn(
+          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-1",
+          sizeClasses[size],
+          className,
+        )}
+      >
+        <img
+          src={logoUrl}
+          alt={`${brand} logo`}
+          className="h-full w-full object-contain"
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
       </span>
     );
   }

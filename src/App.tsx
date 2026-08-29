@@ -12,23 +12,15 @@ import Preloader from "./components/Preloader";
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
+import CookieConsent from "./components/CookieConsent";
 
-// Every other route is code-split — only the landing page is bundled eagerly,
-// keeping the initial payload small as the site's page count grows.
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Products = lazy(() => import("./pages/Products"));
 const AIFormulator = lazy(() => import("./pages/AIFormulator"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
-const Devices = lazy(() => import("./pages/Devices"));
-const Serums = lazy(() => import("./pages/Serums"));
-const CustomFormulas = lazy(() => import("./pages/CustomFormulas"));
-const BundledKits = lazy(() => import("./pages/BundledKits"));
 const Business = lazy(() => import("./pages/Business"));
 const FAQ = lazy(() => import("./pages/FAQ"));
-const Shipping = lazy(() => import("./pages/Shipping"));
-const Returns = lazy(() => import("./pages/Returns"));
-const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
@@ -42,6 +34,7 @@ const NewsroomArticle = lazy(() => import("./pages/NewsroomArticle"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const ProductReview = lazy(() => import("./pages/ProductReview"));
 const ComparisonArticle = lazy(() => import("./pages/ComparisonArticle"));
+const Compare = lazy(() => import("./pages/Compare"));
 const Spotlight = lazy(() => import("./pages/Spotlight"));
 const SpotlightMethodology = lazy(() => import("./pages/SpotlightMethodology"));
 const SpotlightArchive = lazy(() => import("./pages/SpotlightArchive"));
@@ -49,7 +42,7 @@ const SpotlightBrandProfile = lazy(() => import("./pages/SpotlightBrandProfile")
 const Seasonals = lazy(() => import("./pages/Seasonals"));
 const SeasonalHub = lazy(() => import("./pages/SeasonalHub"));
 const Consultations = lazy(() => import("./pages/Consultations"));
-const EdiblePouches = lazy(() => import("./pages/EdiblePouches"));
+const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 
 const queryClient = new QueryClient();
@@ -66,87 +59,77 @@ const RouteFallback = () => (
 );
 
 const AppContent = () => {
-
-
   return (
     <>
       <Preloader />
       <ScrollToTop />
       <FloatingBottomNav />
+      <CookieConsent />
       <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
 
-        {/* Header Navigation Routes */}
         <Route path="/products" element={<Products />} />
         <Route path="/ai-formulator" element={<AIFormulator />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        
-        {/* Shop Routes */}
-        <Route path="/devices" element={<Devices />} />
-        <Route path="/serums" element={<Serums />} />
-        <Route path="/custom-formulas" element={<CustomFormulas />} />
-        <Route path="/bundled-kits" element={<BundledKits />} />
-        <Route path="/gift-sets" element={<Navigate to="/bundled-kits" replace />} />
         <Route path="/business" element={<Business />} />
-        
-        {/* Company Routes */}
+
         <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
         <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />
-        
-        {/* Support Routes */}
+
         <Route path="/faq" element={<FAQ />} />
-        <Route path="/shipping" element={<Shipping />} />
-        <Route path="/returns" element={<Returns />} />
-        <Route path="/track-order" element={<TrackOrder />} />
-        
-        {/* Legal Routes */}
+
+        {/* Retired commerce / ops paths → home or relevant hub */}
+        <Route path="/devices" element={<Navigate to="/" replace />} />
+        <Route path="/serums" element={<Navigate to="/" replace />} />
+        <Route path="/custom-formulas" element={<Navigate to="/" replace />} />
+        <Route path="/bundled-kits" element={<Navigate to="/" replace />} />
+        <Route path="/gift-sets" element={<Navigate to="/" replace />} />
+        <Route path="/shipping" element={<Navigate to="/faq" replace />} />
+        <Route path="/returns" element={<Navigate to="/faq" replace />} />
+        <Route path="/track-order" element={<Navigate to="/faq" replace />} />
+        <Route path="/edible-pouches" element={<Navigate to="/" replace />} />
+        <Route path="/careers" element={<Navigate to="/about" replace />} />
+        <Route path="/press" element={<Navigate to="/about" replace />} />
+
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
-        
-        {/* Admin */}
+
         <Route path="/admin" element={<AdminDashboard />} />
-        
-        {/* OPENHAUS Coming Soon */}
-        <Route path="/openhaus" element={<Openhaus />} />
-        
-        {/* Podcast */}
+
+        <Route path="/shop" element={<Openhaus />} />
+        <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
+
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
         <Route path="/stream" element={<Navigate to="/podcast" replace />} />
         <Route path="/stream/:slug" element={<LegacyStreamRedirect />} />
 
-
-        {/* Content platform */}
         <Route path="/newsroom" element={<Newsroom />} />
         <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/reviews/page/:page" element={<Reviews />} />
         <Route path="/reviews/versus/:slug" element={<ComparisonArticle />} />
         <Route path="/reviews/:slug" element={<ProductReview />} />
+        <Route path="/compare" element={<Compare />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
+        <Route path="/announcements" element={<Announcements />} />
 
-        {/* Spotlight by SkinLabs */}
         <Route path="/spotlight" element={<Spotlight />} />
         <Route path="/spotlight/methodology" element={<SpotlightMethodology />} />
         <Route path="/spotlight/archive" element={<SpotlightArchive />} />
         <Route path="/spotlight/:brandSlug" element={<SpotlightBrandProfile />} />
 
-        {/* Seasonals by SkinLabs */}
         <Route path="/seasonals" element={<Seasonals />} />
         <Route path="/seasonals/spring" element={<SeasonalHub />} />
         <Route path="/seasonals/:season" element={<SeasonalHub />} />
-        
-        {/* Edible Pouches Pre-Order */}
-        <Route path="/edible-pouches" element={<EdiblePouches />} />
-        
-        {/* User Dashboard */}
+
         <Route path="/dashboard" element={<UserDashboard />} />
-        
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
         <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>

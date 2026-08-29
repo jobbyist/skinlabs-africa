@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Check, Gift, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Check, Gift, Atom } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthDialog from "@/components/AuthDialog";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { membershipPlans, planPrice, annualMonthlyEquivalent, ANNUAL_MONTHS_FREE, MONEY_BACK_GUARANTEE_DAYS, type BillingInterval, type PlanId } from "@/data/plans";
+import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { startPaystackCheckout, type PaystackPlan } from "@/lib/paystack";
 import { startFreeTrial } from "@/lib/trial";
 import { cn } from "@/lib/utils";
@@ -80,17 +82,12 @@ const Pricing = () => {
   return (
     <>
       <Helmet>
-        <title>Membership Plans — SkinLabs Skincare Intelligence</title>
+        <title>SkinLabs® Membership | Personalised Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for a weekly AI routine and full newsroom access, or Glow VIP at R299/month with monthly derm consults. Annual billing gets 2 months free, Insider starts with a 7-day free trial, and every paid plan is backed by a 30-day money-back guarantee."
+          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines, product recommendations and exclusive member benefits. Glow Explorer free; Insider from R99/month. Starting a free trial forfeits the 30-day money-back guarantee."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
-        <meta property="og:title" content="Membership Plans — SkinLabs" />
-        <meta property="og:description" content="AI skincare routines, daily skincare intelligence and virtual derm consults, priced in rands. 7-day free trial on Insider, plus a 30-day money-back guarantee on every paid plan." />
-        <meta property="og:url" content="https://skinlabs.co.za/pricing" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -100,12 +97,15 @@ const Pricing = () => {
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Membership</p>
               <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">
-                Skincare intelligence, priced in rands
+                Skincare intelligence, suitable for every budget
               </h1>
               <p className="text-muted-foreground">
                 No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South
-                African skin, climate and shelves — try Insider free for 7 days, no card required, and every paid
-                plan comes with a {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee.
+                African skin, climate and shelves — try Insider free for 7 days (no card required — trial forfeits the money-back guarantee), or subscribe directly to keep the{" "}
+                <Link to="/terms-of-service#money-back-guarantee" className="text-primary hover:underline">
+                  {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee
+                </Link>
+                .
               </p>
             </div>
 
@@ -157,7 +157,7 @@ const Pricing = () => {
                   >
                     {plan.highlight && (
                       <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        <Sparkles className="h-3 w-3" /> Most popular
+                        <Atom className="h-3 w-3" /> Most popular
                       </span>
                     )}
                     <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
@@ -177,7 +177,7 @@ const Pricing = () => {
                       {plan.features.map((feature) => (
                         <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                           <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                          {feature}
+                          {linkifyMoneyBackGuarantee(feature)}
                         </li>
                       ))}
                     </ul>
@@ -203,11 +203,13 @@ const Pricing = () => {
                       </Button>
                     </div>
                     {trialAvailable && (
-                      <p className="mt-3 text-center text-xs text-muted-foreground">No credit card required for the trial.</p>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        No credit card required for the trial. Starting a free trial means you forfeit the 30-day money-back guarantee on that plan.
+                      </p>
                     )}
                     {isPaidPlan && plan.moneyBackDays && (
                       <p className="mt-1 text-center text-xs text-muted-foreground">
-                        {plan.moneyBackDays}-day money-back guarantee. Not right for your skin? Full refund.
+                        {linkifyMoneyBackGuarantee(`${plan.moneyBackDays}-day money-back guarantee`)} applies when you subscribe without starting a free trial. Not right for your skin? Full refund.
                       </p>
                     )}
                   </motion.div>

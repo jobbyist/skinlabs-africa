@@ -7,6 +7,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import SpotlightRankingCard from "@/components/SpotlightRankingCard";
 import BrandRequestModal from "@/components/BrandRequestModal";
+import AdSlot from "@/components/AdSlot";
 import { spotlightRankedBrands, spotlightRisingBrands, spotlightTopThree, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
 
 const EDITORIAL_DISCLAIMER =
@@ -80,6 +81,10 @@ const Spotlight = () => {
             </Button>
           </div>
         </section>
+
+        <div className="container mx-auto px-4 mt-10">
+          <AdSlot placement="spotlight-top" compact />
+        </div>
 
         {/* Top 3 */}
         <section className="container mx-auto mt-14 px-4">

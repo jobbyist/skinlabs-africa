@@ -16,6 +16,7 @@ interface NewsroomFeedProps {
   heading?: string;
   description?: string;
   searchable?: boolean;
+  showExploreLink?: boolean;
 }
 
 const NewsroomFeed = ({
@@ -23,6 +24,7 @@ const NewsroomFeed = ({
   heading = "The Daily Skinny",
   description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
   searchable = false,
+  showExploreLink = false,
 }: NewsroomFeedProps) => {
   const { user } = useAuth();
   const { articles: fetchedArticles, loading } = useNewsArticles(limit);
@@ -106,6 +108,15 @@ const NewsroomFeed = ({
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
             <p className="text-muted-foreground">{description}</p>
           </div>
+          {showExploreLink && (
+            <Link
+              to="/newsroom"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0"
+            >
+              Explore all briefings
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          )}
         </div>
 
         {searchable && (
@@ -183,7 +194,7 @@ const NewsroomFeed = ({
                       to={`/newsroom/${article.slug}`}
                       className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                     >
-                      Read the SA breakdown
+                      Read the breakdown
                       <ArrowUpRight className="h-4 w-4" />
                     </Link>
                     <div className="flex items-center gap-1">

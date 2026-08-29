@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import AdSlot from "@/components/AdSlot";
 import { allSeasons, seasonHubs } from "@/data/seasonals";
 
 const CURRENT_SEASON = "spring" as const;
@@ -72,6 +73,10 @@ const Seasonals = () => {
             </Link>
           </Button>
         </section>
+
+        <div className="container mx-auto px-4 mt-10">
+          <AdSlot placement="seasonals-top" compact />
+        </div>
 
         <section className="container mx-auto mt-14 px-4">
           <div className="grid gap-6 md:grid-cols-3">

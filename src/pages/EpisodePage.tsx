@@ -5,8 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import GatedOverlay from "@/components/GatedOverlay";
+import ArticleComments from "@/components/ArticleComments";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
-import { podcastEpisodes } from "@/data/podcast";
+import { podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
+import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 
 const EpisodePage = () => {
@@ -15,12 +17,19 @@ const EpisodePage = () => {
   const { isMember } = useMembership();
   const episode = podcastEpisodes.find((item) => item.slug === slug);
 
-  if (!episode) {
+  if (!episode || episode.comingSoon) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
         <main className="container mx-auto px-4 pt-32 pb-24 text-center">
-          <h1 className="font-heading text-2xl font-bold text-foreground">Episode not found</h1>
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            {episode?.comingSoon ? "This episode is coming soon" : "Episode not found"}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {episode?.comingSoon
+              ? "We’re still recording. New episodes drop on the last Friday of every month."
+              : "That episode doesn’t exist or has been moved."}
+          </p>
           <Button asChild className="mt-6">
             <Link to="/podcast">Back to the podcast hub</Link>
           </Button>
@@ -86,7 +95,7 @@ const EpisodePage = () => {
               <ul className="space-y-2">
                 {episode.showNotes.map((note) => (
                   <li key={note} className="flex gap-2 text-sm text-foreground">
-                    <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                    <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-foreground" />
                     {note}
                   </li>
                 ))}
@@ -102,7 +111,7 @@ const EpisodePage = () => {
                     onClick={() => playEpisode(episode, stamp.seconds)}
                     className="flex w-full items-center gap-4 px-4 py-3 text-left text-sm hover:bg-accent"
                   >
-                    <span className="font-mono text-xs text-primary">{stamp.time}</span>
+                    <span className="font-mono text-xs text-foreground">{stamp.time}</span>
                     <span className="text-foreground">{stamp.label}</span>
                   </button>
                 ))}
@@ -142,6 +151,8 @@ const EpisodePage = () => {
                 </div>
               </GatedOverlay>
             </section>
+
+            <ArticleComments heading="Listener discussion" comments={podcastComments[episode.slug] ?? []} />
           </div>
         </div>
       </main>

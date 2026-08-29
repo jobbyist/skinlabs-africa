@@ -1,7 +1,11 @@
-import episode1 from "@/assets/ep1skinlabs.PNG";
-import episode2 from "@/assets/ep2skinlabs.PNG";
-import episode3 from "@/assets/ep3skinlabs.PNG";
-import episode4 from "@/assets/ep4skinlabs.jpg";
+/** Episode cover art lives in /public/podcast/ */
+const cover = {
+  ep1: "/podcast/ep1-weird-skincare.jpg",
+  ep2: "/podcast/ep2-skincare-fails.jpg",
+  ep3: "/podcast/ep3-glass-skin.jpg",
+  ep4: "/podcast/ep4-ingredient-drama.jpg",
+  soon: "/podcast/ep-coming-soon.jpg",
+} as const;
 
 export interface PodcastEpisode {
   id: number;
@@ -19,15 +23,23 @@ export interface PodcastEpisode {
   timestamps: { time: string; seconds: number; label: string }[];
   transcript: string[];
   productsMentioned: { name: string; brand: string }[];
+  /** Baseline engagement seeds (deterministic). Live counters build on these for auth users. */
+  seedPlays: number;
+  seedLikes: number;
+  /** When true, episode is listed as Coming Soon (no audio yet). Only shown on /podcast. */
+  comingSoon?: boolean;
 }
+
+/** Deterministic seed from id so numbers look organic but stable across deploys. */
+const seed = (id: number, base: number, spread: number) => base + ((id * 97 + 13) % spread);
 
 export const podcastEpisodes: PodcastEpisode[] = [
   {
     id: 1,
     slug: "ep-1-weird-skincare",
     title: "Episode 1: Weird Skincare",
-    image: episode1,
-    thumbnail: "/ep1skinlabs.PNG",
+    image: cover.ep1,
+    thumbnail: cover.ep1,
     audioFile: "/ep1skinlabs.mp3",
     description:
       "We unpack the strangest skincare rituals trending online, from snail mucin hype to edible serums, and explain which ingredients are actually backed by research.",
@@ -57,13 +69,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { name: "Basic Sensitive Fluid Moisturizer", brand: "Skoon Skin" },
       { name: "All the Shade Marula Tinted SPF 30", brand: "Lelive" },
     ],
+    seedPlays: seed(1, 420, 380),
+    seedLikes: seed(1, 48, 40),
   },
   {
     id: 2,
     slug: "ep-2-skincare-fails",
     title: "Episode 2: Skincare Fails",
-    image: episode2,
-    thumbnail: "/ep2skinlabs.PNG",
+    image: cover.ep2,
+    thumbnail: cover.ep2,
     audioFile: "/ep2skinlabs.mp3",
     description:
       "Dermatologists and estheticians share common skincare mistakes, how to recover from over-exfoliation, and the simple routines that rebuild resilient skin.",
@@ -92,13 +106,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { name: "Barrier Repair Cream", brand: "Dermastore Select" },
       { name: "SA Smoothing Cleanser", brand: "CeraVe SA" },
     ],
+    seedPlays: seed(2, 380, 320),
+    seedLikes: seed(2, 41, 35),
   },
   {
     id: 3,
     slug: "ep-3-glass-skin",
     title: "Episode 3: Glass Skin",
-    image: episode3,
-    thumbnail: "/ep3skinlabs.PNG",
+    image: cover.ep3,
+    thumbnail: cover.ep3,
     audioFile: "/ep3skinlabs.mp3",
     description:
       "A deep dive into the glow-from-within trend, including hydration layering, peptide support, and the daily habits that make luminosity last.",
@@ -122,13 +138,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Humectants need an occlusive on top, especially in dry Gauteng winters.",
     ],
     productsMentioned: [{ name: "10% Niacinamide + 1% Zinc Serum", brand: "Standard Beauty" }],
+    seedPlays: seed(3, 510, 290),
+    seedLikes: seed(3, 62, 28),
   },
   {
     id: 4,
     slug: "ep-4-ingredient-drama",
     title: "Episode 4: Ingredient Drama",
-    image: episode4,
-    thumbnail: "/ep4skinlabs.PNG",
+    image: cover.ep4,
+    thumbnail: cover.ep4,
     audioFile: "/ep4skinlabs.mp3",
     description:
       "We separate facts from fear around buzzy ingredients like retinoids, acids, and preservatives, and explain how to read labels with confidence.",
@@ -152,19 +170,159 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Pairing retinol with AHAs on the same night is where most irritation starts.",
     ],
     productsMentioned: [{ name: "SuperHero Hydrating Cleanser", brand: "Swiitch Beauty" }],
+    seedPlays: seed(4, 290, 250),
+    seedLikes: seed(4, 33, 30),
+  },
+  {
+    id: 5,
+    slug: "ep-5-spf-is-not-optional",
+    title: "Episode 5: SPF Is Not Optional",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "We need to talk about sunscreen — not just beach days. This episode breaks down SPF, UVA vs UVB, reapplication, darker skin tones and why South Africa’s sun deserves more respect. Because “I don’t burn” isn’t the same as “I’m protected.”",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Sun Protection", "Ingredient Science"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
+  },
+  {
+    id: 6,
+    slug: "ep-6-dark-spots-hyperpigmentation",
+    title: "Episode 6: Dark Spots, Hyperpigmentation & The Long Game",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "Dark marks don’t disappear because you bought a brighter serum. We unpack hyperpigmentation, post-inflammatory marks, melasma and the ingredients that can actually help — especially for deeper skin tones. No miracle creams. Just the facts.",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Hyperpigmentation", "Ingredient Science"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
+  },
+  {
+    id: 7,
+    slug: "ep-7-retinoid-rabbit-hole",
+    title: "Episode 7: Retinol, Retinal & The Retinoid Rabbit Hole",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "Retinol. Retinal. Tretinoin. Same family, very different conversation. We break down what retinoids actually do, who should consider them, and how to start without destroying your barrier. Your routine doesn’t need to become a chemistry experiment.",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Retinoids 101", "Barrier Repair"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
+  },
+  {
+    id: 8,
+    slug: "ep-8-skin-barrier",
+    title: "Episode 8: Your Skin Barrier Is Begging You To Stop",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "If your face is burning, peeling or reacting to everything, maybe it’s time to put the acids down. What damages the barrier, what helps repair it, and how to know when your routine has become too much.",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Barrier Repair", "Routine Building"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
+  },
+  {
+    id: 9,
+    slug: "ep-9-melanin-rich-skin",
+    title: "Episode 9: Black Skin, Brown Skin & The Skincare Advice We Keep Getting Wrong",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "A lot of skincare advice wasn’t written with every skin tone in mind. This episode explores melanin-rich skin — pigmentation, acne marks, sunscreen, irritation and the myths that keep getting recycled. Darker skin isn’t a problem to solve. It needs advice that actually makes sense.",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Melanin-Rich Skin", "Ingredient Science"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
+  },
+  {
+    id: 10,
+    slug: "ep-10-skincare-or-marketing",
+    title: "Episode 10: Are You Buying Skincare Or Buying The Marketing?",
+    image: cover.soon,
+    thumbnail: cover.soon,
+    audioFile: "",
+    description:
+      "Cute packaging. Big promises. A suspiciously expensive serum. We look at skincare marketing, ingredient lists, “clean” beauty, celebrity products and the difference between good formulation and clever advertising.",
+    audioScript: "",
+    duration: "Coming soon",
+    topics: ["Trends", "Ingredient Science"],
+    publishedAt: "",
+    showNotes: [],
+    timestamps: [],
+    transcript: [],
+    productsMentioned: [],
+    seedPlays: 0,
+    seedLikes: 0,
+    comingSoon: true,
   },
 ];
 
+export const publishedPodcastEpisodes = podcastEpisodes.filter((e) => !e.comingSoon);
+
 export const podcastTopics = Array.from(
-  new Set(podcastEpisodes.flatMap((episode) => episode.topics)),
+  new Set(publishedPodcastEpisodes.flatMap((episode) => episode.topics)),
 );
 
-/** Next Wednesday release date (episodes drop weekly on Wednesdays). */
 export const getNextEpisodeDate = () => {
   const now = new Date();
-  const next = new Date(now);
-  const daysUntilWednesday = (3 - now.getUTCDay() + 7) % 7 || 7;
-  next.setUTCDate(now.getUTCDate() + daysUntilWednesday);
-  next.setUTCHours(6, 0, 0, 0);
-  return next;
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0));
+  const day = lastDay.getUTCDay();
+  const diff = (day + 2) % 7;
+  lastDay.setUTCDate(lastDay.getUTCDate() - diff);
+  if (lastDay.getTime() <= now.getTime()) {
+    const nextLast = new Date(Date.UTC(year, month + 2, 0));
+    const d = nextLast.getUTCDay();
+    const df = (d + 2) % 7;
+    nextLast.setUTCDate(nextLast.getUTCDate() - df);
+    nextLast.setUTCHours(6, 0, 0, 0);
+    return nextLast;
+  }
+  lastDay.setUTCHours(6, 0, 0, 0);
+  return lastDay;
 };

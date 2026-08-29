@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, MapPin, Search, Star } from "lucide-react";
+import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +11,7 @@ import { useEngagementStore } from "@/stores/engagementStore";
 import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 
+const PAGE_SIZE = 6;
 
 const ScoreBar = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-1">
@@ -35,23 +35,23 @@ interface ReviewsGridProps {
   limit?: number;
   heading?: string;
   description?: string;
+  /** When true (default on full /reviews page), enable SEO pagination at 6 per page */
+  paginate?: boolean;
 }
 
 const ReviewsGrid = ({
   limit,
-  heading = "Independent SA Product Reviews",
+  heading = "Independent SA product scores",
   description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
+  paginate = false,
 }: ReviewsGridProps) => {
-  
-  const [searchParams, setSearchParams] = useSearchParams();
   const { likedIds, toggleLike } = useEngagementStore();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-  const [priceRange, setPriceRange] = useState("all");
-  const [skinType, setSkinType] = useState("all");
-  const currentPage = parseInt(searchParams.get("page") || "1", 10);
-  const ITEMS_PER_PAGE = 10;
+  const params = useParams<{ page?: string }>();
+  const navigate = useNavigate();
+
+  const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   const filtered = useMemo(() => {
     let base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
@@ -59,53 +59,28 @@ const ReviewsGrid = ({
       base = base
         .map((review) => ({
           review,
-          score: matchScore(query, `${review.brand} ${review.product_name}`, `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`),
+          score: matchScore(
+            query,
+            `${review.brand} ${review.product_name}`,
+            `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`,
+          ),
         }))
         .filter((entry) => entry.score > 0)
         .sort((a, b) => b.score - a.score)
         .map((entry) => entry.review);
     }
-    
-    // Apply price filter
-    if (priceRange !== "all") {
-      if (priceRange === "under-200") {
-        base = base.filter((r) => r.local_price_zar < 200);
-      } else if (priceRange === "200-500") {
-        base = base.filter((r) => r.local_price_zar >= 200 && r.local_price_zar <= 500);
-      } else if (priceRange === "over-500") {
-        base = base.filter((r) => r.local_price_zar > 500);
-      }
-    }
-    
-    // Apply skin type filter
-    if (skinType !== "all") {
-      base = base.filter((r) => r.skin_type_match.includes(skinType));
-    }
-    
-    // Apply sorting
-    if (sortBy === "price-low") {
-      base = base.sort((a, b) => a.local_price_zar - b.local_price_zar);
-    } else if (sortBy === "price-high") {
-      base = base.sort((a, b) => b.local_price_zar - a.local_price_zar);
-    } else if (sortBy === "rating") {
-      base = base.sort((a, b) => overallScore(b) - overallScore(a));
-    } else if (sortBy === "newest") {
-      // Show new items first
-      base = base.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-    }
-    
-    return limit ? base.slice(0, limit) : base;
-  }, [category, limit, query, priceRange, skinType, sortBy]);
-  
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginatedReviews = useMemo(() => {
-    if (limit) return filtered;
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filtered, currentPage, limit]);
-  
-  const handlePageChange = (page: number) => {
-    setSearchParams({ page: page.toString() });
+    if (limit) return base.slice(0, limit);
+    return base;
+  }, [category, limit, query]);
+
+  const totalPages = paginate && !limit ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)) : 1;
+  const page = Math.min(currentPage, totalPages);
+  const pageItems =
+    paginate && !limit ? filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) : filtered;
+
+  const goToPage = (p: number) => {
+    if (p <= 1) navigate("/reviews");
+    else navigate(`/reviews/page/${p}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -113,8 +88,12 @@ const ReviewsGrid = ({
     <section id="reviews" className="bg-secondary/30 py-20">
       <div className="container mx-auto px-4">
         <div className="mb-10 max-w-2xl">
-          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Review engine</p>
-          <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
+          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Reviews</p>
+          {paginate ? (
+            <h1 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h1>
+          ) : (
+            <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
+          )}
           <p className="text-muted-foreground">{description}</p>
         </div>
 
@@ -195,7 +174,10 @@ const ReviewsGrid = ({
             {["All", ...reviewCategories].map((item) => (
               <button
                 key={item}
-                onClick={() => setCategory(item)}
+                onClick={() => {
+                  setCategory(item);
+                  if (paginate) goToPage(1);
+                }}
                 className={cn(
                   "rounded-full border px-4 py-1.5 text-sm transition-colors",
                   category === item
@@ -210,7 +192,7 @@ const ReviewsGrid = ({
         )}
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {paginatedReviews.map((review, index) => (
+          {pageItems.map((review, index) => (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 20 }}
@@ -270,33 +252,43 @@ const ReviewsGrid = ({
           ))}
         </div>
 
-        {paginatedReviews.length === 0 && (
+        {pageItems.length === 0 && (
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
         )}
-        
-        {!limit && totalPages > 1 && (
-          <div className="mt-10">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink onClick={() => handlePageChange(page)} isActive={page === currentPage} className="cursor-pointer">
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext onClick={() => currentPage < totalPages && handlePageChange(currentPage + 1)} className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
+
+        {paginate && !limit && totalPages > 1 && (
+          <nav className="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Reviews pagination">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => goToPage(page - 1)}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => goToPage(p)}
+                aria-current={p === page ? "page" : undefined}
+                className="min-w-9"
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => goToPage(page + 1)}
+              className="gap-1"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          </nav>
         )}
       </div>
     </section>

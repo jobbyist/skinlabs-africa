@@ -8,6 +8,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
+import AdSlot from "@/components/AdSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
@@ -250,7 +251,6 @@ const ProductReview = () => {
             <ScoreBar label="SA climate fit" value={review.score_climate} />
           </div>
 
-          {/* Community signals */}
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((value) => (
@@ -266,7 +266,6 @@ const ProductReview = () => {
             </button>
           </div>
 
-          {/* Retailer comparison */}
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
             <div className="overflow-hidden rounded-2xl border border-border">
@@ -292,7 +291,10 @@ const ProductReview = () => {
             </div>
           </div>
 
-          {/* Cross-links: Spotlight and Seasonals */}
+          <div className="my-8">
+            <AdSlot placement="product-review-mid" />
+          </div>
+
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {spotlightEntry && (
@@ -314,7 +316,6 @@ const ProductReview = () => {
             </div>
           )}
 
-          {/* Full breakdown — member gated */}
           <div className="mt-8">
             <GatedOverlay
               locked={!isMember}
@@ -352,7 +353,6 @@ const ProductReview = () => {
             </div>
           )}
 
-          {/* Comments */}
           <div className="mt-10 space-y-3">
             <h2 className="font-heading text-lg font-bold text-foreground">Member discussion</h2>
             <Textarea
@@ -385,7 +385,6 @@ const ProductReview = () => {
             )}
           </div>
 
-          {/* Related products */}
           {relatedReviews.length > 0 && (
             <div className="mt-12">
               <h2 className="mb-4 font-heading text-lg font-bold text-foreground">More {review.category.toLowerCase()} reviews</h2>

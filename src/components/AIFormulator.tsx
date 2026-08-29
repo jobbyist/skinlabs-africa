@@ -30,9 +30,7 @@ import AuthDialog from "@/components/AuthDialog";
 import SubscriptionPaywallModal from "@/components/SubscriptionPaywallModal";
 import { QUESTIONS } from "@/data/quiz";
 
-
 const TOTAL_QUESTIONS = QUESTIONS.length;
-// Steps: 0=intro, 1-20=quiz, 21=photo, 22=email capture, 23=loading/results
 const STEP_PHOTO = TOTAL_QUESTIONS + 1;
 const STEP_EMAIL = TOTAL_QUESTIONS + 2;
 const STEP_RESULTS = TOTAL_QUESTIONS + 3;
@@ -41,7 +39,6 @@ const AIFormulator = () => {
   const { user, loading: authLoading } = useAuth();
   const { isMember } = useMembership();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
@@ -113,7 +110,6 @@ const AIFormulator = () => {
       const { data, error } = await supabase.functions.invoke("skincare-ai", {
         body: {
           quizAnswers,
-          // Send the actual base64 data URL so Gemini can analyse the selfie
           skinImage: skinImage && photoConsent ? skinImage : null,
           contactName,
           contactEmail,
@@ -133,7 +129,6 @@ const AIFormulator = () => {
       setRecommendation(data.recommendation);
       setResultTier(data.tier || (isMember ? "premium" : "free"));
 
-      // Auto-download the personalized PDF report
       try {
         downloadSkincarePdf({
           clientName: contactName || "Client",
@@ -242,7 +237,6 @@ const AIFormulator = () => {
                 Answer a few questions and get an AM/PM routine, a progress tracker and product
                 recommendations reviewed by dermatologists — built around your skin, not a generic list.
               </p>
-              
               <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
                 {["Personalized AM/PM Routines", "Weekly Actives Schedule", "SA Product Recommendations"].map((feature, i) => (
                   <div key={i} className="bg-card border border-border rounded-xl p-4">
@@ -251,18 +245,17 @@ const AIFormulator = () => {
                   </div>
                 ))}
               </div>
-              
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button size="lg" asChild className="gap-2">
                   <a href="/pricing">
                     <Sparkles className="h-4 w-4" />
-                    Upgrade to Access
+                    Sign up to get started
                   </a>
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => setShowAuthDialog(true)} className="gap-2">
-                <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-4 w-4" />
                   Sign In
-              </Button>
+                </Button>
               </div>
             </div>
           </div>
@@ -291,22 +284,17 @@ const AIFormulator = () => {
       }
       if (line.trim()) {
         return (
-          <p key={index} className="text-muted-foreground mb-2">
-            {line}
-          </p>
+          <p key={index} className="text-muted-foreground mb-2">{line}</p>
         );
       }
       return null;
     });
   };
 
-  /** Free preview = skin profile + basic routine. Everything after is premium. */
   const splitRecommendation = (text: string) => {
     const lines = text.split("\n");
     const cutIndex = lines.findIndex((line) =>
-      /actives?\s+(schedule|calendar)|weekly\s+actives|advanced|product[- ]type recommendations|ingredient (deep dive|strategy)/i.test(
-        line,
-      ),
+      /actives?\s+(schedule|calendar)|weekly\s+actives|advanced|product[- ]type recommendations|ingredient (deep dive|strategy)/i.test(line),
     );
     const splitAt = cutIndex > 0 ? cutIndex : Math.ceil(lines.length * 0.4);
     return {
@@ -315,14 +303,11 @@ const AIFormulator = () => {
     };
   };
 
-
-
   return (
     <>
       <section id="ai-formulator" className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
-            {/* Header */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                 <Sparkles className="h-4 w-4" />
@@ -339,30 +324,23 @@ const AIFormulator = () => {
                   <Shield className="h-3.5 w-3.5 text-primary" />
                   <span className="text-muted-foreground">
                     Free tier: 1 basic analysis/month •
-                    <a href="/pricing" className="text-primary hover:underline ml-1">
-                      Upgrade for a weekly custom routine
-                    </a>
+                    <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a weekly custom routine</a>
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Form card */}
             <div className="bg-card rounded-2xl border border-border p-6 md:p-10 shadow-lg">
-              {/* Progress bar for quiz steps */}
               {step >= 1 && step <= TOTAL_QUESTIONS && (
                 <div className="mb-8">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">
-                      Question {step} of {TOTAL_QUESTIONS}
-                    </span>
+                    <span className="text-muted-foreground">Question {step} of {TOTAL_QUESTIONS}</span>
                     <span className="text-primary font-medium">{Math.round(progress)}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>
               )}
 
-              {/* ─── Step 0: Landing / Intro ─── */}
               {step === 0 && (
                 <div className="space-y-8 py-4">
                   <div className="text-center space-y-4">
@@ -376,7 +354,6 @@ const AIFormulator = () => {
                       Answer our {TOTAL_QUESTIONS}-question skin assessment and you'll get:
                     </p>
                   </div>
-
                   <div className="grid gap-3">
                     {[
                       "Complete skin profile (type, sensitivity, barrier status)",
@@ -390,8 +367,6 @@ const AIFormulator = () => {
                       </div>
                     ))}
                   </div>
-
-                  {/* Disclaimer */}
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                       <Shield className="h-4 w-4" />
@@ -403,56 +378,34 @@ const AIFormulator = () => {
                       AI-generated and reviewed by skincare professionals.
                     </p>
                   </div>
-
-                  {/* POPIA Consent */}
                   <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
-                    <Checkbox
-                      id="popia-consent"
-                      checked={popiaConsent}
-                      onCheckedChange={(checked) => setPopiaConsent(checked === true)}
-                      className="mt-0.5"
-                    />
+                    <Checkbox id="popia-consent" checked={popiaConsent} onCheckedChange={(checked) => setPopiaConsent(checked === true)} className="mt-0.5" />
                     <Label htmlFor="popia-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                       I consent to SKINLABS processing my personal information in accordance with POPIA
                       (Protection of Personal Information Act). My data will be used solely to generate
                       personalized skincare recommendations and will not be shared with third parties.
                     </Label>
                   </div>
-
-                  <Button
-                    size="lg"
-                    onClick={() => setStep(1)}
-                    disabled={!popiaConsent}
-                    className="w-full gap-2"
-                  >
+                  <Button size="lg" onClick={() => setStep(1)} disabled={!popiaConsent} className="w-full gap-2">
                     Start My Skin Analysis
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
 
-              {/* ─── Steps 1–20: Quiz Questions ─── */}
               {currentQuestion && !isLoading && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">
-                      {currentQuestion.title}
-                    </h3>
+                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h3>
                   </div>
                   <RadioGroup
                     value={currentAnswer !== undefined ? String(currentAnswer) : ""}
-                    onValueChange={(val) =>
-                      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: Number(val) }))
-                    }
+                    onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: Number(val) }))}
                     className="grid gap-3"
                   >
                     {currentQuestion.options.map((option, idx) => (
                       <div key={idx}>
-                        <RadioGroupItem
-                          value={String(option.value)}
-                          id={`${currentQuestion.id}-${option.value}`}
-                          className="peer sr-only"
-                        />
+                        <RadioGroupItem value={String(option.value)} id={`${currentQuestion.id}-${option.value}`} className="peer sr-only" />
                         <Label
                           htmlFor={`${currentQuestion.id}-${option.value}`}
                           className="flex items-center gap-4 p-4 rounded-xl border-2 border-border cursor-pointer hover:border-primary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent transition-all"
@@ -468,38 +421,22 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {/* ─── Step 21: Photo Upload ─── */}
               {step === STEP_PHOTO && !isLoading && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
                     <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
                       Upload a skin photo (optional but recommended)
                     </h3>
-                    <p className="text-muted-foreground text-sm">
-                      A clear, well-lit front-facing photo helps our AI provide more accurate analysis
-                    </p>
+                    <p className="text-muted-foreground text-sm">A clear, well-lit front-facing photo helps our AI provide more accurate analysis</p>
                   </div>
-
                   {!skinImage ? (
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => cameraInputRef.current?.click()}
-                        className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all"
-                      >
-                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Camera className="h-7 w-7 text-primary" />
-                        </div>
+                      <button type="button" onClick={() => cameraInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Camera className="h-7 w-7 text-primary" /></div>
                         <span className="font-medium text-card-foreground">Take Photo</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all"
-                      >
-                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Upload className="h-7 w-7 text-primary" />
-                        </div>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
                         <span className="font-medium text-card-foreground">Upload Image</span>
                       </button>
                     </div>
@@ -508,304 +445,106 @@ const AIFormulator = () => {
                       <img src={skinImage} alt="Skin preview" className="w-full h-52 object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                       <div className="absolute bottom-3 left-3 flex items-center gap-2 text-primary-foreground">
-                        <ImageIcon className="h-4 w-4" />
-                        <span className="text-sm font-medium">Photo uploaded</span>
+                        <ImageIcon className="h-4 w-4" /><span className="text-sm font-medium">Photo uploaded</span>
                       </div>
-                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="absolute top-3 right-3">
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="absolute top-3 right-3"><X className="h-4 w-4" /></Button>
                     </div>
                   )}
-
-                  {/* Photo consent */}
                   {skinImage && (
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
-                      <Checkbox
-                        id="photo-consent"
-                        checked={photoConsent}
-                        onCheckedChange={(checked) => setPhotoConsent(checked === true)}
-                        className="mt-0.5"
-                      />
+                      <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
                       <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
                         I consent to my photo being analysed by AI for skincare assessment purposes only.
                         Photos are processed securely and deleted within 30 days. You can request deletion at any time.
                       </Label>
                     </div>
                   )}
-
                   <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleImageUpload} className="hidden" />
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                 </div>
               )}
 
-              {/* ─── Step 22: Email / Name Capture ─── */}
               {step === STEP_EMAIL && !isLoading && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Mail className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      Where should we send your results?
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      We'll email your personalized skincare report directly to you
-                    </p>
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4"><Mail className="h-8 w-8 text-primary" /></div>
+                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">Where should we send your results?</h3>
+                    <p className="text-muted-foreground text-sm">We'll email your personalized skincare report directly to you</p>
                   </div>
-
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="contact-name">Full Name *</Label>
-                      <Input
-                        id="contact-name"
-                        placeholder="Your name"
-                        value={contactName}
-                        onChange={(e) => setContactName(e.target.value)}
-                        required
-                      />
+                      <Input id="contact-name" placeholder="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="contact-email">Email Address *</Label>
-                      <Input
-                        id="contact-email"
-                        type="email"
-                        placeholder="name@example.com"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        required
-                      />
+                      <Input id="contact-email" type="email" placeholder="name@example.com" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="contact-whatsapp">
-                        WhatsApp Number <span className="text-muted-foreground">(optional)</span>
-                      </Label>
-                      <Input
-                        id="contact-whatsapp"
-                        type="tel"
-                        placeholder="+27 XX XXX XXXX"
-                        value={contactWhatsApp}
-                        onChange={(e) => setContactWhatsApp(e.target.value)}
-                      />
+                      <Label htmlFor="contact-whatsapp">WhatsApp Number <span className="text-muted-foreground">(optional)</span></Label>
+                      <Input id="contact-whatsapp" type="tel" placeholder="+27 XX XXX XXXX" value={contactWhatsApp} onChange={(e) => setContactWhatsApp(e.target.value)} />
                     </div>
                   </div>
-
-                  <p className="text-xs text-muted-foreground">
-                    We'll use your contact details to deliver your skincare report. We never share your information with third parties.
-                  </p>
+                  <p className="text-xs text-muted-foreground">We'll use your contact details to deliver your skincare report. We never share your information with third parties.</p>
                 </div>
               )}
 
-              {/* ─── Confirmation Screen (after payment) ─── */}
               {showConfirmation && (
                 <div className="space-y-6 py-4">
                   <div className="text-center space-y-4">
-                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto">
-                      <CheckCircle2 className="h-10 w-10 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-heading font-bold text-card-foreground">
-                      Thanks — your report's on its way
-                    </h3>
+                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="h-10 w-10 text-primary" /></div>
+                    <h3 className="text-2xl font-heading font-bold text-card-foreground">Thanks — your report's on its way</h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      Your personalised, dermatologist-reviewed skincare report — including product
-                      recommendations — lands in your email
+                      Your personalised, dermatologist-reviewed skincare report lands in your email
                       {contactWhatsApp ? " and/or WhatsApp" : ""} within <strong>1–2 working days</strong>.
                     </p>
                   </div>
-
-                  <div className="bg-secondary/20 rounded-xl p-5 space-y-3">
-                    <h4 className="font-semibold text-card-foreground">What's included in your report:</h4>
-                    {[
-                      "Complete skin profile (type, dehydration, sensitivity, barrier status)",
-                      "AM & PM routines with exact step order",
-                      "Week-by-week actives introduction schedule",
-                      "Product-type recommendations adapted to your climate & constraints",
-                      "Link to request a custom skincare kit curated by SkinLabs",
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm text-muted-foreground">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Consultation booking */}
-                  <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-accent/30">
-                    <Checkbox
-                      id="book-consultation"
-                      checked={bookConsultation}
-                      onCheckedChange={(checked) => setBookConsultation(checked === true)}
-                      className="mt-0.5"
-                    />
-                    <Label htmlFor="book-consultation" className="text-sm text-card-foreground cursor-pointer leading-relaxed">
-                      <Calendar className="h-4 w-4 inline mr-1" />
-                      Book a <strong>free 15-minute consultation</strong> with our skincare experts
-                      along with your skincare report (optional)
-                    </Label>
-                  </div>
-
-                  {bookConsultation && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={() => {
-                        window.open(
-                          "https://calendar.google.com/calendar/appointments",
-                          "_blank"
-                        );
-                      }}
-                    >
-                      <Calendar className="h-4 w-4" />
-                      Schedule on Google Calendar
-                    </Button>
-                  )}
-
                   <div className="flex flex-col sm:flex-row gap-3">
-                    {recommendation && isMember && (
-                      <Button
-                        size="lg"
-                        variant="secondary"
-                        className="flex-1 gap-2"
-                        onClick={() =>
-                          downloadSkincarePdf({
-                            clientName: contactName || "Client",
-                            email: contactEmail,
-                            recommendation,
-                            skinType: derivedSkinType,
-                          })
-                        }
-                      >
-                        <Download className="h-4 w-4" />
-                        Download PDF Again
-                      </Button>
-                    )}
-                    {recommendation && !isMember && (
-                      <Button size="lg" variant="secondary" className="flex-1 gap-2" asChild>
-                        <a href="/pricing">
-                          <Download className="h-4 w-4" />
-                          Unlock PDF export
-                        </a>
-                      </Button>
-                    )}
                     <Button size="lg" className="flex-1 gap-2" asChild>
-                      <a href="/reviews">
-                        Explore SA Product Reviews
-                        <ChevronRight className="h-4 w-4" />
-                      </a>
+                      <a href="/reviews">Explore SA Product Reviews <ChevronRight className="h-4 w-4" /></a>
                     </Button>
-
-                    <Button variant="outline" size="lg" onClick={resetFormulator} className="flex-1">
-                      Start Over
-                    </Button>
+                    <Button variant="outline" size="lg" onClick={resetFormulator} className="flex-1">Start Over</Button>
                   </div>
                 </div>
               )}
 
-              {/* ─── Results step (for subscribers viewing immediately) ─── */}
               {step === STEP_RESULTS && recommendation && hasSubscription && !showConfirmation && (
                 <div className="space-y-6">
-                    {resultTier === "free" && (
-                      <div className="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-sm">
-                        <Shield className="h-4 w-4 text-primary" />
-                        <span className="text-muted-foreground">
-                          Basic Analysis • 
-                          <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for full results</a>
-                        </span>
-                      </div>
-                    )}
                   <div className="text-center">
-                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Sparkles className="h-10 w-10 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      Your Personalized Skincare Routine
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Customized for your {derivedSkinType} skin
-                    </p>
+                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><Sparkles className="h-10 w-10 text-primary" /></div>
+                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Your Personalized Skincare Routine</h3>
+                    <p className="text-muted-foreground">Customized for your {derivedSkinType} skin</p>
                   </div>
                   <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
                     {formatRecommendation(splitRecommendation(recommendation).preview)}
                   </div>
                   {splitRecommendation(recommendation).advanced && (
-                    <GatedOverlay
-                      locked={!isMember}
-                      title="Advanced recommendations are premium"
-                      message="Unlock your actives schedule, ingredient strategy and product-type recommendations with a Glow Insider or VIP membership."
-                      ctaLabel="Unlock with membership"
-                      ctaHref="/pricing"
-                    >
+                    <GatedOverlay locked={!isMember} title="Advanced recommendations are premium" message="Unlock your actives schedule with Glow Insider or VIP." ctaLabel="Unlock with membership" ctaHref="/pricing">
                       <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
                         {formatRecommendation(splitRecommendation(recommendation).advanced)}
                       </div>
                     </GatedOverlay>
                   )}
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                    {isMember ? (
-                      <Button
-                        size="lg"
-                        variant="secondary"
-                        className="gap-2"
-                        onClick={() =>
-                          downloadSkincarePdf({
-                            clientName: contactName || "Client",
-                            email: contactEmail,
-                            recommendation: recommendation!,
-                            skinType: derivedSkinType,
-                          })
-                        }
-                      >
-                        <Download className="h-4 w-4" />
-                        Download PDF
-                      </Button>
-                    ) : (
-                      <Button size="lg" variant="secondary" className="gap-2" asChild>
-                        <a href="/pricing">
-                          <Download className="h-4 w-4" />
-                          Unlock PDF export
-                        </a>
-                      </Button>
-                    )}
-                    <Button size="lg" className="gap-2" asChild>
-                      <a href="/reviews">
-                        See Recommended Products
-                        <ChevronRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="lg" onClick={resetFormulator}>
-                      Start Over
-                    </Button>
+                    <Button size="lg" className="gap-2" asChild><a href="/reviews">See Recommended Products <ChevronRight className="h-4 w-4" /></a></Button>
+                    <Button variant="outline" size="lg" onClick={resetFormulator}>Start Over</Button>
                   </div>
-
                 </div>
               )}
 
-              {/* Loading state */}
               {isLoading && (
                 <div className="text-center py-12">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Loader2 className="h-10 w-10 text-primary animate-spin" />
                   </div>
-                  <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                    Reading your skin profile...
-                  </h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Building a routine around your actual answers — this takes a few seconds
-                  </p>
-                  <div className="flex justify-center gap-2 mt-6">
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
+                  <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Reading your skin profile...</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
                 </div>
               )}
 
-              {/* Navigation */}
               {step >= 1 && step <= STEP_EMAIL && !isLoading && !showConfirmation && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
-                  <Button variant="ghost" onClick={handleBack} className="gap-2">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back
-                  </Button>
+                  <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
                   <Button
                     onClick={handleNext}
                     disabled={
@@ -815,17 +554,7 @@ const AIFormulator = () => {
                     }
                     className="gap-2 px-6"
                   >
-                    {step === STEP_EMAIL ? (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Get My AI Routine
-                      </>
-                    ) : (
-                      <>
-                        {step === STEP_PHOTO && !skinImage ? "Skip" : "Continue"}
-                        <ChevronRight className="h-4 w-4" />
-                      </>
-                    )}
+                    {step === STEP_EMAIL ? (<><Sparkles className="h-4 w-4" />Get My AI Routine</>) : (<>{step === STEP_PHOTO && !skinImage ? "Skip" : "Continue"}<ChevronRight className="h-4 w-4" /></>)}
                   </Button>
                 </div>
               )}
@@ -834,7 +563,6 @@ const AIFormulator = () => {
         </div>
       </section>
 
-      {/* Paywall Modal */}
       {recommendation && (
         <SubscriptionPaywallModal
           open={showPaywall}

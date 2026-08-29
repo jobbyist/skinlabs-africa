@@ -2,13 +2,14 @@ import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "react-router-dom";
 import {
-  Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen, PlayCircle,
-  Microscope, Beaker, Brain, Leaf, Recycle, Package, Check, Crown,
+  Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen,
+  Microscope, Beaker, Brain, Leaf, Recycle, Package, Check, Crown, Sun, ShoppingBag,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { membershipPlans } from "@/data/plans";
+import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { cn } from "@/lib/utils";
 
 const About = () => {
@@ -62,6 +63,20 @@ const About = () => {
       link: "/reviews"
     },
     {
+      icon: <Award className="h-6 w-6" />,
+      title: "Spotlight by SkinLabs",
+      description: "A monthly, review-led ranking of South African skincare brands, computed from our own published scores.",
+      highlight: "New",
+      link: "/spotlight"
+    },
+    {
+      icon: <Sun className="h-6 w-6" />,
+      title: "Seasonal Guides",
+      description: "Skincare advice built around the season you're actually living in, with regional notes for every SA climate zone.",
+      highlight: "New",
+      link: "/seasonals"
+    },
+    {
       icon: <Sparkles className="h-6 w-6" />,
       title: "AI Formulator",
       description: "Personalized skincare routines, progress trackers, and dermatologist-approved recommendations.",
@@ -77,10 +92,17 @@ const About = () => {
     },
     {
       icon: <BookOpen className="h-6 w-6" />,
-      title: "Virtual Consultations",
-      description: "One-on-one skincare consultations with our expert team.",
+      title: "Consult",
+      description: "One-on-one skincare consultations with independent HPCSA-registered practitioners.",
       highlight: "Personalized guidance",
       link: "/consultations"
+    },
+    {
+      icon: <ShoppingBag className="h-6 w-6" />,
+      title: "Marketplace by Openhaus",
+      description: "SkinLabs' upcoming multivendor marketplace for South African skincare brands.",
+      highlight: "Coming soon",
+      link: "/shop"
     },
     {
       icon: <Users className="h-6 w-6" />,
@@ -121,6 +143,16 @@ const About = () => {
       year: "2025",
       title: "Enhanced AI Features",
       description: "Upgraded AI Formulator to premium service with personalized routines, trackers and product recommendations."
+    },
+    {
+      year: "2026",
+      title: "Spotlight & Seasonal Guides",
+      description: "Launched Spotlight by SkinLabs (a review-led brand ranking) and Seasonal Guides for SA's four climate seasons."
+    },
+    {
+      year: "2026",
+      title: "Marketplace, Coming Soon",
+      description: "Announced Marketplace by Openhaus — a multivendor marketplace for South African skincare brands, currently taking waitlist sign-ups."
     }
   ];
 
@@ -293,19 +325,6 @@ const About = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
-                  <div className="text-center mb-6">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <PlayCircle className="h-8 w-8 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-bold text-foreground mb-3">Watch Our Story</h2>
-                    <p className="text-muted-foreground">Explainer video coming soon</p>
-                  </div>
-                  <div className="aspect-video bg-secondary/30 rounded-2xl flex items-center justify-center">
-                    <p className="text-muted-foreground">Video player placeholder</p>
                   </div>
                 </div>
 
@@ -486,7 +505,7 @@ const About = () => {
                           {plan.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                               <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              {feature}
+                              {linkifyMoneyBackGuarantee(feature)}
                             </li>
                           ))}
                         </ul>

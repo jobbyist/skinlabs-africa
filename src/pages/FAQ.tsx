@@ -2,6 +2,8 @@ import { Helmet } from "react-helmet-async";
 import { HelpCircle, MessageCircle, Search } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
+import AdSlot from "@/components/AdSlot";
 
 const FAQ = () => {
   const categories = [
@@ -334,6 +336,10 @@ const FAQ = () => {
                   </div>
                 </div>
 
+                <div className="mb-12">
+                  <AdSlot placement="faq-mid" compact />
+                </div>
+
                 <div className="space-y-12">
                   {categories.map((category, categoryIndex) => (
                     <div key={categoryIndex}>
@@ -347,7 +353,7 @@ const FAQ = () => {
                               {item.q}
                             </h3>
                             <p className="text-muted-foreground">
-                              {item.a}
+                              {linkifyMoneyBackGuarantee(item.a)}
                             </p>
                           </div>
                         ))}

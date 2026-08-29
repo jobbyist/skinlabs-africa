@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Newspaper, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Newspaper, ShieldCheck, Lock, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
-import AuthDialog from "@/components/AuthDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
@@ -38,9 +36,7 @@ const Preloader = () => {
     if (typeof window === "undefined") return true;
     return sessionStorage.getItem(GATE_KEY) === "1";
   });
-  const [authOpen, setAuthOpen] = useState(false);
 
-  // Brand loading animation — shown once per browser session.
   useEffect(() => {
     if (!showLoading) return;
     const started = Date.now();
@@ -58,14 +54,11 @@ const Preloader = () => {
     };
   }, [showLoading]);
 
-  // Once loading has finished and auth has resolved, decide whether to show the
-  // dismissible welcome gate — signed-out visitors only, once per session.
   useEffect(() => {
     if (!loadingDone || authLoading || gateDismissed) return;
     if (!user) setGateVisible(true);
   }, [loadingDone, authLoading, gateDismissed, user]);
 
-  // If the visitor signs in while the gate is showing, drop it immediately.
   useEffect(() => {
     if (user && gateVisible) {
       sessionStorage.setItem(GATE_KEY, "1");
@@ -149,9 +142,11 @@ const Preloader = () => {
                 and skin — get unlimited access with a SkinLabs membership.
               </p>
 
-              <Button size="lg" className="mt-6 gap-2" onClick={() => setAuthOpen(true)}>
-                <Sparkles className="h-4 w-4" />
-                Subscribe For Free
+              <Button size="lg" className="mt-6 gap-2" asChild>
+                <Link to="/pricing" onClick={dismissGate}>
+                  <Lock className="h-4 w-4" />
+                  Unlock Premium Skincare Intelligence
+                </Link>
               </Button>
 
               <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
@@ -193,8 +188,6 @@ const Preloader = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} defaultTab="signup" onAuthenticated={dismissGate} />
     </>
   );
 };
