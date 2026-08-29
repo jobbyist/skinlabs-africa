@@ -10,6 +10,29 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: "/",
+  build: {
+    outDir: "dist",
+    sourcemap: mode === "production" ? false : true,
+    rollupOptions: {
+      output: {
+        // Generate unique filenames to bust cache on every build
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`,
+        manualChunks: undefined,
+      },
+    },
+    // Ensure clean builds
+    emptyOutDir: true,
+    // Disable CSS code splitting for better cache control
+    cssCodeSplit: false,
+    // Minify in production
+    minify: mode === "production" ? "esbuild" : false,
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
+  },
+  // Disable caching in dev server
+  cacheDir: mode === "development" ? ".vite" : undefined,
   server: {
     host: "::",
     port: 8080,
