@@ -6,9 +6,9 @@ import Footer from "@/components/Footer";
 import { comparisonArticles } from "@/data/comparisons";
 import { featuredEditorials } from "@/data/editorials";
 import AffiliateBanner from "@/components/AffiliateBanner";
+import AdSlot from "@/components/AdSlot";
 
 const Compare = () => {
-  // Merge published comparisons with any coming-soon editorials not already in comparisons
   const comingSoonExtras = featuredEditorials.filter(
     (e) => e.comingSoon && !comparisonArticles.some((c) => c.slug === e.slug),
   );
@@ -37,7 +37,7 @@ const Compare = () => {
         <main className="pt-24 pb-20">
           <section className="container mx-auto px-4">
             <div className="mb-8">
-              <AffiliateBanner placement="compare-top" compact />
+              <AdSlot placement="compare-top" compact />
             </div>
             <div className="mb-10 max-w-2xl">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Shelf Showdown</p>
@@ -110,8 +110,8 @@ const Compare = () => {
           </section>
         </main>
         <div className="container mx-auto px-4 pb-8">
-            <AffiliateBanner placement="compare-bottom" />
-          </div>
+          <AffiliateBanner placement="compare-bottom" />
+        </div>
         <Footer />
       </div>
     </>
