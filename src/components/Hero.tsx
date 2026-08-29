@@ -1,7 +1,25 @@
 import { useState, useRef } from "react";
-import { ArrowRight, Atom, Play, Pause } from "lucide-react";
+import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroVideo from "@/assets/hero-video.mp4";
+
+const stats = [
+  {
+    icon: Users,
+    value: "3.7K+",
+    label: "Community Members",
+  },
+  {
+    icon: Newspaper,
+    value: "Daily",
+    label: "SA Skin Briefings",
+  },
+  {
+    icon: Star,
+    value: "4.75/5",
+    label: "Member Rating",
+  },
+];
 
 const Hero = () => {
   const [isPlaying, setIsPlaying] = useState(true);
@@ -71,19 +89,23 @@ const Hero = () => {
               </Button>
             </div>
 
-            <div className="flex gap-8 justify-center lg:justify-start pt-4">
-              <div>
-                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">3.7K+</p>
-                <p className="text-sm font-semibold text-foreground/80">Community Members</p>
-              </div>
-              <div>
-                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">Daily</p>
-                <p className="text-sm font-semibold text-foreground/80">SA Skin Briefings</p>
-              </div>
-              <div>
-                <p className="text-3xl font-extrabold text-foreground drop-shadow-sm">4.75/5</p>
-                <p className="text-sm font-semibold text-foreground/80">Member Rating</p>
-              </div>
+            <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">
+              {stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-2xl border border-border/60 bg-background/55 px-2 py-3 text-center shadow-sm backdrop-blur-md sm:px-4 sm:py-4"
+                >
+                  <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-9 sm:w-9">
+                    <stat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
+                  </span>
+                  <p className="font-heading text-xl font-extrabold tracking-tight text-foreground drop-shadow-sm sm:text-2xl md:text-3xl">
+                    {stat.value}
+                  </p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground/75 sm:text-xs">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

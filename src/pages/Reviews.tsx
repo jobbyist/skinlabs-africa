@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewsGrid from "@/components/ReviewsGrid";
+import AffiliateBanner from "@/components/AffiliateBanner";
 
 const Reviews = () => {
   const { page } = useParams<{ page?: string }>();
@@ -41,7 +42,13 @@ const Reviews = () => {
         <Header />
         <main className="pt-20">
           <h1 className="sr-only">SA Skincare Product Reviews</h1>
+          <div className="container mx-auto px-4 pt-6 pb-2">
+            <AffiliateBanner placement="reviews-top" compact />
+          </div>
           <ReviewsGrid paginate />
+          <div className="container mx-auto px-4 py-10">
+            <AffiliateBanner placement="reviews-bottom" />
+          </div>
         </main>
         <Footer />
       </div>

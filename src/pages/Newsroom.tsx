@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsroomFeed from "@/components/NewsroomFeed";
+import AffiliateBanner from "@/components/AffiliateBanner";
 
 const Newsroom = () => (
   <>
@@ -25,19 +26,22 @@ const Newsroom = () => (
         "name": "The Daily Skinny by SkinLabs",
         "url": "https://skinlabs.co.za/newsroom",
         "logo": "https://skinlabs.co.za/pwa-512.png",
-        "description": "Daily briefings of global skincare science translated for South African skin, climate and shelves.",
-        "sameAs": ["https://wa.me/27680200749"],
-        "publishingPrinciples": "https://skinlabs.co.za/about"
+        "description": "Daily SA skincare science briefings from SkinLabs."
       })}</script>
     </Helmet>
 
     <div className="min-h-screen bg-background">
       <Header />
       <main className="pt-20">
-        <h1 className="sr-only">The Daily Skinny — Daily SA Skincare Briefings</h1>
-        <NewsroomFeed searchable />
+        <div className="container mx-auto px-4 pt-6 pb-2">
+            <AffiliateBanner placement="newsroom-top" compact />
+          </div>
+          <NewsroomFeed />
+        <div className="container mx-auto px-4 py-10">
+            <AffiliateBanner placement="newsroom-bottom" />
+          </div>
+        <Footer />
       </main>
-      <Footer />
     </div>
   </>
 );
