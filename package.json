@@ -6,12 +6,13 @@
   "packageManager": "bun@1.3.4",
   "scripts": {
     "dev": "vite",
-    "build": "(npm run sitemap || echo 'Sitemap generation failed, continuing build...') && vite build && (npm run prerender || echo 'Prerendering failed, shipping the plain SPA build...')",
+    "build": "(npm run sitemap || echo 'Sitemap generation failed, continuing build...') && (npm run search-index:check || echo 'Search index check failed — site search may be missing recent pages, continuing build...') && vite build && (npm run prerender || echo 'Prerendering failed, shipping the plain SPA build...')",
     "build:dev": "vite build --mode development",
-    "lint": "eslint .",
+    "lint": "eslint . && npm run search-index:check",
     "preview": "vite preview",
     "sitemap": "bun run scripts/generate-sitemap.ts",
-    "prerender": "bun run scripts/prerender.ts"
+    "prerender": "bun run scripts/prerender.ts",
+    "search-index:check": "bun run scripts/check-search-index.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

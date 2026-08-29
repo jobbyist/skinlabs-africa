@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { useNewsArticles, type NewsArticleSummary } from "@/hooks/use-news-articles";
-import { matchScore } from "@/lib/search-index";
+import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -38,7 +38,7 @@ const NewsroomFeed = ({
     return fetchedArticles
       .map((article) => ({
         article,
-        score: matchScore(query, article.title, `${article.sa_context_tag} ${article.excerpt} ${article.source_name}`),
+        score: scoreTextItem(query, article.title, `${article.sa_context_tag} ${article.excerpt} ${article.source_name}`).score,
       }))
       .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score)
