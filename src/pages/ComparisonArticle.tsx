@@ -6,7 +6,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
+import { comparisonComments } from "@/data/articleComments";
 
 const EDITORIAL_DISCLAIMER =
   "SKINLABS's views and opinions are independent. This article is not paid or sponsored content. Product information is assessed using publicly available information, ingredient analysis, editorial research and, where applicable, product testing. Prices, availability and formulations may change.";
@@ -169,6 +171,8 @@ const ComparisonArticle = () => {
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
             <p><span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}</p>
           </div>
+
+          <ArticleComments comments={comparisonComments[article.slug] ?? []} />
         </article>
       </main>
       <Footer />

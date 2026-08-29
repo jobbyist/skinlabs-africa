@@ -5,8 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import GatedOverlay from "@/components/GatedOverlay";
+import ArticleComments from "@/components/ArticleComments";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { podcastEpisodes } from "@/data/podcast";
+import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 
 const EpisodePage = () => {
@@ -142,6 +144,8 @@ const EpisodePage = () => {
                 </div>
               </GatedOverlay>
             </section>
+
+            <ArticleComments heading="Listener discussion" comments={podcastComments[episode.slug] ?? []} />
           </div>
         </div>
       </main>

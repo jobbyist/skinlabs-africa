@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { FileText, Shield, AlertCircle } from "lucide-react";
+import { FileText, Shield, AlertCircle, RotateCcw } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -102,6 +102,33 @@ const TermsOfService = () => {
                     <p className="text-muted-foreground">
                       By providing payment information, you represent and warrant that you are authorized to use the designated payment method and authorize us to charge your payment method for the total amount of your purchase.
                     </p>
+                  </div>
+
+                  <div id="money-back-guarantee" className="bg-card border border-border rounded-3xl p-8 md:p-12 scroll-mt-24">
+                    <div className="flex items-start gap-3 mb-4">
+                      <RotateCcw className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                      <h2 className="text-2xl font-bold text-foreground">30-Day Money-Back Guarantee</h2>
+                    </div>
+                    <div className="space-y-4 text-muted-foreground">
+                      <p>
+                        Every paid SkinLabs membership (Glow Insider and Glow VIP) is covered by a 30-day
+                        money-back guarantee. If a plan isn't right for you, request a full refund within
+                        30 days of your payment date and we'll process it back to your original payment
+                        method — no interrogation required.
+                      </p>
+                      <p>To request a refund under this guarantee:</p>
+                      <ul className="list-disc list-inside space-y-2 ml-4">
+                        <li>Email support@skinlabs.co.za with your account email and the reason for cancelling</li>
+                        <li>Requests must be made within 30 days of the charge you're asking to be refunded</li>
+                        <li>Refunds are issued to the original payment method within 5–10 business days</li>
+                        <li>This guarantee applies to membership subscription charges only — it does not extend to physical products purchased through third-party retailers, which are governed by that retailer's own returns policy</li>
+                      </ul>
+                      <p>
+                        For orders placed directly through SkinLabs (where applicable), see our{" "}
+                        <a href="/returns" className="text-primary hover:underline">Returns Policy</a>{" "}
+                        for the physical-product return process.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">

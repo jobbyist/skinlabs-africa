@@ -8,29 +8,35 @@ const NewBadge = () => (
   </span>
 );
 
+const ComingSoonBadge = () => (
+  <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white align-middle whitespace-nowrap">
+    Coming Soon
+  </span>
+);
+
 const Footer = () => {
   const links = {
     editorial: [
       { label: "The Daily Skinny", href: "/newsroom" },
       { label: "Product Reviews", href: "/reviews" },
-      { label: "Spotlight", href: "/spotlight", isNew: true },
-      { label: "Seasonals", href: "/seasonals", isNew: true },
-      { label: "Podcast", href: "/podcast" },
+      { label: "Brand Spotlight", href: "/spotlight", isNew: true },
+      { label: "Seasonal Guides", href: "/seasonals", isNew: true },
+      { label: "Podcast Series", href: "/podcast" },
     ],
     platform: [
       { label: "AI Formulator", href: "/ai-formulator" },
-      { label: "Consultations", href: "/consultations" },
-      { label: "Membership Plans", href: "/pricing" },
+      { label: "Consultations", href: "/consultations", isNew: true },
+      { label: "Marketplace", href: "/shop", isComingSoon: true },
+      { label: "Memberships", href: "/pricing" },
+      { label: "Announcements", href: "/announcements" },
     ],
     company: [
       { label: "About Us", href: "/about" },
       { label: "Our Science", href: "/about#science" },
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
-    ],
-    support: [
-      { label: "Contact", href: "/contact" },
-      { label: "FAQ", href: "/faq" },
+      { label: "Browse FAQs", href: "/faq" },
+      { label: "Contact Us", href: "/contact" },
     ],
   };
 
@@ -52,7 +58,7 @@ const Footer = () => {
   return (
     <footer id="contact" className="bg-black text-background py-16">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-2 lg:grid-cols-6 gap-10 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Brand */}
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
@@ -134,6 +140,8 @@ const Footer = () => {
                 <li key={link.label}>
                   <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
                     {link.label}
+                    {link.isNew && <NewBadge />}
+                    {link.isComingSoon && <ComingSoonBadge />}
                   </Link>
                 </li>
               ))}
@@ -153,20 +161,6 @@ const Footer = () => {
               ))}
             </ul>
           </div>
-
-          {/* Support links */}
-          <div>
-            <h4 className="font-semibold mb-4">Support</h4>
-            <ul className="space-y-2">
-              {links.support.map((link) => (
-                <li key={link.label}>
-                  <Link to={link.href} className="text-sm text-background/70 hover:text-background transition-colors">
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         {/* Bottom */}
@@ -175,9 +169,9 @@ const Footer = () => {
             © {new Date().getFullYear()} SKINLABS. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-background/50">
-            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
-            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
-            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy</Link>
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms</Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookies</Link>
           </div>
         </div>
       </div>

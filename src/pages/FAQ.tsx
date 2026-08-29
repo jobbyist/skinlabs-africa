@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { HelpCircle, MessageCircle, Search } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 
 const FAQ = () => {
   const categories = [
@@ -347,7 +348,7 @@ const FAQ = () => {
                               {item.q}
                             </h3>
                             <p className="text-muted-foreground">
-                              {item.a}
+                              {linkifyMoneyBackGuarantee(item.a)}
                             </p>
                           </div>
                         ))}

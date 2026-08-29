@@ -1,4 +1,5 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { RotateCcw, CheckCircle, AlertCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -45,6 +46,13 @@ const Returns = () => {
                   </h2>
                   <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                     Not right for your skin? Return it within 30 days for a full refund — no interrogation required.
+                  </p>
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    Membership plan refunds are covered under the same window — see the full{" "}
+                    <Link to="/terms-of-service#money-back-guarantee" className="text-primary hover:underline">
+                      money-back guarantee clause
+                    </Link>{" "}
+                    in our Terms of Service.
                   </p>
                 </div>
 

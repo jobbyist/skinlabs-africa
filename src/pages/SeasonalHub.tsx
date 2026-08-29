@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { productReviews, overallScore } from "@/data/reviews";
 import { getSeasonHub, allSeasons, type Season } from "@/data/seasonals";
+import ArticleComments from "@/components/ArticleComments";
+import { seasonalComments } from "@/data/articleComments";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -262,6 +264,8 @@ const SeasonalHub = () => {
             Published {new Date(hub.publishDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })} · Last updated{" "}
             {new Date(hub.modifiedDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
           </p>
+
+          <ArticleComments comments={seasonalComments[hub.season] ?? []} />
 
           {/* Newsletter */}
           <section className="mt-12 rounded-3xl border border-border bg-card p-6 text-center md:p-8">
