@@ -1,8 +1,8 @@
-import { Sparkles, Newspaper, Star, Mic } from "lucide-react";
+import { Atom, Newspaper, Star, Mic } from "lucide-react";
 
 const features = [
   {
-    icon: Sparkles,
+    icon: Atom,
     title: "AI-Powered Routines",
     description: "A custom routine built around your skin and re-analysed as it changes — no spreadsheet required.",
   },
