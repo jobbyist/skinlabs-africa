@@ -39,7 +39,7 @@ interface ReviewsGridProps {
 
 const ReviewsGrid = ({
   limit,
-  heading = "Independent SA Product Reviews",
+  heading = "Independent SA product scores",
   description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
   paginate = false,
 }: ReviewsGridProps) => {
@@ -86,8 +86,12 @@ const ReviewsGrid = ({
     <section id="reviews" className="bg-secondary/30 py-20">
       <div className="container mx-auto px-4">
         <div className="mb-10 max-w-2xl">
-          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Review engine</p>
-          <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
+          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Reviews</p>
+          {paginate ? (
+            <h1 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h1>
+          ) : (
+            <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
+          )}
           <p className="text-muted-foreground">{description}</p>
         </div>
 
@@ -191,7 +195,6 @@ const ReviewsGrid = ({
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
         )}
 
-        {/* SEO-friendly numbered pagination */}
         {paginate && !limit && totalPages > 1 && (
           <nav className="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Reviews pagination">
             <Button
