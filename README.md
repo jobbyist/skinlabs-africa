@@ -63,43 +63,19 @@ This project is built with:
 
 ## How can I deploy this project?
 
-This project is configured to automatically deploy to GitHub Pages when changes are pushed to the `main` branch.
+This project is deployed to production on **Vercel**, connected to the `main` branch of this repository.
 
-### GitHub Pages Deployment
+### Vercel Deployment
 
 The site is deployed to: **https://skinlabs.co.za**
 
 #### Automatic Deployment
 
-Every push to the `main` branch triggers the GitHub Actions workflow that:
-1. Checks out the code
-2. Sets up Bun 1.3.4
-3. Installs dependencies
-4. Builds the project
-5. Deploys to GitHub Pages
+Every push to `main` triggers a Vercel Production deployment: Vercel installs dependencies, runs `npm run build` (which regenerates the sitemap and runs `vite build`), and publishes the `dist` output. Build and header configuration live in `vercel.json`.
 
-#### Manual Deployment
+#### Custom Domain
 
-You can also trigger a manual deployment from the GitHub Actions tab by running the "Deploy to GitHub Pages" workflow manually.
-
-#### GitHub Pages Settings
-
-To ensure the deployment works correctly, make sure GitHub Pages is configured in your repository settings:
-
-1. Go to Settings > Pages
-2. Under "Build and deployment", set Source to "GitHub Actions"
-3. The custom domain `skinlabs.co.za` should be configured automatically via the CNAME file
-
-#### DNS Configuration
-
-For the custom domain to work, you need to configure DNS records:
-
-- Add an A record pointing to GitHub Pages IPs:
-  - 185.199.108.153
-  - 185.199.109.153
-  - 185.199.110.153
-  - 185.199.111.153
-- Or add a CNAME record pointing to: `jobbyist.github.io`
+The `skinlabs.co.za` custom domain is attached to this Vercel project's Production environment (Project Settings > Domains). DNS should point at Vercel per the records shown there, not at GitHub Pages.
 
 ### Alternative: Lovable Deployment
 

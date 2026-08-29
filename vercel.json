@@ -1,23 +1,19 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": null,
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
-        },
-        {
-          "key": "Pragma",
-          "value": "no-cache"
-        },
-        {
-          "key": "Expires",
-          "value": "0"
+          "value": "no-cache, must-revalidate"
         },
         {
           "key": "X-Content-Type-Options",
@@ -32,6 +28,15 @@
           "value": "1; mode=block"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -39,10 +44,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "installCommand": "npm install",
-  "devCommand": "npm run dev",
-  "crons": [],
-  "cleanUrls": true,
-  "trailingSlash": false
+  ]
 }

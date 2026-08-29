@@ -2,8 +2,8 @@
  * Regenerates public/sitemap.xml from the site's actual routes plus its dynamic,
  * DB- and data-file-backed content (newsroom briefings, product reviews, podcast
  * episodes) so the sitemap can't silently drift out of sync the way a hand-maintained
- * static file does. Run via `bun run sitemap` (wired into the GitHub Pages deploy
- * workflow before `bun run build`).
+ * static file does. Run via `bun run sitemap` (wired into the build script
+ * before `vite build`).
  *
  * Reviews and podcast slugs are parsed out of their data files with a lightweight
  * regex rather than imported, so this script has no dependency on Vite's asset/alias
