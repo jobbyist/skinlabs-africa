@@ -12,6 +12,13 @@ import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 
+/** Subtle section divider used between homepage blocks */
+const SectionDivider = () => (
+  <div className="container mx-auto px-4" aria-hidden="true">
+    <div className="border-t border-border/70" />
+  </div>
+);
+
 const Index = () => {
   return (
     <>
@@ -45,13 +52,21 @@ const Index = () => {
         <Header />
         <main>
           <Hero />
-          <NewsroomFeed limit={3} />
+          <SectionDivider />
+          <NewsroomFeed limit={3} showExploreLink />
+          <SectionDivider />
           <SeasonalsTeaser />
+          <SectionDivider />
           <Editorials />
+          <SectionDivider />
           <SpotlightTeaser />
+          <SectionDivider />
           <AIFormulator />
+          <SectionDivider />
           <PodcastSection />
+          <SectionDivider />
           <Features />
+          <SectionDivider />
           <Newsletter />
         </main>
         <Footer />
