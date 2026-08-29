@@ -21,7 +21,7 @@ const Header = () => {
     { label: "Briefings", href: "/newsroom", icon: Newspaper },
     { label: "Reviews", href: "/reviews", icon: Star },
     { label: "Spotlight", href: "/spotlight", icon: Award, isNew: true },
-    { label: "Marketplace", href: "/shop", icon: ShoppingBag, isComingSoon: true },
+    { label: "Marketplace", href: "/shop", icon: ShoppingBag, isComingSoon: true, hideOnDesktop: true },
     { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
     { label: "Consult", href: "/consultations", icon: Calendar },
@@ -49,9 +49,11 @@ const Header = () => {
               <img src={logo} alt="SKINLABS" className="w-[120px] h-auto" />
             </Link>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation — Marketplace intentionally hidden on desktop */}
             <nav className="hidden lg:flex items-center gap-6">
-              {navLinks.map((link) => (
+              {navLinks
+                .filter((link) => !link.hideOnDesktop)
+                .map((link) => (
                 <Link
                   key={link.label}
                   to={link.href}
@@ -141,7 +143,7 @@ const Header = () => {
             </div>
           </div>
 
-          {/* Mobile Navigation */}
+          {/* Mobile Navigation — Marketplace remains visible on mobile */}
           {isMenuOpen && (
             <div className="lg:hidden py-4 border-t border-border">
               <nav className="flex flex-col gap-4">
