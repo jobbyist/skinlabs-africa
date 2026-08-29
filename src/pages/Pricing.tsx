@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Check, Gift, Sparkles } from "lucide-react";
+import { Check, Gift, Atom } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthDialog from "@/components/AuthDialog";
@@ -85,14 +85,9 @@ const Pricing = () => {
         <title>Membership Plans — SkinLabs Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month for a weekly AI routine and full newsroom access, or Glow VIP at R299/month with monthly derm consults. Annual billing gets 2 months free, Insider starts with a 7-day free trial, and every paid plan is backed by a 30-day money-back guarantee."
+          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month, or Glow VIP at R299/month. Stream 1 free podcast episode monthly on Explorer; full library on Insider+."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
-        <meta property="og:title" content="Membership Plans — SkinLabs" />
-        <meta property="og:description" content="AI skincare routines, daily skincare intelligence and virtual derm consults, priced in rands. 7-day free trial on Insider, plus a 30-day money-back guarantee on every paid plan." />
-        <meta property="og:url" content="https://skinlabs.co.za/pricing" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -102,7 +97,7 @@ const Pricing = () => {
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Membership</p>
               <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">
-                Skincare intelligence, priced in rands
+                Skincare intelligence, suitable for every budget
               </h1>
               <p className="text-muted-foreground">
                 No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South
@@ -163,7 +158,7 @@ const Pricing = () => {
                   >
                     {plan.highlight && (
                       <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                        <Sparkles className="h-3 w-3" /> Most popular
+                        <Atom className="h-3 w-3" /> Most popular
                       </span>
                     )}
                     <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
