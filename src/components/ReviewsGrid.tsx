@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
-import { matchScore } from "@/lib/search-index";
+import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 6;
@@ -57,7 +57,9 @@ const ReviewsGrid = ({
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   const filtered = useMemo(() => {
-    let base = category === "All" ? productReviews : productReviews.filter((r) => r.category === category);
+    // .filter() always returns a fresh array — important since sortBy below sorts in
+    // place, and productReviews is a shared module-level array read elsewhere in the app.
+    let base = productReviews.filter((r) => category === "All" || r.category === category);
     
     // Apply price range filter
     if (priceRange !== "all") {
@@ -72,9 +74,9 @@ const ReviewsGrid = ({
     
     // Apply skin type filter
     if (skinType !== "all") {
-      base = base.filter((r) => r.best_for_skin_types?.includes(skinType));
+      base = base.filter((r) => r.skin_type_match.includes(skinType));
     }
-    
+
     // Apply sorting
     if (sortBy === "newest") {
       base = base.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
@@ -85,24 +87,32 @@ const ReviewsGrid = ({
     } else if (sortBy === "price-high") {
       base = base.sort((a, b) => b.local_price_zar - a.local_price_zar);
     }
-    
+
+    // Natural-language search — "contains hyaluronic acid", "best for hyperpigmentation" —
+    // resolves via the ingredient/concern-aware relevance engine, overriding manual sort.
     if (query.trim()) {
       base = base
-        .map((review) => ({
-          review,
-          score: matchScore(
-            query,
-            `${review.brand} ${review.product_name}`,
-            `${review.category} ${review.key_ingredients.join(" ")} ${review.verdict}`,
-          ),
-        }))
-        .filter((entry) => entry.score > 0)
-        .sort((a, b) => b.score - a.score)
+        .map((review) => ({ review, match: scoreProductReview(query, review) }))
+        .filter((entry) => entry.match.score > 0)
+        .sort((a, b) => b.match.score - a.match.score)
         .map((entry) => entry.review);
     }
     if (limit) return base.slice(0, limit);
     return base;
-  }, [category, limit, query]);
+  }, [category, limit, query, priceRange, skinType, sortBy]);
+
+  const matchReasons = useMemo(() => {
+    if (!query.trim()) return new Map<string, string[]>();
+    const map = new Map<string, string[]>();
+    for (const review of filtered) {
+      const title = `${review.brand} ${review.product_name}`.trim();
+      map.set(
+        review.id,
+        scoreProductReview(query, review).reasons.filter((reason) => reason !== title),
+      );
+    }
+    return map;
+  }, [filtered, query]);
 
   const paginatedReviews = filtered;
 
@@ -136,7 +146,7 @@ const ReviewsGrid = ({
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search product, brand or ingredient"
+              placeholder='Try "contains niacinamide" or "best for hyperpigmentation"'
               className="pl-9"
               aria-label="Search product reviews"
             />
@@ -267,7 +277,20 @@ const ReviewsGrid = ({
                 <ScoreBar label="SA climate fit" value={review.score_climate} />
               </div>
 
-              <p className="mb-5 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
+              <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
+
+              {query.trim() && (matchReasons.get(review.id)?.length ?? 0) > 0 && (
+                <div className="mb-5 flex flex-wrap gap-1.5">
+                  {matchReasons.get(review.id)!.map((reason) => (
+                    <span
+                      key={reason}
+                      className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary"
+                    >
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="mt-auto flex items-center justify-between">
                 <Button variant="outline" size="sm" asChild>

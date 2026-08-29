@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
 import { getNextEpisodeDate, podcastEpisodes, podcastTopics, publishedPodcastEpisodes } from "@/data/podcast";
-import { matchScore } from "@/lib/search-index";
+import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import AffiliateBanner from "@/components/AffiliateBanner";
@@ -30,11 +30,12 @@ const PodcastPage = () => {
     return byTopic
       .map((episode) => ({
         episode,
-        score: matchScore(
+        score: scoreTextItem(
           query,
           episode.title,
-          `${episode.description} ${episode.topics.join(" ")} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")}`,
-        ),
+          `${episode.description} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")}`,
+          episode.topics,
+        ).score,
       }))
       .filter((entry) => entry.score > 0)
       .sort((a, b) => b.score - a.score)
