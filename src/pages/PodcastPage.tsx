@@ -12,6 +12,7 @@ import { getNextEpisodeDate, podcastEpisodes, podcastTopics, publishedPodcastEpi
 import { matchScore } from "@/lib/search-index";
 import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
+import AffiliateBanner from "@/components/AffiliateBanner";
 
 const PodcastPage = () => {
   const { playEpisode, current, isPlaying, toggle, progress, duration, speed, skip, cycleSpeed, seek } =
@@ -64,6 +65,9 @@ const PodcastPage = () => {
       <Header />
       <main className="pt-24 pb-28">
         <section className="container mx-auto px-4">
+          <div className="mb-8">
+            <AffiliateBanner placement="podcast-top" compact />
+          </div>
           <div className="mb-10 max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Audio series</p>
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
@@ -186,28 +190,13 @@ const PodcastPage = () => {
                           </div>
                         </div>
                         <div className="mt-1.5 flex items-center justify-center gap-4 text-[10px] font-medium text-muted-foreground">
-                          <button
-                            type="button"
-                            onClick={() => isCurrent && skip(-15)}
-                            disabled={!isCurrent}
-                            className="inline-flex items-center gap-0.5 hover:text-foreground disabled:opacity-40"
-                          >
+                          <button type="button" onClick={() => isCurrent && skip(-15)} disabled={!isCurrent} className="inline-flex items-center gap-0.5 hover:text-foreground disabled:opacity-40">
                             <SkipBack className="h-3 w-3" /> 15 SEC
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => isCurrent && cycleSpeed()}
-                            disabled={!isCurrent}
-                            className="hover:text-foreground disabled:opacity-40"
-                          >
+                          <button type="button" onClick={() => isCurrent && cycleSpeed()} disabled={!isCurrent} className="hover:text-foreground disabled:opacity-40">
                             {isCurrent ? `${speed}x` : "1x"} SPEED
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => isCurrent && skip(15)}
-                            disabled={!isCurrent}
-                            className="inline-flex items-center gap-0.5 hover:text-foreground disabled:opacity-40"
-                          >
+                          <button type="button" onClick={() => isCurrent && skip(15)} disabled={!isCurrent} className="inline-flex items-center gap-0.5 hover:text-foreground disabled:opacity-40">
                             15 SEC <SkipForward className="h-3 w-3" />
                           </button>
                         </div>
@@ -231,16 +220,8 @@ const PodcastPage = () => {
                     {engagement.isAuthenticated && !isComingSoon && (
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="tabular-nums">{engagement.getPlays(episode).toLocaleString()} plays</span>
-                        <button
-                          type="button"
-                          onClick={() => void engagement.toggleLike(episode)}
-                          className="inline-flex items-center gap-1 hover:text-foreground"
-                        >
-                          <Heart
-                            className={`h-3.5 w-3.5 ${
-                              engagement.isLiked(episode.slug) ? "fill-foreground text-foreground" : ""
-                            }`}
-                          />
+                        <button type="button" onClick={() => void engagement.toggleLike(episode)} className="inline-flex items-center gap-1 hover:text-foreground">
+                          <Heart className={`h-3.5 w-3.5 ${engagement.isLiked(episode.slug) ? "fill-foreground text-foreground" : ""}`} />
                           {engagement.getLikes(episode).toLocaleString()}
                         </button>
                       </div>
@@ -261,6 +242,9 @@ const PodcastPage = () => {
           )}
         </section>
       </main>
+      <div className="container mx-auto px-4 pb-10">
+        <AffiliateBanner placement="podcast-bottom" />
+      </div>
       <Footer />
     </div>
   );
