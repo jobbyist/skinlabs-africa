@@ -82,10 +82,10 @@ const Pricing = () => {
   return (
     <>
       <Helmet>
-        <title>Membership Plans — SkinLabs Skincare Intelligence</title>
+        <title>SkinLabs® Membership | Personalised Skincare Intelligence</title>
         <meta
           name="description"
-          content="Choose a SkinLabs membership: Glow Explorer (free), Glow Insider at R99/month, or Glow VIP at R299/month. Explorer: 1 free podcast episode and 2 comparisons per month. Insider+: full library, Spotlight profiles and unlimited Shelf Showdowns."
+          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines, product recommendations and exclusive member benefits. Glow Explorer free; Insider from R99/month. Starting a free trial forfeits the 30-day money-back guarantee."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
       </Helmet>
@@ -101,8 +101,7 @@ const Pricing = () => {
               </h1>
               <p className="text-muted-foreground">
                 No shipping, no stock-outs, no imported markups. Just research-grounded guidance built for South
-                African skin, climate and shelves — try Insider free for 7 days, no card required, and every paid
-                plan comes with a{" "}
+                African skin, climate and shelves — try Insider free for 7 days (no card required — trial forfeits the money-back guarantee), or subscribe directly to keep the{" "}
                 <Link to="/terms-of-service#money-back-guarantee" className="text-primary hover:underline">
                   {MONEY_BACK_GUARANTEE_DAYS}-day money-back guarantee
                 </Link>
@@ -204,11 +203,13 @@ const Pricing = () => {
                       </Button>
                     </div>
                     {trialAvailable && (
-                      <p className="mt-3 text-center text-xs text-muted-foreground">No credit card required for the trial.</p>
+                      <p className="mt-3 text-center text-xs text-muted-foreground">
+                        No credit card required for the trial. Starting a free trial means you forfeit the 30-day money-back guarantee on that plan.
+                      </p>
                     )}
                     {isPaidPlan && plan.moneyBackDays && (
                       <p className="mt-1 text-center text-xs text-muted-foreground">
-                        {linkifyMoneyBackGuarantee(`${plan.moneyBackDays}-day money-back guarantee`)}. Not right for your skin? Full refund.
+                        {linkifyMoneyBackGuarantee(`${plan.moneyBackDays}-day money-back guarantee`)} applies when you subscribe without starting a free trial. Not right for your skin? Full refund.
                       </p>
                     )}
                   </motion.div>
