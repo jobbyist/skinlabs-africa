@@ -8,11 +8,15 @@ import "./index.css";
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((registrations) => {
     registrations.forEach((registration) => void registration.unregister());
+  }).catch((error) => {
+    console.warn("Failed to unregister service worker:", error);
   });
 }
 if ("caches" in window) {
   caches.keys().then((keys) => {
     keys.forEach((key) => void caches.delete(key));
+  }).catch((error) => {
+    console.warn("Failed to clear caches:", error);
   });
 }
 
