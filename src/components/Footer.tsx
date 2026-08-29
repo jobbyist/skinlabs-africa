@@ -10,6 +10,24 @@ const ComingSoonBadge = () => (
   <span className="ml-1.5 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white align-middle whitespace-nowrap">Coming Soon</span>
 );
 
+const AppleIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+  </svg>
+);
+
+const GooglePlayIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M3.18 23.73c.28.13.6.17.93.1l12.85-7.1-2.88-2.88-10.9 9.88zm16.95-9.15 2.05-1.13c.76-.42.76-1.48 0-1.9l-2.05-1.13-2.5 2.08 2.5 2.08zM3.18.27C2.9.4 2.7.64 2.58.95l10.9 9.88 2.88-2.88L4.11.17c-.3-.07-.63-.03-.93.1zM13.96 11.5 3.06 1.37l-.01.02L14.7 12l-1.75-.5zM3.05 22.63l10.91-10.13.01.02-1.75-.5L3.05 22.63z" />
+  </svg>
+);
+
+const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+  </svg>
+);
+
 const Footer = () => {
   const links = {
     editorial: [
@@ -50,22 +68,9 @@ const Footer = () => {
       label: "TikTok",
     },
     {
-      icon: () => (
-        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M4.285 7.294c.704 0 1.276-.576 1.276-1.287 0-.71-.572-1.287-1.276-1.287-.704 0-1.276.576-1.276 1.287 0 .71.572 1.287 1.276 1.287zm.14 2.042H3.01v9.372h1.415V9.336zm4.888 0H7.63v9.372h1.415v-4.906c0-2.59 3.35-2.802 3.35 0v4.906h1.415v-5.9c0-4.58-5.168-4.415-5.497-2.163V9.336zm12.393 2.42c-1.233 0-1.9.55-2.248.95v-1.37h-1.415v9.372h1.415v-4.51c0-1.16.36-2.74 2.168-2.74 1.67 0 1.67 1.56 1.67 2.79v4.46h1.415v-4.85c0-2.37-.51-4.012-2.99-4.012z"/>
-        </svg>
-      ),
-      href: "https://skinlabsza.medium.com",
-      label: "Medium",
-    },
-    {
-      icon: () => (
-        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M22.539 8.242H1.46a1.3 1.3 0 0 0-1.3 1.3v5.016a1.3 1.3 0 0 0 1.3 1.3h21.078a1.3 1.3 0 0 0 1.3-1.3V9.542a1.3 1.3 0 0 0-1.3-1.3zM1.46 6.942h21.078a2.6 2.6 0 0 1 2.6 2.6v5.016a2.6 2.6 0 0 1-2.6 2.6H1.46a2.6 2.6 0 0 1-2.6-2.6V9.542a2.6 2.6 0 0 1 2.6-2.6zm5.2 3.9a.65.65 0 0 0-.65.65v1.95a.65.65 0 0 0 1.3 0v-1.95a.65.65 0 0 0-.65-.65zm4.55 0a.65.65 0 0 0-.65.65v1.95a.65.65 0 0 0 1.3 0v-1.95a.65.65 0 0 0-.65-.65zm4.55 0a.65.65 0 0 0-.65.65v1.95a.65.65 0 0 0 1.3 0v-1.95a.65.65 0 0 0-.65-.65z"/>
-        </svg>
-      ),
-      href: "https://skinlabsza.substack.com",
-      label: "Substack",
+      icon: WhatsAppIcon,
+      href: "https://whatsapp.com/channel/0029VbEAGud7oQhZSPGNPg3J",
+      label: "WhatsApp Channel",
     },
   ];
 
@@ -88,11 +93,23 @@ const Footer = () => {
             <div className="mb-6">
               <p className="text-sm font-semibold text-background mb-3">Coming Soon</p>
               <div className="flex flex-col gap-3">
-                <div className="bg-background/10 border border-background/20 rounded-lg px-4 py-2 flex items-center gap-3 max-w-[200px]">
-                  <span className="text-xs text-background/70">Google Play</span>
+                <div className="bg-background/10 border border-background/20 rounded-xl px-4 py-3 flex items-center gap-3 max-w-[220px]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/15 text-background">
+                    <GooglePlayIcon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 leading-tight">
+                    <p className="text-[10px] uppercase tracking-wide text-background/50">Get it on</p>
+                    <p className="text-sm font-semibold text-background">Google Play</p>
+                  </div>
                 </div>
-                <div className="bg-background/10 border border-background/20 rounded-lg px-4 py-2 flex items-center gap-3 max-w-[200px]">
-                  <span className="text-xs text-background/70">App Store</span>
+                <div className="bg-background/10 border border-background/20 rounded-xl px-4 py-3 flex items-center gap-3 max-w-[220px]">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background/15 text-background">
+                    <AppleIcon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 leading-tight">
+                    <p className="text-[10px] uppercase tracking-wide text-background/50">Download on the</p>
+                    <p className="text-sm font-semibold text-background">App Store</p>
+                  </div>
                 </div>
               </div>
             </div>
