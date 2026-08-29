@@ -132,12 +132,14 @@ async function main() {
     for (const route of routes) {
       const page = await browser.newPage();
       try {
+        // domcontentloaded + a fixed settle delay, not networkidle0: AdSense and
+        // analytics keep background connections open indefinitely on every page,
+        // so networkidle0 would time out on effectively every route.
         await page.goto(`${baseUrl}${route}`, {
-          waitUntil: "networkidle0",
+          waitUntil: "domcontentloaded",
           timeout: PER_ROUTE_TIMEOUT_MS,
         });
-        // Let any state update queued by the last network response commit.
-        await new Promise((r) => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 1200));
         const html = await page.content();
         const outPath = outputPathFor(route);
         mkdirSync(dirname(outPath), { recursive: true });
