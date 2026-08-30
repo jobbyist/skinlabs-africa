@@ -29,8 +29,8 @@ const Reviews = () => {
 
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-24">
-          <div className="container mx-auto px-4 mb-6">
+        <main className="pt-20 pb-24">
+          <div className="container mx-auto px-4 mb-4">
             <AdSlot placement="reviews-top" compact />
           </div>
           <ReviewsGrid paginate />
