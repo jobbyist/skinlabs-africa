@@ -34,8 +34,10 @@ const initialForm = {
 const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null);
   const [done, setDone] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const isRateLimited = rateLimitedUntil !== null && Date.now() < rateLimitedUntil;
 
   useEffect(() => {
     if (selectedModel) {
@@ -45,22 +47,48 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check client-side rate limiting
+    if (isRateLimited) {
+      const remainingSeconds = Math.ceil((rateLimitedUntil! - Date.now()) / 1000);
+      toast.error(`Please wait ${remainingSeconds} seconds before submitting again.`);
+      return;
+    }
+
     if (!form.full_name || !form.business_name || !form.work_email || !form.partnership_model) {
       toast.error("We'll need your name, business, email and partnership interest before submitting.");
       return;
     }
+
     setSubmitting(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from("partner_enquiries").insert(form);
-    setSubmitting(false);
-    if (error) {
-      toast.error("That didn't go through — please try again.");
-      return;
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("partner_enquiries").insert(form);
+
+      if (error) {
+        // Enhanced error messaging with specific context
+        if (error.code === '23505') {
+          toast.error("It looks like you've already submitted an enquiry with this email. Our team will be in touch soon.");
+        } else if (error.code === 'PGRST116') {
+          toast.error("You've reached the submission limit. Please try again later.");
+        } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+          toast.error("Network connection issue. Please check your internet and try again.");
+        } else {
+          toast.error(`Submission failed: ${error.message || 'Please try again later.'}`);
+        }
+        return;
+      }
+
+      // Set client-side rate limit (60 seconds cooldown)
+      setRateLimitedUntil(Date.now() + 60000);
+      setSubmittedEmail(form.work_email);
+      setForm(initialForm);
+      setDone(true);
+      toast.success("Got it. Our partnerships team will be in touch shortly.");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmittedEmail(form.work_email);
-    setForm(initialForm);
-    setDone(true);
-    toast.success("Got it. Our partnerships team will be in touch shortly.");
   };
 
   if (done) {
@@ -129,7 +157,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
         <Textarea id="pf-message" rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="What are you building, and how would you like to work with SkinLabs®?" />
       </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+      <Button type="submit" size="lg" className="w-full" disabled={submitting || isRateLimited}>
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Submit enquiry
       </Button>

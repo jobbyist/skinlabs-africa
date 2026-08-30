@@ -23,6 +23,27 @@ CREATE TABLE IF NOT EXISTS public.partner_enquiries (
 GRANT INSERT ON public.partner_enquiries TO anon, authenticated;
 GRANT ALL ON public.partner_enquiries TO service_role;
 ALTER TABLE public.partner_enquiries ENABLE ROW LEVEL SECURITY;
+-- Rate limiting function: prevents more than 3 submissions per email per hour
+CREATE OR REPLACE FUNCTION check_partner_enquiry_rate_limit()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF (
+    SELECT COUNT(*)
+    FROM public.partner_enquiries
+    WHERE work_email = NEW.work_email
+      AND created_at > NOW() - INTERVAL '1 hour'
+  ) >= 3 THEN
+    RAISE EXCEPTION 'Rate limit exceeded: Maximum 3 submissions per hour per email address'
+      USING ERRCODE = 'PGRST116';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER enforce_partner_enquiry_rate_limit
+  BEFORE INSERT ON public.partner_enquiries
+  FOR EACH ROW EXECUTE FUNCTION check_partner_enquiry_rate_limit();
+
 
 CREATE POLICY "Anyone can submit a partner enquiry"
   ON public.partner_enquiries FOR INSERT TO anon, authenticated
