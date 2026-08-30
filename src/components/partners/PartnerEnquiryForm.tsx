@@ -56,6 +56,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
       toast.error("That didn't go through — please try again.");
       return;
     }
+    setForm(initialForm);
     setDone(true);
     toast.success("Got it. Our partnerships team will be in touch shortly.");
   };
