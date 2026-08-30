@@ -31,11 +31,15 @@ const initialForm = {
   message: "",
 };
 
+const RESUBMIT_COOLDOWN_MS = 15_000;
+const FALLBACK_EMAIL = "support@skinlabs.co.za";
+
 const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const [nextSubmitAllowedAt, setNextSubmitAllowedAt] = useState(0);
 
   useEffect(() => {
     if (selectedModel) {
@@ -49,12 +53,22 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
       toast.error("We'll need your name, business, email and partnership interest before submitting.");
       return;
     }
+    if (Date.now() < nextSubmitAllowedAt) {
+      toast.error("Please wait a few seconds before submitting again.");
+      return;
+    }
     setSubmitting(true);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from("partner_enquiries").insert(form);
     setSubmitting(false);
+    setNextSubmitAllowedAt(Date.now() + RESUBMIT_COOLDOWN_MS);
     if (error) {
-      toast.error("That didn't go through — please try again.");
+      const isRateLimited = error.message?.includes("Too many partnership enquiries");
+      toast.error(
+        isRateLimited
+          ? error.message
+          : `That didn't go through — please try again, or email ${FALLBACK_EMAIL} directly.`,
+      );
       return;
     }
     setSubmittedEmail(form.work_email);

@@ -45,3 +45,31 @@ CREATE POLICY "Admins can view partner enquiries"
 CREATE TRIGGER update_partner_enquiries_updated_at
   BEFORE UPDATE ON public.partner_enquiries
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Server-side throttle: blocks repeated submissions from the same work email within
+-- a rolling window, independent of (and not replaceable by) the client-side cooldown
+-- in PartnerEnquiryForm.tsx, since that can be bypassed by anyone calling the REST
+-- endpoint directly. SECURITY DEFINER is required because anon/authenticated only
+-- hold INSERT on this table, not SELECT, so the count below would otherwise be
+-- blocked by RLS.
+CREATE OR REPLACE FUNCTION public.enforce_partner_enquiry_rate_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF (
+    SELECT count(*) FROM public.partner_enquiries
+    WHERE work_email = NEW.work_email
+      AND created_at > now() - interval '1 hour'
+  ) >= 3 THEN
+    RAISE EXCEPTION 'Too many partnership enquiries submitted recently. Please try again later or email support@skinlabs.co.za directly.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER partner_enquiries_rate_limit
+  BEFORE INSERT ON public.partner_enquiries
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_partner_enquiry_rate_limit();
