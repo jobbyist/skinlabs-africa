@@ -236,6 +236,31 @@ export const podcastComments: Record<string, ArticleComment[]> = {
 };
 
 export const comparisonComments: Record<string, ArticleComment[]> = {
+  "best-skincare-products-under-r250-south-africa": [
+    { display_name: "Naledi_Soweto", body: "This is exactly the kind of list I needed as a student — didn't realise a full routine could come in under R400.", created_at: "2026-08-30T07:12:00Z" },
+    { display_name: "PieterV_Bloem", body: "Good reminder that the sunscreen is the one worth splurging the extra rand on out of this list.", created_at: "2026-08-30T14:48:00Z" },
+    { display_name: "Zanele_ELondon", body: "Been using the Garnier cleanser and Portia M HyaluraGlow combo from this list for a month now — solid budget starter routine.", created_at: "2026-08-30T19:03:00Z" },
+  ],
+  "portia-m-hyaluraglow-vs-vitaglow": [
+    { display_name: "Kabelo_PTA", body: "Didn't realise these two Portia M serums were aimed at completely different concerns — assumed they were interchangeable.", created_at: "2026-08-29T06:27:00Z" },
+    { display_name: "Simone_CT", body: "Running HyaluraGlow AM and VitaGlow PM like this suggests, and my skin has felt noticeably less tight this winter.", created_at: "2026-08-29T15:41:00Z" },
+    { display_name: "Andile_Pmb", body: "Useful to know VitaGlow isn't a real acne treatment on its own — was expecting more from the willow bark extract.", created_at: "2026-08-30T09:16:00Z" },
+  ],
+  "tocobo-vs-round-lab-sun-serum": [
+    { display_name: "Chantelle_JHB", body: "The price gap surprised me — didn't expect Round Lab to cost that much more for similar SPF numbers.", created_at: "2026-08-29T08:52:00Z" },
+    { display_name: "Sipho_Umhlanga", body: "Tocobo has been my go-to in Durban humidity, so good to see it holds up as the value pick here too.", created_at: "2026-08-29T20:14:00Z" },
+    { display_name: "Retha_Stellenbosch", body: "Went with Round Lab for the finish alone — worth it for me, but this breakdown is fair about the premium not being about protection.", created_at: "2026-08-30T11:29:00Z" },
+  ],
+  "garnier-vs-tocobo-spf50-sunscreen": [
+    { display_name: "Thabo_Centurion", body: "Switched to Garnier for the invisible finish under makeup and haven't looked back — matches what this article says.", created_at: "2026-08-28T07:38:00Z" },
+    { display_name: "Amahle_Gqeberha", body: "Tocobo's the better fit for my dry skin in winter, exactly as described here.", created_at: "2026-08-28T18:02:00Z" },
+    { display_name: "Werner_George", body: "Appreciate the reminder about reapplication — easy to forget that's what actually matters most.", created_at: "2026-08-29T09:47:00Z" },
+  ],
+  "garnier-vitamin-c-cleanser-vs-clicks-rooibos-cleanser": [
+    { display_name: "Buhle_Rustenburg", body: "Been using the Clicks Rooibos cleanser for ages and never knew it had exfoliating beads worth being cautious with — useful heads up.", created_at: "2026-08-28T06:19:00Z" },
+    { display_name: "Johan_Kimberley", body: "Good breakdown for anyone starting out — both are cheap enough to just try and see what your skin prefers.", created_at: "2026-08-28T17:33:00Z" },
+    { display_name: "Precious_Polokwane", body: "Switched to Garnier after reading this since I'm already exfoliating with a separate product — made sense not to double up.", created_at: "2026-08-29T12:05:00Z" },
+  ],
   "nimue-vs-optiphi-retinoid-serums": [
     { display_name: "Kagiso_Gqeberha", body: "How would either of these compare against an imported alternative in the same category?", created_at: "2026-05-07T05:16:00Z" },
     { display_name: "Rafeeq_DBN", body: "Went with Nimue in the end based on this — a few weeks in and no regrets so far.", created_at: "2026-06-14T08:16:00Z" },

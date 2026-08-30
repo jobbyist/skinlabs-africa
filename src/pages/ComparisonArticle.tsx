@@ -125,6 +125,18 @@ const ComparisonArticle = () => {
           { "@type": "ListItem", position: 2, name: article.title, item: canonical },
         ],
       },
+      ...(article.faqs && article.faqs.length > 0
+        ? [
+            {
+              "@type": "FAQPage",
+              mainEntity: article.faqs.map((faq) => ({
+                "@type": "Question",
+                name: faq.question,
+                acceptedAnswer: { "@type": "Answer", text: faq.answer },
+              })),
+            },
+          ]
+        : []),
     ],
   };
 
@@ -231,6 +243,20 @@ const ComparisonArticle = () => {
               ))}
             </ul>
           </div>
+
+          {article.faqs && article.faqs.length > 0 && (
+            <div className="mt-10">
+              <h2 className="mb-4 font-heading text-lg font-bold text-foreground">Frequently asked questions</h2>
+              <div className="space-y-4">
+                {article.faqs.map((faq) => (
+                  <div key={faq.question} className="rounded-2xl border border-border bg-card p-4">
+                    <h3 className="text-sm font-semibold text-foreground">{faq.question}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{faq.answer}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-8 flex gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
