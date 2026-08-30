@@ -1,40 +1,39 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Cookie } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  DEFAULT_COOKIE_PREFERENCES,
+  isCookieConsentFresh,
+  readCookieConsent,
+  writeCookieConsent,
+  type CookiePreferences,
+} from "@/lib/cookie-consent";
 
-const COOKIE_CONSENT_KEY = "skinlabs_cookie_consent";
-const CONSENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-const SHOW_AFTER_MS = 90_000;
+const SHOW_AFTER_MS = 1_200;
 
-type ConsentRecord = {
-  accepted: boolean;
-  timestamp: number;
-};
-
-const readConsent = (): ConsentRecord | null => {
-  try {
-    const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as ConsentRecord;
-    if (typeof parsed.timestamp !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-};
-
-const isConsentFresh = (record: ConsentRecord | null) => {
-  if (!record) return false;
-  return Date.now() - record.timestamp < CONSENT_TTL_MS;
-};
+/** Dispatch this to reopen the banner on demand, e.g. a "Cookie Settings" button on the Cookie Policy page. */
+export const OPEN_COOKIE_PREFERENCES_EVENT = "skinlabs:open-cookie-preferences";
 
 const CookieConsent = () => {
+  const { user, loading: authLoading } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(true);
+  const [preferences, setPreferences] = useState<CookiePreferences>(
+    () => readCookieConsent()?.preferences ?? DEFAULT_COOKIE_PREFERENCES,
+  );
   const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const existing = readConsent();
-    if (isConsentFresh(existing)) return;
+    // Wait for auth state to resolve so a signed-in visitor never sees a flash of the banner.
+    if (authLoading) return;
+    if (user) {
+      setIsVisible(false);
+      return;
+    }
+
+    if (isCookieConsentFresh(readCookieConsent())) return;
 
     timerRef.current = window.setTimeout(() => {
       setIsVisible(true);
@@ -43,54 +42,115 @@ const CookieConsent = () => {
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
+  }, [authLoading, user]);
+
+  useEffect(() => {
+    const openPreferences = () => {
+      setPreferences(readCookieConsent()?.preferences ?? DEFAULT_COOKIE_PREFERENCES);
+      setShowPreferences(true);
+      setIsVisible(true);
+    };
+    window.addEventListener(OPEN_COOKIE_PREFERENCES_EVENT, openPreferences);
+    return () => window.removeEventListener(OPEN_COOKIE_PREFERENCES_EVENT, openPreferences);
   }, []);
 
-  const persist = (accepted: boolean) => {
-    const consentData: ConsentRecord = { accepted, timestamp: Date.now() };
-    localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consentData));
+  const persist = (nextPreferences: CookiePreferences) => {
+    writeCookieConsent(nextPreferences);
     setIsVisible(false);
   };
+
+  const handleSave = () => persist(preferences);
+  const handleAcceptAll = () => persist({ analytics: true, personalisation: true, targetedAdvertising: true });
+  const handleRejectNonEssential = () => persist({ ...DEFAULT_COOKIE_PREFERENCES });
 
   if (!isVisible) return null;
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[45] border-t border-border bg-background/95 shadow-lg backdrop-blur-lg"
+      className="fixed inset-x-0 bottom-0 z-[60] sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-sm"
       role="dialog"
-      aria-label="Cookie consent"
+      aria-label="Cookie consent settings"
       aria-live="polite"
     >
-      <div className="container mx-auto px-4 py-3 sm:py-4">
-        <div className="flex flex-col items-start justify-between gap-3 md:flex-row md:items-center md:gap-4">
-          <div className="flex flex-1 items-start gap-3">
-            <Cookie className="mt-1 h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" />
-            <div className="flex-1">
-              <h3 className="mb-0.5 text-sm font-semibold text-foreground sm:text-base">Cookie consent</h3>
-              <p className="text-xs text-muted-foreground sm:text-sm">
-                We use cookies so the site works, to understand what is useful, and occasionally for marketing.{" "}
-                <a href="/cookie-policy" className="text-primary hover:underline">
-                  Cookie policy
-                </a>
-              </p>
+      <div className="relative rounded-t-3xl border border-border bg-background p-6 shadow-2xl sm:rounded-3xl">
+        <button
+          type="button"
+          onClick={handleRejectNonEssential}
+          aria-label="Close and continue with only essential cookies"
+          className="absolute right-4 top-4 rounded-full p-1 text-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <p className="pr-8 text-sm leading-relaxed text-foreground">
+          This website utilises technologies such as cookies to enable essential site functionality, as well as for
+          analytics, personalisation, and targeted advertising. You may change your settings at any time or accept
+          the default settings. You may close this banner to continue with only essential cookies.
+        </p>
+
+        <a href="/privacy-policy" className="mt-3 block text-sm font-medium text-foreground underline underline-offset-2">
+          Privacy Policy
+        </a>
+
+        <button
+          type="button"
+          onClick={() => setShowPreferences((prev) => !prev)}
+          aria-expanded={showPreferences}
+          className="mt-2 block text-sm font-medium text-foreground underline underline-offset-2"
+        >
+          Storage Preferences
+        </button>
+
+        {showPreferences && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="cookie-pref-ads" className="text-sm text-foreground">
+                Targeted Advertising
+              </label>
+              <Switch
+                id="cookie-pref-ads"
+                checked={preferences.targetedAdvertising}
+                onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, targetedAdvertising: checked }))}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex items-center gap-3">
+                <label htmlFor="cookie-pref-personalisation" className="text-sm text-foreground">
+                  Personalisation
+                </label>
+                <Switch
+                  id="cookie-pref-personalisation"
+                  checked={preferences.personalisation}
+                  onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, personalisation: checked }))}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <label htmlFor="cookie-pref-analytics" className="text-sm text-foreground">
+                  Analytics
+                </label>
+                <Switch
+                  id="cookie-pref-analytics"
+                  checked={preferences.analytics}
+                  onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, analytics: checked }))}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex w-full items-center gap-2 md:w-auto">
-            <Button variant="outline" size="sm" onClick={() => persist(false)} className="flex-1 md:flex-none">
-              Decline
-            </Button>
-            <Button variant="default" size="sm" onClick={() => persist(true)} className="flex-1 md:flex-none">
-              Accept
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => persist(false)}
-              className="shrink-0"
-              aria-label="Dismiss cookie banner"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+        )}
+
+        <div className="mt-5 space-y-2.5">
+          <Button onClick={handleSave} className="w-full justify-center rounded-xl py-6 text-base font-semibold">
+            Save
+          </Button>
+          <Button onClick={handleAcceptAll} className="w-full justify-center rounded-xl py-6 text-base font-semibold">
+            Accept All
+          </Button>
+          <Button
+            onClick={handleRejectNonEssential}
+            className="w-full justify-center rounded-xl py-6 text-base font-semibold"
+          >
+            Reject Non-Essential
+          </Button>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { Cookie, Settings, CheckCircle, XCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { OPEN_COOKIE_PREFERENCES_EVENT } from "@/components/CookieConsent";
 
 const CookiePolicy = () => {
   const cookieTypes = [
@@ -203,7 +204,11 @@ const CookiePolicy = () => {
                   <p className="text-muted-foreground mb-6">
                     Update your cookie preferences at any time
                   </p>
-                  <Button size="lg" className="gap-2">
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_PREFERENCES_EVENT))}
+                  >
                     <Settings className="h-5 w-5" />
                     Cookie Settings
                   </Button>

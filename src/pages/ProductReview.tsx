@@ -11,6 +11,7 @@ import GatedOverlay from "@/components/GatedOverlay";
 import AdSlot from "@/components/AdSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import skinlabsPromiseBadge from "@/assets/skinlabs-promise-badge.png";
 import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
@@ -264,6 +265,24 @@ const ProductReview = () => {
               <Heart className={cn("h-4 w-4", liked && "fill-primary text-primary")} />
               {likeCount + (liked ? 1 : 0)} likes
             </button>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+            <img
+              src={skinlabsPromiseBadge}
+              alt="SkinLabs Promise — No Hype. Just Evidence."
+              className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
+              loading="lazy"
+              width={80}
+              height={80}
+            />
+            <div>
+              <p className="text-sm font-semibold text-foreground">The SkinLabs Promise</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                No hype, just evidence — this review is independently researched from publicly available
+                information, ingredient analysis and editorial testing.
+              </p>
+            </div>
           </div>
 
           <div className="mt-8">

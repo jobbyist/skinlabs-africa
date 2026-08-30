@@ -273,4 +273,74 @@ export const comparisonComments: Record<string, ArticleComment[]> = {
     { display_name: "DrZolaP", body: "Good comparison. Clinically there's less daylight between Skin Functional and SkinPhD than the price difference suggests.", created_at: "2026-07-03T04:05:00Z" },
     { display_name: "WillemD_George", body: "Would love to see a similar breakdown between Skin Functional and a more budget-friendly option.", created_at: "2026-08-05T02:28:00Z" },
   ],
+  "cerave-vs-cetaphil-sa-climate": [
+    { display_name: "Marizanne_PTA", body: "Switched to CeraVe for winter and Cetaphil for summer after reading this — makes so much more sense than picking just one.", created_at: "2026-08-30T08:21:00Z" },
+    { display_name: "Sibongile_DBN", body: "Cetaphil has always felt lighter to me in Durban humidity, glad to see there's an actual formulation reason for that.", created_at: "2026-08-30T13:47:00Z" },
+    { display_name: "DrFarahM", body: "As a GP I recommend both fairly often — good, accurate summary of when each one actually makes sense for a patient.", created_at: "2026-08-30T20:12:00Z" },
+  ],
+  "fundamentals-vs-the-ordinary-niacinamide": [
+    { display_name: "Katlego_Rustenburg", body: "The Ordinary always pilled on me under sunscreen, makes sense now reading about the vehicle issue.", created_at: "2026-08-30T07:56:00Z" },
+    { display_name: "Emma_Stellenbosch", body: "Didn't know a local brand was doing niacinamide this cheap — trying Fundamentals next repurchase.", created_at: "2026-08-30T16:33:00Z" },
+    { display_name: "Bradley_EastRand", body: "Good point about 5% being roughly where the research plateaus — never really questioned why brands push past that.", created_at: "2026-08-30T21:09:00Z" },
+  ],
+  "skin-functional-vs-standard-beauty-niacinamide": [
+    { display_name: "Nomvula_Soweto", body: "Been using the Skin Functional one for my breakouts and the succinic acid addition genuinely seems to help more than plain niacinamide did.", created_at: "2026-08-30T09:04:00Z" },
+    { display_name: "Werner_Paarl", body: "Only a R10 gap between them so this came down entirely to reading the ingredient breakdown, appreciated the detail.", created_at: "2026-08-30T15:18:00Z" },
+    { display_name: "Ayanda_Pmb", body: "Standard Beauty's simplicity is exactly why I like it — already juggling four other actives and didn't want more variables.", created_at: "2026-08-30T22:41:00Z" },
+  ],
+  "bio-oil-vs-portia-m-tissue-oil": [
+    { display_name: "Refilwe_Polokwane", body: "Had no idea Portia M's marula oil was actually a mineral oil base — good honesty flag to call that out.", created_at: "2026-08-30T08:37:00Z" },
+    { display_name: "Craig_PE", body: "Been using Bio-Oil on stretch marks since my daughter was born, that proDERM stat tracks with what I've seen.", created_at: "2026-08-30T14:02:00Z" },
+    { display_name: "Zinhle_Benoni", body: "Portia M is so much easier to find near me than Bio-Oil sometimes, good to know it's doing similar work.", created_at: "2026-08-30T19:26:00Z" },
+  ],
+  "lamelle-vs-environ-barrier-retinoid": [
+    { display_name: "DrThandekaN", body: "Good call separating these by job rather than forcing a winner — I tell clients this exact sequencing in-clinic.", created_at: "2026-08-30T09:48:00Z" },
+    { display_name: "Michelle_Sandton", body: "Wish I'd read this before starting Environ's STEP-UP without easing in properly — barrier was a mess for weeks.", created_at: "2026-08-30T17:15:00Z" },
+    { display_name: "Junaid_CapeTown", body: "Both are a serious spend but the Ceramide-P explanation makes the Lamelle price make more sense to me now.", created_at: "2026-08-30T23:02:00Z" },
+  ],
+  "bioderma-sensibio-vs-sebium": [
+    { display_name: "Amanda_GeorgeWC", body: "Keep both in my bathroom exactly like this article suggests — Sensibio after a windy Cape day, Sebium on humid ones.", created_at: "2026-08-30T07:29:00Z" },
+    { display_name: "Kagiso_Umhlanga", body: "Sebium has been so much better for my oily skin in Durban heat than the Sensibio I used to buy out of habit.", created_at: "2026-08-30T13:11:00Z" },
+    { display_name: "Lerato_Vereeniging", body: "Never realised the price was basically identical between the two, assumed Sensibio was the pricier one.", created_at: "2026-08-30T20:47:00Z" },
+  ],
+  "silki-vs-skin-functional-vitamin-c": [
+    { display_name: "Chante_Bloem", body: "My Skin Functional bottle turned orange within a month in summer, this explains exactly why — should've stored it better.", created_at: "2026-08-30T08:54:00Z" },
+    { display_name: "Ntokozo_Springs", body: "Silki's arbutin addition is the reason I've stuck with it over the plain vitamin C serums, good to see that called out specifically.", created_at: "2026-08-30T16:02:00Z" },
+    { display_name: "PieterJ_Kimberley", body: "Good breakdown of the actual vitamin C forms — most comparisons just say '10%' and leave it there.", created_at: "2026-08-30T21:38:00Z" },
+  ],
+  "optiphi-vs-skinphd-retinoid-night": [
+    { display_name: "DrsAishaK", body: "Fair summary — neither of these is a starter retinoid and I always tell new patients to expect that two to four week adjustment.", created_at: "2026-08-30T09:17:00Z" },
+    { display_name: "Herman_Centurion", body: "Went with SkinPhD for the price and haven't felt like I'm missing much versus what my therapist uses.", created_at: "2026-08-30T14:56:00Z" },
+    { display_name: "Palesa_Midrand", body: "The peptide explanation on Optiphi finally makes sense of why my therapist pushed it over a plain retinol option.", created_at: "2026-08-30T22:04:00Z" },
+  ],
+  "esse-vs-skoon-hydration": [
+    { display_name: "Tamsin_CapeTown", body: "Fair to flag the Esse study as brand-supplied — wish more sites were upfront about that distinction.", created_at: "2026-08-30T08:12:00Z" },
+    { display_name: "Bongiwe_Khayelitsha", body: "Didn't realise Skoon's bottle was only 15ml, that changes the value math a lot from what I assumed.", created_at: "2026-08-30T15:39:00Z" },
+    { display_name: "Ryan_Stellenbosch", body: "Genuinely curious about the probiotic angle, might try Esse just to see if my skin responds differently.", created_at: "2026-08-30T20:55:00Z" },
+  ],
+  "lelive-vs-nimue-tinted-spf": [
+    { display_name: "Naledi_Rustenburg", body: "Finally a tinted SPF that doesn't ash on deeper skin — Lelive has been a game changer for me.", created_at: "2026-08-30T07:41:00Z" },
+    { display_name: "Werner_Nelspruit", body: "Good point on reapplication mattering more than the SPF30 vs 40 gap, never thought about it that way.", created_at: "2026-08-30T13:58:00Z" },
+    { display_name: "Amahle_EastLondon", body: "Nimue's price is steep but the antioxidant complex sold me for daily wear under makeup.", created_at: "2026-08-30T19:44:00Z" },
+  ],
+  "african-extracts-vs-skin-creamery-moisturiser": [
+    { display_name: "Susan_Bloem", body: "Grew up on African Extracts in my mom's bathroom, good to see the ceramide content actually holds up on paper.", created_at: "2026-08-30T08:29:00Z" },
+    { display_name: "Zola_CapeTown", body: "Skin Creamery's texture really is nicer for everyday use but this confirms I'm mostly paying for that, not more actives.", created_at: "2026-08-30T16:17:00Z" },
+    { display_name: "Farhaan_Overport", body: "R150 for ceramides and HA is genuinely hard to beat, picking this up on my next Clicks run.", created_at: "2026-08-30T21:53:00Z" },
+  ],
+  "vitaderm-vs-skinphd-clinical-range": [
+    { display_name: "Charlene_Retailbox", body: "Ordered Vitaderm online without needing a salon visit, exactly the accessibility point this article makes.", created_at: "2026-08-30T09:02:00Z" },
+    { display_name: "Sipho_Alberton", body: "SkinPhD's salon network near me is patchy so this pushed me toward Vitaderm despite liking the ceramide formula more on paper.", created_at: "2026-08-30T14:34:00Z" },
+    { display_name: "Marlene_PE", body: "Useful to know neither has full clinical trial data behind the actual product — appreciate the honesty there.", created_at: "2026-08-30T22:19:00Z" },
+  ],
+  "justine-vs-bio-oil-tissue-oil": [
+    { display_name: "Gogo_Thandiwe", body: "My mother used Justine her whole life and now I do too, nice to see it still holds up against Bio-Oil on paper.", created_at: "2026-08-30T08:03:00Z" },
+    { display_name: "Corne_Witbank", body: "Half the price for basically the same job sold me — switching from Bio-Oil to Justine after this.", created_at: "2026-08-30T15:47:00Z" },
+    { display_name: "Ayesha_Laudium", body: "Bio-Oil's trial data is brand-funded like the article says, but it's still the reason I keep buying it over cheaper options.", created_at: "2026-08-30T21:26:00Z" },
+  ],
+  "lamelle-vs-nimue-brightening": [
+    { display_name: "DrLindiweM", body: "Good clarification that these are for melasma-level pigmentation, not general dullness — I see too many patients jump straight to this tier.", created_at: "2026-08-30T09:33:00Z" },
+    { display_name: "Precious_Sandton", body: "The tranexamic acid explanation is why I've stuck with Lamelle over Nimue for my melasma specifically.", created_at: "2026-08-30T16:49:00Z" },
+    { display_name: "Johan_Bellville", body: "Both are a serious investment but glad this didn't try to force a 'winner' between them.", created_at: "2026-08-30T23:15:00Z" },
+  ],
 };

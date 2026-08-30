@@ -65,7 +65,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Barrier Repair",
     thumbnailUrl: thumb.barrier,
     thumbnailAlt: "A jar of barrier-repair moisturiser cream on a neutral background",
-    comingSoon: true,
   },
   {
     slug: "fundamentals-vs-the-ordinary-niacinamide",
@@ -75,7 +74,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Niacinamide",
     thumbnailUrl: thumb.niacinamide,
     thumbnailAlt: "Niacinamide serum bottles on a neutral surface",
-    comingSoon: true,
   },
   {
     slug: "skin-functional-vs-standard-beauty-niacinamide",
@@ -85,7 +83,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Budget Actives",
     thumbnailUrl: thumb.niacinamide2,
     thumbnailAlt: "Two pharmacy skincare serums side by side",
-    comingSoon: true,
   },
   {
     slug: "bio-oil-vs-portia-m-tissue-oil",
@@ -95,7 +92,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Body Oils",
     thumbnailUrl: thumb.oil,
     thumbnailAlt: "Skincare oils in glass bottles on a wooden surface",
-    comingSoon: true,
   },
   {
     slug: "lamelle-vs-environ-barrier-retinoid",
@@ -105,7 +101,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Clinic Brands",
     thumbnailUrl: thumb.clinic,
     thumbnailAlt: "Premium clinical skincare jars on a clean counter",
-    comingSoon: true,
   },
   {
     slug: "bioderma-sensibio-vs-sebium",
@@ -115,7 +110,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Cleansers",
     thumbnailUrl: thumb.cleanser,
     thumbnailAlt: "Micellar water bottles and cotton pads",
-    comingSoon: true,
   },
   {
     slug: "silki-vs-skin-functional-vitamin-c",
@@ -125,7 +119,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Brightening",
     thumbnailUrl: thumb.vitaminC2,
     thumbnailAlt: "Vitamin C serums with citrus accents",
-    comingSoon: true,
   },
   {
     slug: "optiphi-vs-skinphd-retinoid-night",
@@ -135,17 +128,15 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Retinoids",
     thumbnailUrl: thumb.retinoid2,
     thumbnailAlt: "Night treatment serum bottles in low light",
-    comingSoon: true,
   },
   {
     slug: "esse-vs-skoon-hydration",
     href: "/reviews/versus/esse-vs-skoon-hydration",
-    title: "Esse vs Skoon: Probiotic Serum vs Layered Hydrators, Compared",
-    dek: "Live Lactobacillus serums against polyglutamic-and-HA layering — two Cape Town approaches to barrier comfort.",
+    title: "Esse vs Skoon: Probiotic Serum vs Vitamin C-and-HA Layering, Compared",
+    dek: "Live Lactobacillus probiotic serum against vitamin-C-and-triple-hyaluronic-acid layering — two Cape Town approaches to barrier comfort.",
     saContext: "Hydration",
     thumbnailUrl: thumb.probiotic,
     thumbnailAlt: "Hydrating skincare serums with water droplets",
-    comingSoon: true,
   },
   {
     slug: "lelive-vs-nimue-tinted-spf",
@@ -155,7 +146,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Sun Protection",
     thumbnailUrl: thumb.tinted,
     thumbnailAlt: "Tinted sunscreen tubes on a sunny surface",
-    comingSoon: true,
   },
   {
     slug: "african-extracts-vs-skin-creamery-moisturiser",
@@ -165,7 +155,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Moisturisers",
     thumbnailUrl: thumb.moisturiser,
     thumbnailAlt: "Two moisturiser jars on a marble surface",
-    comingSoon: true,
   },
   {
     slug: "vitaderm-vs-skinphd-clinical-range",
@@ -175,7 +164,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Clinical Skincare",
     thumbnailUrl: thumb.clinic2,
     thumbnailAlt: "Clinical skincare products arranged on a shelf",
-    comingSoon: true,
   },
   {
     slug: "justine-vs-bio-oil-tissue-oil",
@@ -185,7 +173,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Body Care",
     thumbnailUrl: thumb.oil2,
     thumbnailAlt: "Classic tissue oil bottles",
-    comingSoon: true,
   },
   {
     slug: "lamelle-vs-nimue-brightening",
@@ -195,7 +182,6 @@ export const featuredEditorials: FeaturedEditorial[] = [
     saContext: "Pigmentation",
     thumbnailUrl: thumb.brightening2,
     thumbnailAlt: "Brightening serums with droppers",
-    comingSoon: true,
   },
 ];
 
