@@ -128,9 +128,9 @@ const ReviewsGrid = ({
   };
 
   return (
-    <section id="reviews" className="bg-secondary/30 py-20">
+    <section id="reviews" className="bg-secondary/30 py-10">
       <div className="container mx-auto px-4">
-        <div className="mb-10 max-w-2xl">
+        <div className="mb-8 max-w-2xl">
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Reviews</p>
           {paginate ? (
             <h1 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h1>
