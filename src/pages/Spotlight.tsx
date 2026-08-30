@@ -53,7 +53,7 @@ const Spotlight = () => {
         jsonLd={jsonLd}
       />
       <Header />
-      <main className="pt-24 pb-24">
+      <main className="pt-20 pb-24">
         <section className="container mx-auto px-4 text-center">
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight</p>
           <h1 className="mx-auto max-w-2xl font-heading text-4xl font-bold leading-tight text-foreground md:text-5xl">
@@ -82,12 +82,12 @@ const Spotlight = () => {
           </div>
         </section>
 
-        <div className="container mx-auto px-4 mt-10">
+        <div className="container mx-auto px-4 mt-6">
           <AdSlot placement="spotlight-top" compact />
         </div>
 
         {/* Top 3 */}
-        <section className="container mx-auto mt-14 px-4">
+        <section className="container mx-auto mt-12 px-4">
           <h2 className="mb-6 text-center font-heading text-2xl font-bold text-foreground">Top 3 this month</h2>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
             {spotlightTopThree.map((entry) => (
@@ -97,7 +97,7 @@ const Spotlight = () => {
         </section>
 
         {/* Full ranking */}
-        <section className="container mx-auto mt-16 px-4">
+        <section className="container mx-auto mt-14 px-4">
           <h2 className="mb-6 font-heading text-2xl font-bold text-foreground">The full ranking</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {spotlightRankedBrands.map((entry) => (
@@ -108,7 +108,7 @@ const Spotlight = () => {
 
         {/* New on the Radar */}
         {spotlightRisingBrands.length > 0 && (
-          <section className="container mx-auto mt-16 px-4">
+          <section className="container mx-auto mt-14 px-4">
             <h2 className="mb-2 font-heading text-2xl font-bold text-foreground">New on the Radar</h2>
             <p className="mb-6 max-w-2xl text-sm text-muted-foreground">
               Brands with real evidence but not yet enough reviewed products for our main ranking. We'll move them
@@ -123,7 +123,7 @@ const Spotlight = () => {
         )}
 
         {/* Methodology summary */}
-        <section className="container mx-auto mt-16 px-4">
+        <section className="container mx-auto mt-14 px-4">
           <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
             <h2 className="font-heading text-lg font-bold text-foreground">How the ranking works</h2>
             <p className="mt-2 text-sm text-muted-foreground">
