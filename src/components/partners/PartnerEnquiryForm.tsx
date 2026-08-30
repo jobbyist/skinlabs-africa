@@ -49,6 +49,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
       return;
     }
     setSubmitting(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from("partner_enquiries").insert(form);
     setSubmitting(false);
     if (error) {
