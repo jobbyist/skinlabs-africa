@@ -57,7 +57,7 @@ const Seasonals = () => {
         jsonLd={jsonLd}
       />
       <Header />
-      <main className="pt-24 pb-24">
+      <main className="pt-20 pb-24">
         <section className="container mx-auto px-4 text-center">
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Seasonals</p>
           <h1 className="mx-auto max-w-2xl font-heading text-4xl font-bold leading-tight text-foreground md:text-5xl">
@@ -74,11 +74,11 @@ const Seasonals = () => {
           </Button>
         </section>
 
-        <div className="container mx-auto px-4 mt-10">
+        <div className="container mx-auto px-4 mt-6">
           <AdSlot placement="seasonals-top" compact />
         </div>
 
-        <section className="container mx-auto mt-14 px-4">
+        <section className="container mx-auto mt-12 px-4">
           <div className="grid gap-6 md:grid-cols-3">
             {threeCards.map((card) => (
               <Link
@@ -99,7 +99,7 @@ const Seasonals = () => {
           </div>
         </section>
 
-        <section className="container mx-auto mt-16 px-4">
+        <section className="container mx-auto mt-14 px-4">
           <h2 className="mb-6 font-heading text-2xl font-bold text-foreground">The four seasonal hubs</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {allSeasons.map((season) => {
