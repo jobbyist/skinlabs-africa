@@ -20,6 +20,7 @@ const AIFormulator = lazy(() => import("./pages/AIFormulator"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Business = lazy(() => import("./pages/Business"));
+const Partners = lazy(() => import("./pages/Partners"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -75,6 +76,7 @@ const AppContent = () => {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/business" element={<Business />} />
+        <Route path="/partners" element={<Partners />} />
 
         <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
         <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />

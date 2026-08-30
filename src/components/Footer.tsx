@@ -50,6 +50,7 @@ const Footer = () => {
       { label: "Our Science", href: "/about#science" },
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
+      { label: "Partnerships", href: "/partners" },
       { label: "Browse FAQs", href: "/faq" },
       { label: "Contact Us", href: "/contact" },
     ],
