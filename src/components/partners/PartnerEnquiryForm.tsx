@@ -40,6 +40,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
   const [done, setDone] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState("");
   const [nextSubmitAllowedAt, setNextSubmitAllowedAt] = useState(0);
+  const isRateLimited = Date.now() < nextSubmitAllowedAt;
 
   useEffect(() => {
     if (selectedModel) {
@@ -49,32 +50,35 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isRateLimited) {
+      toast.error("Please wait a few seconds before submitting again.");
+      return;
+    }
     if (!form.full_name || !form.business_name || !form.work_email || !form.partnership_model) {
       toast.error("We'll need your name, business, email and partnership interest before submitting.");
       return;
     }
-    if (Date.now() < nextSubmitAllowedAt) {
-      toast.error("Please wait a few seconds before submitting again.");
-      return;
-    }
     setSubmitting(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from("partner_enquiries").insert(form);
-    setSubmitting(false);
-    setNextSubmitAllowedAt(Date.now() + RESUBMIT_COOLDOWN_MS);
-    if (error) {
-      const isRateLimited = error.message?.includes("Too many partnership enquiries");
-      toast.error(
-        isRateLimited
-          ? error.message
-          : `That didn't go through — please try again, or email ${FALLBACK_EMAIL} directly.`,
-      );
-      return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("partner_enquiries").insert(form);
+      setNextSubmitAllowedAt(Date.now() + RESUBMIT_COOLDOWN_MS);
+      if (error) {
+        const isServerRateLimited = error.message?.includes("Too many partnership enquiries");
+        toast.error(
+          isServerRateLimited
+            ? error.message
+            : `That didn't go through — please try again, or email ${FALLBACK_EMAIL} directly.`,
+        );
+        return;
+      }
+      setSubmittedEmail(form.work_email);
+      setForm(initialForm);
+      setDone(true);
+      toast.success("Got it. Our partnerships team will be in touch shortly.");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmittedEmail(form.work_email);
-    setForm(initialForm);
-    setDone(true);
-    toast.success("Got it. Our partnerships team will be in touch shortly.");
   };
 
   if (done) {
@@ -143,7 +147,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
         <Textarea id="pf-message" rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="What are you building, and how would you like to work with SkinLabs®?" />
       </div>
 
-      <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+      <Button type="submit" size="lg" className="w-full" disabled={submitting || isRateLimited}>
         {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         Submit enquiry
       </Button>
