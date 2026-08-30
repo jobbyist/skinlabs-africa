@@ -100,9 +100,9 @@ const NewsroomFeed = ({
   };
 
   return (
-    <section id="newsroom" className="bg-background py-20">
+    <section id="newsroom" className="bg-background py-10">
       <div className="container mx-auto px-4">
-        <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Daily briefing</p>
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
