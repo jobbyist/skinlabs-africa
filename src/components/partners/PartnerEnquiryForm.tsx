@@ -35,6 +35,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
   const [form, setForm] = useState(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   useEffect(() => {
     if (selectedModel) {
@@ -56,6 +57,8 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
       toast.error("That didn't go through — please try again.");
       return;
     }
+    setSubmittedEmail(form.work_email);
+    setForm(initialForm);
     setDone(true);
     toast.success("Got it. Our partnerships team will be in touch shortly.");
   };
@@ -66,7 +69,7 @@ const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
         <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden="true" />
         <p className="mt-4 text-lg font-medium text-foreground">Enquiry received</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          We'll be in touch at <span className="text-foreground">{form.work_email}</span>. Feel free to pick a
+          We'll be in touch at <span className="text-foreground">{submittedEmail}</span>. Feel free to pick a
           time below so we can meet sooner.
         </p>
       </div>
