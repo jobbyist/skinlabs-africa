@@ -65,12 +65,12 @@ const PodcastPage = () => {
       </Helmet>
 
       <Header />
-      <main className="pt-24 pb-28">
+      <main className="pt-20 pb-28">
         <section className="container mx-auto px-4">
-          <div className="mb-8">
+          <div className="mb-4">
             <AdSlot placement="podcast-top" compact />
           </div>
-          <div className="mb-10 max-w-2xl">
+          <div className="mb-8 max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Audio series</p>
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
             <p className="text-muted-foreground">
