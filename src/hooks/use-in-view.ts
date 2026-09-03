@@ -25,7 +25,7 @@ export function useInView<T extends Element>(options?: IntersectionObserverInit)
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [inView, options]);
+  }, [inView]);
 
   return { ref, inView };
 }
