@@ -32,7 +32,7 @@ const initialForm = {
 };
 
 const RESUBMIT_COOLDOWN_MS = 15_000;
-const FALLBACK_EMAIL = "support@skinlabs.co.za";
+const FALLBACK_EMAIL = "partners@skinlabs.co.za";
 
 const PartnerEnquiryForm = ({ selectedModel }: PartnerEnquiryFormProps) => {
   const [form, setForm] = useState(initialForm);
