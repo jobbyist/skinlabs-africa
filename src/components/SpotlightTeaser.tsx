@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import SpotlightRankingCard from "@/components/SpotlightRankingCard";
-import { spotlightTopThree, SPOTLIGHT_EDITION_MONTH } from "@/data/spotlight";
+import { spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH } from "@/data/spotlight";
 
 const SpotlightTeaser = () => {
   return (
@@ -11,11 +11,11 @@ const SpotlightTeaser = () => {
           <div className="max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight · {SPOTLIGHT_EDITION_MONTH}</p>
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">
-              Top 3 South African skincare brands this month
+              Top 3 South African skincare brands this week
             </h2>
             <p className="text-muted-foreground">
-              Ranked by real, published review scores — not popularity, not payment. Refreshed monthly as SkinLabs
-              reviews more products.
+              Ranked by real, published review scores — not popularity, not payment. This trio rotates every Friday
+              at 12am SAST among the highest-scoring brands; the full ranking refreshes monthly.
             </p>
           </div>
           <Link to="/spotlight" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
@@ -25,7 +25,7 @@ const SpotlightTeaser = () => {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-3">
-          {spotlightTopThree.map((entry) => (
+          {spotlightTopThisWeek.map((entry) => (
             <SpotlightRankingCard key={entry.slug} entry={entry} />
           ))}
         </div>

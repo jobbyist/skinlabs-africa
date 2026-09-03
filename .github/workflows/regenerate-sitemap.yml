@@ -1,0 +1,50 @@
+name: Regenerate sitemap on merge
+
+# Keeps public/sitemap.xml in sync with the site's actual routes and content
+# (reviews, Spotlight brands, comparisons, podcast episodes, newsroom briefings)
+# every time a pull request is merged into main, instead of relying on someone
+# remembering to run `bun run sitemap` locally before the next deploy.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate-sitemap:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Generate sitemap
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: bun run sitemap
+
+      - name: Commit updated sitemap
+        run: |
+          if git diff --quiet -- public/sitemap.xml; then
+            echo "sitemap.xml unchanged — nothing to commit."
+            exit 0
+          fi
+          git config user.name "skinlabs-sitemap-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/sitemap.xml
+          git commit -m "chore: regenerate sitemap after PR #${{ github.event.pull_request.number }} merge [skip ci]"
+          git push origin HEAD:main

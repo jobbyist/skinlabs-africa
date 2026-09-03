@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
+import { getProductImage } from "@/data/productImages";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
@@ -235,7 +236,9 @@ const ReviewsGrid = ({
         )}
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {pageItems.map((review, index) => (
+          {pageItems.map((review, index) => {
+            const productImage = getProductImage(review.category, review.id);
+            return (
             <motion.div
               key={review.id}
               initial={{ opacity: 0, y: 20 }}
@@ -243,8 +246,17 @@ const ReviewsGrid = ({
               viewport={{ once: true }}
               transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
               whileHover={{ y: -4 }}
-              className="flex flex-col rounded-3xl border border-border bg-card p-6"
+              className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
             >
+              {productImage && (
+                <img
+                  src={productImage.url}
+                  alt={`${review.category} product photography — ${productImage.alt}`}
+                  loading="lazy"
+                  className="h-40 w-full object-cover"
+                />
+              )}
+              <div className="flex flex-1 flex-col p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand}</p>
@@ -304,8 +316,10 @@ const ReviewsGrid = ({
                   <Heart className={cn("h-4 w-4", likedIds.includes(review.id) && "fill-primary text-primary")} />
                 </button>
               </div>
+              </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
 
         {pageItems.length === 0 && (

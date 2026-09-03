@@ -26,32 +26,57 @@ export interface NewsArticleSummary {
 const SELECT_COLUMNS =
   "id, slug, title, excerpt, key_takeaways, sa_context_tag, source_name, source_url, publish_date, reading_time, word_count, cover_image_url, cover_image_alt, cover_credit_name, cover_credit_url, seo_title, seo_description, json_ld, view_count";
 
-/** Live Daily Skinny briefings. Bodies are never fetched here — they are member gated server side. */
-export const useNewsArticles = (limit?: number) => {
+export interface NewsArticlesPage {
+  page: number;
+  pageSize: number;
+}
+
+const isPaginatedOptions = (value: unknown): value is NewsArticlesPage =>
+  typeof value === "object" && value !== null && "page" in value && "pageSize" in value;
+
+/**
+ * Live Daily Skinny briefings. Bodies are never fetched here — they are member gated server side.
+ * Pass a number for a simple top-N fetch (e.g. the homepage teaser), or `{ page, pageSize }` for
+ * SEO-friendly range-based pagination (e.g. the full /newsroom listing) — the latter also returns
+ * `totalCount` so callers can render real page links.
+ */
+export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
   const [articles, setArticles] = useState<NewsArticleSummary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const paginated = isPaginatedOptions(limitOrPage);
+  const limit = typeof limitOrPage === "number" ? limitOrPage : undefined;
+  const page = paginated ? limitOrPage.page : 1;
+  const pageSize = paginated ? limitOrPage.pageSize : 0;
 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      setLoading(true);
       let query = supabase
         .from("news_articles_public")
-        .select(SELECT_COLUMNS)
+        .select(SELECT_COLUMNS, paginated ? { count: "exact" } : undefined)
         .order("publish_date", { ascending: false })
         .order("created_at", { ascending: false });
-      if (limit) query = query.limit(limit);
-      const { data } = await query;
+      if (paginated) {
+        const from = (page - 1) * pageSize;
+        query = query.range(from, from + pageSize - 1);
+      } else if (limit) {
+        query = query.limit(limit);
+      }
+      const { data, count } = await query;
       if (!active) return;
       setArticles((data as unknown as NewsArticleSummary[]) ?? []);
+      if (paginated) setTotalCount(count ?? 0);
       setLoading(false);
     };
     void load();
     return () => {
       active = false;
     };
-  }, [limit]);
+  }, [limit, paginated, page, pageSize]);
 
-  return { articles, loading };
+  return { articles, loading, totalCount };
 };
 
 export const useNewsArticle = (slug?: string) => {

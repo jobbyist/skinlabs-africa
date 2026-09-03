@@ -34,7 +34,7 @@ const SpotlightMethodology = () => {
               SkinLabs' own published product reviews, and no brand can buy a higher position.
             </p>
 
-            <h2>What Methodology v1.0 actually measures</h2>
+            <h2>What Methodology v1.1 actually measures</h2>
             <p>
               A brand's Spotlight score is the average of its <strong>SkinLabs product review score</strong> across
               every product from that brand SkinLabs has reviewed. Each product review scores four things out of 10:
@@ -48,6 +48,26 @@ const SpotlightMethodology = () => {
             <p>
               A brand's four-axis average across all its reviewed products becomes its Spotlight score. This is
               recalculated automatically every time SkinLabs publishes or updates a review — it is never hand-typed.
+              This scoring model is unchanged from v1.0; what v1.1 adds is described below.
+            </p>
+
+            <h2>Weekly Top 3 rotation (new in v1.1)</h2>
+            <p>
+              The homepage and Spotlight page feature a "Top 3 brands this week" module. It is <strong>not</strong> a
+              separate, hand-picked list — it is drawn algorithmically from the same Ranked-tier scores described
+              above, so it can never surface a brand that isn't already genuinely top-scoring:
+            </p>
+            <ul>
+              <li>Take the highest-scoring Ranked brands, up to a pool of 9, and split them into cohorts of 3 in score order (so brands ranked 1–3, 4–6 and 7–9 each form one cohort).</li>
+              <li>The active cohort is chosen by the current rotation week number, so it advances by exactly one cohort each week and cycles back to the top cohort once every cohort has had a turn.</li>
+              <li>The rotation flips at <strong>00:00 SAST every Friday</strong> — never mid-week, never on demand, and never influenced by traffic, votes or payment.</li>
+              <li>If fewer than 9 brands are Ranked, the pool and cohort count shrink accordingly; the top 3 overall are shown until there are enough Ranked brands to rotate meaningfully.</li>
+            </ul>
+            <p>
+              This means every brand that appears in "Top 3 this week" earned that appearance on real review scores —
+              rotation only changes <em>which</em> genuinely top brands are surfaced, and <em>when</em>, never the bar
+              for getting there. The full ranking below the Top 3 module is unaffected by rotation and continues to
+              reflect every Ranked and New on the Radar brand at all times.
             </p>
 
             <h2>What this version doesn't measure — yet</h2>
@@ -61,6 +81,17 @@ const SpotlightMethodology = () => {
               documented here.
             </p>
 
+            <h2>Coverage counts</h2>
+            <p>
+              Every brand, Ranked and New on the Radar count referenced on Spotlight — the disclaimer on the
+              Spotlight page, this Methodology page, and the archive — is computed live from the same underlying
+              data as the ranking itself. Nothing is a hand-typed number: add a brand, publish a review that moves it
+              between tiers, and every count updates automatically, everywhere, on the next page load. Only the
+              edition label and this Methodology's version number are updated by hand, since only a person can judge
+              when a new calendar edition begins or when a change is substantial enough to warrant a new methodology
+              version.
+            </p>
+
             <h2>Eligibility</h2>
             <ul>
               <li>The brand sells skincare products to South African consumers.</li>
@@ -71,24 +102,35 @@ const SpotlightMethodology = () => {
 
             <h2>Movement</h2>
             <p>
-              This is Spotlight's first edition, so every brand is labelled "New" — there's no prior snapshot to
-              compare against yet. From the second edition onward, movement will reflect genuine score changes as
-              SkinLabs publishes new or updated reviews, never a fabricated up/down.
+              Every brand added since the first edition is labelled "New" until we have a genuine prior snapshot to
+              compare it against. Movement will reflect real score changes as SkinLabs publishes new or updated
+              reviews, never a fabricated up/down — the full ranking's movement is assessed monthly; the weekly Top 3
+              module rotates on the schedule above and doesn't carry its own separate movement indicator.
             </p>
 
             <h2>Update cadence</h2>
             <p>
-              Spotlight is intended to refresh as SkinLabs publishes new product reviews, with a full edition
-              reassessment at least monthly. See the <Link to="/spotlight/archive">archive</Link> for past editions
-              once more than one exists.
+              The full ranking and all brand profiles refresh as SkinLabs publishes new product reviews, with a
+              complete edition reassessment at least monthly. The Top 3 module rotates weekly as described above.
+              See the <Link to="/spotlight/archive">archive</Link> for past editions once more than one exists.
             </p>
 
             <h2>Commercial independence</h2>
             <p>
-              Inclusion in Spotlight is never paid, and no brand can guarantee or purchase a ranking position. If
-              SkinLabs ever has a commercial relationship with a featured brand — a gifted product, an affiliate
-              link, a sponsorship — it will be disclosed clearly on that brand's profile and in the product review
-              it's based on.
+              Inclusion in Spotlight is never paid, and no brand can guarantee or purchase a ranking position or a
+              Top 3 rotation slot — the rotation is a deterministic function of real review scores and the calendar,
+              not a decision anyone at SkinLabs makes edition to edition. If SkinLabs ever has a commercial
+              relationship with a featured brand — a gifted product, an affiliate link, a sponsorship — it will be
+              disclosed clearly on that brand's profile and in the product review it's based on.
+            </p>
+
+            <h2>Access to brand profiles</h2>
+            <p>
+              The full ranking, the Top 3 module and every brand's summary card are visible to all visitors, signed
+              in or not. Opening a full brand profile page is free for the first 3 brands each calendar month for
+              signed-out visitors and Glow Explorer (free) members; Glow Insider and Glow VIP members have unlimited
+              access. This limit exists to support the reporting behind Spotlight — it doesn't affect a brand's score,
+              rank or Top 3 eligibility in any way.
             </p>
 
             <h2>Limitations</h2>
@@ -97,6 +139,21 @@ const SpotlightMethodology = () => {
               small fraction of its full range. A high score means the reviewed products performed well — it isn't
               a guarantee every product in the brand's catalogue will.
             </p>
+
+            <h2>Changelog</h2>
+            <ul>
+              <li>
+                <strong>v1.1 — September 2026:</strong> Expanded brand coverage from 21 to 50 South African skincare
+                brands with published product reviews. Introduced the weekly Top 3 rotation described above (the
+                monthly "Top 3" snapshot from v1.0 is retired in favour of it). Added SEO-friendly, page-numbered
+                pagination to the full ranking. Replaced the previous full members-only gate on brand profiles with a
+                3-profile-per-month free allowance for signed-out visitors and Glow Explorer members.
+              </li>
+              <li>
+                <strong>v1.0 — August 2026:</strong> Initial release. Four-axis product-review scoring, Ranked and New
+                on the Radar tiers, monthly full-edition refresh.
+              </li>
+            </ul>
           </div>
         </div>
       </main>

@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroVideo from "@/assets/hero-video.mp4";
+import heroVideoAsset from "@/assets/hero-video.mp4";
 import { useMembership } from "@/hooks/use-membership";
+import { remoteHeroVideos, pickRandom, type HeroVideo } from "@/data/heroVideos";
+
+/** Local brand footage + 19 remote clips = 20 total, one chosen at random per page load. */
+const ALL_HERO_VIDEOS: HeroVideo[] = [
+  { id: "local-default", url: heroVideoAsset, description: "SkinLabs brand hero footage" },
+  ...remoteHeroVideos,
+];
 
 const stats = [
   {
@@ -24,8 +31,17 @@ const stats = [
 
 const Hero = () => {
   const [isPlaying, setIsPlaying] = useState(true);
+  // Chosen once per mount (i.e. once per page load), never re-rolled on re-render.
+  const [activeVideo] = useState<HeroVideo>(() => pickRandom(ALL_HERO_VIDEOS));
+  const [videoSrc, setVideoSrc] = useState(activeVideo.url);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { isMember, trialUsed, loading: membershipLoading } = useMembership();
+
+  // If the randomly picked remote clip fails to load (network hiccup, CDN issue),
+  // fall back to the bundled local video rather than leaving a blank hero.
+  const handleVideoError = () => {
+    if (videoSrc !== heroVideoAsset) setVideoSrc(heroVideoAsset);
+  };
 
   // Respect prefers-reduced-motion and skip forcing an autoplaying background video onto that traffic.
   useEffect(() => {
@@ -50,12 +66,15 @@ const Hero = () => {
     <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
       <div className="absolute inset-0 z-0">
         <video
+          key={videoSrc}
           ref={videoRef}
-          src={heroVideo}
+          src={videoSrc}
+          onError={handleVideoError}
           autoPlay
           muted
           loop
           playsInline
+          preload="auto"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
