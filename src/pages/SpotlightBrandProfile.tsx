@@ -24,13 +24,16 @@ const SpotlightBrandProfile = () => {
   const [claimOpen, setClaimOpen] = useState(false);
   const { isMember, loading: membershipLoading } = useMembership();
   const entry = getSpotlightBrand(brandSlug ?? "");
-  const locked = Boolean(entry) && !membershipLoading && !isMember && !canViewSpotlightProfile(brandSlug ?? "");
+  const [viewRecorded, setViewRecorded] = useState(false);
+  const canView = canViewSpotlightProfile(brandSlug ?? "");
+  const locked = Boolean(entry) && !membershipLoading && !isMember && !canView;
 
   useEffect(() => {
-    if (entry && !isMember && brandSlug && canViewSpotlightProfile(brandSlug)) {
+    if (entry && !isMember && brandSlug && canView && !viewRecorded) {
       recordSpotlightProfileView(brandSlug);
+      setViewRecorded(true);
     }
-  }, [entry, isMember, brandSlug]);
+  }, [entry, isMember, brandSlug, canView, viewRecorded]);
 
   if (!entry) {
     return (
