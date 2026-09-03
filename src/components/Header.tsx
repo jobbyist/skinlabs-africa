@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Atom, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale, LogIn } from "lucide-react";
+import { Menu, X, Atom, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, Search, Award, Sun, ShoppingBag, Scale, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -26,7 +26,6 @@ const Header = () => {
     { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
     { label: "Consult", href: "/consultations", icon: Calendar },
-    { label: "Pricing", href: "/pricing", icon: DollarSign },
   ];
 
   const handleSignOut = async () => {

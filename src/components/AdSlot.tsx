@@ -7,6 +7,14 @@ declare global {
   }
 }
 
+/**
+ * Sitewide kill switch for Google AdSense units. Flip back to `true` to
+ * resume rendering `<ins class="adsbygoogle">` slots. The affiliate-banner
+ * fallback (and, where a campaign is active, the real affiliate creative)
+ * keeps rendering either way, so placements never go visually blank.
+ */
+const ADS_ENABLED = false;
+
 export const ADSENSE_CLIENT = "ca-pub-1237323355260727";
 
 export const AD_SLOTS = {
@@ -37,7 +45,7 @@ const AdSlot = ({
   const pushed = useRef(false);
 
   useEffect(() => {
-    if (pushed.current) return;
+    if (!ADS_ENABLED || pushed.current) return;
     try {
       if (typeof window !== "undefined") {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -47,6 +55,16 @@ const AdSlot = ({
       // Ad blockers or missing script
     }
   }, []);
+
+  if (!ADS_ENABLED) {
+    return showAffiliateFallback ? (
+      <div className={`w-full overflow-hidden ${className}`} data-ad-placement={placement}>
+        <div className="mx-auto max-w-4xl">
+          <AffiliateBanner placement={`fallback-${placement}`} compact={compact} />
+        </div>
+      </div>
+    ) : null;
+  }
 
   return (
     <aside

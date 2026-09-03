@@ -10,6 +10,7 @@ import {
   writeCookieConsent,
   type CookiePreferences,
 } from "@/lib/cookie-consent";
+import { isEntryGateResolved, onEntryGateResolved } from "@/lib/entry-gate";
 
 const SHOW_AFTER_MS = 1_200;
 
@@ -35,11 +36,24 @@ const CookieConsent = () => {
 
     if (isCookieConsentFresh(readCookieConsent())) return;
 
-    timerRef.current = window.setTimeout(() => {
-      setIsVisible(true);
-    }, SHOW_AFTER_MS);
+    const startTimer = () => {
+      timerRef.current = window.setTimeout(() => {
+        setIsVisible(true);
+      }, SHOW_AFTER_MS);
+    };
 
+    // Never compete with the full-screen entry gate for attention: wait for it
+    // to resolve (dismissed, or not applicable this session) before queuing up.
+    if (isEntryGateResolved()) {
+      startTimer();
+      return () => {
+        if (timerRef.current) window.clearTimeout(timerRef.current);
+      };
+    }
+
+    const unsubscribe = onEntryGateResolved(startTimer);
     return () => {
+      unsubscribe();
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, [authLoading, user]);

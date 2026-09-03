@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Instagram, Facebook } from "lucide-react";
 import logo from "@/assets/skinlabs-logo-white.svg";
+import { useMembership } from "@/hooks/use-membership";
 
 const NewBadge = () => (
   <span className="ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-primary-foreground align-middle">New</span>
@@ -29,6 +30,8 @@ const WhatsAppIcon = ({ className = "h-5 w-5" }: { className?: string }) => (
 );
 
 const Footer = () => {
+  const { isMember, loading: membershipLoading } = useMembership();
+
   const links = {
     editorial: [
       { label: "The Daily Skinny", href: "/newsroom" },
@@ -42,7 +45,8 @@ const Footer = () => {
       { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Consultations", href: "/consultations", isNew: true },
       { label: "Marketplace", href: "/shop", isComingSoon: true },
-      { label: "Memberships", href: "/pricing" },
+      // Already a member — a "Memberships" link back to the pricing page is redundant.
+      ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
       { label: "Announcements", href: "/announcements" },
     ],
     company: [
