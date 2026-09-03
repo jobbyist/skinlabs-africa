@@ -8,15 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { toast } from "sonner";
 
 const FITZPATRICK = ["I — Very Fair", "II — Fair", "III — Medium", "IV — Olive", "V — Brown", "VI — Deep"];
 
 const ProfileTab = () => {
   const { user } = useAuth();
+  const { isComplete, missing, refresh } = useProfileComplete();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
+    username: "",
     full_name: "",
     phone: "",
     date_of_birth: "",
@@ -34,6 +37,7 @@ const ProfileTab = () => {
     supabase.from("profiles").select("*").eq("user_id", user.id).single().then(({ data }) => {
       if (data) {
         setForm({
+          username: (data as { username?: string | null }).username || "",
           full_name: data.full_name || "",
           phone: data.phone || "",
           date_of_birth: data.date_of_birth || "",
@@ -53,7 +57,13 @@ const ProfileTab = () => {
   const save = async () => {
     if (!user) return;
     setSaving(true);
+    const handle = form.username.trim();
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(handle)) {
+      setSaving(false);
+      return toast.error("Username must be 3-20 characters: letters, numbers or underscores.");
+    }
     const { error } = await supabase.from("profiles").update({
+      username: handle,
       full_name: form.full_name || null,
       phone: form.phone || null,
       date_of_birth: form.date_of_birth || null,
@@ -66,7 +76,14 @@ const ProfileTab = () => {
       notes: form.notes || null,
     }).eq("user_id", user.id);
     setSaving(false);
-    if (error) return toast.error("Could not save profile");
+    if (error) {
+      return toast.error(
+        error.message?.includes("profiles_username")
+          ? "That username is already taken."
+          : "Could not save profile",
+      );
+    }
+    refresh();
     toast.success("Profile updated");
   };
 
@@ -79,7 +96,14 @@ const ProfileTab = () => {
         <CardDescription>Details we use to personalise your skincare recommendations.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {!isComplete && (
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground">
+            Complete your profile to unlock commenting on briefings and reviews. Still needed:{" "}
+            <span className="font-medium text-foreground">{missing.join(", ")}</span>.
+          </div>
+        )}
         <div className="grid md:grid-cols-2 gap-4">
+          <div><Label>Username</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="glowseeker" /></div>
           <div><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>Date of birth</Label><Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>

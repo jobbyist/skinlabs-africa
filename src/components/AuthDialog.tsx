@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound } from "lucide-react";
 import logo from "@/assets/newskinlabs.png";
@@ -21,6 +22,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +39,21 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    const handle = username.trim();
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(handle)) {
+      toast.error("Username must be 3-20 characters: letters, numbers or underscores.");
+      return;
+    }
     setIsLoading(true);
-    const { error } = await signUp(email, password);
+    const { data: available, error: checkError } = await supabase.rpc("is_username_available", {
+      p_username: handle,
+    });
+    if (checkError || available === false) {
+      setIsLoading(false);
+      toast.error(checkError ? "Could not check that username. Try again." : "That username is already taken.");
+      return;
+    }
+    const { error } = await signUp(email, password, handle);
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
@@ -108,6 +123,24 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
 
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username-signup">Username</Label>
+                  <Input
+                    id="username-signup"
+                    type="text"
+                    placeholder="glowseeker"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    minLength={3}
+                    maxLength={20}
+                    pattern="[a-zA-Z0-9_]{3,20}"
+                    autoComplete="username"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Your unique public handle on comments. Letters, numbers and underscores only.
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-signup">Email</Label>
                   <Input
