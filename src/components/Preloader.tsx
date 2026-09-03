@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Newspaper, ShieldCheck, Lock, Star } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ArrowRight, Newspaper, ShieldCheck, Lock, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,6 +11,7 @@ import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
 import logo from "@/assets/newskinlabs.png";
 import Autoplay from "embla-carousel-autoplay";
+import { markEntryGateResolved } from "@/lib/entry-gate";
 
 interface GateSlide {
   key: string;
@@ -59,10 +60,15 @@ const trustMarkers = [
   { icon: ShieldCheck, label: "Editorially independent" },
 ];
 
+const UNLOCK_ANIMATION_MS = 650;
+
 const Preloader = () => {
   const { user, loading: authLoading } = useAuth();
   const { articles } = useNewsArticles(3);
   const autoplay = Autoplay({ delay: 3000, stopOnInteraction: true });
+  const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
   const gateSlides: GateSlide[] = [
     ...articles.map((article) => ({
@@ -118,10 +124,37 @@ const Preloader = () => {
     }
   }, [user, gateVisible]);
 
+  // Let other first-visit UI (e.g. the cookie consent banner) know it's clear to
+  // appear: either this gate has just been dismissed / was already shown before,
+  // or it will never apply this session because the visitor is signed in.
+  useEffect(() => {
+    if (gateDismissed) {
+      markEntryGateResolved();
+      return;
+    }
+    if (loadingDone && !authLoading && user) {
+      markEntryGateResolved();
+    }
+  }, [gateDismissed, loadingDone, authLoading, user]);
+
   const dismissGate = () => {
     sessionStorage.setItem(GATE_KEY, "1");
     setGateDismissed(true);
     setGateVisible(false);
+  };
+
+  const handleUnlockClick = () => {
+    if (isUnlocking) return;
+    if (shouldReduceMotion) {
+      dismissGate();
+      navigate("/pricing");
+      return;
+    }
+    setIsUnlocking(true);
+    window.setTimeout(() => {
+      dismissGate();
+      navigate("/pricing");
+    }, UNLOCK_ANIMATION_MS);
   };
 
   return (
@@ -193,11 +226,55 @@ const Preloader = () => {
                 and skin — get unlimited access with a SkinLabs membership.
               </p>
 
-              <Button size="lg" className="mt-6 gap-2" asChild>
-                <Link to="/pricing" onClick={dismissGate}>
-                  <Lock className="h-4 w-4" />
-                  Unlock Premium Skincare Intelligence
-                </Link>
+              <Button
+                size="lg"
+                className="relative mt-6 gap-2 overflow-hidden"
+                onClick={handleUnlockClick}
+                disabled={isUnlocking}
+                aria-busy={isUnlocking}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isUnlocking ? (
+                    <motion.span
+                      key="unlocking"
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <motion.span
+                        className="flex"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 0.7, repeat: Infinity, ease: "linear" }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </motion.span>
+                      Unlocking...
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="idle"
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 4 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <Lock className="h-4 w-4" />
+                      Unlock Premium Skincare Intelligence
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {isUnlocking && (
+                  <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-background/25 to-transparent"
+                    initial={{ x: "-100%" }}
+                    animate={{ x: "100%" }}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                  />
+                )}
               </Button>
 
               <div className="mt-6 flex flex-wrap items-center justify-center gap-4">

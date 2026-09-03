@@ -26,7 +26,6 @@ const Header = () => {
     { label: "Seasonals", href: "/seasonals", icon: Sun, isNew: true },
     { label: "Podcast", href: "/podcast", icon: Mic },
     { label: "Consult", href: "/consultations", icon: Calendar },
-    { label: "Pricing", href: "/pricing", icon: DollarSign },
   ];
 
   const handleSignOut = async () => {

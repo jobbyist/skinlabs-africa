@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroVideo from "@/assets/hero-video.mp4";
+import { useMembership } from "@/hooks/use-membership";
 
 const stats = [
   {
@@ -24,6 +25,7 @@ const stats = [
 const Hero = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { isMember, trialUsed, loading: membershipLoading } = useMembership();
 
   // Respect prefers-reduced-motion and skip forcing an autoplaying background video onto that traffic.
   useEffect(() => {
@@ -89,12 +91,15 @@ const Hero = () => {
                   Start Your Skin Analysis
                 </a>
               </Button>
-              <Button variant="outline" size="lg" className="gap-2 text-base px-8" asChild>
-                <a href="/pricing">
-                  Try Insider free for 7 days
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
+              {/* Already a paying member — offering a free trial they can't use is redundant/misleading. */}
+              {!(!membershipLoading && isMember) && (
+                <Button variant="outline" size="lg" className="gap-2 text-base px-8" asChild>
+                  <a href="/pricing">
+                    {!membershipLoading && trialUsed ? "See membership plans" : "Try Insider free for 7 days"}
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                </Button>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">

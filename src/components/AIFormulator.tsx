@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Sparkles,
   ChevronRight,
@@ -13,6 +13,7 @@ import {
   Mail,
   Calendar,
   Download,
+  UserPlus,
 } from "lucide-react";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
@@ -26,36 +27,46 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import GatedOverlay from "@/components/GatedOverlay";
-import AuthDialog from "@/components/AuthDialog";
-import SubscriptionPaywallModal from "@/components/SubscriptionPaywallModal";
 import { QUESTIONS } from "@/data/quiz";
+import { buildPredeterminedRecommendation, CONCERN_BY_Q9_VALUE } from "@/data/formulaResults";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 const STEP_PHOTO = TOTAL_QUESTIONS + 1;
 const STEP_EMAIL = TOTAL_QUESTIONS + 2;
-const STEP_RESULTS = TOTAL_QUESTIONS + 3;
+const STEP_AUTH = TOTAL_QUESTIONS + 3;
+const STEP_RESULTS = TOTAL_QUESTIONS + 4;
 
 const AIFormulator = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { isMember } = useMembership();
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
-  const [showPaywall, setShowPaywall] = useState(false);
   const [resultTier, setResultTier] = useState<"free" | "premium">("free");
-  const [hasSubscription, setHasSubscription] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [popiaConsent, setPopiaConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactWhatsApp, setContactWhatsApp] = useState("");
   const [bookConsultation, setBookConsultation] = useState(false);
+  const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
+  const [authPassword, setAuthPassword] = useState("");
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // The quiz itself never requires an account — only revealing results does. Once an
+  // unauthenticated visitor signs up/logs in from the inline STEP_AUTH screen, `user`
+  // flips truthy and this carries them straight into their results (free starter
+  // analysis, or the live AI report if they're already a paying member).
+  useEffect(() => {
+    if (step === STEP_AUTH && user) {
+      proceedToResults();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, user]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,6 +95,9 @@ const AIFormulator = () => {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
+  // Only ever called for signed-in paying members — free/unauthenticated visitors get
+  // the instant predetermined starter analysis via showPredeterminedResults() instead,
+  // so this quota only ever gates the live, paid AI report.
   const getAIRecommendation = async () => {
     setIsLoading(true);
     try {
@@ -93,12 +107,7 @@ const AIFormulator = () => {
         return;
       }
       if (quotaAllowed === false) {
-        toast.error(
-          isMember
-            ? "You've used this week's AI analysis — your next one unlocks in a few days."
-            : "You've used this month's free basic analysis — upgrade for a weekly custom routine.",
-        );
-        if (!isMember) window.location.href = "/pricing";
+        toast.error("You've used this week's AI analysis — your next one unlocks in a few days.");
         return;
       }
 
@@ -141,11 +150,7 @@ const AIFormulator = () => {
         console.warn("PDF generation failed:", pdfErr);
       }
 
-      if (!hasSubscription) {
-        setShowPaywall(true);
-      } else {
-        setStep(STEP_RESULTS);
-      }
+      setStep(STEP_RESULTS);
     } catch (error) {
       console.error("Error:", error);
       toast.error("Something went wrong on our end — please try again.");
@@ -154,9 +159,64 @@ const AIFormulator = () => {
     }
   };
 
+  /**
+   * Free/explorer path: an instant, deterministic "starter analysis" built from the
+   * quiz answers alone — no Supabase call, no AI quota spent. The brief artificial
+   * delay keeps the experience consistent with the live AI path rather than feeling
+   * suspiciously instant. The advanced section stays gated (see STEP_RESULTS below),
+   * which is the upsell to the live, weekly-refreshed AI report for paid members.
+   */
+  const showPredeterminedResults = () => {
+    setIsLoading(true);
+    window.setTimeout(() => {
+      const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
+      const text = buildPredeterminedRecommendation(derivedSkinType, concern);
+      setRecommendation(text);
+      setResultTier("free");
+      try {
+        downloadSkincarePdf({
+          clientName: contactName || "Client",
+          email: contactEmail,
+          recommendation: text,
+          skinType: derivedSkinType,
+        });
+        toast.success("Your starter skincare PDF is downloaded");
+      } catch (pdfErr) {
+        console.warn("PDF generation failed:", pdfErr);
+      }
+      setIsLoading(false);
+      setStep(STEP_RESULTS);
+    }, 900);
+  };
+
+  const proceedToResults = () => {
+    if (isMember) {
+      getAIRecommendation();
+    } else {
+      showPredeterminedResults();
+    }
+  };
+
+  const handleInlineAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthSubmitting(true);
+    const { error } = authMode === "signup" ? await signUp(contactEmail, authPassword) : await signIn(contactEmail, authPassword);
+    setIsAuthSubmitting(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(authMode === "signup" ? "You're in — building your results now." : "Welcome back.");
+    // Advancing to results happens automatically via the effect above once `user` updates.
+  };
+
   const handleNext = () => {
     if (step === STEP_EMAIL) {
-      getAIRecommendation();
+      if (!user) {
+        setStep(STEP_AUTH);
+      } else {
+        proceedToResults();
+      }
     } else {
       setStep(step + 1);
     }
@@ -171,14 +231,13 @@ const AIFormulator = () => {
     setAnswers({});
     setSkinImage(null);
     setRecommendation(null);
-    setShowPaywall(false);
-    setShowConfirmation(false);
     setPopiaConsent(false);
     setPhotoConsent(false);
     setContactName("");
     setContactEmail("");
     setContactWhatsApp("");
     setBookConsultation(false);
+    setAuthPassword("");
   };
 
   const progress = step === 0 ? 0 : step <= TOTAL_QUESTIONS ? (step / TOTAL_QUESTIONS) * 100 : 100;
@@ -194,20 +253,6 @@ const AIFormulator = () => {
     return "normal";
   })();
 
-  const derivedConcerns = (() => {
-    const concerns: string[] = [];
-    if (answers["q3"] !== undefined && answers["q3"] <= 1) concerns.push("Acne & Breakouts");
-    if (answers["q8"] !== undefined && answers["q8"] <= 1) concerns.push("Uneven Skin Tone");
-    if (answers["q7"] !== undefined && answers["q7"] <= 1) concerns.push("Redness");
-    if (answers["q4"] !== undefined && answers["q4"] <= 1) concerns.push("Dryness");
-    const priority = answers["q9"];
-    if (priority === 0 && !concerns.includes("Acne & Breakouts")) concerns.push("Acne & Breakouts");
-    if (priority === 1) concerns.push("Dark Marks & Brightening");
-    if (priority === 2) concerns.push("Anti-aging");
-    if (priority === 3) concerns.push("Sensitivity & Barrier Repair");
-    return concerns.slice(0, 4);
-  })();
-
   if (authLoading) {
     return (
       <section id="ai-formulator" className="py-20 bg-background">
@@ -217,51 +262,6 @@ const AIFormulator = () => {
           </div>
         </div>
       </section>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <section id="ai-formulator" className="py-20 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
-                <Sparkles className="h-4 w-4" />
-                Premium Service
-              </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                AI Formulator — A Routine Built Around Your Actual Skin
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto mb-8">
-                Answer a few questions and get an AM/PM routine, a progress tracker and product
-                recommendations reviewed by dermatologists — built around your skin, not a generic list.
-              </p>
-              <div className="grid sm:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-                {["Personalized AM/PM Routines", "Weekly Actives Schedule", "SA Product Recommendations"].map((feature, i) => (
-                  <div key={i} className="bg-card border border-border rounded-xl p-4">
-                    <CheckCircle2 className="h-5 w-5 text-primary mx-auto mb-2" />
-                    <p className="text-sm text-card-foreground font-medium">{feature}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button size="lg" asChild className="gap-2">
-                  <a href="/pricing">
-                    <Sparkles className="h-4 w-4" />
-                    Sign up to get started
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowAuthDialog(true)} className="gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Sign In
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
-        <AuthDialog open={showAuthDialog} onOpenChange={setShowAuthDialog} />
-      </>
     );
   }
 
@@ -323,8 +323,8 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
                   <Shield className="h-3.5 w-3.5 text-primary" />
                   <span className="text-muted-foreground">
-                    Free tier: 1 basic analysis/month •
-                    <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a weekly custom routine</a>
+                    Free Starter Analysis, no card required •
+                    <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
                   </span>
                 </div>
               )}
@@ -489,31 +489,90 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {showConfirmation && (
-                <div className="space-y-6 py-4">
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto"><CheckCircle2 className="h-10 w-10 text-primary" /></div>
-                    <h3 className="text-2xl font-heading font-bold text-card-foreground">Thanks — your report's on its way</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      Your personalised, dermatologist-reviewed skincare report lands in your email
-                      {contactWhatsApp ? " and/or WhatsApp" : ""} within <strong>1–2 working days</strong>.
+              {step === STEP_AUTH && !isLoading && (
+                <div className="space-y-6">
+                  <div className="text-center mb-4">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <UserPlus className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                      {authMode === "signup" ? "Create your free account to see your results" : "Welcome back — log in to see your results"}
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      {authMode === "signup"
+                        ? "We've already got your name and email — just set a password and your results are ready."
+                        : "Log in with the account you already have, and we'll pick up right where you left off."}
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button size="lg" className="flex-1 gap-2" asChild>
-                      <a href="/reviews">Explore SA Product Reviews <ChevronRight className="h-4 w-4" /></a>
+                  <form onSubmit={handleInlineAuth} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-email">Email</Label>
+                      <Input
+                        id="auth-email"
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="auth-password">Password</Label>
+                      <Input
+                        id="auth-password"
+                        type="password"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        required
+                        minLength={authMode === "signup" ? 8 : undefined}
+                        autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                      />
+                      {authMode === "signup" && (
+                        <p className="text-xs text-muted-foreground">At least 8 characters. Free forever — no card required.</p>
+                      )}
+                    </div>
+                    <Button type="submit" size="lg" className="w-full gap-2" disabled={isAuthSubmitting}>
+                      {isAuthSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {authMode === "signup" ? "Create free account & see my results" : "Log in & see my results"}
                     </Button>
-                    <Button variant="outline" size="lg" onClick={resetFormulator} className="flex-1">Start Over</Button>
+                  </form>
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setStep(STEP_EMAIL)}
+                      className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" /> Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
+                      className="text-primary hover:underline"
+                    >
+                      {authMode === "signup" ? "Already have an account? Log in" : "New here? Create a free account"}
+                    </button>
                   </div>
+                  <p className="text-center text-[11px] text-muted-foreground leading-relaxed">
+                    By continuing you agree to our{" "}
+                    <a href="/terms-of-service" className="underline hover:text-foreground">Terms</a>{" "}
+                    and{" "}
+                    <a href="/privacy-policy" className="underline hover:text-foreground">Privacy Policy</a>.
+                  </p>
                 </div>
               )}
 
-              {step === STEP_RESULTS && recommendation && hasSubscription && !showConfirmation && (
+              {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><Sparkles className="h-10 w-10 text-primary" /></div>
-                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Your Personalized Skincare Routine</h3>
-                    <p className="text-muted-foreground">Customized for your {derivedSkinType} skin</p>
+                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
+                      {isMember ? "Your Personalized Skincare Routine" : "Your Free Starter Analysis"}
+                    </h3>
+                    <p className="text-muted-foreground">
+                      {isMember
+                        ? `Customized for your ${derivedSkinType} skin`
+                        : `A general match for your ${derivedSkinType} skin — upgrade for a live AI report built around your exact answers`}
+                    </p>
                   </div>
                   <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
                     {formatRecommendation(splitRecommendation(recommendation).preview)}
@@ -542,7 +601,7 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {step >= 1 && step <= STEP_EMAIL && !isLoading && !showConfirmation && (
+              {step >= 1 && step <= STEP_EMAIL && !isLoading && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
                   <Button
@@ -562,20 +621,6 @@ const AIFormulator = () => {
           </div>
         </div>
       </section>
-
-      {recommendation && (
-        <SubscriptionPaywallModal
-          open={showPaywall}
-          onOpenChange={setShowPaywall}
-          previewContent={recommendation}
-          skinType={derivedSkinType}
-          concerns={derivedConcerns}
-          onPaymentSuccess={() => {
-            setShowPaywall(false);
-            setShowConfirmation(true);
-          }}
-        />
-      )}
     </>
   );
 };
