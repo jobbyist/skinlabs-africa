@@ -37,6 +37,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Twelve reviewed products, consistently strong efficacy-to-price ratios, and formulas built around SA humidity and Highveld dryness rather than a generic global routine. Read that again: a R195 moisturiser out-performing serums three times its price is worth knowing about.",
     officialWebsite: "https://standard-beauty.co.za",
+    logoUrl: "https://cdn.brandfetch.io/standard-beauty.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Skin Functional",
@@ -48,7 +49,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Ten reviewed products spanning serums, cleanser and sunscreen, most scoring 8+ on efficacy. Directly compared against The Ordinary in our first Shelf Showdown and held its own on stability and formulation, not just price.",
     officialWebsite: "https://skinfunctional.com",
-    logoUrl: "https://logo.clearbit.com/skinfunctional.com",
+    logoUrl: "https://cdn.brandfetch.io/skinfunctional.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Lelive",
@@ -60,6 +61,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Eight reviewed products across sunscreen, cleansers, serums and moisturisers. Worth knowing before you buy: check a Skin Functional or Standard Beauty equivalent first if budget matters more than the botanical story.",
     officialWebsite: "https://leliveafrica.com",
+    logoUrl: "https://cdn.brandfetch.io/leliveafrica.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Portia M",
@@ -71,6 +73,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products, consistently strong value scores, and a transparent flag from us on the marula-vs-mineral-oil labelling point so you know exactly what you're buying.",
     officialWebsite: "https://portiamss.com",
+    logoUrl: "https://cdn.brandfetch.io/portiamss.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Efficacy scores for this brand's tissue oils sit in the 5.5–6.0 range — a solid budget pick, not a clinical treatment.",
   },
   {
@@ -83,6 +86,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Four reviewed products, the highest value scores of any moisturiser brand in our set, and a distinctly South African active (Cederberg rooibos) most imported brands can't touch.",
     officialWebsite: "https://africanextracts.com",
+    logoUrl: "https://cdn.brandfetch.io/africanextracts.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Lamelle",
@@ -94,6 +98,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Four reviewed products spanning moisturiser, cleanser, serum and sunscreen, with the strongest efficacy scores of any South African clinic brand in our set.",
     officialWebsite: "https://www.lamelle.co.za",
+    logoUrl: "https://cdn.brandfetch.io/lamelle.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Environ",
@@ -106,7 +111,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "Five reviewed products including a clinically trusted daily antioxidant SPF. A genuinely South African scientific export, not a marketing story bolted onto an imported formula.",
     brandStory: "Founded in 1990 by Dr Des Fernandes in Cape Town, built around correcting sun-induced vitamin A deficiency in skin.",
     officialWebsite: "https://www.environskincare.com/za",
-    logoUrl: "https://logo.clearbit.com/environskincare.com",
+    logoUrl: "https://cdn.brandfetch.io/environskincare.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Esse",
@@ -119,6 +124,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "Five reviewed products spanning serum, cleanser and moisturiser, certified organic and carbon neutral — a distinct scientific angle few other SA brands are working.",
     brandStory: "Founded in South Africa by organic chemist Trevor Steyn, built around microbiome science.",
     officialWebsite: "https://www.esseskincare.co.za",
+    logoUrl: "https://cdn.brandfetch.io/esseskincare.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "The Ordinary",
@@ -130,6 +136,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products, the reference point in our first Shelf Showdown against Skin Functional, and a genuinely useful yardstick for judging whether a local brand's pricing is fair.",
     officialWebsite: "https://theordinary.com",
+    logoUrl: "https://cdn.brandfetch.io/theordinary.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Nimue",
@@ -141,6 +148,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products including a tinted SPF40 built for SA's high-UV conditions. A legitimate premium tier, priced accordingly — know that going in.",
     officialWebsite: "https://nimueskin.com",
+    logoUrl: "https://cdn.brandfetch.io/nimueskin.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Value scores for this brand sit lowest in our set (5.5–6.5) — factor clinic-tier pricing into any comparison.",
   },
   {
@@ -153,6 +161,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products spanning serum, eye cream, cleanser and sunscreen. A genuinely competitive clinic-tier option, not just a cheaper Nimue.",
     officialWebsite: "https://optiphi.com",
+    logoUrl: "https://cdn.brandfetch.io/optiphi.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Skin Creamery",
@@ -165,6 +174,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "Five reviewed products across moisturiser, cleanser, body oil, serum and exfoliant. A distinctly Cape Town, naturally-derived brand with real cross-category range.",
     brandStory: "Founded by Hannah Rubin in Cape Town, built around 'Slow Beauty' — essential, multi-functional formulas rooted in nature.",
     officialWebsite: "https://www.skincreamery.com",
+    logoUrl: "https://cdn.brandfetch.io/skincreamery.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Bio-Oil",
@@ -176,6 +186,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products across original, natural (plant-oil) and dry-skin-gel formats. An SA household name with genuinely broad, affordable coverage for body skin.",
     officialWebsite: "https://www.bio-oil.com",
+    logoUrl: "https://cdn.brandfetch.io/bio-oil.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Vitaderm",
@@ -187,6 +198,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products spanning moisturiser, serum, cleanser and sunscreen — a genuinely broad, dependable clinical range with no major weak spots.",
     officialWebsite: "https://www.vitaderm.co.za",
+    logoUrl: "https://cdn.brandfetch.io/vitaderm.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "SkinPhD",
@@ -198,6 +210,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Five reviewed products spanning serum, moisturiser, cleanser and sunscreen, distributed through a national salon network — genuinely accessible clinic-adjacent skincare.",
     officialWebsite: "https://skinphd.co.za",
+    logoUrl: "https://cdn.brandfetch.io/skinphd.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Bioderma",
@@ -209,6 +222,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Three reviewed products, all cleansers or acne treatments, with the strongest texture and climate-fit scores of any cleanser brand in our set.",
     officialWebsite: "https://www.bioderma.co.za",
+    logoUrl: "https://cdn.brandfetch.io/bioderma.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Skoon",
@@ -221,6 +235,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "Two reviewed serums, both genuinely differentiated on formulation format rather than just ingredient list — worth watching as evidence builds.",
     brandStory: "Founded by engineer Stella Ciolli in Cape Town, blending natural ingredients with formulation science.",
     officialWebsite: "https://www.skoonskin.com",
+    logoUrl: "https://cdn.brandfetch.io/skoonskin.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our ranked tier, but a smaller sample than most brands on this list.",
   },
   {
@@ -233,7 +248,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products with the highest combined value scores of any brand in our entire dataset — small range, exceptional execution.",
     officialWebsite: "https://fundamentals-skincare.co.za",
-    logoUrl: "https://logo.clearbit.com/fundamentals-skincare.co.za",
+    logoUrl: "https://cdn.brandfetch.io/fundamentals-skincare.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — a small but consistently excellent-value sample.",
   },
   {
@@ -246,6 +261,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Three reviewed products spanning serum and cleanser, all scoring well on texture and climate fit — dependable, growing, worth watching as its range expands.",
     officialWebsite: "https://feelsilki.com",
+    logoUrl: "https://cdn.brandfetch.io/feelsilki.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
   {
     brand: "Justine",
@@ -258,6 +274,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
       "New on the Radar: one reviewed product so far. We'll expand coverage as SkinLabs reviews more of Justine's wider range.",
     brandStory: "Justine's Tissue Oil launched in South Africa in 1973 and is credited with starting the local tissue-oil category. The brand is now part of the Avon group.",
     officialWebsite: "https://my.justine.co.za",
+    logoUrl: "https://cdn.brandfetch.io/justine.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
@@ -270,6 +287,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "New on the Radar: one reviewed product so far. We'll expand coverage as SkinLabs reviews more of Avon's wider skincare range.",
     officialWebsite: "https://my.avon.co.za",
+    logoUrl: "https://cdn.brandfetch.io/avon.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
@@ -282,6 +300,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products anchored in indigenous South African botanicals, with the strongest sensory-and-provenance story of any spa-positioned brand in our set.",
     officialWebsite: "https://africologyspa.com",
+    logoUrl: "https://cdn.brandfetch.io/africologyspa.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -294,6 +313,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products spanning body oil and facial serum, with a genuinely distinctive small-town-to-international origin story among SA natural brands.",
     officialWebsite: "https://rainafrica.co.za",
+    logoUrl: "https://cdn.brandfetch.io/rainafrica.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -306,6 +326,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products from a genuinely clinical, multi-city SA aesthetics network — a credible professional-tier alternative to Lamelle and Nimue.",
     officialWebsite: "https://www.skinrenewal.co.za",
+    logoUrl: "https://cdn.brandfetch.io/skinrenewal.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -318,6 +339,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products from South Africa's largest beauty and grooming franchise, with unmatched in-person salon availability nationwide.",
     officialWebsite: "https://www.sorbet.co.za",
+    logoUrl: "https://cdn.brandfetch.io/sorbet.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -330,6 +352,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     whyTheyMadeTheList:
       "Two reviewed products from one of SA's longest-running skin clinic franchises, founded in the 1980s by Elma McKenzie.",
     officialWebsite: "https://placecol.com",
+    logoUrl: "https://cdn.brandfetch.io/placecol.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -337,6 +360,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "annique",
     positioningStatement: "SA's original rooibos-based skincare brand, sold through a direct-consultant network.",
     knownFor: "Rooibos-antioxidant serums and creams, long associated with founder Annique Theron's tea research.",
+    officialWebsite: "https://www.annique.com",
+    logoUrl: "https://cdn.brandfetch.io/annique.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Annique built its identity on rooibos long before it became a mainstream SA skincare ingredient, and the formulas we've reviewed lean on that antioxidant story consistently. The anti-ageing serum and hydrating day cream are pleasant, dependable rooibos-forward formulas — don't expect dramatic retinoid-grade results, but they're an honest, on-brand execution of the rooibos positioning.",
     whyTheyMadeTheList:
@@ -373,8 +398,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "COR keeps its range tight and its claims modest, which we'd rather see than an overreaching ingredient list. The niacinamide serum handles oil control and tone competently, and the ceramide moisturiser is a solid, unfussy barrier-support cream for daily use across most SA climate zones.",
     whyTheyMadeTheList:
-      "Two reviewed products with a clean, no-frills actives-and-barrier pairing — a straightforward entry point for a simplified routine.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a clean, no-frills niacinamide serum. We'll expand coverage as SkinLabs reviews more of COR's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Luamu",
@@ -384,25 +409,29 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Luamu's range leans hard into hydration rather than aggressive actives, which makes it a comfortable pick for reactive or dehydrated skin that can't yet tolerate acids or retinoids. The HA serum plumps well when sealed with a moisturiser; the gel cleanser doesn't strip the barrier it's meant to be protecting.",
     whyTheyMadeTheList:
-      "Two reviewed products with a consistent, sensible hydration focus — a reasonable starting point before layering in stronger actives.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a sensible hydration-first serum. We'll expand coverage as SkinLabs reviews more of Luamu's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Mbiri Natural Skincare",
     slug: "mbiri-natural-skincare",
     positioningStatement: "Natural South African skincare built around marula, baobab and African black soap.",
     knownFor: "A marula-and-baobab face oil and a traditional African black soap cleanser.",
+    officialWebsite: "https://mbiri-skincare.com",
+    logoUrl: "https://cdn.brandfetch.io/mbiri-skincare.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Mbiri's face oil is a genuinely nice-textured blend of two well-regarded African oils, absorbing better than the heavier single-oil products elsewhere in this file. The black soap cleanser is a traditional formulation rather than a modern surfactant blend — effective for oily or congested skin, but patch-test first if you're sensitive, since batch consistency can vary more than with lab-formulated cleansers.",
     whyTheyMadeTheList:
-      "Two reviewed products built around traditional African ingredients rather than imported actives — a genuinely different formulation philosophy in our set.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a marula-and-baobab face oil built on traditional African ingredients rather than imported actives. We'll expand coverage as SkinLabs reviews more of Mbiri's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Hey Gorgeous",
     slug: "hey-gorgeous",
     positioningStatement: "Affordable, sustainably sourced botanical skincare and makeup.",
     knownFor: "A vitamin C brightening serum and a botanical clay cleanser.",
+    officialWebsite: "https://hey-gorgeous.co.za",
+    logoUrl: "https://cdn.brandfetch.io/hey-gorgeous.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Hey Gorgeous sits in the same affordable-botanical lane as several other brands in this file, and it earns its place with a vitamin C serum that performs respectably at a lower price point than the clinic-tier options here. The clay cleanser draws out congestion well for oily and combination skin without the tightness some clay formulas leave behind.",
     whyTheyMadeTheList:
@@ -425,6 +454,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "eco-diva",
     positioningStatement: "Clean, paraben- and sulfate-free South African skincare.",
     knownFor: "A molecular hyaluronic acid serum and a gentle foaming cleanser.",
+    logoUrl: "https://cdn.brandfetch.io/ecodivabeauty.ca/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Eco Diva's clean-beauty positioning doesn't come at the expense of function — the HA serum uses a genuinely reasonable multi-weight approach to hydration, and the foaming cleanser is gentle enough for daily use without the drying effect some sulfate-free foaming cleansers struggle to avoid.",
     whyTheyMadeTheList:
@@ -439,8 +469,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "CHILL's centella serum is a competent, soothing option for reactive or wind-irritated skin — genuinely useful for the Cape's exposure to salt air and gusty conditions. The everyday moisturiser is deliberately simple rather than actives-forward, positioned as a low-maintenance daily layer rather than a treatment step.",
     whyTheyMadeTheList:
-      "Two reviewed products with a calm, centella-led formulation focus well suited to the Cape's windier micro-climate.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a calm, centella-led serum well suited to the Cape's windier micro-climate. We'll expand coverage as SkinLabs reviews more of CHILL's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Noa & Co",
@@ -480,6 +510,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "terres-dafrique",
     positioningStatement: "Ethical, fair-trade skin and body care built around rare African botanicals.",
     knownFor: "A marula-and-rooibos nourishing oil and a Kalahari melon seed moisturiser.",
+    officialWebsite: "https://www.terres-dafrique.com",
+    logoUrl: "https://cdn.brandfetch.io/terres-dafrique.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Terres d'Afrique's fair-trade sourcing story is a genuine point of difference in a category where 'ethical' is often just packaging copy — the brand is explicit about where its rarer botanicals, like Kalahari melon seed, are harvested. The nourishing oil and moisturiser both perform solidly for dry-to-normal skin, if without the disclosed-percentage actives that dominate the top of this file.",
     whyTheyMadeTheList:
@@ -491,6 +523,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "oh-lief",
     positioningStatement: "Natural, organic, family-safe skincare built around olive oil and beeswax.",
     knownFor: "An olive-and-beeswax repair balm and a gentle cleanser safe for the whole family.",
+    logoUrl: "https://cdn.brandfetch.io/oh-lief.nl/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Oh Lief's family-safe positioning is genuinely conservative on ingredients — olive oil and beeswax are about as low-risk a base as skincare gets, which makes this a sensible pick for babies, pregnancy-safe routines or very reactive skin. Don't expect actives-grade results; this is a comfort-and-protection range, not a treatment one.",
     whyTheyMadeTheList:
@@ -502,6 +535,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "black-african-organics",
     positioningStatement: "Skincare and haircare formulated specifically for melanin-rich skin.",
     knownFor: "A brightening serum and a shea deep-moisture cream, both blending traditional botanicals with modern actives.",
+    officialWebsite: "https://www.blackafrican.co.za",
+    logoUrl: "https://cdn.brandfetch.io/blackafrican.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Black African Organics fills a real gap — much of SA's skincare marketing defaults to a generic 'brightening' message without accounting for how post-inflammatory hyperpigmentation specifically presents on deeper skin tones. The brightening serum's tyrosinase-inhibiting approach is sound; the shea cream is a rich, effective daily moisturiser for drier melanin-rich skin.",
     whyTheyMadeTheList:
@@ -524,33 +559,39 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "gloei",
     positioningStatement: "Award-winning natural, non-toxic, vegan skincare made in Cape Town.",
     knownFor: "A vegan vitamin C serum and a minimalist daily moisturiser.",
+    officialWebsite: "https://gloei.beauty",
+    logoUrl: "https://cdn.brandfetch.io/gloei.beauty/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Gloei's minimalist packaging philosophy carries through to its formulas — a vegan-certified vitamin C serum using a stable, if gentler, derivative rather than L-ascorbic acid, and a daily moisturiser that does one job cleanly rather than chasing a long ingredient list. A sensible pick for anyone prioritising vegan certification alongside basic actives.",
     whyTheyMadeTheList:
-      "Two reviewed products from an award-recognised Cape Town natural brand, with genuine vegan and non-toxic formulation credentials.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a vegan-certified vitamin C serum from an award-recognised Cape Town natural brand. We'll expand coverage as SkinLabs reviews more of Gloei's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Yearn Skin",
     slug: "yearn-skin",
     positioningStatement: "Dermatologically tested SA skincare focused on hyperpigmentation and uneven tone.",
     knownFor: "A hyperpigmentation-correcting serum and an even-tone daily moisturiser.",
+    officialWebsite: "https://yearnskin.co.za",
+    logoUrl: "https://cdn.brandfetch.io/yearnskin.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Yearn Skin's tight focus on tone and pigmentation is a sensible specialisation given how common post-inflammatory hyperpigmentation is across SA's skin tones — the correcting serum uses a reasonable tyrosinase-inhibiting approach, and the daily moisturiser is a fine maintenance layer once the serum has done the heavier lifting. Pair with daily SPF, as with any pigmentation routine.",
     whyTheyMadeTheList:
-      "Two reviewed products with a specific, dermatologically tested focus on uneven tone rather than a scattershot general range.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a dermatologically tested hyperpigmentation serum with a specific, non-scattershot focus. We'll expand coverage as SkinLabs reviews more of Yearn Skin's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Lumiglo",
     slug: "lumiglo",
     positioningStatement: "Sensitive-skin skincare created by a South African makeup artist.",
     knownFor: "A sensitive-skin barrier serum and a calming gel cleanser.",
+    officialWebsite: "https://lumiglo.uk",
+    logoUrl: "https://cdn.brandfetch.io/lumiglo.uk/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Lumiglo's makeup-artist origin shows in a range built around skin that has to look good under product all day — the barrier serum is gentle enough to sit comfortably under makeup, and the calming gel cleanser removes the day's build-up without the stripped, tight feeling some gel cleansers leave behind on reactive skin.",
     whyTheyMadeTheList:
-      "Two reviewed products with a genuine sensitive-skin focus, built from a makeup artist's practical, day-to-day skin experience.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a sensitive-skin barrier serum built from a makeup artist's practical, day-to-day skin experience. We'll expand coverage as SkinLabs reviews more of Lumiglo's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Lulu & Marula",
@@ -568,17 +609,21 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     slug: "afari",
     positioningStatement: "Skincare built around Bulbine frutescens, supporting the women who harvest it.",
     knownFor: "A Bulbine frutescens healing gel and an anti-inflammatory body oil.",
+    officialWebsite: "https://afariskincare.com",
+    logoUrl: "https://cdn.brandfetch.io/afariskincare.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Afari's focus on Bulbine frutescens — a well-known indigenous SA succulent used traditionally for minor burns, cuts and irritation — is a genuinely distinctive single-ingredient story, and the healing gel performs credibly for minor skin irritation and soothing. The body oil extends the same calming positioning into a daily moisturising step. The women-harvester sourcing model is a real, verifiable point of difference, not just marketing language.",
     whyTheyMadeTheList:
-      "Two reviewed products built around a single, well-regarded indigenous succulent, with a genuine community-sourcing model behind it.",
-    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
+      "New on the Radar: one reviewed product so far — a healing gel built around a single, well-regarded indigenous succulent, with a genuine community-sourcing model behind it. We'll expand coverage as SkinLabs reviews more of Afari's range.",
+    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
   },
   {
     brand: "Pure Beginnings",
     slug: "pure-beginnings",
     positioningStatement: "All-natural, organic, chemical-free skincare for the whole family, including babies.",
     knownFor: "A chemical-free family moisturiser and a gentle baby-safe cleanser.",
+    officialWebsite: "https://www.purebeginnings.co.za",
+    logoUrl: "https://cdn.brandfetch.io/purebeginnings.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Pure Beginnings sits alongside Oh Lief in the family-safe natural category, with a slightly broader traditional-herb ingredient story layered on top of its South African plant base. Both the moisturiser and cleanser are formulated conservatively enough for baby skin, which by extension makes them a gentle, low-irritation option for adult sensitive-skin routines too.",
     whyTheyMadeTheList:
@@ -678,6 +723,15 @@ export const spotlightRisingBrands = spotlightRanking.filter((entry) => entry.ti
 
 export const getSpotlightBrand = (slug: string) => spotlightRanking.find((entry) => entry.slug === slug);
 
+/**
+ * These two strings are the ONLY hand-curated identifiers in this file — bump them
+ * when the brand roster changes meaningfully (a new brand added, a tier promoted,
+ * an edition reassessed). Nothing else should ever hardcode a brand/ranked/radar
+ * count in prose: every count shown to a reader (Spotlight.tsx's disclaimer, the
+ * Methodology page, SpotlightArchive) is computed live from spotlightRanking /
+ * spotlightRankedBrands / spotlightRisingBrands so it can never drift out of sync
+ * with the actual data below.
+ */
 export const SPOTLIGHT_METHODOLOGY_VERSION = "Spotlight Methodology v1.1";
 export const SPOTLIGHT_EDITION_MONTH = "September 2026";
 

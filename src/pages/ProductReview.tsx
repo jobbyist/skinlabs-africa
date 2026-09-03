@@ -8,6 +8,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
+import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,6 +23,7 @@ import {
   getSeededLikeCount,
 } from "@/data/reviews";
 import { spotlightRanking } from "@/data/spotlight";
+import { getProductImage } from "@/data/productImages";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -48,8 +50,9 @@ const ScoreBar = ({ label, value }: { label: string; value: number }) => (
 const ProductReview = () => {
   const { slug } = useParams();
   const { user } = useAuth();
-  const { isMember } = useMembership();
+  const { isMember, isVip } = useMembership();
   const review = useMemo(() => productReviews.find((item) => item.id === slug), [slug]);
+  const productImage = useMemo(() => (review ? getProductImage(review.category, review.id) : null), [review]);
 
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -188,6 +191,7 @@ const ProductReview = () => {
         name: review.product_name,
         brand: { "@type": "Brand", name: review.brand },
         category: review.category,
+        ...(productImage ? { image: productImage.url } : {}),
         offers: {
           "@type": "AggregateOffer",
           priceCurrency: "ZAR",
@@ -225,6 +229,7 @@ const ProductReview = () => {
         description={`${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`}
         canonical={canonical}
         ogType="article"
+        {...(productImage ? { ogImage: productImage.url } : {})}
         jsonLd={jsonLd}
       />
       <Header />
@@ -242,6 +247,24 @@ const ProductReview = () => {
               <span className="text-[10px] uppercase tracking-wide opacity-80">/ 10</span>
             </div>
           </div>
+
+          {productImage && (
+            <figure className="mt-6">
+              <img
+                src={productImage.url}
+                alt={`${review.category} product photography — ${productImage.alt}`}
+                className="h-64 w-full rounded-3xl object-cover sm:h-80"
+                loading="lazy"
+              />
+              <figcaption className="mt-2 text-xs text-muted-foreground">
+                Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
+                <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
+                  {productImage.creditName}
+                </a>{" "}
+                on Unsplash.
+              </figcaption>
+            </figure>
+          )}
 
           <p className="mt-6 text-lg leading-relaxed text-foreground">{review.verdict}</p>
 
@@ -309,6 +332,8 @@ const ProductReview = () => {
               ))}
             </div>
           </div>
+
+          <RoutineBuilder anchor={review} isVip={isVip} />
 
           <div className="my-8">
             <AdSlot placement="product-review-mid" />

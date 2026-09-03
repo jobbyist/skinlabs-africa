@@ -81,6 +81,17 @@ const SpotlightMethodology = () => {
               documented here.
             </p>
 
+            <h2>Coverage counts</h2>
+            <p>
+              Every brand, Ranked and New on the Radar count referenced on Spotlight — the disclaimer on the
+              Spotlight page, this Methodology page, and the archive — is computed live from the same underlying
+              data as the ranking itself. Nothing is a hand-typed number: add a brand, publish a review that moves it
+              between tiers, and every count updates automatically, everywhere, on the next page load. Only the
+              edition label and this Methodology's version number are updated by hand, since only a person can judge
+              when a new calendar edition begins or when a change is substantial enough to warrant a new methodology
+              version.
+            </p>
+
             <h2>Eligibility</h2>
             <ul>
               <li>The brand sells skincare products to South African consumers.</li>

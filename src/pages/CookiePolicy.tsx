@@ -2,8 +2,10 @@ import { Helmet } from "react-helmet-async";
 import { Cookie, Settings, CheckCircle, XCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
-import { OPEN_COOKIE_PREFERENCES_EVENT } from "@/components/CookieConsent";
+import CookieSettingsPanel from "@/components/CookieSettingsPanel";
+
+/** Bump when this policy's substance changes — not on every deploy. */
+const COOKIE_POLICY_LAST_UPDATED = "September 2026";
 
 const CookiePolicy = () => {
   const cookieTypes = [
@@ -67,7 +69,7 @@ const CookiePolicy = () => {
                     Cookie Policy
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Last updated: December 2024
+                    Last updated: {COOKIE_POLICY_LAST_UPDATED}
                   </p>
                 </div>
 
@@ -196,24 +198,20 @@ const CookiePolicy = () => {
                   </p>
                 </div>
 
+                <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
+                  <div className="text-center mb-8">
+                    <Cookie className="h-10 w-10 text-primary mx-auto mb-3" />
+                    <h2 className="text-2xl font-bold text-foreground mb-2">Manage Your Cookie & Storage Preferences</h2>
+                    <p className="text-muted-foreground">
+                      Update your choices below at any time — changes apply immediately, on this device.
+                    </p>
+                  </div>
+                  <CookieSettingsPanel />
+                </div>
+
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 md:p-12 text-center">
-                  <Cookie className="h-12 w-12 text-primary mx-auto mb-4" />
-                  <h2 className="text-2xl font-bold text-foreground mb-4">
-                    Manage Your Cookie Preferences
-                  </h2>
-                  <p className="text-muted-foreground mb-6">
-                    Update your cookie preferences at any time
-                  </p>
-                  <Button
-                    size="lg"
-                    className="gap-2"
-                    onClick={() => window.dispatchEvent(new Event(OPEN_COOKIE_PREFERENCES_EVENT))}
-                  >
-                    <Settings className="h-5 w-5" />
-                    Cookie Settings
-                  </Button>
-                  <p className="text-sm text-muted-foreground mt-6">
-                    Questions? Contact us at{" "}
+                  <p className="text-sm text-muted-foreground">
+                    Questions about cookies, storage or your data? Contact us at{" "}
                     <a href="mailto:privacy@skinlabs.co.za" className="text-primary hover:underline">
                       privacy@skinlabs.co.za
                     </a>

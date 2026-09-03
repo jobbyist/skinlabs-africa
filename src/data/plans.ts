@@ -71,6 +71,7 @@ export const membershipPlans: MembershipPlan[] = [
     cta: "Go VIP",
     features: [
       "Everything in Glow Insider",
+      "Intelligent Routine Builder on every product review page",
       "1 virtual derm consultation per month",
       "Priority booking with SA practitioners",
       "Personalised quarterly routine review",

@@ -41,7 +41,7 @@ const BrandLogo = ({ brand, logoUrl, className, size = "md" }: BrandLogoProps) =
         <img
           src={logoUrl}
           alt={`${brand} logo`}
-          className="h-full w-full object-contain"
+          className="h-full w-full object-contain grayscale contrast-125"
           loading="lazy"
           onError={() => setFailed(true)}
         />

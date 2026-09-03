@@ -10,7 +10,7 @@ import BrandRequestModal from "@/components/BrandRequestModal";
 import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
-import { spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
 
 const RANKING_PAGE_SIZE = 5;
 
@@ -97,6 +97,15 @@ const Spotlight = () => {
               Claim your brand
             </Button>
           </div>
+        </section>
+
+        <section className="container mx-auto mt-6 px-4">
+          <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
+            The {SPOTLIGHT_EDITION_MONTH} edition of Brand Spotlight includes {spotlightRanking.length} ranked brands
+            including {spotlightRisingBrands.length} emerging brands under review. The ranked list will expand as
+            SkinLabs® develops more product evidence. The Spotlight list and methodology will be updated at least
+            once every month.
+          </p>
         </section>
 
         <div className="container mx-auto px-4 mt-6">
