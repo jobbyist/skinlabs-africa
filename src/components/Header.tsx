@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Atom, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale, LogIn } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, ExternalLink, Newspaper, Star, Mic, Calendar, DollarSign, Search, Award, Sun, ShoppingBag, Scale, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AuthDialog from "@/components/AuthDialog";
@@ -84,12 +84,6 @@ const Header = () => {
                 <span className="hidden xl:inline">Search</span>
                 <kbd className="hidden rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium xl:inline">⌘K</kbd>
               </button>
-              <Button variant="outline" className="gap-2" asChild>
-                <Link to="/ai-formulator">
-                  <Atom className="h-4 w-4" />
-                  Build My AI Routine
-                </Link>
-              </Button>
               {!loading && user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

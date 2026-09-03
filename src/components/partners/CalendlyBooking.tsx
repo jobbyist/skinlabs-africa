@@ -3,7 +3,7 @@ import { Mail, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const CALENDLY_URL = (import.meta.env.VITE_SKINLABS_CALENDLY_URL as string | undefined)?.trim();
-const CONTACT_EMAIL = "support@skinlabs.co.za";
+const CONTACT_EMAIL = "partners@skinlabs.co.za";
 
 const benefits = [
   "A 20–30 minute conversation about your business and objectives",
