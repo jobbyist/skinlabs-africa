@@ -27,12 +27,15 @@ const writeList = (storageKey: string, ids: string[]) => {
 
 const PODCAST_KEY = "skinlabs-quota-podcast";
 const COMPARE_KEY = "skinlabs-quota-compare";
+const SPOTLIGHT_KEY = "skinlabs-quota-spotlight";
 
 export const PODCAST_FREE_MONTHLY = 1;
 export const COMPARE_FREE_MONTHLY = 2;
+export const SPOTLIGHT_FREE_MONTHLY = 3;
 
 export const getPodcastPlaysThisMonth = () => readList(PODCAST_KEY);
 export const getCompareReadsThisMonth = () => readList(COMPARE_KEY);
+export const getSpotlightProfileViewsThisMonth = () => readList(SPOTLIGHT_KEY);
 
 export const canPlayPodcastEpisode = (slug: string) => {
   const ids = getPodcastPlaysThisMonth();
@@ -54,4 +57,16 @@ export const recordComparisonRead = (slug: string) => {
   const ids = getCompareReadsThisMonth();
   if (ids.includes(slug)) return;
   writeList(COMPARE_KEY, [...ids, slug]);
+};
+
+/** Unauthenticated visitors and free (Glow Explorer) members may open 3 Spotlight brand profiles per month. */
+export const canViewSpotlightProfile = (slug: string) => {
+  const ids = getSpotlightProfileViewsThisMonth();
+  return ids.includes(slug) || ids.length < SPOTLIGHT_FREE_MONTHLY;
+};
+
+export const recordSpotlightProfileView = (slug: string) => {
+  const ids = getSpotlightProfileViewsThisMonth();
+  if (ids.includes(slug)) return;
+  writeList(SPOTLIGHT_KEY, [...ids, slug]);
 };

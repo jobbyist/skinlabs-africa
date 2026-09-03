@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import SpotlightRankingCard from "@/components/SpotlightRankingCard";
 import BrandRequestModal from "@/components/BrandRequestModal";
 import AdSlot from "@/components/AdSlot";
-import { spotlightRankedBrands, spotlightRisingBrands, spotlightTopThree, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+import PaginationControls from "@/components/PaginationControls";
+import { usePageParam } from "@/hooks/use-page-param";
+import { spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+
+const RANKING_PAGE_SIZE = 5;
 
 const EDITORIAL_DISCLAIMER =
   "Spotlight by SkinLabs is an independent editorial feature. Rankings and profiles are determined using the SkinLabs editorial methodology and available product information. Inclusion does not constitute paid endorsement. Commercial relationships, affiliate links, gifted products or other benefits are disclosed where applicable. Rankings may change as products, evidence, availability and editorial assessments change.";
@@ -16,8 +20,17 @@ const EDITORIAL_DISCLAIMER =
 const Spotlight = () => {
   const [claimOpen, setClaimOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [rankingPage, setRankingPage] = usePageParam("page");
 
-  const canonical = "https://skinlabs.co.za/spotlight";
+  const totalRankingPages = Math.max(1, Math.ceil(spotlightRankedBrands.length / RANKING_PAGE_SIZE));
+  const currentRankingPage = Math.min(rankingPage, totalRankingPages);
+  const pagedRankedBrands = spotlightRankedBrands.slice(
+    (currentRankingPage - 1) * RANKING_PAGE_SIZE,
+    currentRankingPage * RANKING_PAGE_SIZE,
+  );
+
+  const baseCanonical = "https://skinlabs.co.za/spotlight";
+  const canonical = currentRankingPage > 1 ? `${baseCanonical}?page=${currentRankingPage}` : baseCanonical;
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
@@ -47,7 +60,11 @@ const Spotlight = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Spotlight by SkinLabs — South African Skincare Brands, Ranked"
+        title={
+          currentRankingPage > 1
+            ? `Spotlight by SkinLabs — Full Ranking, Page ${currentRankingPage}`
+            : "Spotlight by SkinLabs — South African Skincare Brands, Ranked"
+        }
         description="A monthly, review-led ranking of South African skincare brands. Not a popularity list, not a paid directory — every score comes from real SkinLabs product reviews."
         canonical={canonical}
         jsonLd={jsonLd}
@@ -88,9 +105,16 @@ const Spotlight = () => {
 
         {/* Top 3 */}
         <section className="container mx-auto mt-12 px-4">
-          <h2 className="mb-6 text-center font-heading text-2xl font-bold text-foreground">Top 3 this month</h2>
+          <h2 className="mb-1 text-center font-heading text-2xl font-bold text-foreground">Top 3 brands this week</h2>
+          <p className="mb-6 text-center text-xs text-muted-foreground">
+            Rotates every Friday at 12am SAST among the highest-scoring Ranked brands — see{" "}
+            <Link to="/spotlight/methodology" className="underline hover:text-foreground">
+              Methodology
+            </Link>
+            .
+          </p>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
-            {spotlightTopThree.map((entry) => (
+            {spotlightTopThisWeek.map((entry) => (
               <SpotlightRankingCard key={entry.slug} entry={entry} />
             ))}
           </div>
@@ -100,10 +124,16 @@ const Spotlight = () => {
         <section className="container mx-auto mt-14 px-4">
           <h2 className="mb-6 font-heading text-2xl font-bold text-foreground">The full ranking</h2>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {spotlightRankedBrands.map((entry) => (
+            {pagedRankedBrands.map((entry) => (
               <SpotlightRankingCard key={entry.slug} entry={entry} compact />
             ))}
           </div>
+          <PaginationControls
+            page={currentRankingPage}
+            totalPages={totalRankingPages}
+            onPageChange={setRankingPage}
+            className="mt-8"
+          />
         </section>
 
         {/* New on the Radar */}

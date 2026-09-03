@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
@@ -14,6 +14,7 @@ import { overallScore } from "@/data/reviews";
 import { useMembership } from "@/hooks/use-membership";
 import GatedOverlay from "@/components/GatedOverlay";
 import { spotlightComments } from "@/data/articleComments";
+import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from "@/lib/access-quotas";
 
 const EDITORIAL_DISCLAIMER =
   "Spotlight by SkinLabs is an independent editorial feature. Rankings and profiles are determined using the SkinLabs editorial methodology and available product information. Inclusion does not constitute paid endorsement. Commercial relationships, affiliate links, gifted products or other benefits are disclosed where applicable.";
@@ -23,6 +24,13 @@ const SpotlightBrandProfile = () => {
   const [claimOpen, setClaimOpen] = useState(false);
   const { isMember, loading: membershipLoading } = useMembership();
   const entry = getSpotlightBrand(brandSlug ?? "");
+  const locked = Boolean(entry) && !membershipLoading && !isMember && !canViewSpotlightProfile(brandSlug ?? "");
+
+  useEffect(() => {
+    if (entry && !isMember && brandSlug && canViewSpotlightProfile(brandSlug)) {
+      recordSpotlightProfileView(brandSlug);
+    }
+  }, [entry, isMember, brandSlug]);
 
   if (!entry) {
     return (
@@ -81,9 +89,9 @@ const SpotlightBrandProfile = () => {
       <main className="pt-24 pb-24">
         <div className="container mx-auto max-w-3xl px-4">
           <GatedOverlay
-            locked={!membershipLoading && !isMember}
-            title="Spotlight profiles are for members"
-            message="Glow Insider and Glow VIP members can open full brand profiles. Browse the ranking free on the Spotlight page."
+            locked={locked}
+            title="Monthly free profile limit reached"
+            message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Upgrade to Glow Insider or Glow VIP for unlimited access.`}
             ctaLabel="View membership plans"
           >
           <Link to="/spotlight" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -95,7 +103,7 @@ const SpotlightBrandProfile = () => {
             <div>
               {entry.rank !== null ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                  #{entry.rank} this month
+                  #{entry.rank} in the full ranking
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">

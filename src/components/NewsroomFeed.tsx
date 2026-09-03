@@ -10,6 +10,10 @@ import { useNewsArticles, type NewsArticleSummary } from "@/hooks/use-news-artic
 import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import PaginationControls from "@/components/PaginationControls";
+import { usePageParam } from "@/hooks/use-page-param";
+
+const NEWSROOM_PAGE_SIZE = 5;
 
 interface NewsroomFeedProps {
   limit?: number;
@@ -17,6 +21,8 @@ interface NewsroomFeedProps {
   description?: string;
   searchable?: boolean;
   showExploreLink?: boolean;
+  /** Full listing mode: 5 briefings per page, page synced to ?page= for SEO-friendly deep links. */
+  paginate?: boolean;
 }
 
 const NewsroomFeed = ({
@@ -25,9 +31,14 @@ const NewsroomFeed = ({
   description = "Discover short-form editorial content, skincare education, product insights, trends, routines, tips and commentary from top sources globally, curated for SA.",
   searchable = false,
   showExploreLink = false,
+  paginate = false,
 }: NewsroomFeedProps) => {
   const { user } = useAuth();
-  const { articles: fetchedArticles, loading } = useNewsArticles(limit);
+  const [page, setPage] = usePageParam("page");
+  const { articles: fetchedArticles, loading, totalCount } = useNewsArticles(
+    paginate ? { page, pageSize: NEWSROOM_PAGE_SIZE } : limit,
+  );
+  const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
   const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
   const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
   const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
@@ -218,6 +229,10 @@ const NewsroomFeed = ({
               </motion.article>
             ))}
           </div>
+        )}
+
+        {paginate && !loading && articles.length > 0 && (
+          <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} className="mt-10" />
         )}
       </div>
     </section>

@@ -26,9 +26,11 @@ const SpotlightArchive = () => {
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight</p>
           <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">Archive</h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
-            This is Spotlight's first edition, so there's nothing to archive yet. We'll add each past edition here
-            once the second edition publishes — rank, score and methodology version preserved, so you can see how
-            South African skincare brands' standing has genuinely changed over time.
+            Spotlight launched under Methodology v1.0 in August 2026. We don't yet keep a full historical snapshot of
+            past editions with preserved rank and score, so rather than guess at how brands moved between editions,
+            we're starting the real archive from here — each future edition will be added below with its rank, score
+            and methodology version preserved, so you can see how South African skincare brands' standing genuinely
+            changes over time.
           </p>
 
           <div className="mt-8 rounded-3xl border border-border bg-card p-6">
