@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_analysis_uses: {
+        Row: {
+          id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auth_exchange_codes: {
         Row: {
           code: string
@@ -464,6 +482,7 @@ export type Database = {
       profiles: {
         Row: {
           allergies: string[] | null
+          billing_interval: string
           created_at: string
           date_of_birth: string | null
           email: string | null
@@ -478,11 +497,16 @@ export type Database = {
           skin_conditions: string[] | null
           subscription_started_at: string | null
           subscription_status: string | null
+          trial_ends_at: string | null
+          trial_plan: string | null
+          trial_used_at: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           allergies?: string[] | null
+          billing_interval?: string
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
@@ -497,11 +521,16 @@ export type Database = {
           skin_conditions?: string[] | null
           subscription_started_at?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
+          trial_plan?: string | null
+          trial_used_at?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           allergies?: string[] | null
+          billing_interval?: string
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
@@ -516,8 +545,12 @@ export type Database = {
           skin_conditions?: string[] | null
           subscription_started_at?: string | null
           subscription_status?: string | null
+          trial_ends_at?: string | null
+          trial_plan?: string | null
+          trial_used_at?: string | null
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -796,7 +829,11 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { _user_id: string }; Returns: boolean }
+      is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
+      is_username_available: { Args: { p_username: string }; Returns: boolean }
+      register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      start_free_trial: { Args: { p_plan: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
