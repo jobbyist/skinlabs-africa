@@ -51,7 +51,7 @@ serve(async (req) => {
 
     const subscriptionStatus = (profileData?.subscription_status || "free").toLowerCase();
     const trialPlan = (profileData?.trial_plan || "").toLowerCase();
-    const trialActive = Boolean(profileData?.trial_ends_at) && new Date(profileData!.trial_ends_at as string) > new Date();
+    const trialActive = Boolean(profileData?.trial_ends_at) && new Date(profileData?.trial_ends_at as string) > new Date();
 
     const isVipMember = subscriptionStatus === "vip" || (subscriptionStatus === "trial" && trialPlan === "vip" && trialActive);
     const isPremiumMember =
