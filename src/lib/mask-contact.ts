@@ -3,9 +3,10 @@ export const maskEmail = (email: string): string => {
   const [local, domain] = email.split("@");
   if (!local || !domain) return email;
   const visible = local.slice(0, Math.min(3, local.length));
-  const dotIndex = domain.lastIndexOf(".");
-  const tld = dotIndex >= 0 ? domain.slice(dotIndex) : "";
-  return `${visible}*****@*****${tld}`;
+  // Keep the full suffix after the first dot (e.g. ".co.za", not just ".za").
+  const dotIndex = domain.indexOf(".");
+  const suffix = dotIndex >= 0 ? domain.slice(dotIndex) : "";
+  return `${visible}*****@*****${suffix}`;
 };
 
 /** Masks a phone as `012 *** ****` for directory-card display, unmasked on request. */
