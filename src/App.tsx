@@ -43,6 +43,7 @@ const SpotlightBrandProfile = lazy(() => import("./pages/SpotlightBrandProfile")
 const Seasonals = lazy(() => import("./pages/Seasonals"));
 const SeasonalHub = lazy(() => import("./pages/SeasonalHub"));
 const Consultations = lazy(() => import("./pages/Consultations"));
+const DermatologistDirectory = lazy(() => import("./pages/DermatologistDirectory"));
 const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 
@@ -130,6 +131,7 @@ const AppContent = () => {
         <Route path="/compare" element={<Compare />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/consultations" element={<Consultations />} />
+        <Route path="/consult" element={<DermatologistDirectory />} />
         <Route path="/announcements" element={<Announcements />} />
 
         <Route path="/spotlight" element={<Spotlight />} />

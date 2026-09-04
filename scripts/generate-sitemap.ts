@@ -34,6 +34,7 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/podcast", changefreq: "weekly", priority: "0.85" },
   { path: "/ai-formulator", changefreq: "weekly", priority: "0.9" },
   { path: "/consultations", changefreq: "monthly", priority: "0.8" },
+  { path: "/consult", changefreq: "weekly", priority: "0.85" },
   { path: "/spotlight", changefreq: "monthly", priority: "0.9" },
   { path: "/spotlight/methodology", changefreq: "monthly", priority: "0.4" },
   { path: "/spotlight/archive", changefreq: "monthly", priority: "0.3" },

@@ -44,6 +44,7 @@ const Footer = () => {
     platform: [
       { label: "AI Formulator", href: "/ai-formulator" },
       { label: "Consultations", href: "/consultations", isNew: true },
+      { label: "Find a Dermatologist", href: "/consult", isNew: true },
       { label: "Marketplace", href: "/shop", isComingSoon: true },
       // Already a member — a "Memberships" link back to the pricing page is redundant.
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),

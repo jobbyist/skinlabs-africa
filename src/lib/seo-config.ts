@@ -97,6 +97,12 @@ export const pageSeo: Record<string, PageSeo> = {
       "Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing and local availability for Glow Insider and VIP members.",
     canonicalPath: "/consultations",
   },
+  consult: {
+    title: `Find a Trusted Dermatologist in South Africa | ${BRAND}`,
+    description:
+      "Browse SkinLabs' directory of verified South African dermatologists and dermatology practices — real names, cities and provinces across Gauteng, the Western Cape, KwaZulu-Natal and beyond. Message a practitioner or claim your free listing.",
+    canonicalPath: "/consult",
+  },
   shop: {
     title: `Skincare Marketplace South Africa | Coming Soon | ${BRAND}`,
     description:

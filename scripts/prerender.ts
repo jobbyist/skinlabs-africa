@@ -50,6 +50,7 @@ const STATIC_ROUTES = [
   "/reviews",
   "/compare",
   "/consultations",
+  "/consult",
   "/announcements",
   "/spotlight",
   "/spotlight/methodology",
