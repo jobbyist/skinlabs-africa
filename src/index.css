@@ -155,6 +155,15 @@ All colors MUST be HSL.
   inherits: false;
 }
 
+/* Ad-unit disclosure copy: identical boilerplate repeats on every ad slot across the
+   whole site, which reads as duplicate content to search engines when it's a literal
+   text node. Rendering it via ::after/attr() keeps it fully visible to sighted users
+   (and available to the accessible name via aria-label on the host element) without
+   adding a duplicated text node to the crawled/indexed page content. */
+.ad-disclosure::after {
+  content: attr(data-text);
+}
+
 @layer utilities {
   .gradient-border-anim {
     position: relative;

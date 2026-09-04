@@ -39,6 +39,18 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/newsroom",
+      "destination": "/briefings",
+      "permanent": true
+    },
+    {
+      "source": "/newsroom/:slug",
+      "destination": "/briefings/:slug",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

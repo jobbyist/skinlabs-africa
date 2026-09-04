@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import AdDisclosure from "@/components/AdDisclosure";
 
 declare global {
   interface Window {
@@ -30,9 +31,6 @@ interface AdSlotProps {
   showAffiliateFallback?: boolean;
   compact?: boolean;
 }
-
-const FINE_PRINT =
-  "This is a free, ad-supported version of SkinLabs. Upgrade to our premium plans for an ad-free browsing experience";
 
 const AdSlot = ({
   placement,
@@ -70,9 +68,7 @@ const AdSlot = ({
           data-ad-format={format}
           data-full-width-responsive="true"
         />
-        <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground/90">
-          {FINE_PRINT}
-        </p>
+        <AdDisclosure />
       </div>
     </aside>
   );

@@ -53,7 +53,7 @@ const About = () => {
       title: "The Daily Skinny",
       description: "Daily briefings of global skincare science translated for SA skin, climate and shelves.",
       highlight: "Available as premium PDF magazine",
-      link: "/newsroom"
+      link: "/briefings"
     },
     {
       icon: <Star className="h-6 w-6" />,

@@ -39,6 +39,9 @@ const NewsroomFeed = ({
     paginate ? { page, pageSize: NEWSROOM_PAGE_SIZE } : limit,
   );
   const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
+  // Standalone /briefings listing (paginate mode) is this page's own document, so its
+  // heading is the page H1; embedded elsewhere (e.g. the homepage) it's a section H2.
+  const HeadingTag = paginate ? "h1" : "h2";
   const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
   const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
   const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
@@ -116,12 +119,12 @@ const NewsroomFeed = ({
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Daily briefing</p>
-            <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</h2>
+            <HeadingTag className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{heading}</HeadingTag>
             <p className="text-muted-foreground">{description}</p>
           </div>
           {showExploreLink && (
             <Link
-              to="/newsroom"
+              to="/briefings"
               className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0"
             >
               Explore all briefings
@@ -163,7 +166,7 @@ const NewsroomFeed = ({
                 whileHover={{ y: -4 }}
                 className="gradient-border-anim group flex flex-col overflow-hidden rounded-3xl border border-transparent bg-card"
               >
-                <Link to={`/newsroom/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
+                <Link to={`/briefings/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
                   {article.cover_image_url && (
                     <img
                       src={article.cover_image_url}
@@ -188,7 +191,7 @@ const NewsroomFeed = ({
                     </span>
                   </div>
                   <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
-                    <Link to={`/newsroom/${article.slug}`}>{article.title}</Link>
+                    <Link to={`/briefings/${article.slug}`}>{article.title}</Link>
                   </h3>
                   <p className="text-sm text-muted-foreground">{article.excerpt}</p>
                   <ul className="space-y-1.5">
@@ -202,7 +205,7 @@ const NewsroomFeed = ({
 
                   <div className="mt-auto flex items-center justify-between pt-4">
                     <Link
-                      to={`/newsroom/${article.slug}`}
+                      to={`/briefings/${article.slug}`}
                       className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                     >
                       Read the breakdown

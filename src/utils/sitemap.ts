@@ -10,7 +10,7 @@ export interface SitemapUrl {
 export const sitemapUrls: SitemapUrl[] = [
   { loc: "/", changefreq: "daily", priority: 1.0 },
   { loc: "/reviews", changefreq: "daily", priority: 0.95 },
-  { loc: "/newsroom", changefreq: "daily", priority: 0.95 },
+  { loc: "/briefings", changefreq: "daily", priority: 0.95 },
   { loc: "/compare", changefreq: "weekly", priority: 0.9 },
   { loc: "/spotlight", changefreq: "weekly", priority: 0.9 },
   { loc: "/podcast", changefreq: "weekly", priority: 0.9 },

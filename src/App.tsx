@@ -53,6 +53,11 @@ const LegacyStreamRedirect = () => {
   return <Navigate to={`/podcast/${slug}`} replace />;
 };
 
+const LegacyNewsroomArticleRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/briefings/${slug}`} replace />;
+};
+
 const RouteFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -113,8 +118,11 @@ const AppContent = () => {
         <Route path="/stream" element={<Navigate to="/podcast" replace />} />
         <Route path="/stream/:slug" element={<LegacyStreamRedirect />} />
 
-        <Route path="/newsroom" element={<Newsroom />} />
-        <Route path="/newsroom/:slug" element={<NewsroomArticle />} />
+        <Route path="/briefings" element={<Newsroom />} />
+        <Route path="/briefings/:slug" element={<NewsroomArticle />} />
+        {/* The Daily Skinny moved from /newsroom to /briefings — keep old links/bookmarks/search-engine index resolvable */}
+        <Route path="/newsroom" element={<Navigate to="/briefings" replace />} />
+        <Route path="/newsroom/:slug" element={<LegacyNewsroomArticleRedirect />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/reviews/page/:page" element={<Reviews />} />
         <Route path="/reviews/versus/:slug" element={<ComparisonArticle />} />

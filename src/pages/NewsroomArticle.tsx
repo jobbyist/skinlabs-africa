@@ -178,7 +178,7 @@ const NewsroomArticle = () => {
           <h1 className="font-heading text-3xl font-bold text-foreground">Briefing not found</h1>
           <p className="mt-3 text-muted-foreground">This story may have been unpublished.</p>
           <Button asChild className="mt-6">
-            <Link to="/newsroom">Back to The Daily Skinny</Link>
+            <Link to="/briefings">Back to The Daily Skinny</Link>
           </Button>
         </main>
         <Footer />
@@ -186,7 +186,7 @@ const NewsroomArticle = () => {
     );
   }
 
-  const canonical = `https://skinlabs.co.za/newsroom/${article.slug}`;
+  const canonical = `https://skinlabs.co.za/briefings/${article.slug}`;
 
   return (
     <>
@@ -208,7 +208,7 @@ const NewsroomArticle = () => {
         <main className="pt-20">
           <article className="container mx-auto max-w-3xl px-4 py-10">
             <Link
-              to="/newsroom"
+              to="/briefings"
               className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" /> The Daily Skinny
