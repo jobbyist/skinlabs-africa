@@ -177,6 +177,28 @@ const Spotlight = () => {
           </div>
         </section>
 
+        {/* Why Spotlight exists */}
+        <section className="container mx-auto mt-10 px-4">
+          <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
+            <h2 className="font-heading text-lg font-bold text-foreground">Why Spotlight exists</h2>
+            <div className="mt-2 space-y-3 text-sm text-muted-foreground">
+              <p>
+                SkinLabs reviews score individual products. Spotlight answers a different question: which South
+                African skincare brands, taken as a whole, are worth paying attention to right now? A brand doesn't
+                get onto this list by having a good marketing budget, a large following or a founder with a
+                compelling story — it gets here because the products we've independently reviewed from that brand
+                are actually scoring well.
+              </p>
+              <p>
+                That means Spotlight moves as our review coverage grows. A brand with one strong product sits in New
+                on the Radar rather than the main ranking, not because we doubt it, but because one data point isn't
+                enough to rank a whole brand on. As we review more of a brand's range, its position here becomes a
+                more reliable signal of consistency across its lineup — not just a single hit product.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Disclaimer */}
         <section className="container mx-auto mt-10 px-4">
           <div className="mx-auto flex max-w-3xl gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">

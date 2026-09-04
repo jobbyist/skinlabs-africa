@@ -250,9 +250,11 @@ const Preloader = () => {
                 style={{ width: 160, height: "auto" }}
                 className="mx-auto mb-8 dark:invert"
               />
-              <h1 className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
+              {/* Not an h1: this overlay sits on top of the homepage's own h1 (Hero) without
+                  hiding it from the accessibility tree, so the page must keep exactly one h1. */}
+              <p className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                 Uncover the whole story behind your skincare.
-              </h1>
+              </p>
               <p className="mt-4 text-muted-foreground">
                 Independent SA product reviews, daily skin science briefings and AI routines built for local climate
                 and skin — get unlimited access with a SkinLabs membership.

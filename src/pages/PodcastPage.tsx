@@ -112,6 +112,42 @@ const PodcastPage = () => {
             </div>
           </div>
 
+          <section className="mb-10 max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
+            <h2 className="font-heading text-2xl font-bold text-foreground">About The Skin Deep Podcast</h2>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                The Skin Deep is SkinLabs®' audio series for people who want the ingredient-science version of a
+                skincare conversation, not the marketing version. Each episode takes one question a South African
+                reader actually asks us — is this active worth the price jump, does SPF really need reapplying over
+                makeup, why does the same "hydrating" serum feel different in Durban humidity versus a Joburg
+                winter — and works through it the way we'd write a briefing or a review: what the evidence says,
+                what it doesn't say yet, and what that means for a shelf stocked with South African products at
+                South African prices.
+              </p>
+              <p>
+                We record with the same editorial independence as everything else on SkinLabs: no brand pays for a
+                mention, no episode is scripted around a sponsor's talking points, and when we're unsure about
+                something we say so on air instead of smoothing it over. Episodes run roughly 20–35 minutes,
+                organised around recurring topics — actives and formulation, budget-versus-clinic comparisons,
+                skin myths worth retiring, and the industry side of South African skincare (regulation, local
+                manufacturing, what "clean beauty" actually means here).
+              </p>
+              <p>
+                New episodes drop on the last Friday of every month, with full show notes and the products or
+                studies discussed linked directly to the relevant{" "}
+                <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                  SkinLabs review
+                </Link>{" "}
+                or{" "}
+                <Link to="/briefings" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                  Daily Skinny briefing
+                </Link>
+                , so you can go from listening to reading in one tap. Streaming on major podcast platforms is coming
+                soon — for now, every episode is playable directly from this page.
+              </p>
+            </div>
+          </section>
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {episodes.map((episode, index) => {
               const isCurrent = current?.id === episode.id;
