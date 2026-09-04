@@ -20,6 +20,8 @@ export const MONEY_BACK_GUARANTEE_DAYS = 30;
 /** Canonical free-tier quotas — keep in sync with src/lib/access-quotas.ts */
 export const PODCAST_FREE_MONTHLY = 1;
 export const COMPARE_FREE_MONTHLY = 2;
+/** Every visitor — signed out, or signed in on Glow Explorer — gets this many full Daily Skinny briefings per rolling 7 days. */
+export const DAILY_SKINNY_FREE_WEEKLY = 3;
 
 export const membershipPlans: MembershipPlan[] = [
   {
@@ -31,7 +33,7 @@ export const membershipPlans: MembershipPlan[] = [
     trialEligible: false,
     cta: "Start free",
     features: [
-      "1 full Newsroom briefing per week",
+      `${DAILY_SKINNY_FREE_WEEKLY} full Daily Skinny briefings per week — no account required`,
       "1 basic AI skin analysis per month",
       "Limited product review access (scores & verdicts)",
       `Stream ${PODCAST_FREE_MONTHLY} free podcast episode per month`,

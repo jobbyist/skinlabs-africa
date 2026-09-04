@@ -160,12 +160,13 @@ const featureLike = (plan: MembershipPlan, needle: string, fallback: string) =>
   plan.features.find((f) => f.toLowerCase().includes(needle.toLowerCase())) ?? fallback;
 
 const explorerAiLine = featureLike(explorer, "AI skin analysis", "1 basic AI skin analysis per month");
+const explorerBriefingLine = featureLike(explorer, "Daily Skinny briefing", "3 full Daily Skinny briefings per week");
 const insiderAiLine = featureLike(insider, "AI skincare analysis", "1 standard AI skincare analysis per week");
 const vipConsultLine = featureLike(vip, "consultation", "1 virtual derm consultation per month");
 const insiderMoneyBack = insider.moneyBackDays ?? MONEY_BACK_GUARANTEE_DAYS;
 
 const membershipSummaryAnswer =
-  `Yes — three tiers. ${explorer.name} is free forever: ${explorerAiLine.toLowerCase()}, one full Newsroom briefing a week, ` +
+  `Yes — three tiers. ${explorer.name} is free forever: ${explorerAiLine.toLowerCase()}, ${explorerBriefingLine.toLowerCase()}, ` +
   `limited product review access, ${PODCAST_FREE_MONTHLY} free podcast episode a month and ${COMPARE_FREE_MONTHLY} free comparison articles a month. ` +
   `${insider.name} (R${insider.priceMonthly}/month or R${insider.priceAnnual}/year) unlocks a custom AI routine, ${insiderAiLine.toLowerCase()}, ` +
   `the full podcast library, unlimited product reviews and full Spotlight brand profiles — it starts with a 7-day free trial, no card required, ` +

@@ -21,7 +21,7 @@ const Editorials = () => {
             </p>
           </div>
           <Link to="/compare" className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline shrink-0">
-            Browse all shelf showdowns
+            Browse all comparisons
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
