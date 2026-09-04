@@ -1,46 +1,66 @@
-import { ExternalLink } from "lucide-react";
+import { useEffect, useRef } from "react";
+
+declare global {
+  interface Window {
+    adsbygoogle?: unknown[];
+  }
+}
+
+const ADSENSE_CLIENT = "ca-pub-1237323355260727";
+const ADSENSE_SLOT = "2940635869";
+
+const FINE_PRINT =
+  "This is a free, ad-supported version of SkinLabs. Upgrade to our premium plans for an ad-free browsing experience";
 
 interface AffiliateBannerProps {
-  /** Optional placement label for analytics / future ad slots */
+  /** Optional placement label for analytics */
   placement?: string;
   className?: string;
   compact?: boolean;
 }
 
 /**
- * Placeholder slot for future affiliate / partner creatives.
- * Non-intrusive, clearly labelled as advertising so editorial trust is preserved.
+ * In-page Google AdSense unit (replaces previous affiliate placeholder).
+ * Clearly labelled free / ad-supported experience with upgrade messaging.
  */
-const AffiliateBanner = ({ placement = "default", className = "", compact = false }: AffiliateBannerProps) => {
+const AffiliateBanner = ({
+  placement = "default",
+  className = "",
+  compact = false,
+}: AffiliateBannerProps) => {
+  const pushed = useRef(false);
+
+  useEffect(() => {
+    if (pushed.current) return;
+    try {
+      if (typeof window !== "undefined") {
+        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        pushed.current = true;
+      }
+    } catch {
+      // Ad blockers or missing script
+    }
+  }, []);
+
   return (
     <aside
-      className={`w-full ${className}`}
+      className={`w-full overflow-hidden ${className}`}
+      data-ad-placement={placement}
       data-affiliate-placement={placement}
-      aria-label="Advertisement placeholder"
+      aria-label="Advertisement"
     >
-      <div
-        className={`relative overflow-hidden rounded-2xl border border-dashed border-border/80 bg-muted/40 ${
-          compact ? "px-4 py-3" : "px-5 py-5 sm:px-8 sm:py-6"
-        }`}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
-        <div className={`relative flex flex-col items-center justify-center gap-1 text-center ${compact ? "" : "gap-2"}`}>
-          <span className="rounded-full bg-background/80 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground ring-1 ring-border">
-            Ad · Partner slot
-          </span>
-          <p className={`font-heading font-semibold text-foreground ${compact ? "text-sm" : "text-base sm:text-lg"}`}>
-            Affiliate banner placeholder
-          </p>
-          {!compact && (
-            <p className="max-w-md text-xs text-muted-foreground sm:text-sm">
-              Partner creatives will appear here. SkinLabs editorial remains independent — no gifted samples, no paid rankings.
-            </p>
-          )}
-          <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
-            Reserved for verified SA retail partners
-            <ExternalLink className="h-3 w-3" aria-hidden />
-          </span>
-        </div>
+      <div className={`mx-auto max-w-4xl ${compact ? "min-h-[90px]" : "min-h-[120px]"}`}>
+        <ins
+          className="adsbygoogle"
+          style={{ display: "block" }}
+          data-ad-client={ADSENSE_CLIENT}
+          data-ad-slot={ADSENSE_SLOT}
+          data-ad-format="auto"
+          data-full-width-responsive="true"
+        />
+        <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground/90">
+          {FINE_PRINT}
+        </p>
       </div>
     </aside>
   );

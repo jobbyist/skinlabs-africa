@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import AffiliateBanner from "@/components/AffiliateBanner";
 
 declare global {
   interface Window {
@@ -8,19 +7,16 @@ declare global {
 }
 
 /**
- * Sitewide kill switch for Google AdSense units. Flip back to `true` to
- * resume rendering `<ins class="adsbygoogle">` slots. The affiliate-banner
- * fallback (and, where a campaign is active, the real affiliate creative)
- * keeps rendering either way, so placements never go visually blank.
+ * Google AdSense in-page ad unit for SkinLabs free (ad-supported) experience.
+ * Renders the official AdSense unit and a short disclosure about the free plan.
  */
-const ADS_ENABLED = false;
-
 export const ADSENSE_CLIENT = "ca-pub-1237323355260727";
+export const ADSENSE_SLOT = "2940635869";
 
 export const AD_SLOTS = {
-  inArticle: "0000000001",
-  inFeed: "0000000002",
-  sidebar: "0000000003",
+  inArticle: ADSENSE_SLOT,
+  inFeed: ADSENSE_SLOT,
+  sidebar: ADSENSE_SLOT,
 } as const;
 
 type AdFormat = "auto" | "fluid" | "rectangle";
@@ -30,22 +26,25 @@ interface AdSlotProps {
   adSlot?: string;
   format?: AdFormat;
   className?: string;
+  /** Kept for API compatibility; affiliate fallback is no longer used. */
   showAffiliateFallback?: boolean;
   compact?: boolean;
 }
 
+const FINE_PRINT =
+  "This is a free, ad-supported version of SkinLabs. Upgrade to our premium plans for an ad-free browsing experience";
+
 const AdSlot = ({
   placement,
-  adSlot = AD_SLOTS.inFeed,
+  adSlot = ADSENSE_SLOT,
   format = "auto",
   className = "",
-  showAffiliateFallback = true,
   compact = false,
 }: AdSlotProps) => {
   const pushed = useRef(false);
 
   useEffect(() => {
-    if (!ADS_ENABLED || pushed.current) return;
+    if (pushed.current) return;
     try {
       if (typeof window !== "undefined") {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -56,16 +55,6 @@ const AdSlot = ({
     }
   }, []);
 
-  if (!ADS_ENABLED) {
-    return showAffiliateFallback ? (
-      <div className={`w-full overflow-hidden ${className}`} data-ad-placement={placement}>
-        <div className="mx-auto max-w-4xl">
-          <AffiliateBanner placement={`fallback-${placement}`} compact={compact} />
-        </div>
-      </div>
-    ) : null;
-  }
-
   return (
     <aside
       className={`w-full overflow-hidden ${className}`}
@@ -75,17 +64,15 @@ const AdSlot = ({
       <div className={`mx-auto max-w-4xl ${compact ? "min-h-[90px]" : "min-h-[120px]"}`}>
         <ins
           className="adsbygoogle"
-          style={{ display: "block", textAlign: "center" }}
+          style={{ display: "block" }}
           data-ad-client={ADSENSE_CLIENT}
           data-ad-slot={adSlot}
           data-ad-format={format}
           data-full-width-responsive="true"
         />
-        {showAffiliateFallback && (
-          <div className="mt-2">
-            <AffiliateBanner placement={`fallback-${placement}`} compact={compact} />
-          </div>
-        )}
+        <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground/90">
+          {FINE_PRINT}
+        </p>
       </div>
     </aside>
   );
