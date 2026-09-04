@@ -71,7 +71,15 @@ const NewsroomArticle = () => {
     if (!article || !slug || membershipLoading) return;
     setBodyLoading(true);
     void (async () => {
-      const { data } = await supabase.rpc("get_article_body", { p_slug: slug });
+      const { data, error } = await supabase.rpc("get_article_body", { p_slug: slug });
+      if (error) {
+        console.error("get_article_body failed:", error);
+        toast.error("Couldn't load this briefing — please try again.");
+        setBody(null);
+        setInlineImages([]);
+        setBodyLoading(false);
+        return;
+      }
       const row = (Array.isArray(data) ? data[0] : null) as
         | { body_markdown?: string; inline_images?: unknown }
         | null;

@@ -90,16 +90,10 @@ ALTER TABLE public.news_articles
 
 GRANT SELECT (is_premium) ON public.news_articles TO anon, authenticated;
 
-          await admin
-            .from("profiles")
-            .update({
-              subscription_status: plan.status,
-              subscription_started_at: new Date().toISOString(),
-              billing_interval: plan.interval,
-              trial_plan: null,
-              trial_ends_at: null,
-            })
-            .eq("user_id", userId);
+CREATE OR REPLACE VIEW public.news_articles_public AS
+  SELECT id, slug, title, excerpt, key_takeaways, sa_context_tag, source_name, source_url,
+         publish_date, reading_time, word_count, cover_image_url, cover_image_alt,
+         cover_credit_name, cover_credit_url, seo_title, seo_description, json_ld,
          view_count, is_premium, created_at
   FROM public.news_articles
   WHERE status = 'published';
