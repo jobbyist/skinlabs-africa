@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Droplet, Sparkles, Shield, Sun } from "lucide-react";
 import Header from "@/components/Header";
+import AdSlot from "@/components/AdSlot";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
@@ -65,6 +66,10 @@ const Serums = () => {
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                     Concentrated actives at doses that actually do something — results can vary by skin type
                   </p>
+                </div>
+
+                <div className="my-8">
+                  <AdSlot placement="serums-mid" compact />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
