@@ -11,7 +11,9 @@ export const maskEmail = (email: string): string => {
 
 /** Masks a phone as `012 *** ****` for directory-card display, unmasked on request. */
 export const maskPhone = (phone: string): string => {
+  if (!phone || typeof phone !== 'string') return '';
   const digits = phone.replace(/[^\d]/g, "").replace(/^27/, "0");
   const prefix = digits.slice(0, 3);
   return `${prefix} *** ****`;
+};
 };
