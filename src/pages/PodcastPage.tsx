@@ -51,17 +51,19 @@ const PodcastPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>The Skin Deep Podcast — SA Skincare Conversations | SkinLabs</title>
+        <title>The Skin Deep Podcast — SA Skincare Conversations | SkinLabs®</title>
         <meta
           name="description"
           content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes on the last Friday of every month. Coming soon to all major podcast platforms."
         />
         <link rel="canonical" href="https://skinlabs.co.za/podcast" />
-        <meta property="og:title" content="The Skin Deep Podcast | SkinLabs" />
+        <meta property="og:title" content="The Skin Deep Podcast | SkinLabs®" />
         <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes on the last Friday of every month." />
         <meta property="og:url" content="https://skinlabs.co.za/podcast" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
       </Helmet>
 
       <Header />

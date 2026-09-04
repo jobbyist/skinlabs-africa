@@ -73,17 +73,19 @@ const Announcements = () => {
   return (
     <>
       <Helmet>
-        <title>Announcements — Product & Platform Updates | SKINLABS</title>
+        <title>Announcements — Product & Platform Updates | SkinLabs®</title>
         <meta
           name="description"
           content="What's new on SkinLabs: platform launches, feature updates and what's coming next, including the Openhaus Marketplace."
         />
         <link rel="canonical" href="https://skinlabs.co.za/announcements" />
-        <meta property="og:title" content="Announcements | SKINLABS" />
+        <meta property="og:title" content="Announcements | SkinLabs®" />
         <meta property="og:description" content="Platform launches, feature updates and what's coming next on SkinLabs." />
         <meta property="og:url" content="https://skinlabs.co.za/announcements" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

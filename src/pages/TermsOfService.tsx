@@ -7,17 +7,19 @@ const TermsOfService = () => {
   return (
     <>
       <Helmet>
-        <title>Terms of Service - Legal Agreement | SKINLABS</title>
+        <title>Terms of Service — Legal Agreement | SkinLabs®</title>
         <meta
           name="description"
           content="The terms governing your use of SkinLabs' website, products and services, including orders, payment and liability."
         />
         <link rel="canonical" href="https://skinlabs.co.za/terms-of-service" />
-        <meta property="og:title" content="Terms of Service | SKINLABS" />
+        <meta property="og:title" content="Terms of Service | SkinLabs®" />
         <meta property="og:description" content="The legal terms governing use of SkinLabs' website, products and services." />
         <meta property="og:url" content="https://skinlabs.co.za/terms-of-service" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="robots" content="noindex, follow" />
       </Helmet>
 

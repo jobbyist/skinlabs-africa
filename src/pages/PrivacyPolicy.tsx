@@ -7,17 +7,19 @@ const PrivacyPolicy = () => {
   return (
     <>
       <Helmet>
-        <title>Privacy Policy - Your Data Protection | SKINLABS</title>
+        <title>Privacy Policy — Your Data Protection | SkinLabs®</title>
         <meta
           name="description"
           content="What SkinLabs collects, why, and how we protect it — including your rights over your own data and our approach to cookies."
         />
         <link rel="canonical" href="https://skinlabs.co.za/privacy-policy" />
-        <meta property="og:title" content="Privacy Policy | SKINLABS" />
+        <meta property="og:title" content="Privacy Policy | SkinLabs®" />
         <meta property="og:description" content="How SkinLabs collects, uses and protects your personal information." />
         <meta property="og:url" content="https://skinlabs.co.za/privacy-policy" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

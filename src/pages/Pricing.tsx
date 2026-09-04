@@ -88,6 +88,16 @@ const Pricing = () => {
           content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines, product recommendations and exclusive member benefits. Glow Explorer free; Insider from R99/month. Starting a free trial forfeits the 30-day money-back guarantee."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
+        <meta property="og:title" content="SkinLabs® Membership | Personalised Skincare Intelligence" />
+        <meta
+          property="og:description"
+          content="Personalised skincare intelligence, AI-powered routines and exclusive member benefits. Glow Explorer free; Insider from R99/month."
+        />
+        <meta property="og:url" content="https://skinlabs.co.za/pricing" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

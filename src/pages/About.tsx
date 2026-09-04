@@ -209,7 +209,7 @@ const About = () => {
   return (
     <>
       <Helmet>
-        <title>About SkinLabs — Independent SA Skincare Platform | SKINLABS</title>
+        <title>About SkinLabs — Independent SA Skincare Platform | SkinLabs®</title>
         <meta name="description" content="SkinLabs is an independent skin science platform: daily briefings, honest product reviews and our scoring methodology, built for South African skin." />
         <meta name="keywords" content="about SkinLabs, skincare platform South Africa, independent skincare reviews, AI skincare, skincare science SA, sustainability, our science" />
         <link rel="canonical" href="https://skinlabs.co.za/about" />
