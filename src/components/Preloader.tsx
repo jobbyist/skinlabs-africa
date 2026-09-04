@@ -301,7 +301,7 @@ const Preloader = () => {
                         <Link
                           to={slide.href}
                           onClick={dismissGate}
-                          className="flex h-full flex-col items-center overflow-hidden rounded-2xl border border-border bg-card text-center transition-colors hover:border-primary"
+                          className="gradient-border-anim flex h-full flex-col items-center overflow-hidden rounded-2xl border border-transparent bg-card text-center"
                         >
                           {slide.image && (
                             <div className="aspect-[16/10] w-full overflow-hidden">

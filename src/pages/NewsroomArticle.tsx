@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { newsroomComments } from "@/data/articleComments";
+import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -261,6 +262,8 @@ const NewsroomArticle = () => {
                 </ul>
               </div>
             )}
+
+            <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
 
             {/* Body: members only */}
             <div className="mt-10">

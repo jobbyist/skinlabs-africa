@@ -55,7 +55,7 @@ const Footer = () => {
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
-      { label: "Browse FAQs", href: "/faq" },
+      { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Contact Us", href: "/contact" },
     ],
   };
@@ -86,7 +86,7 @@ const Footer = () => {
           <div className="lg:col-span-2">
             <img src={logo} alt="SKINLABS" className="w-[120px] h-auto mb-4" />
             <p className="text-background/70 text-sm max-w-xs mb-6">
-              South Africa's independent skincare intelligence platform. Evidence-graded product reviews, daily skin science briefings and AI-personalised routines — no affiliate deals, no gifted samples.
+              Skincare, without the nonsense. Evidence-graded product reviews, daily skin science briefings and AI-personalised routines, built for South African skin — no affiliate deals, no gifted samples.
             </p>
             <div className="mb-6">
               <p className="text-sm font-semibold text-background mb-3">Contact Us</p>

@@ -27,23 +27,23 @@ const About = () => {
   const values = [
     {
       icon: <Heart className="h-8 w-8" />,
-      title: "Independent",
-      description: "No affiliate deals, no gifted samples — our reviews and briefings answer to readers only"
+      title: "Independent, actually",
+      description: "No affiliate deals, no gifted samples — our reviews and briefings answer to readers, full stop"
     },
     {
       icon: <Award className="h-8 w-8" />,
-      title: "Evidence-Led",
-      description: "Every briefing and routine is grounded in published dermatology research"
+      title: "Evidence over hype",
+      description: "Every briefing and routine is grounded in published dermatology research, not trend cycles"
     },
     {
       icon: <Users className="h-8 w-8" />,
-      title: "Built for SA Skin",
-      description: "Written for local climate, water, shelves and melanin-rich skin — not imported advice"
+      title: "Built for SA skin",
+      description: "Written for local climate, water, shelves and melanin-rich skin — not imported advice with the Rand signs swapped in"
     },
     {
       icon: <Target className="h-8 w-8" />,
-      title: "AI Where It Helps",
-      description: "AI translates research into a routine you can actually follow, reviewed against clinical guidance"
+      title: "AI where it earns its place",
+      description: "AI translates research into a routine you can actually follow, checked against clinical guidance — not AI for its own sake"
     }
   ];
 
@@ -246,27 +246,29 @@ const About = () => {
                     About SkinLabs
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    An independent skin science platform built for South Africa
+                    Skincare, without the nonsense — an independent skin science platform built for South
+                    African skin.
                   </p>
                 </div>
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
-                  <h2 className="text-3xl font-bold text-foreground mb-6">Our Story</h2>
+                  <h2 className="text-3xl font-bold text-foreground mb-6">Our story</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p>
-                      SkinLabs started because skincare advice reaching South Africans was written for
-                      other climates, other shelves and often other skin. We rebuilt it locally: a daily
-                      editorial brief, independent product reviews scored against SA conditions, a podcast
-                      and an AI formulator that turns dermatology research into a routine you can follow.
+                      Here's the thing: most skincare advice reaching South Africans was written for
+                      someone else's climate, someone else's shelves and, often, someone else's skin. So we
+                      rebuilt it locally — a daily editorial brief, independent product reviews scored
+                      against actual SA conditions, a podcast and an AI formulator that turns dermatology
+                      research into a routine you can actually stick to.
                     </p>
                     <p>
-                      We are content-first rather than a storefront. That means no affiliate deals, no
-                      gifted samples and no pressure to sell you a product — our members fund the work,
-                      so the work answers to them.
+                      We're content-first, not a storefront. No affiliate deals, no gifted samples, no
+                      pressure to sell you anything — our members fund the work, so the work answers to
+                      them. Not to a brand.
                     </p>
                     <p>
-                      Every briefing is summarised from credible global sources and then translated into
-                      what it means here: high year-round UV, Highveld dryness, coastal humidity, hard
+                      Every briefing gets summarised from credible global sources, then translated into
+                      what it actually means here: seasonal UV, Highveld dryness, coastal humidity, hard
                       municipal water, local pricing and the realities of melanin-rich skin.
                     </p>
                   </div>

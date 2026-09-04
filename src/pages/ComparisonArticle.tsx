@@ -14,6 +14,7 @@ import GatedOverlay from "@/components/GatedOverlay";
 import { useEffect } from "react";
 import { featuredEditorials } from "@/data/editorials";
 import { comparisonComments } from "@/data/articleComments";
+import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 
 const EDITORIAL_DISCLAIMER =
   "SKINLABS's views and opinions are independent. This article is not paid or sponsored content. Product information is assessed using publicly available information, ingredient analysis, editorial research and, where applicable, product testing. Prices, availability and formulations may change.";
@@ -243,6 +244,10 @@ const ComparisonArticle = () => {
               ))}
             </ul>
           </div>
+
+          <RelatedKnowledgeHub
+            keywords={[article.saContext, ...article.productsCompared.flatMap((p) => [p.brand, p.name])]}
+          />
 
           {article.faqs && article.faqs.length > 0 && (
             <div className="mt-10">

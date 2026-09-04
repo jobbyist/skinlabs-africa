@@ -40,7 +40,7 @@ const STATIC_ROUTES = [
   "/partners",
   "/ai-formulator",
   "/products",
-  "/faq",
+  "/knowledge-hub",
   "/privacy-policy",
   "/terms-of-service",
   "/cookie-policy",

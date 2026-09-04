@@ -267,28 +267,28 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     brand: "Justine",
     slug: "justine",
     positioningStatement: "South Africa's original tissue-oil brand, sold direct since 1973.",
-    knownFor: "Justine Tissue Oil — the multi-oil body staple that started it all.",
+    knownFor: "Justine Tissue Oil and a vitamin E moisturising body lotion, sold direct.",
     skinlabsTake:
-      "Justine's Tissue Oil is a fragranced multi-oil budget staple for dry skin and scars — an accessible direct-sales classic, though it runs heavy for humid KZN days. It's a genuine piece of South African skincare history: the original 1973 formula that arguably created the local tissue-oil category Bio-Oil and Portia M now compete in.",
+      "Justine's Tissue Oil is a fragranced multi-oil budget staple for dry skin and scars — an accessible direct-sales classic, though it runs heavy for humid KZN days. It's a genuine piece of South African skincare history: the original 1973 formula that arguably created the local tissue-oil category Bio-Oil and Portia M now compete in. The vitamin E body lotion is the lighter, easier-to-layer option for warmer days.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far. We'll expand coverage as SkinLabs reviews more of Justine's wider range.",
+      "Two reviewed products spanning a rich tissue oil and a lighter everyday lotion — an SA skincare original with genuine category history behind it.",
     brandStory: "Justine's Tissue Oil launched in South Africa in 1973 and is credited with starting the local tissue-oil category. The brand is now part of the Avon group.",
     officialWebsite: "https://my.justine.co.za",
     logoUrl: "https://cdn.brandfetch.io/justine.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Avon",
     slug: "avon",
     positioningStatement: "The global direct-sales giant's skincare line, sold door-to-door in SA.",
-    knownFor: "The Anew range, including a vitamin C radiance serum.",
+    knownFor: "The Anew range: a vitamin C radiance serum and a Hydra Fusion moisture cream.",
     skinlabsTake:
-      "Avon's Anew Vitamin C Radiance Maximising Serum delivers roughly 10% vitamin C from a direct-sales staple — a real, disclosed concentration, though the alcohol-forward vehicle may not suit dry or sensitive skin and can feel drying in Cape wind. A dependable, widely accessible entry point into vitamin C brightening for anyone already buying through an Avon representative.",
+      "Avon's Anew Vitamin C Radiance Maximising Serum delivers roughly 10% vitamin C from a direct-sales staple — a real, disclosed concentration, though the alcohol-forward vehicle may not suit dry or sensitive skin and can feel drying in Cape wind. The Hydra Fusion cream is the steadier half of the pairing: a dependable hyaluronic-acid moisturiser with none of the serum's dryness risk. A widely accessible entry point into an actives routine for anyone already buying through an Avon representative.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far. We'll expand coverage as SkinLabs reviews more of Avon's wider skincare range.",
+      "Two reviewed products pairing a disclosed-concentration vitamin C serum with a dependable daily moisturiser — a genuinely accessible actives starter kit for direct-sales shoppers.",
     officialWebsite: "https://my.avon.co.za",
     logoUrl: "https://cdn.brandfetch.io/avon.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Africology",
@@ -398,8 +398,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "COR keeps its range tight and its claims modest, which we'd rather see than an overreaching ingredient list. The niacinamide serum handles oil control and tone competently, and the ceramide moisturiser is a solid, unfussy barrier-support cream for daily use across most SA climate zones.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a clean, no-frills niacinamide serum. We'll expand coverage as SkinLabs reviews more of COR's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products pairing a clean niacinamide serum with a genuine ceramide moisturiser — a tight, no-frills range that does the barrier-plus-tone basics well.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Luamu",
@@ -409,8 +409,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Luamu's range leans hard into hydration rather than aggressive actives, which makes it a comfortable pick for reactive or dehydrated skin that can't yet tolerate acids or retinoids. The HA serum plumps well when sealed with a moisturiser; the gel cleanser doesn't strip the barrier it's meant to be protecting.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a sensible hydration-first serum. We'll expand coverage as SkinLabs reviews more of Luamu's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products, a serum and a cleanser, both built around the same hydration-first, actives-free approach — a comfortable, coherent starting routine for reactive or dehydrated skin.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Mbiri Natural Skincare",
@@ -422,8 +422,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Mbiri's face oil is a genuinely nice-textured blend of two well-regarded African oils, absorbing better than the heavier single-oil products elsewhere in this file. The black soap cleanser is a traditional formulation rather than a modern surfactant blend — effective for oily or congested skin, but patch-test first if you're sensitive, since batch consistency can vary more than with lab-formulated cleansers.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a marula-and-baobab face oil built on traditional African ingredients rather than imported actives. We'll expand coverage as SkinLabs reviews more of Mbiri's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a marula-and-baobab face oil and a traditional African black soap cleanser — built on traditional African ingredients rather than imported actives.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Hey Gorgeous",
@@ -469,8 +469,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "CHILL's centella serum is a competent, soothing option for reactive or wind-irritated skin — genuinely useful for the Cape's exposure to salt air and gusty conditions. The everyday moisturiser is deliberately simple rather than actives-forward, positioned as a low-maintenance daily layer rather than a treatment step.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a calm, centella-led serum well suited to the Cape's windier micro-climate. We'll expand coverage as SkinLabs reviews more of CHILL's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a calm, centella-led serum and a low-maintenance daily moisturiser — well suited to the Cape's windier micro-climate.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Noa & Co",
@@ -557,15 +557,15 @@ export const brandEditorial: BrandEditorialOverlay[] = [
   {
     brand: "Gloei",
     slug: "gloei",
-    positioningStatement: "Award-winning natural, non-toxic, vegan skincare made in Cape Town.",
+    positioningStatement: "Award-winning natural, vegan skincare made in Cape Town.",
     knownFor: "A vegan vitamin C serum and a minimalist daily moisturiser.",
     officialWebsite: "https://gloei.beauty",
     logoUrl: "https://cdn.brandfetch.io/gloei.beauty/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:
       "Gloei's minimalist packaging philosophy carries through to its formulas — a vegan-certified vitamin C serum using a stable, if gentler, derivative rather than L-ascorbic acid, and a daily moisturiser that does one job cleanly rather than chasing a long ingredient list. A sensible pick for anyone prioritising vegan certification alongside basic actives.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a vegan-certified vitamin C serum from an award-recognised Cape Town natural brand. We'll expand coverage as SkinLabs reviews more of Gloei's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a vegan-certified vitamin C serum and a minimalist daily moisturiser — from an award-recognised Cape Town natural brand.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Yearn Skin",
@@ -577,8 +577,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Yearn Skin's tight focus on tone and pigmentation is a sensible specialisation given how common post-inflammatory hyperpigmentation is across SA's skin tones — the correcting serum uses a reasonable tyrosinase-inhibiting approach, and the daily moisturiser is a fine maintenance layer once the serum has done the heavier lifting. Pair with daily SPF, as with any pigmentation routine.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a dermatologically tested hyperpigmentation serum with a specific, non-scattershot focus. We'll expand coverage as SkinLabs reviews more of Yearn Skin's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a dermatologically tested hyperpigmentation serum and an even-tone daily moisturiser — with a specific, non-scattershot focus on tone.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Lumiglo",
@@ -590,8 +590,8 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Lumiglo's makeup-artist origin shows in a range built around skin that has to look good under product all day — the barrier serum is gentle enough to sit comfortably under makeup, and the calming gel cleanser removes the day's build-up without the stripped, tight feeling some gel cleansers leave behind on reactive skin.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a sensitive-skin barrier serum built from a makeup artist's practical, day-to-day skin experience. We'll expand coverage as SkinLabs reviews more of Lumiglo's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a sensitive-skin barrier serum and a calming gel cleanser — built from a makeup artist's practical, day-to-day skin experience.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Lulu & Marula",
@@ -614,14 +614,14 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Afari's focus on Bulbine frutescens — a well-known indigenous SA succulent used traditionally for minor burns, cuts and irritation — is a genuinely distinctive single-ingredient story, and the healing gel performs credibly for minor skin irritation and soothing. The body oil extends the same calming positioning into a daily moisturising step. The women-harvester sourcing model is a real, verifiable point of difference, not just marketing language.",
     whyTheyMadeTheList:
-      "New on the Radar: one reviewed product so far — a healing gel built around a single, well-regarded indigenous succulent, with a genuine community-sourcing model behind it. We'll expand coverage as SkinLabs reviews more of Afari's range.",
-    evidenceLimitation: "Currently 1 reviewed product — not yet enough for our main Ranked tier, but a real, evidence-backed entry on the Radar.",
+      "Two reviewed products — a healing gel and a body oil, both built around a single, well-regarded indigenous succulent — with a genuine community-sourcing model behind them.",
+    evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
     brand: "Pure Beginnings",
     slug: "pure-beginnings",
-    positioningStatement: "All-natural, organic, chemical-free skincare for the whole family, including babies.",
-    knownFor: "A chemical-free family moisturiser and a gentle baby-safe cleanser.",
+    positioningStatement: "All-natural, organic skincare for the whole family, including babies.",
+    knownFor: "A gentle family moisturiser and a gentle baby-safe cleanser.",
     officialWebsite: "https://www.purebeginnings.co.za",
     logoUrl: "https://cdn.brandfetch.io/purebeginnings.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
     skinlabsTake:

@@ -21,7 +21,7 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Business = lazy(() => import("./pages/Business"));
 const Partners = lazy(() => import("./pages/Partners"));
-const FAQ = lazy(() => import("./pages/FAQ"));
+const KnowledgeHub = lazy(() => import("./pages/KnowledgeHub"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
@@ -81,7 +81,10 @@ const AppContent = () => {
         <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
         <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />
 
-        <Route path="/faq" element={<FAQ />} />
+        <Route path="/knowledge-hub" element={<KnowledgeHub />} />
+        <Route path="/knowledge-hub/:slug" element={<KnowledgeHub />} />
+        {/* Legacy FAQ path — keep resolvable for old links/bookmarks/search-engine index */}
+        <Route path="/faq" element={<Navigate to="/knowledge-hub" replace />} />
 
         {/* Retired commerce / ops paths → home or relevant hub */}
         <Route path="/devices" element={<Navigate to="/" replace />} />
@@ -89,9 +92,9 @@ const AppContent = () => {
         <Route path="/custom-formulas" element={<Navigate to="/" replace />} />
         <Route path="/bundled-kits" element={<Navigate to="/" replace />} />
         <Route path="/gift-sets" element={<Navigate to="/" replace />} />
-        <Route path="/shipping" element={<Navigate to="/faq" replace />} />
-        <Route path="/returns" element={<Navigate to="/faq" replace />} />
-        <Route path="/track-order" element={<Navigate to="/faq" replace />} />
+        <Route path="/shipping" element={<Navigate to="/knowledge-hub" replace />} />
+        <Route path="/returns" element={<Navigate to="/knowledge-hub" replace />} />
+        <Route path="/track-order" element={<Navigate to="/knowledge-hub" replace />} />
         <Route path="/edible-pouches" element={<Navigate to="/" replace />} />
         <Route path="/careers" element={<Navigate to="/about" replace />} />
         <Route path="/press" element={<Navigate to="/about" replace />} />

@@ -10,6 +10,7 @@ import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
+import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 
 const EpisodePage = () => {
   const { slug } = useParams();
@@ -134,6 +135,8 @@ const EpisodePage = () => {
                 </div>
               </section>
             )}
+
+            <RelatedKnowledgeHub keywords={episode.topics} />
 
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Transcript</h2>

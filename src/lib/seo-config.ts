@@ -84,11 +84,11 @@ export const pageSeo: Record<string, PageSeo> = {
       "Seasonal skincare guides for South African climate — spring, summer, autumn and winter routines grounded in local UV, humidity and shelves.",
     canonicalPath: "/seasonals",
   },
-  faq: {
-    title: `Skincare FAQs South Africa | ${BRAND}`,
+  knowledgeHub: {
+    title: `Knowledge Hub — Evidence-Backed Skincare Answers | ${BRAND}`,
     description:
-      "Answers to common questions about SkinLabs® memberships, reviews, AI routines, consultations and how we keep editorial independent.",
-    canonicalPath: "/faq",
+      "Searchable, evidence-backed answers on skincare ingredients, routines, skin types, sun protection and the South African market — plus how SkinLabs memberships and AI routines work.",
+    canonicalPath: "/knowledge-hub",
   },
   consultations: {
     title: `Virtual Derm Consultations South Africa | ${BRAND}`,

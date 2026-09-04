@@ -33,7 +33,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "For Business", description: "SkinLabs for salons, clinics and retailers", href: "/business" },
   { title: "Partner Program", description: "Affiliate, editorial and strategic commerce partnerships with SkinLabs", href: "/partners", keywords: "partners partnerships affiliate editorial strategic commerce book a call" },
   { title: "About Us", description: "SkinLabs' story, science and sustainability", href: "/about", keywords: "our science sustainability" },
-  { title: "FAQ", description: "Frequently asked questions", href: "/faq", keywords: "shipping returns track order help" },
+  { title: "Knowledge Hub", description: "Evidence-backed skincare answers, searchable by ingredient, concern or routine", href: "/knowledge-hub", keywords: "faq frequently asked questions shipping returns track order help" },
   { title: "Contact", description: "Get in touch with SkinLabs", href: "/contact" },
   { title: "Privacy Policy", description: "How SkinLabs handles your data", href: "/privacy-policy" },
   { title: "Terms of Service", description: "SkinLabs' terms of service", href: "/terms-of-service" },
