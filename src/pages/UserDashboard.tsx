@@ -32,16 +32,25 @@ const UserDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tier, isTrialing, trialEndsAt, loading: membershipLoading } = useMembership();
+  const { tier, isTrialing, trialEndsAt, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [activating, setActivating] = useState(false);
+
+  const paymentReturn = searchParams.get("payment") === "success";
 
   useEffect(() => {
-    if (!loading && !user) navigate("/");
-  }, [user, loading, navigate]);
+    if (loading || user) return;
+    // A Paystack return can land before the session is restored or on a fresh
+    // device — offer sign-in instead of bouncing the buyer off the page.
+    if (paymentReturn) setAuthOpen(true);
+    else navigate("/");
+  }, [user, loading, navigate, paymentReturn]);
 
   useEffect(() => {
     if (searchParams.get("trial") !== "started") return;
@@ -51,6 +60,57 @@ const UserDashboard = () => {
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /**
+   * After checkout the plan is only live once Paystack's signature-verified
+   * webhook writes it to the profile, so poll for activation rather than
+   * trusting the redirect.
+   */
+  useEffect(() => {
+    if (!paymentReturn || !user) return;
+    let cancelled = false;
+    let attempts = 0;
+    setActivating(true);
+
+    const clearParam = () => {
+      const next = new URLSearchParams(window.location.search);
+      next.delete("payment");
+      next.delete("plan");
+      next.delete("interval");
+      setSearchParams(next, { replace: true });
+    };
+
+    const poll = async () => {
+      attempts += 1;
+      const { data } = await supabase
+        .from("profiles")
+        .select("subscription_status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const status = (data?.subscription_status ?? "").toLowerCase();
+      if (["insider", "vip", "active", "premium"].includes(status)) {
+        setActivating(false);
+        refreshMembership();
+        toast.success("Payment confirmed — your membership is active.");
+        clearParam();
+        return;
+      }
+      if (attempts >= 20) {
+        setActivating(false);
+        toast.message("Payment received. Activation is still processing — refresh in a minute.");
+        clearParam();
+        return;
+      }
+      window.setTimeout(poll, 4000);
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentReturn, user]);
 
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -71,9 +131,38 @@ const UserDashboard = () => {
     })();
   }, [user]);
 
+  if (!loading && !user && paymentReturn) {
+    return (
+      <>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="pt-28 pb-24">
+            <div className="container mx-auto max-w-md px-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Sign in to finish</CardTitle>
+                  <CardDescription>
+                    Your payment went through. Sign in with the same email you paid with and we'll take you
+                    straight into your dashboard.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button className="w-full" onClick={() => setAuthOpen(true)}>Sign in</Button>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+          <Footer />
+        </div>
+        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      </>
+    );
+  }
+
   if (loading || dataLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
+
 
   const tierLabel = tier === "vip" ? "Glow VIP" : tier === "insider" ? "Glow Insider" : "Glow Explorer";
   const isSubscribed = tier !== "explorer";
