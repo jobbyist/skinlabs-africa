@@ -42,6 +42,7 @@ export const useMembership = () => {
   const [trialUsed, setTrialUsed] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
   const [loading, setLoading] = useState(true);
+  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -78,7 +79,7 @@ export const useMembership = () => {
     return () => {
       active = false;
     };
-  }, [user, authLoading]);
+  }, [user, authLoading, nonce]);
 
   return {
     tier,
@@ -91,5 +92,6 @@ export const useMembership = () => {
     trialEndsAt,
     trialUsed,
     billingInterval,
+    refresh: () => setNonce((n) => n + 1),
   };
 };

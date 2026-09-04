@@ -16,8 +16,10 @@ import EmailVerificationCard from "@/components/EmailVerificationCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
+import AuthDialog from "@/components/AuthDialog";
+import FormulatorTab from "@/components/dashboard/FormulatorTab";
+import { toast } from "sonner";
 
-import AIFormulator from "@/components/AIFormulator";
 interface Profile {
   subscription_status: string | null;
   subscription_started_at: string | null;
@@ -203,7 +205,19 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs defaultValue="overview" className="space-y-6">
+              {activating && (
+                <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <div>
+                    <p className="font-medium text-foreground">Confirming your payment…</p>
+                    <p className="text-sm text-muted-foreground">
+                      We're waiting for the payment confirmation to activate your plan. This usually takes a few seconds.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -283,7 +297,7 @@ const UserDashboard = () => {
                 <TabsContent value="profile"><ProfileTab /></TabsContent>
                 
                 <TabsContent value="formulator">
-                  <AIFormulator />
+                  <FormulatorTab onGoToProfile={() => setActiveTab("profile")} />
                 </TabsContent>
 
                 <TabsContent value="journey"><SkinJourneyTab /></TabsContent>
@@ -325,6 +339,7 @@ const UserDashboard = () => {
         </main>
         <Footer />
       </div>
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
       <TrialWelcomeModal
         open={trialWelcomeOpen}
         onOpenChange={setTrialWelcomeOpen}
