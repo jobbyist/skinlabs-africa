@@ -28,7 +28,7 @@ const SEO = ({
   // so a page previewed on a staging/preview domain still emits the correct canonical.
   const path = canonical
     ? canonical.startsWith("http")
-      ? new URL(canonical).pathname + new URL(canonical).search
+      ? (() => { const u = new URL(canonical); return u.pathname + u.search; })()
       : canonical
     : typeof window !== "undefined"
       ? window.location.pathname + window.location.search
