@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import Header from "@/components/Header";
+import AdSlot from "@/components/AdSlot";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,10 @@ const SpotlightArchive = () => {
             changes over time.
           </p>
 
+          <div className="my-8">
+            <AdSlot placement="spotlight-archive-top" compact />
+          </div>
+
           <div className="mt-8 rounded-3xl border border-border bg-card p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-heading text-lg font-bold text-foreground">{SPOTLIGHT_EDITION_MONTH} — current edition</h2>
@@ -41,10 +46,15 @@ const SpotlightArchive = () => {
             <p className="mt-2 text-sm text-muted-foreground">
               {spotlightRankedBrands.length} ranked brands · {SPOTLIGHT_METHODOLOGY_VERSION}
             </p>
-            <Button asChild className="mt-4">
-              <Link to="/spotlight">View the current ranking</Link>
+            <Button asChild className="mt-4" size="sm">
+              <Link to="/spotlight">View the full ranking</Link>
             </Button>
           </div>
+
+          <p className="mt-10 text-sm text-muted-foreground">
+            Past editions will appear here as they are published. Each entry will preserve rank order, scores and the
+            methodology version used so year-on-year movement is transparent.
+          </p>
         </div>
       </main>
       <Footer />
