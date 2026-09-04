@@ -19,7 +19,7 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: "/pricing", changefreq: "weekly", priority: 0.9 },
   { loc: "/about", changefreq: "monthly", priority: 0.8 },
   { loc: "/consultations", changefreq: "monthly", priority: 0.8 },
-  { loc: "/faq", changefreq: "monthly", priority: 0.75 },
+  { loc: "/knowledge-hub", changefreq: "weekly", priority: 0.8 },
   { loc: "/shop", changefreq: "monthly", priority: 0.6 },
   { loc: "/announcements", changefreq: "weekly", priority: 0.5 },
   { loc: "/spotlight/methodology", changefreq: "monthly", priority: 0.5 },

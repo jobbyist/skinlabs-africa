@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
+import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import skinlabsPromiseBadge from "@/assets/skinlabs-promise-badge.png";
@@ -334,6 +335,8 @@ const ProductReview = () => {
           </div>
 
           <RoutineBuilder anchor={review} isVip={isVip} />
+
+          <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
 
           <div className="my-8">
             <AdSlot placement="product-review-mid" />

@@ -146,3 +146,57 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Animated multicolour gradient outline border — used sparingly on featured
+   article cards (homepage) and the entry-gate carousel to draw the eye. */
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@layer utilities {
+  .gradient-border-anim {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .gradient-border-anim::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--gradient-angle),
+      #22c55e,
+      #3b82f6,
+      #a855f7,
+      #ec4899,
+      #22c55e
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: gradient-border-spin 5s linear infinite;
+    pointer-events: none;
+  }
+
+  .gradient-border-anim > * {
+    position: relative;
+    z-index: 0;
+  }
+}
+
+@keyframes gradient-border-spin {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gradient-border-anim::before {
+    animation: none;
+  }
+}

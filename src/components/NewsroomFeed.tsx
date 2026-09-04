@@ -161,7 +161,7 @@ const NewsroomFeed = ({
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
                 whileHover={{ y: -4 }}
-                className="group flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
+                className="gradient-border-anim group flex flex-col overflow-hidden rounded-3xl border border-transparent bg-card"
               >
                 <Link to={`/newsroom/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
                   {article.cover_image_url && (

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, FileText, type LucideIcon, Mic, Newspaper, Sparkles, Star, Sun, Swords } from "lucide-react";
+import { Award, FileText, HelpCircle, type LucideIcon, Mic, Newspaper, Sparkles, Star, Sun, Swords } from "lucide-react";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews } from "@/data/reviews";
@@ -8,8 +8,10 @@ import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
 import { spotlightRanking } from "@/data/spotlight";
 import { allSeasons, seasonHubs } from "@/data/seasonals";
+import { faqEntries } from "@/data/faq";
 import { searchablePages } from "@/lib/search-index";
 import { scoreProductReview, scoreTextItem } from "@/lib/search-engine";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 interface SiteSearchProps {
   open: boolean;
@@ -25,16 +27,6 @@ interface RankedResult {
   subtitle?: string;
   href: string;
 }
-
-/** Debounces a fast-changing value so relevance scoring doesn't re-run on every keystroke. */
-const useDebouncedValue = <T,>(value: T, delayMs: number): T => {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const id = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(id);
-  }, [value, delayMs]);
-  return debounced;
-};
 
 const TOP_MATCHES_CAP = 6;
 const GROUP_CAP = 6;
@@ -115,7 +107,20 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       return { key: `page-${page.href}`, score: match.score, reasons: match.reasons, icon: FileText, title: page.title, subtitle: page.description, href: page.href };
     });
 
-    return { comparisons, spotlight, seasonals, reviews, news, podcast, pages };
+    const knowledgeHub: RankedResult[] = faqEntries.map((entry) => {
+      const match = scoreTextItem(query, entry.question, entry.answer, entry.tags);
+      return {
+        key: `faq-${entry.id}`,
+        score: match.score,
+        reasons: match.reasons,
+        icon: HelpCircle,
+        title: entry.question,
+        subtitle: "Knowledge Hub",
+        href: `/knowledge-hub/${entry.slug}`,
+      };
+    });
+
+    return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub };
   }, [query, briefings]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
@@ -123,7 +128,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
 
   const bestMatches = useMemo(() => {
     if (!hasQuery) return [];
-    return [...ranked.comparisons, ...ranked.spotlight, ...ranked.seasonals, ...ranked.reviews, ...ranked.news, ...ranked.podcast, ...ranked.pages]
+    return [...ranked.comparisons, ...ranked.spotlight, ...ranked.seasonals, ...ranked.reviews, ...ranked.news, ...ranked.podcast, ...ranked.pages, ...ranked.knowledgeHub]
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, TOP_MATCHES_CAP);
@@ -223,6 +228,15 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
             <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
               <FileText />
               <span>{result.title}</span>
+            </CommandItem>
+          ))}
+        </CommandGroup>
+
+        <CommandGroup heading="Knowledge Hub">
+          {forDisplay(ranked.knowledgeHub, ranked.knowledgeHub.slice(0, 60)).map((result) => (
+            <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
+              <HelpCircle />
+              <span className="flex-1 truncate">{result.title}</span>
             </CommandItem>
           ))}
         </CommandGroup>

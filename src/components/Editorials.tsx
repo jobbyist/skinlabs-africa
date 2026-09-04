@@ -37,7 +37,7 @@ const Editorials = () => {
             >
               <Link
                 to={editorial.href}
-                className="group flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card transition-colors hover:border-foreground/30"
+                className="gradient-border-anim group flex h-full flex-col overflow-hidden rounded-3xl border border-transparent bg-card"
               >
                 <div className="relative">
                   <img
