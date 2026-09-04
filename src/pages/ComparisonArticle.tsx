@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import AdSlot from "@/components/AdSlot";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
@@ -171,6 +172,10 @@ const ComparisonArticle = () => {
           <h1 className="mt-4 font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">{article.title}</h1>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{article.dek}</p>
 
+          <div className="my-8">
+            <AdSlot placement="comparison-top" />
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
             <span>{new Date(article.publishDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
             <span>{article.readingTime}</span>
@@ -218,6 +223,10 @@ const ComparisonArticle = () => {
           </div>
 
           <div className="prose prose-neutral mt-10 max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary prose-table:text-sm">
+          <div className="my-8">
+            <AdSlot placement="comparison-mid" />
+          </div>
+
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.bodyMarkdown}</ReactMarkdown>
           </div>
 
@@ -268,6 +277,10 @@ const ComparisonArticle = () => {
             <p>
               <span className="font-semibold text-foreground">Editorial disclaimer:</span> {EDITORIAL_DISCLAIMER}
             </p>
+          </div>
+
+          <div className="my-8">
+            <AdSlot placement="comparison-bottom" />
           </div>
 
           <ArticleComments comments={comparisonComments[article.slug] ?? []} />

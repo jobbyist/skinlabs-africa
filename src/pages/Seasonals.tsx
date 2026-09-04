@@ -132,6 +132,10 @@ const Seasonals = () => {
             })}
           </div>
         </section>
+
+        <div className="container mx-auto px-4 my-8">
+          <AdSlot placement="seasonals-bottom" />
+        </div>
       </main>
       <Footer />
     </div>

@@ -185,6 +185,10 @@ const Spotlight = () => {
           </div>
         </section>
       </main>
+
+        <div className="container mx-auto px-4 my-8">
+          <AdSlot placement="spotlight-bottom" />
+        </div>
       <Footer />
 
       <BrandRequestModal open={claimOpen} onOpenChange={setClaimOpen} mode="claim" />

@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
+import AdSlot from "@/components/AdSlot";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -251,6 +252,10 @@ const NewsroomArticle = () => {
             <p className="mt-8 text-lg leading-relaxed text-foreground">{article.excerpt}</p>
 
             {article.key_takeaways.length > 0 && (
+            <div className="my-8">
+              <AdSlot placement="newsroom-article-top" />
+            </div>
+
               <div className="mt-8 rounded-3xl border border-border bg-card p-6">
                 <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Key takeaways</h2>
                 <ul className="space-y-2">
@@ -267,6 +272,10 @@ const NewsroomArticle = () => {
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
 
             {/* Body: members only */}
+            <div className="my-8">
+              <AdSlot placement="newsroom-article-mid" />
+            </div>
+
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (
                 <div className="flex justify-center py-10">
@@ -339,6 +348,10 @@ const NewsroomArticle = () => {
             </div>
 
             {/* Comments */}
+            <div className="my-8">
+              <AdSlot placement="newsroom-article-bottom" />
+            </div>
+
             <section className="mt-12">
               <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
                 Comments ({displayComments.length})

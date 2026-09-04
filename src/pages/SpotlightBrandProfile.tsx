@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import BrandLogo from "@/components/BrandLogo";
+import AdSlot from "@/components/AdSlot";
 import BrandRequestModal from "@/components/BrandRequestModal";
 import ArticleComments from "@/components/ArticleComments";
 import AffiliateAdSlot from "@/components/AffiliateAdSlot";
@@ -124,6 +125,10 @@ const SpotlightBrandProfile = () => {
           )}
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="my-8">
+            <AdSlot placement="brand-profile-top" />
+          </div>
+
             <div className="rounded-2xl border border-border bg-card p-4 text-center">
               <p className="font-heading text-2xl font-bold text-foreground">{entry.avgOverallScore}</p>
               <p className="text-xs text-muted-foreground">avg review score /10</p>
@@ -226,6 +231,14 @@ const SpotlightBrandProfile = () => {
           </div>
 
           <ArticleComments comments={spotlightComments[entry.slug] ?? []} />
+          <div className="my-8">
+            <AdSlot placement="brand-profile-mid" />
+          </div>
+
+          <div className="my-8">
+            <AdSlot placement="brand-profile-bottom" />
+          </div>
+
           </GatedOverlay>
 
           {/* Affiliate/partner promotion — advertising, not editorial content. Kept outside

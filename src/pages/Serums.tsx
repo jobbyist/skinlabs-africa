@@ -3,6 +3,7 @@ import { Droplet, Sparkles, Shield, Sun } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import AdSlot from "@/components/AdSlot";
 
 const Serums = () => {
   const serums = [
@@ -65,6 +66,10 @@ const Serums = () => {
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                     Concentrated actives at doses that actually do something — results can vary by skin type
                   </p>
+                </div>
+
+                <div className="mb-8">
+                  <AdSlot placement="serums-mid" />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-12">

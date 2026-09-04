@@ -3,6 +3,7 @@ import { Zap, Sun, Droplets, Wind } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import AdSlot from "@/components/AdSlot";
 
 const Devices = () => {
   const devices = [
@@ -68,6 +69,10 @@ const Devices = () => {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-8 mb-12">
+                <div className="mb-8">
+                  <AdSlot placement="devices-mid" />
+                </div>
+
                   {devices.map((device, index) => (
                     <div key={index} className="bg-card border border-border rounded-2xl p-8 hover:shadow-lg transition-shadow">
                       <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6 text-primary">

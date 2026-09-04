@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import AdSlot from "@/components/AdSlot";
 import { Input } from "@/components/ui/input";
 import { productReviews, overallScore } from "@/data/reviews";
 import { getSeasonHub, allSeasons, type Season } from "@/data/seasonals";
@@ -136,6 +137,10 @@ const SeasonalHub = () => {
           </figure>
 
           {/* Quick answer */}
+          <div className="my-8">
+            <AdSlot placement="seasonal-hub-top" />
+          </div>
+
           <section className="mt-12 rounded-3xl border border-border bg-card p-6 md:p-8">
             <h2 className="font-heading text-xl font-bold text-foreground">{hub.quickAnswer.heading}</h2>
             <ul className="mt-4 space-y-2">
@@ -188,6 +193,10 @@ const SeasonalHub = () => {
           </section>
 
           {/* Routine */}
+          <div className="my-8">
+            <AdSlot placement="seasonal-hub-mid" />
+          </div>
+
           <section id="routine" className="mt-12 scroll-mt-24">
             <h2 className="mb-5 font-heading text-xl font-bold text-foreground">A simple {hub.season} routine</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -266,6 +275,10 @@ const SeasonalHub = () => {
           </p>
 
           <ArticleComments comments={seasonalComments[hub.season] ?? []} />
+          <div className="my-8">
+            <AdSlot placement="seasonal-hub-bottom" />
+          </div>
+
 
           {/* Newsletter */}
           <section className="mt-12 rounded-3xl border border-border bg-card p-6 text-center md:p-8">

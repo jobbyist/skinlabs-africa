@@ -242,6 +242,10 @@ const KnowledgeHub = () => {
                 <p>{GLOBAL_SAFETY_NOTICE}</p>
               </div>
 
+              <div className="my-8">
+                <AdSlot placement="knowledge-hub-top" />
+              </div>
+
               {/* Search */}
               <div className="mb-8 rounded-2xl border border-border bg-card p-4 md:p-6">
                 <div className="relative">
@@ -447,6 +451,10 @@ const KnowledgeHub = () => {
                     WhatsApp
                   </a>
                 </div>
+                  <div className="my-8">
+                    <AdSlot placement="knowledge-hub-bottom" />
+                  </div>
+
                 <p className="mt-6 text-xs text-muted-foreground">
                   Content last reviewed {new Date(KNOWLEDGE_HUB_REVIEW_DATE).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })} by{" "}
                   the SkinLabs Editorial Team.

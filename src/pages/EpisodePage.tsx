@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import GatedOverlay from "@/components/GatedOverlay";
+import AdSlot from "@/components/AdSlot";
 import ArticleComments from "@/components/ArticleComments";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
@@ -91,6 +92,10 @@ const EpisodePage = () => {
               <p className="mt-3 text-muted-foreground">{episode.description}</p>
             </div>
 
+            <div className="my-8">
+              <AdSlot placement="episode-top" />
+            </div>
+
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Show notes</h2>
               <ul className="space-y-2">
@@ -139,6 +144,10 @@ const EpisodePage = () => {
             <RelatedKnowledgeHub keywords={episode.topics} />
 
             <section>
+            <div className="my-8">
+              <AdSlot placement="episode-mid" />
+            </div>
+
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Transcript</h2>
               <GatedOverlay
                 locked={!isMember}
@@ -156,6 +165,10 @@ const EpisodePage = () => {
             </section>
 
             <ArticleComments heading="Listener discussion" comments={podcastComments[episode.slug] ?? []} />
+            <div className="my-8">
+              <AdSlot placement="episode-bottom" />
+            </div>
+
           </div>
         </div>
       </main>

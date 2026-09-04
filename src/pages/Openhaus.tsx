@@ -216,6 +216,10 @@ const Openhaus = () => {
             </div>
           </section>
         </main>
+
+        <div className="container mx-auto px-4 my-8">
+          <AdSlot placement="shop-bottom" />
+        </div>
         <Footer />
       </div>
     </>

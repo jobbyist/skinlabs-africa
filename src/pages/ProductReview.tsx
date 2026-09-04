@@ -269,6 +269,10 @@ const ProductReview = () => {
 
           <p className="mt-6 text-lg leading-relaxed text-foreground">{review.verdict}</p>
 
+          <div className="my-8">
+            <AdSlot placement="product-review-top" />
+          </div>
+
           <div className="mt-6 grid gap-2.5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2">
             <ScoreBar label="Efficacy" value={review.score_efficacy} />
             <ScoreBar label="Value for money" value={review.score_value} />
@@ -454,6 +458,10 @@ const ProductReview = () => {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="my-8">
+          <AdSlot placement="product-review-bottom" />
         </div>
       </main>
       <Footer />
