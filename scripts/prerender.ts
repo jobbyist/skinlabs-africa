@@ -46,7 +46,7 @@ const STATIC_ROUTES = [
   "/cookie-policy",
   "/shop",
   "/podcast",
-  "/newsroom",
+  "/briefings",
   "/reviews",
   "/compare",
   "/consultations",
@@ -91,7 +91,7 @@ async function collectRoutes(): Promise<string[]> {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const { data } = await supabase.from("news_articles_public").select("slug");
       for (const row of data ?? []) {
-        if (typeof row.slug === "string") routes.add(`/newsroom/${row.slug}`);
+        if (typeof row.slug === "string") routes.add(`/briefings/${row.slug}`);
       }
     } catch (err) {
       console.warn("prerender: could not fetch newsroom slugs, skipping those routes:", err);

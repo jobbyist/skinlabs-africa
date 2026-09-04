@@ -10,10 +10,17 @@
     <meta http-equiv="Expires" content="0" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 
-    <title>SkinLabs — AI Skincare Routines & SA Skin Science Platform</title>
-    <meta name="description" content="South Africa's independent skincare platform: AI-powered routines, daily skin science briefings, honest product reviews and expert consultations for SA skin.">
+    <!--
+      NOTE: title / description / canonical / og:* / twitter:* are intentionally NOT set
+      here. Every route renders its own single set of these tags via react-helmet-async
+      (see src/components/SEO.tsx), and helmet only manages tags it created itself — it
+      will not remove or dedupe static tags left in this file. Duplicating them here would
+      produce two <title>, two meta[name=description], two canonical links etc. in the
+      prerendered output, which is exactly what we don't want. Keep this file to markup
+      that is genuinely identical on every page and not already emitted by SEO.tsx.
+    -->
+    <title>SkinLabs</title>
     <meta name="author" content="SkinLabs" />
-    <link rel="canonical" href="https://skinlabs.co.za/" />
 
     <!-- Performance: connect early to the origins every page depends on -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,25 +29,12 @@
     <link rel="preconnect" href="https://lxbknnvzkxgmvifksyze.supabase.co">
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 
-    <!-- Open Graph / Social Media -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://skinlabs.co.za/" />
-    <meta property="og:image" content="https://skinlabs.co.za/og-image.png">
-    <meta property="og:image:width" content="1280">
-    <meta property="og:image:height" content="640">
-    <meta property="og:title" content="SkinLabs — AI Skincare Routines & SA Skin Science Platform">
-    <meta property="og:description" content="South Africa's independent skincare platform: AI-powered routines, daily briefings, honest product reviews and expert consultations.">
-
-    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@SkinLabsZA" />
-    <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png">
-    <meta name="twitter:title" content="SkinLabs — AI Skincare Routines & SA Skin Science Platform">
-    <meta name="twitter:description" content="South Africa's independent skincare platform: AI-powered routines, daily briefings, honest product reviews and expert consultations.">
 
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1237323355260727" crossorigin="anonymous"></script>
 
-    <!-- PWA Theme -->
+    <!-- PWA Theme: also set per-page by SEO.tsx via Helmet; kept here as the pre-hydration fallback -->
     <meta name="theme-color" content="#000000" />
 
   <link rel="icon" type="image/x-icon" href="/favicon.ico">

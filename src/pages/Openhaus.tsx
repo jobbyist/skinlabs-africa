@@ -104,7 +104,7 @@ const Openhaus = () => {
   return (
     <>
       <Helmet>
-        <title>Marketplace by Openhaus — Coming Soon | SKINLABS</title>
+        <title>Marketplace by Openhaus — Coming Soon | SkinLabs®</title>
         <meta name="description" content="Openhaus by SkinLabs® is our upcoming multivendor marketplace. Join the early bird waiting list for launch samples, giveaways and discounts. Launching 1 December 2026." />
         <link rel="canonical" href="https://skinlabs.co.za/shop" />
         <meta property="og:title" content="Marketplace by Openhaus — Coming Soon" />

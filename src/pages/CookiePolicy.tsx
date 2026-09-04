@@ -42,17 +42,19 @@ const CookiePolicy = () => {
   return (
     <>
       <Helmet>
-        <title>Cookie Policy - How We Use Cookies | SKINLABS</title>
+        <title>Cookie Policy — How We Use Cookies | SkinLabs®</title>
         <meta
           name="description"
           content="Which cookies SkinLabs uses, what each type does, and how to manage or delete them from your browser."
         />
         <link rel="canonical" href="https://skinlabs.co.za/cookie-policy" />
-        <meta property="og:title" content="Cookie Policy | SKINLABS" />
+        <meta property="og:title" content="Cookie Policy | SkinLabs®" />
         <meta property="og:description" content="Which cookies SkinLabs uses and how to manage your preferences." />
         <meta property="og:url" content="https://skinlabs.co.za/cookie-policy" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

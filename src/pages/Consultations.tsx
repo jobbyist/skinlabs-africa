@@ -14,12 +14,22 @@ const Consultations = () => {
   return (
     <>
       <Helmet>
-        <title>Virtual Derm Consultations — SA Practitioners | SkinLabs</title>
+        <title>Virtual Derm Consultations — SA Practitioners | SkinLabs®</title>
         <meta
           name="description"
           content="Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability — Glow Insider and Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/consultations" />
+        <meta property="og:title" content="Virtual Derm Consultations — SA Practitioners | SkinLabs®" />
+        <meta
+          property="og:description"
+          content="Book virtual consultations with South African dermatologists and aesthetic practitioners."
+        />
+        <meta property="og:url" content="https://skinlabs.co.za/consultations" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

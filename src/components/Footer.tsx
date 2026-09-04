@@ -34,7 +34,7 @@ const Footer = () => {
 
   const links = {
     editorial: [
-      { label: "The Daily Skinny", href: "/newsroom" },
+      { label: "The Daily Skinny", href: "/briefings" },
       { label: "Product Reviews", href: "/reviews" },
       { label: "Shelf Showdown", href: "/compare", isNew: true },
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },

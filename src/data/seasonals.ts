@@ -109,10 +109,10 @@ export const seasonHubs: Record<Season, SeasonHub> = {
       { region: "Eastern Cape", climateContext: "Coastal exposure and wind combine with more variable temperatures than KZN or the Cape.", routineNote: "A flexible routine — light moisturiser by day, a touch richer at night — handles the swings better than a single fixed product." },
     ],
     guidesAndReviews: [
-      { label: "Winter barrier damage across the Highveld", description: "Why dermatologists reported a spike in barrier flares this winter, and what actually helps.", href: "/newsroom/winter-barrier-highveld" },
-      { label: "New SPF labelling guidance", description: "What tighter sunscreen labelling rules mean for the SPF number on your bottle.", href: "/newsroom/sunscreen-labelling-sa" },
-      { label: "Niacinamide for hyperpigmentation", description: "The evidence behind pairing niacinamide with tranexamic acid for post-inflammatory marks.", href: "/newsroom/niacinamide-hyperpigmentation-trial" },
-      { label: "Retinaldehyde vs retinol", description: "The tolerable retinoid step-up, and why it matters if you're reintroducing actives this spring.", href: "/newsroom/retinal-vs-retinol" },
+      { label: "Winter barrier damage across the Highveld", description: "Why dermatologists reported a spike in barrier flares this winter, and what actually helps.", href: "/briefings/winter-barrier-highveld" },
+      { label: "New SPF labelling guidance", description: "What tighter sunscreen labelling rules mean for the SPF number on your bottle.", href: "/briefings/sunscreen-labelling-sa" },
+      { label: "Niacinamide for hyperpigmentation", description: "The evidence behind pairing niacinamide with tranexamic acid for post-inflammatory marks.", href: "/briefings/niacinamide-hyperpigmentation-trial" },
+      { label: "Retinaldehyde vs retinol", description: "The tolerable retinoid step-up, and why it matters if you're reintroducing actives this spring.", href: "/briefings/retinal-vs-retinol" },
       { label: "Shelf Showdown: Nimue vs Optiphi retinoids", description: "Comparing two SA clinic-brand retinoids if you're shopping for a spring actives upgrade.", href: "/reviews/versus/nimue-vs-optiphi-retinoid-serums" },
       { label: "Shelf Showdown: Skin Functional vs SkinPhD vitamin C", description: "Budget vs clinic-tier vitamin C serums, compared for pigmentation prevention.", href: "/reviews/versus/skin-functional-vs-skinphd-vitamin-c" },
       { label: "Spotlight by SkinLabs", description: "See which South African skincare brands are behind this season's picks, ranked by real review scores.", href: "/spotlight" },
@@ -176,7 +176,7 @@ export const seasonHubs: Record<Season, SeasonHub> = {
     },
     regionalModules: [],
     guidesAndReviews: [
-      { label: "New SPF labelling guidance", description: "What tighter sunscreen labelling rules mean for the SPF number on your bottle.", href: "/newsroom/sunscreen-labelling-sa" },
+      { label: "New SPF labelling guidance", description: "What tighter sunscreen labelling rules mean for the SPF number on your bottle.", href: "/briefings/sunscreen-labelling-sa" },
       { label: "The Spring Reset", description: "Where summer's routine picks up from — see the season before.", href: "/seasonals/spring" },
       { label: "Spotlight by SkinLabs", description: "See which brands are behind this season's picks, ranked by real review scores.", href: "/spotlight" },
     ],
@@ -239,7 +239,7 @@ export const seasonHubs: Record<Season, SeasonHub> = {
     },
     regionalModules: [],
     guidesAndReviews: [
-      { label: "Niacinamide for hyperpigmentation", description: "The evidence behind pairing niacinamide with tranexamic acid for post-inflammatory marks.", href: "/newsroom/niacinamide-hyperpigmentation-trial" },
+      { label: "Niacinamide for hyperpigmentation", description: "The evidence behind pairing niacinamide with tranexamic acid for post-inflammatory marks.", href: "/briefings/niacinamide-hyperpigmentation-trial" },
       { label: "Shelf Showdown: Skin Functional vs SkinPhD vitamin C", description: "Budget vs clinic-tier vitamin C serums, compared for pigmentation prevention.", href: "/reviews/versus/skin-functional-vs-skinphd-vitamin-c" },
       { label: "The Winter Reset", description: "Where autumn's barrier prep pays off — see the season ahead.", href: "/seasonals/winter" },
       { label: "Spotlight by SkinLabs", description: "See which brands are behind this season's picks, ranked by real review scores.", href: "/spotlight" },
@@ -308,7 +308,7 @@ export const seasonHubs: Record<Season, SeasonHub> = {
       { region: "Eastern Cape", climateContext: "Coastal exposure and wind combine with genuinely cold snaps inland.", routineNote: "Layer richness by how far inland you are — coastal areas need less than the interior." },
     ],
     guidesAndReviews: [
-      { label: "Winter barrier damage across the Highveld", description: "Why dermatologists reported a spike in barrier flares this winter, and what actually helps.", href: "/newsroom/winter-barrier-highveld" },
+      { label: "Winter barrier damage across the Highveld", description: "Why dermatologists reported a spike in barrier flares this winter, and what actually helps.", href: "/briefings/winter-barrier-highveld" },
       { label: "The Spring Reset", description: "Where winter's barrier work pays off — see the season ahead.", href: "/seasonals/spring" },
       { label: "Spotlight by SkinLabs", description: "See which brands are behind this season's picks, ranked by real review scores.", href: "/spotlight" },
     ],

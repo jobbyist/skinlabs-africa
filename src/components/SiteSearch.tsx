@@ -94,7 +94,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
 
     const news: RankedResult[] = briefings.map((article) => {
       const match = scoreTextItem(query, article.title, `${article.sa_context_tag} ${article.excerpt}`);
-      return { key: `news-${article.id}`, score: match.score, reasons: match.reasons, icon: Newspaper, title: article.title, subtitle: "The Daily Skinny", href: `/newsroom/${article.slug}` };
+      return { key: `news-${article.id}`, score: match.score, reasons: match.reasons, icon: Newspaper, title: article.title, subtitle: "The Daily Skinny", href: `/briefings/${article.slug}` };
     });
 
     const podcast: RankedResult[] = podcastEpisodes.map((episode) => {

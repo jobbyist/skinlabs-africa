@@ -20,7 +20,7 @@ export const pageSeo: Record<string, PageSeo> = {
   home: {
     title: `Skincare Intelligence for South Africa | ${BRAND}`,
     description:
-      "South Africa's skincare intelligence platform for independent product reviews, skin science, personalised routines, expert insights and local skincare recommendations.",
+      "Skincare, without the nonsense. Evidence-graded product reviews, daily skin science briefings and AI-personalised routines, built for South African skin — no affiliate deals, no gifted samples.",
     keywords: "skincare South Africa, SA product reviews, AI skincare routine, skin science, SkinLabs",
     canonicalPath: "/",
   },
@@ -66,11 +66,12 @@ export const pageSeo: Record<string, PageSeo> = {
       "Discover skincare brands made for and sold in South Africa. Explore products, ingredients, reviews and recommendations curated by SkinLabs® Spotlight.",
     canonicalPath: "/spotlight",
   },
-  newsroom: {
-    title: `The Daily Skinny | SA Skincare Science Briefings | ${BRAND}`,
+  briefings: {
+    title: `The Daily Skinny: Daily SA Skincare Briefings | ${BRAND}`,
     description:
-      "Daily briefings of global skincare science, translated for South African skin, climate and shelves. The Daily Skinny by SkinLabs®.",
-    canonicalPath: "/newsroom",
+      "A daily brief of global skincare science, translated into what it means for South African skin, climate and shelves. Free to read, with a premium PDF magazine for members.",
+    keywords: "skincare news South Africa, daily skincare briefing, SA skincare science, skincare research, skincare education",
+    canonicalPath: "/briefings",
   },
   podcast: {
     title: `The Skin Deep Podcast | SA Skincare Conversations | ${BRAND}`,

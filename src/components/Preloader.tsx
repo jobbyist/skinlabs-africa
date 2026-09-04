@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Newspaper, ShieldCheck, Lock, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,20 +62,45 @@ const trustMarkers = [
 
 const UNLOCK_ANIMATION_MS = 650;
 
+const BOT_UA_PATTERN =
+  /bot|crawl|spider|slurp|googlebot|bingbot|yandex|baiduspider|duckduckbot|facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|lighthouse|headlesschrome|prerender/i;
+
+/**
+ * True only for a same-session, cross-site arrival on the homepage — i.e. someone
+ * clicking in from Google, social, another site, etc. Direct navigation (empty
+ * referrer, which is also how every search-engine crawler and our own
+ * prerender step fetch the page) and in-site navigation never qualify, so the
+ * gate can never be the thing a crawler sees or indexes.
+ */
+const isExternalArrival = (): boolean => {
+  if (typeof document === "undefined" || typeof navigator === "undefined") return false;
+  if (BOT_UA_PATTERN.test(navigator.userAgent)) return false;
+  if (navigator.webdriver) return false;
+  if (!document.referrer) return false;
+  try {
+    return new URL(document.referrer).origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 const Preloader = () => {
   const { user, loading: authLoading } = useAuth();
   const { articles } = useNewsArticles(3);
   const autoplay = Autoplay({ delay: 3000, stopOnInteraction: true });
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHome = location.pathname === "/";
   const shouldReduceMotion = useReducedMotion();
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [externalArrival] = useState(isExternalArrival);
 
   const gateSlides: GateSlide[] = [
     ...articles.map((article) => ({
       key: article.id,
       tag: article.sa_context_tag,
       title: article.title,
-      href: `/newsroom/${article.slug}`,
+      href: `/briefings/${article.slug}`,
       image: article.cover_image_url,
       imageAlt: article.cover_image_alt || article.title,
     })),
@@ -113,8 +138,9 @@ const Preloader = () => {
 
   useEffect(() => {
     if (!loadingDone || authLoading || gateDismissed) return;
+    if (!isHome || !externalArrival) return;
     if (!user) setGateVisible(true);
-  }, [loadingDone, authLoading, gateDismissed, user]);
+  }, [loadingDone, authLoading, gateDismissed, user, isHome, externalArrival]);
 
   useEffect(() => {
     if (user && gateVisible) {
@@ -126,16 +152,17 @@ const Preloader = () => {
 
   // Let other first-visit UI (e.g. the cookie consent banner) know it's clear to
   // appear: either this gate has just been dismissed / was already shown before,
-  // or it will never apply this session because the visitor is signed in.
+  // the visitor is signed in, or the gate simply doesn't apply to this visit
+  // (not the homepage, or not a cross-site arrival) so it will never show.
   useEffect(() => {
     if (gateDismissed) {
       markEntryGateResolved();
       return;
     }
-    if (loadingDone && !authLoading && user) {
+    if (loadingDone && !authLoading && (user || !isHome || !externalArrival)) {
       markEntryGateResolved();
     }
-  }, [gateDismissed, loadingDone, authLoading, user]);
+  }, [gateDismissed, loadingDone, authLoading, user, isHome, externalArrival]);
 
   const dismissGate = () => {
     sessionStorage.setItem(GATE_KEY, "1");
@@ -201,6 +228,11 @@ const Preloader = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
+            // Belt-and-braces: this only ever mounts for a real, cross-site human
+            // arrival (see isExternalArrival above), never for a crawler or our own
+            // prerender pass — data-nosnippet keeps its copy out of search snippets
+            // even so, without affecting the real homepage content sitting behind it.
+            data-nosnippet=""
           >
             <div className="border-b border-border bg-background/95 py-3 text-center backdrop-blur">
               <button
@@ -218,9 +250,11 @@ const Preloader = () => {
                 style={{ width: 160, height: "auto" }}
                 className="mx-auto mb-8 dark:invert"
               />
-              <h1 className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
+              {/* Not an h1: this overlay sits on top of the homepage's own h1 (Hero) without
+                  hiding it from the accessibility tree, so the page must keep exactly one h1. */}
+              <p className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                 Uncover the whole story behind your skincare.
-              </h1>
+              </p>
               <p className="mt-4 text-muted-foreground">
                 Independent SA product reviews, daily skin science briefings and AI routines built for local climate
                 and skin — get unlimited access with a SkinLabs membership.

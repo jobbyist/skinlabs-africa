@@ -157,7 +157,7 @@ const AdminDashboard = () => {
   return (
     <>
       <Helmet>
-        <title>Admin Dashboard | SKINLABS</title>
+        <title>Admin Dashboard | SkinLabs®</title>
         <meta name="description" content="SkinLabs internal admin dashboard." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>

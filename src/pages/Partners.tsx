@@ -86,12 +86,14 @@ const Partners = () => {
         />
         <meta property="og:url" content={`${SITE}/partners`} />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content={`${SITE}/og-image.png`} />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="SkinLabs® Partner Program" />
         <meta
           name="twitter:description"
           content="Partner with SkinLabs® through affiliate, editorial or strategic commerce partnerships built for skincare brands and professionals."
         />
+        <meta name="twitter:image" content={`${SITE}/og-image.png`} />
         <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
       </Helmet>
 
