@@ -1,5 +1,6 @@
 /** Masks an email as `abc*****@*****.tld` for directory-card display, unmasked on request. */
 export const maskEmail = (email: string): string => {
+  if (!email || typeof email !== 'string') return '';
   const [local, domain] = email.split("@");
   if (!local || !domain) return email;
   const visible = local.slice(0, Math.min(3, local.length));
@@ -7,6 +8,7 @@ export const maskEmail = (email: string): string => {
   const dotIndex = domain.indexOf(".");
   const suffix = dotIndex >= 0 ? domain.slice(dotIndex) : "";
   return `${visible}*****@*****${suffix}`;
+};
 };
 
 /** Masks a phone as `012 *** ****` for directory-card display, unmasked on request. */
