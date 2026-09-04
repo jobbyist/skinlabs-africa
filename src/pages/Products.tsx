@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Sparkles, Droplet, Zap } from "lucide-react";
 import Header from "@/components/Header";
+import AdSlot from "@/components/AdSlot";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
@@ -52,6 +53,10 @@ const Products = () => {
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                     Science-backed skincare solutions designed to deliver real results
                   </p>
+                </div>
+
+                <div className="my-8">
+                  <AdSlot placement="products-mid" compact />
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8 mb-16">
