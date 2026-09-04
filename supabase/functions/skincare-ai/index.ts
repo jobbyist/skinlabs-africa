@@ -38,16 +38,26 @@ serve(async (req) => {
       });
     }
 
-    // Check user's subscription status
+    // Check user's subscription status. This mirrors public.is_member()/register_ai_analysis_use()
+    // in the database exactly — those are the source of truth for what counts as a paying tier,
+    // and drifting from them here previously meant Insider/VIP members (and anyone on an active
+    // free trial) silently fell back to the weak, ungrounded free-tier model below.
     const userId = claimsData.claims.sub;
     const { data: profileData } = await supabaseAuth
       .from("profiles")
-      .select("subscription_status")
+      .select("subscription_status, trial_plan, trial_ends_at")
       .eq("user_id", userId)
       .single();
 
-    const subscriptionStatus = profileData?.subscription_status || "free";
-    const isPremiumMember = subscriptionStatus === "active" || subscriptionStatus === "trialing";
+    const subscriptionStatus = (profileData?.subscription_status || "free").toLowerCase();
+    const trialPlan = (profileData?.trial_plan || "").toLowerCase();
+    const trialActive = Boolean(profileData?.trial_ends_at) && new Date(profileData?.trial_ends_at as string) > new Date();
+
+    const isVipMember = subscriptionStatus === "vip" || (subscriptionStatus === "trial" && trialPlan === "vip" && trialActive);
+    const isPremiumMember =
+      isVipMember ||
+      ["insider", "active", "premium"].includes(subscriptionStatus) ||
+      (subscriptionStatus === "trial" && trialPlan === "insider" && trialActive);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -148,6 +158,9 @@ Adapted to the client's climate, budget, sensitivity, and consistency level:
 - Remind them to introduce one active at a time.
 - Flag any signs that warrant seeing a licensed dermatologist.
 - State that this report is AI-generated, grounded in dermatology references, and reviewed by SKINLABS skincare specialists.
+${isVipMember ? `
+## 8. WHEN TO BRING IN A PRACTITIONER
+As a Glow VIP member with priority practitioner booking, be explicit about which findings in this profile (if any) are worth raising with an HPCSA-registered dermatologist or aesthetic practitioner at their next consultation, and what a practitioner visit could add on top of this routine (e.g. in-clinic peels, prescription-strength actives, device treatments). If nothing here warrants escalation, say so plainly rather than manufacturing urgency.` : ""}
 
 Tone: warm, professional, encouraging, evidence-led. Cite the client's own quiz answers when justifying choices. Be specific.`;
 
@@ -166,8 +179,14 @@ Output rules:
 - Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status.`;
 
 
-    const systemPromptFree = `You are a friendly skincare advisor for SKINLABS. You provide basic skincare guidance for free users. Keep recommendations general and educational. Always mention that premium members get detailed, dermatologist-grade analysis.`;
-    
+    const systemPromptFree = `You are a friendly skincare advisor for SKINLABS. You provide basic skincare guidance for free users. Keep recommendations general and educational. Ground every recommendation in the condensed reference knowledge below — never invent ingredients, concentrations or claims outside it.
+
+=== CONDENSED DERMATOLOGY REFERENCE ===
+${DERMATOLOGIST_KNOWLEDGE.slice(0, 4000)}
+=== END REFERENCE ===
+
+Always mention that premium members get detailed, dermatologist-grade analysis.`;
+
     const systemPrompt = isPremiumMember ? systemPromptPremium : systemPromptFree;
     // Build multimodal user message (text + optional image)
     const userContent: Array<Record<string, unknown>> = [
@@ -199,6 +218,9 @@ Output rules:
             { role: "system", content: systemPrompt },
             { role: "user", content: userContent },
           ],
+          // Lower temperature keeps output consistently grounded in the reference
+          // knowledge instead of drifting toward creative, unverified suggestions.
+          temperature: 0.4,
         }),
       });
 
@@ -241,7 +263,8 @@ Output rules:
             parts: [
               { text: `${systemPrompt}\n\n${userTextPrompt}` }
             ]
-          }]
+          }],
+          generationConfig: { temperature: 0.4 },
         }),
       });
 

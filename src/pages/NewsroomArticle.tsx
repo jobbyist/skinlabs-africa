@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
+import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { cn } from "@/lib/utils";
@@ -296,12 +297,12 @@ const NewsroomArticle = () => {
               ) : user ? (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
                   <h2 className="font-heading text-xl font-bold text-foreground">
-                    {isMember ? "Check back soon for more briefings" : "You've used this week's free briefing"}
+                    {isMember ? "Check back soon for more briefings" : `You've used this week's ${DAILY_SKINNY_FREE_WEEKLY} free briefings`}
                   </h2>
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     {isMember
                       ? "You've reached your weekly briefing limit. Check back in a few days for fresh intelligence."
-                      : "Free accounts get one full briefing every 7 days. Upgrade for unlimited daily briefings, or check back next week."}
+                      : `Free accounts get ${DAILY_SKINNY_FREE_WEEKLY} full briefings every 7 days. Upgrade for unlimited daily briefings, or check back next week.`}
                   </p>
                   <Button asChild className="mt-5">
                     <Link to="/pricing">See membership plans</Link>
@@ -311,7 +312,7 @@ const NewsroomArticle = () => {
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
                   <h2 className="font-heading text-xl font-bold text-foreground">Sign in to read this briefing</h2>
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-                    Free accounts get one full briefing every week, no card required. Members get unlimited daily briefings.
+                    Free accounts get {DAILY_SKINNY_FREE_WEEKLY} full briefings every week, no card required. Members get unlimited daily briefings.
                   </p>
                   <Button asChild className="mt-5">
                     <Link to="/pricing">See membership plans</Link>
@@ -327,12 +328,14 @@ const NewsroomArticle = () => {
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("save")}>
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <a href={article.source_url} target="_blank" rel="noreferrer noopener">
-                  Read the original on {article.source_name}
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
+              {article.source_url && (
+                <Button variant="ghost" size="sm" asChild>
+                  <a href={article.source_url} target="_blank" rel="noreferrer noopener">
+                    Read the original on {article.source_name}
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              )}
             </div>
 
             {/* Comments */}

@@ -115,14 +115,99 @@ const CONCERN_PROFILE: Record<
 };
 
 /**
+ * Extra personalisation pulled from quiz answers the skin-type/concern matrix alone
+ * doesn't cover — sensitivity, sun response, climate, actives experience, allergies
+ * and stated constraints. Only two of twenty answers (Q1, Q9) previously touched this
+ * output at all; this widens that to seven so the "free" result actually reflects most
+ * of what the visitor told us, without spending an AI call to do it.
+ */
+interface ExtraSignals {
+  cautionNote: string | null;
+  spfNote: string;
+  climateNote: string | null;
+  allergyNote: string | null;
+  constraintNote: string | null;
+  titrationAdjustment: string | null;
+}
+
+const deriveExtraSignals = (answers: Record<string, number>): ExtraSignals => {
+  const reactivity = answers["q6"]; // 0 very easily irritated .. 3 almost never
+  const barrier = answers["q19"]; // 0 compromised .. 3 very resilient
+  const sunResponse = answers["q10"]; // 0 burns easily .. 3 never burns
+  const climate = answers["q11"]; // 0 hot/humid, 1 hot/dry, 2 mild, 3 cold/dry
+  const activesExperience = answers["q15"]; // 0 tolerates well .. 3 unsure
+  const allergy = answers["q18"]; // 0 fragrance, 1 acne ingredients, 2 preservatives, 3 none
+  const constraint = answers["q20"]; // 0 budget, 1 time, 2 sensitivity risk, 3 unsure how to layer
+
+  const sensitiveOrCompromised = reactivity !== undefined && reactivity <= 1 || (barrier !== undefined && barrier <= 1);
+  const newToActives = activesExperience !== undefined && activesExperience >= 2;
+
+  const cautionNote =
+    sensitiveOrCompromised
+      ? "Your answers point to reactive skin or a stressed barrier right now, so go slower than the schedule below suggests: patch-test any new product on your inner arm for 48 hours first, and stretch each titration step by an extra week if you notice redness, stinging or flaking."
+      : null;
+
+  const spfNote =
+    sunResponse !== undefined && sunResponse <= 1
+      ? "Your skin burns easily, so treat SPF50+ as non-negotiable, not just SPF30 — reapply if you're outdoors past midday."
+      : "SPF30+ daily is your baseline — bump to SPF50+ on days you'll be outdoors for extended periods.";
+
+  const climateNote =
+    climate === 0
+      ? "Hot, humid days call for oil-free, gel-based textures throughout — anything heavier will feel worse and can trap sweat against congestion-prone skin."
+      : climate === 1
+        ? "Hot, dry conditions pull moisture out of skin faster than you'd expect — don't skip the moisturizing step even when it's warm outside."
+        : climate === 3
+          ? "Cold, dry conditions justify a richer moisturizer and an occasional facial oil on top, even if you'd normally skip that step in summer."
+          : null;
+
+  const allergyNote =
+    allergy === 0
+      ? "You've flagged fragrance/essential oils as a trigger — check every product on this list for 'fragrance-free', not just 'unscented' (the two aren't the same)."
+      : allergy === 1
+        ? "You've flagged reacting to acne ingredients like benzoyl peroxide or salicylic acid — introduce any acne actives below at the lowest possible strength and frequency, or ask a pharmacist about azelaic acid as a gentler alternative first."
+        : allergy === 2
+          ? "You've flagged sensitivity to preservatives — favour products with short, simple ingredient lists and patch-test before full use."
+          : null;
+
+  const constraintNote =
+    constraint === 0
+      ? "Budget is your main constraint, which is genuinely fine here — SA drugstore ranges at Clicks and Dis-Chem now carry disclosed-concentration actives that perform close to clinic-tier pricing; you don't need to spend more to follow this plan."
+      : constraint === 1
+        ? "Time is your main constraint — the AM/PM routines below are written as the minimum effective steps; skip the optional weekly treatment before you skip cleanser, moisturizer or SPF."
+        : constraint === 3
+          ? "You mentioned being unsure how to layer products — the order is always: cleanse, treat (thinnest/most active product first), moisturize, then SPF in the morning. Wait 60 seconds between steps if a product feels like it's pilling."
+          : null;
+
+  const titrationAdjustment =
+    newToActives
+      ? "Since you're new to actives (or unsure how your skin handles them), start at the lower end of the frequency given below and don't rush the timeline — consistency matters far more than speed here."
+      : null;
+
+  return { cautionNote, spfNote, climateNote, allergyNote, constraintNote, titrationAdjustment };
+};
+
+/**
  * Builds a full markdown-shaped recommendation for the given skin type +
  * primary concern — the free-tier "starter analysis" equivalent of the
  * live `skincare-ai` edge function's output. Deterministic: same inputs
- * always produce the same result.
+ * always produce the same result. `answers` (the full quiz response set)
+ * is optional for backward compatibility but should always be passed —
+ * it's what personalises the result beyond skin type and top concern.
  */
-export const buildPredeterminedRecommendation = (skinType: FormulaSkinType, concern: FormulaConcern): string => {
+export const buildPredeterminedRecommendation = (
+  skinType: FormulaSkinType,
+  concern: FormulaConcern,
+  answers: Record<string, number> = {},
+): string => {
   const skin = SKIN_PROFILE[skinType];
   const c = CONCERN_PROFILE[concern];
+  const signals = deriveExtraSignals(answers);
+
+  const personalisedNotes = [signals.cautionNote, signals.climateNote, signals.allergyNote, signals.constraintNote, signals.titrationAdjustment]
+    .filter((note): note is string => Boolean(note))
+    .map((note) => `- ${note}`)
+    .join("\n");
 
   return `## Your Skin Profile
 Based on your answers, your skin reads as **${skin.label}**, with your main priority being **${c.label}**. This starter analysis focuses on ${skin.texture}.
@@ -131,7 +216,7 @@ Based on your answers, your skin reads as **${skin.label}**, with your main prio
 1. Cleanse with ${skin.cleanser}.
 2. Treat: ${c.amFocus}.
 3. Moisturize with ${skin.moisturizer}.
-4. SPF — every single morning, rain or shine.
+4. SPF — every single morning, rain or shine. ${signals.spfNote}
 
 ## PM Routine
 1. Cleanse with ${skin.cleanser}.
@@ -141,14 +226,14 @@ Based on your answers, your skin reads as **${skin.label}**, with your main prio
 Note: ${skin.caution}.
 
 ## Weekly Actives Schedule
-${c.weeklySchedule}
+${c.weeklySchedule}${signals.titrationAdjustment ? ` ${signals.titrationAdjustment}` : ""}
 
 ## Product-Type Recommendations
 Look for: ${c.productTypes}.
 
 ## Ingredient Strategy
 Key actives for your priority: ${c.keyActives}. ${c.ingredientStrategy}
-
+${personalisedNotes ? `\n## Notes From Your Other Answers\n${personalisedNotes}\n` : ""}
 ---
 This is your free Starter Analysis — a general match based on your quiz answers. SkinLabs Insider and VIP members get a live, dermatology-grounded AI report built specifically around your exact answers (and photo, if provided), re-analysed weekly as your skin changes.`;
 };

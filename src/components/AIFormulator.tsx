@@ -170,7 +170,7 @@ const AIFormulator = () => {
     setIsLoading(true);
     window.setTimeout(() => {
       const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
-      const text = buildPredeterminedRecommendation(derivedSkinType, concern);
+      const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
       setRecommendation(text);
       setResultTier("free");
       try {
