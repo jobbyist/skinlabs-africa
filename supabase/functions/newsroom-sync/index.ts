@@ -17,8 +17,10 @@ const corsHeaders = {
 };
 
 /** Free-tier guard rails. */
-const MAX_ARTICLES_PER_RUN = 10;
-const MAX_ARTICLES_PER_DAY = 12;
+const MAX_ARTICLES_PER_RUN = 3;
+/** Scheduled runs publish 1-2 briefings a day to stay inside the Firecrawl and Gemini free tiers. */
+const MAX_ARTICLES_PER_DAY = 2;
+const SCHEDULED_DEFAULT_LIMIT = 2;
 const AI_CALL_DELAY_MS = 1500;
 
 const SEARCH_QUERIES = [
@@ -248,7 +250,9 @@ Deno.serve(async (req) => {
     // ---- Authorisation: cron secret, or an admin user JWT ----
     const cronSecret = Deno.env.get("NEWS_CRON_SECRET");
     const providedSecret = req.headers.get("x-cron-secret");
-    let authorised = Boolean(cronSecret && providedSecret && providedSecret === cronSecret);
+    const viaCron = Boolean(cronSecret && providedSecret && providedSecret === cronSecret);
+    let authorised = viaCron;
+    let isAdmin = false;
 
     if (!authorised) {
       const authHeader = req.headers.get("Authorization") ?? "";
@@ -256,11 +260,12 @@ Deno.serve(async (req) => {
       if (token) {
         const { data: userData } = await admin.auth.getUser(token);
         if (userData?.user) {
-          const { data: isAdmin } = await admin.rpc("has_role", {
+          const { data: adminRole } = await admin.rpc("has_role", {
             _user_id: userData.user.id,
             _role: "admin",
           });
-          authorised = Boolean(isAdmin);
+          isAdmin = Boolean(adminRole);
+          authorised = isAdmin;
         }
       }
     }
@@ -275,9 +280,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const requested = Number(body?.limit);
     const limit = Math.min(
-      Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 3,
+      Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : SCHEDULED_DEFAULT_LIMIT,
       MAX_ARTICLES_PER_RUN,
     );
+    // Admins can top the newsroom up by hand; the daily cap only governs the cron run.
+    const manualTopUp = isAdmin && body?.manual === true;
 
     // ---- Daily rate limit ----
     const today = new Date().toISOString().slice(0, 10);
@@ -286,7 +293,9 @@ Deno.serve(async (req) => {
       .select("articles_created")
       .eq("run_date", today);
     const createdToday = (runsToday ?? []).reduce((sum, r: { articles_created: number | null }) => sum + (r.articles_created ?? 0), 0);
-    const remaining = Math.max(0, MAX_ARTICLES_PER_DAY - createdToday);
+    const remaining = manualTopUp
+      ? MAX_ARTICLES_PER_RUN
+      : Math.max(0, MAX_ARTICLES_PER_DAY - createdToday);
 
     if (remaining === 0) {
       return new Response(
