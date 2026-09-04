@@ -27,8 +27,8 @@ export const STORAGE_GROUPS: StorageGroup[] = [
   {
     id: "engagement",
     label: "Liked & saved content",
-    description: "Your liked and saved Daily Skinny briefings, plus a random id used to count your 3 free briefings per week if you're not signed in.",
-    keys: ["skinlabs-engagement", "skinlabs-anon-device-id"],
+    description: "Your liked and saved Daily Skinny briefings.",
+    keys: ["skinlabs-engagement"],
   },
   {
     id: "podcast",

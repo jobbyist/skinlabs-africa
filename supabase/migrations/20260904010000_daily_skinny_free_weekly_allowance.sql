@@ -23,7 +23,7 @@ DROP FUNCTION IF EXISTS public.get_article_body(text);
 CREATE OR REPLACE FUNCTION public.get_article_body(p_slug text, p_device_id text DEFAULT NULL)
 RETURNS TABLE (body_markdown text, inline_images jsonb)
 LANGUAGE plpgsql
-STABLE
+VOLATILE
 SECURITY DEFINER
 SET search_path = public
 AS $$

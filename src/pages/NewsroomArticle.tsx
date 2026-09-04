@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
-import { getAnonDeviceId } from "@/lib/anon-device";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
@@ -72,7 +71,7 @@ const NewsroomArticle = () => {
     if (!article || !slug || membershipLoading) return;
     setBodyLoading(true);
     void (async () => {
-      const { data } = await supabase.rpc("get_article_body", { p_slug: slug, p_device_id: getAnonDeviceId() });
+      const { data } = await supabase.rpc("get_article_body", { p_slug: slug });
       const row = (Array.isArray(data) ? data[0] : null) as
         | { body_markdown?: string; inline_images?: unknown }
         | null;
@@ -295,7 +294,7 @@ const NewsroomArticle = () => {
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : user ? (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
                   <h2 className="font-heading text-xl font-bold text-foreground">
                     {isMember ? "Check back soon for more briefings" : `You've used this week's ${DAILY_SKINNY_FREE_WEEKLY} free briefings`}
@@ -303,7 +302,17 @@ const NewsroomArticle = () => {
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     {isMember
                       ? "You've reached your weekly briefing limit. Check back in a few days for fresh intelligence."
-                      : `Everyone — no account required — gets ${DAILY_SKINNY_FREE_WEEKLY} full briefings every 7 days. Upgrade for unlimited daily briefings, or check back next week.`}
+                      : `Free accounts get ${DAILY_SKINNY_FREE_WEEKLY} full briefings every 7 days. Upgrade for unlimited daily briefings, or check back next week.`}
+                  </p>
+                  <Button asChild className="mt-5">
+                    <Link to="/pricing">See membership plans</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-border bg-card p-8 text-center">
+                  <h2 className="font-heading text-xl font-bold text-foreground">Sign in to read this briefing</h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                    Free accounts get {DAILY_SKINNY_FREE_WEEKLY} full briefings every week, no card required. Members get unlimited daily briefings.
                   </p>
                   <Button asChild className="mt-5">
                     <Link to="/pricing">See membership plans</Link>
