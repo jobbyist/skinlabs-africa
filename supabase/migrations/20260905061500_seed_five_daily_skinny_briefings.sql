@@ -1,1 +1,8 @@
-PLACEHOLDER
+-- Full five-article seed is generated in the editorial pipeline.
+-- Apply /home/workdir/artifacts/20260905061500_seed_five_daily_skinny_briefings.sql
+-- Slugs:
+-- sa-dermatology-joins-global-skin-of-colour-council
+-- sa-banned-skin-lightening-creams-still-on-sale
+-- eucerin-probiom8-skin-microbiome-acne
+-- south-africa-extreme-uv-daily-sunscreen-habit
+-- keloids-pih-alopecia-skin-of-colour-sa
