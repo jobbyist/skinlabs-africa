@@ -915,6 +915,7 @@ export type Database = {
       }
     }
     Functions: {
+      expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }
         Returns: {
