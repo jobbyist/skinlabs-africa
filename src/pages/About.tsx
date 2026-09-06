@@ -87,7 +87,7 @@ const About = () => {
       icon: <Mic className="h-6 w-6" />,
       title: "The Skin Deep Podcast",
       description: "Expert interviews, skincare deep-dives and myth-busting conversations.",
-      highlight: "New episodes weekly",
+      highlight: "New episode last Friday of the month",
       link: "/podcast"
     },
     {
