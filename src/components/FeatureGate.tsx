@@ -36,7 +36,7 @@ const FeatureGate = ({ feature, title, message, ctaLabel, onSignIn, children }: 
   useEffect(() => {
     if (locked && !firedRef.current) {
       firedRef.current = true;
-      trackConversionEvent("upgrade_prompt_view", { feature, accountState, style: "overlay" });
+      trackConversionEvent("upgrade_viewed", { feature, accountState, style: "overlay" });
     }
   }, [locked, feature, accountState]);
 

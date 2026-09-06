@@ -12,14 +12,19 @@ import { track } from "@vercel/analytics";
  * site stays the same.
  */
 export type ConversionEvent =
-  | "signup"
-  | "quiz_complete"
-  | "analysis_view"
-  | "upgrade_prompt_view"
+  | "analysis_started"
+  | "consent_completed"
+  | "profile_completed"
+  | "analysis_generated"
+  | "analysis_viewed"
+  | "results_saved"
+  | "signup_started"
+  | "signup_completed"
+  | "upgrade_viewed"
   | "upgrade_click"
-  | "trial_start"
+  | "trial_started"
   | "checkout_start"
-  | "payment_success"
+  | "subscription_started"
   | "credit_purchase";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;

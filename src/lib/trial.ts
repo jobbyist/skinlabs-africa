@@ -21,6 +21,6 @@ export const startFreeTrial = async (plan: "insider") => {
     }
     return { error: new Error("Could not start your trial. Please try again.") };
   }
-  trackConversionEvent("trial_start", { plan });
+  trackConversionEvent("trial_started", { plan });
   return { error: null };
 };

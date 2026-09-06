@@ -95,7 +95,7 @@ const UserDashboard = () => {
       if (isPaidSubscriptionStatus(data?.subscription_status)) {
         setActivating(false);
         refreshMembership();
-        trackConversionEvent("payment_success", {
+        trackConversionEvent("subscription_started", {
           plan: searchParams.get("plan") ?? undefined,
           interval: searchParams.get("interval") ?? undefined,
         });

@@ -29,7 +29,7 @@ const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProp
   useEffect(() => {
     if (show && !firedRef.current) {
       firedRef.current = true;
-      trackConversionEvent("upgrade_prompt_view", { feature, accountState, style: "inline" });
+      trackConversionEvent("upgrade_viewed", { feature, accountState, style: "inline" });
     }
   }, [show, feature, accountState]);
 

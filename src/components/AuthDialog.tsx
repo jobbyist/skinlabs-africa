@@ -45,6 +45,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
       toast.error("Username must be 3-20 characters: letters, numbers or underscores.");
       return;
     }
+    trackConversionEvent("signup_started");
     setIsLoading(true);
     const { data: available, error: checkError } = await supabase.rpc("is_username_available", {
       p_username: handle,
@@ -58,7 +59,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
-      trackConversionEvent("signup");
+      trackConversionEvent("signup_completed");
       toast.success("You're in. Skincare without the nonsense starts here.");
       onOpenChange(false);
       onAuthenticated?.();

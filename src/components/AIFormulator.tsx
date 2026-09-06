@@ -10,10 +10,9 @@ import {
   ImageIcon,
   Shield,
   CheckCircle2,
-  Mail,
-  Calendar,
-  Download,
   UserPlus,
+  AlertTriangle,
+  Share2,
 } from "lucide-react";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
@@ -26,48 +25,57 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
-import GatedOverlay from "@/components/GatedOverlay";
+import UpgradePrompt from "@/components/UpgradePrompt";
 import { QUESTIONS } from "@/data/quiz";
 import { buildPredeterminedRecommendation, CONCERN_BY_Q9_VALUE } from "@/data/formulaResults";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
-const STEP_PHOTO = TOTAL_QUESTIONS + 1;
-const STEP_EMAIL = TOTAL_QUESTIONS + 2;
-const STEP_AUTH = TOTAL_QUESTIONS + 3;
+
+// Funnel: Intro -> Consent -> Quiz questions -> optional Photo -> Analysis -> Results.
+// Anonymous visitors can reach Results without ever creating an account — "save my
+// results" (account creation) only ever appears AFTER results are shown, as an
+// optional upgrade path, never a gate in front of the analysis itself.
+const STEP_INTRO = 0;
+const STEP_CONSENT = 1;
+const FIRST_QUESTION_STEP = 2;
+const LAST_QUESTION_STEP = TOTAL_QUESTIONS + 1;
+const STEP_PHOTO = TOTAL_QUESTIONS + 2;
+const STEP_ANALYSIS = TOTAL_QUESTIONS + 3;
 const STEP_RESULTS = TOTAL_QUESTIONS + 4;
 
 const AIFormulator = () => {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { isMember } = useMembership();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [resultTier, setResultTier] = useState<"free" | "premium">("free");
+  const [resultsSaved, setResultsSaved] = useState(false);
   const [popiaConsent, setPopiaConsent] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactWhatsApp, setContactWhatsApp] = useState("");
-  const [bookConsultation, setBookConsultation] = useState(false);
   const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
   const [authPassword, setAuthPassword] = useState("");
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const savingResultsRef = useRef(false);
+  const viewedFiredRef = useRef(false);
 
-  // The quiz itself never requires an account — only revealing results does. Once an
-  // unauthenticated visitor signs up/logs in from the inline STEP_AUTH screen, `user`
-  // flips truthy and this carries them straight into their results (free starter
-  // analysis, or the live AI report if they're already a paying member).
-  useEffect(() => {
-    if (step === STEP_AUTH && user) {
-      proceedToResults();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, user]);
+  const derivedSkinType = (() => {
+    const q1 = answers["q1"];
+    if (q1 === 0) return "oily";
+    if (q1 === 1) return "combination";
+    if (q1 === 2) return "normal";
+    if (q1 === 3) return "dry";
+    return "normal";
+  })();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -96,134 +104,197 @@ const AIFormulator = () => {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  // Only ever called for signed-in paying members — free/unauthenticated visitors get
-  // the instant predetermined starter analysis via showPredeterminedResults() instead,
-  // so this quota only ever gates the live, paid AI report.
-  const getAIRecommendation = async () => {
-    setIsLoading(true);
+  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
+  const runLiveAnalysis = async (): Promise<boolean> => {
+    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
+    if (quotaError) {
+      setAnalysisError("Couldn't check your analysis quota — please try again.");
+      return false;
+    }
+    if (quotaAllowed === false) {
+      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
+      return false;
+    }
+
+    const quizAnswers = QUESTIONS.map((q) => ({
+      question: q.title,
+      answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
+    }));
+
+    const { data, error } = await supabase.functions.invoke("skincare-ai", {
+      body: {
+        quizAnswers,
+        skinImage: skinImage && photoConsent ? skinImage : null,
+        contactName: contactName || user?.email?.split("@")[0] || "",
+        contactEmail: contactEmail || user?.email || "",
+      },
+    });
+
+    if (error) {
+      setAnalysisError("Couldn't generate your recommendation — please try again.");
+      return false;
+    }
+    if (data?.error) {
+      setAnalysisError(data.error);
+      return false;
+    }
+
+    setRecommendation(data.recommendation);
+    setResultTier(data.tier === "premium" ? "premium" : "free");
+    trackConversionEvent("analysis_generated", { resultTier: data.tier || "premium" });
+
     try {
-      const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
-      if (quotaError) {
-        toast.error("Couldn't check your analysis quota — please try again.");
-        return;
-      }
-      if (quotaAllowed === false) {
-        toast.error("You've used this week's AI analysis — your next one unlocks in a few days.");
-        return;
-      }
-
-      const quizAnswers = QUESTIONS.map((q) => ({
-        question: q.title,
-        answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
-      }));
-
-      const { data, error } = await supabase.functions.invoke("skincare-ai", {
-        body: {
-          quizAnswers,
-          skinImage: skinImage && photoConsent ? skinImage : null,
-          contactName,
-          contactEmail,
-        },
+      downloadSkincarePdf({
+        clientName: contactName || user?.email?.split("@")[0] || "Client",
+        email: contactEmail || user?.email || "",
+        recommendation: data.recommendation,
+        skinType: derivedSkinType,
       });
+      toast.success("Your skincare PDF is downloaded");
+    } catch {
+      toast.message("Your report is ready — PDF download didn't work this time, but your results are below.");
+    }
+    return true;
+  };
 
-      if (error) {
-        console.error("Error calling skincare-ai:", error);
-        toast.error("Couldn't generate your recommendation — please try again.");
-        return;
-      }
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
+  /**
+   * Free/anonymous path: an instant, deterministic "starter analysis" built from the
+   * quiz answers alone — no Supabase call, no account, no AI quota spent. The brief
+   * artificial delay keeps the experience consistent with the live AI path rather
+   * than feeling suspiciously instant. This is a genuinely complete analysis (AM/PM
+   * routine, actives schedule, product types) — not a crippled teaser — so nothing
+   * about it is hidden behind a paywall; the upgrade pitch afterward is a live,
+   * weekly-refreshed, photo-aware report, not "the rest of this same result."
+   */
+  const runStarterAnalysis = async (): Promise<boolean> => {
+    await new Promise((resolve) => window.setTimeout(resolve, 900));
+    const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
+    const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
+    setRecommendation(text);
+    setResultTier("free");
+    trackConversionEvent("analysis_generated", { resultTier: "free" });
+    try {
+      downloadSkincarePdf({
+        clientName: contactName || "Client",
+        email: contactEmail,
+        recommendation: text,
+        skinType: derivedSkinType,
+      });
+      toast.success("Your starter skincare PDF is downloaded");
+    } catch {
+      toast.message("Your analysis is ready — PDF download didn't work this time, but your results are below.");
+    }
+    return true;
+  };
 
-      setRecommendation(data.recommendation);
-      setResultTier(data.tier || (isMember ? "premium" : "free"));
-      trackConversionEvent("analysis_view", { resultTier: data.tier || "premium" });
-
-      try {
-        downloadSkincarePdf({
-          clientName: contactName || "Client",
-          email: contactEmail,
-          recommendation: data.recommendation,
-          skinType: derivedSkinType,
-        });
-        toast.success("Your skincare PDF is downloaded");
-      } catch (pdfErr) {
-        console.warn("PDF generation failed:", pdfErr);
-      }
-
-      setStep(STEP_RESULTS);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Something went wrong on our end — please try again.");
+  const runAnalysis = async () => {
+    setIsLoading(true);
+    setAnalysisError(null);
+    try {
+      const ok = isMember ? await runLiveAnalysis() : await runStarterAnalysis();
+      if (ok) setStep(STEP_RESULTS);
+    } catch {
+      setAnalysisError("Something went wrong on our end — please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * Free/explorer path: an instant, deterministic "starter analysis" built from the
-   * quiz answers alone — no Supabase call, no AI quota spent. The brief artificial
-   * delay keeps the experience consistent with the live AI path rather than feeling
-   * suspiciously instant. The advanced section stays gated (see STEP_RESULTS below),
-   * which is the upsell to the live, weekly-refreshed AI report for paid members.
-   */
-  const showPredeterminedResults = () => {
-    setIsLoading(true);
-    window.setTimeout(() => {
-      const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
-      const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
-      setRecommendation(text);
-      setResultTier("free");
-      trackConversionEvent("analysis_view", { resultTier: "free" });
-      try {
-        downloadSkincarePdf({
-          clientName: contactName || "Client",
-          email: contactEmail,
-          recommendation: text,
-          skinType: derivedSkinType,
-        });
-        toast.success("Your starter skincare PDF is downloaded");
-      } catch (pdfErr) {
-        console.warn("PDF generation failed:", pdfErr);
-      }
-      setIsLoading(false);
-      setStep(STEP_RESULTS);
-    }, 900);
-  };
+  // Kick off generation the moment the visitor reaches the Analysis step.
+  useEffect(() => {
+    if (step === STEP_ANALYSIS) void runAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
-  const proceedToResults = () => {
-    trackConversionEvent("quiz_complete", { isMember });
-    if (isMember) {
-      getAIRecommendation();
-    } else {
-      showPredeterminedResults();
+  // Fire the "viewed" funnel event once per completed analysis, separate from
+  // "generated" (the data existing) — this is the moment a person actually saw it.
+  useEffect(() => {
+    if (step === STEP_RESULTS && recommendation && !viewedFiredRef.current) {
+      viewedFiredRef.current = true;
+      trackConversionEvent("analysis_viewed", { resultTier });
     }
+  }, [step, recommendation, resultTier]);
+
+  // Save the result to the account the moment one exists — whether the visitor was
+  // already signed in, or just created/logged into an account from the results
+  // screen below. The live-AI path already persists server-side (skincare-ai), so
+  // only the free/starter path needs a client-side insert here to avoid a duplicate.
+  useEffect(() => {
+    if (step !== STEP_RESULTS || !recommendation || !user || resultsSaved || savingResultsRef.current) return;
+    savingResultsRef.current = true;
+    (async () => {
+      if (resultTier === "free") {
+        try {
+          await supabase.from("skincare_recommendations").insert({
+            user_id: user.id,
+            skin_type: derivedSkinType,
+            concerns: [CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity"],
+            recommendation,
+            contact_name: contactName || null,
+            contact_whatsapp: contactWhatsApp || null,
+            status: "delivered",
+          });
+        } catch {
+          // Non-fatal — the visitor still has their downloaded PDF and on-screen result.
+        }
+      }
+      setResultsSaved(true);
+      trackConversionEvent("results_saved", { resultTier });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, recommendation, user, resultsSaved, resultTier]);
+
+  const handleStartAnalysis = () => {
+    trackConversionEvent("analysis_started");
+    setStep(STEP_CONSENT);
   };
 
-  const handleInlineAuth = async (e: React.FormEvent) => {
+  const handleSaveResults = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthSubmitting(true);
-    const { error } = authMode === "signup" ? await signUp(contactEmail, authPassword) : await signIn(contactEmail, authPassword);
+    if (authMode === "signup") trackConversionEvent("signup_started", { source: "ai_formulator_results" });
+    const { error } =
+      authMode === "signup" ? await signUp(contactEmail, authPassword) : await signIn(contactEmail, authPassword);
     setIsAuthSubmitting(false);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success(authMode === "signup" ? "You're in — building your results now." : "Welcome back.");
-    // Advancing to results happens automatically via the effect above once `user` updates.
+    if (authMode === "signup") trackConversionEvent("signup_completed", { source: "ai_formulator_results" });
+    toast.success(authMode === "signup" ? "Account created — saving your results..." : "Welcome back.");
+  };
+
+  const handleShareResults = async () => {
+    const shareText = `I just got a free AI skin analysis on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
+    const shareUrl = "https://skinlabs.co.za/ai-formulator";
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "My SkinLabs skin analysis", text: shareText, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        toast.success("Copied — paste it anywhere");
+      }
+    } catch {
+      // Visitor cancelled the native share sheet — not an error.
+    }
   };
 
   const handleNext = () => {
-    if (step === STEP_EMAIL) {
-      if (!user) {
-        setStep(STEP_AUTH);
-      } else {
-        proceedToResults();
-      }
-    } else {
-      setStep(step + 1);
+    if (step === STEP_CONSENT) {
+      trackConversionEvent("consent_completed");
+      setStep(FIRST_QUESTION_STEP);
+      return;
     }
+    if (step === LAST_QUESTION_STEP) {
+      trackConversionEvent("profile_completed");
+      setStep(STEP_PHOTO);
+      return;
+    }
+    if (step === STEP_PHOTO) {
+      setStep(STEP_ANALYSIS);
+      return;
+    }
+    setStep(step + 1);
   };
 
   const handleBack = () => {
@@ -231,31 +302,27 @@ const AIFormulator = () => {
   };
 
   const resetFormulator = () => {
-    setStep(0);
+    setStep(STEP_INTRO);
     setAnswers({});
     setSkinImage(null);
+    setAnalysisError(null);
     setRecommendation(null);
+    setResultsSaved(false);
     setPopiaConsent(false);
     setPhotoConsent(false);
     setContactName("");
     setContactEmail("");
     setContactWhatsApp("");
-    setBookConsultation(false);
     setAuthPassword("");
+    savingResultsRef.current = false;
+    viewedFiredRef.current = false;
   };
 
-  const progress = step === 0 ? 0 : step <= TOTAL_QUESTIONS ? (step / TOTAL_QUESTIONS) * 100 : 100;
-  const currentQuestion = step >= 1 && step <= TOTAL_QUESTIONS ? QUESTIONS[step - 1] : null;
+  const currentQuestion =
+    step >= FIRST_QUESTION_STEP && step <= LAST_QUESTION_STEP ? QUESTIONS[step - FIRST_QUESTION_STEP] : null;
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
-
-  const derivedSkinType = (() => {
-    const q1 = answers["q1"];
-    if (q1 === 0) return "oily";
-    if (q1 === 1) return "combination";
-    if (q1 === 2) return "normal";
-    if (q1 === 3) return "dry";
-    return "normal";
-  })();
+  const questionNumber = step - FIRST_QUESTION_STEP + 1;
+  const progress = currentQuestion ? (questionNumber / TOTAL_QUESTIONS) * 100 : 0;
 
   if (authLoading) {
     return (
@@ -295,17 +362,11 @@ const AIFormulator = () => {
     });
   };
 
-  const splitRecommendation = (text: string) => {
-    const lines = text.split("\n");
-    const cutIndex = lines.findIndex((line) =>
-      /actives?\s+(schedule|calendar)|weekly\s+actives|advanced|product[- ]type recommendations|ingredient (deep dive|strategy)/i.test(line),
-    );
-    const splitAt = cutIndex > 0 ? cutIndex : Math.ceil(lines.length * 0.4);
-    return {
-      preview: lines.slice(0, splitAt).join("\n"),
-      advanced: lines.slice(splitAt).join("\n").trim(),
-    };
-  };
+  const footerVisible = step >= STEP_CONSENT && step <= STEP_PHOTO;
+  const footerDisabled =
+    (step === STEP_CONSENT && !popiaConsent) ||
+    (currentQuestion !== null && currentAnswer === undefined) ||
+    (step === STEP_PHOTO && skinImage !== null && !photoConsent);
 
   return (
     <>
@@ -327,7 +388,7 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
                   <Shield className="h-3.5 w-3.5 text-primary" />
                   <span className="text-muted-foreground">
-                    Free Starter Analysis, no card required •
+                    Free Starter Analysis, no card required, no account required •
                     <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
                   </span>
                 </div>
@@ -335,17 +396,17 @@ const AIFormulator = () => {
             </div>
 
             <div className="bg-card rounded-2xl border border-border p-6 md:p-10 shadow-lg">
-              {step >= 1 && step <= TOTAL_QUESTIONS && (
+              {currentQuestion && (
                 <div className="mb-8">
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-muted-foreground">Question {step} of {TOTAL_QUESTIONS}</span>
+                    <span className="text-muted-foreground">Question {questionNumber} of {TOTAL_QUESTIONS}</span>
                     <span className="text-primary font-medium">{Math.round(progress)}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
                 </div>
               )}
 
-              {step === 0 && (
+              {step === STEP_INTRO && (
                 <div className="space-y-8 py-4">
                   <div className="text-center space-y-4">
                     <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
@@ -371,33 +432,66 @@ const AIFormulator = () => {
                       </div>
                     ))}
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                      <Shield className="h-4 w-4" />
-                      Important Disclaimer
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      This tool provides general skincare guidance and is <strong>not medical advice</strong>.
-                      For medical skin conditions, please consult a licensed dermatologist. Results are
-                      AI-generated and reviewed by skincare professionals.
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
-                    <Checkbox id="popia-consent" checked={popiaConsent} onCheckedChange={(checked) => setPopiaConsent(checked === true)} className="mt-0.5" />
-                    <Label htmlFor="popia-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                      I consent to SKINLABS processing my personal information in accordance with POPIA
-                      (Protection of Personal Information Act). My data will be used solely to generate
-                      personalized skincare recommendations and will not be shared with third parties.
-                    </Label>
-                  </div>
-                  <Button size="lg" onClick={() => setStep(1)} disabled={!popiaConsent} className="w-full gap-2">
+                  <Button size="lg" onClick={handleStartAnalysis} className="w-full gap-2">
                     Start My Skin Analysis
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
 
-              {currentQuestion && !isLoading && (
+              {step === STEP_CONSENT && (
+                <div className="space-y-6 py-4">
+                  <div className="text-center space-y-3">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                      <Shield className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
+                      Before we start — what we collect, and why
+                    </h3>
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      <span className="text-sm text-card-foreground">
+                        Your quiz answers (skin type, concerns, lifestyle) — used only to build this analysis.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      <span className="text-sm text-card-foreground">
+                        A photo, only if you choose to add one shortly — asked for and consented to separately, used only for that analysis.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
+                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                      <span className="text-sm text-card-foreground">
+                        Your email, only if you later choose to save your results or create an account.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Shield className="h-4 w-4" />
+                      Important Disclaimer
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      This tool provides general skincare guidance and is <strong>not medical advice, diagnosis or treatment</strong>.
+                      For medical skin conditions, rashes or persistent concerns, please consult a licensed dermatologist or
+                      HPCSA-registered practitioner. Results are AI-generated, grounded in dermatology reference material.
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
+                    <Checkbox id="popia-consent" checked={popiaConsent} onCheckedChange={(checked) => setPopiaConsent(checked === true)} className="mt-0.5" />
+                    <Label htmlFor="popia-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      I consent to SkinLabs processing my quiz answers in accordance with POPIA (Protection of Personal
+                      Information Act) solely to generate this personalised skincare analysis. My data will not be sold
+                      or shared with third parties.
+                    </Label>
+                  </div>
+                </div>
+              )}
+
+              {currentQuestion && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
                     <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h3>
@@ -425,7 +519,7 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {step === STEP_PHOTO && !isLoading && (
+              {step === STEP_PHOTO && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
                     <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
@@ -468,100 +562,35 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {step === STEP_EMAIL && !isLoading && (
-                <div className="space-y-6">
-                  <div className="text-center mb-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4"><Mail className="h-8 w-8 text-primary" /></div>
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">Where should we send your results?</h3>
-                    <p className="text-muted-foreground text-sm">We'll email your personalized skincare report directly to you</p>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="contact-name">Full Name *</Label>
-                      <Input id="contact-name" placeholder="Your name" value={contactName} onChange={(e) => setContactName(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contact-email">Email Address *</Label>
-                      <Input id="contact-email" type="email" placeholder="name@example.com" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="contact-whatsapp">WhatsApp Number <span className="text-muted-foreground">(optional)</span></Label>
-                      <Input id="contact-whatsapp" type="tel" placeholder="+27 XX XXX XXXX" value={contactWhatsApp} onChange={(e) => setContactWhatsApp(e.target.value)} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">We'll use your contact details to deliver your skincare report. We never share your information with third parties.</p>
-                </div>
-              )}
-
-              {step === STEP_AUTH && !isLoading && (
-                <div className="space-y-6">
-                  <div className="text-center mb-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <UserPlus className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      {authMode === "signup" ? "Create your free account to see your results" : "Welcome back — log in to see your results"}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      {authMode === "signup"
-                        ? "We've already got your name and email — just set a password and your results are ready."
-                        : "Log in with the account you already have, and we'll pick up right where you left off."}
-                    </p>
-                  </div>
-                  <form onSubmit={handleInlineAuth} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="auth-email">Email</Label>
-                      <Input
-                        id="auth-email"
-                        type="email"
-                        value={contactEmail}
-                        onChange={(e) => setContactEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="auth-password">Password</Label>
-                      <Input
-                        id="auth-password"
-                        type="password"
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        required
-                        minLength={authMode === "signup" ? 8 : undefined}
-                        autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-                      />
-                      {authMode === "signup" && (
-                        <p className="text-xs text-muted-foreground">At least 8 characters. Free forever — no card required.</p>
-                      )}
-                    </div>
-                    <Button type="submit" size="lg" className="w-full gap-2" disabled={isAuthSubmitting}>
-                      {isAuthSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {authMode === "signup" ? "Create free account & see my results" : "Log in & see my results"}
-                    </Button>
-                  </form>
-                  <div className="flex items-center justify-between text-sm">
-                    <button
-                      type="button"
-                      onClick={() => setStep(STEP_EMAIL)}
-                      className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" /> Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
-                      className="text-primary hover:underline"
-                    >
-                      {authMode === "signup" ? "Already have an account? Log in" : "New here? Create a free account"}
-                    </button>
-                  </div>
-                  <p className="text-center text-[11px] text-muted-foreground leading-relaxed">
-                    By continuing you agree to our{" "}
-                    <a href="/terms-of-service" className="underline hover:text-foreground">Terms</a>{" "}
-                    and{" "}
-                    <a href="/privacy-policy" className="underline hover:text-foreground">Privacy Policy</a>.
-                  </p>
+              {step === STEP_ANALYSIS && (
+                <div className="text-center py-12">
+                  {!analysisError ? (
+                    <>
+                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+                      </div>
+                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Reading your skin profile...</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertTriangle className="h-10 w-10 text-destructive" />
+                      </div>
+                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto mb-6">{analysisError}</p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button onClick={() => void runAnalysis()} className="gap-2">
+                          <Sparkles className="h-4 w-4" />
+                          Try again
+                        </Button>
+                        <Button variant="outline" onClick={() => setStep(STEP_PHOTO)} className="gap-2">
+                          <ArrowLeft className="h-4 w-4" />
+                          Back
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -575,19 +604,82 @@ const AIFormulator = () => {
                     <p className="text-muted-foreground">
                       {isMember
                         ? `Customized for your ${derivedSkinType} skin`
-                        : `A general match for your ${derivedSkinType} skin — upgrade for a live AI report built around your exact answers`}
+                        : `Built for your ${derivedSkinType} skin from your actual answers`}
                     </p>
                   </div>
-                  <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
-                    {formatRecommendation(splitRecommendation(recommendation).preview)}
+
+                  <div className="bg-secondary/30 rounded-xl p-6 max-h-[600px] overflow-y-auto">
+                    {formatRecommendation(recommendation)}
                   </div>
-                  {splitRecommendation(recommendation).advanced && (
-                    <GatedOverlay locked={!isMember} title="Advanced recommendations are premium" message="Unlock your actives schedule with Glow Insider or VIP." ctaLabel="Unlock with membership" ctaHref="/pricing">
-                      <div className="bg-secondary/30 rounded-xl p-6 max-h-[500px] overflow-y-auto">
-                        {formatRecommendation(splitRecommendation(recommendation).advanced)}
+
+                  <div className="flex justify-center">
+                    <Button variant="ghost" size="sm" onClick={handleShareResults} className="gap-2 text-muted-foreground">
+                      <Share2 className="h-4 w-4" />
+                      Share my skin type
+                    </Button>
+                  </div>
+
+                  {!user ? (
+                    <div className="rounded-2xl border border-border bg-muted/30 p-6 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <UserPlus className="h-5 w-5 text-primary" />
+                        <h4 className="font-heading font-semibold text-card-foreground">Save your results</h4>
                       </div>
-                    </GatedOverlay>
+                      <p className="text-sm text-muted-foreground">
+                        Create a free account to keep this analysis and track how your skin changes over time. No card required.
+                      </p>
+                      <form onSubmit={handleSaveResults} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+                        <div>
+                          <Label htmlFor="save-email" className="sr-only">Email</Label>
+                          <Input
+                            id="save-email"
+                            type="email"
+                            placeholder="Email address"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            autoComplete="email"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="save-password" className="sr-only">Password</Label>
+                          <Input
+                            id="save-password"
+                            type="password"
+                            placeholder={authMode === "signup" ? "Set a password" : "Password"}
+                            value={authPassword}
+                            onChange={(e) => setAuthPassword(e.target.value)}
+                            autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                            minLength={authMode === "signup" ? 8 : undefined}
+                            required
+                          />
+                        </div>
+                        <Button type="submit" disabled={isAuthSubmitting} className="gap-2">
+                          {isAuthSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {authMode === "signup" ? "Save results" : "Log in"}
+                        </Button>
+                      </form>
+                      <button
+                        type="button"
+                        onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        {authMode === "signup" ? "Already have an account? Log in instead" : "New here? Create a free account instead"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {resultsSaved ? "Saved to your account" : "Saving to your account..."}
+                    </div>
                   )}
+
+                  <UpgradePrompt
+                    feature="ai_analysis.live_weekly"
+                    headline="Want a live AI report analysed from your exact photo?"
+                    body="Glow Insider and VIP get a dermatology-grounded report re-analysed weekly as your skin changes — not just this one-time starter match."
+                  />
+
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button size="lg" className="gap-2" asChild><a href="/reviews">See Recommended Products <ChevronRight className="h-4 w-4" /></a></Button>
                     <Button variant="outline" size="lg" onClick={resetFormulator}>Start Over</Button>
@@ -595,29 +687,15 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {isLoading && (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Loader2 className="h-10 w-10 text-primary animate-spin" />
-                  </div>
-                  <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Reading your skin profile...</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
-                </div>
-              )}
-
-              {step >= 1 && step <= STEP_EMAIL && !isLoading && (
+              {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
-                  <Button
-                    onClick={handleNext}
-                    disabled={
-                      (step >= 1 && step <= TOTAL_QUESTIONS && currentAnswer === undefined) ||
-                      (step === STEP_PHOTO && skinImage !== null && !photoConsent) ||
-                      (step === STEP_EMAIL && (!contactName.trim() || !contactEmail.trim()))
-                    }
-                    className="gap-2 px-6"
-                  >
-                    {step === STEP_EMAIL ? (<><Sparkles className="h-4 w-4" />Get My AI Routine</>) : (<>{step === STEP_PHOTO && !skinImage ? "Skip" : "Continue"}<ChevronRight className="h-4 w-4" /></>)}
+                  <Button onClick={handleNext} disabled={footerDisabled} className="gap-2 px-6">
+                    {step === STEP_PHOTO ? (
+                      <>{skinImage ? "Analyse My Skin" : "Skip & Analyse"}<ChevronRight className="h-4 w-4" /></>
+                    ) : (
+                      <>Continue<ChevronRight className="h-4 w-4" /></>
+                    )}
                   </Button>
                 </div>
               )}
