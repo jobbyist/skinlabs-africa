@@ -26,7 +26,6 @@ import {
   UserPlus,
   ChevronDown,
   ChevronRight,
-  Stethoscope,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -69,8 +68,7 @@ const primaryLinks: NavItem[] = [
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Consult", href: "/consultations", icon: Calendar },
-  { label: "Consult", href: "/consult", icon: Stethoscope, badge: "NEW" },
+  { label: "Consult", href: "/consultations", icon: Calendar, badge: "NEW" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
