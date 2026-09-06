@@ -70,7 +70,7 @@ const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Consult", href: "/consultations", icon: Calendar },
-  { label: "Find a Dermatologist", href: "/consult", icon: Stethoscope, badge: "NEW" },
+  { label: "Consult", href: "/consult", icon: Stethoscope, badge: "NEW" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
