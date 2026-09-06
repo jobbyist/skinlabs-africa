@@ -27,6 +27,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Openhaus = lazy(() => import("./pages/Openhaus"));
+const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const PodcastPage = lazy(() => import("./pages/PodcastPage"));
 const EpisodePage = lazy(() => import("./pages/EpisodePage"));
 const Pricing = lazy(() => import("./pages/Pricing"));
@@ -112,6 +113,8 @@ const AppContent = () => {
         <Route path="/admin" element={<AdminDashboard />} />
 
         <Route path="/shop" element={<Openhaus />} />
+        <Route path="/routines" element={<ComingSoon />} />
+        <Route path="/marketplace" element={<ComingSoon />} />
         <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
 
         <Route path="/podcast" element={<PodcastPage />} />

@@ -4,8 +4,8 @@
  * gating analytics or ad scripts) before loading them.
  */
 const COOKIE_CONSENT_KEY = "skinlabs_cookie_consent_v2";
-/** Re-prompt unauthenticated visitors once a day, per product spec. */
-export const CONSENT_TTL_MS = 24 * 60 * 60 * 1000;
+/** Re-prompt unauthenticated visitors at most once every 30 days. */
+export const CONSENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 export interface CookiePreferences {
   analytics: boolean;

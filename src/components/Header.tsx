@@ -60,7 +60,7 @@ interface NavItem {
 /** Primary destinations — shown first, both in the mobile panel and the desktop bar. */
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
-  { label: "Routines", href: "/dashboard", icon: Target },
+  { label: "Routines", href: "/routines", icon: Target, badge: "Coming Soon" },
   { label: "AI Formulator", href: "/ai-formulator", icon: FlaskConical, badge: "BETA" },
   { label: "Business Suite", href: "/business", icon: TrendingUp, badge: "NEW" },
 ];
@@ -75,7 +75,7 @@ const exploreLinks: NavItem[] = [
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
   { label: "Podcast", href: "/podcast", icon: Mic },
-  { label: "Marketplace", href: "/shop", icon: ShoppingBag, badge: "Coming Soon" },
+  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "Coming Soon" },
 ];
 
 /** Reference / resource rows below the Explore grid. */

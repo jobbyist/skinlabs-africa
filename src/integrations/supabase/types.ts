@@ -250,6 +250,7 @@ export type Database = {
           excerpt: string
           id: string
           inline_images: Json
+          is_premium: boolean
           json_ld: Json | null
           key_takeaways: string[]
           publish_date: string
@@ -276,6 +277,7 @@ export type Database = {
           excerpt?: string
           id?: string
           inline_images?: Json
+          is_premium?: boolean
           json_ld?: Json | null
           key_takeaways?: string[]
           publish_date?: string
@@ -302,6 +304,7 @@ export type Database = {
           excerpt?: string
           id?: string
           inline_images?: Json
+          is_premium?: boolean
           json_ld?: Json | null
           key_takeaways?: string[]
           publish_date?: string
@@ -446,6 +449,54 @@ export type Database = {
           id?: string
           last_name?: string
           phone?: string
+        }
+        Relationships: []
+      }
+      partner_enquiries: {
+        Row: {
+          audience_size: string | null
+          business_name: string
+          business_type: string | null
+          country: string | null
+          created_at: string
+          full_name: string
+          id: string
+          message: string | null
+          partnership_model: string
+          status: string
+          updated_at: string
+          website: string | null
+          work_email: string
+        }
+        Insert: {
+          audience_size?: string | null
+          business_name: string
+          business_type?: string | null
+          country?: string | null
+          created_at?: string
+          full_name: string
+          id?: string
+          message?: string | null
+          partnership_model: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+          work_email: string
+        }
+        Update: {
+          audience_size?: string | null
+          business_name?: string
+          business_type?: string | null
+          country?: string | null
+          created_at?: string
+          full_name?: string
+          id?: string
+          message?: string | null
+          partnership_model?: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+          work_email?: string
         }
         Relationships: []
       }
@@ -722,6 +773,54 @@ export type Database = {
         }
         Relationships: []
       }
+      spotlight_brand_requests: {
+        Row: {
+          brand_name: string
+          brand_slug: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string | null
+          created_at: string
+          id: string
+          message: string | null
+          official_website: string | null
+          request_type: string
+          role_at_brand: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          brand_name: string
+          brand_slug?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          official_website?: string | null
+          request_type: string
+          role_at_brand?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_name?: string
+          brand_slug?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          official_website?: string | null
+          request_type?: string
+          role_at_brand?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -751,6 +850,7 @@ export type Database = {
           created_at: string | null
           excerpt: string | null
           id: string | null
+          is_premium: boolean | null
           json_ld: Json | null
           key_takeaways: string[] | null
           publish_date: string | null
@@ -773,6 +873,7 @@ export type Database = {
           created_at?: string | null
           excerpt?: string | null
           id?: string | null
+          is_premium?: boolean | null
           json_ld?: Json | null
           key_takeaways?: string[] | null
           publish_date?: string | null
@@ -795,6 +896,7 @@ export type Database = {
           created_at?: string | null
           excerpt?: string | null
           id?: string | null
+          is_premium?: boolean | null
           json_ld?: Json | null
           key_takeaways?: string[] | null
           publish_date?: string | null
@@ -813,8 +915,9 @@ export type Database = {
       }
     }
     Functions: {
+      expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
-        Args: { p_slug: string }
+        Args: { p_device_id?: string; p_slug: string }
         Returns: {
           body_markdown: string
           inline_images: Json
