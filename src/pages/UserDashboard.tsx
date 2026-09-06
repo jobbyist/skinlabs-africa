@@ -187,7 +187,11 @@ const UserDashboard = () => {
               <p className="text-muted-foreground mb-6">{user?.email}</p>
 
               {!membershipLoading && isTrialing && (
-                <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5 sm:flex-row sm:items-center">
+                <div
+                  className={`mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center ${
+                    trialDaysLeft <= 2 ? "border-amber-500/50 bg-amber-500/10" : "border-primary/30 bg-primary/5"
+                  }`}
+                >
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 shrink-0 text-primary" />
                     <div>
@@ -195,7 +199,13 @@ const UserDashboard = () => {
                         {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        No card on file. Upgrade any time to keep your access after the trial ends.
+                        {trialEndsAt
+                          ? `Full access until ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}. No card on file — your access simply ends unless you upgrade.`
+                          : "No card on file. Upgrade any time to keep your access after the trial ends."}
                       </p>
                     </div>
                   </div>
@@ -204,6 +214,30 @@ const UserDashboard = () => {
                   </Button>
                 </div>
               )}
+
+              {!membershipLoading && !isTrialing && trialUsed && tier === "explorer" && (
+                <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-muted/40 p-5 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-foreground">Your free trial has ended</p>
+                      <p className="text-sm text-muted-foreground">
+                        {trialEndsAt
+                          ? `It ended on ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}. Upgrade to Glow Insider to unlock your routine, reviews and the full podcast library again.`
+                          : "Upgrade to Glow Insider to unlock your routine, reviews and the full podcast library again."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild size="sm">
+                    <Link to="/pricing">See plans</Link>
+                  </Button>
+                </div>
+              )}
+
 
               {activating && (
                 <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
