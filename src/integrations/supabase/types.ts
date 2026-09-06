@@ -537,9 +537,11 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           email: string | null
+          founding_member: boolean
           full_name: string | null
           gender: string | null
           id: string
+          is_professional: boolean
           notes: string | null
           phone: string | null
           preferred_routine_time: string | null
@@ -561,9 +563,11 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          founding_member?: boolean
           full_name?: string | null
           gender?: string | null
           id?: string
+          is_professional?: boolean
           notes?: string | null
           phone?: string | null
           preferred_routine_time?: string | null
@@ -585,9 +589,11 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
+          founding_member?: boolean
           full_name?: string | null
           gender?: string | null
           id?: string
+          is_professional?: boolean
           notes?: string | null
           phone?: string | null
           preferred_routine_time?: string | null

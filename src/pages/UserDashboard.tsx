@@ -36,7 +36,7 @@ const UserDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tier, isTrialing, trialEndsAt, loading: membershipLoading, refresh: refreshMembership } = useMembership();
+  const { tier, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);

@@ -27,10 +27,13 @@ export const useEntitlements = () => {
   const { user, loading: authLoading } = useAuth();
   const membership = useMembership();
 
-  const ladderTier: LadderTier = useMemo(() => {
+  // useMembership's MembershipTier is "explorer" | "insider" | "vip" — "free" is this
+  // system's label for the same signed-in-but-unpaid state. Explicitly parametrized so
+  // `ladderTier`'s type is the full LadderTier union (including forward-compatible
+  // members like "glow_lite" that useMembership can't produce yet), not just whatever
+  // this ternary happens to return today.
+  const ladderTier = useMemo<LadderTier>(() => {
     if (!user) return "anonymous";
-    // useMembership's MembershipTier is "explorer" | "insider" | "vip" — "free" is
-    // this system's label for the same signed-in-but-unpaid state.
     return membership.tier === "explorer" ? "free" : membership.tier;
   }, [user, membership.tier]);
 

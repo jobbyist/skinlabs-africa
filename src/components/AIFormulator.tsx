@@ -336,9 +336,20 @@ const AIFormulator = () => {
     );
   }
 
+  // Renders inline **bold** markers within a line (e.g. "your skin reads as **oily**")
+  // as real <strong> emphasis instead of showing the literal asterisks.
+  const renderInlineBold = (line: string) =>
+    line.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong key={i} className="text-card-foreground">{part.slice(2, -2)}</strong>
+      ) : (
+        <span key={i}>{part}</span>
+      ),
+    );
+
   const formatRecommendation = (text: string) => {
     return text.split("\n").map((line, index) => {
-      if (line.startsWith("##") || line.startsWith("**")) {
+      if (line.startsWith("##") || (line.startsWith("**") && line.endsWith("**") && line.split("**").length === 3)) {
         return (
           <h4 key={index} className="font-semibold text-card-foreground mt-4 mb-2 text-lg">
             {line.replace(/[#*]/g, "").trim()}
@@ -349,13 +360,13 @@ const AIFormulator = () => {
         return (
           <p key={index} className="text-muted-foreground ml-4 mb-1 flex items-start gap-2">
             <span className="text-primary">•</span>
-            <span>{line.trim().replace(/^[-\d.]+\s*/, "")}</span>
+            <span>{renderInlineBold(line.trim().replace(/^[-\d.]+\s*/, ""))}</span>
           </p>
         );
       }
       if (line.trim()) {
         return (
-          <p key={index} className="text-muted-foreground mb-2">{line}</p>
+          <p key={index} className="text-muted-foreground mb-2">{renderInlineBold(line)}</p>
         );
       }
       return null;
