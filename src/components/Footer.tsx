@@ -43,8 +43,9 @@ const Footer = () => {
     ],
     platform: [
       { label: "AI Formulator", href: "/ai-formulator" },
+      { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Consultations", href: "/consultations", isNew: true },
-      { label: "Marketplace", href: "/shop", isComingSoon: true },
+      { label: "Marketplace", href: "/marketplace", isComingSoon: true },
       // Already a member — a "Memberships" link back to the pricing page is redundant.
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
       { label: "Announcements", href: "/announcements" },
@@ -55,7 +56,6 @@ const Footer = () => {
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
-      { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Contact Us", href: "/contact" },
     ],
   };
