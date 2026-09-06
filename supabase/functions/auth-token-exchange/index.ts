@@ -65,16 +65,17 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Check premium subscription
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("subscription_status")
-        .eq("user_id", user.id)
-        .single();
+      // Check membership — via is_member(), the shared source of truth also used by
+      // RLS/RPCs elsewhere, rather than comparing subscription_status to a literal.
+      // (Paystack writes "insider"/"vip", so a direct `=== "premium"` check here was
+      // silently blocking every real paying member from OpenHaus SSO.)
+      const { data: isMemberResult, error: memberCheckError } = await supabaseAdmin.rpc("is_member", {
+        _user_id: user.id,
+      });
 
-      if (!profile || profile.subscription_status !== "premium") {
+      if (memberCheckError || !isMemberResult) {
         return new Response(
-          JSON.stringify({ error: "Premium subscription required to access OpenHaus" }),
+          JSON.stringify({ error: "An active SkinLabs membership is required to access OpenHaus" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

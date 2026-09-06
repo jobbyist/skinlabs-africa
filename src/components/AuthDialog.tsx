@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound } from "lucide-react";
 import logo from "@/assets/newskinlabs.png";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface AuthDialogProps {
   open: boolean;
@@ -57,6 +58,7 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
     setIsLoading(false);
     if (error) toast.error(error.message);
     else {
+      trackConversionEvent("signup");
       toast.success("You're in. Skincare without the nonsense starts here.");
       onOpenChange(false);
       onAuthenticated?.();

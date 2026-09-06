@@ -4,13 +4,10 @@ import { CalendarClock, Languages, MapPin, Video } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import GatedOverlay from "@/components/GatedOverlay";
+import FeatureGate from "@/components/FeatureGate";
 import { practitioners } from "@/data/practitioners";
-import { useMembership } from "@/hooks/use-membership";
 
 const Consultations = () => {
-  const { isMember, loading } = useMembership();
-
   return (
     <>
       <Helmet>
@@ -48,8 +45,8 @@ const Consultations = () => {
               </p>
             </div>
 
-            <GatedOverlay
-              locked={!loading && !isMember}
+            <FeatureGate
+              feature="practitioner_directory"
               title="Consultations are for Glow Insider & VIP"
               message="Browse is reserved for members. Glow Insider unlocks the directory; Glow VIP includes a monthly virtual consult."
               ctaLabel="View membership plans"
@@ -104,7 +101,7 @@ const Consultations = () => {
                   </motion.div>
                 ))}
               </div>
-            </GatedOverlay>
+            </FeatureGate>
 
             <p className="mt-10 text-xs text-muted-foreground">
               Consultations are provided by independent HPCSA-registered practitioners. SkinLabs facilitates booking and

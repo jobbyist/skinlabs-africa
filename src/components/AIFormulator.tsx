@@ -29,6 +29,7 @@ import { useMembership } from "@/hooks/use-membership";
 import GatedOverlay from "@/components/GatedOverlay";
 import { QUESTIONS } from "@/data/quiz";
 import { buildPredeterminedRecommendation, CONCERN_BY_Q9_VALUE } from "@/data/formulaResults";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 const STEP_PHOTO = TOTAL_QUESTIONS + 1;
@@ -137,6 +138,7 @@ const AIFormulator = () => {
 
       setRecommendation(data.recommendation);
       setResultTier(data.tier || (isMember ? "premium" : "free"));
+      trackConversionEvent("analysis_view", { resultTier: data.tier || "premium" });
 
       try {
         downloadSkincarePdf({
@@ -173,6 +175,7 @@ const AIFormulator = () => {
       const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
       setRecommendation(text);
       setResultTier("free");
+      trackConversionEvent("analysis_view", { resultTier: "free" });
       try {
         downloadSkincarePdf({
           clientName: contactName || "Client",
@@ -190,6 +193,7 @@ const AIFormulator = () => {
   };
 
   const proceedToResults = () => {
+    trackConversionEvent("quiz_complete", { isMember });
     if (isMember) {
       getAIRecommendation();
     } else {

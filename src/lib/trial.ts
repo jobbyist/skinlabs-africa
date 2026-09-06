@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 /**
  * Starts a 7-day, no-card free trial for the signed-in user via the
@@ -20,5 +21,6 @@ export const startFreeTrial = async (plan: "insider") => {
     }
     return { error: new Error("Could not start your trial. Please try again.") };
   }
+  trackConversionEvent("trial_start", { plan });
   return { error: null };
 };

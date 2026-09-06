@@ -11,6 +11,8 @@ interface ProfileMembershipRow {
   trial_plan: string | null;
   trial_ends_at: string | null;
   trial_used_at: string | null;
+  founding_member: boolean | null;
+  is_professional: boolean | null;
 }
 
 const resolveTier = (row: ProfileMembershipRow | null): { tier: MembershipTier; isTrialing: boolean } => {
@@ -41,6 +43,8 @@ export const useMembership = () => {
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [trialUsed, setTrialUsed] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
+  const [isFoundingMember, setIsFoundingMember] = useState(false);
+  const [isProfessional, setIsProfessional] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
@@ -55,13 +59,17 @@ export const useMembership = () => {
           setTrialEndsAt(null);
           setTrialUsed(false);
           setBillingInterval("monthly");
+          setIsFoundingMember(false);
+          setIsProfessional(false);
           setLoading(false);
         }
         return;
       }
       const { data } = await supabase
         .from("profiles")
-        .select("subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at")
+        .select(
+          "subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at, founding_member, is_professional",
+        )
         .eq("user_id", user.id)
         .maybeSingle();
       if (!active) return;
@@ -73,6 +81,8 @@ export const useMembership = () => {
       setTrialEndsAt(row?.trial_ends_at ?? null);
       setTrialUsed(Boolean(row?.trial_used_at));
       setBillingInterval((row?.billing_interval as BillingInterval) || "monthly");
+      setIsFoundingMember(Boolean(row?.founding_member));
+      setIsProfessional(Boolean(row?.is_professional));
       setLoading(false);
     };
     if (!authLoading) void load();
@@ -92,6 +102,8 @@ export const useMembership = () => {
     trialEndsAt,
     trialUsed,
     billingInterval,
+    isFoundingMember,
+    isProfessional,
     refresh: () => setNonce((n) => n + 1),
   };
 };

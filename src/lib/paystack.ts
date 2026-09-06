@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { BillingInterval, PlanId } from "@/data/plans";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 export type PaystackPlan = Extract<PlanId, "insider" | "vip">;
 
@@ -24,6 +25,7 @@ export const startPaystackCheckout = async (plan: PaystackPlan, interval: Billin
   const url = (data as { authorization_url?: string } | null)?.authorization_url;
   if (!url) return { error: new Error("Could not start checkout. Please try again.") };
 
+  trackConversionEvent("checkout_start", { plan, interval });
   window.location.href = url;
   return { error: null };
 };

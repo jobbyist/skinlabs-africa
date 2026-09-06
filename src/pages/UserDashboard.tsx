@@ -19,6 +19,8 @@ import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import { toast } from "sonner";
+import { isPaidSubscriptionStatus } from "@/lib/entitlements";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface Profile {
   subscription_status: string | null;
@@ -90,10 +92,13 @@ const UserDashboard = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (cancelled) return;
-      const status = (data?.subscription_status ?? "").toLowerCase();
-      if (["insider", "vip", "active", "premium"].includes(status)) {
+      if (isPaidSubscriptionStatus(data?.subscription_status)) {
         setActivating(false);
         refreshMembership();
+        trackConversionEvent("payment_success", {
+          plan: searchParams.get("plan") ?? undefined,
+          interval: searchParams.get("interval") ?? undefined,
+        });
         toast.success("Payment confirmed — your membership is active.");
         clearParam();
         return;

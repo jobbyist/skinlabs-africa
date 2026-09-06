@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 
 type Submission = {
   id: string;
@@ -152,7 +153,10 @@ const AdminDashboard = () => {
     );
   }
 
-  const premiumProfiles = profiles.filter((p) => p.subscription_status === "premium");
+  // subscription_status is written as "insider"/"vip" (see paystack-payment), never
+  // literally "premium" — this used to always read zero. isPaidSubscriptionStatus()
+  // is the shared source of truth for "counts as a paying member" (src/lib/entitlements.ts).
+  const premiumProfiles = profiles.filter((p) => isPaidSubscriptionStatus(p.subscription_status));
 
   return (
     <>
