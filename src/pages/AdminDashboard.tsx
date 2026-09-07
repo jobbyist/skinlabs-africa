@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star } from "lucide-react";
+import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
@@ -67,6 +67,38 @@ type PremiumProfile = {
   subscription_started_at: string | null;
 };
 
+// Skincare intelligence database — data quality queue (see supabase/SCHEMA.md).
+// Only rows still unverified/partially_verified are fetched; "deprecated" rows
+// are intentionally retired and don't belong in a re-verification queue.
+type DataQualityStatus = "unverified" | "partially_verified" | "verified" | "deprecated";
+
+type IntelBrand = {
+  id: string;
+  name: string;
+  slug: string;
+  verification_status: DataQualityStatus;
+  created_at: string;
+};
+
+type IntelIngredient = {
+  id: string;
+  inci_name: string;
+  common_name: string | null;
+  slug: string;
+  verification_status: DataQualityStatus;
+  created_at: string;
+};
+
+type IntelProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  brand_id: string;
+  verification_status: DataQualityStatus;
+  is_discontinued: boolean;
+  created_at: string;
+};
+
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("submissions");
@@ -82,6 +114,12 @@ const AdminDashboard = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [filter, setFilter] = useState("all");
 
+  // Skincare intelligence data quality queue
+  const [intelBrands, setIntelBrands] = useState<IntelBrand[]>([]);
+  const [intelIngredients, setIntelIngredients] = useState<IntelIngredient[]>([]);
+  const [intelProducts, setIntelProducts] = useState<IntelProduct[]>([]);
+  const [brandNames, setBrandNames] = useState<Record<string, string>>({});
+
   useEffect(() => {
     if (user) checkAdmin();
   }, [user]);
@@ -95,19 +133,39 @@ const AdminDashboard = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [subRes, waitRes, newsRes, preRes, profRes] = await Promise.all([
+    const [subRes, waitRes, newsRes, preRes, profRes, brandsQCRes, ingredientsQCRes, productsQCRes, brandMapRes] = await Promise.all([
       supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }),
       supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }),
       supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
       supabase.from("preorders").select("*").order("created_at", { ascending: false }),
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      supabase.from("brands").select("id,name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
+      supabase.from("ingredients").select("id,inci_name,common_name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
+      supabase.from("products").select("id,name,slug,brand_id,verification_status,is_discontinued,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
+      supabase.from("brands").select("id,name"),
     ]);
     setSubmissions((subRes.data as Submission[]) || []);
     setWaitlist((waitRes.data as WaitlistEntry[]) || []);
     setSubscribers((newsRes.data as Subscriber[]) || []);
     setPreorders((preRes.data as Preorder[]) || []);
     setProfiles((profRes.data as PremiumProfile[]) || []);
+    setIntelBrands((brandsQCRes.data as IntelBrand[]) || []);
+    setIntelIngredients((ingredientsQCRes.data as IntelIngredient[]) || []);
+    setIntelProducts((productsQCRes.data as IntelProduct[]) || []);
+    setBrandNames(Object.fromEntries(((brandMapRes.data as { id: string; name: string }[]) || []).map((b) => [b.id, b.name])));
     setLoading(false);
+  };
+
+  const verifyRecord = async (table: "products" | "brands" | "ingredients", id: string) => {
+    const { error } = await supabase
+      .from(table)
+      .update({ verification_status: "verified", verified_by: user!.id, last_verified_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) { toast.error("Failed to verify record"); return; }
+    toast.success("Marked verified");
+    if (table === "brands") setIntelBrands((prev) => prev.filter((b) => b.id !== id));
+    if (table === "ingredients") setIntelIngredients((prev) => prev.filter((i) => i.id !== id));
+    if (table === "products") setIntelProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -201,6 +259,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="newsletter">Newsletter ({subscribers.length})</TabsTrigger>
                 <TabsTrigger value="preorders">Pre-Orders ({preorders.length})</TabsTrigger>
                 <TabsTrigger value="members">Members ({premiumProfiles.length})</TabsTrigger>
+                <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length})</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -321,6 +380,86 @@ const AdminDashboard = () => {
                     ))}
                   </div>
                 )}
+              </TabsContent>
+
+              {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
+              <TabsContent value="dataquality">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>
+                  until a human confirms them against a primary source. Mark verified only once you've checked it.
+                </p>
+                <div className="space-y-8">
+                  <section>
+                    <h3 className="font-medium text-card-foreground mb-3">Brands ({intelBrands.length})</h3>
+                    {intelBrands.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nothing pending verification.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {intelBrands.map((b) => (
+                          <Card key={b.id}>
+                            <CardContent className="p-3 flex items-center gap-3 justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-card-foreground">{b.name}</span>
+                                <Badge variant="secondary" className="text-xs">{b.verification_status}</Badge>
+                              </div>
+                              <Button size="sm" variant="outline" className="gap-1" onClick={() => verifyRecord("brands", b.id)}>
+                                <ShieldCheck className="h-4 w-4" /> Mark Verified
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section>
+                    <h3 className="font-medium text-card-foreground mb-3">Ingredients ({intelIngredients.length})</h3>
+                    {intelIngredients.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nothing pending verification.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {intelIngredients.map((i) => (
+                          <Card key={i.id}>
+                            <CardContent className="p-3 flex items-center gap-3 justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-card-foreground">{i.common_name || i.inci_name}</span>
+                                {i.common_name && <span className="text-xs text-muted-foreground">{i.inci_name}</span>}
+                                <Badge variant="secondary" className="text-xs">{i.verification_status}</Badge>
+                              </div>
+                              <Button size="sm" variant="outline" className="gap-1" onClick={() => verifyRecord("ingredients", i.id)}>
+                                <ShieldCheck className="h-4 w-4" /> Mark Verified
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section>
+                    <h3 className="font-medium text-card-foreground mb-3">Products ({intelProducts.length})</h3>
+                    {intelProducts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nothing pending verification.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {intelProducts.map((p) => (
+                          <Card key={p.id}>
+                            <CardContent className="p-3 flex items-center gap-3 justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-card-foreground">{brandNames[p.brand_id] || "Unknown brand"} — {p.name}</span>
+                                <Badge variant="secondary" className="text-xs">{p.verification_status}</Badge>
+                                {p.is_discontinued && <Badge variant="outline" className="text-xs">Discontinued</Badge>}
+                              </div>
+                              <Button size="sm" variant="outline" className="gap-1" onClick={() => verifyRecord("products", p.id)}>
+                                <ShieldCheck className="h-4 w-4" /> Mark Verified
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </div>
               </TabsContent>
             </Tabs>
           </div>

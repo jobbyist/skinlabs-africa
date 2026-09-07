@@ -1084,8 +1084,264 @@ export type Database = {
         }
         Relationships: []
       }
+      categories: {
+        Row: { id: string; slug: string; name: string; parent_category_id: string | null; description: string | null; created_at: string }
+        Insert: { id?: string; slug: string; name: string; parent_category_id?: string | null; description?: string | null; created_at?: string }
+        Update: { id?: string; slug?: string; name?: string; parent_category_id?: string | null; description?: string | null; created_at?: string }
+        Relationships: []
+      }
+      skin_types: {
+        Row: { id: string; slug: string; name: string; description: string | null }
+        Insert: { id?: string; slug: string; name: string; description?: string | null }
+        Update: { id?: string; slug?: string; name?: string; description?: string | null }
+        Relationships: []
+      }
+      skin_concerns: {
+        Row: { id: string; slug: string; name: string; description: string | null }
+        Insert: { id?: string; slug: string; name: string; description?: string | null }
+        Update: { id?: string; slug?: string; name?: string; description?: string | null }
+        Relationships: []
+      }
+      climate_profiles: {
+        Row: { id: string; slug: string; name: string; region_description: string | null; humidity_level: string | null; uv_index_level: string | null; temperature_profile: string | null }
+        Insert: { id?: string; slug: string; name: string; region_description?: string | null; humidity_level?: string | null; uv_index_level?: string | null; temperature_profile?: string | null }
+        Update: { id?: string; slug?: string; name?: string; region_description?: string | null; humidity_level?: string | null; uv_index_level?: string | null; temperature_profile?: string | null }
+        Relationships: []
+      }
+      retailers: {
+        Row: { id: string; slug: string; name: string; website_url: string | null; logo_url: string | null; is_active: boolean; created_at: string }
+        Insert: { id?: string; slug: string; name: string; website_url?: string | null; logo_url?: string | null; is_active?: boolean; created_at?: string }
+        Update: { id?: string; slug?: string; name?: string; website_url?: string | null; logo_url?: string | null; is_active?: boolean; created_at?: string }
+        Relationships: []
+      }
+      brands: {
+        Row: {
+          id: string; slug: string; name: string; is_sa_brand: boolean | null; country: string | null
+          website_url: string | null; logo_url: string | null; founded_year: number | null; description: string | null
+          source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null; source_date: string | null
+          verification_status: Database["public"]["Enums"]["data_quality_status"]; verified_by: string | null
+          confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null
+          created_at: string; updated_at: string
+        }
+        Insert: {
+          id?: string; slug: string; name: string; is_sa_brand?: boolean | null; country?: string | null
+          website_url?: string | null; logo_url?: string | null; founded_year?: number | null; description?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null
+          created_at?: string; updated_at?: string
+        }
+        Update: {
+          id?: string; slug?: string; name?: string; is_sa_brand?: boolean | null; country?: string | null
+          website_url?: string | null; logo_url?: string | null; founded_year?: number | null; description?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null
+          created_at?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      brand_sources: {
+        Row: { id: string; brand_id: string; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"]; source_date: string | null; fetched_at: string; notes: string | null; created_by: string | null }
+        Insert: { id?: string; brand_id: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; source_date?: string | null; fetched_at?: string; notes?: string | null; created_by?: string | null }
+        Update: { id?: string; brand_id?: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; source_date?: string | null; fetched_at?: string; notes?: string | null; created_by?: string | null }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          id: string; slug: string; inci_name: string; common_name: string | null; description: string | null
+          function_summary: string | null; typical_concentration_range: string | null
+          evidence_level: Database["public"]["Enums"]["evidence_level"] | null; irritancy_risk: Database["public"]["Enums"]["irritancy_risk"] | null
+          pregnancy_safe: boolean | null; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null
+          source_date: string | null; verification_status: Database["public"]["Enums"]["data_quality_status"]; verified_by: string | null
+          confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null; created_at: string; updated_at: string
+        }
+        Insert: {
+          id?: string; slug: string; inci_name: string; common_name?: string | null; description?: string | null
+          function_summary?: string | null; typical_concentration_range?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null; irritancy_risk?: Database["public"]["Enums"]["irritancy_risk"] | null
+          pregnancy_safe?: boolean | null; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null
+          source_date?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string; updated_at?: string
+        }
+        Update: {
+          id?: string; slug?: string; inci_name?: string; common_name?: string | null; description?: string | null
+          function_summary?: string | null; typical_concentration_range?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null; irritancy_risk?: Database["public"]["Enums"]["irritancy_risk"] | null
+          pregnancy_safe?: boolean | null; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null
+          source_date?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      ingredient_concerns: {
+        Row: { id: string; ingredient_id: string; concern_id: string; relationship: Database["public"]["Enums"]["ingredient_concern_relationship"]; notes: string | null; source_url: string | null; confidence: Database["public"]["Enums"]["confidence_level"] | null }
+        Insert: { id?: string; ingredient_id: string; concern_id: string; relationship: Database["public"]["Enums"]["ingredient_concern_relationship"]; notes?: string | null; source_url?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Update: { id?: string; ingredient_id?: string; concern_id?: string; relationship?: Database["public"]["Enums"]["ingredient_concern_relationship"]; notes?: string | null; source_url?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Relationships: []
+      }
+      ingredient_interactions: {
+        Row: { id: string; ingredient_a_id: string; ingredient_b_id: string; interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]; notes: string | null; source_url: string | null; confidence: Database["public"]["Enums"]["confidence_level"] | null }
+        Insert: { id?: string; ingredient_a_id: string; ingredient_b_id: string; interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]; notes?: string | null; source_url?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Update: { id?: string; ingredient_a_id?: string; ingredient_b_id?: string; interaction_type?: Database["public"]["Enums"]["ingredient_interaction_type"]; notes?: string | null; source_url?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          id: string; slug: string; brand_id: string; category_id: string | null; name: string; description: string | null
+          image_url: string | null; is_discontinued: boolean; discontinued_at: string | null; launch_date: string | null
+          source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null; source_date: string | null
+          verification_status: Database["public"]["Enums"]["data_quality_status"]; verified_by: string | null
+          confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null; created_at: string; updated_at: string
+        }
+        Insert: {
+          id?: string; slug: string; brand_id: string; category_id?: string | null; name: string; description?: string | null
+          image_url?: string | null; is_discontinued?: boolean; discontinued_at?: string | null; launch_date?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string; updated_at?: string
+        }
+        Update: {
+          id?: string; slug?: string; brand_id?: string; category_id?: string | null; name?: string; description?: string | null
+          image_url?: string | null; is_discontinued?: boolean; discontinued_at?: string | null; launch_date?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      product_sources: {
+        Row: { id: string; product_id: string; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"]; source_date: string | null; fetched_at: string; notes: string | null; created_by: string | null }
+        Insert: { id?: string; product_id: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; source_date?: string | null; fetched_at?: string; notes?: string | null; created_by?: string | null }
+        Update: { id?: string; product_id?: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; source_date?: string | null; fetched_at?: string; notes?: string | null; created_by?: string | null }
+        Relationships: []
+      }
+      product_variants: {
+        Row: { id: string; product_id: string; variant_label: string; size_ml: number | null; sku: string | null; is_default: boolean; created_at: string }
+        Insert: { id?: string; product_id: string; variant_label: string; size_ml?: number | null; sku?: string | null; is_default?: boolean; created_at?: string }
+        Update: { id?: string; product_id?: string; variant_label?: string; size_ml?: number | null; sku?: string | null; is_default?: boolean; created_at?: string }
+        Relationships: []
+      }
+      product_versions: {
+        Row: { id: string; product_id: string; version_label: string; effective_from: string | null; effective_to: string | null; reformulation_notes: string | null; is_current: boolean; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null; verification_status: Database["public"]["Enums"]["data_quality_status"]; created_at: string }
+        Insert: { id?: string; product_id: string; version_label: string; effective_from?: string | null; effective_to?: string | null; reformulation_notes?: string | null; is_current?: boolean; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; created_at?: string }
+        Update: { id?: string; product_id?: string; version_label?: string; effective_from?: string | null; effective_to?: string | null; reformulation_notes?: string | null; is_current?: boolean; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; created_at?: string }
+        Relationships: []
+      }
+      product_ingredients: {
+        Row: {
+          id: string; product_version_id: string; ingredient_id: string; position: number | null; concentration_percent: number | null
+          is_key_ingredient: boolean; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null
+          source_date: string | null; verification_status: Database["public"]["Enums"]["data_quality_status"]; verified_by: string | null
+          confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null
+        }
+        Insert: {
+          id?: string; product_version_id: string; ingredient_id: string; position?: number | null; concentration_percent?: number | null
+          is_key_ingredient?: boolean; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null
+          source_date?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null
+        }
+        Update: {
+          id?: string; product_version_id?: string; ingredient_id?: string; position?: number | null; concentration_percent?: number | null
+          is_key_ingredient?: boolean; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null
+          source_date?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null
+        }
+        Relationships: []
+      }
+      product_skin_type_fit: {
+        Row: { id: string; product_id: string; skin_type_id: string; fit_rating: Database["public"]["Enums"]["skin_fit_rating"]; notes: string | null; confidence: Database["public"]["Enums"]["confidence_level"] | null }
+        Insert: { id?: string; product_id: string; skin_type_id: string; fit_rating: Database["public"]["Enums"]["skin_fit_rating"]; notes?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Update: { id?: string; product_id?: string; skin_type_id?: string; fit_rating?: Database["public"]["Enums"]["skin_fit_rating"]; notes?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Relationships: []
+      }
+      product_concerns: {
+        Row: { id: string; product_id: string; concern_id: string; notes: string | null; confidence: Database["public"]["Enums"]["confidence_level"] | null }
+        Insert: { id?: string; product_id: string; concern_id: string; notes?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Update: { id?: string; product_id?: string; concern_id?: string; notes?: string | null; confidence?: Database["public"]["Enums"]["confidence_level"] | null }
+        Relationships: []
+      }
+      product_claims: {
+        Row: {
+          id: string; product_id: string; claim_text: string; claim_type: Database["public"]["Enums"]["claim_type"]
+          is_substantiated: boolean; substantiation_source_url: string | null; substantiation_notes: string | null
+          source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null; source_date: string | null
+          verification_status: Database["public"]["Enums"]["data_quality_status"]; verified_by: string | null
+          confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null; created_at: string
+        }
+        Insert: {
+          id?: string; product_id: string; claim_text: string; claim_type?: Database["public"]["Enums"]["claim_type"]
+          is_substantiated?: boolean; substantiation_source_url?: string | null; substantiation_notes?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string
+        }
+        Update: {
+          id?: string; product_id?: string; claim_text?: string; claim_type?: Database["public"]["Enums"]["claim_type"]
+          is_substantiated?: boolean; substantiation_source_url?: string | null; substantiation_notes?: string | null
+          source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]; verified_by?: string | null
+          confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null; created_at?: string
+        }
+        Relationships: []
+      }
+      product_scores: {
+        Row: { id: string; product_id: string; score_type: string; score: number; methodology_version: string; scored_by: string | null; scored_at: string; notes: string | null; source_url: string | null; verification_status: Database["public"]["Enums"]["data_quality_status"]; confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null }
+        Insert: { id?: string; product_id: string; score_type: string; score: number; methodology_version: string; scored_by?: string | null; scored_at?: string; notes?: string | null; source_url?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null }
+        Update: { id?: string; product_id?: string; score_type?: string; score?: number; methodology_version?: string; scored_by?: string | null; scored_at?: string; notes?: string | null; source_url?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null }
+        Relationships: []
+      }
+      product_climate_fit: {
+        Row: { id: string; product_id: string; climate_profile_id: string; fit_score: number | null; rationale: string | null; methodology_version: string | null; verification_status: Database["public"]["Enums"]["data_quality_status"]; confidence: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at: string | null }
+        Insert: { id?: string; product_id: string; climate_profile_id: string; fit_score?: number | null; rationale?: string | null; methodology_version?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null }
+        Update: { id?: string; product_id?: string; climate_profile_id?: string; fit_score?: number | null; rationale?: string | null; methodology_version?: string | null; verification_status?: Database["public"]["Enums"]["data_quality_status"]; confidence?: Database["public"]["Enums"]["confidence_level"] | null; last_verified_at?: string | null }
+        Relationships: []
+      }
+      retailer_products: {
+        Row: { id: string; product_variant_id: string; retailer_id: string; retailer_url: string | null; retailer_sku: string | null; is_available: boolean; last_checked_at: string | null; source_type: Database["public"]["Enums"]["data_source_type"]; verification_status: Database["public"]["Enums"]["data_quality_status"]; last_verified_at: string | null; created_at: string }
+        Insert: { id?: string; product_variant_id: string; retailer_id: string; retailer_url?: string | null; retailer_sku?: string | null; is_available?: boolean; last_checked_at?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; verification_status?: Database["public"]["Enums"]["data_quality_status"]; last_verified_at?: string | null; created_at?: string }
+        Update: { id?: string; product_variant_id?: string; retailer_id?: string; retailer_url?: string | null; retailer_sku?: string | null; is_available?: boolean; last_checked_at?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; verification_status?: Database["public"]["Enums"]["data_quality_status"]; last_verified_at?: string | null; created_at?: string }
+        Relationships: []
+      }
+      product_prices: {
+        Row: { id: string; retailer_product_id: string; price_zar: number; currency: string; recorded_at: string; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"]; verification_status: Database["public"]["Enums"]["data_quality_status"]; recorded_by: string | null }
+        Insert: { id?: string; retailer_product_id: string; price_zar: number; currency?: string; recorded_at?: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; verification_status?: Database["public"]["Enums"]["data_quality_status"]; recorded_by?: string | null }
+        Update: { id?: string; retailer_product_id?: string; price_zar?: number; currency?: string; recorded_at?: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"]; verification_status?: Database["public"]["Enums"]["data_quality_status"]; recorded_by?: string | null }
+        Relationships: []
+      }
+      reviews: {
+        Row: { id: string; product_id: string; slug: string; verdict_summary: string; verdict_full: string | null; reviewer: string | null; methodology_version: string | null; status: string; published_at: string | null; created_at: string; updated_at: string }
+        Insert: { id?: string; product_id: string; slug: string; verdict_summary: string; verdict_full?: string | null; reviewer?: string | null; methodology_version?: string | null; status?: string; published_at?: string | null; created_at?: string; updated_at?: string }
+        Update: { id?: string; product_id?: string; slug?: string; verdict_summary?: string; verdict_full?: string | null; reviewer?: string | null; methodology_version?: string | null; status?: string; published_at?: string | null; created_at?: string; updated_at?: string }
+        Relationships: []
+      }
+      review_versions: {
+        Row: { id: string; review_id: string; version_number: number; verdict_summary: string; verdict_full: string | null; changed_reason: string | null; created_at: string; created_by: string | null }
+        Insert: { id?: string; review_id: string; version_number: number; verdict_summary: string; verdict_full?: string | null; changed_reason?: string | null; created_at?: string; created_by?: string | null }
+        Update: { id?: string; review_id?: string; version_number?: number; verdict_summary?: string; verdict_full?: string | null; changed_reason?: string | null; created_at?: string; created_by?: string | null }
+        Relationships: []
+      }
+      review_evidence: {
+        Row: { id: string; review_id: string; evidence_type: string; source_url: string | null; source_type: Database["public"]["Enums"]["data_source_type"] | null; source_date: string | null; summary: string; confidence: Database["public"]["Enums"]["confidence_level"] | null; created_at: string; created_by: string | null }
+        Insert: { id?: string; review_id: string; evidence_type: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null; summary: string; confidence?: Database["public"]["Enums"]["confidence_level"] | null; created_at?: string; created_by?: string | null }
+        Update: { id?: string; review_id?: string; evidence_type?: string; source_url?: string | null; source_type?: Database["public"]["Enums"]["data_source_type"] | null; source_date?: string | null; summary?: string; confidence?: Database["public"]["Enums"]["confidence_level"] | null; created_at?: string; created_by?: string | null }
+        Relationships: []
+      }
     }
     Views: {
+      current_product_prices: {
+        Row: {
+          retailer_product_id: string | null
+          product_variant_id: string | null
+          retailer_id: string | null
+          price_id: string | null
+          price_zar: number | null
+          currency: string | null
+          recorded_at: string | null
+          is_available: boolean | null
+        }
+        Relationships: []
+      }
       news_articles_public: {
         Row: {
           cover_credit_name: string | null
@@ -1198,9 +1454,36 @@ export type Database = {
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
       start_free_trial: { Args: { p_plan: string; p_variant_key?: string }; Returns: boolean }
+      search_products: {
+        Args: {
+          p_ingredient_slug?: string
+          p_skin_type_slug?: string
+          p_max_price_zar?: number
+          p_category_slug?: string
+          p_limit?: number
+        }
+        Returns: {
+          product_id: string
+          product_slug: string
+          product_name: string
+          brand_name: string
+          category_name: string | null
+          lowest_price_zar: number | null
+          verification_status: Database["public"]["Enums"]["data_quality_status"]
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      data_quality_status: "unverified" | "partially_verified" | "verified" | "deprecated"
+      data_source_type: "brand_website" | "retailer_listing" | "ingredient_database" | "manual_editorial" | "internal_editorial" | "user_submission" | "distributor_document" | "clinical_study" | "other"
+      confidence_level: "low" | "medium" | "high"
+      evidence_level: "strong" | "moderate" | "limited" | "anecdotal" | "none"
+      irritancy_risk: "low" | "moderate" | "high"
+      skin_fit_rating: "excellent" | "good" | "caution" | "avoid"
+      claim_type: "marketing" | "clinical" | "regulatory"
+      ingredient_interaction_type: "avoid_combining" | "enhances" | "buffers" | "requires_spacing"
+      ingredient_concern_relationship: "treats" | "may_worsen" | "preventive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1329,6 +1612,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      data_quality_status: ["unverified", "partially_verified", "verified", "deprecated"],
+      data_source_type: ["brand_website", "retailer_listing", "ingredient_database", "manual_editorial", "internal_editorial", "user_submission", "distributor_document", "clinical_study", "other"],
+      confidence_level: ["low", "medium", "high"],
+      evidence_level: ["strong", "moderate", "limited", "anecdotal", "none"],
+      irritancy_risk: ["low", "moderate", "high"],
+      skin_fit_rating: ["excellent", "good", "caution", "avoid"],
+      claim_type: ["marketing", "clinical", "regulatory"],
+      ingredient_interaction_type: ["avoid_combining", "enhances", "buffers", "requires_spacing"],
+      ingredient_concern_relationship: ["treats", "may_worsen", "preventive"],
     },
   },
 } as const
