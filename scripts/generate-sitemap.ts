@@ -1,6 +1,7 @@
 /**
  * Build-time sitemap generator. The sitemap is derived from canonical,
  * indexable routes plus every published/programmatic content record.
+ * Supports dynamic Unsplash image URLs via environment configuration.
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync } from "node:fs";

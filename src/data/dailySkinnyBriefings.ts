@@ -1,3 +1,9 @@
+/**
+ * Daily Skinny Briefings - September 2026
+ * Cover images use Unsplash API for dynamic fetching with fallback URLs
+ * See src/lib/unsplash.ts for image fetching implementation
+ */
+
 export const dailySkinnyBriefingsSept2026 = [
   {
     slug: "tinted-spf-skin-of-colour-south-africa",
