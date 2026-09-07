@@ -156,8 +156,8 @@ Adapted to the client's climate, budget, sensitivity, and consistency level:
 
 ## 7. IMPORTANT NOTES
 - Remind them to introduce one active at a time.
-- Flag any signs that warrant seeing a licensed dermatologist.
-- State that this report is AI-generated, grounded in dermatology references, and reviewed by SKINLABS skincare specialists.
+- Flag any signs that warrant seeing a licensed dermatologist — describe what you observe descriptively (e.g. "persistent redness with visible flaking"), never as a named medical diagnosis (e.g. never say "you have eczema/rosacea/fungal acne").
+- State plainly that this report is AI-generated and grounded in dermatology reference material — do not claim it was reviewed by a human dermatologist, doctor or SkinLabs specialist unless that is actually true for this request.
 ${isVipMember ? `
 ## 8. WHEN TO BRING IN A PRACTITIONER
 As a Glow VIP member with priority practitioner booking, be explicit about which findings in this profile (if any) are worth raising with an HPCSA-registered dermatologist or aesthetic practitioner at their next consultation, and what a practitioner visit could add on top of this routine (e.g. in-clinic peels, prescription-strength actives, device treatments). If nothing here warrants escalation, say so plainly rather than manufacturing urgency.` : ""}
@@ -176,7 +176,9 @@ ${DERMATOLOGIST_KNOWLEDGE}
 Output rules:
 - Use clean markdown with the exact section headers requested by the user prompt.
 - Be specific (product type + key ingredients + reason), but never name competitor brands.
-- Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status.`;
+- Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status.
+- This is cosmetic skincare guidance, not medical advice. Never name or imply a medical diagnosis (e.g. eczema, rosacea, psoriasis, fungal acne, PCOS) — describe visible signs descriptively instead, and recommend a licensed dermatologist or HPCSA-registered practitioner for anything that looks medical.
+- Never claim or imply this report cures, treats or prevents a disease.`;
 
 
     const systemPromptFree = `You are a friendly skincare advisor for SKINLABS. You provide basic skincare guidance for free users. Keep recommendations general and educational. Ground every recommendation in the condensed reference knowledge below — never invent ingredients, concentrations or claims outside it.
@@ -185,7 +187,7 @@ Output rules:
 ${DERMATOLOGIST_KNOWLEDGE.slice(0, 4000)}
 === END REFERENCE ===
 
-Always mention that premium members get detailed, dermatologist-grade analysis.`;
+This is cosmetic skincare guidance, not medical advice or diagnosis — never name or imply a medical condition (e.g. eczema, rosacea, fungal acne); describe visible signs descriptively and suggest a licensed dermatologist for anything that looks medical. Never claim this was reviewed by a human professional. Always mention that premium members get detailed, dermatologist-grade analysis.`;
 
     const systemPrompt = isPremiumMember ? systemPromptPremium : systemPromptFree;
     // Build multimodal user message (text + optional image)
@@ -285,6 +287,10 @@ Always mention that premium members get detailed, dermatologist-grade analysis.`
       const skinType = /skin type[^\n]*?(oily|dry|combination|sensitive|normal|dehydrated)/i
         .exec(recommendation)?.[1]
         ?.toLowerCase() ?? "unknown";
+      // Note: skincare_recommendations has no subscription_tier column — a previous
+      // version of this insert referenced one that was never migrated, which meant
+      // every live-AI analysis silently failed to persist (caught below and logged,
+      // never surfaced). Only insert columns that actually exist on the table.
       await supabaseAuth.from("skincare_recommendations").insert({
         user_id: userId,
         skin_type: skinType,
@@ -292,7 +298,6 @@ Always mention that premium members get detailed, dermatologist-grade analysis.`
         recommendation,
         status: "delivered",
         contact_name: contactName ?? null,
-        subscription_tier: subscriptionStatus,
       });
     } catch (persistErr) {
       console.warn("Could not persist recommendation:", persistErr);

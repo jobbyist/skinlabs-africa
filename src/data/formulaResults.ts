@@ -3,12 +3,13 @@
  *
  * These are NOT live AI output — they're a curated 4×4 matrix (skin type ×
  * primary concern, both already derived from the quiz answers) written in
- * the same markdown-ish shape `formatRecommendation`/`splitRecommendation`
- * in AIFormulator.tsx expect, so the exact same rendering + advanced-section
- * gating (GatedOverlay) works for both this and the real `skincare-ai`
- * output. Keeps free-tier results genuinely useful (not a teaser fake-out)
- * while reserving the live, dermatology-grounded, weekly-refreshed report
- * for paying members — the honest upsell.
+ * the same markdown-ish shape `formatRecommendation` in AIFormulator.tsx
+ * expects, so the same rendering works for both this and the real
+ * `skincare-ai` output. Shown in full, unlocked, to every visitor — nothing
+ * here is hidden behind a paywall — keeping free-tier results genuinely
+ * useful (not a teaser fake-out) while reserving the live, dermatology-
+ * grounded, weekly-refreshed, photo-aware report for paying members as a
+ * separate, honest upsell (see UpgradePrompt in AIFormulator.tsx).
  */
 
 export type FormulaSkinType = "oily" | "combination" | "normal" | "dry";
