@@ -25,10 +25,37 @@ feature appear operational.
   is written as `"insider"`/`"vip"`, never literally `"premium"`. Gating
   goes through `useEntitlements` + `FeatureGate`/`UpgradePrompt`, not ad
   hoc checks.
-- **AI Formulator** (`src/pages/AIFormulator.tsx`) — free-first
-  acquisition funnel: Intro → Consent → Quiz → Photo → Results → signup
-  gate. `claim_starter_analysis` RPC gates one free analysis for signed-in
-  free users.
+- **SKYNN AI (beta)** (`src/pages/AIFormulator.tsx` + `src/components/
+  AIFormulator.tsx`, homepage-embedded and at `/ai-formulator`) —
+  free-first acquisition funnel, rebranded from "AI Formulator": Intro →
+  Consent → Photo → MST → Quiz → Results → signup gate.
+  `claim_starter_analysis` RPC gates one free analysis for signed-in free
+  users; `isMember` routes Insider/VIP to the live `skincare-ai` edge
+  function instead. Subcomponents live in `src/components/ai-formulator/`
+  (`StepperHeader`, `MstGrid`, `ConfidencePanel`).
+  - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
+    (`src/data/mstScale.ts`, official Google/Ellis Monk hex values). It is
+    a fairness/context signal only, never inferred and never treated as
+    diagnostic — see `deriveMstSignal()` in `src/data/formulaResults.ts`
+    for the (general, non-fabricated) dermatology guidance it can trigger
+    (PIH risk, sunscreen texture) and `supabase/migrations/
+    20260907130000_skynn_ai_mst_fields.sql` for its `mst_tone`/
+    `mst_source` columns on `skincare_recommendations`.
+  - **Grounded recommendations** — `src/lib/skynnProductMatch.ts` picks
+    real, SkinLabs-reviewed products from `src/data/reviews.ts` (the same
+    pattern as `RoutineBuilder.tsx`) for the starter analysis's AM/PM
+    routine and PDF, falling back to generic product-type text rather
+    than ever fabricating a product.
+  - **"Analysis completeness"** (`computeCompleteness()` in
+    `formulaResults.ts`, rendered by `ConfidencePanel`) is deliberately an
+    INPUT-completeness measure, not a clinical-accuracy or bias-free-
+    performance claim — never rename/relabel it into an accuracy score.
+  - A full production fairness pipeline (consent-versioned records,
+    `skynn_fairness_events`, benchmark evaluation across all 10 MST
+    categories, etc.) is documented as a future blueprint but was
+    deliberately NOT built — only the fields actually used today
+    (`mst_tone`, `mst_source`, `analysis_completeness`) exist, to avoid
+    feature sprawl ahead of real usage.
 - **Monetisation** — DB-driven, not hardcoded: `pricing_plans`,
   `credit_packs`, `pricing_experiment_variants` tables; `src/lib/
   pricing-config.ts` does variant bucketing; `paystack-payment` edge
