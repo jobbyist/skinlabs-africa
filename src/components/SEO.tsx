@@ -2,16 +2,22 @@ import { Helmet } from "react-helmet-async";
 import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
 
 interface SEOProps {
+  /** Search-facing title. The brand is appended automatically unless already present. */
   title: string;
+  /** Concise, page-specific description. Prefer 140–160 characters for snippets. */
   description: string;
   canonical?: string;
   ogType?: string;
   ogImage?: string;
   keywords?: string;
   jsonLd?: object | object[];
-  /** Set only for pages that must not be indexed (e.g. dashboards). Defaults to indexable. */
   noindex?: boolean;
+  publishedTime?: string;
+  modifiedTime?: string;
+  author?: string;
 }
+
+const clamp = (value: string, max: number) => value.replace(/\s+/g, " ").trim().slice(0, max);
 
 const SEO = ({
   title,
@@ -22,58 +28,61 @@ const SEO = ({
   keywords,
   jsonLd,
   noindex = false,
+  publishedTime,
+  modifiedTime,
+  author = "SkinLabs®",
 }: SEOProps) => {
-  const fullTitle = title.toLowerCase().includes("skinlabs") ? title : `${title} | ${BRAND}`;
-  // Always canonicalize onto the production domain (skinlabs.co.za), never window.location.host,
-  // so a page previewed on a staging/preview domain still emits the correct canonical.
+  const fullTitle = /skinlabs/i.test(title) ? title : `${title} | ${BRAND}`;
+  const safeDescription = clamp(description, 160);
+
+  // Canonical URLs are always rooted at the production domain. This prevents
+  // Vercel preview/staging hosts and query-string variants becoming canonicals.
   const path = canonical
     ? canonical.startsWith("http")
-      ? (() => { const u = new URL(canonical); return u.pathname + u.search; })()
-      : canonical
+      ? (() => {
+          const u = new URL(canonical);
+          return u.pathname || "/";
+        })()
+      : canonical.split("?")[0]
     : typeof window !== "undefined"
-      ? window.location.pathname + window.location.search
+      ? window.location.pathname
       : "/";
-  const url = `${SITE_URL}${path === "/" ? "/" : path.replace(/\/$/, "")}`;
+  const normalizedPath = path === "/" ? "/" : `/${path.replace(/^\/+|\/$/g, "")}`;
+  const url = `${SITE_URL}${normalizedPath}`;
+  const absoluteOgImage = ogImage.startsWith("http") ? ogImage : `${SITE_URL}${ogImage.startsWith("/") ? ogImage : `/${ogImage}`}`;
   const jsonLdList = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
   return (
     <Helmet>
-      {/* Basic Meta Tags */}
       <title>{fullTitle}</title>
-      <meta name="description" content={description} />
+      <meta name="description" content={safeDescription} />
       {keywords && <meta name="keywords" content={keywords} />}
+      <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
       <link rel="canonical" href={url} />
-      
-      {/* Open Graph */}
+
       <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
+      <meta property="og:description" content={safeDescription} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={ogType} />
-      <meta property="og:image" content={ogImage} />
+      <meta property="og:image" content={absoluteOgImage} />
+      <meta property="og:image:alt" content={fullTitle} />
       <meta property="og:site_name" content={BRAND} />
-      
-      {/* Twitter Card */}
+      {publishedTime && <meta property="article:published_time" content={publishedTime} />}
+      {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
+      {author && <meta property="article:author" content={author} />}
+
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-      
-      {/* Additional SEO Tags */}
-      <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
-      <meta name="language" content="English" />
-      <meta name="revisit-after" content="7 days" />
-      <meta name="author" content="SkinLabs" />
+      <meta name="twitter:description" content={safeDescription} />
+      <meta name="twitter:image" content={absoluteOgImage} />
+      <meta name="twitter:image:alt" content={fullTitle} />
 
-      {/* Geographic Tags */}
+      <meta name="language" content="English" />
+      <meta name="author" content={author} />
       <meta name="geo.region" content="ZA" />
       <meta name="geo.placename" content="South Africa" />
-
-      {/* Mobile */}
       <meta name="theme-color" content="#000000" />
-      <meta name="apple-mobile-web-app-capable" content="yes" />
-      <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
-      {/* JSON-LD Structured Data */}
       {jsonLdList.map((entry, i) => (
         <script key={i} type="application/ld+json">
           {JSON.stringify(entry)}

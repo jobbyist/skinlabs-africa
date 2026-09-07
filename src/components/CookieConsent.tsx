@@ -29,11 +29,14 @@ const CookieConsent = () => {
   useEffect(() => {
     // Wait for auth state to resolve so a signed-in visitor never sees a flash of the banner.
     if (authLoading) return;
+    
+    // Signed-in users never see the banner
     if (user) {
       setIsVisible(false);
       return;
     }
-
+    
+    // Check if consent is fresh (first-time visitors will not have fresh consent)
     if (isCookieConsentFresh(readCookieConsent())) return;
 
     const startTimer = () => {
