@@ -17,10 +17,15 @@ SCHEMA.md`.
 | `20260907120004_skincare_intelligence_seed.sql` (160 products / 50 brands / 128 ingredients, real data from `src/data/reviews.ts`) | 🔶 Partially applied — see below |
 
 **Don't trust this table blindly** — verify live state before resuming (see
-"Check what's actually live" below). It was accurate when written but the
-seed migration was still being applied in a background process when this
-file was committed: as of this writing, 40 of 160 products (chunks
-00-05 of the 21-chunk split described below) were confirmed live via REST.
+"Check what's actually live" below). As of this writing: **80 of 160
+products/reviews live** (chunks 00-10 of the 21-chunk split described
+below applied and verified), 50/50 brands, 128/128 ingredients. Chunk 11
+was attempted twice and timed out both times (connector down, not a SQL
+error) — confirmed via REST it did NOT partially apply
+(`biooil-original-60ml` does not exist), so it's safe to just re-run it
+from scratch. Chunks 12-20 have not been attempted yet. The session that
+did this work was closed with the connector still down; a fresh session
+should pick up starting at chunk 11.
 
 ## Why the seed migration is chunked
 
