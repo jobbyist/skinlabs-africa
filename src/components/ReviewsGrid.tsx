@@ -47,6 +47,8 @@ const ReviewsGrid = ({
   paginate = false,
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
+  const { getImage: getReviewImage } = useReviewImages();
+
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
