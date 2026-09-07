@@ -48,6 +48,7 @@ fi
 sed -n "1,$((FIRST_DO_LINE - 1))p" "$SEED" > "$OUT/chunk_00_lookups.sql"
 
 # ---------- product chunks: group consecutive DO $product$ ... END $product$; blocks ----------
+trap 'rm -f /tmp/.seed_split_*.$$' EXIT
 grep -n '^DO \$product\$' "$SEED" | cut -d: -f1 > /tmp/.seed_split_starts.$$
 grep -n '^END \$product\$;' "$SEED" | cut -d: -f1 > /tmp/.seed_split_ends.$$
 paste /tmp/.seed_split_starts.$$ /tmp/.seed_split_ends.$$ > /tmp/.seed_split_blocks.$$
