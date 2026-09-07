@@ -129,6 +129,38 @@ const Compare = () => {
             </div>
             <PaginationControls page={currentPage} totalPages={totalPages} onPageChange={setPage} className="mt-8" />
           </section>
+
+          <section className="container mx-auto mt-14 px-4">
+            <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
+              <h2 className="font-heading text-2xl font-bold text-foreground">How Shelf Showdown works</h2>
+              <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
+                <p>
+                  Every Shelf Showdown pairs two products that a South African shopper would genuinely be choosing
+                  between — the same category, a similar core active or claim, and usually a meaningful price gap,
+                  because "which one is actually worth it" is the question we're answering. We don't pit a serum
+                  against a moisturiser to manufacture drama, and we don't run a comparison until both products have
+                  already been through their own full{" "}
+                  <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                    SkinLabs review
+                  </Link>
+                  .
+                </p>
+                <p>
+                  Each showdown breaks the pair down on the things that decide whether a product earns a place on
+                  your shelf: active ingredient concentration and formulation quality, how each performed in its
+                  SkinLabs review score, and Rand-for-Rand value once you account for pack size and how long a tube
+                  or bottle actually lasts. We're explicit when the answer is "it depends on your skin, budget or
+                  climate" rather than forcing a single winner — a clinic-tier retinoid and a budget-tier one can
+                  both be the right call for different people, and pretending otherwise wouldn't be honest reviewing.
+                </p>
+                <p>
+                  As with every SkinLabs review, there's no paid placement in a Shelf Showdown outcome: neither
+                  product's brand has any say in which one comes out ahead, and the same evidence and scoring
+                  standard applies whether we're comparing a R150 drugstore find or a R1,200 clinic exclusive.
+                </p>
+              </div>
+            </div>
+          </section>
         </main>
         <div className="container mx-auto px-4 pb-8">
           <AffiliateBanner placement="compare-bottom" />

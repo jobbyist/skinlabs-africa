@@ -186,7 +186,7 @@ const NewsroomArticle = () => {
           <h1 className="font-heading text-3xl font-bold text-foreground">Briefing not found</h1>
           <p className="mt-3 text-muted-foreground">This story may have been unpublished.</p>
           <Button asChild className="mt-6">
-            <Link to="/newsroom">Back to The Daily Skinny</Link>
+            <Link to="/briefings">Back to The Daily Skinny</Link>
           </Button>
         </main>
         <Footer />
@@ -194,12 +194,7 @@ const NewsroomArticle = () => {
     );
   }
 
-  const canonical = `https://skinlabs.co.za/newsroom/${article.slug}`;
-  
-  // Ensure SEO fields are populated with fallbacks
-  const seoTitle = (article.seo_title || article.title).slice(0, 60);
-  const seoDescription = (article.seo_description || article.excerpt).slice(0, 158);
-  const socialImage = article.cover_image_url || "https://skinlabs.co.za/og-image.png";
+  const canonical = `https://skinlabs.co.za/briefings/${article.slug}`;
 
   return (
     <>
@@ -226,7 +221,7 @@ const NewsroomArticle = () => {
         <main className="pt-20">
           <article className="container mx-auto max-w-3xl px-4 py-10">
             <Link
-              to="/newsroom"
+              to="/briefings"
               className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" /> The Daily Skinny

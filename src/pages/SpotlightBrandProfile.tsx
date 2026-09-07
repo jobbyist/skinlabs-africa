@@ -12,7 +12,7 @@ import AffiliateAdSlot from "@/components/AffiliateAdSlot";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
 import { overallScore } from "@/data/reviews";
-import { useMembership } from "@/hooks/use-membership";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import GatedOverlay from "@/components/GatedOverlay";
 import { spotlightComments } from "@/data/articleComments";
 import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from "@/lib/access-quotas";
@@ -23,7 +23,9 @@ const EDITORIAL_DISCLAIMER =
 const SpotlightBrandProfile = () => {
   const { brandSlug } = useParams();
   const [claimOpen, setClaimOpen] = useState(false);
-  const { isMember, loading: membershipLoading } = useMembership();
+  // Glow Lite and above get full Spotlight profiles — no separate quota beyond that.
+  const { can, loading: membershipLoading } = useEntitlements();
+  const isMember = can("spotlight.full_profiles");
   const entry = getSpotlightBrand(brandSlug ?? "");
   const [viewRecorded, setViewRecorded] = useState(false);
   const canView = canViewSpotlightProfile(brandSlug ?? "");

@@ -66,7 +66,9 @@ const Business = () => {
         <meta property="og:description" content="Turnkey formulation, manufacturing, distribution and marketing services for beauty and wellness brands." />
         <meta property="og:url" content="https://skinlabs.co.za/business" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">

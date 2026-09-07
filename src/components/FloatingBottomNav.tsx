@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { label: "Home", href: "/", icon: Home, match: (p: string) => p === "/" },
-  { label: "News", href: "/newsroom", icon: Newspaper, match: (p: string) => p.startsWith("/newsroom") },
+  { label: "News", href: "/briefings", icon: Newspaper, match: (p: string) => p.startsWith("/briefings") || p.startsWith("/newsroom") },
   { label: "Stream", href: "/podcast", icon: Mic, match: (p: string) => p.startsWith("/podcast") || p.startsWith("/stream") },
   { label: "Reviews", href: "/reviews", icon: Star, match: (p: string) => p.startsWith("/reviews") },
   { label: "Book", href: "/consultations", icon: CalendarClock, match: (p: string) => p.startsWith("/consultations") },

@@ -100,6 +100,42 @@ const Seasonals = () => {
         </section>
 
         <section className="container mx-auto mt-14 px-4">
+          <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
+            <h2 className="font-heading text-2xl font-bold text-foreground">Why seasonal skincare matters here</h2>
+            <div className="mt-3 space-y-3 text-sm leading-relaxed text-muted-foreground">
+              <p>
+                South Africa doesn't have one climate — it has several, often within the same week. Highveld winters
+                run bone-dry with wide day-night temperature swings; KwaZulu-Natal's coast stays humid enough that
+                the same "rich" moisturiser that saves a Joburg complexion can clog a Durban one; Cape Town's wind
+                and UV load punish a barrier that's already compromised from actives. A routine built for one of
+                those conditions and left unchanged for the other three is working against your skin for at least
+                half the year.
+              </p>
+              <p>
+                Seasonals is where we translate that into something usable: four hubs, one per season, each covering
+                what actually changes — UV index, humidity, indoor heating or aircon exposure, and the local product
+                shelf — and what to adjust in response. That's not a wholesale routine rebuild every three months;
+                it's usually two or three deliberate swaps (a lighter or richer moisturiser, a reintroduced or
+                paused active, an SPF reformulation) informed by the same evidence-graded reviews and Daily Skinny
+                briefings that power the rest of SkinLabs.
+              </p>
+              <p>
+                Every seasonal guide links straight through to the{" "}
+                <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                  product reviews
+                </Link>{" "}
+                and{" "}
+                <Link to="/compare" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                  Shelf Showdown comparisons
+                </Link>{" "}
+                behind its recommendations, so you're never taking a claim on faith — you can see the score and the
+                reasoning it's based on before you change anything in your routine.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto mt-14 px-4">
           <h2 className="mb-6 font-heading text-2xl font-bold text-foreground">The four seasonal hubs</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {allSeasons.map((season) => {

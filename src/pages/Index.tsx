@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import NewsroomFeed from "@/components/NewsroomFeed";
@@ -12,6 +11,7 @@ import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import AffiliateBanner from "@/components/AffiliateBanner";
 import AdSlot from "@/components/AdSlot";
+import SEO from "@/components/SEO";
 import { pageSeo, SITE_URL, BRAND } from "@/lib/seo-config";
 
 const SectionDivider = () => (
@@ -37,6 +37,8 @@ const Index = () => {
     },
     sameAs: [
       "https://instagram.com/skinlabsza",
+      "https://facebook.com/skinlabs.co.za",
+      "https://tiktok.com/@skinlabsza",
       "https://wa.me/27680200749",
       "https://whatsapp.com/channel/0029VbEAGud7oQhZSPGNPg3J",
     ],
@@ -56,24 +58,14 @@ const Index = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{seo.title}</title>
-        <meta name="description" content={seo.description} />
-        <meta name="keywords" content={seo.keywords} />
-        <link rel="canonical" href={`${SITE_URL}/`} />
-        <meta property="og:title" content={seo.title} />
-        <meta property="og:description" content={seo.description} />
-        <meta property="og:url" content={`${SITE_URL}/`} />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content={`${SITE_URL}/og-image.png`} />
-        <meta property="og:site_name" content={BRAND} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={seo.title} />
-        <meta name="twitter:description" content={seo.description} />
-        <meta name="twitter:image" content={`${SITE_URL}/og-image.png`} />
-        <script type="application/ld+json">{JSON.stringify(orgLd)}</script>
-        <script type="application/ld+json">{JSON.stringify(webSiteLd)}</script>
-      </Helmet>
+      <SEO
+        title={seo.title}
+        description={seo.description}
+        keywords={seo.keywords}
+        canonical={`${SITE_URL}/`}
+        ogImage={`${SITE_URL}/og-image.png`}
+        jsonLd={[orgLd, webSiteLd]}
+      />
 
       <div className="min-h-screen bg-background">
         <Header />

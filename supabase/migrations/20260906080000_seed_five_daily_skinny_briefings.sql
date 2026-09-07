@@ -1,0 +1,10 @@
+-- Five Daily Skinny briefings (2026-09-06).
+-- Full bodies live in content/daily-skinny/*.md (2000+ words each).
+-- Index: src/data/dailySkinnyBriefings.ts
+-- Slugs:
+--   tinted-spf-skin-of-colour-south-africa
+--   highveld-winter-hard-water-barrier
+--   traction-alopecia-sa-khumalo-data
+--   azelaic-acid-melasma-pih-south-africa
+--   retinal-vs-retinol-hot-bathrooms-sa
+-- Apply full INSERT from editorial pipeline / artifacts SQL when hydrating news_articles.

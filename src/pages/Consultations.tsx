@@ -4,22 +4,29 @@ import { CalendarClock, Languages, MapPin, Video } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import GatedOverlay from "@/components/GatedOverlay";
+import FeatureGate from "@/components/FeatureGate";
 import { practitioners } from "@/data/practitioners";
-import { useMembership } from "@/hooks/use-membership";
 
 const Consultations = () => {
-  const { isMember, loading } = useMembership();
-
   return (
     <>
       <Helmet>
-        <title>Virtual Derm Consultations — SA Practitioners | SkinLabs</title>
+        <title>Virtual Derm Consultations — SA Practitioners | SkinLabs®</title>
         <meta
           name="description"
           content="Book virtual consultations with South African dermatologists and aesthetic practitioners. Rand pricing, local availability — Glow Insider and Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/consultations" />
+        <meta property="og:title" content="Virtual Derm Consultations — SA Practitioners | SkinLabs®" />
+        <meta
+          property="og:description"
+          content="Book virtual consultations with South African dermatologists and aesthetic practitioners."
+        />
+        <meta property="og:url" content="https://skinlabs.co.za/consultations" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -38,8 +45,8 @@ const Consultations = () => {
               </p>
             </div>
 
-            <GatedOverlay
-              locked={!loading && !isMember}
+            <FeatureGate
+              feature="practitioner_directory"
               title="Consultations are for Glow Insider & VIP"
               message="Browse is reserved for members. Glow Insider unlocks the directory; Glow VIP includes a monthly virtual consult."
               ctaLabel="View membership plans"
@@ -94,7 +101,7 @@ const Consultations = () => {
                   </motion.div>
                 ))}
               </div>
-            </GatedOverlay>
+            </FeatureGate>
 
             <p className="mt-10 text-xs text-muted-foreground">
               Consultations are provided by independent HPCSA-registered practitioners. SkinLabs facilitates booking and

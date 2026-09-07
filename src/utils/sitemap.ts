@@ -10,7 +10,7 @@ export interface SitemapUrl {
 export const sitemapUrls: SitemapUrl[] = [
   { loc: "/", changefreq: "daily", priority: 1.0 },
   { loc: "/reviews", changefreq: "daily", priority: 0.95 },
-  { loc: "/newsroom", changefreq: "daily", priority: 0.95 },
+  { loc: "/briefings", changefreq: "daily", priority: 0.95 },
   { loc: "/compare", changefreq: "weekly", priority: 0.9 },
   { loc: "/spotlight", changefreq: "weekly", priority: 0.9 },
   { loc: "/podcast", changefreq: "weekly", priority: 0.9 },
@@ -21,6 +21,8 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: "/consultations", changefreq: "monthly", priority: 0.8 },
   { loc: "/knowledge-hub", changefreq: "weekly", priority: 0.8 },
   { loc: "/shop", changefreq: "monthly", priority: 0.6 },
+  { loc: "/routines", changefreq: "monthly", priority: 0.4 },
+  { loc: "/marketplace", changefreq: "monthly", priority: 0.4 },
   { loc: "/announcements", changefreq: "weekly", priority: 0.5 },
   { loc: "/spotlight/methodology", changefreq: "monthly", priority: 0.5 },
   { loc: "/spotlight/archive", changefreq: "monthly", priority: 0.5 },

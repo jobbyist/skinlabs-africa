@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "bun run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "bun install",
-  "devCommand": "bun run dev",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
   "cleanUrls": true,
   "trailingSlash": false,
   "headers": [
@@ -37,6 +37,23 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/newsroom",
+      "destination": "/briefings",
+      "permanent": true
+    },
+    {
+      "source": "/faq",
+      "destination": "/knowledge-hub",
+      "permanent": true
+    },
+    {
+      "source": "/newsroom/:slug",
+      "destination": "/briefings/:slug",
+      "permanent": true
     }
   ],
   "rewrites": [

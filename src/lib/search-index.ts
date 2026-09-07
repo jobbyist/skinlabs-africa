@@ -17,7 +17,7 @@ export interface SearchablePage {
 export const searchablePages: SearchablePage[] = [
   { title: "Home", description: "SkinLabs — AI skincare routines and SA skin science", href: "/" },
   { title: "Products", description: "Browse SkinLabs' full skincare product catalogue", href: "/products", keywords: "shop catalogue skincare products" },
-  { title: "The Daily Skinny", description: "Daily skin science briefings for SA skin and climate", href: "/newsroom", keywords: "newsroom briefings news" },
+  { title: "The Daily Skinny", description: "Daily skin science briefings for SA skin and climate", href: "/briefings", keywords: "newsroom briefings news" },
   { title: "Product Reviews", description: "Independent SA skincare product reviews and scores", href: "/reviews", keywords: "reviews scores ratings ingredients hyaluronic acid niacinamide retinol vitamin c" },
   { title: "Compare Products", description: "Compare skincare products side by side", href: "/compare", keywords: "compare versus shelf showdown" },
   { title: "Spotlight by SkinLabs", description: "A monthly, review-led ranking of South African skincare brands", href: "/spotlight", keywords: "spotlight brands ranking top brands" },
@@ -27,6 +27,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "The Skin Deep Podcast", description: "Weekly SA skincare conversations and ingredient science", href: "/podcast", keywords: "podcast episodes audio" },
   { title: "AI Formulator", description: "Build a custom AI skincare routine from a skin quiz", href: "/ai-formulator", keywords: "ai routine formulator analysis quiz hyperpigmentation acne dryness sensitivity personalised" },
   { title: "Consultations", description: "Book a virtual consultation with an SA practitioner", href: "/consultations", keywords: "derm dermatologist booking" },
+  { title: "Find a Dermatologist", description: "Directory of verified South African dermatologists and dermatology practices", href: "/consult", keywords: "dermatologist directory find a dermatologist skin doctor South Africa HPCSA" },
   { title: "Membership Plans", description: "Glow Explorer, Glow Insider and Glow VIP pricing", href: "/pricing", keywords: "pricing membership plans trial" },
   { title: "Announcements", description: "What's new at SkinLabs", href: "/announcements", keywords: "news updates changelog" },
   { title: "The Openhaus Shop", description: "SkinLabs' curated shop", href: "/shop", keywords: "openhaus shop store" },

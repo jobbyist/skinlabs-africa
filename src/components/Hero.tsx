@@ -90,7 +90,7 @@ const Hero = () => {
                 🇿🇦
               </span>
               <Atom className="hidden h-4 w-4 md:inline" />
-              SA’s Premier Skincare Intelligence Hub
+              Skincare Intelligence for South Africa
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
