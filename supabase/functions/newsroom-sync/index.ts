@@ -2,7 +2,7 @@
  * The Daily Skinny sync.
  *
  * Firecrawl pulls fresh South African / global skincare stories, the Lovable AI
- * Gateway rewrites each one as a long-form commentary column, and Unsplash
+ * Gateway rewrites each one as a long-form commentary column, and the Unsplash API
  * supplies the cover plus in-body imagery. Runs daily at 06:00 SAST via cron and
  * can be triggered manually by an admin.
  */
@@ -341,13 +341,30 @@ Deno.serve(async (req) => {
     let created = 0;
     let aiCalls = 0;
     const errors: string[] = [];
+    
+    // Load all existing Unsplash image IDs to prevent reuse across all articles
+    const { data: existingCovers } = await admin
+      .from("news_articles")
+      .select("cover_image_url")
+      .not("cover_image_url", "is", null);
+    
+    const existingImages = (existingCovers ?? [])
+      .map((r: { cover_image_url: string | null }) => r.cover_image_url)
+      .filter(Boolean);
+    
+    // Extract Unsplash photo IDs from URLs to track global uniqueness
+    existingImages.forEach((url) => {
+      const match = url?.match(/\/photo-[^/]+-([a-zA-Z0-9_-]+)/);
+      if (match?.[1]) usedPhotoIds.add(match[1]);
+    });
 
     for (const source of fresh) {
       if (created >= target) break;
       try {
         aiCalls += 1;
         const article = await generateArticle(source);
-
+        
+        // Fetch unique Unsplash images for cover and inline content
         const cover = await searchUnsplash(article.image_queries[0] ?? article.title, usedPhotoIds);
         const inline: UnsplashImage[] = [];
         for (const query of article.image_queries.slice(1, 3)) {
@@ -358,6 +375,12 @@ Deno.serve(async (req) => {
         const cleanTitle = stripSpecialCharacters(article.title);
         const { markdown, used } = weaveImages(article.body_markdown, inline);
         const wordCount = markdown.split(/\s+/).filter(Boolean).length;
+        // Validate that we got a unique cover image
+        if (!cover) {
+          console.warn(`No unique cover image found for: ${article.title}`);
+          errors.push(`No unique cover image for "${article.title.slice(0, 50)}"`);
+        }
+
         let slug = slugify(cleanTitle) || `daily-skinny-${Date.now()}`;
 
         const { data: slugTaken } = await admin
