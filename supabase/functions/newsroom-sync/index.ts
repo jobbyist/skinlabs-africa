@@ -283,8 +283,6 @@ Deno.serve(async (req) => {
       Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : SCHEDULED_DEFAULT_LIMIT,
       MAX_ARTICLES_PER_RUN,
     );
-    // Admins can top the newsroom up by hand; the daily cap only governs the cron run.
-    const manualTopUp = isAdmin && body?.manual === true;
 
     // ---- Daily rate limit (per publish date; backfill targets a past day) ----
     const rawBackfill = typeof body?.backfill_date === "string" ? body.backfill_date : null;
