@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
-import { getProductImage } from "@/data/productImages";
+import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,8 @@ const ReviewsGrid = ({
   paginate = false,
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
+  const { getImage: getReviewImage } = useReviewImages();
+
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -237,7 +239,7 @@ const ReviewsGrid = ({
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pageItems.map((review, index) => {
-            const productImage = getProductImage(review.category, review.id);
+            const productImage = getReviewImage(review.id, review.category);
             return (
             <motion.div
               key={review.id}
@@ -249,13 +251,28 @@ const ReviewsGrid = ({
               className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
             >
               {productImage && (
-                <img
-                  src={productImage.url}
-                  alt={`${review.category} product photography — ${productImage.alt}`}
-                  loading="lazy"
-                  className="h-40 w-full object-cover"
-                />
+                <figure className="relative">
+                  <img
+                    src={productImage.url}
+                    alt={`${review.category} product photography — ${productImage.alt}`}
+                    loading="lazy"
+                    className="h-40 w-full object-cover"
+                  />
+                  <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
+                    Photo:{" "}
+                    <a
+                      href={productImage.creditUrl}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="underline underline-offset-2"
+                    >
+                      {productImage.creditName}
+                    </a>{" "}
+                    / Unsplash
+                  </figcaption>
+                </figure>
               )}
+
               <div className="flex flex-1 flex-col p-6">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>

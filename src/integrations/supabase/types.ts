@@ -650,6 +650,39 @@ export type Database = {
         }
         Relationships: []
       }
+      review_images: {
+        Row: {
+          alt: string
+          created_at: string
+          credit_name: string
+          credit_url: string
+          image_url: string
+          photo_id: string | null
+          review_id: string
+          updated_at: string
+        }
+        Insert: {
+          alt?: string
+          created_at?: string
+          credit_name?: string
+          credit_url?: string
+          image_url: string
+          photo_id?: string | null
+          review_id: string
+          updated_at?: string
+        }
+        Update: {
+          alt?: string
+          created_at?: string
+          credit_name?: string
+          credit_url?: string
+          image_url?: string
+          photo_id?: string | null
+          review_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       review_ratings: {
         Row: {
           created_at: string
