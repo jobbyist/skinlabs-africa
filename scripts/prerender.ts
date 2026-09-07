@@ -38,7 +38,7 @@ const STATIC_ROUTES = [
   "/contact",
   "/business",
   "/partners",
-  "/ai-formulator",
+  "/skynn-ai",
   "/products",
   "/knowledge-hub",
   "/privacy-policy",

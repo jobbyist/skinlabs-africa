@@ -13,13 +13,13 @@ const AIFormulatorPage = () => {
           name="description"
           content="SKYNN AI (beta): an AI-powered skin assessment with Monk Skin Tone (MST) fairness testing, an AM/PM routine and product picks grounded in SkinLabs' own reviewed catalogue — free starter analysis, no card required."
         />
-        <link rel="canonical" href="https://skinlabs.co.za/ai-formulator" />
+        <link rel="canonical" href="https://skinlabs.co.za/skynn-ai" />
         <meta property="og:title" content="SKYNN AI (beta) — Skin Assessment & Routine Formulator | SkinLabs" />
         <meta
           property="og:description"
           content="An AI-powered skin assessment built for every skin tone — MST fairness testing, AM/PM routine and product picks grounded in real SkinLabs reviews."
         />
-        <meta property="og:url" content="https://skinlabs.co.za/ai-formulator" />
+        <meta property="og:url" content="https://skinlabs.co.za/skynn-ai" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
         <script type="application/ld+json">{JSON.stringify({
@@ -28,7 +28,7 @@ const AIFormulatorPage = () => {
           "name": "SKYNN AI (beta) by SkinLabs",
           "applicationCategory": "HealthApplication",
           "operatingSystem": "Web",
-          "url": "https://skinlabs.co.za/ai-formulator",
+          "url": "https://skinlabs.co.za/skynn-ai",
           "description": "AI-powered skin assessment and routine formulator with Monk Skin Tone fairness testing, built for every skin tone, grounded in SkinLabs' reviewed product catalogue.",
           "offers": { "@type": "Offer", "price": "0", "priceCurrency": "ZAR", "description": "Free Starter Analysis" }
         })}</script>

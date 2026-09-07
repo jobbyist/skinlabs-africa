@@ -27,3 +27,17 @@ export const MST_SCALE: MstSwatch[] = [
 ];
 
 export type MstSource = "user_reported" | "model_estimated";
+
+export type MstBand = "light" | "medium" | "deep" | "unknown";
+
+/**
+ * Buckets MST 1-10 into the three evaluation groups the fairness blueprint asks for
+ * (1-3, 4-7, 8-10) — used only to check whether SKYNN AI's inputs/outputs are evenly
+ * distributed and grounded across skin tones, never to alter what a given user is told.
+ */
+export const mstBand = (tone: number | null | undefined): MstBand => {
+  if (tone === null || tone === undefined) return "unknown";
+  if (tone <= 3) return "light";
+  if (tone <= 7) return "medium";
+  return "deep";
+};

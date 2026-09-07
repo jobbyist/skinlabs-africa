@@ -2,6 +2,28 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DERMATOLOGIST_KNOWLEDGE } from "./dermatologist-knowledge.ts";
 
+// Diagnosis words the system prompt explicitly forbids naming (both prompts say to
+// describe visible signs descriptively instead). A hit here means the model violated
+// its own instruction — logged for human review via skynn_fairness_events, never
+// auto-corrected or hidden from the client (the response still goes out as generated).
+const FORBIDDEN_DIAGNOSIS_TERMS = ["eczema", "rosacea", "psoriasis", "fungal acne", "pcos"];
+
+function scanComplianceFlags(text: string): string[] {
+  const lower = text.toLowerCase();
+  const flags: string[] = [];
+  for (const term of FORBIDDEN_DIAGNOSIS_TERMS) {
+    if (lower.includes(term)) flags.push(`named_diagnosis:${term.replace(/\s+/g, "_")}`);
+  }
+  return flags;
+}
+
+function mstBandOf(tone: number | null): "light" | "medium" | "deep" | "unknown" {
+  if (tone === null) return "unknown";
+  if (tone <= 3) return "light";
+  if (tone <= 7) return "medium";
+  return "deep";
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -308,7 +330,34 @@ This is cosmetic skincare guidance, not medical advice or diagnosis — never na
       console.warn("Could not persist recommendation:", persistErr);
     }
 
-    return new Response(JSON.stringify({ 
+    // Fairness-benchmarking pipeline (full, AI-usage path) — best-effort, never blocks
+    // the response. Distinct from the deterministic starter path in one key way: it can
+    // actually inspect the model's own output, so it scans for the one rule the system
+    // prompt states unambiguously (never name a medical diagnosis) rather than fabricating
+    // an accuracy/bias score no dermatologist-labelled ground truth exists to support.
+    try {
+      const answeredCount = (quizAnswers ?? []).filter((qa) => qa.answer !== "Not answered").length;
+      const totalQuestions = (quizAnswers ?? []).length || 1;
+      const profilePct = (answeredCount / totalQuestions) * 100;
+      const photoPct = skinImage ? 100 : 40;
+      const mstPct = validMstTone !== null ? 100 : 60;
+      const completenessScore = Math.round((profilePct + photoPct + mstPct) / 3);
+
+      await supabaseAuth.from("skynn_fairness_events").insert({
+        source: "live_ai",
+        result_tier: isPremiumMember ? "premium" : "free",
+        mst_tone: validMstTone,
+        mst_band: mstBandOf(validMstTone),
+        had_photo: Boolean(skinImage),
+        completeness_score: completenessScore,
+        compliance_flags: scanComplianceFlags(recommendation),
+        model_version: isPremiumMember ? "google/gemini-3-flash-preview" : "gemini-1.5-flash",
+      });
+    } catch (fairnessErr) {
+      console.warn("Could not log fairness event:", fairnessErr);
+    }
+
+    return new Response(JSON.stringify({
       recommendation,
       tier: isPremiumMember ? "premium" : "free"
     }), {

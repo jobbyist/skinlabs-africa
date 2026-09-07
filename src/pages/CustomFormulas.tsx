@@ -120,7 +120,7 @@ const CustomFormulas = () => {
                   <h2 className="text-2xl font-bold text-foreground mb-4">Ready to build your formula?</h2>
                   <p className="text-muted-foreground mb-6">Start with a full AI skin analysis so we're formulating against your actual data, not a guess.</p>
                   <Button size="lg" className="gap-2" asChild>
-                    <Link to="/ai-formulator">
+                    <Link to="/skynn-ai">
                       <Sparkles className="h-5 w-5" />
                       Start Skin Analysis
                     </Link>

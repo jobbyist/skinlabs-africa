@@ -42,7 +42,7 @@ const Footer = () => {
       { label: "Podcast Series", href: "/podcast" },
     ],
     platform: [
-      { label: "AI Formulator", href: "/ai-formulator" },
+      { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
       { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Consultations", href: "/consultations", isNew: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },

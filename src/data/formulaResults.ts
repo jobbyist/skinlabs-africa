@@ -1,5 +1,5 @@
 /**
- * Predetermined "starter analysis" results for free-tier AI Formulator users.
+ * Predetermined "starter analysis" results for free-tier SKYNN AI users.
  *
  * These are NOT live AI output — they're a curated 4×4 matrix (skin type ×
  * primary concern, both already derived from the quiz answers) written in

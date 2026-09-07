@@ -69,6 +69,11 @@ export interface GroundedPick {
 export interface GroundedRoutine {
   am: GroundedPick[];
   pm: GroundedPick[];
+  /** How many of the attempted catalogue lookups found a real product vs came up empty —
+   *  the raw input to the fairness pipeline's "grounded match rate" metric. Never inferred
+   *  after the fact from am/pm.length, since a duplicate AM/PM serum correctly collapses
+   *  to one pick without that being a "miss". */
+  matchStats: { matched: number; attempted: number };
 }
 
 /**
@@ -92,6 +97,14 @@ export const pickGroundedRoutine = (
   const amSerum = findBestProduct({ category: "Serum", skinType, preferSensitive: sensitive, keywords: kw.am, preferDeepTones: deepTones });
   const pmSerum = findBestProduct({ category: "Serum", skinType, preferSensitive: sensitive, keywords: kw.pm, preferDeepTones: deepTones });
 
+  // Four product categories attempted regardless of tone/concern — the fairness
+  // pipeline's denominator. Serum counts as matched if either the AM or PM lookup
+  // found one, since a null AM serum with a found PM serum is a match, not a miss.
+  const matchStats = {
+    attempted: 4,
+    matched: [cleanser, moisturiser, sunscreen, amSerum || pmSerum].filter(Boolean).length,
+  };
+
   const am: GroundedPick[] = [];
   if (cleanser) am.push({ slot: "Cleanser", product: cleanser });
   if (amSerum) am.push({ slot: "Serum", product: amSerum });
@@ -103,7 +116,7 @@ export const pickGroundedRoutine = (
   if (pmSerum && pmSerum.id !== amSerum?.id) pm.push({ slot: "Treatment", product: pmSerum });
   if (moisturiser) pm.push({ slot: "Moisturiser", product: moisturiser });
 
-  return { am, pm };
+  return { am, pm, matchStats };
 };
 
 export const formatPick = (pick: GroundedPick) =>

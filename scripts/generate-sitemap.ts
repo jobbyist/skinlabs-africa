@@ -32,7 +32,7 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/briefings", changefreq: "daily", priority: "0.95" },
   { path: "/reviews", changefreq: "weekly", priority: "0.9" },
   { path: "/podcast", changefreq: "weekly", priority: "0.85" },
-  { path: "/ai-formulator", changefreq: "weekly", priority: "0.9" },
+  { path: "/skynn-ai", changefreq: "weekly", priority: "0.9" },
   { path: "/consultations", changefreq: "monthly", priority: "0.8" },
   { path: "/consult", changefreq: "weekly", priority: "0.85" },
   { path: "/spotlight", changefreq: "monthly", priority: "0.9" },

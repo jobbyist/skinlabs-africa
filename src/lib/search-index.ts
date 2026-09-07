@@ -25,7 +25,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "Spotlight Archive", description: "Past Spotlight brand rankings by month", href: "/spotlight/archive", keywords: "spotlight archive past rankings" },
   { title: "Seasonals by SkinLabs", description: "Skincare for the season you're actually living in", href: "/seasonals", keywords: "seasonals seasonal skincare" },
   { title: "The Skin Deep Podcast", description: "Weekly SA skincare conversations and ingredient science", href: "/podcast", keywords: "podcast episodes audio" },
-  { title: "AI Formulator", description: "Build a custom AI skincare routine from a skin quiz", href: "/ai-formulator", keywords: "ai routine formulator analysis quiz hyperpigmentation acne dryness sensitivity personalised" },
+  { title: "Skin Analysis (SKYNN AI)", description: "Build a custom AI skincare routine from a skin quiz", href: "/skynn-ai", keywords: "skynn ai skin analysis routine formulator quiz mst monk skin tone hyperpigmentation acne dryness sensitivity personalised" },
   { title: "Consultations", description: "Book a virtual consultation with an SA practitioner", href: "/consultations", keywords: "derm dermatologist booking" },
   { title: "Find a Dermatologist", description: "Directory of verified South African dermatologists and dermatology practices", href: "/consult", keywords: "dermatologist directory find a dermatologist skin doctor South Africa HPCSA" },
   { title: "Membership Plans", description: "Glow Explorer, Glow Insider and Glow VIP pricing", href: "/pricing", keywords: "pricing membership plans trial" },

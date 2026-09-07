@@ -52,6 +52,7 @@ import {
   type CompletenessBreakdown,
 } from "@/data/formulaResults";
 import { pickGroundedRoutine, type GroundedRoutine } from "@/lib/skynnProductMatch";
+import { logFairnessEvent } from "@/lib/skynnFairness";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 
@@ -250,6 +251,16 @@ const AIFormulator = () => {
     setGroundedRoutine(routine);
     setCompleteness(breakdown);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
+    void logFairnessEvent({
+      source: "starter",
+      resultTier: "free",
+      skinType: derivedSkinType,
+      mstTone,
+      hadPhoto: Boolean(skinImage),
+      completenessScore: breakdown.overall,
+      groundedMatchCount: routine.matchStats.matched,
+      groundedMatchAttempted: routine.matchStats.attempted,
+    });
     try {
       downloadSkincarePdf({
         clientName: contactName || "Client",
@@ -354,7 +365,7 @@ const AIFormulator = () => {
 
   const handleShareResults = async () => {
     const shareText = `I just got a free AI skin analysis from SKYNN AI on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
-    const shareUrl = "https://skinlabs.co.za/ai-formulator";
+    const shareUrl = "https://skinlabs.co.za/skynn-ai";
     try {
       if (navigator.share) {
         await navigator.share({ title: "My SKYNN AI skin analysis", text: shareText, url: shareUrl });
@@ -423,7 +434,7 @@ const AIFormulator = () => {
 
   if (authLoading) {
     return (
-      <section id="ai-formulator" className="py-20 bg-background">
+      <section id="skynn-ai" className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <Loader2 className="h-12 w-12 text-primary animate-spin mx-auto" />
@@ -510,7 +521,7 @@ const AIFormulator = () => {
 
   return (
     <>
-      <section id="ai-formulator" className="py-20 bg-background">
+      <section id="skynn-ai" className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             {step !== STEP_INTRO && (

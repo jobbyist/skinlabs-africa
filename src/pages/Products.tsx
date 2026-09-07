@@ -89,9 +89,9 @@ const Products = () => {
                     Try our AI-powered formulator to get personalized product recommendations based on your unique skin profile
                   </p>
                   <Button size="lg" className="gap-2" asChild>
-                    <a href="/ai-formulator">
+                    <a href="/skynn-ai">
                       <Sparkles className="h-5 w-5" />
-                      Try AI Formulator
+                      Try Skin Analysis (SKYNN AI)
                     </a>
                   </Button>
                 </div>

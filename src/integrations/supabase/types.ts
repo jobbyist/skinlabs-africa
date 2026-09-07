@@ -998,6 +998,7 @@ export type Database = {
         Row: {
           age_range: string | null
           allergies: string | null
+          analysis_completeness: number | null
           book_consultation: boolean | null
           concerns: string[]
           contact_name: string | null
@@ -1008,6 +1009,8 @@ export type Database = {
           environment: string | null
           id: string
           lifestyle: string | null
+          mst_source: string | null
+          mst_tone: number | null
           recommendation: string
           skin_type: string
           status: string
@@ -1016,6 +1019,7 @@ export type Database = {
         Insert: {
           age_range?: string | null
           allergies?: string | null
+          analysis_completeness?: number | null
           book_consultation?: boolean | null
           concerns: string[]
           contact_name?: string | null
@@ -1026,6 +1030,8 @@ export type Database = {
           environment?: string | null
           id?: string
           lifestyle?: string | null
+          mst_source?: string | null
+          mst_tone?: number | null
           recommendation: string
           skin_type: string
           status?: string
@@ -1034,6 +1040,7 @@ export type Database = {
         Update: {
           age_range?: string | null
           allergies?: string | null
+          analysis_completeness?: number | null
           book_consultation?: boolean | null
           concerns?: string[]
           contact_name?: string | null
@@ -1044,10 +1051,60 @@ export type Database = {
           environment?: string | null
           id?: string
           lifestyle?: string | null
+          mst_source?: string | null
+          mst_tone?: number | null
           recommendation?: string
           skin_type?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      skynn_fairness_events: {
+        Row: {
+          compliance_flags: string[]
+          completeness_score: number | null
+          created_at: string
+          grounded_match_attempted: number | null
+          grounded_match_count: number | null
+          had_photo: boolean
+          id: string
+          model_version: string | null
+          mst_band: string
+          mst_tone: number | null
+          result_tier: string
+          skin_type: string | null
+          source: string
+        }
+        Insert: {
+          compliance_flags?: string[]
+          completeness_score?: number | null
+          created_at?: string
+          grounded_match_attempted?: number | null
+          grounded_match_count?: number | null
+          had_photo?: boolean
+          id?: string
+          model_version?: string | null
+          mst_band: string
+          mst_tone?: number | null
+          result_tier: string
+          skin_type?: string | null
+          source: string
+        }
+        Update: {
+          compliance_flags?: string[]
+          completeness_score?: number | null
+          created_at?: string
+          grounded_match_attempted?: number | null
+          grounded_match_count?: number | null
+          had_photo?: boolean
+          id?: string
+          model_version?: string | null
+          mst_band?: string
+          mst_tone?: number | null
+          result_tier?: string
+          skin_type?: string | null
+          source?: string
         }
         Relationships: []
       }

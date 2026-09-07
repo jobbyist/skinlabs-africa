@@ -42,11 +42,11 @@ export const pageSeo: Record<string, PageSeo> = {
       "Join SkinLabs® for personalised skincare intelligence, AI-powered routines, product recommendations, skin tracking and exclusive member benefits. Glow Explorer free; Insider from R99/month.",
     canonicalPath: "/pricing",
   },
-  aiFormulator: {
-    title: `AI Skincare Routine Builder for South Africa | ${BRAND}`,
+  skynnAi: {
+    title: `SKYNN AI (beta) — Skin Analysis & Routine Builder | ${BRAND}`,
     description:
-      "Build a personalised skincare routine based on your skin profile, climate, budget and goals with SkinLabs® AI-powered skincare technology.",
-    canonicalPath: "/ai-formulator",
+      "SKYNN AI (beta): an AI-powered skin assessment with Monk Skin Tone (MST) fairness testing, built for every skin tone, delivering a personalised routine based on your skin profile, climate, budget and goals.",
+    canonicalPath: "/skynn-ai",
   },
   reviews: {
     title: `Skincare Product Reviews South Africa | ${BRAND}`,
