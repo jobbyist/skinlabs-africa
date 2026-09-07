@@ -41,7 +41,7 @@ conflict. There is no harm in re-applying an already-applied chunk.
 1. **Check what's actually live** (don't rely on the table above):
 
    ```bash
-   cd /home/user/skinlabs-africa   # or wherever the repo is checked out
+   cd /path/to/your/repo   # navigate to your local repo directory
    set -a; source .env; set +a
    curl -sS "$VITE_SUPABASE_URL/rest/v1/products?select=id" \
      -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" \
