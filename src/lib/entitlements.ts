@@ -124,15 +124,19 @@ export const minimumTierFor = (feature: FeatureKey): LadderTier | null => {
 };
 
 /**
- * Raw `profiles.subscription_status` values that count as "paying" today.
- * Mirrors the backend's own source of truth, the `is_member()` Postgres
- * function (see supabase/migrations/20260816154034_*.sql) — keep the two in
- * sync. Use this instead of re-typing the literal list at each call site
- * (three call sites had drifted before this file existed: use-membership.ts,
- * UserDashboard.tsx's payment-activation poll, and AdminDashboard.tsx's
- * member count).
+ * Raw `profiles.subscription_status` values that count as "a paying
+ * customer, on any tier" — used for revenue-facing checks (did this checkout
+ * succeed? how many paying accounts exist?), not for content access.
+ *
+ * This is deliberately broader than the database's `is_member()` function
+ * and useMembership()'s `isMember` flag, both of which mean "Insider tier or
+ * above" for gating the content perks that predate Glow Lite. Glow Lite is a
+ * real paying tier with its own narrower benefit set, so it belongs here
+ * (checkout/billing) but not in those two "Insider+" checks. Keep this list
+ * in sync with the status literals actually written by
+ * supabase/functions/paystack-payment.
  */
-export const PAID_SUBSCRIPTION_STATUSES = ["active", "insider", "vip", "premium"] as const;
+export const PAID_SUBSCRIPTION_STATUSES = ["active", "glow_lite", "insider", "vip", "premium"] as const;
 
 export const isPaidSubscriptionStatus = (status: string | null | undefined): boolean =>
   (PAID_SUBSCRIPTION_STATUSES as readonly string[]).includes((status ?? "").toLowerCase());

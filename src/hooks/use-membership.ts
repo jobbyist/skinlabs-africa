@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { BillingInterval, PlanId } from "@/data/plans";
 
-export type MembershipTier = "explorer" | "insider" | "vip";
+export type MembershipTier = "explorer" | "glow_lite" | "insider" | "vip";
 
 interface ProfileMembershipRow {
   subscription_status: string | null;
@@ -21,11 +21,12 @@ const resolveTier = (row: ProfileMembershipRow | null): { tier: MembershipTier; 
 
   // Active trials always take precedence
   if (status === "trial" && row.trial_ends_at && new Date(row.trial_ends_at) > new Date()) {
-    const trialTier = row.trial_plan === "vip" ? "vip" : "insider";
+    const trialTier = row.trial_plan === "vip" ? "vip" : row.trial_plan === "glow_lite" ? "glow_lite" : "insider";
     return { tier: trialTier, isTrialing: true };
   }
   // Only check paid tiers if not trialing
   if (status === "vip") return { tier: "vip", isTrialing: false };
+  if (status === "glow_lite") return { tier: "glow_lite", isTrialing: false };
   if (status === "active" || status === "insider" || status === "premium") return { tier: "insider", isTrialing: false };
   return { tier: "explorer", isTrialing: false };
 };
@@ -95,7 +96,15 @@ export const useMembership = () => {
     tier,
     loading: loading || authLoading,
     isSignedIn: Boolean(user),
-    isMember: tier !== "explorer",
+    // "isMember" gates the insider-tier content perks that predate Glow Lite (full
+    // podcast library, full review bodies, unlimited Daily Skinny, transcripts) —
+    // deliberately Insider/VIP only. Glow Lite is a real paid tier with its own,
+    // narrower benefits (unlimited comparisons, full Spotlight profiles); gate
+    // those specifically through useEntitlements().can(...) rather than here, so
+    // a "some paid tier" check never silently over-grants Glow Lite the Insider
+    // perks it isn't paying for. isPaidSubscriptionStatus (entitlements.ts) is the
+    // separate "is this account a paying customer at all" check.
+    isMember: tier === "insider" || tier === "vip",
     isVip: tier === "vip",
     isTrialing,
     trialPlan,

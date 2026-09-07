@@ -29,6 +29,7 @@ import UpgradePrompt from "@/components/UpgradePrompt";
 import { QUESTIONS } from "@/data/quiz";
 import { buildPredeterminedRecommendation, CONCERN_BY_Q9_VALUE } from "@/data/formulaResults";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { getPersistedPricingVariant } from "@/lib/pricing-config";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
@@ -52,6 +53,7 @@ const AIFormulator = () => {
   const [skinImage, setSkinImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [allowanceExhausted, setAllowanceExhausted] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [resultTier, setResultTier] = useState<"free" | "premium">("free");
   const [resultsSaved, setResultsSaved] = useState(false);
@@ -167,6 +169,27 @@ const AIFormulator = () => {
    * weekly-refreshed, photo-aware report, not "the rest of this same result."
    */
   const runStarterAnalysis = async (): Promise<boolean> => {
+    // Anonymous visitors are never metered here (there's no account to meter
+    // against, and the top of funnel should stay frictionless). A signed-in
+    // free/Glow Lite account gets a configurable free allowance, then can
+    // spend a purchased AI-analysis credit — claim_starter_analysis() is the
+    // single, server-side source of truth for both, so this can't be
+    // bypassed by a stale or tampered client state.
+    if (user) {
+      const { data, error } = await supabase.rpc("claim_starter_analysis", {
+        p_variant_key: getPersistedPricingVariant(),
+      });
+      const result = Array.isArray(data) ? data[0] : data;
+      if (error) {
+        setAnalysisError("Couldn't check your analysis allowance — please try again.");
+        return false;
+      }
+      if (!result?.allowed) {
+        setAllowanceExhausted(true);
+        return false;
+      }
+    }
+
     await new Promise((resolve) => window.setTimeout(resolve, 900));
     const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
     const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
@@ -190,6 +213,7 @@ const AIFormulator = () => {
   const runAnalysis = async () => {
     setIsLoading(true);
     setAnalysisError(null);
+    setAllowanceExhausted(false);
     try {
       const ok = isMember ? await runLiveAnalysis() : await runStarterAnalysis();
       if (ok) setStep(STEP_RESULTS);
@@ -205,6 +229,12 @@ const AIFormulator = () => {
     if (step === STEP_ANALYSIS) void runAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+
+  useEffect(() => {
+    if (step === STEP_ANALYSIS && allowanceExhausted) {
+      trackConversionEvent("upgrade_viewed", { feature: "ai_analysis.starter_allowance", accountState: "free" });
+    }
+  }, [step, allowanceExhausted]);
 
   // Fire the "viewed" funnel event once per completed analysis, separate from
   // "generated" (the data existing) — this is the moment a person actually saw it.
@@ -575,13 +605,34 @@ const AIFormulator = () => {
 
               {step === STEP_ANALYSIS && (
                 <div className="text-center py-12">
-                  {!analysisError ? (
+                  {isLoading ? (
                     <>
                       <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
                       <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Reading your skin profile...</h3>
                       <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
+                    </>
+                  ) : allowanceExhausted ? (
+                    <>
+                      <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Sparkles className="h-10 w-10 text-primary" />
+                      </div>
+                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">You've used your free analysis</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                        Buy a few more analyses, or upgrade for a live AI report re-analysed every week.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button asChild className="gap-2">
+                          <a href="/pricing">
+                            <Sparkles className="h-4 w-4" />
+                            Buy more analyses
+                          </a>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <a href="/pricing">See membership plans</a>
+                        </Button>
+                      </div>
                     </>
                   ) : (
                     <>

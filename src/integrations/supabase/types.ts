@@ -32,6 +32,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_credit_transactions: {
+        Row: {
+          created_at: string
+          delta: number
+          expires_at: string | null
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          expires_at?: string | null
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          expires_at?: string | null
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auth_exchange_codes: {
         Row: {
           code: string
@@ -548,6 +575,7 @@ export type Database = {
           race_ethnicity: string | null
           skin_color: string | null
           skin_conditions: string[] | null
+          starter_analyses_used: number
           subscription_started_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -579,6 +607,7 @@ export type Database = {
           trial_ends_at?: string | null
           trial_plan?: string | null
           trial_used_at?: string | null
+          starter_analyses_used?: number
           updated_at?: string
           user_id: string
           username?: string | null
@@ -605,11 +634,221 @@ export type Database = {
           trial_ends_at?: string | null
           trial_plan?: string | null
           trial_used_at?: string | null
+          starter_analyses_used?: number
           updated_at?: string
           user_id?: string
           username?: string | null
         }
         Relationships: []
+      }
+      credit_packs: {
+        Row: {
+          credits: number
+          expires_after_days: number | null
+          is_active: boolean
+          name: string
+          pack_id: string
+          price: number
+          sort_order: number
+          variant_key: string
+        }
+        Insert: {
+          credits: number
+          expires_after_days?: number | null
+          is_active?: boolean
+          name: string
+          pack_id: string
+          price: number
+          sort_order?: number
+          variant_key?: string
+        }
+        Update: {
+          credits?: number
+          expires_after_days?: number | null
+          is_active?: boolean
+          name?: string
+          pack_id?: string
+          price?: number
+          sort_order?: number
+          variant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_packs_variant_key_fkey"
+            columns: ["variant_key"]
+            isOneToOne: false
+            referencedRelation: "pricing_experiment_variants"
+            referencedColumns: ["variant_key"]
+          },
+        ]
+      }
+      founding_member_offers: {
+        Row: {
+          benefits: Json
+          duration_months: number | null
+          ends_at: string | null
+          grants_plan: string
+          id: string
+          is_active: boolean
+          member_cap: number
+          name: string
+          price: number
+          redeemed_count: number
+          starts_at: string
+          variant_key: string
+        }
+        Insert: {
+          benefits?: Json
+          duration_months?: number | null
+          ends_at?: string | null
+          grants_plan?: string
+          id?: string
+          is_active?: boolean
+          member_cap: number
+          name?: string
+          price: number
+          redeemed_count?: number
+          starts_at?: string
+          variant_key?: string
+        }
+        Update: {
+          benefits?: Json
+          duration_months?: number | null
+          ends_at?: string | null
+          grants_plan?: string
+          id?: string
+          is_active?: boolean
+          member_cap?: number
+          name?: string
+          price?: number
+          redeemed_count?: number
+          starts_at?: string
+          variant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founding_member_offers_variant_key_fkey"
+            columns: ["variant_key"]
+            isOneToOne: false
+            referencedRelation: "pricing_experiment_variants"
+            referencedColumns: ["variant_key"]
+          },
+        ]
+      }
+      pricing_experiment_variants: {
+        Row: {
+          created_at: string
+          description: string | null
+          is_active: boolean
+          traffic_weight: number
+          variant_key: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          traffic_weight?: number
+          variant_key: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          traffic_weight?: number
+          variant_key?: string
+        }
+        Relationships: []
+      }
+      pricing_plans: {
+        Row: {
+          badge: string | null
+          benefits: Json
+          cta_label: string
+          cta_override: string | null
+          is_purchasable: boolean
+          money_back_days: number | null
+          name: string
+          plan_id: string
+          price_annual: number
+          price_monthly: number
+          sort_order: number
+          tagline: string
+          trial_days: number
+          trial_eligible: boolean
+          updated_at: string
+          variant_key: string
+        }
+        Insert: {
+          badge?: string | null
+          benefits?: Json
+          cta_label: string
+          cta_override?: string | null
+          is_purchasable?: boolean
+          money_back_days?: number | null
+          name: string
+          plan_id: string
+          price_annual: number
+          price_monthly: number
+          sort_order?: number
+          tagline: string
+          trial_days?: number
+          trial_eligible?: boolean
+          updated_at?: string
+          variant_key?: string
+        }
+        Update: {
+          badge?: string | null
+          benefits?: Json
+          cta_label?: string
+          cta_override?: string | null
+          is_purchasable?: boolean
+          money_back_days?: number | null
+          name?: string
+          plan_id?: string
+          price_annual?: number
+          price_monthly?: number
+          sort_order?: number
+          tagline?: string
+          trial_days?: number
+          trial_eligible?: boolean
+          updated_at?: string
+          variant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_plans_variant_key_fkey"
+            columns: ["variant_key"]
+            isOneToOne: false
+            referencedRelation: "pricing_experiment_variants"
+            referencedColumns: ["variant_key"]
+          },
+        ]
+      }
+      pricing_settings: {
+        Row: {
+          default_billing_interval: string
+          free_ai_analysis_allowance: number
+          variant_key: string
+        }
+        Insert: {
+          default_billing_interval?: string
+          free_ai_analysis_allowance?: number
+          variant_key?: string
+        }
+        Update: {
+          default_billing_interval?: string
+          free_ai_analysis_allowance?: number
+          variant_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_settings_variant_key_fkey"
+            columns: ["variant_key"]
+            isOneToOne: true
+            referencedRelation: "pricing_experiment_variants"
+            referencedColumns: ["variant_key"]
+          },
+        ]
       }
       review_comments: {
         Row: {
@@ -921,6 +1160,17 @@ export type Database = {
       }
     }
     Functions: {
+      available_ai_credits: { Args: { _user_id: string }; Returns: number }
+      cancel_subscription: { Args: never; Returns: boolean }
+      claim_founding_member_slot: { Args: { p_offer_id: string }; Returns: boolean }
+      claim_starter_analysis: {
+        Args: { p_variant_key?: string }
+        Returns: {
+          allowed: boolean
+          source: string
+          remaining_free: number
+        }[]
+      }
       expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }
@@ -930,6 +1180,10 @@ export type Database = {
         }[]
       }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
+      grant_ai_credits: {
+        Args: { p_credits: number; p_expires_after_days?: number; p_reason: string; p_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -938,11 +1192,12 @@ export type Database = {
         Returns: boolean
       }
       is_member: { Args: { _user_id: string }; Returns: boolean }
+      is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
-      start_free_trial: { Args: { p_plan: string }; Returns: boolean }
+      start_free_trial: { Args: { p_plan: string; p_variant_key?: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

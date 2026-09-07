@@ -22,10 +22,17 @@ export type ConversionEvent =
   | "signup_completed"
   | "upgrade_viewed"
   | "upgrade_click"
+  | "pricing_view"
+  | "plan_selected"
   | "trial_started"
-  | "checkout_start"
+  | "checkout_started"
+  | "checkout_completed"
   | "subscription_started"
-  | "credit_purchase";
+  | "subscription_cancelled"
+  | "credit_pack_viewed"
+  | "credit_pack_purchased"
+  | "founding_member_viewed"
+  | "founding_member_purchased";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
