@@ -72,5 +72,17 @@ feature appear operational.
   means it's NOT applied) before ever reporting a migration as "applied."
   Don't assume a migration succeeded just because the SQL file exists and
   looks correct.
+- The Lovable MCP server's tool ID prefix has been observed to change
+  across reconnects within the same session (seen as both
+  `mcp__Lovable__query_database` and `mcp__<random-uuid>__query_database`).
+  If a call to a previously-working Lovable tool name fails as unknown,
+  re-run `ToolSearch` (query `"query_database"` or `"lovable"`) to find the
+  current name before concluding the connector is down.
+- The seed migration (`20260907120004_skincare_intelligence_seed.sql`,
+  ~790KB) is too large for one `query_database` call and must be applied in
+  chunks — see **`supabase/SEED_MIGRATION_STATUS.md`** for current
+  live-application progress and the exact resume procedure (including
+  `scripts/split-seed-migration-chunks.sh`, which regenerates the chunks
+  deterministically so they don't need to be committed).
 - Bun is used as a TS-native script runner for one-off ETL scripts
   (`bun run scripts/<name>.ts`), importing `.ts` data files directly.
