@@ -16,8 +16,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-/** Free-tier guard rails. */
-const MAX_ARTICLES_PER_RUN = 3;
+/** Free-tier guard rails: never more than two briefings in a single run or day. */
+const MAX_ARTICLES_PER_RUN = 2;
 /** Scheduled runs publish 1-2 briefings a day to stay inside the Firecrawl and Gemini free tiers. */
 const MAX_ARTICLES_PER_DAY = 2;
 const SCHEDULED_DEFAULT_LIMIT = 2;
@@ -286,16 +286,24 @@ Deno.serve(async (req) => {
     // Admins can top the newsroom up by hand; the daily cap only governs the cron run.
     const manualTopUp = isAdmin && body?.manual === true;
 
-    // ---- Daily rate limit ----
-    const today = new Date().toISOString().slice(0, 10);
+    // ---- Daily rate limit (per publish date; backfill targets a past day) ----
+    const rawBackfill = typeof body?.backfill_date === "string" ? body.backfill_date : null;
+    const backfillDate = rawBackfill && /^\d{4}-\d{2}-\d{2}$/.test(rawBackfill) ? rawBackfill : null;
+    const today = backfillDate ?? new Date().toISOString().slice(0, 10);
+    const { count: publishedThatDay } = await admin
+      .from("news_articles")
+      .select("id", { count: "exact", head: true })
+      .eq("publish_date", today);
     const { data: runsToday } = await admin
       .from("news_sync_runs")
       .select("articles_created")
       .eq("run_date", today);
-    const createdToday = (runsToday ?? []).reduce((sum, r: { articles_created: number | null }) => sum + (r.articles_created ?? 0), 0);
-    const remaining = manualTopUp
-      ? MAX_ARTICLES_PER_RUN
-      : Math.max(0, MAX_ARTICLES_PER_DAY - createdToday);
+    const createdToday = Math.max(
+      publishedThatDay ?? 0,
+      (runsToday ?? []).reduce((sum, r: { articles_created: number | null }) => sum + (r.articles_created ?? 0), 0),
+    );
+    // Manual top-ups still respect the daily cap so the free tier is never blown.
+    const remaining = Math.max(0, MAX_ARTICLES_PER_DAY - createdToday);
 
     if (remaining === 0) {
       return new Response(
