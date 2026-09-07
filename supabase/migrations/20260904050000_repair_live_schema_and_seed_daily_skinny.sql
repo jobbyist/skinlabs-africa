@@ -1,7 +1,279 @@
--- ===== The Daily Skinny: 3 curated feature articles + 100 original evergreen briefings =====
--- Generated content seed. Body markdown follows the house style used by newsroom-sync
--- (## headings, - bullets, 1. numbered lists only) and the Daily Skinny master blueprint's
--- mandatory briefing structure (quick answer, deep dive, key facts, SA context, FAQ, etc).
+-- ===== Live schema repair + Daily Skinny content publish (2026-09-04) =====
+--
+-- This repo's Vercel/GitHub Actions pipeline never applies supabase/migrations/*.sql to
+-- the live database (confirmed by direct read-only query against the connected Lovable
+-- project). As a result production drifted from git: everything through
+-- 20260816154046 is live, then 20260827010000 (is_premium, the free-tier Daily Skinny
+-- gating, the wider news_article_engagement kind check), 20260828120000
+-- (spotlight_brand_requests) and 20260830120000 (partner_enquiries) were never applied —
+-- 20260827010000 was also corrupted in git (spliced JS in place of a CREATE VIEW
+-- statement, fixed in this same commit) so even a full replay would have aborted on it.
+-- 20260903193542 then applied on its own, independently reimplementing the trial/AI-quota
+-- system (is_member(), ai_analysis_uses, register_ai_analysis_use()) — that system is
+-- untouched here; it already works.
+--
+-- This migration is a single, idempotent, standalone repair: every statement uses
+-- ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP ... IF
+-- EXISTS so it is safe to run against the live database regardless of exactly what state
+-- it's currently in, and safe to re-run. It restores what 20260827010000,
+-- 20260828120000 and 20260830120000 were meant to add, then publishes the 103 Daily
+-- Skinny briefings (3 curated feature articles + 100 original evergreen briefings) that
+-- were previously only ever committed as text, never actually inserted.
+
+-- ---------- Daily Skinny: is_premium + gated view ----------
+ALTER TABLE public.news_articles
+  ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT true;
+
+GRANT SELECT (is_premium) ON public.news_articles TO anon, authenticated;
+
+-- CREATE OR REPLACE VIEW cannot insert a column in the middle of an existing view's
+-- column list (only appending at the end is allowed) — the live view predates
+-- is_premium, so drop and recreate rather than replace.
+DROP VIEW IF EXISTS public.news_articles_public;
+CREATE VIEW public.news_articles_public AS
+  SELECT id, slug, title, excerpt, key_takeaways, sa_context_tag, source_name, source_url,
+         publish_date, reading_time, word_count, cover_image_url, cover_image_alt,
+         cover_credit_name, cover_credit_url, seo_title, seo_description, json_ld,
+         view_count, is_premium, created_at
+  FROM public.news_articles
+  WHERE status = 'published';
+
+ALTER VIEW public.news_articles_public SET (security_invoker = true);
+GRANT SELECT ON public.news_articles_public TO anon, authenticated;
+
+-- Allow a 'full_read' engagement kind alongside the existing like/save, used to meter
+-- the free tier's 3-full-briefings-per-week allowance.
+ALTER TABLE public.news_article_engagement DROP CONSTRAINT IF EXISTS news_article_engagement_kind_check;
+ALTER TABLE public.news_article_engagement ADD CONSTRAINT news_article_engagement_kind_check
+  CHECK (kind IN ('like', 'save', 'full_read'));
+
+-- Never existed live (this repo's own anon-device-id allowance was reverted before ever
+-- shipping) — drop defensively in case an earlier partial apply created it.
+DROP TABLE IF EXISTS public.news_anon_reads;
+
+-- Signed-out visitors: no free access. Signed-in Glow Explorer accounts: 3 full
+-- briefings per rolling 7 days (re-reads of an already-read article stay free).
+-- Members: unlimited. VOLATILE (not STABLE) because it writes to
+-- news_article_engagement — the very first version of this function was STABLE with a
+-- write, which Postgres rejects outright ("INSERT is not allowed in a non-volatile
+-- function"), so every free-tier read has been erroring rather than just rate-limiting.
+DROP FUNCTION IF EXISTS public.get_article_body(text);
+
+CREATE OR REPLACE FUNCTION public.get_article_body(p_slug text, p_device_id text DEFAULT NULL)
+RETURNS TABLE (body_markdown text, inline_images jsonb)
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_article public.news_articles%ROWTYPE;
+  v_already_read boolean;
+  v_reads_this_week int;
+BEGIN
+  SELECT * INTO v_article FROM public.news_articles a WHERE a.slug = p_slug AND a.status = 'published';
+  IF NOT FOUND THEN
+    RETURN;
+  END IF;
+
+  -- Fully public articles (e.g. SEO comparison pieces) are never gated.
+  IF v_article.is_premium = false THEN
+    RETURN QUERY SELECT v_article.body_markdown, v_article.inline_images;
+    RETURN;
+  END IF;
+
+  -- Signed-out visitors: no free access. p_device_id is accepted for backwards
+  -- compatibility with existing client calls but is no longer used for anything.
+  IF auth.uid() IS NULL THEN
+    RETURN;
+  END IF;
+
+  IF public.is_member(auth.uid()) THEN
+    RETURN QUERY SELECT v_article.body_markdown, v_article.inline_images;
+    RETURN;
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1 FROM public.news_article_engagement
+     WHERE user_id = auth.uid() AND article_id = v_article.id AND kind = 'full_read'
+  ) INTO v_already_read;
+
+  IF NOT v_already_read THEN
+    SELECT count(DISTINCT article_id) INTO v_reads_this_week
+      FROM public.news_article_engagement
+     WHERE user_id = auth.uid() AND kind = 'full_read' AND created_at > now() - interval '7 days';
+
+    IF v_reads_this_week >= 3 THEN
+      RETURN;
+    END IF;
+
+    INSERT INTO public.news_article_engagement (article_id, user_id, kind)
+    VALUES (v_article.id, auth.uid(), 'full_read')
+    ON CONFLICT (article_id, user_id, kind) DO NOTHING;
+  END IF;
+
+  RETURN QUERY SELECT v_article.body_markdown, v_article.inline_images;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_article_body(text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_article_body(text, text) TO anon, authenticated, service_role;
+
+-- ---------- Defensive: these two helpers are foundational (predate the drift point by
+-- several months) and near-certainly already live; re-declaring them is a harmless
+-- no-op if so, and makes this migration self-sufficient if not. ----------
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id
+      AND role = _role
+  )
+$$;
+
+-- ---------- Spotlight brand requests (never created live) ----------
+-- Backs the "Claim your brand" and "Submit your brand" CTAs on /spotlight and
+-- individual /spotlight/:brandSlug profiles. One unified table, discriminated by
+-- request_type, mirroring the existing business_enquiries lead-capture pattern.
+CREATE TABLE IF NOT EXISTS public.spotlight_brand_requests (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  request_type TEXT NOT NULL CHECK (request_type IN ('submit_brand', 'claim_brand')),
+  brand_name TEXT NOT NULL,
+  brand_slug TEXT,
+  role_at_brand TEXT,
+  official_website TEXT,
+  contact_name TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  contact_phone TEXT,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+GRANT INSERT ON public.spotlight_brand_requests TO anon, authenticated;
+GRANT ALL ON public.spotlight_brand_requests TO service_role;
+ALTER TABLE public.spotlight_brand_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can submit a brand request" ON public.spotlight_brand_requests;
+CREATE POLICY "Anyone can submit a brand request"
+  ON public.spotlight_brand_requests FOR INSERT TO anon, authenticated
+  WITH CHECK (
+    request_type IN ('submit_brand', 'claim_brand')
+    AND char_length(brand_name) BETWEEN 1 AND 200
+    AND char_length(contact_name) BETWEEN 1 AND 200
+    AND char_length(contact_email) BETWEEN 3 AND 255
+    AND contact_email ~* '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+    AND (brand_slug IS NULL OR char_length(brand_slug) <= 200)
+    AND (role_at_brand IS NULL OR char_length(role_at_brand) <= 200)
+    AND (official_website IS NULL OR char_length(official_website) <= 500)
+    AND (contact_phone IS NULL OR char_length(contact_phone) BETWEEN 5 AND 30)
+    AND (message IS NULL OR char_length(message) <= 4000)
+  );
+
+DROP POLICY IF EXISTS "Admins can view brand requests" ON public.spotlight_brand_requests;
+CREATE POLICY "Admins can view brand requests"
+  ON public.spotlight_brand_requests FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DROP TRIGGER IF EXISTS update_spotlight_brand_requests_updated_at ON public.spotlight_brand_requests;
+CREATE TRIGGER update_spotlight_brand_requests_updated_at
+  BEFORE UPDATE ON public.spotlight_brand_requests
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ---------- Partner enquiries (never created live) ----------
+-- Backs the pre-call enquiry form on /partners (SkinLabs Partner Program).
+CREATE TABLE IF NOT EXISTS public.partner_enquiries (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  business_name TEXT NOT NULL,
+  work_email TEXT NOT NULL,
+  website TEXT,
+  country TEXT,
+  business_type TEXT,
+  partnership_model TEXT NOT NULL CHECK (
+    partnership_model IN ('affiliate', 'editorial', 'strategic_commerce', 'not_sure')
+  ),
+  audience_size TEXT,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+GRANT INSERT ON public.partner_enquiries TO anon, authenticated;
+GRANT ALL ON public.partner_enquiries TO service_role;
+ALTER TABLE public.partner_enquiries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can submit a partner enquiry" ON public.partner_enquiries;
+CREATE POLICY "Anyone can submit a partner enquiry"
+  ON public.partner_enquiries FOR INSERT TO anon, authenticated
+  WITH CHECK (
+    char_length(full_name) BETWEEN 1 AND 200
+    AND char_length(business_name) BETWEEN 1 AND 200
+    AND char_length(work_email) BETWEEN 3 AND 255
+    AND work_email ~* '^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$'
+    AND (website IS NULL OR char_length(website) <= 500)
+    AND (country IS NULL OR char_length(country) <= 100)
+    AND (business_type IS NULL OR char_length(business_type) <= 200)
+    AND (audience_size IS NULL OR char_length(audience_size) <= 100)
+    AND (message IS NULL OR char_length(message) <= 4000)
+  );
+
+DROP POLICY IF EXISTS "Admins can view partner enquiries" ON public.partner_enquiries;
+CREATE POLICY "Admins can view partner enquiries"
+  ON public.partner_enquiries FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'));
+
+DROP TRIGGER IF EXISTS update_partner_enquiries_updated_at ON public.partner_enquiries;
+CREATE TRIGGER update_partner_enquiries_updated_at
+  BEFORE UPDATE ON public.partner_enquiries
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE OR REPLACE FUNCTION public.enforce_partner_enquiry_rate_limit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF (
+    SELECT count(*) FROM public.partner_enquiries
+    WHERE work_email = NEW.work_email
+      AND created_at > now() - interval '1 hour'
+  ) >= 3 THEN
+    RAISE EXCEPTION 'Too many partnership enquiries submitted recently. Please try again later or email support@skinlabs.co.za directly.';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS partner_enquiries_rate_limit ON public.partner_enquiries;
+CREATE TRIGGER partner_enquiries_rate_limit
+  BEFORE INSERT ON public.partner_enquiries
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_partner_enquiry_rate_limit();
+
+-- ---------- Publish The Daily Skinny: 3 curated feature articles + 100 original ----------
+-- evergreen briefings. Body markdown follows the house style used by newsroom-sync
+-- (## headings, - bullets, 1. numbered lists only) and the Daily Skinny master
+-- blueprint's mandatory briefing structure (quick answer, deep dive, key facts, SA
+-- context, FAQ, etc). 47 articles carry a unique, individually-credited real Unsplash
+-- photo (verified against its live photo page); the remaining 56 use a shared on-brand
+-- placeholder cover (public/briefing-placeholder-cover.svg) pending real images.
 
 INSERT INTO public.news_articles (
   slug, title, excerpt, body_markdown, key_takeaways, sa_context_tag,

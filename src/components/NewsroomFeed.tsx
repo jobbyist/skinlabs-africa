@@ -174,6 +174,9 @@ const NewsroomFeed = ({
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-accent to-muted" />
+                    />
                   )}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-3 py-1 text-[11px] font-semibold text-foreground backdrop-blur">
                     <MapPin className="h-3 w-3" /> {article.sa_context_tag}

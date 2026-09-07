@@ -71,7 +71,15 @@ const NewsroomArticle = () => {
     if (!article || !slug || membershipLoading) return;
     setBodyLoading(true);
     void (async () => {
-      const { data } = await supabase.rpc("get_article_body", { p_slug: slug });
+      const { data, error } = await supabase.rpc("get_article_body", { p_slug: slug });
+      if (error) {
+        console.error("get_article_body failed:", error);
+        toast.error("Couldn't load this briefing — please try again.");
+        setBody(null);
+        setInlineImages([]);
+        setBodyLoading(false);
+        return;
+      }
       const row = (Array.isArray(data) ? data[0] : null) as
         | { body_markdown?: string; inline_images?: unknown }
         | null;
@@ -191,15 +199,20 @@ const NewsroomArticle = () => {
   return (
     <>
       <Helmet>
-        <title>{(article.seo_title || article.title).slice(0, 60)}</title>
-        <meta name="description" content={(article.seo_description || article.excerpt).slice(0, 158)} />
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
         <link rel="canonical" href={canonical} />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={article.seo_title || article.title} />
-        <meta property="og:description" content={article.seo_description || article.excerpt} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
         <meta property="og:url" content={canonical} />
-        {article.cover_image_url && <meta property="og:image" content={article.cover_image_url} />}
+        <meta property="og:image" content={socialImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={socialImage} />
         {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       </Helmet>
 
