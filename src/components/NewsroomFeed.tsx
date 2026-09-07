@@ -164,12 +164,15 @@ const NewsroomFeed = ({
                 className="gradient-border-anim group flex flex-col overflow-hidden rounded-3xl border border-transparent bg-card"
               >
                 <Link to={`/newsroom/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
-                  {article.cover_image_url && (
+                  {article.cover_image_url ? (
                     <img
                       src={article.cover_image_url}
                       alt={article.cover_image_alt || article.title}
                       loading="lazy"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-accent to-muted" />
                     />
                   )}
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-3 py-1 text-[11px] font-semibold text-foreground backdrop-blur">

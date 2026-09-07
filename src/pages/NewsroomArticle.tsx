@@ -195,19 +195,29 @@ const NewsroomArticle = () => {
   }
 
   const canonical = `https://skinlabs.co.za/newsroom/${article.slug}`;
+  
+  // Ensure SEO fields are populated with fallbacks
+  const seoTitle = (article.seo_title || article.title).slice(0, 60);
+  const seoDescription = (article.seo_description || article.excerpt).slice(0, 158);
+  const socialImage = article.cover_image_url || "https://skinlabs.co.za/og-image.png";
 
   return (
     <>
       <Helmet>
-        <title>{(article.seo_title || article.title).slice(0, 60)}</title>
-        <meta name="description" content={(article.seo_description || article.excerpt).slice(0, 158)} />
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
         <link rel="canonical" href={canonical} />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={article.seo_title || article.title} />
-        <meta property="og:description" content={article.seo_description || article.excerpt} />
+        <meta property="og:title" content={seoTitle} />
+        <meta property="og:description" content={seoDescription} />
         <meta property="og:url" content={canonical} />
-        {article.cover_image_url && <meta property="og:image" content={article.cover_image_url} />}
+        <meta property="og:image" content={socialImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoTitle} />
+        <meta name="twitter:description" content={seoDescription} />
+        <meta name="twitter:image" content={socialImage} />
         {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
       </Helmet>
 

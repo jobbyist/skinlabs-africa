@@ -1,6 +1,7 @@
 /**
- * Unsplash image search with attribution, used for Daily Skinny cover and
- * in-body imagery. Falls back to null so a missing key never breaks a sync.
+ * Unsplash API integration for The Daily Skinny cover and in-body imagery.
+ * Enforces unique image selection per article with proper attribution.
+ * Falls back gracefully when API key is unavailable to prevent sync failures.
  */
 
 export interface UnsplashImage {
@@ -24,6 +25,11 @@ export async function searchUnsplash(query: string, exclude: Set<string> = new S
   const key = Deno.env.get("UNSPLASH_ACCESS_KEY");
   if (!key) return null;
 
+  // Rate limit protection: small delay between requests
+  if (exclude.size > 0) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
   const url = new URL("https://api.unsplash.com/search/photos");
   url.searchParams.set("query", query);
   url.searchParams.set("per_page", "8");
@@ -40,9 +46,16 @@ export async function searchUnsplash(query: string, exclude: Set<string> = new S
 
   const data = await res.json();
   const results: UnsplashResult[] = Array.isArray(data?.results) ? data.results : [];
-  const pick = results.find((r) => r?.id && !exclude.has(r.id)) ?? results[0];
-  if (!pick) return null;
-  exclude.add(pick.id);
+  
+  // Find first result that hasn't been used
+  const available = results.filter((r) => r?.id && !exclude.has(r.id));
+  if (available.length === 0) {
+    console.warn(`No unique Unsplash images found for query: "${query}"`);
+    return null;
+  }
+  
+  const pick = available[0];
+  if (pick?.id) exclude.add(pick.id);
 
   return {
     url: `${pick.urls?.regular ?? pick.urls?.full}`,
