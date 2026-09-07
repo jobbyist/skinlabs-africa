@@ -22,7 +22,8 @@ const SitewideSEO = () => {
 
   useEffect(() => {
     let active = true;
-    if (!articleSlug) { setArticle(null); return; }
+    setArticle(null);
+    if (!articleSlug) return;
     void (async () => {
       const { data } = await supabase.from("news_articles_public")
         .select("title, excerpt, slug, cover_image_url, seo_title, seo_description, publish_date, updated_at")
@@ -52,12 +53,10 @@ const SitewideSEO = () => {
         mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` },
       }};
     }
-
     if (faqSlug) {
       const entry = getEntryBySlug(faqSlug);
       if (entry) return { title: entry.question, description: entry.answer, canonical, ogType: "article", jsonLd: [buildFaqJsonLd([entry]), { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Knowledge Hub", item: `${SITE_URL}/knowledge-hub` }, { "@type": "ListItem", position: 2, name: entry.question, item: `${SITE_URL}${canonical}` }] }] };
     }
-
     if (reviewSlug) {
       const review = productReviews.find((r) => r.id === reviewSlug);
       if (review) {
@@ -71,27 +70,22 @@ const SitewideSEO = () => {
         } };
       }
     }
-
     if (comparisonSlug) {
       const comparison = comparisonArticles.find((c) => c.slug === comparisonSlug);
       if (comparison) return { title: `${comparison.title} | Shelf Showdown by ${BRAND}`, description: comparison.dek, canonical, ogType: "article", ogImage: absolute(comparison.thumbnail.url), jsonLd: { "@context": "https://schema.org", "@type": "Article", headline: comparison.title, description: comparison.dek, image: absolute(comparison.thumbnail.url), datePublished: comparison.publishDate, dateModified: comparison.modifiedDate, author: { "@type": "Organization", name: BRAND, url: SITE_URL }, publisher: { "@type": "Organization", name: BRAND, url: SITE_URL }, mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` } } };
     }
-
     if (podcastSlug) {
       const episode = podcastEpisodes.find((e) => e.slug === podcastSlug);
       if (episode && !episode.comingSoon) return { title: podcastEpisodeTitle(episode.title), description: episode.description, canonical, ogType: "article", ogImage: absolute(episode.image), jsonLd: { "@context": "https://schema.org", "@type": "PodcastEpisode", name: episode.title, description: episode.description, datePublished: episode.publishedAt, image: absolute(episode.image), url: `${SITE_URL}${canonical}`, partOfSeries: { "@type": "PodcastSeries", name: "The Skin Deep Series", url: `${SITE_URL}/podcast` } } };
     }
-
     if (spotlightSlug) {
       const entry = getSpotlightBrand(spotlightSlug);
       if (entry) return { title: brandProfileTitle(entry.brand), description: text(entry.editorial.whyTheyMadeTheList), canonical, ogType: "article" };
     }
-
     if (season) {
       const hub = seasonHubs[season as keyof typeof seasonHubs];
       if (hub) return { title: hub.seoTitle, description: hub.seoDescription, canonical, ogType: "article", ogImage: absolute(hub.heroImage.url) };
     }
-
     const key = Object.entries(pageSeo).find(([, value]) => value.canonicalPath === canonical)?.[1];
     return key ? { title: key.title, description: key.description, canonical, ogType: key.ogType } : null;
   }, [pathname, article, getImage]);
