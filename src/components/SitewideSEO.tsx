@@ -9,12 +9,14 @@ import { podcastEpisodes } from "@/data/podcast";
 import { getSpotlightBrand } from "@/data/spotlight";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
+import { useReviewImages } from "@/hooks/use-review-images";
 
 const text = (value: unknown) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "");
 const absolute = (value: string | undefined) => value ? (value.startsWith("http") ? value : `${SITE_URL}${value.startsWith("/") ? value : `/${value}`}`) : undefined;
 
 const SitewideSEO = () => {
   const { pathname } = useLocation();
+  const { getImage } = useReviewImages();
   const [article, setArticle] = useState<null | { title: string; excerpt: string; slug: string; cover_image_url?: string | null; seo_title?: string | null; seo_description?: string | null; publish_date?: string | null; updated_at?: string | null }>(null);
   const articleSlug = pathname.startsWith("/briefings/") ? pathname.split("/")[2] : null;
 
@@ -58,7 +60,16 @@ const SitewideSEO = () => {
 
     if (reviewSlug) {
       const review = productReviews.find((r) => r.id === reviewSlug);
-      if (review) return { title: productReviewTitle(review.product_name), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article" };
+      if (review) {
+        const image = getImage(review.id, review.category);
+        const score = review ? review.score : undefined;
+        return { title: productReviewTitle(review.product_name), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url, jsonLd: {
+          "@context": "https://schema.org", "@type": "Product", name: review.product_name, image: image?.url ? [absolute(image.url)] : undefined,
+          brand: { "@type": "Brand", name: review.brand }, category: review.category,
+          aggregateRating: score !== undefined ? { "@type": "AggregateRating", ratingValue: score, bestRating: 10, reviewCount: 1 } : undefined,
+          review: { "@type": "Review", author: { "@type": "Organization", name: BRAND }, reviewRating: { "@type": "Rating", ratingValue: score ?? 0, bestRating: 10 }, reviewBody: review.verdict },
+        } };
+      }
     }
 
     if (comparisonSlug) {
@@ -83,7 +94,7 @@ const SitewideSEO = () => {
 
     const key = Object.entries(pageSeo).find(([, value]) => value.canonicalPath === canonical)?.[1];
     return key ? { title: key.title, description: key.description, canonical, ogType: key.ogType } : null;
-  }, [pathname, article]);
+  }, [pathname, article, getImage]);
 
   if (!meta) return null;
   return <SEO title={meta.title} description={meta.description} canonical={meta.canonical} ogType={meta.ogType} ogImage={meta.ogImage} jsonLd={meta.jsonLd} />;
