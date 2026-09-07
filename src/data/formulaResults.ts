@@ -12,6 +12,9 @@
  * separate, honest upsell (see UpgradePrompt in AIFormulator.tsx).
  */
 
+import { overallScore } from "@/data/reviews";
+import type { GroundedRoutine, GroundedPick } from "@/lib/skynnProductMatch";
+
 export type FormulaSkinType = "oily" | "combination" | "normal" | "dry";
 export type FormulaConcern = "acne" | "brightening" | "aging" | "sensitivity";
 
@@ -116,6 +119,32 @@ const CONCERN_PROFILE: Record<
 };
 
 /**
+ * Monk Skin Tone (MST)-aware guidance — general, well-established dermatology
+ * knowledge about how melanin density interacts with common skincare concerns
+ * (post-inflammatory hyperpigmentation risk, UV sensitivity, sunscreen texture
+ * preferences). This is deliberately broad, non-diagnostic and unattributed to
+ * any single study — consistent with how skin-of-color dermatology guidance is
+ * commonly summarised by sources like DermNet NZ and the American Academy of
+ * Dermatology. MST is a self-reported, optional fairness signal here, never a
+ * proxy for race or ethnicity, and never the sole basis for a recommendation.
+ */
+const deriveMstSignal = (mstTone: number | null | undefined, concern: FormulaConcern): string | null => {
+  if (!mstTone || mstTone < 1 || mstTone > 10) return null;
+
+  if (mstTone >= 7) {
+    const pihNote =
+      concern === "acne" || concern === "brightening"
+        ? " Deeper skin tones are more prone to visible post-inflammatory hyperpigmentation (PIH) after breakouts or irritation, so favour gentler actives introduced slowly over picking/extracting, and treat consistent sun protection as part of fading any existing marks, not optional."
+        : "";
+    return `Melanin-rich skin (deeper Monk Skin Tone) still needs daily broad-spectrum SPF — melanin offers only partial, inconsistent UV protection, and unprotected sun exposure will worsen any pigmentation concerns.${pihNote} If a mineral sunscreen leaves a visible white cast, a tinted mineral or hybrid chemical-mineral formula is usually a better fit.`;
+  }
+  if (mstTone <= 3) {
+    return "Lighter skin tones typically burn more easily and show visible redness/irritation from new actives sooner — reapply SPF more diligently outdoors, and introduce any new active at the slower end of the schedule below.";
+  }
+  return null;
+};
+
+/**
  * Extra personalisation pulled from quiz answers the skin-type/concern matrix alone
  * doesn't cover — sensitivity, sun response, climate, actives experience, allergies
  * and stated constraints. Only two of twenty answers (Q1, Q9) previously touched this
@@ -188,6 +217,13 @@ const deriveExtraSignals = (answers: Record<string, number>): ExtraSignals => {
   return { cautionNote, spfNote, climateNote, allergyNote, constraintNote, titrationAdjustment };
 };
 
+export interface StarterAnalysisOptions {
+  /** Self-reported Monk Skin Tone (1–10), optional — never diagnostic, see deriveMstSignal. */
+  mstTone?: number | null;
+  /** Real, SkinLabs-reviewed products to name in place of generic product-type text. */
+  groundedRoutine?: GroundedRoutine | null;
+}
+
 /**
  * Builds a full markdown-shaped recommendation for the given skin type +
  * primary concern — the free-tier "starter analysis" equivalent of the
@@ -200,29 +236,46 @@ export const buildPredeterminedRecommendation = (
   skinType: FormulaSkinType,
   concern: FormulaConcern,
   answers: Record<string, number> = {},
+  options: StarterAnalysisOptions = {},
 ): string => {
   const skin = SKIN_PROFILE[skinType];
   const c = CONCERN_PROFILE[concern];
   const signals = deriveExtraSignals(answers);
+  const mstNote = deriveMstSignal(options.mstTone, concern);
+  const routine = options.groundedRoutine;
 
-  const personalisedNotes = [signals.cautionNote, signals.climateNote, signals.allergyNote, signals.constraintNote, signals.titrationAdjustment]
+  const personalisedNotes = [signals.cautionNote, signals.climateNote, signals.allergyNote, signals.constraintNote, signals.titrationAdjustment, mstNote]
     .filter((note): note is string => Boolean(note))
     .map((note) => `- ${note}`)
     .join("\n");
+
+  const findPick = (list: GroundedPick[] | undefined, slot: string) => list?.find((p) => p.slot === slot);
+  const amCleanser = findPick(routine?.am, "Cleanser");
+  const amSerum = findPick(routine?.am, "Serum");
+  const amMoisturiser = findPick(routine?.am, "Moisturiser");
+  const amSpf = findPick(routine?.am, "SPF");
+  const pmTreatment = findPick(routine?.pm, "Treatment");
+
+  const productTypesLine = routine
+    ? [amCleanser, amSerum, amMoisturiser, amSpf, pmTreatment]
+        .filter((p): p is GroundedPick => Boolean(p))
+        .map((p) => `**${p.product.brand} ${p.product.product_name}** (R${p.product.local_price_zar}, SkinLabs score ${overallScore(p.product)}/10)`)
+        .join(", ") || c.productTypes
+    : c.productTypes;
 
   return `## Your Skin Profile
 Based on your answers, your skin reads as **${skin.label}**, with your main priority being **${c.label}**. This starter analysis focuses on ${skin.texture}.
 
 ## AM Routine
-1. Cleanse with ${skin.cleanser}.
-2. Treat: ${c.amFocus}.
-3. Moisturize with ${skin.moisturizer}.
-4. SPF — every single morning, rain or shine. ${signals.spfNote}
+1. Cleanse with ${amCleanser ? `**${amCleanser.product.brand} ${amCleanser.product.product_name}**, or ${skin.cleanser}` : skin.cleanser}.
+2. Treat: ${c.amFocus}${amSerum ? ` — try **${amSerum.product.brand} ${amSerum.product.product_name}**` : ""}, then SPF.
+3. Moisturize with ${amMoisturiser ? `**${amMoisturiser.product.brand} ${amMoisturiser.product.product_name}**, or ${skin.moisturizer}` : skin.moisturizer}.
+4. SPF — every single morning, rain or shine.${amSpf ? ` **${amSpf.product.brand} ${amSpf.product.product_name}** is a SkinLabs-reviewed pick for your skin type.` : ""} ${signals.spfNote}
 
 ## PM Routine
-1. Cleanse with ${skin.cleanser}.
-2. Treat: ${c.pmFocus}.
-3. Moisturize with ${skin.moisturizer}.
+1. Cleanse with ${amCleanser ? `**${amCleanser.product.brand} ${amCleanser.product.product_name}**, or ${skin.cleanser}` : skin.cleanser}.
+2. Treat: ${c.pmFocus}${pmTreatment ? ` — try **${pmTreatment.product.brand} ${pmTreatment.product.product_name}**` : ""}, followed by your moisturizer.
+3. Moisturize with ${amMoisturiser ? `**${amMoisturiser.product.brand} ${amMoisturiser.product.product_name}**, or ${skin.moisturizer}` : skin.moisturizer}.
 
 Note: ${skin.caution}.
 
@@ -230,11 +283,46 @@ Note: ${skin.caution}.
 ${c.weeklySchedule}${signals.titrationAdjustment ? ` ${signals.titrationAdjustment}` : ""}
 
 ## Product-Type Recommendations
-Look for: ${c.productTypes}.
+${routine && (amCleanser || amSerum) ? `Real picks from SkinLabs' reviewed catalogue: ${productTypesLine}.` : `Look for: ${c.productTypes}.`}
 
 ## Ingredient Strategy
 Key actives for your priority: ${c.keyActives}. ${c.ingredientStrategy}
 ${personalisedNotes ? `\n## Notes From Your Other Answers\n${personalisedNotes}\n` : ""}
 ---
 This is your free Starter Analysis — a general match based on your quiz answers. SkinLabs Insider and VIP members get a live, dermatology-grounded AI report built specifically around your exact answers (and photo, if provided), re-analysed weekly as your skin changes.`;
+};
+
+export interface CompletenessFactor {
+  label: string;
+  value: number; // 0–100
+}
+
+export interface CompletenessBreakdown {
+  overall: number; // 0–100
+  factors: CompletenessFactor[];
+}
+
+/**
+ * A transparent, deterministic measure of how COMPLETE the inputs to this analysis
+ * were — not a validated clinical accuracy or model-confidence score. Framed and
+ * labelled honestly (see ConfidencePanel) to avoid implying a fabricated performance
+ * claim: this reflects "how much we had to work with," nothing more.
+ */
+export const computeCompleteness = (params: {
+  answeredCount: number;
+  totalQuestions: number;
+  hasPhoto: boolean;
+  hasMstTone: boolean;
+}): CompletenessBreakdown => {
+  const { answeredCount, totalQuestions, hasPhoto, hasMstTone } = params;
+  const profilePct = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+  const photoPct = hasPhoto ? 100 : 40;
+  const mstPct = hasMstTone ? 100 : 60;
+  const factors: CompletenessFactor[] = [
+    { label: "Profile completeness", value: profilePct },
+    { label: "Photo provided", value: photoPct },
+    { label: "Skin tone (MST) provided", value: mstPct },
+  ];
+  const overall = Math.round(factors.reduce((sum, f) => sum + f.value, 0) / factors.length);
+  return { overall, factors };
 };

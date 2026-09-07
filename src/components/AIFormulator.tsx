@@ -9,11 +9,24 @@ import {
   ArrowLeft,
   ImageIcon,
   Shield,
+  ShieldCheck,
   CheckCircle2,
   UserPlus,
   AlertTriangle,
   Share2,
+  Lock,
+  Layers,
+  BarChart3,
+  Sun,
+  Moon,
+  CalendarClock,
+  ShoppingBag,
+  FlaskConical,
+  Info,
+  UserRound,
+  Leaf,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -26,24 +39,44 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import AuthDialog from "@/components/AuthDialog";
+import StepperHeader from "@/components/ai-formulator/StepperHeader";
+import MstGrid from "@/components/ai-formulator/MstGrid";
+import ConfidencePanel from "@/components/ai-formulator/ConfidencePanel";
+import { MST_SCALE } from "@/data/mstScale";
 import { QUESTIONS } from "@/data/quiz";
-import { buildPredeterminedRecommendation, CONCERN_BY_Q9_VALUE } from "@/data/formulaResults";
+import {
+  buildPredeterminedRecommendation,
+  computeCompleteness,
+  CONCERN_BY_Q9_VALUE,
+  type CompletenessBreakdown,
+} from "@/data/formulaResults";
+import { pickGroundedRoutine, type GroundedRoutine } from "@/lib/skynnProductMatch";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
-// Funnel: Intro -> Consent -> Quiz questions -> optional Photo -> Analysis -> Results.
+// Funnel: Intro -> Consent -> Photo -> MST -> Quiz questions -> Analysis -> Results.
 // Anonymous visitors can reach Results without ever creating an account — "save my
 // results" (account creation) only ever appears AFTER results are shown, as an
 // optional upgrade path, never a gate in front of the analysis itself.
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
-const FIRST_QUESTION_STEP = 2;
-const LAST_QUESTION_STEP = TOTAL_QUESTIONS + 1;
-const STEP_PHOTO = TOTAL_QUESTIONS + 2;
-const STEP_ANALYSIS = TOTAL_QUESTIONS + 3;
-const STEP_RESULTS = TOTAL_QUESTIONS + 4;
+const STEP_PHOTO = 2;
+const STEP_MST = 3;
+const FIRST_QUESTION_STEP = 4;
+const LAST_QUESTION_STEP = TOTAL_QUESTIONS + 3;
+const STEP_ANALYSIS = TOTAL_QUESTIONS + 4;
+const STEP_RESULTS = TOTAL_QUESTIONS + 5;
+
+/** Which of the 4 SKYNN AI (beta) stepper phases a given step belongs to. */
+const stepPhase = (step: number): 1 | 2 | 3 | 4 => {
+  if (step <= STEP_CONSENT) return 1;
+  if (step === STEP_PHOTO) return 2;
+  if (step >= STEP_MST && step <= LAST_QUESTION_STEP) return 3;
+  return 4;
+};
 
 const AIFormulator = () => {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
@@ -51,13 +84,18 @@ const AIFormulator = () => {
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
+  const [mstTone, setMstTone] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [allowanceExhausted, setAllowanceExhausted] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
   const [resultTier, setResultTier] = useState<"free" | "premium">("free");
+  const [completeness, setCompleteness] = useState<CompletenessBreakdown | null>(null);
+  const [groundedRoutine, setGroundedRoutine] = useState<GroundedRoutine | null>(null);
   const [resultsSaved, setResultsSaved] = useState(false);
-  const [popiaConsent, setPopiaConsent] = useState(false);
+  const [consentData, setConsentData] = useState(false);
+  const [consentMst, setConsentMst] = useState(false);
+  const [consentTerms, setConsentTerms] = useState(false);
   const [photoConsent, setPhotoConsent] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -65,6 +103,7 @@ const AIFormulator = () => {
   const [authMode, setAuthMode] = useState<"signup" | "signin">("signup");
   const [authPassword, setAuthPassword] = useState("");
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
@@ -78,6 +117,9 @@ const AIFormulator = () => {
     if (q1 === 3) return "dry";
     return "normal";
   })();
+
+  /** Reactive/compromised-barrier signal (q6, q19) reused to steer product matching toward gentler picks. */
+  const isSensitiveProfile = (answers["q6"] !== undefined && answers["q6"] <= 1) || (answers["q19"] !== undefined && answers["q19"] <= 1);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -127,6 +169,7 @@ const AIFormulator = () => {
       body: {
         quizAnswers,
         skinImage: skinImage && photoConsent ? skinImage : null,
+        mstTone,
         contactName: contactName || user?.email?.split("@")[0] || "",
         contactEmail: contactEmail || user?.email || "",
       },
@@ -151,6 +194,7 @@ const AIFormulator = () => {
         email: contactEmail || user?.email || "",
         recommendation: data.recommendation,
         skinType: derivedSkinType,
+        mstTone,
       });
       toast.success("Your skincare PDF is downloaded");
     } catch {
@@ -164,9 +208,10 @@ const AIFormulator = () => {
    * quiz answers alone — no Supabase call, no account, no AI quota spent. The brief
    * artificial delay keeps the experience consistent with the live AI path rather
    * than feeling suspiciously instant. This is a genuinely complete analysis (AM/PM
-   * routine, actives schedule, product types) — not a crippled teaser — so nothing
-   * about it is hidden behind a paywall; the upgrade pitch afterward is a live,
-   * weekly-refreshed, photo-aware report, not "the rest of this same result."
+   * routine, actives schedule, product types — grounded in SkinLabs' real reviewed
+   * catalogue where a match exists) — not a crippled teaser — so nothing about it is
+   * hidden behind a paywall; the upgrade pitch afterward is a live, weekly-refreshed,
+   * photo-aware report, not "the rest of this same result."
    */
   const runStarterAnalysis = async (): Promise<boolean> => {
     // Anonymous visitors are never metered here (there's no account to meter
@@ -192,9 +237,18 @@ const AIFormulator = () => {
 
     await new Promise((resolve) => window.setTimeout(resolve, 900));
     const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
-    const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers);
+    const routine = pickGroundedRoutine(derivedSkinType, concern, { sensitive: isSensitiveProfile, mstTone });
+    const breakdown = computeCompleteness({
+      answeredCount: Object.keys(answers).length,
+      totalQuestions: TOTAL_QUESTIONS,
+      hasPhoto: Boolean(skinImage),
+      hasMstTone: mstTone !== null,
+    });
+    const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers, { mstTone, groundedRoutine: routine });
     setRecommendation(text);
     setResultTier("free");
+    setGroundedRoutine(routine);
+    setCompleteness(breakdown);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
     try {
       downloadSkincarePdf({
@@ -202,6 +256,7 @@ const AIFormulator = () => {
         email: contactEmail,
         recommendation: text,
         skinType: derivedSkinType,
+        mstTone,
       });
       toast.success("Your starter skincare PDF is downloaded");
     } catch {
@@ -263,6 +318,9 @@ const AIFormulator = () => {
             contact_name: contactName || null,
             contact_whatsapp: contactWhatsApp || null,
             status: "delivered",
+            mst_tone: mstTone,
+            mst_source: mstTone !== null ? "user_reported" : null,
+            analysis_completeness: completeness?.overall ?? null,
           });
         } catch {
           // Non-fatal — the visitor still has their downloaded PDF and on-screen result.
@@ -295,11 +353,11 @@ const AIFormulator = () => {
   };
 
   const handleShareResults = async () => {
-    const shareText = `I just got a free AI skin analysis on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
+    const shareText = `I just got a free AI skin analysis from SKYNN AI on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
     const shareUrl = "https://skinlabs.co.za/ai-formulator";
     try {
       if (navigator.share) {
-        await navigator.share({ title: "My SkinLabs skin analysis", text: shareText, url: shareUrl });
+        await navigator.share({ title: "My SKYNN AI skin analysis", text: shareText, url: shareUrl });
       } else {
         await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
         toast.success("Copied — paste it anywhere");
@@ -312,15 +370,19 @@ const AIFormulator = () => {
   const handleNext = () => {
     if (step === STEP_CONSENT) {
       trackConversionEvent("consent_completed");
+      setStep(STEP_PHOTO);
+      return;
+    }
+    if (step === STEP_PHOTO) {
+      setStep(STEP_MST);
+      return;
+    }
+    if (step === STEP_MST) {
       setStep(FIRST_QUESTION_STEP);
       return;
     }
     if (step === LAST_QUESTION_STEP) {
       trackConversionEvent("profile_completed");
-      setStep(STEP_PHOTO);
-      return;
-    }
-    if (step === STEP_PHOTO) {
       setStep(STEP_ANALYSIS);
       return;
     }
@@ -335,10 +397,15 @@ const AIFormulator = () => {
     setStep(STEP_INTRO);
     setAnswers({});
     setSkinImage(null);
+    setMstTone(null);
     setAnalysisError(null);
     setRecommendation(null);
+    setCompleteness(null);
+    setGroundedRoutine(null);
     setResultsSaved(false);
-    setPopiaConsent(false);
+    setConsentData(false);
+    setConsentMst(false);
+    setConsentTerms(false);
     setPhotoConsent(false);
     setContactName("");
     setContactEmail("");
@@ -403,42 +470,83 @@ const AIFormulator = () => {
     });
   };
 
-  const footerVisible = step >= STEP_CONSENT && step <= STEP_PHOTO;
+  /** Icon shown on each recommendation section card, inferred from its heading text. */
+  const sectionIcon = (heading: string) => {
+    const h = heading.toLowerCase();
+    if (h.includes("am ") || h.includes("morning")) return Sun;
+    if (h.includes("pm ") || h.includes("evening")) return Moon;
+    if (h.includes("weekly") || h.includes("actives schedule")) return CalendarClock;
+    if (h.includes("product")) return ShoppingBag;
+    if (h.includes("ingredient")) return FlaskConical;
+    if (h.includes("note")) return Info;
+    if (h.includes("profile")) return UserRound;
+    if (h.includes("lifestyle") || h.includes("environment")) return Leaf;
+    if (h.includes("important") || h.includes("practitioner")) return AlertTriangle;
+    return Sparkles;
+  };
+
+  /** Splits the markdown-ish recommendation into `##`-delimited sections, each rendered as its own card. */
+  const recommendationSections = (text: string) => {
+    const blocks = text.split(/\n(?=##\s)/);
+    return blocks
+      .map((block) => {
+        const lines = block.split("\n");
+        const headingLine = lines[0];
+        if (!headingLine.startsWith("##")) return { heading: null as string | null, body: block };
+        return { heading: headingLine.replace(/^##\s*/, "").replace(/\*\*/g, "").trim(), body: lines.slice(1).join("\n") };
+      })
+      .filter((s) => s.heading || s.body.trim());
+  };
+
+  const footerVisible = step >= STEP_CONSENT && step <= LAST_QUESTION_STEP;
   const footerDisabled =
-    (step === STEP_CONSENT && !popiaConsent) ||
+    (step === STEP_CONSENT && !(consentData && consentMst && consentTerms)) ||
     (currentQuestion !== null && currentAnswer === undefined) ||
     (step === STEP_PHOTO && skinImage !== null && !photoConsent);
+  const footerLabel =
+    step === LAST_QUESTION_STEP ? "See My Results" : step === STEP_PHOTO && !skinImage ? "Skip photo" : "Continue";
+
+  const mstSwatch = mstTone !== null ? MST_SCALE.find((s) => s.level === mstTone) : null;
 
   return (
     <>
       <section id="ai-formulator" className="py-20 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
-                <Sparkles className="h-4 w-4" />
-                AI-Powered Skincare Analysis
-              </div>
-              <h2 className="text-3xl md:text-4xl font-heading font-bold text-foreground mb-4">
-                Custom Skincare Formulator
-              </h2>
-              <p className="text-muted-foreground max-w-xl mx-auto">
-                Get your skin profile, an AM/PM routine, an actives schedule and product recommendations — all built around your answers.
-              </p>
-              {!isMember && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
-                  <Shield className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-muted-foreground">
-                    Free Starter Analysis, no card required, no account required •
-                    <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
-                  </span>
+            {step !== STEP_INTRO && (
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
+                  <Sparkles className="h-4 w-4" />
+                  SKYNN AI <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
                 </div>
-              )}
-            </div>
+                {step !== STEP_RESULTS && !isMember && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
+                    <Shield className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-muted-foreground">
+                      Free Starter Analysis, no card required, no account required •
+                      <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
 
-            <div className="bg-card rounded-2xl border border-border p-6 md:p-10 shadow-lg">
+            <div
+              className={cn(
+                "rounded-2xl p-6 md:p-10 shadow-lg relative overflow-hidden",
+                step === STEP_INTRO ? "bg-foreground text-background border border-transparent" : "bg-card border border-border",
+              )}
+            >
+              {step === STEP_INTRO && (
+                <>
+                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-background/10 blur-3xl pointer-events-none" />
+                  <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-background/5 blur-3xl pointer-events-none" />
+                </>
+              )}
+
               {currentQuestion && (
                 <div className="mb-8">
+                  <StepperHeader phase={stepPhase(step)} />
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Question {questionNumber} of {TOTAL_QUESTIONS}</span>
                     <span className="text-primary font-medium">{Math.round(progress)}%</span>
@@ -446,69 +554,72 @@ const AIFormulator = () => {
                   <Progress value={progress} className="h-2" />
                 </div>
               )}
+              {(step === STEP_CONSENT || step === STEP_PHOTO || step === STEP_MST) && <StepperHeader phase={stepPhase(step)} />}
 
               {step === STEP_INTRO && (
-                <div className="space-y-8 py-4">
-                  <div className="text-center space-y-4">
-                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <Sparkles className="h-10 w-10 text-primary" />
-                    </div>
-                    <h3 className="text-2xl font-heading font-bold text-card-foreground">
-                      Let's see what your skin actually needs
+                <div className="relative space-y-8 py-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-heading font-bold tracking-tight">
+                      SKYNN AI <span className="font-normal text-background/60">(beta)</span>
+                    </span>
+                    <span className="text-background/60 font-medium">SkinLabs®</span>
+                  </div>
+                  <div className="space-y-4">
+                    <h3 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
+                      Your skin.
+                      <br />
+                      Smarter care.
                     </h3>
-                    <p className="text-muted-foreground max-w-md mx-auto">
-                      Answer our {TOTAL_QUESTIONS}-question skin assessment and you'll get:
+                    <p className="text-background/70 max-w-md">
+                      AI-powered skin assessment and personalised routine formulation, built for every skin tone.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     {[
-                      "Complete skin profile (type, sensitivity, barrier status)",
-                      "AM & PM routines with exact step order",
-                      "Week-by-week actives introduction schedule",
-                      "Product-type recommendations for your climate & budget",
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
-                        <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm text-card-foreground">{item}</span>
+                      { icon: BarChart3, label: "Advanced skin analysis" },
+                      { icon: Layers, label: "Personalised routines" },
+                      { icon: ShieldCheck, label: "Dermatologist reviewed" },
+                      { icon: Lock, label: "Privacy-first" },
+                    ].map(({ icon: Icon, label }) => (
+                      <div key={label} className="flex items-center gap-3">
+                        <Icon className="h-4 w-4 text-background/70 shrink-0" />
+                        <span className="text-sm text-background/90">{label}</span>
                       </div>
                     ))}
                   </div>
-                  <Button size="lg" onClick={handleStartAnalysis} className="w-full gap-2">
-                    Start My Skin Analysis
+                  <Button
+                    size="lg"
+                    onClick={handleStartAnalysis}
+                    className="w-full gap-2 bg-background text-foreground hover:bg-background/90"
+                  >
+                    Get started
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+                  {!user && (
+                    <button
+                      type="button"
+                      onClick={() => setSignInDialogOpen(true)}
+                      className="block w-full text-center text-xs text-background/60 hover:text-background/90"
+                    >
+                      Already have an account? Sign in
+                    </button>
+                  )}
                 </div>
               )}
 
               {step === STEP_CONSENT && (
-                <div className="space-y-6 py-4">
+                <div className="space-y-6 py-2">
                   <div className="text-center space-y-3">
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                       <Shield className="h-8 w-8 text-primary" />
                     </div>
                     <h3 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
-                      Before we start — what we collect, and why
+                      Your consent &amp; privacy
                     </h3>
-                  </div>
-                  <div className="grid gap-3">
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
-                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                      <span className="text-sm text-card-foreground">
-                        Your quiz answers (skin type, concerns, lifestyle) — used only to build this analysis.
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
-                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                      <span className="text-sm text-card-foreground">
-                        A photo, only if you choose to add one shortly — asked for and consented to separately, used only for that analysis.
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/20">
-                      <CheckCircle2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                      <span className="text-sm text-card-foreground">
-                        Your email, only if you later choose to save your results or create an account.
-                      </span>
-                    </div>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      To give you the best experience, we need your consent to collect and use certain information —
+                      including images, skin tone (for fairness testing), and your responses.
+                    </p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -516,18 +627,123 @@ const AIFormulator = () => {
                       Important Disclaimer
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      This tool provides general skincare guidance and is <strong>not medical advice, diagnosis or treatment</strong>.
-                      For medical skin conditions, rashes or persistent concerns, please consult a licensed dermatologist or
-                      HPCSA-registered practitioner. Results are AI-generated, grounded in dermatology reference material.
+                      SKYNN AI (beta) provides general skincare guidance and is <strong>not medical advice, diagnosis or
+                      treatment</strong>. For medical skin conditions, rashes or persistent concerns, please consult a
+                      licensed dermatologist or HPCSA-registered practitioner.
                     </p>
                   </div>
-                  <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
-                    <Checkbox id="popia-consent" checked={popiaConsent} onCheckedChange={(checked) => setPopiaConsent(checked === true)} className="mt-0.5" />
-                    <Label htmlFor="popia-consent" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                      I consent to SkinLabs processing my quiz answers in accordance with POPIA (Protection of Personal
-                      Information Act) solely to generate this personalised skincare analysis. My data will not be sold
-                      or shared with third parties.
-                    </Label>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
+                      <Checkbox id="consent-data" checked={consentData} onCheckedChange={(c) => setConsentData(c === true)} className="mt-0.5" />
+                      <Label htmlFor="consent-data" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                        I agree to the collection and processing of my data for the purpose of skin analysis and routine
+                        formulation, in accordance with POPIA. My data will not be sold or shared with third parties.
+                      </Label>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
+                      <Checkbox id="consent-mst" checked={consentMst} onCheckedChange={(c) => setConsentMst(c === true)} className="mt-0.5" />
+                      <Label htmlFor="consent-mst" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                        I understand that my skin tone (MST) — if I choose to share it — is used for fairness and
+                        inclusion testing, not as a diagnosis.
+                      </Label>
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
+                      <Checkbox id="consent-terms" checked={consentTerms} onCheckedChange={(c) => setConsentTerms(c === true)} className="mt-0.5" />
+                      <Label htmlFor="consent-terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                        I agree to the <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a> and{" "}
+                        <a href="/terms" className="text-primary hover:underline">Terms of Service</a>, and understand SKYNN AI
+                        (beta) does not replace professional medical care.
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === STEP_PHOTO && (
+                <div className="space-y-6">
+                  <div className="text-center mb-4">
+                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                      Add a photo
+                    </h3>
+                    <p className="text-muted-foreground text-sm">
+                      Upload a clear, well-lit photo of your face (optional, but improves accuracy). No filters, no sunglasses.
+                    </p>
+                  </div>
+                  {!skinImage ? (
+                    <>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <button type="button" onClick={() => cameraInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Camera className="h-7 w-7 text-primary" /></div>
+                          <span className="font-medium text-card-foreground">Take Photo</span>
+                        </button>
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
+                          <span className="font-medium text-card-foreground">Upload Image</span>
+                        </button>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-4">
+                        <p className="text-xs font-medium text-card-foreground mb-2">Image quality tips</p>
+                        <ul className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                          {[
+                            "Good natural lighting",
+                            "Face centred and in focus",
+                            "No sunglasses or hats",
+                            "Avoid heavy filters",
+                          ].map((tip) => (
+                            <li key={tip} className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="relative rounded-xl overflow-hidden border-2 border-primary">
+                      <img src={skinImage} alt="Skin preview" className="w-full h-52 object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      <div className="absolute bottom-3 left-3 flex items-center gap-2 text-primary-foreground">
+                        <ImageIcon className="h-4 w-4" /><span className="text-sm font-medium">Photo uploaded</span>
+                      </div>
+                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="absolute top-3 right-3"><X className="h-4 w-4" /></Button>
+                    </div>
+                  )}
+                  {skinImage && (
+                    <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
+                      <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
+                      <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                        I consent to my photo being analysed by AI for skincare assessment purposes only.
+                        Photos are processed securely and deleted within 30 days. You can request deletion at any time.
+                      </Label>
+                    </div>
+                  )}
+                  <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleImageUpload} className="hidden" />
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                </div>
+              )}
+
+              {step === STEP_MST && (
+                <div className="space-y-6">
+                  <div className="text-center mb-2">
+                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                      Monk Skin Tone (MST)
+                    </h3>
+                    <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                      Which skin tone most closely represents you? This helps us test and improve AI performance
+                      across different skin tones — it does not determine your diagnosis or recommendations.
+                    </p>
+                  </div>
+                  <MstGrid value={mstTone} onChange={setMstTone} />
+                  <div className="rounded-lg bg-muted/40 p-4 flex gap-3">
+                    <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-card-foreground mb-1">Why we ask</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        We ask about your Monk Skin Tone (MST) to test and improve AI performance across different skin
+                        tones. It helps us make sure SKYNN AI works well for everyone — across all skin tones. This
+                        information does not determine your diagnosis or recommendations, and sharing it is optional.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -560,49 +776,6 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {step === STEP_PHOTO && (
-                <div className="space-y-6">
-                  <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      Upload a skin photo (optional but recommended)
-                    </h3>
-                    <p className="text-muted-foreground text-sm">A clear, well-lit front-facing photo helps our AI provide more accurate analysis</p>
-                  </div>
-                  {!skinImage ? (
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <button type="button" onClick={() => cameraInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
-                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Camera className="h-7 w-7 text-primary" /></div>
-                        <span className="font-medium text-card-foreground">Take Photo</span>
-                      </button>
-                      <button type="button" onClick={() => fileInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
-                        <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
-                        <span className="font-medium text-card-foreground">Upload Image</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="relative rounded-xl overflow-hidden border-2 border-primary">
-                      <img src={skinImage} alt="Skin preview" className="w-full h-52 object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      <div className="absolute bottom-3 left-3 flex items-center gap-2 text-primary-foreground">
-                        <ImageIcon className="h-4 w-4" /><span className="text-sm font-medium">Photo uploaded</span>
-                      </div>
-                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="absolute top-3 right-3"><X className="h-4 w-4" /></Button>
-                    </div>
-                  )}
-                  {skinImage && (
-                    <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
-                      <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
-                      <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                        I consent to my photo being analysed by AI for skincare assessment purposes only.
-                        Photos are processed securely and deleted within 30 days. You can request deletion at any time.
-                      </Label>
-                    </div>
-                  )}
-                  <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleImageUpload} className="hidden" />
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </div>
-              )}
-
               {step === STEP_ANALYSIS && (
                 <div className="text-center py-12">
                   {isLoading ? (
@@ -610,7 +783,7 @@ const AIFormulator = () => {
                       <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Reading your skin profile...</h3>
+                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h3>
                       <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
                     </>
                   ) : allowanceExhausted ? (
@@ -659,7 +832,6 @@ const AIFormulator = () => {
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
                   <div className="text-center">
-                    <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-4"><Sparkles className="h-10 w-10 text-primary" /></div>
                     <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
                       {isMember ? "Your Personalized Skincare Routine" : "Your Free Starter Analysis"}
                     </h3>
@@ -670,8 +842,56 @@ const AIFormulator = () => {
                     </p>
                   </div>
 
-                  <div className="bg-secondary/30 rounded-xl p-6 max-h-[600px] overflow-y-auto">
-                    {formatRecommendation(recommendation)}
+                  {/* Analysis Summary strip */}
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    {skinImage && (
+                      <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
+                    )}
+                    <span className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium capitalize">
+                      {derivedSkinType} skin
+                    </span>
+                    {mstSwatch && (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
+                        <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: mstSwatch.hex }} />
+                        MST {mstSwatch.level}
+                      </span>
+                    )}
+                    {completeness && (
+                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                        {completeness.overall}% complete profile
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[1fr_280px] items-start">
+                    <div className="space-y-4">
+                      {recommendationSections(recommendation).map((section, idx) => {
+                        const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
+                        return (
+                          <div key={idx} className="rounded-xl border border-border bg-secondary/20 p-5">
+                            {section.heading && (
+                              <div className="flex items-center gap-2 mb-2">
+                                <Icon className="h-4 w-4 text-primary shrink-0" />
+                                <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
+                              </div>
+                            )}
+                            <div>{formatRecommendation(section.body)}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {completeness && (
+                      <div className="lg:sticky lg:top-4">
+                        <ConfidencePanel
+                          completeness={completeness}
+                          limitations={[
+                            "May be less accurate in low light or with an unclear photo.",
+                            "Some conditions can look different across skin tones — MST helps us test for this.",
+                            "Not a substitute for professional medical advice.",
+                          ]}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-center">
@@ -753,11 +973,7 @@ const AIFormulator = () => {
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
                   <Button onClick={handleNext} disabled={footerDisabled} className="gap-2 px-6">
-                    {step === STEP_PHOTO ? (
-                      <>{skinImage ? "Analyse My Skin" : "Skip & Analyse"}<ChevronRight className="h-4 w-4" /></>
-                    ) : (
-                      <>Continue<ChevronRight className="h-4 w-4" /></>
-                    )}
+                    {footerLabel}<ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
@@ -765,6 +981,7 @@ const AIFormulator = () => {
           </div>
         </div>
       </section>
+      <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
     </>
   );
 };

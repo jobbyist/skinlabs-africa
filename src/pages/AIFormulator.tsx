@@ -8,16 +8,16 @@ const AIFormulatorPage = () => {
   return (
     <>
       <Helmet>
-        <title>AI Formulator — A Routine Built Around Your Skin | SkinLabs</title>
+        <title>SKYNN AI (beta) — Skin Assessment &amp; Routine Formulator | SkinLabs</title>
         <meta
           name="description"
-          content="Answer a few questions and get an AI-built AM/PM skincare routine, a progress tracker and dermatologist-reviewed product picks for your actual skin."
+          content="SKYNN AI (beta): an AI-powered skin assessment with Monk Skin Tone (MST) fairness testing, an AM/PM routine and product picks grounded in SkinLabs' own reviewed catalogue — free starter analysis, no card required."
         />
         <link rel="canonical" href="https://skinlabs.co.za/ai-formulator" />
-        <meta property="og:title" content="AI Formulator — A Routine Built Around Your Skin | SkinLabs" />
+        <meta property="og:title" content="SKYNN AI (beta) — Skin Assessment & Routine Formulator | SkinLabs" />
         <meta
           property="og:description"
-          content="Answer a few questions and get an AI-built routine, progress tracker and dermatologist-reviewed product picks."
+          content="An AI-powered skin assessment built for every skin tone — MST fairness testing, AM/PM routine and product picks grounded in real SkinLabs reviews."
         />
         <meta property="og:url" content="https://skinlabs.co.za/ai-formulator" />
         <meta property="og:type" content="website" />
@@ -25,19 +25,19 @@ const AIFormulatorPage = () => {
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          "name": "SkinLabs AI Skincare Formulator",
+          "name": "SKYNN AI (beta) by SkinLabs",
           "applicationCategory": "HealthApplication",
           "operatingSystem": "Web",
           "url": "https://skinlabs.co.za/ai-formulator",
-          "description": "AI-built skincare routines, a progress tracker and dermatologist-reviewed product recommendations for South African skin.",
-          "offers": { "@type": "Offer", "price": "99", "priceCurrency": "ZAR" }
+          "description": "AI-powered skin assessment and routine formulator with Monk Skin Tone fairness testing, built for every skin tone, grounded in SkinLabs' reviewed product catalogue.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "ZAR", "description": "Free Starter Analysis" }
         })}</script>
       </Helmet>
 
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20">
-          <h1 className="sr-only">AI Formulator — A Skincare Routine Built Around Your Actual Skin</h1>
+          <h1 className="sr-only">SKYNN AI (beta) — A Skincare Assessment Built for Every Skin Tone</h1>
           <div className="container mx-auto px-4 py-6">
             <AdSlot placement="ai-formulator-top" compact />
           </div>
