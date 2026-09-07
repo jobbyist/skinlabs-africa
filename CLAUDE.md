@@ -34,6 +34,22 @@ feature appear operational.
   pricing-config.ts` does variant bucketing; `paystack-payment` edge
   function is DB-driven. Pricing page and dashboard read plan config from
   the DB, not from constants in code.
+  The webhook (`supabase/functions/paystack-payment/index.ts`, the
+  `charge.success` branch) now checks the error on every grant write and
+  returns 5xx on failure instead of always "OK" — Paystack retries a
+  non-2xx delivery, which is what makes a transient DB failure self-heal
+  instead of leaving a charged user without access. That only works
+  because each grant is retry-safe: `plan` is a plain UPDATE (idempotent
+  by nature); `credit_pack` and `founding_member` are not (they
+  insert/increment), so both check whether the same payment `reference`
+  already granted before granting again — credits via a
+  reference-qualified `ai_credit_transactions.reason`, founding-member
+  slot claims via `founding_member_claims`. A founding member offer
+  selling out between checkout start and payment confirmation now
+  triggers an automatic Paystack refund instead of a manual-refund log
+  line. Keep this pattern (check the error, dedupe-before-grant on
+  anything non-idempotent, return 5xx on failure) for any future
+  purchase type added here.
 - **Skincare intelligence database** — normalized schema (brands,
   products, product_variants, product_versions, ingredients,
   product_ingredients, retailers, retailer_products, product_prices
