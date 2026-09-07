@@ -682,6 +682,35 @@ export type Database = {
           },
         ]
       }
+      founding_member_claims: {
+        Row: {
+          claimed_at: string
+          offer_id: string
+          reference: string
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          offer_id: string
+          reference: string
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          offer_id?: string
+          reference?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founding_member_claims_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "founding_member_offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       founding_member_offers: {
         Row: {
           benefits: Json

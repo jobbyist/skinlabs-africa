@@ -41,6 +41,35 @@ function safeEqual(a: string, b: string): boolean {
   return out === 0;
 }
 
+/**
+ * Fully refunds a Paystack charge. Used when a payment succeeds for a
+ * resource that turned out to be unavailable by the time the webhook fires
+ * (e.g. a founding member offer that sold out mid-checkout) — so the charge
+ * doesn't sit there needing a human to notice and refund it manually.
+ */
+async function refundPaystackCharge(
+  secretKey: string,
+  transactionReference: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const res = await fetch("https://api.paystack.co/refund", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ transaction: transactionReference }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.status) {
+      return { ok: false, error: json?.message ?? `Paystack refund request failed (${res.status})` };
+    }
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 type PurchaseType = "plan" | "credit_pack" | "founding_member";
 
 /**
@@ -198,16 +227,27 @@ Deno.serve(async (req) => {
         const paidZar = Number(event.data?.amount ?? 0) / 100;
         const expectedZar = Number(meta.expected_amount_zar ?? NaN);
         const purchaseType = meta.purchase_type as PurchaseType | undefined;
+        const reference = event.data?.reference as string | undefined;
 
-        if (!userId || !purchaseType || !(Math.abs(paidZar - expectedZar) < 0.01)) {
-          console.warn("paystack webhook: metadata or amount mismatch", { purchaseType, paidZar, expectedZar });
+        if (!userId || !purchaseType || !reference || !(Math.abs(paidZar - expectedZar) < 0.01)) {
+          console.warn("paystack webhook: metadata or amount mismatch", { purchaseType, paidZar, expectedZar, reference });
           return new Response("OK", { status: 200 });
         }
 
         const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+        // Paystack retries a webhook delivery whenever it doesn't get a 2xx response
+        // (which now includes every failure branch below), and can occasionally
+        // redeliver an already-processed event regardless. Returning 500 on a DB
+        // failure — instead of swallowing it and always answering "OK" — is what
+        // makes a transient failure self-heal instead of silently leaving a paid
+        // user without what they paid for, but it only works safely for a step
+        // that is not itself dangerous to repeat. "plan" is a plain UPDATE
+        // (idempotent by nature). "credit_pack" and "founding_member" are not —
+        // each grants by inserting/incrementing — so both explicitly check whether
+        // this exact payment reference already granted before doing so again.
         if (purchaseType === "plan") {
-          await admin
+          const { error: planError } = await admin
             .from("profiles")
             .update({
               subscription_status: meta.plan_id,
@@ -215,17 +255,84 @@ Deno.serve(async (req) => {
               billing_interval: meta.interval,
             })
             .eq("user_id", userId);
+          if (planError) {
+            console.error("paystack webhook: failed to grant plan, will retry", { reference, userId, planId: meta.plan_id, error: planError });
+            return new Response("Failed to grant plan", { status: 500 });
+          }
         } else if (purchaseType === "credit_pack") {
-          await admin.rpc("grant_ai_credits", {
-            p_user_id: userId,
-            p_reason: `purchase:${meta.pack_id}`,
-            p_credits: meta.credits,
-            p_expires_after_days: meta.expires_after_days ?? null,
-          });
+          const creditReason = `purchase:${meta.pack_id}:${reference}`;
+          const { data: existingGrant, error: existingGrantError } = await admin
+            .from("ai_credit_transactions")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("reason", creditReason)
+            .maybeSingle();
+          if (existingGrantError) {
+            console.error("paystack webhook: failed to check existing credit grant, will retry", { reference, userId, error: existingGrantError });
+            return new Response("Failed to verify credit grant state", { status: 500 });
+          }
+          if (!existingGrant) {
+            const { error: creditError } = await admin.rpc("grant_ai_credits", {
+              p_user_id: userId,
+              p_reason: creditReason,
+              p_credits: meta.credits,
+              p_expires_after_days: meta.expires_after_days ?? null,
+            });
+            if (creditError) {
+              console.error("paystack webhook: failed to grant credits, will retry", { reference, userId, packId: meta.pack_id, error: creditError });
+              return new Response("Failed to grant credits", { status: 500 });
+            }
+          }
         } else if (purchaseType === "founding_member") {
-          const { data: claimed } = await admin.rpc("claim_founding_member_slot", { p_offer_id: meta.offer_id });
-          if (claimed) {
-            await admin
+          // Has this exact payment already claimed a slot? (Distinct from the
+          // "sold out" case below — this is "did a previous, only-partially-
+          // successful delivery of this same webhook already take a slot".)
+          const { data: existingClaim, error: existingClaimError } = await admin
+            .from("founding_member_claims")
+            .select("reference")
+            .eq("reference", reference)
+            .maybeSingle();
+          if (existingClaimError) {
+            console.error("paystack webhook: failed to check founding member claim state, will retry", { reference, userId, error: existingClaimError });
+            return new Response("Failed to verify claim state", { status: 500 });
+          }
+
+          let slotClaimed = Boolean(existingClaim);
+          if (!existingClaim) {
+            // Atomic, race-safe against every other concurrent checkout for this
+            // offer (see claim_founding_member_slot in the pricing_architecture
+            // migration) — this is what actually resolves the race between
+            // "slots were available when checkout started" and "are they still
+            // available now that payment has succeeded".
+            const { data: rpcClaimed, error: claimError } = await admin.rpc("claim_founding_member_slot", {
+              p_offer_id: meta.offer_id,
+            });
+            if (claimError) {
+              console.error("paystack webhook: claim_founding_member_slot failed, will retry", { reference, userId, offerId: meta.offer_id, error: claimError });
+              return new Response("Failed to claim slot", { status: 500 });
+            }
+            slotClaimed = Boolean(rpcClaimed);
+            if (slotClaimed) {
+              const { error: recordClaimError } = await admin
+                .from("founding_member_claims")
+                .insert({ reference, offer_id: meta.offer_id, user_id: userId });
+              if (recordClaimError) {
+                // The slot itself is already claimed either way; failing the whole
+                // webhook over this bookkeeping write would risk a real double-claim
+                // if this event gets redelivered before the grant below completes.
+                // Surface it loudly instead so it can be reconciled by hand.
+                console.error("paystack webhook: claimed a founding member slot but failed to record it — check for double-claims", {
+                  reference,
+                  userId,
+                  offerId: meta.offer_id,
+                  error: recordClaimError,
+                });
+              }
+            }
+          }
+
+          if (slotClaimed) {
+            const { error: profileError } = await admin
               .from("profiles")
               .update({
                 founding_member: true,
@@ -234,15 +341,32 @@ Deno.serve(async (req) => {
                 billing_interval: "annual",
               })
               .eq("user_id", userId);
+            if (profileError) {
+              // Safe to retry: founding_member_claims already has this reference,
+              // so a redelivery skips straight back to this (idempotent) UPDATE
+              // instead of re-claiming a second slot.
+              console.error("paystack webhook: slot claimed but profile grant failed, will retry", { reference, userId, error: profileError });
+              return new Response("Failed to grant founding member status", { status: 500 });
+            }
           } else {
             // The offer sold out between checkout start and payment confirmation.
-            // The charge already succeeded on Paystack's side — this needs a
-            // manual refund; there is no automated refund flow in this pass.
-            console.error("paystack webhook: founding member slot unavailable, manual refund needed", {
-              userId,
-              offerId: meta.offer_id,
-              reference: event.data?.reference,
-            });
+            // The charge already succeeded on Paystack's side — refund it
+            // automatically instead of leaving that for someone to notice.
+            const refund = await refundPaystackCharge(secretKey, reference);
+            if (!refund.ok) {
+              console.error("paystack webhook: founding member slot unavailable AND automatic refund failed — manual refund required", {
+                userId,
+                offerId: meta.offer_id,
+                reference,
+                refundError: refund.error,
+              });
+            } else {
+              console.warn("paystack webhook: founding member slot unavailable, payment refunded automatically", {
+                userId,
+                offerId: meta.offer_id,
+                reference,
+              });
+            }
           }
         }
       }

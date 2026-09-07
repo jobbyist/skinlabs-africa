@@ -86,6 +86,11 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
 /** Granted regardless of ladder tier — the professional/B2B axis is orthogonal to it. */
 const PROFESSIONAL_ONLY_CAPABILITIES: FeatureKey[] = ["dashboard.professional_tools"];
 
+/** True if a feature is only ever unlocked by the professional/B2B flag, never by a ladder tier purchase. */
+export const isProfessionalOnlyFeature = (feature: FeatureKey): boolean =>
+  PROFESSIONAL_ONLY_CAPABILITIES.includes(feature) &&
+  !LADDER_ORDER.some((tier) => LADDER_CAPABILITIES[tier]?.includes(feature));
+
 export const TIER_LABELS: Record<AccountState, string> = {
   anonymous: "Visitor",
   free: "Glow Explorer",
@@ -115,11 +120,19 @@ export const hasCapability = (input: EntitlementInput, feature: FeatureKey): boo
   return LADDER_CAPABILITIES[input.ladderTier]?.includes(feature) ?? false;
 };
 
-/** Lowest ladder tier that unlocks a feature — for building "Upgrade to X" copy. */
-export const minimumTierFor = (feature: FeatureKey): LadderTier | null => {
+/**
+ * Cheapest account state that unlocks a feature — for building "Upgrade to X"
+ * copy. Checks the ladder first, then falls back to "professional" for
+ * features that are professional-only (see PROFESSIONAL_ONLY_CAPABILITIES) —
+ * no ladder tier purchase unlocks those, so returning null for them would
+ * leave callers with no way to name what's actually required (and no ladder
+ * tier's TIER_LABELS entry to fall back on, since none applies).
+ */
+export const minimumTierFor = (feature: FeatureKey): AccountState | null => {
   for (const tier of LADDER_ORDER) {
     if (LADDER_CAPABILITIES[tier]?.includes(feature)) return tier;
   }
+  if (PROFESSIONAL_ONLY_CAPABILITIES.includes(feature)) return "professional";
   return null;
 };
 

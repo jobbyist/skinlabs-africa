@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { TIER_LABELS, minimumTierFor, type FeatureKey } from "@/lib/entitlements";
+import { TIER_LABELS, minimumTierFor, isProfessionalOnlyFeature, type FeatureKey } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface UpgradePromptProps {
@@ -36,7 +36,10 @@ const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProp
   if (!show) return null;
 
   const requiredTier = minimumTierFor(feature);
-  const tierLabel = requiredTier ? TIER_LABELS[requiredTier] : "a paid membership";
+  // See FeatureGate.tsx: professional-only features aren't unlocked by any ladder-tier
+  // purchase, so "Unlock this with a paid membership" + a /pricing link would be wrong.
+  const professionalOnly = isProfessionalOnlyFeature(feature);
+  const tierLabel = professionalOnly ? TIER_LABELS.professional : requiredTier ? TIER_LABELS[requiredTier] : "a paid membership";
 
   return (
     <div
@@ -45,7 +48,10 @@ const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProp
       <div>
         <p className="font-heading text-sm font-bold text-foreground">{headline ?? `Unlock this with ${tierLabel}`}</p>
         <p className="text-sm text-muted-foreground">
-          {body ?? "Upgrade any time — cancel or change plans from your dashboard."}
+          {body ??
+            (professionalOnly
+              ? "This is part of SkinLabs Professional — reach out to get set up."
+              : "Upgrade any time — cancel or change plans from your dashboard.")}
         </p>
       </div>
       <Button
@@ -54,9 +60,9 @@ const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProp
         className="shrink-0 gap-2"
         onClick={() => trackConversionEvent("upgrade_click", { feature, accountState })}
       >
-        <Link to="/pricing">
+        <Link to={professionalOnly ? "/partners" : "/pricing"}>
           <Sparkles className="h-4 w-4" />
-          View plans
+          {professionalOnly ? "Learn more" : "View plans"}
         </Link>
       </Button>
     </div>

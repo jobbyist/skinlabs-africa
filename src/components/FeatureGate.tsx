@@ -1,7 +1,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import GatedOverlay from "@/components/GatedOverlay";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { TIER_LABELS, minimumTierFor, type FeatureKey } from "@/lib/entitlements";
+import { TIER_LABELS, minimumTierFor, isProfessionalOnlyFeature, type FeatureKey } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface FeatureGateProps {
@@ -44,17 +44,29 @@ const FeatureGate = ({ feature, title, message, ctaLabel, onSignIn, children }: 
   if (loading) return <>{children}</>;
 
   const requiredTier = minimumTierFor(feature);
-  const defaultTitle = requiredTier ? `${TIER_LABELS[requiredTier]} feature` : "Members only";
-  const defaultMessage = requiredTier
-    ? `Upgrade to ${TIER_LABELS[requiredTier]} to unlock this.`
-    : "Upgrade your SkinLabs membership to see the rest.";
+  // Professional-only features (e.g. dashboard.professional_tools) are never unlocked
+  // by any ladder-tier purchase — showing "Upgrade to <plan>" or sending someone to
+  // /pricing would be actively misleading, since paying for Insider/VIP still wouldn't
+  // grant access. These need their own copy and their own destination (/partners).
+  const professionalOnly = isProfessionalOnlyFeature(feature);
+  const defaultTitle = professionalOnly
+    ? "SkinLabs Professional feature"
+    : requiredTier
+      ? `${TIER_LABELS[requiredTier]} feature`
+      : "Members only";
+  const defaultMessage = professionalOnly
+    ? "This is part of SkinLabs Professional, for practitioners and partners — it isn't included in any membership plan."
+    : requiredTier
+      ? `Upgrade to ${TIER_LABELS[requiredTier]} to unlock this.`
+      : "Upgrade your SkinLabs membership to see the rest.";
 
   return (
     <GatedOverlay
       locked={locked}
       title={title ?? defaultTitle}
       message={message ?? defaultMessage}
-      ctaLabel={ctaLabel ?? "View membership plans"}
+      ctaLabel={ctaLabel ?? (professionalOnly ? "Learn about SkinLabs Professional" : "View membership plans")}
+      ctaHref={professionalOnly ? "/partners" : "/pricing"}
       onSignIn={onSignIn}
     >
       {children}
