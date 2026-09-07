@@ -141,10 +141,17 @@ Deno.serve(async (req) => {
     if (!key) throw new Error("UNSPLASH_ACCESS_KEY is not configured");
 
     const body = await req.json().catch(() => ({}));
-    const reviews: { id: string; category: string }[] = Array.isArray(body?.reviews) ? body.reviews : [];
+    // Accept either reviews: [{ id, category }] or the compact grouped: { category: [id, ...] }.
+    const grouped = body?.grouped && typeof body.grouped === "object" ? body.grouped as Record<string, string[]> : null;
+    const reviews: { id: string; category: string }[] = Array.isArray(body?.reviews)
+      ? body.reviews
+      : grouped
+        ? Object.entries(grouped).flatMap(([category, ids]) =>
+            (Array.isArray(ids) ? ids : []).map((id) => ({ id, category })))
+        : [];
     const force = body?.force === true;
     if (reviews.length === 0) {
-      return new Response(JSON.stringify({ error: "reviews[] is required" }), {
+      return new Response(JSON.stringify({ error: "reviews[] or grouped{} is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
