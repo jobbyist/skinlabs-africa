@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { BillingInterval, PlanId } from "@/data/plans";
 
-export type MembershipTier = "explorer" | "glow_lite" | "insider" | "vip";
+export type MembershipTier = "explorer" | "insider" | "vip";
 
 interface ProfileMembershipRow {
   subscription_status: string | null;
@@ -11,8 +11,6 @@ interface ProfileMembershipRow {
   trial_plan: string | null;
   trial_ends_at: string | null;
   trial_used_at: string | null;
-  founding_member: boolean | null;
-  is_professional: boolean | null;
 }
 
 const resolveTier = (row: ProfileMembershipRow | null): { tier: MembershipTier; isTrialing: boolean } => {
@@ -21,12 +19,11 @@ const resolveTier = (row: ProfileMembershipRow | null): { tier: MembershipTier; 
 
   // Active trials always take precedence
   if (status === "trial" && row.trial_ends_at && new Date(row.trial_ends_at) > new Date()) {
-    const trialTier = row.trial_plan === "vip" ? "vip" : row.trial_plan === "glow_lite" ? "glow_lite" : "insider";
+    const trialTier = row.trial_plan === "vip" ? "vip" : "insider";
     return { tier: trialTier, isTrialing: true };
   }
   // Only check paid tiers if not trialing
   if (status === "vip") return { tier: "vip", isTrialing: false };
-  if (status === "glow_lite") return { tier: "glow_lite", isTrialing: false };
   if (status === "active" || status === "insider" || status === "premium") return { tier: "insider", isTrialing: false };
   return { tier: "explorer", isTrialing: false };
 };
@@ -44,8 +41,6 @@ export const useMembership = () => {
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [trialUsed, setTrialUsed] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("monthly");
-  const [isFoundingMember, setIsFoundingMember] = useState(false);
-  const [isProfessional, setIsProfessional] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
@@ -60,17 +55,13 @@ export const useMembership = () => {
           setTrialEndsAt(null);
           setTrialUsed(false);
           setBillingInterval("monthly");
-          setIsFoundingMember(false);
-          setIsProfessional(false);
           setLoading(false);
         }
         return;
       }
       const { data } = await supabase
         .from("profiles")
-        .select(
-          "subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at, founding_member, is_professional",
-        )
+        .select("subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!active) return;
@@ -82,8 +73,6 @@ export const useMembership = () => {
       setTrialEndsAt(row?.trial_ends_at ?? null);
       setTrialUsed(Boolean(row?.trial_used_at));
       setBillingInterval((row?.billing_interval as BillingInterval) || "monthly");
-      setIsFoundingMember(Boolean(row?.founding_member));
-      setIsProfessional(Boolean(row?.is_professional));
       setLoading(false);
     };
     if (!authLoading) void load();
@@ -96,23 +85,13 @@ export const useMembership = () => {
     tier,
     loading: loading || authLoading,
     isSignedIn: Boolean(user),
-    // "isMember" gates the insider-tier content perks that predate Glow Lite (full
-    // podcast library, full review bodies, unlimited Daily Skinny, transcripts) —
-    // deliberately Insider/VIP only. Glow Lite is a real paid tier with its own,
-    // narrower benefits (unlimited comparisons, full Spotlight profiles); gate
-    // those specifically through useEntitlements().can(...) rather than here, so
-    // a "some paid tier" check never silently over-grants Glow Lite the Insider
-    // perks it isn't paying for. isPaidSubscriptionStatus (entitlements.ts) is the
-    // separate "is this account a paying customer at all" check.
-    isMember: tier === "insider" || tier === "vip",
+    isMember: tier !== "explorer",
     isVip: tier === "vip",
     isTrialing,
     trialPlan,
     trialEndsAt,
     trialUsed,
     billingInterval,
-    isFoundingMember,
-    isProfessional,
     refresh: () => setNonce((n) => n + 1),
   };
 };

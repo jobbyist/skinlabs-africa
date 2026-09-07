@@ -8,7 +8,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
-import { useEntitlements } from "@/hooks/use-entitlements";
+import { useMembership } from "@/hooks/use-membership";
 import { canReadComparison, recordComparisonRead } from "@/lib/access-quotas";
 import GatedOverlay from "@/components/GatedOverlay";
 import { useEffect } from "react";
@@ -21,10 +21,7 @@ const EDITORIAL_DISCLAIMER =
 
 const ComparisonArticle = () => {
   const { slug } = useParams();
-  // Glow Lite and above get unlimited comparisons — the underlying quota (used by
-  // free/Explorer accounts) is still tracked via canReadComparison/access-quotas.
-  const { can } = useEntitlements();
-  const isMember = can("comparisons.unlimited");
+  const { isMember } = useMembership();
   const article = getComparison(slug ?? "");
   const locked = Boolean(article) && !isMember && !canReadComparison(slug ?? "");
 
