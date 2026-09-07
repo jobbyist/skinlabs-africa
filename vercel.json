@@ -44,11 +44,11 @@
       "source": "/newsroom",
       "destination": "/briefings",
       "permanent": true
+    },
     {
       "source": "/faq",
       "destination": "/knowledge-hub",
       "permanent": true
-    },
     },
     {
       "source": "/newsroom/:slug",
