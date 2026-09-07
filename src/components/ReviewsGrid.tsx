@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
-import { getProductImage } from "@/data/productImages";
+import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
@@ -237,7 +237,7 @@ const ReviewsGrid = ({
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pageItems.map((review, index) => {
-            const productImage = getProductImage(review.category, review.id);
+            const productImage = getReviewImage(review.id, review.category);
             return (
             <motion.div
               key={review.id}

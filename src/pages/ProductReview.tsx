@@ -24,7 +24,7 @@ import {
   getSeededLikeCount,
 } from "@/data/reviews";
 import { spotlightRanking } from "@/data/spotlight";
-import { getProductImage } from "@/data/productImages";
+import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -53,7 +53,12 @@ const ProductReview = () => {
   const { user } = useAuth();
   const { isMember, isVip } = useMembership();
   const review = useMemo(() => productReviews.find((item) => item.id === slug), [slug]);
-  const productImage = useMemo(() => (review ? getProductImage(review.category, review.id) : null), [review]);
+  const { getImage: getReviewImage } = useReviewImages();
+  const productImage = useMemo(
+    () => (review ? getReviewImage(review.id, review.category) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [review, getReviewImage],
+  );
 
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState(false);
