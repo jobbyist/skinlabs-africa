@@ -83,7 +83,12 @@ feature appear operational.
   function is DB-driven. Pricing page and dashboard read plan config from
   the DB, not from constants in code. `credit_packs` includes both
   `single_1` (R25, one "Analysis Pass") and `starter_3` (R59, 3 passes) —
-  every verified charge is also logged to `payment_transactions` by the
+  `single_1` already existed on the live project with this exact
+  price/credits (name "1 Analysis Pass", not "Analysis Pass") before
+  `20260908150000_user_dashboard_redesign.sql`'s `ON CONFLICT DO NOTHING`
+  insert ran, so the row currently reads the pre-existing name; harmless
+  functionally, but don't be surprised the display name doesn't match the
+  migration file. Every verified charge is also logged to `payment_transactions` by the
   webhook (idempotent on `reference`), which is what the dashboard's
   Billing tab reads for transaction history and downloadable receipts
   (`src/lib/generateInvoicePdf.ts` — a real receipt from that row, never a
@@ -102,7 +107,12 @@ feature appear operational.
   user-authored (no fabricated products) with a simple daily-completion
   streak. The inbox (`notifications` table) is populated only by real
   server-side triggers (a new AI analysis, a credit grant, a plan change —
-  see `20260908150000_user_dashboard_redesign.sql`), never fabricated
+  see `20260908150000_user_dashboard_redesign.sql`, hardened in
+  `20260908160000_dashboard_redesign_hardening.sql` per the Supabase
+  advisors: RLS policies use `(select auth.uid())`, and the trigger
+  functions are explicitly revoked from `anon`/`authenticated` since a
+  bare `CREATE OR REPLACE FUNCTION` doesn't carry forward an earlier
+  `REVOKE`), never fabricated
   client-side; dermatologist messaging is a genuinely unshipped feature and
   is labelled "Coming soon" with a `feature_waitlist` opt-in rather than
   any working-looking chat UI. Temporary deactivation is a reversible
@@ -131,32 +141,74 @@ feature appear operational.
 
 ## Infrastructure notes
 
-- Live Supabase project ("skinlabsza") is only reachable in this
-  environment via the **Lovable MCP connector**
-  (`mcp__Lovable__query_database`, project_id
-  `3a7fffe1-a651-4cb0-9824-839db53d00ae`) — the Supabase MCP server has no
-  access to this project. `supabase/config.toml`'s `project_id`
-  (`lxbknnvzkxgmvifksyze`) is the Supabase project ref, a different ID
-  from the Lovable project_id above — don't confuse the two.
-- `mcp__Lovable__query_database` has a history of going unresponsive
-  (60s timeouts on every call, including `select 1;`) for stretches of a
-  session, while `get_database_status` on the same connector keeps
-  responding. When this happens there is currently no fallback path (no
-  service-role key in `.env`, only the anon/publishable key, and
-  Postgres DDL can't go through PostgREST anyway) — migrations get
-  written and committed but their live-application status must be
-  verified via a live REST API check
-  (`curl "$VITE_SUPABASE_URL/rest/v1/<table>?select=*&limit=1"` with the
-  publishable key — a `PGRST205` "could not find the table" response
-  means it's NOT applied) before ever reporting a migration as "applied."
-  Don't assume a migration succeeded just because the SQL file exists and
-  looks correct.
-- The Lovable MCP server's tool ID prefix has been observed to change
-  across reconnects within the same session (seen as both
-  `mcp__Lovable__query_database` and `mcp__<random-uuid>__query_database`).
-  If a call to a previously-working Lovable tool name fails as unknown,
-  re-run `ToolSearch` (query `"query_database"` or `"lovable"`) to find the
-  current name before concluding the connector is down.
+- **There are two, unrelated live databases reachable from this
+  environment — do not confuse them.** As of 2026-09-08 (verified by
+  cross-checking a write against the real production REST API, not
+  assumed):
+  1. **The real production project** — Supabase ref `gnkpzijxuciiaamakgzm`
+     ("SkinLabs® South Africa"), exactly what `.env`'s `VITE_SUPABASE_URL`
+     and `supabase/config.toml`'s `project_id` point to, and therefore
+     what the deployed app and its edge functions actually run against.
+     Reachable from this environment via the **Supabase MCP server**
+     (`mcp__Supabase__execute_sql` / `apply_migration` /
+     `deploy_edge_function` / `get_advisors` etc., `project_id
+     gnkpzijxuciiaamakgzm`) — despite older guidance in this file, the
+     Supabase MCP connector in this environment does have working access
+     to this project; don't assume otherwise without trying it fresh.
+  2. **The Lovable-native "Cloud Database"** — reachable via
+     `mcp__Lovable__query_database` (Lovable project_id
+     `3a7fffe1-a651-4cb0-9824-839db53d00ae`, the same project also
+     addressable via `mcp__Lovable__get_project`). This is Lovable's own
+     bundled Supabase-backed database, separate from #1 — most likely a
+     holdover from before the "Cut over app config to the Supabase
+     connector project" commit (04298d8) moved the app to project #1.
+     Writes made here (including DDL) succeed and are readable back
+     through the *same* `query_database` tool, but do **not** appear on
+     project #1's REST API, even for a trivial existing-row `UPDATE`, with
+     no caching layer involved (`cf-cache-status: DYNAMIC` on the REST
+     response) — this was misread as "PostgREST schema cache staleness"
+     once already; it is not that. **Do not use the Lovable connector to
+     apply or verify migrations** — anything done through it has no effect
+     on what users actually experience. Its only remaining known use is
+     inspecting the Lovable project's own metadata (name, screenshot,
+     publish status) via `get_project`/`get_database_status`, not its data.
+  Given this, always resolve the real project ref with
+  `mcp__Supabase__list_projects` (or read `.env`/`supabase/config.toml`)
+  before assuming it, rather than trusting a project ref documented here
+  or anywhere else without a fresh check — it has already changed once.
+- A migration is only "applied" once it succeeds via
+  `mcp__Supabase__apply_migration` (or `execute_sql`) against the real
+  project ref **and** a follow-up read — either
+  `mcp__Supabase__execute_sql` against `information_schema`, or better, a
+  live REST check (`curl "$VITE_SUPABASE_URL/rest/v1/<table>?select=*&limit=1"`
+  with the publishable key — a `PGRST205` "could not find the table"
+  response means it's NOT applied and reachable) — confirms it against
+  that same project. Don't report a migration as "applied" from the SQL
+  file looking correct, from a Lovable `query_database` result, or from
+  `apply_migration` returning success without also confirming which
+  project it landed on.
+- After any DDL change, run `mcp__Supabase__get_advisors` (both
+  `security` and `performance`) — it reliably catches missing FK indexes,
+  RLS policies re-evaluating `auth.<fn>()` per row instead of
+  `(select auth.<fn>())`, and SECURITY DEFINER functions left callable by
+  `anon`/`authenticated` when they shouldn't be (a plain `CREATE OR
+  REPLACE FUNCTION` does **not** carry forward a previous `REVOKE` on that
+  function — each redefinition needs its own explicit `REVOKE ALL ... FROM
+  PUBLIC, anon, authenticated` if that's still the intent). The
+  `performance` advisor's JSON response is large enough to blow the tool's
+  token budget on a database this size — expect it to save to a file and
+  `grep` that file for the specific table/pattern you care about rather
+  than requesting the whole thing.
+- Deploying an edge function for real means
+  `mcp__Supabase__deploy_edge_function` against the real project ref
+  (`gnkpzijxuciiaamakgzm`) with the function's full source inlined as
+  `files`, matching whatever `verify_jwt` setting `supabase/config.toml`
+  declares for it (this codebase's payment/auth functions all set it to
+  `false` and verify the JWT themselves inside the handler). Committing
+  the function's source to this repo does **not** deploy it — confirm with
+  `mcp__Supabase__list_edge_functions` (or a live request) that the
+  function you expect actually exists and reflects the source you just
+  committed, rather than assuming the commit was enough.
 - The seed migration (`20260907120004_skincare_intelligence_seed.sql`,
   ~790KB) is too large for one `query_database` call and must be applied in
   chunks — see **`supabase/SEED_MIGRATION_STATUS.md`** for current
@@ -182,17 +234,16 @@ feature appear operational.
   WITHOUT `.select()`/`RETURNING` from anon/authenticated context, or the
   insert itself gets rejected — don't "fix" this by loosening the SELECT
   policy just to make a debug query work.
-- The **Supabase MCP connector in this environment has zero access to the
-  SkinLabs project** — it's authenticated against a different, unrelated
-  Supabase account (`list_projects` returns only a project called
-  "Puntr"). This means no `deploy_edge_function`/`get_project`/etc. against
-  SkinLabs is possible here — confirmed by trying, not assumed. Edge
-  function source changes (e.g. `supabase/functions/skincare-ai/index.ts`)
-  get committed and pushed like any other file, but actually deploying
-  them to the live Supabase Edge Runtime requires the team's normal
-  pipeline (Lovable's sync, or `supabase functions deploy` via someone
-  with dashboard/CLI access) — never report an edge function change as
-  "live" from this environment, only "committed."
+- Earlier revisions of this file claimed "the Supabase MCP connector has
+  zero access to the SkinLabs project (only sees an unrelated project
+  called 'Puntr')." That was true at the time but is **not current** —
+  as of 2026-09-08 `mcp__Supabase__list_projects` correctly returns the
+  real `gnkpzijxuciiaamakgzm` project (see the infrastructure bullet
+  above), and edge functions can be deployed to it directly via
+  `mcp__Supabase__deploy_edge_function`. Re-verify with
+  `mcp__Supabase__list_projects` each session rather than trusting either
+  version of this claim — access here has already changed once without
+  this file being updated at the time.
 - Headless Chromium (Playwright) launched in this sandbox does **not**
   automatically route through the environment's `HTTPS_PROXY` — every
   outbound call from a real browser page (Supabase, Google Fonts, ad
