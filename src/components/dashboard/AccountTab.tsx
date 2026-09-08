@@ -38,35 +38,44 @@ const AccountTab = () => {
   const handleExport = async () => {
     if (!user) return;
     setExporting(true);
-    const [profileRes, recsRes, journeyRes, txRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("skincare_recommendations").select("created_at, skin_type, concerns").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("skin_journey_entries").select("entry_date, mood, skin_condition_rating").eq("user_id", user.id).order("entry_date", { ascending: false }),
-      supabase.from("payment_transactions").select("created_at, description, amount_zar, reference").eq("user_id", user.id).order("created_at", { ascending: false }),
-    ]);
-    const profile = profileRes.data;
-    downloadAccountDataPdf({
-      fullName: profile?.full_name ?? null,
-      email: user.email ?? "",
-      createdAt: profile?.created_at ?? user.created_at,
-      profileFields: {
-        Username: profile?.username ?? "",
-        Phone: profile?.phone ?? "",
-        "Date of birth": profile?.date_of_birth ?? "",
-        Gender: profile?.gender ?? "",
-        "Skin type (Fitzpatrick)": profile?.skin_color ?? "",
-        Address: [profile?.address_line1, profile?.address_line2, profile?.city, profile?.province, profile?.postal_code, profile?.country]
-          .filter(Boolean)
-          .join(", "),
-        Allergies: (profile?.allergies ?? []).join(", "),
-        "Skin conditions": (profile?.skin_conditions ?? []).join(", "),
-      },
-      recommendations: recsRes.data ?? [],
-      journeyEntries: journeyRes.data ?? [],
-      transactions: (txRes.data ?? []).map((t) => ({ ...t, amount_zar: Number(t.amount_zar) })),
-    });
-    setExporting(false);
-    toast.success("Your data export has downloaded.");
+    try {
+      const [profileRes, recsRes, journeyRes, txRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("skincare_recommendations").select("created_at, skin_type, concerns").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("skin_journey_entries").select("entry_date, mood, skin_condition_rating").eq("user_id", user.id).order("entry_date", { ascending: false }),
+        supabase.from("payment_transactions").select("created_at, description, amount_zar, reference").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
+      if (profileRes.error || recsRes.error || journeyRes.error || txRes.error) {
+        toast.error("Failed to fetch your data. Please try again.");
+        return;
+      }
+      const profile = profileRes.data;
+      downloadAccountDataPdf({
+        fullName: profile?.full_name ?? null,
+        email: user.email ?? "",
+        createdAt: profile?.created_at ?? user.created_at,
+        profileFields: {
+          Username: profile?.username ?? "",
+          Phone: profile?.phone ?? "",
+          "Date of birth": profile?.date_of_birth ?? "",
+          Gender: profile?.gender ?? "",
+          "Skin type (Fitzpatrick)": profile?.skin_color ?? "",
+          Address: [profile?.address_line1, profile?.address_line2, profile?.city, profile?.province, profile?.postal_code, profile?.country]
+            .filter(Boolean)
+            .join(", "),
+          Allergies: (profile?.allergies ?? []).join(", "),
+          "Skin conditions": (profile?.skin_conditions ?? []).join(", "),
+        },
+        recommendations: recsRes.data ?? [],
+        journeyEntries: journeyRes.data ?? [],
+        transactions: (txRes.data ?? []).map((t) => ({ ...t, amount_zar: Number(t.amount_zar) })),
+      });
+      toast.success("Your data export has downloaded.");
+    } catch (err) {
+      toast.error("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleDeactivate = async () => {
