@@ -1,0 +1,8 @@
+-- Wave B Daily Skinny briefings (2026-09-08).
+-- Full bodies live in content/daily-skinny/:
+--   sweaty-sa-summer-sunscreen-reapplication
+--   safari-skincare-south-africa-bush-trips
+--   highveld-altitude-uv-skin-barrier
+-- Index: src/data/dailySkinnyBriefingsSept08b2026.ts
+-- Inserts are keyed on slug. Do not insert duplicates.
+-- Apply full INSERT from editorial artifacts SQL when hydrating news_articles.
