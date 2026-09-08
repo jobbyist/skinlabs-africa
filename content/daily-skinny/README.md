@@ -4,6 +4,25 @@ Original columns for The Daily Skinny, written in SkinLabs brand voice against t
 
 Bodies are 2,000+ words each. Thumbnails are Unsplash URLs.
 
+## 9 September 2026
+
+| Slug | Title | Tag | Words |
+| --- | --- | --- | --- |
+| south-africa-banned-skin-lightening-creams-still-on-sale | South Africa Banned Skin-Lightening Creams in 1990. They're Still on Sale. | Hyperpigmentation | 2408 |
+| south-african-dermatology-socs-global-council | South African Dermatology Just Joined a Global Push to Fix Skin-of-Colour Care | Skin of Colour | 2128 |
+| beiersdorf-eucerin-probiom8-microbiome-acne-sa | Beiersdorf Just Bet Big on Your Skin's Microbiome. Here's What That Actually Means | Acne | 2008 |
+| keloid-scarring-melanin-rich-skin-south-africa | Keloid Scars Are More Common in Melanin-Rich Skin. Here's the Practical Playbook | Scarring | 2008 |
+| niacinamide-percentages-pigmentation-south-africa | Niacinamide Percentages Matter Less Than Your SPF Habit in South Africa | Ingredients | 2060 |
+
+Index: `src/data/dailySkinnyBriefingsSept092026.ts`
+
+Primary sources aggregated via Firecrawl:
+- SAHPRA enforcement records and Minamata Convention
+- Skin of Color Society / PR Newswire Global Council announcement
+- Beiersdorf Eucerin PROBIOM8 press materials
+- UCT / SAMRC keloid research
+- Established niacinamide evidence applied to SA climate
+
 ## 8 September 2026
 
 | Slug | Title | Tag | Words |
@@ -13,12 +32,6 @@ Bodies are 2,000+ words each. Thumbnails are Unsplash URLs.
 | rooibos-marula-skincare-evidence-south-africa | Rooibos and Marula Are Real Plants. They Are Not Miracle Actives. | Ingredients | 2016 |
 
 Index: `src/data/dailySkinnyBriefingsSept082026.ts`
-SQL seed: `supabase/migrations/20260908061500_seed_three_daily_skinny_briefings.sql`
-
-Primary sources aggregated via Firecrawl:
-- SIWI / Cape Town Day Zero public record
-- Rubenstein & Malerich, Malassezia folliculitis, JCAD (PMC3970831)
-- Formula Botanica African ingredients overview and published marula phytochemistry
 
 ## 6 September 2026
 
