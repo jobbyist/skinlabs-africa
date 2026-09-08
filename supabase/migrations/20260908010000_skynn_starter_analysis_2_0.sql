@@ -25,11 +25,31 @@ alter table public.skincare_recommendations
   add column if not exists client_analysis_id text,
   add column if not exists photo_storage_path text;
 
--- Idempotency key: one row per (user, client-generated analysis id). Partial
--- index so historical rows (client_analysis_id is null) are unaffected.
-create unique index if not exists skincare_recommendations_user_client_analysis_idx
-  on public.skincare_recommendations (user_id, client_analysis_id)
-  where client_analysis_id is not null;
+-- Idempotency key: one row per (user, client-generated analysis id). A plain
+-- (non-partial) unique constraint is required here, not just a unique index —
+-- PostgREST's upsert `on_conflict` param generates a bare `ON CONFLICT (user_id,
+-- client_analysis_id)`, which Postgres will only match against a constraint/index
+-- with no WHERE predicate (a partial index was tried first and rejected with
+-- 42P10 "no unique or exclusion constraint matching the ON CONFLICT specification").
+-- This still doesn't constrain historical rows with a null client_analysis_id —
+-- Postgres treats every NULL as distinct from every other NULL in a unique
+-- constraint, so no WHERE clause is needed for that.
+alter table public.skincare_recommendations
+  add constraint skincare_recommendations_user_client_analysis_key
+  unique (user_id, client_analysis_id);
+
+-- Pre-existing gap, surfaced by this migration: public.has_role() only granted
+-- EXECUTE to service_role/postgres, not authenticated. That was invisible until
+-- now because nothing previously ran an authenticated-role UPDATE (or an
+-- INSERT ... ON CONFLICT DO UPDATE, which Postgres RLS plans as if it might
+-- run one) against skincare_recommendations — the "Admins can update all
+-- recommendations" policy's USING clause calls has_role(), and Postgres must
+-- be able to evaluate every permissive policy for the command, admin policy
+-- included, even for a plain owner-only upsert with no actual conflict. The
+-- idempotent save-to-account upsert added in this migration is the first
+-- client-side path to hit that. Matches the EXECUTE grant already given to
+-- the equivalent public.is_member() helper.
+grant execute on function public.has_role(uuid, app_role) to authenticated;
 
 comment on column public.skincare_recommendations.result_payload is
   'Full Starter Analysis 2.0 structured result (Skin Story, priorities, routine strategy, context, preferences, refinement history, version stamps). Never used for RLS/auth decisions.';
