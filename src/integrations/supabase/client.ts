@@ -3,8 +3,26 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Production defaults (anon/publishable key is public by design; RLS enforces access).
+// Prefer env vars so previews / local / alternate projects can override.
+const FALLBACK_SUPABASE_URL = "https://gnkpzijxuciiaamakgzm.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdua3B6aWp4dWNpaWFhbWFrZ3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MjMzOTksImV4cCI6MjEwNDM5OTM5OX0.JFSg0IUBH1UPbKsqxctVRoPV2__SZw7u8OBbvHdId4U";
+
+const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ||
+  FALLBACK_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined)?.trim() ||
+  FALLBACK_SUPABASE_PUBLISHABLE_KEY;
+
+if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) {
+  // Avoid a hard crash (blank page) when Vercel/build env vars are missing.
+  // Log once so ops can restore proper env configuration.
+  console.warn(
+    "[supabase] VITE_SUPABASE_URL and/or VITE_SUPABASE_PUBLISHABLE_KEY missing; using production fallbacks.",
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -14,5 +32,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: brokeredPreviewStorage(),
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
 });
