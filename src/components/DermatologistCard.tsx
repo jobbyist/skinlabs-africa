@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BadgeCheck, Building2, ChevronRight, Eye, EyeOff, Mail, MapPin, MessageCircle, Phone, UserRound } from "lucide-react";
+import { BadgeCheck, Building2, ChevronRight, Eye, EyeOff, Lock, Mail, MapPin, MessageCircle, Phone, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 interface DermatologistCardProps {
   dermatologist: Dermatologist;
   index?: number;
+  /** Glow Lite/Insider/VIP only — contact reveal, messaging and full profile
+   *  details. Browsing the card itself (name, city, verified status) stays
+   *  open to anonymous and free visitors regardless of this flag. */
+  canContact: boolean;
 }
 
 const ContactRow = ({
@@ -25,28 +29,48 @@ const ContactRow = ({
   masked,
   onToggle,
   revealed,
+  locked,
 }: {
   icon: typeof Mail;
   value: string;
   masked: string;
   onToggle: () => void;
   revealed: boolean;
-}) => (
-  <button
-    type="button"
-    onClick={onToggle}
-    className="inline-flex w-full items-center gap-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
-    aria-label={revealed ? `Hide ${value}` : `Reveal contact detail`}
-  >
-    <Icon className="h-3.5 w-3.5 shrink-0" />
-    <span className="truncate">{revealed ? value : masked}</span>
-    {revealed ? <EyeOff className="h-3 w-3 shrink-0 opacity-60" /> : <Eye className="h-3 w-3 shrink-0 opacity-60" />}
-  </button>
-);
+  locked: boolean;
+}) => {
+  if (locked) {
+    return (
+      <Link
+        to="/pricing"
+        className="inline-flex w-full items-center gap-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+        aria-label="Members only — view membership plans to reveal this contact detail"
+      >
+        <Icon className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{masked}</span>
+        <Lock className="h-3 w-3 shrink-0 opacity-60" />
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="inline-flex w-full items-center gap-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground"
+      aria-label={revealed ? `Hide ${value}` : `Reveal contact detail`}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{revealed ? value : masked}</span>
+      {revealed ? <EyeOff className="h-3 w-3 shrink-0 opacity-60" /> : <Eye className="h-3 w-3 shrink-0 opacity-60" />}
+    </button>
+  );
+};
 
 /** A single dermatologist/practice listing card for the /consult directory — matches the
- *  directory template's layout (avatar, verified badge, contact rows, Message / View Profile). */
-const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps) => {
+ *  directory template's layout (avatar, verified badge, contact rows, Message / View Profile).
+ *  Browsing is open to everyone; `canContact` gates reveal/message/full-profile actions to
+ *  Glow Lite, Insider and VIP members per the entitlement model in src/lib/entitlements.ts. */
+const DermatologistCard = ({ dermatologist, index = 0, canContact }: DermatologistCardProps) => {
   const [emailRevealed, setEmailRevealed] = useState(false);
   const [phoneRevealed, setPhoneRevealed] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -97,6 +121,7 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
                 masked={maskEmail(dermatologist.email)}
                 revealed={emailRevealed}
                 onToggle={() => setEmailRevealed((v) => !v)}
+                locked={!canContact}
               />
               <ContactRow
                 icon={Phone}
@@ -104,6 +129,7 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
                 masked={maskPhone(dermatologist.phone)}
                 revealed={phoneRevealed}
                 onToggle={() => setPhoneRevealed((v) => !v)}
+                locked={!canContact}
               />
             </div>
           </div>
@@ -117,6 +143,7 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
               masked={maskEmail(dermatologist.email)}
               revealed={emailRevealed}
               onToggle={() => setEmailRevealed((v) => !v)}
+              locked={!canContact}
             />
             <ContactRow
               icon={Phone}
@@ -124,15 +151,24 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
               masked={maskPhone(dermatologist.phone)}
               revealed={phoneRevealed}
               onToggle={() => setPhoneRevealed((v) => !v)}
+              locked={!canContact}
             />
           </div>
 
           <div className="flex w-full items-center gap-2 sm:w-auto">
-            <Button asChild size="sm" className="flex-1 gap-1.5 sm:flex-none">
-              <Link to={`/contact?practitioner=${dermatologist.id}`}>
-                <MessageCircle className="h-3.5 w-3.5" /> Message
-              </Link>
-            </Button>
+            {canContact ? (
+              <Button asChild size="sm" className="flex-1 gap-1.5 sm:flex-none">
+                <Link to={`/contact?practitioner=${dermatologist.id}`}>
+                  <MessageCircle className="h-3.5 w-3.5" /> Message
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline" className="flex-1 gap-1.5 sm:flex-none">
+                <Link to="/pricing">
+                  <Lock className="h-3.5 w-3.5" /> Members only
+                </Link>
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -160,13 +196,22 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
               <MapPin className="h-4 w-4 shrink-0" /> {dermatologist.city}, {dermatologist.province}
             </p>
             <p className="inline-flex items-center gap-2 text-muted-foreground">
-              <Mail className="h-4 w-4 shrink-0" /> {dermatologist.email}
+              <Mail className="h-4 w-4 shrink-0" /> {canContact ? dermatologist.email : maskEmail(dermatologist.email)}
             </p>
             <p className="inline-flex items-center gap-2 text-muted-foreground">
-              <Phone className="h-4 w-4 shrink-0" /> {dermatologist.phone}
+              <Phone className="h-4 w-4 shrink-0" /> {canContact ? dermatologist.phone : maskPhone(dermatologist.phone)}
             </p>
 
-            {dermatologist.verified ? (
+            {!canContact ? (
+              <p className="rounded-2xl bg-muted p-3 text-xs text-muted-foreground">
+                <Lock className="mr-1 inline h-3.5 w-3.5" />
+                Full contact details and messaging are reserved for Glow Lite, Insider and VIP members.{" "}
+                <Link to="/pricing" className="font-medium text-foreground underline underline-offset-2">
+                  View membership plans
+                </Link>
+                .
+              </p>
+            ) : dermatologist.verified ? (
               <p className="rounded-2xl bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-400">
                 <BadgeCheck className="mr-1 inline h-3.5 w-3.5" />
                 Contact details verified against public professional directory records.
@@ -180,11 +225,19 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
             )}
           </div>
 
-          <Button asChild className="w-full gap-1.5">
-            <Link to={`/contact?practitioner=${dermatologist.id}`}>
-              <MessageCircle className="h-4 w-4" /> Message this listing
-            </Link>
-          </Button>
+          {canContact ? (
+            <Button asChild className="w-full gap-1.5">
+              <Link to={`/contact?practitioner=${dermatologist.id}`}>
+                <MessageCircle className="h-4 w-4" /> Message this listing
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline" className="w-full gap-1.5">
+              <Link to="/pricing">
+                <Lock className="h-4 w-4" /> Unlock messaging
+              </Link>
+            </Button>
+          )}
         </DialogContent>
       </Dialog>
     </>

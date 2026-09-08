@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sparkles, Package, Crown, FileText, Loader2, Clock, Coins, XCircle } from "lucide-react";
+import { Sparkles, Package, Crown, FileText, Loader2, Clock, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,9 @@ import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
+import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
+import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
+import ReportBugButton from "@/components/ReportBugButton";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
@@ -40,7 +43,7 @@ interface Profile {
 }
 
 interface Preorder { id: string; product_type: string; amount: number; status: string; created_at: string; }
-interface Recommendation { id: string; skin_type: string; concerns: string[]; created_at: string; status: string; }
+type Recommendation = SavedRecommendationRow;
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -51,6 +54,7 @@ const UserDashboard = () => {
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [authOpen, setAuthOpen] = useState(false);
@@ -183,16 +187,30 @@ const UserDashboard = () => {
       const [profileRes, preordersRes, recsRes, creditsRes] = await Promise.all([
         supabase.from("profiles").select("subscription_status, subscription_started_at, full_name, email").eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("skincare_recommendations").select("id, skin_type, concerns, created_at, status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        supabase
+          .from("skincare_recommendations")
+          .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10),
         supabase.rpc("available_ai_credits", { _user_id: user.id }),
       ]);
       if (profileRes.data) setProfile(profileRes.data);
       if (preordersRes.data) setPreorders(preordersRes.data);
       if (recsRes.data) setRecommendations(recsRes.data);
-      if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
+      if (creditsRes.error) setCreditsError(creditsRes.error.message);
+      else if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
       setDataLoading(false);
     })();
   }, [user]);
+
+  const retryAnalysisPassBalance = async () => {
+    if (!user) return;
+    setCreditsError(null);
+    const { data, error } = await supabase.rpc("available_ai_credits", { _user_id: user.id });
+    if (error) setCreditsError(error.message);
+    else if (typeof data === "number") setAiCredits(data);
+  };
 
   const handleCancelSubscription = async () => {
     setCancelling(true);
@@ -257,9 +275,12 @@ const UserDashboard = () => {
         <main className="pt-20">
           <section className="py-12">
             <div className="container mx-auto px-4 max-w-5xl">
-              <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
-                Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
-              </h1>
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
+                <h1 className="text-3xl font-heading font-bold text-foreground">
+                  Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
+                </h1>
+                <ReportBugButton />
+              </div>
               <p className="text-muted-foreground mb-6">{user?.email}</p>
 
               {!membershipLoading && isTrialing && (
@@ -327,7 +348,14 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <Tabs
+                value={activeTab}
+                onValueChange={(tab) => {
+                  setActiveTab(tab);
+                  if (tab === "reports") trackConversionEvent("starter_dashboard_arrived");
+                }}
+                className="space-y-6"
+              >
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -364,17 +392,12 @@ const UserDashboard = () => {
                         )}
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Coins className="h-4 w-4 text-primary" />AI Credits</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold text-foreground">{aiCredits ?? 0}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {aiCredits && aiCredits > 0 ? "Extra analyses available" : (
-                            <Link to="/pricing" className="text-primary hover:underline">Buy more analyses</Link>
-                          )}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <AnalysisPassesCard
+                      balance={aiCredits}
+                      loading={dataLoading}
+                      error={creditsError}
+                      onRetry={() => void retryAnalysisPassBalance()}
+                    />
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
                       <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
@@ -439,22 +462,8 @@ const UserDashboard = () => {
                     <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />AI Skincare Reports</CardTitle><CardDescription>Your personalized recommendations history</CardDescription></CardHeader>
                     <CardContent>
                       {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try <a href="/skynn-ai" className="text-primary hover:underline">Skin Analysis (SKYNN AI)</a>.</p> :
-                        <div className="space-y-3">
-                          {recommendations.map((rec) => (
-                            <div key={rec.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                              <div>
-                                <p className="font-medium text-foreground">{rec.skin_type} Skin</p>
-                                <div className="flex gap-1 mt-1 flex-wrap">
-                                  {rec.concerns.slice(0, 3).map((c) => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
-                                  {rec.concerns.length > 3 && <Badge variant="secondary" className="text-xs">+{rec.concerns.length - 3}</Badge>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-muted-foreground">{new Date(rec.created_at).toLocaleDateString()}</p>
-                                <Badge variant={rec.status === "delivered" ? "default" : "secondary"} className="text-xs">{rec.status}</Badge>
-                              </div>
-                            </div>
-                          ))}
+                        <div>
+                          {recommendations.map((rec) => <SavedAnalysisCard key={rec.id} rec={rec} />)}
                         </div>
                       }
                     </CardContent>

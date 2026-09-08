@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Search, SlidersHorizontal, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Search, SlidersHorizontal, ShieldCheck, Lock } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { usePageParam } from "@/hooks/use-page-param";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { dermatologists } from "@/data/dermatologists";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -24,6 +26,12 @@ const DermatologistDirectory = () => {
   const [practiceType, setPracticeType] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = usePageParam("page");
+  const { can, loading: entitlementsLoading } = useEntitlements();
+  // Browsing the directory (search, filter, listing) is open to everyone, including
+  // anonymous visitors — only contacting a listing (reveal details, message, view
+  // profile) requires Glow Lite/Insider/VIP. Default to gated while entitlements are
+  // still resolving so the buttons don't flash unlocked then lock.
+  const canContact = !entitlementsLoading && can("practitioner_directory");
 
   const filtered = useMemo(() => {
     let base = dermatologists;
@@ -202,11 +210,23 @@ const DermatologistDirectory = () => {
             </div>
           )}
 
+          {!entitlementsLoading && !canContact && pageItems.length > 0 && (
+            <div className="mb-4 flex flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center">
+              <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4 shrink-0" /> Browsing is open to everyone. Sign in as Glow Lite, Insider or
+                VIP to reveal contact details and message a listing.
+              </p>
+              <Button asChild size="sm" variant="outline" className="shrink-0">
+                <Link to="/pricing">View membership plans</Link>
+              </Button>
+            </div>
+          )}
+
           {/* Results */}
           <div className="flex flex-col gap-4">
             {pageItems.map((dermatologist, index) => (
               <div key={dermatologist.id}>
-                <DermatologistCard dermatologist={dermatologist} index={index} />
+                <DermatologistCard dermatologist={dermatologist} index={index} canContact={canContact} />
                 {index === AD_AFTER_INDEX && index < pageItems.length - 1 && (
                   <div className="my-4">
                     <AdSlot placement="consult-directory-inline" compact />

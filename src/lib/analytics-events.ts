@@ -32,7 +32,31 @@ export type ConversionEvent =
   | "credit_pack_viewed"
   | "credit_pack_purchased"
   | "founding_member_viewed"
-  | "founding_member_purchased";
+  | "founding_member_purchased"
+  // Starter Analysis 2.0 — per-question funnel + refinement/conversion detail
+  // not covered by the events above (see Section 24 of the implementation spec).
+  | "starter_question_viewed"
+  | "starter_question_answered"
+  | "starter_question_skipped"
+  | "starter_question_back"
+  | "starter_result_refined"
+  | "starter_feedback_submitted"
+  | "starter_save_cta_viewed"
+  | "starter_account_creation_failed"
+  | "starter_account_link_completed"
+  | "starter_account_link_failed"
+  | "starter_dashboard_arrived"
+  | "starter_continue_without_account"
+  | "advanced_analysis_started"
+  // Analysis Passes — genuinely new events only; purchase start/completion already
+  // reuse "checkout_started"/"credit_pack_purchased" (fired by startCreditPackCheckout
+  // and the dashboard's existing payment-success polling), and analysis completion
+  // reuses "analysis_generated" — see CLAUDE.md-style reasoning in the PR description.
+  | "advanced_analysis_cta_clicked"
+  | "analysis_pass_purchase_viewed"
+  | "analysis_pass_package_selected"
+  | "analysis_pass_used"
+  | "analysis_pass_balance_viewed";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

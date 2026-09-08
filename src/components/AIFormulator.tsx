@@ -38,50 +38,87 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import UpgradePrompt from "@/components/UpgradePrompt";
 import AuthDialog from "@/components/AuthDialog";
 import StepperHeader from "@/components/ai-formulator/StepperHeader";
 import MstGrid from "@/components/ai-formulator/MstGrid";
 import ConfidencePanel from "@/components/ai-formulator/ConfidencePanel";
+import ChangeQuestionStep from "@/components/ai-formulator/ChangeQuestionStep";
+import RoutinePreferenceStep from "@/components/ai-formulator/RoutinePreferenceStep";
+import SkinStoryCard from "@/components/ai-formulator/SkinStoryCard";
+import PriorityList from "@/components/ai-formulator/PriorityList";
+import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
+import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
+import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
+import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
+import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { MST_SCALE } from "@/data/mstScale";
 import { QUESTIONS } from "@/data/quiz";
-import {
-  buildPredeterminedRecommendation,
-  computeCompleteness,
-  CONCERN_BY_Q9_VALUE,
-  type CompletenessBreakdown,
-} from "@/data/formulaResults";
-import { pickGroundedRoutine, type GroundedRoutine } from "@/lib/skynnProductMatch";
+import { CHANGE_QUESTION } from "@/data/starter-analysis/contextQuestions";
+import { type CompletenessBreakdown } from "@/data/formulaResults";
+import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { logFairnessEvent } from "@/lib/skynnFairness";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
+import { assembleStarterAnalysisResult } from "@/lib/starter-analysis/resultEngine";
+import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
+import {
+  applyAdjustmentsToPreferences,
+  applyAdjustmentsToProfile,
+  computeRefinementAdjustments,
+} from "@/lib/starter-analysis/refinement";
+import {
+  clearAllStarterAnalysisState,
+  loadCompletedState,
+  loadDraftState,
+  persistStarterResultToAccount,
+  saveCompletedState,
+  saveDraftState,
+  uploadAnalysisPhoto,
+} from "@/lib/starter-analysis/persistence";
+import type {
+  ChangeContext,
+  ConcernKey,
+  PriorityPreference,
+  RefinementAccuracy,
+  RefinementEvent,
+  RefinementReason,
+  SkinChangeStatus,
+  StarterAnalysisResult,
+} from "@/lib/starter-analysis/types";
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
-// Funnel: Intro -> Consent -> Photo -> MST -> Quiz questions -> Analysis -> Results.
-// Anonymous visitors can reach Results without ever creating an account — "save my
-// results" (account creation) only ever appears AFTER results are shown, as an
-// optional upgrade path, never a gate in front of the analysis itself.
+// Funnel: Intro -> Consent -> Photo -> MST -> Quiz questions -> What Changed ->
+// Routine preference -> Analysis -> Results. Anonymous visitors can reach
+// Results without ever creating an account — "save my results" (account
+// creation) only ever appears AFTER results are shown, as an optional upgrade
+// path, never a gate in front of the analysis itself.
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
 const STEP_MST = 3;
 const FIRST_QUESTION_STEP = 4;
 const LAST_QUESTION_STEP = TOTAL_QUESTIONS + 3;
-const STEP_ANALYSIS = TOTAL_QUESTIONS + 4;
-const STEP_RESULTS = TOTAL_QUESTIONS + 5;
+const STEP_CHANGE = TOTAL_QUESTIONS + 4;
+const STEP_ROUTINE_PREF = TOTAL_QUESTIONS + 5;
+const STEP_ANALYSIS = TOTAL_QUESTIONS + 6;
+const STEP_RESULTS = TOTAL_QUESTIONS + 7;
 
 /** Which of the 4 SKYNN AI (beta) stepper phases a given step belongs to. */
 const stepPhase = (step: number): 1 | 2 | 3 | 4 => {
   if (step <= STEP_CONSENT) return 1;
   if (step === STEP_PHOTO) return 2;
-  if (step >= STEP_MST && step <= LAST_QUESTION_STEP) return 3;
+  if (step >= STEP_MST && step <= STEP_ROUTINE_PREF) return 3;
   return 4;
 };
 
 const AIFormulator = () => {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { isMember } = useMembership();
+  const { can: canEntitlement } = useEntitlements();
+  const { balance: passBalance, loading: passBalanceLoading, refresh: refreshPassBalance } = useAnalysisPassBalance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
@@ -94,6 +131,9 @@ const AIFormulator = () => {
   const [completeness, setCompleteness] = useState<CompletenessBreakdown | null>(null);
   const [groundedRoutine, setGroundedRoutine] = useState<GroundedRoutine | null>(null);
   const [resultsSaved, setResultsSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveAttempt, setSaveAttempt] = useState(0);
+  const [saveCtaDismissed, setSaveCtaDismissed] = useState(false);
   const [consentData, setConsentData] = useState(false);
   const [consentMst, setConsentMst] = useState(false);
   const [consentTerms, setConsentTerms] = useState(false);
@@ -105,10 +145,22 @@ const AIFormulator = () => {
   const [authPassword, setAuthPassword] = useState("");
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
+  // Starter Analysis 2.0 — What Changed / Routine Reality Check answers, the
+  // deterministic result object, and its refinement history.
+  const [analysisId, setAnalysisId] = useState<string>(() => crypto.randomUUID());
+  const [changeStatus, setChangeStatus] = useState<SkinChangeStatus | null>(null);
+  const [changeDetail, setChangeDetail] = useState("");
+  const [priorityPreference, setPriorityPreference] = useState<PriorityPreference | null>(null);
+  const [starterResult, setStarterResult] = useState<StarterAnalysisResult | null>(null);
+  const [passPurchaseOpen, setPassPurchaseOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
   const viewedFiredRef = useRef(false);
+  const restoredRef = useRef(false);
+  const saveCtaViewedRef = useRef(false);
+  /** Set just before jumping to STEP_ANALYSIS to run an Analysis-Pass-funded Advanced Analysis instead of the default free/member path — see runAnalysis(). */
+  const useAdvancedPassRef = useRef(false);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -149,22 +201,34 @@ const AIFormulator = () => {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
-  const runLiveAnalysis = async (): Promise<boolean> => {
-    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
-    if (quotaError) {
-      setAnalysisError("Couldn't check your analysis quota — please try again.");
-      return false;
-    }
-    if (quotaAllowed === false) {
-      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
-      return false;
-    }
-
+  /**
+   * Shared with both entry points into the live skincare-ai edge function —
+   * paying/trialing members (runLiveAnalysis) and Glow Explorer Analysis
+   * Pass holders (runAdvancedAnalysisWithPass). Only the gating step before
+   * this (membership quota vs. pass consumption) differs between the two.
+   */
+  const invokeAdvancedAnalysis = async (): Promise<boolean> => {
     const quizAnswers = QUESTIONS.map((q) => ({
       question: q.title,
       answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
     }));
+
+    // Advanced handoff (Section 20): if a Starter Analysis already ran this session (or was
+    // restored from localStorage after upgrading), pass its structured output through so the
+    // live model builds on it instead of re-deriving everything from the raw quiz answers.
+    const starterContext = starterResult
+      ? {
+          skinStoryNarrative: starterResult.skinStory.narrative,
+          priorities: starterResult.priorities.items.map((p) => ({
+            label: priorityLabel(p.key),
+            level: p.level,
+            reason: p.reason,
+          })),
+          changeSummary: starterResult.context.status ? CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label ?? null : null,
+          routineComplexity: starterResult.preferences.complexity,
+          priorityPreference: starterResult.preferences.priority,
+        }
+      : null;
 
     const { data, error } = await supabase.functions.invoke("skincare-ai", {
       body: {
@@ -173,6 +237,7 @@ const AIFormulator = () => {
         mstTone,
         contactName: contactName || user?.email?.split("@")[0] || "",
         contactEmail: contactEmail || user?.email || "",
+        starterContext,
       },
     });
 
@@ -202,6 +267,51 @@ const AIFormulator = () => {
       toast.message("Your report is ready — PDF download didn't work this time, but your results are below.");
     }
     return true;
+  };
+
+  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
+  const runLiveAnalysis = async (): Promise<boolean> => {
+    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
+    if (quotaError) {
+      setAnalysisError("Couldn't check your analysis quota — please try again.");
+      return false;
+    }
+    if (quotaAllowed === false) {
+      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
+      return false;
+    }
+    return invokeAdvancedAnalysis();
+  };
+
+  /**
+   * Glow Explorer path: an Analysis Pass unlocks one Advanced Skin Analysis run
+   * through the same live edge function members use. The pass is consumed
+   * server-side (consume_analysis_pass, atomic) *before* the call so a double
+   * click or retry can't spend two passes on one analysis; if the edge function
+   * call itself then fails, the pass is refunded (Section 7/17 — never charge
+   * for a failed analysis) via the matching, ownership-verified RPC.
+   */
+  const runAdvancedAnalysisWithPass = async (): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("consume_analysis_pass");
+    const claim = Array.isArray(data) ? data[0] : data;
+    if (error) {
+      setAnalysisError("Couldn't check your Analysis Pass balance — please try again.");
+      return false;
+    }
+    if (!claim?.allowed) {
+      setAnalysisError("You don't have an Analysis Pass available right now.");
+      return false;
+    }
+
+    const ok = await invokeAdvancedAnalysis();
+    if (!ok) {
+      await supabase.rpc("refund_analysis_pass", { p_transaction_id: claim.transaction_id });
+      toast.message("Your Analysis Pass wasn't used — nothing was charged for that attempt.");
+    } else {
+      trackConversionEvent("analysis_pass_used");
+    }
+    void refreshPassBalance();
+    return ok;
   };
 
   /**
@@ -237,36 +347,39 @@ const AIFormulator = () => {
     }
 
     await new Promise((resolve) => window.setTimeout(resolve, 900));
-    const concern = CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity";
-    const routine = pickGroundedRoutine(derivedSkinType, concern, { sensitive: isSensitiveProfile, mstTone });
-    const breakdown = computeCompleteness({
-      answeredCount: Object.keys(answers).length,
-      totalQuestions: TOTAL_QUESTIONS,
+    const context: ChangeContext = { status: changeStatus, detail: changeDetail.trim() || null };
+    const result = assembleStarterAnalysisResult({
+      analysisId,
+      answers,
+      mstTone,
       hasPhoto: Boolean(skinImage),
-      hasMstTone: mstTone !== null,
+      context,
+      priorityPreference,
+      revealProducts: canEntitlement("ai_analysis.routine_builder"),
     });
-    const text = buildPredeterminedRecommendation(derivedSkinType, concern, answers, { mstTone, groundedRoutine: routine });
-    setRecommendation(text);
+    setStarterResult(result);
+    setRecommendation(result.recommendationText);
     setResultTier("free");
-    setGroundedRoutine(routine);
-    setCompleteness(breakdown);
+    setGroundedRoutine(result.groundedRoutine);
+    setCompleteness(result.completeness);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
     void logFairnessEvent({
       source: "starter",
       resultTier: "free",
-      skinType: derivedSkinType,
+      skinType: result.skinType,
       mstTone,
       hadPhoto: Boolean(skinImage),
-      completenessScore: breakdown.overall,
-      groundedMatchCount: routine.matchStats.matched,
-      groundedMatchAttempted: routine.matchStats.attempted,
+      completenessScore: result.completeness.overall,
+      groundedMatchCount: result.groundedRoutine.matchStats.matched,
+      groundedMatchAttempted: result.groundedRoutine.matchStats.attempted,
     });
+    saveCompletedState({ analysisId, answers, mstTone, context, result, savedAt: new Date().toISOString() });
     try {
       downloadSkincarePdf({
         clientName: contactName || "Client",
         email: contactEmail,
-        recommendation: text,
-        skinType: derivedSkinType,
+        recommendation: result.recommendationText,
+        skinType: result.skinType,
         mstTone,
       });
       toast.success("Your starter skincare PDF is downloaded");
@@ -276,18 +389,78 @@ const AIFormulator = () => {
     return true;
   };
 
+  /** Re-runs the deterministic pipeline with feedback-derived adjustments — see refinement.ts. */
+  const handleRefinementSubmit = (evt: {
+    accuracy: RefinementAccuracy;
+    reason: RefinementReason | null;
+    otherConcern?: ConcernKey | null;
+  }) => {
+    trackConversionEvent("starter_feedback_submitted", { accuracy: evt.accuracy, reason: evt.reason ?? "" });
+    if (evt.accuracy !== "not_quite" || !evt.reason || !starterResult) return;
+
+    const adjustments = computeRefinementAdjustments(evt.reason, evt.otherConcern ?? null);
+    const nextPreferences = applyAdjustmentsToPreferences(starterResult.preferences, adjustments);
+    const nextProfile = applyAdjustmentsToProfile(starterResult.profile, adjustments);
+    const refinementEvent: RefinementEvent = {
+      accuracy: evt.accuracy,
+      reason: evt.reason,
+      otherConcern: evt.otherConcern ?? null,
+      appliedAt: new Date().toISOString(),
+    };
+
+    const nextResult = assembleStarterAnalysisResult({
+      analysisId,
+      answers,
+      mstTone,
+      hasPhoto: Boolean(skinImage),
+      context: starterResult.context,
+      priorityPreference,
+      revealProducts: canEntitlement("ai_analysis.routine_builder"),
+      profileOverride: nextProfile,
+      preferencesOverride: nextPreferences,
+      refinementHistory: [...starterResult.refinementHistory, refinementEvent],
+    });
+
+    setStarterResult(nextResult);
+    setRecommendation(nextResult.recommendationText);
+    setCompleteness(nextResult.completeness);
+    setGroundedRoutine(nextResult.groundedRoutine);
+    saveCompletedState({ analysisId, answers, mstTone, context: starterResult.context, result: nextResult, savedAt: new Date().toISOString() });
+    trackConversionEvent("starter_result_refined", { reason: evt.reason });
+    // Let a previously-saved account row pick up the refined result.
+    setResultsSaved(false);
+    savingResultsRef.current = false;
+    // "Doesn't match my skin" has no deterministic adjustment to apply — surface its
+    // guidance note instead of the generic "updated" toast (see refinement.ts).
+    if (adjustments.note) toast.message(adjustments.note);
+    else toast.success("Updated your result based on your feedback");
+  };
+
   const runAnalysis = async () => {
     setIsLoading(true);
     setAnalysisError(null);
     setAllowanceExhausted(false);
     try {
-      const ok = isMember ? await runLiveAnalysis() : await runStarterAnalysis();
+      const ok = isMember
+        ? await runLiveAnalysis()
+        : useAdvancedPassRef.current
+          ? await runAdvancedAnalysisWithPass()
+          : await runStarterAnalysis();
+      useAdvancedPassRef.current = false;
       if (ok) setStep(STEP_RESULTS);
     } catch {
+      useAdvancedPassRef.current = false;
       setAnalysisError("Something went wrong on our end — please try again.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  /** "Use an Analysis Pass" CTA on the Starter Analysis results screen (Explorer users only). */
+  const handleUseAnalysisPass = () => {
+    trackConversionEvent("advanced_analysis_cta_clicked", { cta: "use_pass" });
+    useAdvancedPassRef.current = true;
+    setStep(STEP_ANALYSIS);
   };
 
   // Kick off generation the moment the visitor reaches the Analysis step.
@@ -314,34 +487,98 @@ const AIFormulator = () => {
   // Save the result to the account the moment one exists — whether the visitor was
   // already signed in, or just created/logged into an account from the results
   // screen below. The live-AI path already persists server-side (skincare-ai), so
-  // only the free/starter path needs a client-side insert here to avoid a duplicate.
+  // only the free/starter path needs a client-side save here. Idempotent: keyed on
+  // `analysisId` via an upsert, so a refinement re-save or a retried save after a
+  // network error updates the same row instead of creating a duplicate (Section 18).
   useEffect(() => {
     if (step !== STEP_RESULTS || !recommendation || !user || resultsSaved || savingResultsRef.current) return;
     savingResultsRef.current = true;
     (async () => {
-      if (resultTier === "free") {
-        try {
-          await supabase.from("skincare_recommendations").insert({
-            user_id: user.id,
-            skin_type: derivedSkinType,
-            concerns: [CONCERN_BY_Q9_VALUE[answers["q9"]] ?? "sensitivity"],
-            recommendation,
-            contact_name: contactName || null,
-            contact_whatsapp: contactWhatsApp || null,
-            status: "delivered",
-            mst_tone: mstTone,
-            mst_source: mstTone !== null ? "user_reported" : null,
-            analysis_completeness: completeness?.overall ?? null,
-          });
-        } catch {
-          // Non-fatal — the visitor still has their downloaded PDF and on-screen result.
+      if (resultTier === "free" && starterResult) {
+        let photoStoragePath: string | null = null;
+        if (skinImage && photoConsent) {
+          const upload = await uploadAnalysisPhoto({ userId: user.id, analysisId, dataUrl: skinImage });
+          photoStoragePath = upload.path;
         }
+        const { error } = await persistStarterResultToAccount({
+          userId: user.id,
+          result: starterResult,
+          contactName: contactName || null,
+          contactWhatsApp: contactWhatsApp || null,
+          photoStoragePath,
+        });
+        savingResultsRef.current = false;
+        if (error) {
+          setSaveError(error.message);
+          trackConversionEvent("starter_account_link_failed", { message: error.message });
+          return;
+        }
+        setSaveError(null);
+        trackConversionEvent("starter_account_link_completed");
       }
       setResultsSaved(true);
       trackConversionEvent("results_saved", { resultTier });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, recommendation, user, resultsSaved, resultTier]);
+  }, [step, recommendation, user, resultsSaved, resultTier, starterResult, saveAttempt]);
+
+  // Anonymous persistence (Section 16): restore a completed result or an
+  // in-progress draft from localStorage on mount, so a refresh, accidental back
+  // navigation, or a failed sign-in doesn't discard the visitor's analysis. Runs
+  // once — the photo itself is deliberately never persisted (see persistence.ts).
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    const completed = loadCompletedState();
+    if (completed) {
+      setAnalysisId(completed.analysisId);
+      setAnswers(completed.answers);
+      setMstTone(completed.mstTone);
+      setChangeStatus(completed.context.status);
+      setChangeDetail(completed.context.detail ?? "");
+      setPriorityPreference(completed.result.preferences.priority);
+      setStarterResult(completed.result);
+      setRecommendation(completed.result.recommendationText);
+      setResultTier("free");
+      setCompleteness(completed.result.completeness);
+      setGroundedRoutine(completed.result.groundedRoutine);
+      setStep(STEP_RESULTS);
+      return;
+    }
+    const draft = loadDraftState();
+    if (draft && draft.step > STEP_INTRO && draft.step < STEP_ANALYSIS) {
+      setAnalysisId(draft.analysisId);
+      setAnswers(draft.answers);
+      setMstTone(draft.mstTone);
+      setChangeStatus(draft.changeContext.status);
+      setChangeDetail(draft.changeContext.detail ?? "");
+      setPriorityPreference(draft.priorityPreference);
+      setContactName(draft.contactName);
+      setContactEmail(draft.contactEmail);
+      setContactWhatsApp(draft.contactWhatsApp);
+      setStep(draft.step);
+    }
+  }, []);
+
+  // Persist the in-progress draft on every relevant change. Excludes the photo's
+  // bytes deliberately (see persistence.ts) and stops once analysis is running,
+  // since the completed-result snapshot (saved in runStarterAnalysis) takes over.
+  useEffect(() => {
+    if (step === STEP_INTRO || step >= STEP_ANALYSIS) return;
+    saveDraftState({
+      analysisId,
+      step,
+      answers,
+      mstTone,
+      changeContext: { status: changeStatus, detail: changeDetail.trim() || null },
+      priorityPreference,
+      hasPhotoPending: Boolean(skinImage),
+      contactName,
+      contactEmail,
+      contactWhatsApp,
+      savedAt: new Date().toISOString(),
+    });
+  }, [step, answers, mstTone, changeStatus, changeDetail, priorityPreference, skinImage, contactName, contactEmail, contactWhatsApp, analysisId]);
 
   const handleStartAnalysis = () => {
     trackConversionEvent("analysis_started");
@@ -357,6 +594,7 @@ const AIFormulator = () => {
     setIsAuthSubmitting(false);
     if (error) {
       toast.error(error.message);
+      if (authMode === "signup") trackConversionEvent("starter_account_creation_failed", { message: error.message });
       return;
     }
     if (authMode === "signup") trackConversionEvent("signup_completed", { source: "ai_formulator_results" });
@@ -385,6 +623,7 @@ const AIFormulator = () => {
       return;
     }
     if (step === STEP_PHOTO) {
+      if (!skinImage) trackConversionEvent("starter_question_skipped", { step: "photo" });
       setStep(STEP_MST);
       return;
     }
@@ -394,6 +633,14 @@ const AIFormulator = () => {
     }
     if (step === LAST_QUESTION_STEP) {
       trackConversionEvent("profile_completed");
+      setStep(STEP_CHANGE);
+      return;
+    }
+    if (step === STEP_CHANGE) {
+      setStep(STEP_ROUTINE_PREF);
+      return;
+    }
+    if (step === STEP_ROUTINE_PREF) {
       setStep(STEP_ANALYSIS);
       return;
     }
@@ -401,6 +648,7 @@ const AIFormulator = () => {
   };
 
   const handleBack = () => {
+    if (currentQuestion) trackConversionEvent("starter_question_back", { questionId: currentQuestion.id });
     if (step > 0) setStep(step - 1);
   };
 
@@ -414,6 +662,8 @@ const AIFormulator = () => {
     setCompleteness(null);
     setGroundedRoutine(null);
     setResultsSaved(false);
+    setSaveError(null);
+    setSaveCtaDismissed(false);
     setConsentData(false);
     setConsentMst(false);
     setConsentTerms(false);
@@ -422,8 +672,17 @@ const AIFormulator = () => {
     setContactEmail("");
     setContactWhatsApp("");
     setAuthPassword("");
+    setChangeStatus(null);
+    setChangeDetail("");
+    setPriorityPreference(null);
+    setStarterResult(null);
+    setAnalysisId(crypto.randomUUID());
     savingResultsRef.current = false;
     viewedFiredRef.current = false;
+    saveCtaViewedRef.current = false;
+    useAdvancedPassRef.current = false;
+    setPassPurchaseOpen(false);
+    clearAllStarterAnalysisState();
   };
 
   const currentQuestion =
@@ -431,6 +690,11 @@ const AIFormulator = () => {
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : undefined;
   const questionNumber = step - FIRST_QUESTION_STEP + 1;
   const progress = currentQuestion ? (questionNumber / TOTAL_QUESTIONS) * 100 : 0;
+
+  // Fires once per question shown — see Section 24's per-question funnel events.
+  useEffect(() => {
+    if (currentQuestion) trackConversionEvent("starter_question_viewed", { questionId: currentQuestion.id });
+  }, [currentQuestion]);
 
   if (authLoading) {
     return (
@@ -484,6 +748,9 @@ const AIFormulator = () => {
   /** Icon shown on each recommendation section card, inferred from its heading text. */
   const sectionIcon = (heading: string) => {
     const h = heading.toLowerCase();
+    if (h.includes("skin story")) return Sparkles;
+    if (h.includes("priorit")) return Layers;
+    if (h.includes("changed")) return AlertTriangle;
     if (h.includes("am ") || h.includes("morning")) return Sun;
     if (h.includes("pm ") || h.includes("evening")) return Moon;
     if (h.includes("weekly") || h.includes("actives schedule")) return CalendarClock;
@@ -509,13 +776,17 @@ const AIFormulator = () => {
       .filter((s) => s.heading || s.body.trim());
   };
 
-  const footerVisible = step >= STEP_CONSENT && step <= LAST_QUESTION_STEP;
+  const changeFollowUpRequired = Boolean(CHANGE_QUESTION.options.find((o) => o.value === changeStatus)?.followUp);
+
+  const footerVisible = step >= STEP_CONSENT && step <= STEP_ROUTINE_PREF;
   const footerDisabled =
     (step === STEP_CONSENT && !(consentData && consentMst && consentTerms)) ||
     (currentQuestion !== null && currentAnswer === undefined) ||
-    (step === STEP_PHOTO && skinImage !== null && !photoConsent);
+    (step === STEP_PHOTO && skinImage !== null && !photoConsent) ||
+    (step === STEP_CHANGE && (!changeStatus || (changeFollowUpRequired && !changeDetail.trim()))) ||
+    (step === STEP_ROUTINE_PREF && !priorityPreference);
   const footerLabel =
-    step === LAST_QUESTION_STEP ? "See My Results" : step === STEP_PHOTO && !skinImage ? "Skip photo" : "Continue";
+    step === STEP_ROUTINE_PREF ? "See My Results" : step === STEP_PHOTO && !skinImage ? "Skip photo" : "Continue";
 
   const mstSwatch = mstTone !== null ? MST_SCALE.find((s) => s.level === mstTone) : null;
 
@@ -534,8 +805,8 @@ const AIFormulator = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
                     <Shield className="h-3.5 w-3.5 text-primary" />
                     <span className="text-muted-foreground">
-                      Free Starter Analysis, no card required, no account required •
-                      <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
+                      Starter Analysis, no card required, no account required •
+                      <a href="/pricing" className="text-primary hover:underline ml-1">Unlock deeper personalisation with a live AI Dermatology Report</a>
                     </span>
                   </div>
                 )}
@@ -565,7 +836,9 @@ const AIFormulator = () => {
                   <Progress value={progress} className="h-2" />
                 </div>
               )}
-              {(step === STEP_CONSENT || step === STEP_PHOTO || step === STEP_MST) && <StepperHeader phase={stepPhase(step)} />}
+              {(step === STEP_CONSENT || step === STEP_PHOTO || step === STEP_MST || step === STEP_CHANGE || step === STEP_ROUTINE_PREF) && (
+                <StepperHeader phase={stepPhase(step)} />
+              )}
 
               {step === STEP_INTRO && (
                 <div className="relative space-y-8 py-2">
@@ -766,7 +1039,10 @@ const AIFormulator = () => {
                   </div>
                   <RadioGroup
                     value={currentAnswer !== undefined ? String(currentAnswer) : ""}
-                    onValueChange={(val) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: Number(val) }))}
+                    onValueChange={(val) => {
+                      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: Number(val) }));
+                      trackConversionEvent("starter_question_answered", { questionId: currentQuestion.id });
+                    }}
                     className="grid gap-3"
                   >
                     {currentQuestion.options.map((option, idx) => (
@@ -785,6 +1061,14 @@ const AIFormulator = () => {
                     ))}
                   </RadioGroup>
                 </div>
+              )}
+
+              {step === STEP_CHANGE && (
+                <ChangeQuestionStep status={changeStatus} detail={changeDetail} onStatusChange={setChangeStatus} onDetailChange={setChangeDetail} />
+              )}
+
+              {step === STEP_ROUTINE_PREF && (
+                <RoutinePreferenceStep value={priorityPreference} onChange={setPriorityPreference} />
               )}
 
               {step === STEP_ANALYSIS && (
@@ -844,16 +1128,35 @@ const AIFormulator = () => {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      {isMember ? "Your Personalized Skincare Routine" : "Your Free Starter Analysis"}
+                      {isMember ? "Your Personalized Skincare Routine" : "Your Starter Analysis"}
                     </h3>
                     <p className="text-muted-foreground">
                       {isMember
                         ? `Customized for your ${derivedSkinType} skin`
-                        : `Built for your ${derivedSkinType} skin from your actual answers`}
+                        : `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`}
                     </p>
                   </div>
 
-                  {/* Analysis Summary strip */}
+                  {isMember && resultTier === "free" && (
+                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-accent/40 p-4">
+                      <p className="text-sm text-card-foreground">
+                        You're a member now — get your live Advanced SKYNN AI report using these same answers, no re-doing the assessment.
+                      </p>
+                      <Button
+                        size="sm"
+                        className="gap-2 shrink-0"
+                        onClick={() => {
+                          trackConversionEvent("advanced_analysis_started");
+                          setStep(STEP_ANALYSIS);
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        Get my Advanced analysis
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Skin Snapshot strip */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {skinImage && (
                       <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
@@ -872,24 +1175,39 @@ const AIFormulator = () => {
                         {completeness.overall}% complete profile
                       </span>
                     )}
+                    {starterResult?.context.status && starterResult.context.status !== "always_like_this" && (
+                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
+                        {CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label}
+                      </span>
+                    )}
                   </div>
+
+                  {starterResult && <SkinStoryCard skinStory={starterResult.skinStory} />}
+                  {starterResult && <PriorityList priorities={starterResult.priorities} />}
 
                   <div className="grid gap-4 lg:grid-cols-[1fr_280px] items-start">
                     <div className="space-y-4">
-                      {recommendationSections(recommendation).map((section, idx) => {
-                        const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
-                        return (
-                          <div key={idx} className="rounded-xl border border-border bg-secondary/20 p-5">
-                            {section.heading && (
-                              <div className="flex items-center gap-2 mb-2">
-                                <Icon className="h-4 w-4 text-primary shrink-0" />
-                                <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
-                              </div>
-                            )}
-                            <div>{formatRecommendation(section.body)}</div>
-                          </div>
-                        );
-                      })}
+                      {recommendationSections(recommendation)
+                        .filter((section) => {
+                          if (!starterResult || !section.heading) return true;
+                          // Rendered above via SkinStoryCard/PriorityList/the snapshot strip instead — avoid showing it twice.
+                          const h = section.heading.toLowerCase();
+                          return !(h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") || h.includes("about your skin analysis"));
+                        })
+                        .map((section, idx) => {
+                          const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
+                          return (
+                            <div key={idx} className="rounded-xl border border-border bg-secondary/20 p-5">
+                              {section.heading && (
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Icon className="h-4 w-4 text-primary shrink-0" />
+                                  <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
+                                </div>
+                              )}
+                              <div>{formatRecommendation(section.body)}</div>
+                            </div>
+                          );
+                        })}
                     </div>
                     {completeness && (
                       <div className="lg:sticky lg:top-4">
@@ -905,6 +1223,15 @@ const AIFormulator = () => {
                     )}
                   </div>
 
+                  {starterResult && (
+                    <RefinementPanel
+                      onSubmit={handleRefinementSubmit}
+                      lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
+                    />
+                  )}
+
+                  {starterResult && <AboutYourAnalysisSection />}
+
                   <div className="flex justify-center">
                     <Button variant="ghost" size="sm" onClick={handleShareResults} className="gap-2 text-muted-foreground">
                       <Share2 className="h-4 w-4" />
@@ -912,14 +1239,22 @@ const AIFormulator = () => {
                     </Button>
                   </div>
 
-                  {!user ? (
-                    <div className="rounded-2xl border border-border bg-muted/30 p-6 space-y-4">
+                  {!user && !saveCtaDismissed ? (
+                    <div
+                      ref={(el) => {
+                        if (el && !saveCtaViewedRef.current) {
+                          saveCtaViewedRef.current = true;
+                          trackConversionEvent("starter_save_cta_viewed");
+                        }
+                      }}
+                      className="rounded-2xl border border-border bg-muted/30 p-6 space-y-4"
+                    >
                       <div className="flex items-center gap-2">
                         <UserPlus className="h-5 w-5 text-primary" />
-                        <h4 className="font-heading font-semibold text-card-foreground">Save your results</h4>
+                        <h4 className="font-heading font-semibold text-card-foreground">Save your results to your free SkinLabs account</h4>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Create a free account to keep this analysis and track how your skin changes over time. No card required.
+                        Keep your personalised skin profile, routine and priorities in your SkinLabs dashboard. No card required.
                       </p>
                       <form onSubmit={handleSaveResults} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
                         <div>
@@ -952,20 +1287,84 @@ const AIFormulator = () => {
                           {authMode === "signup" ? "Save results" : "Log in"}
                         </Button>
                       </form>
-                      <button
-                        type="button"
-                        onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
-                        className="text-xs text-primary hover:underline"
-                      >
-                        {authMode === "signup" ? "Already have an account? Log in instead" : "New here? Create a free account instead"}
-                      </button>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {authMode === "signup" ? "Already have an account? Log in instead" : "New here? Create a free account instead"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            trackConversionEvent("starter_continue_without_account");
+                            setSaveCtaDismissed(true);
+                          }}
+                          className="text-xs text-muted-foreground hover:underline"
+                        >
+                          Continue without an account
+                        </button>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-primary">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {resultsSaved ? "Saved to your account" : "Saving to your account..."}
+                  ) : user ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <CheckCircle2 className="h-4 w-4" />
+                        {resultsSaved ? "Saved to your account" : saveError ? "Couldn't save your results" : "Saving to your account..."}
+                      </div>
+                      {saveError && (
+                        <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                          <span>{saveError}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSaveError(null);
+                              savingResultsRef.current = false;
+                              setSaveAttempt((n) => n + 1);
+                            }}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {!isMember && starterResult && (
+                    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3">
+                      <h4 className="font-heading font-semibold text-card-foreground">Go Deeper With Advanced Analysis</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Your Starter Analysis gives you a personalised foundation. Explore your skin in greater depth
+                        with an Advanced Skin Analysis.
+                      </p>
+                      {passBalanceLoading ? (
+                        <Button size="lg" disabled className="gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking your Analysis Passes…</Button>
+                      ) : passBalance && passBalance > 0 ? (
+                        <Button size="lg" className="gap-2" onClick={handleUseAnalysisPass}>
+                          <Sparkles className="h-4 w-4" />
+                          Use an Analysis Pass ({passBalance} available)
+                        </Button>
+                      ) : (
+                        <Button
+                          size="lg"
+                          className="gap-2"
+                          onClick={() => {
+                            trackConversionEvent("advanced_analysis_cta_clicked", { cta: "get_pass" });
+                            trackConversionEvent("analysis_pass_purchase_viewed", { source: "starter_results" });
+                            setPassPurchaseOpen(true);
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Get an Analysis Pass
+                        </Button>
+                      )}
                     </div>
                   )}
+
+                  {starterResult && <PremiumUpsellSection hasGroundedMatches={starterResult.groundedRoutine.matchStats.matched > 0} />}
 
                   <UpgradePrompt
                     feature="ai_analysis.live_weekly"
@@ -993,6 +1392,7 @@ const AIFormulator = () => {
         </div>
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
+      <AnalysisPassPurchaseModal open={passPurchaseOpen} onOpenChange={setPassPurchaseOpen} />
     </>
   );
 };
