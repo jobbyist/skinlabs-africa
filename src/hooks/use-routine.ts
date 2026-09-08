@@ -74,11 +74,13 @@ export const useRoutine = () => {
       .order("checkin_date", { ascending: false })
       .limit(500);
     const daySet = new Set((history ?? []).map((h) => h.checkin_date as string));
+    const daySet = new Set((history ?? []).map((h) => h.checkin_date as string));
     let streakCount = 0;
-    const cursor = new Date();
+    const today = todayIso();
+    const cursor = new Date(today + "T00:00:00Z");
     while (daySet.has(cursor.toISOString().slice(0, 10))) {
       streakCount += 1;
-      cursor.setDate(cursor.getDate() - 1);
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
     }
     setStreak(streakCount);
     setLoading(false);
