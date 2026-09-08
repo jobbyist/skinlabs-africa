@@ -2453,7 +2453,7 @@ export type Database = {
       }
     }
     Functions: {
-      available_ai_credits: { Args: { _user_id: string }; Returns: number }
+      available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_subscription: { Args: never; Returns: boolean }
       claim_founding_member_slot: {
         Args: { p_offer_id: string }
