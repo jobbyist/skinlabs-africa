@@ -91,6 +91,7 @@ const AccountTab = () => {
     });
     setDeleting(false);
     if (error || !(data as { deleted?: boolean })?.deleted) {
+      setDeleteConfirm("");
       toast.error("Could not delete your account. Please try again or contact us.");
       return;
     }
