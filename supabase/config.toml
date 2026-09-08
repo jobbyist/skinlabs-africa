@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.paystack-payment]
 verify_jwt = false
+
+[functions.account-delete]
+verify_jwt = false

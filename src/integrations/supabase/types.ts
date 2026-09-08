@@ -1667,10 +1667,16 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_status: string
+          address_line1: string | null
+          address_line2: string | null
           allergies: string[] | null
           billing_interval: string
+          city: string | null
+          country: string
           created_at: string
           date_of_birth: string | null
+          deactivated_at: string | null
           email: string | null
           founding_member: boolean
           full_name: string | null
@@ -1679,7 +1685,9 @@ export type Database = {
           is_professional: boolean
           notes: string | null
           phone: string | null
+          postal_code: string | null
           preferred_routine_time: string | null
+          province: string | null
           race_ethnicity: string | null
           skin_color: string | null
           skin_conditions: string[] | null
@@ -1694,10 +1702,16 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          account_status?: string
+          address_line1?: string | null
+          address_line2?: string | null
           allergies?: string[] | null
           billing_interval?: string
+          city?: string | null
+          country?: string
           created_at?: string
           date_of_birth?: string | null
+          deactivated_at?: string | null
           email?: string | null
           founding_member?: boolean
           full_name?: string | null
@@ -1706,7 +1720,9 @@ export type Database = {
           is_professional?: boolean
           notes?: string | null
           phone?: string | null
+          postal_code?: string | null
           preferred_routine_time?: string | null
+          province?: string | null
           race_ethnicity?: string | null
           skin_color?: string | null
           skin_conditions?: string[] | null
@@ -1721,10 +1737,16 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          account_status?: string
+          address_line1?: string | null
+          address_line2?: string | null
           allergies?: string[] | null
           billing_interval?: string
+          city?: string | null
+          country?: string
           created_at?: string
           date_of_birth?: string | null
+          deactivated_at?: string | null
           email?: string | null
           founding_member?: boolean
           full_name?: string | null
@@ -1733,7 +1755,9 @@ export type Database = {
           is_professional?: boolean
           notes?: string | null
           phone?: string | null
+          postal_code?: string | null
           preferred_routine_time?: string | null
+          province?: string | null
           race_ethnicity?: string | null
           skin_color?: string | null
           skin_conditions?: string[] | null
@@ -1748,6 +1772,161 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feature_waitlist: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          amount_zar: number
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          reference: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_zar: number
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json
+          purchase_type: string
+          reference: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_zar?: number
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          purchase_type?: string
+          reference?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      routine_steps: {
+        Row: {
+          created_at: string
+          id: string
+          product_name: string | null
+          sort_order: number
+          step_name: string
+          time_of_day: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_name?: string | null
+          sort_order?: number
+          step_name: string
+          time_of_day?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_name?: string | null
+          sort_order?: number
+          step_name?: string
+          time_of_day?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      routine_checkins: {
+        Row: {
+          checkin_date: string
+          created_at: string
+          id: string
+          step_id: string
+          time_slot: string
+          user_id: string
+        }
+        Insert: {
+          checkin_date?: string
+          created_at?: string
+          id?: string
+          step_id: string
+          time_slot: string
+          user_id: string
+        }
+        Update: {
+          checkin_date?: string
+          created_at?: string
+          id?: string
+          step_id?: string
+          time_slot?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_checkins_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       retailer_products: {
         Row: {
@@ -2488,6 +2667,8 @@ export type Database = {
         }[]
       }
       refund_analysis_pass: { Args: { p_transaction_id: string }; Returns: boolean }
+      deactivate_account: { Args: never; Returns: boolean }
+      reactivate_account: { Args: never; Returns: boolean }
       expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }

@@ -7,17 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Sparkles, Package, Crown, FileText, Loader2, Clock, XCircle } from "lucide-react";
+import { Sparkles, Package, Crown, Loader2, Clock, Bell, PauseCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,14 +15,23 @@ import MFASettingsCard from "@/components/MFASettingsCard";
 import EmailVerificationCard from "@/components/EmailVerificationCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
+import RoutineTrackerTab from "@/components/dashboard/RoutineTrackerTab";
+import RoutineSnapshot from "@/components/dashboard/RoutineSnapshot";
+import BillingTab from "@/components/dashboard/BillingTab";
+import InboxTab from "@/components/dashboard/InboxTab";
+import AccountTab from "@/components/dashboard/AccountTab";
+import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
+import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
-import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import ReportBugButton from "@/components/ReportBugButton";
+import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
+import { computeProfileStrength } from "@/lib/profileStrength";
+import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface Profile {
@@ -40,28 +39,51 @@ interface Profile {
   subscription_started_at: string | null;
   full_name: string | null;
   email: string | null;
+  account_status: string | null;
+  username: string | null;
+  phone: string | null;
+  date_of_birth: string | null;
+  gender: string | null;
+  skin_color: string | null;
+  address_line1: string | null;
+  city: string | null;
+  allergies: string[] | null;
+  skin_conditions: string[] | null;
+  preferred_routine_time: string | null;
 }
 
 interface Preorder { id: string; product_type: string; amount: number; status: string; created_at: string; }
 type Recommendation = SavedRecommendationRow;
+interface ActivityStats { liked: number; saved: number; comments: number }
+
+const VALID_TABS = ["overview", "profile", "analysis", "routine", "journey", "billing", "inbox", "security", "account"] as const;
+type DashboardTab = (typeof VALID_TABS)[number];
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
+  const { unreadCount } = useNotifications();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [activity, setActivity] = useState<ActivityStats>({ liked: 0, saved: 0, comments: 0 });
   const [dataLoading, setDataLoading] = useState(true);
   const [creditsError, setCreditsError] = useState<string | null>(null);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview");
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
   const [aiCredits, setAiCredits] = useState<number | null>(null);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+
+  const tabParam = searchParams.get("tab");
+  const activeTab: DashboardTab = (VALID_TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as DashboardTab) : "overview";
+  const setActiveTab = (tab: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", tab);
+    setSearchParams(next, { replace: true });
+  };
 
   const paymentReturn = searchParams.get("payment") === "success";
   const purchaseType = searchParams.get("purchase_type") ?? "plan";
@@ -184,8 +206,10 @@ const UserDashboard = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [profileRes, preordersRes, recsRes, creditsRes] = await Promise.all([
-        supabase.from("profiles").select("subscription_status, subscription_started_at, full_name, email").eq("user_id", user.id).single(),
+      const [profileRes, preordersRes, recsRes, creditsRes, likedRes, savedRes, commentsRes] = await Promise.all([
+        supabase.from("profiles").select(
+          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, allergies, skin_conditions, preferred_routine_time",
+        ).eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase
           .from("skincare_recommendations")
@@ -194,12 +218,16 @@ const UserDashboard = () => {
           .order("created_at", { ascending: false })
           .limit(10),
         supabase.rpc("available_ai_credits", { _user_id: user.id }),
+        supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "like"),
+        supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "save"),
+        supabase.from("review_comments").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
-      if (profileRes.data) setProfile(profileRes.data);
+      if (profileRes.data) setProfile(profileRes.data as Profile);
       if (preordersRes.data) setPreorders(preordersRes.data);
       if (recsRes.data) setRecommendations(recsRes.data);
       if (creditsRes.error) setCreditsError(creditsRes.error.message);
       else if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
+      setActivity({ liked: likedRes.count ?? 0, saved: savedRes.count ?? 0, comments: commentsRes.count ?? 0 });
       setDataLoading(false);
     })();
   }, [user]);
@@ -212,18 +240,16 @@ const UserDashboard = () => {
     else if (typeof data === "number") setAiCredits(data);
   };
 
-  const handleCancelSubscription = async () => {
-    setCancelling(true);
-    const { error } = await supabase.rpc("cancel_subscription");
-    setCancelling(false);
-    setCancelOpen(false);
+  const handleReactivate = async () => {
+    setReactivating(true);
+    const { error } = await supabase.rpc("reactivate_account");
+    setReactivating(false);
     if (error) {
-      toast.error("Couldn't cancel right now — please try again or contact us.");
+      toast.error("Could not reactivate your account right now.");
       return;
     }
-    refreshMembership();
-    trackConversionEvent("subscription_cancelled", { plan: tier });
-    toast.success("Your membership has been cancelled — you're back on Glow Explorer.");
+    setProfile((p) => (p ? { ...p, account_status: "active" } : p));
+    toast.success("Welcome back — your account is active again.");
   };
 
   if (!loading && !user && paymentReturn) {
@@ -258,10 +284,38 @@ const UserDashboard = () => {
     return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
-
   const tierLabel =
     tier === "vip" ? "Glow VIP" : tier === "insider" ? "Glow Insider" : tier === "glow_lite" ? "Glow Lite" : "Glow Explorer";
   const isSubscribed = tier !== "explorer";
+
+  if (profile?.account_status === "deactivated") {
+    return (
+      <>
+        <Helmet><title>Account deactivated | SkinLabs®</title><meta name="robots" content="noindex, nofollow" /></Helmet>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <main className="pt-28 pb-24">
+            <div className="container mx-auto max-w-md px-4">
+              <Card className="border-amber-500/40 bg-amber-500/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><PauseCircle className="h-5 w-5 text-amber-600" /> Your account is deactivated</CardTitle>
+                  <CardDescription>Your data is safe. Reactivate any time to pick up right where you left off.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={handleReactivate} disabled={reactivating}>
+                    {reactivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Reactivate my account
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </>
+    );
+  }
+
+  const strength = computeProfileStrength(profile);
 
   return (
     <>
@@ -275,13 +329,27 @@ const UserDashboard = () => {
         <main className="pt-20">
           <section className="py-12">
             <div className="container mx-auto px-4 max-w-5xl">
-              <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
-                <h1 className="text-3xl font-heading font-bold text-foreground">
-                  Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
-                </h1>
-                <ReportBugButton />
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-heading font-bold text-foreground mb-1">
+                    Hello{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
+                  </h1>
+                  <p className="text-muted-foreground">{user?.email}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <ReportBugButton />
+                  <button
+                    onClick={() => setActiveTab("profile")}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 transition-colors hover:border-primary"
+                  >
+                    <ProfileCompletenessRing percent={strength.percent} size={48} />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">Skin Profile</p>
+                      <p className="text-xs text-muted-foreground">{strength.filledCount}/{strength.totalCount} details</p>
+                    </div>
+                  </button>
+                </div>
               </div>
-              <p className="text-muted-foreground mb-6">{user?.email}</p>
 
               {!membershipLoading && isTrialing && (
                 <div
@@ -335,7 +403,6 @@ const UserDashboard = () => {
                 </div>
               )}
 
-
               {activating && (
                 <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -348,21 +415,20 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs
-                value={activeTab}
-                onValueChange={(tab) => {
-                  setActiveTab(tab);
-                  if (tab === "reports") trackConversionEvent("starter_dashboard_arrived");
-                }}
-                className="space-y-6"
-              >
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="flex flex-wrap h-auto">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="overview">Home</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="formulator">Skin Analysis (SKYNN AI)</TabsTrigger>
+                  <TabsTrigger value="analysis">Skin Analysis (SKYNN AI)</TabsTrigger>
+                  <TabsTrigger value="routine">Routine</TabsTrigger>
                   <TabsTrigger value="journey">Skin Journey</TabsTrigger>
-                  <TabsTrigger value="reports">AI Reports</TabsTrigger>
+                  <TabsTrigger value="billing">Billing</TabsTrigger>
+                  <TabsTrigger value="inbox" className="gap-1.5">
+                    Inbox
+                    {unreadCount > 0 && <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{unreadCount}</Badge>}
+                  </TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
+                  <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
@@ -379,17 +445,9 @@ const UserDashboard = () => {
                         {isTrialing && (
                           <p className="text-xs text-muted-foreground mt-2">{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</p>
                         )}
-                        {isSubscribed && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-2 h-auto gap-1.5 px-0 text-xs text-muted-foreground hover:text-destructive"
-                            onClick={() => setCancelOpen(true)}
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Cancel membership
-                          </Button>
-                        )}
+                        <Button variant="ghost" size="sm" className="mt-2 h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("billing")}>
+                          Manage billing
+                        </Button>
                       </CardContent>
                     </Card>
                     <AnalysisPassesCard
@@ -408,6 +466,32 @@ const UserDashboard = () => {
                     </Card>
                   </div>
 
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-base">Your AM/PM Routine</CardTitle>
+                      <Button variant="ghost" size="sm" className="h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("routine")}>See all</Button>
+                    </CardHeader>
+                    <CardContent>
+                      <RoutineSnapshot />
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>
+                    <CardContent><NewsfeedCarousel /></CardContent>
+                  </Card>
+
+                  {(activity.liked > 0 || activity.saved > 0 || activity.comments > 0) && (
+                    <Card>
+                      <CardHeader className="pb-3"><CardTitle className="text-base">Your activity</CardTitle><CardDescription>Real engagement from your account — briefings you've liked or saved, and comments you've posted.</CardDescription></CardHeader>
+                      <CardContent className="flex flex-wrap gap-6">
+                        <div><p className="text-2xl font-bold text-foreground">{activity.liked}</p><p className="text-xs text-muted-foreground">Liked briefings</p></div>
+                        <div><p className="text-2xl font-bold text-foreground">{activity.saved}</p><p className="text-xs text-muted-foreground">Saved briefings</p></div>
+                        <div><p className="text-2xl font-bold text-foreground">{activity.comments}</p><p className="text-xs text-muted-foreground">Review comments</p></div>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {tier === "vip" && !isTrialing && (
                     <Card className="border-primary/30 bg-primary/5">
                       <CardHeader className="pb-3">
@@ -425,6 +509,17 @@ const UserDashboard = () => {
                       </CardContent>
                     </Card>
                   )}
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-sm font-medium"><Bell className="h-4 w-4 text-primary" /> Consult</CardTitle>
+                      <CardDescription>Book a dermatologist consultation, or message one — messaging is coming soon.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      <Button size="sm" asChild><Link to="/consultations">Book a consultation</Link></Button>
+                      <Button size="sm" variant="outline" onClick={() => setActiveTab("inbox")}>Message a dermatologist</Button>
+                    </CardContent>
+                  </Card>
 
                   {preorders.length > 0 && (
                     <Card>
@@ -450,30 +545,25 @@ const UserDashboard = () => {
                 </TabsContent>
 
                 <TabsContent value="profile"><ProfileTab /></TabsContent>
-                
-                <TabsContent value="formulator">
+
+                <TabsContent value="analysis">
                   <FormulatorTab onGoToProfile={() => setActiveTab("profile")} />
                 </TabsContent>
 
+                <TabsContent value="routine"><RoutineTrackerTab /></TabsContent>
+
                 <TabsContent value="journey"><SkinJourneyTab /></TabsContent>
 
-                <TabsContent value="reports">
-                  <Card>
-                    <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />AI Skincare Reports</CardTitle><CardDescription>Your personalized recommendations history</CardDescription></CardHeader>
-                    <CardContent>
-                      {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try <a href="/skynn-ai" className="text-primary hover:underline">Skin Analysis (SKYNN AI)</a>.</p> :
-                        <div>
-                          {recommendations.map((rec) => <SavedAnalysisCard key={rec.id} rec={rec} />)}
-                        </div>
-                      }
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                <TabsContent value="billing"><BillingTab aiCredits={aiCredits} /></TabsContent>
+
+                <TabsContent value="inbox"><InboxTab /></TabsContent>
 
                 <TabsContent value="security" className="space-y-6">
                   <EmailVerificationCard />
                   <MFASettingsCard />
                 </TabsContent>
+
+                <TabsContent value="account"><AccountTab /></TabsContent>
               </Tabs>
             </div>
           </section>
@@ -487,23 +577,6 @@ const UserDashboard = () => {
         planName={tierLabel}
         trialEndsAt={trialEndsAt}
       />
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel your {tierLabel} membership?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You'll move back to Glow Explorer immediately — no more charges, and you keep everything you've
-              already saved. You can resubscribe any time from the pricing page.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancelling}>Keep my membership</AlertDialogCancel>
-            <AlertDialogAction disabled={cancelling} onClick={handleCancelSubscription}>
-              {cancelling ? "Cancelling…" : "Yes, cancel"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
