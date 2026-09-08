@@ -127,7 +127,12 @@ export const useRoutine = () => {
         .eq("time_slot", slot)
         .eq("checkin_date", todayIso());
     } else {
-      await supabase.from("routine_checkins").insert({ user_id: user.id, step_id: stepId, time_slot: slot });
+      const { error } = await supabase.from("routine_checkins").insert({ user_id: user.id, step_id: stepId, time_slot: slot });
+      if (error && !error.message?.includes('duplicate')) {
+        toast.error("Could not save checkin");
+        setTodayCheckins(prev => { const next = new Set(prev); next.delete(key); return next; });
+        return;
+      }
     }
     void load();
   };
