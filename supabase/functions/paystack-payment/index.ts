@@ -239,11 +239,15 @@ Deno.serve(async (req) => {
             })
             .eq("user_id", userId);
         } else if (purchaseType === "credit_pack") {
+          // p_reference is the idempotency key: grant_ai_credits() no-ops on a
+          // redelivered webhook for the same Paystack transaction reference
+          // instead of granting duplicate Analysis Passes.
           await admin.rpc("grant_ai_credits", {
             p_user_id: userId,
             p_reason: `purchase:${meta.pack_id}`,
             p_credits: meta.credits,
             p_expires_after_days: meta.expires_after_days ?? null,
+            p_reference: event.data?.reference ?? null,
           });
         } else if (purchaseType === "founding_member") {
           const { data: claimed } = await admin.rpc("claim_founding_member_slot", { p_offer_id: meta.offer_id });

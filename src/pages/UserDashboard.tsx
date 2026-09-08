@@ -7,7 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Package, Crown, Coins, Loader2, Clock, Bell, PauseCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Sparkles, Package, Crown, FileText, Loader2, Clock, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +35,9 @@ import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
+import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
+import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
+import ReportBugButton from "@/components/ReportBugButton";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { computeProfileStrength } from "@/lib/profileStrength";
@@ -50,11 +63,7 @@ interface Profile {
 }
 
 interface Preorder { id: string; product_type: string; amount: number; status: string; created_at: string; }
-interface Recommendation { id: string; skin_type: string; concerns: string[]; created_at: string; status: string; }
-interface ActivityStats { liked: number; saved: number; comments: number }
-
-const VALID_TABS = ["overview", "profile", "analysis", "routine", "journey", "billing", "inbox", "security", "account"] as const;
-type DashboardTab = (typeof VALID_TABS)[number];
+type Recommendation = SavedRecommendationRow;
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -67,6 +76,7 @@ const UserDashboard = () => {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [activity, setActivity] = useState<ActivityStats>({ liked: 0, saved: 0, comments: 0 });
   const [dataLoading, setDataLoading] = useState(true);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -207,7 +217,12 @@ const UserDashboard = () => {
           "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, allergies, skin_conditions, preferred_routine_time",
         ).eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("skincare_recommendations").select("id, skin_type, concerns, created_at, status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        supabase
+          .from("skincare_recommendations")
+          .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10),
         supabase.rpc("available_ai_credits", { _user_id: user.id }),
         supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "like"),
         supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "save"),
@@ -216,16 +231,25 @@ const UserDashboard = () => {
       if (profileRes.data) setProfile(profileRes.data as Profile);
       if (preordersRes.data) setPreorders(preordersRes.data);
       if (recsRes.data) setRecommendations(recsRes.data);
-      if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
-      setActivity({ liked: likedRes.count ?? 0, saved: savedRes.count ?? 0, comments: commentsRes.count ?? 0 });
+      if (creditsRes.error) setCreditsError(creditsRes.error.message);
+      else if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
       setDataLoading(false);
     })();
   }, [user]);
 
-  const handleReactivate = async () => {
-    setReactivating(true);
-    const { error } = await supabase.rpc("reactivate_account");
-    setReactivating(false);
+  const retryAnalysisPassBalance = async () => {
+    if (!user) return;
+    setCreditsError(null);
+    const { data, error } = await supabase.rpc("available_ai_credits", { _user_id: user.id });
+    if (error) setCreditsError(error.message);
+    else if (typeof data === "number") setAiCredits(data);
+  };
+
+  const handleCancelSubscription = async () => {
+    setCancelling(true);
+    const { error } = await supabase.rpc("cancel_subscription");
+    setCancelling(false);
+    setCancelOpen(false);
     if (error) {
       toast.error("Could not reactivate your account right now.");
       return;
@@ -311,24 +335,13 @@ const UserDashboard = () => {
         <main className="pt-20">
           <section className="py-12">
             <div className="container mx-auto px-4 max-w-5xl">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-heading font-bold text-foreground mb-1">
-                    Hello{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-                  </h1>
-                  <p className="text-muted-foreground">{user?.email}</p>
-                </div>
-                <button
-                  onClick={() => setActiveTab("profile")}
-                  className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 transition-colors hover:border-primary"
-                >
-                  <ProfileCompletenessRing percent={strength.percent} size={48} />
-                  <div className="text-left">
-                    <p className="text-sm font-medium text-foreground">Skin Profile</p>
-                    <p className="text-xs text-muted-foreground">{strength.filledCount}/{strength.totalCount} details</p>
-                  </div>
-                </button>
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
+                <h1 className="text-3xl font-heading font-bold text-foreground">
+                  Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
+                </h1>
+                <ReportBugButton />
               </div>
+              <p className="text-muted-foreground mb-6">{user?.email}</p>
 
               {!membershipLoading && isTrialing && (
                 <div
@@ -394,7 +407,14 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <Tabs
+                value={activeTab}
+                onValueChange={(tab) => {
+                  setActiveTab(tab);
+                  if (tab === "reports") trackConversionEvent("starter_dashboard_arrived");
+                }}
+                className="space-y-6"
+              >
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="overview">Home</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -429,17 +449,12 @@ const UserDashboard = () => {
                         </Button>
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Coins className="h-4 w-4 text-primary" />AI Credits</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold text-foreground">{aiCredits ?? 0}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {aiCredits && aiCredits > 0 ? "Extra analyses available" : (
-                            <button onClick={() => setActiveTab("billing")} className="text-primary hover:underline">Buy Analysis Passes</button>
-                          )}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <AnalysisPassesCard
+                      balance={aiCredits}
+                      loading={dataLoading}
+                      error={creditsError}
+                      onRetry={() => void retryAnalysisPassBalance()}
+                    />
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
                       <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
@@ -538,9 +553,18 @@ const UserDashboard = () => {
 
                 <TabsContent value="journey"><SkinJourneyTab /></TabsContent>
 
-                <TabsContent value="billing"><BillingTab aiCredits={aiCredits} /></TabsContent>
-
-                <TabsContent value="inbox"><InboxTab /></TabsContent>
+                <TabsContent value="reports">
+                  <Card>
+                    <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />AI Skincare Reports</CardTitle><CardDescription>Your personalized recommendations history</CardDescription></CardHeader>
+                    <CardContent>
+                      {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try <a href="/skynn-ai" className="text-primary hover:underline">Skin Analysis (SKYNN AI)</a>.</p> :
+                        <div>
+                          {recommendations.map((rec) => <SavedAnalysisCard key={rec.id} rec={rec} />)}
+                        </div>
+                      }
+                    </CardContent>
+                  </Card>
+                </TabsContent>
 
                 <TabsContent value="security" className="space-y-6">
                   <EmailVerificationCard />

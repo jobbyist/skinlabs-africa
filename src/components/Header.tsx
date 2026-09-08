@@ -59,7 +59,7 @@ interface NavItem {
 /** Primary destinations — shown first, both in the mobile panel and the desktop bar. */
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
-  { label: "Routines", href: "/routines", icon: Target, badge: "Coming Soon" },
+  { label: "Smart Routines", href: "/routines", icon: Target, badge: "Coming Soon" },
   { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
   { label: "Business Suite", href: "/business", icon: TrendingUp, badge: "NEW" },
 ];
@@ -68,7 +68,7 @@ const primaryLinks: NavItem[] = [
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Consult", href: "/consultations", icon: Calendar, badge: "NEW" },
+  { label: "Consult", href: "/consult", icon: Calendar, badge: "NEW" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
