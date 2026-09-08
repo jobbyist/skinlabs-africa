@@ -40,13 +40,13 @@ const Footer = () => {
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
       { label: "Seasonal Guides", href: "/seasonals", isNew: true },
       { label: "Podcast Series", href: "/podcast" },
+      { label: "Whitepaper 2026/27", href: "/whitepapers", isNew: true },
     ],
     platform: [
       { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
       { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Consultations", href: "/consult", isComingSoon: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
-      // Already a member — a "Memberships" link back to the pricing page is redundant.
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
       { label: "Announcements", href: "/announcements" },
     ],
@@ -166,10 +166,14 @@ const Footer = () => {
         </div>
         <div className="pt-8 border-t border-background/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-sm text-background/50">© {new Date().getFullYear()} SKINLABS. All rights reserved.</p>
-          <div className="flex gap-6 text-sm text-background/50">
-            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy</Link>
-            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms</Link>
-            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookies</Link>
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-background/50">
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
+            <Link to="/refund-policy" className="hover:text-background transition-colors">Refund Policy</Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
+            <Link to="/editorial-policy" className="hover:text-background transition-colors">Editorial Policy</Link>
+            <Link to="/community-guidelines" className="hover:text-background transition-colors">Community Guidelines</Link>
+            <Link to="/whitepapers" className="hover:text-background transition-colors">Whitepaper 2026/27</Link>
           </div>
         </div>
       </div>
