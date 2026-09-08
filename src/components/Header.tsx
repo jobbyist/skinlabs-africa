@@ -68,7 +68,7 @@ const primaryLinks: NavItem[] = [
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Consult", href: "/consult", icon: Calendar, badge: "NEW" },
+  { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
@@ -143,7 +143,7 @@ const Header = () => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+      <header className="fixed left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border" style={{ top: "var(--prototype-notice-h, 0px)" }}>
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-20">
             <Link to="/" className="flex items-center gap-2">
