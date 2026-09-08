@@ -28,6 +28,7 @@ import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
+import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
@@ -40,7 +41,7 @@ interface Profile {
 }
 
 interface Preorder { id: string; product_type: string; amount: number; status: string; created_at: string; }
-interface Recommendation { id: string; skin_type: string; concerns: string[]; created_at: string; status: string; }
+type Recommendation = SavedRecommendationRow;
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -183,7 +184,12 @@ const UserDashboard = () => {
       const [profileRes, preordersRes, recsRes, creditsRes] = await Promise.all([
         supabase.from("profiles").select("subscription_status, subscription_started_at, full_name, email").eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("skincare_recommendations").select("id, skin_type, concerns, created_at, status").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        supabase
+          .from("skincare_recommendations")
+          .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10),
         supabase.rpc("available_ai_credits", { _user_id: user.id }),
       ]);
       if (profileRes.data) setProfile(profileRes.data);
@@ -327,7 +333,14 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <Tabs
+                value={activeTab}
+                onValueChange={(tab) => {
+                  setActiveTab(tab);
+                  if (tab === "reports") trackConversionEvent("starter_dashboard_arrived");
+                }}
+                className="space-y-6"
+              >
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -439,22 +452,8 @@ const UserDashboard = () => {
                     <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />AI Skincare Reports</CardTitle><CardDescription>Your personalized recommendations history</CardDescription></CardHeader>
                     <CardContent>
                       {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try <a href="/skynn-ai" className="text-primary hover:underline">Skin Analysis (SKYNN AI)</a>.</p> :
-                        <div className="space-y-3">
-                          {recommendations.map((rec) => (
-                            <div key={rec.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                              <div>
-                                <p className="font-medium text-foreground">{rec.skin_type} Skin</p>
-                                <div className="flex gap-1 mt-1 flex-wrap">
-                                  {rec.concerns.slice(0, 3).map((c) => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
-                                  {rec.concerns.length > 3 && <Badge variant="secondary" className="text-xs">+{rec.concerns.length - 3}</Badge>}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm text-muted-foreground">{new Date(rec.created_at).toLocaleDateString()}</p>
-                                <Badge variant={rec.status === "delivered" ? "default" : "secondary"} className="text-xs">{rec.status}</Badge>
-                              </div>
-                            </div>
-                          ))}
+                        <div>
+                          {recommendations.map((rec) => <SavedAnalysisCard key={rec.id} rec={rec} />)}
                         </div>
                       }
                     </CardContent>

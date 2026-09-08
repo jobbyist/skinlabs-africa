@@ -13,7 +13,8 @@
     "sitemap": "bun run scripts/generate-sitemap.ts",
     "prerender": "bun run scripts/prerender.ts",
     "search-index:check": "bun run scripts/check-search-index.ts",
-    "compress-images": "bun run scripts/compress-images.ts"
+    "compress-images": "bun run scripts/compress-images.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -81,6 +82,7 @@
     "@eslint/js": "^9.32.0",
     "@sparticuz/chromium": "^149.0.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/bun": "^1.4.2",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

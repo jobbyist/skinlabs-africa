@@ -14,6 +14,14 @@ interface Announcement {
 
 const announcements: Announcement[] = [
   {
+    date: "2026-09-08",
+    tag: "Platform",
+    icon: <Sparkles className="h-5 w-5" />,
+    title: "Starter Analysis 2.0: your Skin Story, ranked priorities and refinement",
+    description:
+      "Skin Analysis (SKYNN AI)'s free Starter Analysis is significantly more personalised, without asking more questions. It now includes a plain-language \"Skin Story\" built from your answers, a transparent ranked list of your top skin priorities with the reasoning behind each one, a lightweight check on anything that's recently changed with your skin, and an interactive \"how close is this?\" refinement step that adjusts your result on the spot. Analysis completeness — how much information SKYNN AI had to work with — stays clearly separate from any claim of accuracy. Your exact SkinLabs-reviewed product matches and the interactive Routine Builder remain part of Glow Insider and VIP membership.",
+  },
+  {
     date: "2026-09-07",
     tag: "Platform",
     icon: <Sparkles className="h-5 w-5" />,

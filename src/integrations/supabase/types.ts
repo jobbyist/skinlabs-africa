@@ -1000,6 +1000,7 @@ export type Database = {
           allergies: string | null
           analysis_completeness: number | null
           book_consultation: boolean | null
+          client_analysis_id: string | null
           concerns: string[]
           contact_name: string | null
           contact_whatsapp: string | null
@@ -1011,7 +1012,9 @@ export type Database = {
           lifestyle: string | null
           mst_source: string | null
           mst_tone: number | null
+          photo_storage_path: string | null
           recommendation: string
+          result_payload: Json | null
           skin_type: string
           status: string
           user_id: string
@@ -1021,6 +1024,7 @@ export type Database = {
           allergies?: string | null
           analysis_completeness?: number | null
           book_consultation?: boolean | null
+          client_analysis_id?: string | null
           concerns: string[]
           contact_name?: string | null
           contact_whatsapp?: string | null
@@ -1032,7 +1036,9 @@ export type Database = {
           lifestyle?: string | null
           mst_source?: string | null
           mst_tone?: number | null
+          photo_storage_path?: string | null
           recommendation: string
+          result_payload?: Json | null
           skin_type: string
           status?: string
           user_id: string
@@ -1042,6 +1048,7 @@ export type Database = {
           allergies?: string | null
           analysis_completeness?: number | null
           book_consultation?: boolean | null
+          client_analysis_id?: string | null
           concerns?: string[]
           contact_name?: string | null
           contact_whatsapp?: string | null
@@ -1053,7 +1060,9 @@ export type Database = {
           lifestyle?: string | null
           mst_source?: string | null
           mst_tone?: number | null
+          photo_storage_path?: string | null
           recommendation?: string
+          result_payload?: Json | null
           skin_type?: string
           status?: string
           user_id?: string

@@ -75,7 +75,7 @@ const CONCERN_PROFILE: Record<
   acne: {
     label: "acne & congestion control",
     amFocus: "a niacinamide serum to calm inflammation and regulate oil, then SPF — never skip this, most acne actives increase sun sensitivity",
-    pmFocus: "your acne-targeting active on clean, fully dry skin, followed by your moisturizer",
+    pmFocus: "your acne-targeting active on clean, fully dry skin",
     keyActives: "salicylic acid (BHA) 2%, and — if breakouts are frequent — a spot treatment with benzoyl peroxide",
     weeklySchedule:
       "Weeks 1–2: BHA 3x/week (Mon/Wed/Fri PM) to build tolerance. Week 3: increase to every other night if no irritation. Week 4+: nightly if skin tolerates it well, always followed by moisturizer to buffer.",
@@ -97,7 +97,7 @@ const CONCERN_PROFILE: Record<
   aging: {
     label: "anti-aging (fine lines & firmness)",
     amFocus: "a vitamin C or peptide serum for antioxidant protection and collagen support, then SPF — the single highest-impact anti-aging step, full stop",
-    pmFocus: "a retinoid, introduced slowly, on clean dry skin followed by a rich moisturizer to buffer",
+    pmFocus: "a retinoid, introduced slowly, on clean dry skin",
     keyActives: "retinol/retinoid (PM), peptides, vitamin C (AM), a proper broad-spectrum SPF worn daily without exception",
     weeklySchedule:
       "Weeks 1–2: retinol 2x/week (e.g. Mon/Thu), pea-sized amount, always followed by moisturizer. Weeks 3–4: increase to 3x/week if no irritation. Month 2+: every other night, building toward nightly over 2–3 months.",
@@ -222,6 +222,22 @@ export interface StarterAnalysisOptions {
   mstTone?: number | null;
   /** Real, SkinLabs-reviewed products to name in place of generic product-type text. */
   groundedRoutine?: GroundedRoutine | null;
+  /**
+   * When false, named/priced grounded picks are withheld even if `groundedRoutine`
+   * matched — generic category text is used instead. Starter Analysis 2.0 gates
+   * exact product+price+score reveals behind the `ai_analysis.routine_builder`
+   * entitlement (see AIFormulator.tsx); the matching itself still runs either way
+   * so fairness match-rate telemetry stays accurate. Defaults to true.
+   */
+  revealProducts?: boolean;
+  /** Skin Story narrative (src/lib/starter-analysis/skinStory.ts) — prepended as its own section when provided. */
+  skinStoryNarrative?: string | null;
+  /** Ranked priorities from the deterministic Priority Engine — rendered as their own section when provided. */
+  priorities?: Array<{ label: string; level: string; reason: string }> | null;
+  /** "What Changed" contextual note, when the visitor selected a non-default status. */
+  changeNote?: string | null;
+  /** Routine Reality Check summary — complexity/budget stance in plain language. */
+  routineStrategyNote?: string | null;
 }
 
 /**
@@ -242,12 +258,29 @@ export const buildPredeterminedRecommendation = (
   const c = CONCERN_PROFILE[concern];
   const signals = deriveExtraSignals(answers);
   const mstNote = deriveMstSignal(options.mstTone, concern);
-  const routine = options.groundedRoutine;
+  const revealProducts = options.revealProducts !== false;
+  const routine = revealProducts ? options.groundedRoutine : null;
 
-  const personalisedNotes = [signals.cautionNote, signals.climateNote, signals.allergyNote, signals.constraintNote, signals.titrationAdjustment, mstNote]
+  const personalisedNotes = [signals.cautionNote, signals.climateNote, signals.allergyNote, signals.constraintNote, signals.titrationAdjustment, mstNote, options.routineStrategyNote]
     .filter((note): note is string => Boolean(note))
     .map((note) => `- ${note}`)
     .join("\n");
+
+  const skinStorySection = options.skinStoryNarrative ? `## Your Skin Story\n${options.skinStoryNarrative}\n\n` : "";
+
+  const prioritiesSection =
+    options.priorities && options.priorities.length > 0
+      ? `## Your Top Skin Priorities\n${options.priorities
+          .map((p, idx) => `${idx + 1}. **${p.label}** — ${p.level}. ${p.reason}`)
+          .join("\n")}\n\n`
+      : "";
+
+  const changeSection = options.changeNote ? `## What's Changed\n${options.changeNote}\n\n` : "";
+
+  const lockedProductsNote =
+    !revealProducts && options.groundedRoutine && options.groundedRoutine.matchStats.matched > 0
+      ? "\n\nSkinLabs Insider and VIP members see the exact reviewed products matched to this routine, with real prices and SkinLabs scores, plus the interactive Routine Builder."
+      : "";
 
   const findPick = (list: GroundedPick[] | undefined, slot: string) => list?.find((p) => p.slot === slot);
   const amCleanser = findPick(routine?.am, "Cleanser");
@@ -263,7 +296,7 @@ export const buildPredeterminedRecommendation = (
         .join(", ") || c.productTypes
     : c.productTypes;
 
-  return `## Your Skin Profile
+  return `${skinStorySection}${prioritiesSection}${changeSection}## Your Skin Profile
 Based on your answers, your skin reads as **${skin.label}**, with your main priority being **${c.label}**. This starter analysis focuses on ${skin.texture}.
 
 ## AM Routine
@@ -283,12 +316,12 @@ Note: ${skin.caution}.
 ${c.weeklySchedule}${signals.titrationAdjustment ? ` ${signals.titrationAdjustment}` : ""}
 
 ## Product-Type Recommendations
-${routine && (amCleanser || amSerum) ? `Real picks from SkinLabs' reviewed catalogue: ${productTypesLine}.` : `Look for: ${c.productTypes}.`}
+${routine && (amCleanser || amSerum) ? `Real picks from SkinLabs' reviewed catalogue: ${productTypesLine}.` : `Look for: ${c.productTypes}.`}${lockedProductsNote}
 
 ## Ingredient Strategy
 Key actives for your priority: ${c.keyActives}. ${c.ingredientStrategy}
 ${personalisedNotes ? `\n## Notes From Your Other Answers\n${personalisedNotes}\n` : ""}
----
+## About This Analysis
 This is your free Starter Analysis — a general match based on your quiz answers. SkinLabs Insider and VIP members get a live, dermatology-grounded AI report built specifically around your exact answers (and photo, if provided), re-analysed weekly as your skin changes.`;
 };
 

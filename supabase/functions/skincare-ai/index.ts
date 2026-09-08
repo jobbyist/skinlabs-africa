@@ -87,13 +87,41 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
     const body = await req.json();
-    const { quizAnswers, skinImage, contactName, mstTone } = body as {
+    const { quizAnswers, skinImage, contactName, mstTone, starterContext } = body as {
       quizAnswers?: Array<{ question: string; answer: string }>;
       skinImage?: string | null; // base64 data URL OR null
       contactName?: string;
       mstTone?: number | null; // self-reported Monk Skin Tone (1-10), optional — fairness signal only, never diagnostic
+      // Optional handoff from a completed Starter Analysis 2.0 (src/lib/starter-analysis/resultEngine.ts) —
+      // lets Advanced SKYNN AI build on the deterministic result instead of starting from nothing, without
+      // asking the client to repeat themselves. Entirely optional/backward-compatible; every field is ignored
+      // when absent, and none of it changes the auth/entitlement/quota checks above.
+      starterContext?: {
+        skinStoryNarrative?: string | null;
+        priorities?: Array<{ label: string; level: string; reason: string }> | null;
+        changeSummary?: string | null;
+        routineComplexity?: string | null;
+        priorityPreference?: string | null;
+      } | null;
     };
     const validMstTone = typeof mstTone === "number" && mstTone >= 1 && mstTone <= 10 ? mstTone : null;
+
+    const starterContextBlock = starterContext
+      ? [
+          starterContext.skinStoryNarrative
+            ? `This client already completed SkinLabs' free deterministic Starter Analysis. Their Skin Story from that analysis: "${starterContext.skinStoryNarrative}" — use this as context and build on it rather than contradicting it without reason.`
+            : null,
+          starterContext.priorities && starterContext.priorities.length > 0
+            ? `Their deterministically-ranked priorities from the Starter Analysis: ${starterContext.priorities.map((p) => `${p.label} (${p.level})`).join(", ")}.`
+            : null,
+          starterContext.changeSummary ? `Context on what's changed recently: ${starterContext.changeSummary}` : null,
+          starterContext.routineComplexity
+            ? `Their stated routine preference: ${starterContext.routineComplexity}${starterContext.priorityPreference ? `, prioritising ${starterContext.priorityPreference}` : ""}.`
+            : null,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
 
     if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length === 0) {
       return new Response(JSON.stringify({ error: "Missing quiz answers" }), {
@@ -143,6 +171,7 @@ ${answersText}
 
 ${skinImage ? "A clear selfie has been attached — analyse it for visible skin tone (Fitzpatrick estimate), oil/shine distribution, visible texture, redness, post-inflammatory marks, congestion, and barrier signs. Cross-reference the visual observations with the quiz answers." : "(No selfie provided — base analysis on quiz answers only.)"}
 ${validMstTone ? `Client self-reported Monk Skin Tone (MST): ${validMstTone}/10. This is a fairness/self-report signal, not a diagnosis — use it only to sanity-check your Fitzpatrick estimate and to tailor PIH-risk and sun-protection guidance, never to infer race, ethnicity or identity.` : ""}
+${starterContextBlock}
 
 OUTPUT FORMAT — use EXACTLY these markdown sections in this order:
 
