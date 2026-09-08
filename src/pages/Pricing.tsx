@@ -346,7 +346,7 @@ const Pricing = () => {
                       <div>
                         <h3 className="font-heading text-lg font-bold text-foreground">{pack.name}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Not ready for a subscription? Buy {pack.credits} AI skin analyses for R{pack.price} —
+                          Not ready for a subscription? Get {pack.credits} Analysis Pass{pack.credits === 1 ? "" : "es"} for R{pack.price} —
                           {pack.expires_after_days
                             ? ` valid for ${pack.expires_after_days} days.`
                             : " they never expire."}

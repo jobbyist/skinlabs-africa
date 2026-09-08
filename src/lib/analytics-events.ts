@@ -47,7 +47,16 @@ export type ConversionEvent =
   | "starter_account_link_failed"
   | "starter_dashboard_arrived"
   | "starter_continue_without_account"
-  | "advanced_analysis_started";
+  | "advanced_analysis_started"
+  // Analysis Passes — genuinely new events only; purchase start/completion already
+  // reuse "checkout_started"/"credit_pack_purchased" (fired by startCreditPackCheckout
+  // and the dashboard's existing payment-success polling), and analysis completion
+  // reuses "analysis_generated" — see CLAUDE.md-style reasoning in the PR description.
+  | "advanced_analysis_cta_clicked"
+  | "analysis_pass_purchase_viewed"
+  | "analysis_pass_package_selected"
+  | "analysis_pass_used"
+  | "analysis_pass_balance_viewed";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

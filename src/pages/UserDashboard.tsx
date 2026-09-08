@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sparkles, Package, Crown, FileText, Loader2, Clock, Coins, XCircle } from "lucide-react";
+import { Sparkles, Package, Crown, FileText, Loader2, Clock, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,6 +29,7 @@ import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
+import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
@@ -52,6 +53,7 @@ const UserDashboard = () => {
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [creditsError, setCreditsError] = useState<string | null>(null);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [authOpen, setAuthOpen] = useState(false);
@@ -195,10 +197,19 @@ const UserDashboard = () => {
       if (profileRes.data) setProfile(profileRes.data);
       if (preordersRes.data) setPreorders(preordersRes.data);
       if (recsRes.data) setRecommendations(recsRes.data);
-      if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
+      if (creditsRes.error) setCreditsError(creditsRes.error.message);
+      else if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
       setDataLoading(false);
     })();
   }, [user]);
+
+  const retryAnalysisPassBalance = async () => {
+    if (!user) return;
+    setCreditsError(null);
+    const { data, error } = await supabase.rpc("available_ai_credits", { _user_id: user.id });
+    if (error) setCreditsError(error.message);
+    else if (typeof data === "number") setAiCredits(data);
+  };
 
   const handleCancelSubscription = async () => {
     setCancelling(true);
@@ -377,17 +388,12 @@ const UserDashboard = () => {
                         )}
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Coins className="h-4 w-4 text-primary" />AI Credits</CardTitle></CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold text-foreground">{aiCredits ?? 0}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {aiCredits && aiCredits > 0 ? "Extra analyses available" : (
-                            <Link to="/pricing" className="text-primary hover:underline">Buy more analyses</Link>
-                          )}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <AnalysisPassesCard
+                      balance={aiCredits}
+                      loading={dataLoading}
+                      error={creditsError}
+                      onRetry={() => void retryAnalysisPassBalance()}
+                    />
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
                       <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>

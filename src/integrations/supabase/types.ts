@@ -39,6 +39,7 @@ export type Database = {
           expires_at: string | null
           id: string
           reason: string
+          reference: string | null
           user_id: string
         }
         Insert: {
@@ -47,6 +48,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           reason: string
+          reference?: string | null
           user_id: string
         }
         Update: {
@@ -55,6 +57,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           reason?: string
+          reference?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1526,6 +1529,15 @@ export type Database = {
           remaining_free: number
         }[]
       }
+      consume_analysis_pass: {
+        Args: never
+        Returns: {
+          allowed: boolean
+          transaction_id: string | null
+          remaining: number
+        }[]
+      }
+      refund_analysis_pass: { Args: { p_transaction_id: string }; Returns: boolean }
       expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }
@@ -1536,8 +1548,14 @@ export type Database = {
       }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
       grant_ai_credits: {
-        Args: { p_credits: number; p_expires_after_days?: number; p_reason: string; p_user_id: string }
-        Returns: undefined
+        Args: {
+          p_credits: number
+          p_expires_after_days?: number
+          p_reason: string
+          p_user_id: string
+          p_reference?: string
+        }
+        Returns: boolean
       }
       has_role: {
         Args: {

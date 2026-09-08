@@ -297,7 +297,7 @@ export const buildPredeterminedRecommendation = (
     : c.productTypes;
 
   return `${skinStorySection}${prioritiesSection}${changeSection}## Your Skin Profile
-Based on your answers, your skin reads as **${skin.label}**, with your main priority being **${c.label}**. This starter analysis focuses on ${skin.texture}.
+Based on the information you shared, your skin reads as **${skin.label}**, with your main priority being **${c.label}**. This analysis focuses on ${skin.texture}.
 
 ## AM Routine
 1. Cleanse with ${amCleanser ? `**${amCleanser.product.brand} ${amCleanser.product.product_name}**, or ${skin.cleanser}` : skin.cleanser}.
@@ -321,8 +321,8 @@ ${routine && (amCleanser || amSerum) ? `Real picks from SkinLabs' reviewed catal
 ## Ingredient Strategy
 Key actives for your priority: ${c.keyActives}. ${c.ingredientStrategy}
 ${personalisedNotes ? `\n## Notes From Your Other Answers\n${personalisedNotes}\n` : ""}
-## About This Analysis
-This is your free Starter Analysis — a general match based on your quiz answers. SkinLabs Insider and VIP members get a live, dermatology-grounded AI report built specifically around your exact answers (and photo, if provided), re-analysed weekly as your skin changes.`;
+## About Your Skin Analysis
+Your personalised SkinLabs Starter Analysis has been created from the information you shared about your skin, concerns, goals and preferences. We've used these insights to create a practical starting point for your skincare journey, with recommendations selected around your priorities, preferred routine complexity and budget. Want to explore your skin in greater depth? Unlock an Advanced Skin Analysis whenever you need one with an Analysis Pass. For an even more connected experience, SkinLabs Insider and VIP members unlock deeper AI-powered analysis, more personalised recommendations and ongoing skin intelligence designed to evolve with your skin over time.`;
 };
 
 export interface CompletenessFactor {

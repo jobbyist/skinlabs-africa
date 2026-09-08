@@ -50,6 +50,9 @@ import SkinStoryCard from "@/components/ai-formulator/SkinStoryCard";
 import PriorityList from "@/components/ai-formulator/PriorityList";
 import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
+import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
+import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
+import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { MST_SCALE } from "@/data/mstScale";
 import { QUESTIONS } from "@/data/quiz";
 import { CHANGE_QUESTION } from "@/data/starter-analysis/contextQuestions";
@@ -115,6 +118,7 @@ const AIFormulator = () => {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { isMember } = useMembership();
   const { can: canEntitlement } = useEntitlements();
+  const { balance: passBalance, loading: passBalanceLoading, refresh: refreshPassBalance } = useAnalysisPassBalance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
@@ -148,12 +152,15 @@ const AIFormulator = () => {
   const [changeDetail, setChangeDetail] = useState("");
   const [priorityPreference, setPriorityPreference] = useState<PriorityPreference | null>(null);
   const [starterResult, setStarterResult] = useState<StarterAnalysisResult | null>(null);
+  const [passPurchaseOpen, setPassPurchaseOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
   const viewedFiredRef = useRef(false);
   const restoredRef = useRef(false);
   const saveCtaViewedRef = useRef(false);
+  /** Set just before jumping to STEP_ANALYSIS to run an Analysis-Pass-funded Advanced Analysis instead of the default free/member path — see runAnalysis(). */
+  const useAdvancedPassRef = useRef(false);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -194,18 +201,13 @@ const AIFormulator = () => {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
-  const runLiveAnalysis = async (): Promise<boolean> => {
-    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
-    if (quotaError) {
-      setAnalysisError("Couldn't check your analysis quota — please try again.");
-      return false;
-    }
-    if (quotaAllowed === false) {
-      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
-      return false;
-    }
-
+  /**
+   * Shared with both entry points into the live skincare-ai edge function —
+   * paying/trialing members (runLiveAnalysis) and Glow Explorer Analysis
+   * Pass holders (runAdvancedAnalysisWithPass). Only the gating step before
+   * this (membership quota vs. pass consumption) differs between the two.
+   */
+  const invokeAdvancedAnalysis = async (): Promise<boolean> => {
     const quizAnswers = QUESTIONS.map((q) => ({
       question: q.title,
       answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
@@ -265,6 +267,51 @@ const AIFormulator = () => {
       toast.message("Your report is ready — PDF download didn't work this time, but your results are below.");
     }
     return true;
+  };
+
+  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
+  const runLiveAnalysis = async (): Promise<boolean> => {
+    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
+    if (quotaError) {
+      setAnalysisError("Couldn't check your analysis quota — please try again.");
+      return false;
+    }
+    if (quotaAllowed === false) {
+      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
+      return false;
+    }
+    return invokeAdvancedAnalysis();
+  };
+
+  /**
+   * Glow Explorer path: an Analysis Pass unlocks one Advanced Skin Analysis run
+   * through the same live edge function members use. The pass is consumed
+   * server-side (consume_analysis_pass, atomic) *before* the call so a double
+   * click or retry can't spend two passes on one analysis; if the edge function
+   * call itself then fails, the pass is refunded (Section 7/17 — never charge
+   * for a failed analysis) via the matching, ownership-verified RPC.
+   */
+  const runAdvancedAnalysisWithPass = async (): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("consume_analysis_pass");
+    const claim = Array.isArray(data) ? data[0] : data;
+    if (error) {
+      setAnalysisError("Couldn't check your Analysis Pass balance — please try again.");
+      return false;
+    }
+    if (!claim?.allowed) {
+      setAnalysisError("You don't have an Analysis Pass available right now.");
+      return false;
+    }
+
+    const ok = await invokeAdvancedAnalysis();
+    if (!ok) {
+      await supabase.rpc("refund_analysis_pass", { p_transaction_id: claim.transaction_id });
+      toast.message("Your Analysis Pass wasn't used — nothing was charged for that attempt.");
+    } else {
+      trackConversionEvent("analysis_pass_used");
+    }
+    void refreshPassBalance();
+    return ok;
   };
 
   /**
@@ -394,13 +441,26 @@ const AIFormulator = () => {
     setAnalysisError(null);
     setAllowanceExhausted(false);
     try {
-      const ok = isMember ? await runLiveAnalysis() : await runStarterAnalysis();
+      const ok = isMember
+        ? await runLiveAnalysis()
+        : useAdvancedPassRef.current
+          ? await runAdvancedAnalysisWithPass()
+          : await runStarterAnalysis();
+      useAdvancedPassRef.current = false;
       if (ok) setStep(STEP_RESULTS);
     } catch {
+      useAdvancedPassRef.current = false;
       setAnalysisError("Something went wrong on our end — please try again.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  /** "Use an Analysis Pass" CTA on the Starter Analysis results screen (Explorer users only). */
+  const handleUseAnalysisPass = () => {
+    trackConversionEvent("advanced_analysis_cta_clicked", { cta: "use_pass" });
+    useAdvancedPassRef.current = true;
+    setStep(STEP_ANALYSIS);
   };
 
   // Kick off generation the moment the visitor reaches the Analysis step.
@@ -620,6 +680,8 @@ const AIFormulator = () => {
     savingResultsRef.current = false;
     viewedFiredRef.current = false;
     saveCtaViewedRef.current = false;
+    useAdvancedPassRef.current = false;
+    setPassPurchaseOpen(false);
     clearAllStarterAnalysisState();
   };
 
@@ -743,8 +805,8 @@ const AIFormulator = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
                     <Shield className="h-3.5 w-3.5 text-primary" />
                     <span className="text-muted-foreground">
-                      Free Starter Analysis, no card required, no account required •
-                      <a href="/pricing" className="text-primary hover:underline ml-1">Upgrade for a live, weekly AI Dermatology Report</a>
+                      Starter Analysis, no card required, no account required •
+                      <a href="/pricing" className="text-primary hover:underline ml-1">Unlock deeper personalisation with a live AI Dermatology Report</a>
                     </span>
                   </div>
                 )}
@@ -1066,12 +1128,12 @@ const AIFormulator = () => {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      {isMember ? "Your Personalized Skincare Routine" : "Your Free Starter Analysis"}
+                      {isMember ? "Your Personalized Skincare Routine" : "Your Starter Analysis"}
                     </h3>
                     <p className="text-muted-foreground">
                       {isMember
                         ? `Customized for your ${derivedSkinType} skin`
-                        : `Built for your ${derivedSkinType} skin from your actual answers`}
+                        : `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`}
                     </p>
                   </div>
 
@@ -1130,7 +1192,7 @@ const AIFormulator = () => {
                           if (!starterResult || !section.heading) return true;
                           // Rendered above via SkinStoryCard/PriorityList/the snapshot strip instead — avoid showing it twice.
                           const h = section.heading.toLowerCase();
-                          return !(h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed"));
+                          return !(h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") || h.includes("about your skin analysis"));
                         })
                         .map((section, idx) => {
                           const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
@@ -1167,6 +1229,8 @@ const AIFormulator = () => {
                       lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
                     />
                   )}
+
+                  {starterResult && <AboutYourAnalysisSection />}
 
                   <div className="flex justify-center">
                     <Button variant="ghost" size="sm" onClick={handleShareResults} className="gap-2 text-muted-foreground">
@@ -1269,6 +1333,37 @@ const AIFormulator = () => {
                     </div>
                   ) : null}
 
+                  {!isMember && starterResult && (
+                    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3">
+                      <h4 className="font-heading font-semibold text-card-foreground">Go Deeper With Advanced Analysis</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Your Starter Analysis gives you a personalised foundation. Explore your skin in greater depth
+                        with an Advanced Skin Analysis.
+                      </p>
+                      {passBalanceLoading ? (
+                        <Button size="lg" disabled className="gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking your Analysis Passes…</Button>
+                      ) : passBalance && passBalance > 0 ? (
+                        <Button size="lg" className="gap-2" onClick={handleUseAnalysisPass}>
+                          <Sparkles className="h-4 w-4" />
+                          Use an Analysis Pass ({passBalance} available)
+                        </Button>
+                      ) : (
+                        <Button
+                          size="lg"
+                          className="gap-2"
+                          onClick={() => {
+                            trackConversionEvent("advanced_analysis_cta_clicked", { cta: "get_pass" });
+                            trackConversionEvent("analysis_pass_purchase_viewed", { source: "starter_results" });
+                            setPassPurchaseOpen(true);
+                          }}
+                        >
+                          <Sparkles className="h-4 w-4" />
+                          Get an Analysis Pass
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   {starterResult && <PremiumUpsellSection hasGroundedMatches={starterResult.groundedRoutine.matchStats.matched > 0} />}
 
                   <UpgradePrompt
@@ -1297,6 +1392,7 @@ const AIFormulator = () => {
         </div>
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
+      <AnalysisPassPurchaseModal open={passPurchaseOpen} onOpenChange={setPassPurchaseOpen} />
     </>
   );
 };
