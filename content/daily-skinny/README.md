@@ -1,26 +1,38 @@
-# Daily Skinny briefings — 6 September 2026
+# Daily Skinny briefings
 
-Five original columns for The Daily Skinny, written in SkinLabs brand voice against the master blueprint (search-intent title, one-sentence answer, TL;DR, expert explanation, key facts, SA context, practical steps, FAQ, disclaimer).
+Original columns for The Daily Skinny, written in SkinLabs brand voice against the master blueprint (search-intent title, one-sentence answer, TL;DR, expert explanation, key facts, SA context, practical steps, FAQ, disclaimer).
 
-Bodies are 2,000+ words each. Thumbnails are Unsplash URLs (same pattern as `src/data/editorials.ts` / Lovable Unsplash usage).
+Bodies are 2,000+ words each. Thumbnails are Unsplash URLs.
 
-| Slug | Title | Tag | Words | Cover |
-| --- | --- | --- | --- | --- |
-| tinted-spf-skin-of-colour-south-africa | Tinted SPF Is How Melanin-Rich Skin Actually Gets Protected in SA | Sun Protection | 2155 | unsplash photo-1556228453-efd6c1ff04f6 |
-| highveld-winter-hard-water-barrier | Highveld Winter Isn't a Serum Problem. It's Hard Water and Dry Air. | Barrier Repair | 2009 | unsplash photo-1570172619644-dfd03ed5d881 |
-| traction-alopecia-sa-khumalo-data | Tight Styles Plus Time: What SA Research Says About Traction Alopecia | Hair Loss | 2024 | unsplash photo-1522335789203-aabd1fc54bc9 |
-| azelaic-acid-melasma-pih-south-africa | Azelaic Acid Is the Brightening Active That Makes Sense Under SA Sun | Hyperpigmentation | 2004 | unsplash photo-1620916297397-a8b05e6567d4 |
-| retinal-vs-retinol-hot-bathrooms-sa | Your Retinol Might Be Cooked. Here's Why Retinal Fits SA Bathrooms. | Retinoids | 2032 | unsplash photo-1613803745799-ba6c10aace85 |
+## 9 September 2026
 
-Index: `src/data/dailySkinnyBriefings.ts`
+| Slug | Title | Tag | Words |
+| --- | --- | --- | --- |
+| south-africa-banned-skin-lightening-creams-still-on-sale | South Africa Banned Skin-Lightening Creams in 1990. They're Still on Sale. | Hyperpigmentation | 2408 |
+| south-african-dermatology-socs-global-council | South African Dermatology Just Joined a Global Push to Fix Skin-of-Colour Care | Skin of Colour | 2128 |
+| beiersdorf-eucerin-probiom8-microbiome-acne-sa | Beiersdorf Just Bet Big on Your Skin's Microbiome. Here's What That Actually Means | Acne | 2008 |
+| keloid-scarring-melanin-rich-skin-south-africa | Keloid Scars Are More Common in Melanin-Rich Skin. Here's the Practical Playbook | Scarring | 2008 |
+| niacinamide-percentages-pigmentation-south-africa | Niacinamide Percentages Matter Less Than Your SPF Habit in South Africa | Ingredients | 2060 |
 
-SQL seed (apply after pulling bodies): `supabase/migrations/20260906080000_seed_five_daily_skinny_briefings.sql`
-
-Live read path remains `news_articles` / `news_articles_public` as used by `use-news-articles.ts`. NewsArticle schema.org JSON-LD is included on insert (`buildJsonLd` shape from `supabase/functions/newsroom-sync/index.ts`).
+Index: `src/data/dailySkinnyBriefingsSept092026.ts`
 
 Primary sources aggregated via Firecrawl:
-- https://derminstitute.co.za/sun-protection-in-south-africa/ (Tod et al. 2024 IJD review via Dlova & co)
-- Hard-water / eczema literature (King's / Sheffield / UK Biobank)
-- Khumalo et al. traction alopecia prevalence (JAAD / BJD)
-- Facial hyperpigmentation in skin of colour (azelaic vs hydroquinone trials)
-- Established retinoid conversion science (DermNet)
+- SAHPRA enforcement records and Minamata Convention
+- Skin of Color Society / PR Newswire Global Council announcement
+- Beiersdorf Eucerin PROBIOM8 press materials
+- UCT / SAMRC keloid research
+- Established niacinamide evidence applied to SA climate
+
+## 8 September 2026
+
+| Slug | Title | Tag | Words |
+| --- | --- | --- | --- |
+| load-shedding-waterless-skincare-south-africa | Load-Shedding Skincare Is a Water Problem, Not a Ten-Step Problem | Barrier Repair | 2173 |
+| malassezia-folliculitis-humid-south-africa | Those Identical Chest Bumps May Be Yeast, Not Body Acne | Skin Conditions | 2026 |
+| rooibos-marula-skincare-evidence-south-africa | Rooibos and Marula Are Real Plants. They Are Not Miracle Actives. | Ingredients | 2016 |
+
+Index: `src/data/dailySkinnyBriefingsSept082026.ts`
+
+## 6 September 2026
+
+See prior rows in `src/data/dailySkinnyBriefings.ts`.
