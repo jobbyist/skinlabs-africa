@@ -30,6 +30,7 @@ import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
+import ReportBugButton from "@/components/ReportBugButton";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
@@ -274,9 +275,12 @@ const UserDashboard = () => {
         <main className="pt-20">
           <section className="py-12">
             <div className="container mx-auto px-4 max-w-5xl">
-              <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
-                Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
-              </h1>
+              <div className="mb-2 flex flex-wrap items-start justify-between gap-4">
+                <h1 className="text-3xl font-heading font-bold text-foreground">
+                  Welcome back{profile?.full_name ? `, ${profile.full_name}` : ""}
+                </h1>
+                <ReportBugButton />
+              </div>
               <p className="text-muted-foreground mb-6">{user?.email}</p>
 
               {!membershipLoading && isTrialing && (

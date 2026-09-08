@@ -60,7 +60,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
   anonymous: ["ai_analysis.starter"],
   free: ["ai_analysis.starter"],
   // Provisional — see file header. Not resolvable from real data yet.
-  glow_lite: ["ai_analysis.starter", "comparisons.unlimited", "spotlight.full_profiles"],
+  glow_lite: ["ai_analysis.starter", "comparisons.unlimited", "spotlight.full_profiles", "practitioner_directory"],
   insider: [
     "ai_analysis.starter",
     "ai_analysis.live_weekly",
