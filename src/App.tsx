@@ -26,6 +26,10 @@ const KnowledgeHub = lazy(() => import("./pages/KnowledgeHub"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
+const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
+const Whitepaper = lazy(() => import("./pages/Whitepaper"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Openhaus = lazy(() => import("./pages/Openhaus"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
@@ -82,7 +86,7 @@ const AppContent = () => (
         <Route path="/bundled-kits" element={<Navigate to="/" replace />} />
         <Route path="/gift-sets" element={<Navigate to="/" replace />} />
         <Route path="/shipping" element={<Navigate to="/knowledge-hub" replace />} />
-        <Route path="/returns" element={<Navigate to="/knowledge-hub" replace />} />
+        <Route path="/returns" element={<Navigate to="/refund-policy" replace />} />
         <Route path="/track-order" element={<Navigate to="/knowledge-hub" replace />} />
         <Route path="/edible-pouches" element={<Navigate to="/" replace />} />
         <Route path="/careers" element={<Navigate to="/about" replace />} />
@@ -90,6 +94,11 @@ const AppContent = () => (
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
+        <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/editorial-policy" element={<EditorialPolicy />} />
+        <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+        <Route path="/whitepapers" element={<Whitepaper />} />
+        <Route path="/whitepaper" element={<Navigate to="/whitepapers" replace />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/shop" element={<Openhaus />} />
         <Route path="/routines" element={<ComingSoon />} />
@@ -123,7 +132,6 @@ const AppContent = () => (
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
-    {/* Render after route content so this central metadata layer wins over legacy page-level Helmet blocks. */}
     <SitewideSEO />
   </>
 );
