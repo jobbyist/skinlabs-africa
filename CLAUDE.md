@@ -81,7 +81,38 @@ feature appear operational.
   `credit_packs`, `pricing_experiment_variants` tables; `src/lib/
   pricing-config.ts` does variant bucketing; `paystack-payment` edge
   function is DB-driven. Pricing page and dashboard read plan config from
-  the DB, not from constants in code.
+  the DB, not from constants in code. `credit_packs` includes both
+  `single_1` (R25, one "Analysis Pass") and `starter_3` (R59, 3 passes) —
+  every verified charge is also logged to `payment_transactions` by the
+  webhook (idempotent on `reference`), which is what the dashboard's
+  Billing tab reads for transaction history and downloadable receipts
+  (`src/lib/generateInvoicePdf.ts` — a real receipt from that row, never a
+  fabricated invoicing system).
+- **User dashboard** (`src/pages/UserDashboard.tsx`,
+  `src/components/dashboard/*`) — tab-based member area:
+  Home/Profile/Skin Analysis/Routine/Skin Journey/Billing/Inbox/Security/
+  Account, with `?tab=` synced to the URL so notifications and emails can
+  deep-link into a specific tab. "Profile strength" (`src/lib/
+  profileStrength.ts`, shown as a ring on Home) is a broader,
+  encouragement-only completeness score across optional fields (phone,
+  address, allergies, routine time) — distinct from the stricter, RLS-
+  enforced `is_profile_complete()`/`useProfileComplete()` gate used for
+  commenting and the AI Formulator; don't conflate the two. The routine
+  tracker (`routine_steps`/`routine_checkins` tables, `use-routine.ts`) is
+  user-authored (no fabricated products) with a simple daily-completion
+  streak. The inbox (`notifications` table) is populated only by real
+  server-side triggers (a new AI analysis, a credit grant, a plan change —
+  see `20260908150000_user_dashboard_redesign.sql`), never fabricated
+  client-side; dermatologist messaging is a genuinely unshipped feature and
+  is labelled "Coming soon" with a `feature_waitlist` opt-in rather than
+  any working-looking chat UI. Temporary deactivation is a reversible
+  `deactivate_account()`/`reactivate_account()` RPC pair; permanent
+  deletion goes through the `account-delete` edge function (only the
+  service-role admin API can remove an `auth.users` row) and cascades via
+  `ON DELETE CASCADE` through every user-owned table. Data export
+  (`src/lib/generateAccountDataPdf.ts`) is a client-side PDF built from the
+  same reads already used to render the dashboard — no separate export
+  pipeline.
 - **Skincare intelligence database** — normalized schema (brands,
   products, product_variants, product_versions, ingredients,
   product_ingredients, retailers, retailer_products, product_prices

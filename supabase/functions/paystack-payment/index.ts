@@ -206,6 +206,29 @@ Deno.serve(async (req) => {
 
         const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+        // Log every verified charge for the dashboard's Billing tab (transaction
+        // history + downloadable invoices) — real data only, never fabricated.
+        // ON CONFLICT guards against Paystack's at-least-once webhook retries.
+        const reference = (event.data?.reference as string | undefined) ?? crypto.randomUUID();
+        const description =
+          purchaseType === "plan"
+            ? `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`
+            : purchaseType === "credit_pack"
+              ? `${meta.credits ?? ""} AI analysis credit${meta.credits === 1 ? "" : "s"}`.trim()
+              : "Founding Member";
+        await admin.from("payment_transactions").upsert(
+          {
+            user_id: userId,
+            reference,
+            purchase_type: purchaseType,
+            description,
+            amount_zar: paidZar,
+            status: "success",
+            metadata: meta,
+          },
+          { onConflict: "reference", ignoreDuplicates: true },
+        );
+
         if (purchaseType === "plan") {
           await admin
             .from("profiles")
