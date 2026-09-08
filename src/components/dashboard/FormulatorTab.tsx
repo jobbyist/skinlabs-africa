@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { Crown, UserCog, Sparkles, FileText, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import AIFormulator from "@/components/AIFormulator";
+import SavedAnalysisCard, { type SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useProfileComplete } from "@/hooks/use-profile-complete";
@@ -17,25 +17,17 @@ interface FormulatorTabProps {
   onGoToProfile: () => void;
 }
 
-interface Recommendation {
-  id: string;
-  skin_type: string;
-  concerns: string[];
-  created_at: string;
-  status: string;
-}
-
 /** Previous skin assessments — real history from skincare_recommendations, most recent first. */
 const AnalysisHistory = () => {
   const { user } = useAuth();
-  const [recs, setRecs] = useState<Recommendation[]>([]);
+  const [recs, setRecs] = useState<SavedRecommendationRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     supabase
       .from("skincare_recommendations")
-      .select("id, skin_type, concerns, created_at, status")
+      .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -51,22 +43,8 @@ const AnalysisHistory = () => {
   }
 
   return (
-    <div className="space-y-3">
-      {recs.map((rec) => (
-        <div key={rec.id} className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-4 py-3">
-          <div className="min-w-0">
-            <p className="font-medium text-foreground">{rec.skin_type} Skin</p>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {rec.concerns.slice(0, 3).map((c) => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
-              {rec.concerns.length > 3 && <Badge variant="secondary" className="text-xs">+{rec.concerns.length - 3}</Badge>}
-            </div>
-          </div>
-          <div className="shrink-0 text-right">
-            <p className="text-sm text-muted-foreground">{new Date(rec.created_at).toLocaleDateString()}</p>
-            <Badge variant={rec.status === "delivered" ? "default" : "secondary"} className="text-xs">{rec.status}</Badge>
-          </div>
-        </div>
-      ))}
+    <div>
+      {recs.map((rec) => <SavedAnalysisCard key={rec.id} rec={rec} />)}
     </div>
   );
 };

@@ -44,7 +44,7 @@ const Footer = () => {
     platform: [
       { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
       { label: "Knowledge Hub", href: "/knowledge-hub" },
-      { label: "Consultations", href: "/consultations", isNew: true },
+      { label: "Consultations", href: "/consult", isNew: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
       // Already a member — a "Memberships" link back to the pricing page is redundant.
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
