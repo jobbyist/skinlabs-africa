@@ -50,6 +50,15 @@ export const useAuth = () => {
     return { data, error };
   };
 
+  /** Passwordless sign-in: emails a one-time magic link, no password required. */
+  const signInWithMagicLink = async (email: string) => {
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
+    });
+    return { data, error };
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
@@ -100,6 +109,7 @@ export const useAuth = () => {
     signIn,
     signUp,
     signInWithGoogle,
+    signInWithMagicLink,
     signOut,
     sendEmailVerification,
     enrollMFA,

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Mail, KeyRound } from "lucide-react";
+import { Loader2, Mail, KeyRound, Wand2 } from "lucide-react";
 import logo from "@/assets/newskinlabs.png";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
@@ -29,12 +29,14 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated }: AuthDialogProps) => {
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const { signIn, signUp, signInWithGoogle, signInWithMagicLink } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [magicLinkMode, setMagicLinkMode] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -47,6 +49,16 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
       setGoogleLoading(false);
       toast.error(error.message);
     }
+  };
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    trackConversionEvent("signup_started");
+    const { error } = await signInWithMagicLink(email);
+    setIsLoading(false);
+    if (error) toast.error(error.message);
+    else setMagicLinkSent(true);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -141,35 +153,98 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
             </TabsList>
 
             <TabsContent value="signin" className="mt-0">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email-signin">Email</Label>
-                  <Input
-                    id="email-signin"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    autoComplete="email"
-                  />
+              {magicLinkSent ? (
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                    <Mail className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Check your email</p>
+                    <p className="text-xs text-muted-foreground">
+                      We sent a sign-in link to <span className="font-medium text-foreground">{email}</span>. Open it
+                      on this device to log in — no password needed.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      setMagicLinkSent(false);
+                      setMagicLinkMode(false);
+                    }}
+                  >
+                    Use a different method
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password-signin">Password</Label>
-                  <Input
-                    id="password-signin"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Log in
-                </Button>
-              </form>
+              ) : magicLinkMode ? (
+                <form onSubmit={handleMagicLink} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email-magic">Email</Label>
+                    <Input
+                      id="email-magic"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      We'll email you a one-time link — click it to sign in, no password required.
+                    </p>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Send magic link
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setMagicLinkMode(false)}
+                    className="flex w-full items-center justify-center gap-1.5 text-center text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                  >
+                    <KeyRound className="h-3 w-3" /> Use a password instead
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email-signin">Email</Label>
+                    <Input
+                      id="email-signin"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password-signin">Password</Label>
+                    <Input
+                      id="password-signin"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Log in
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setMagicLinkMode(true)}
+                    className="flex w-full items-center justify-center gap-1.5 text-center text-xs text-muted-foreground hover:text-foreground hover:underline underline-offset-2"
+                  >
+                    <Wand2 className="h-3 w-3" /> Sign in without a password
+                  </button>
+                </form>
+              )}
             </TabsContent>
 
             <TabsContent value="signup" className="mt-0">
