@@ -195,6 +195,13 @@ const NewsroomArticle = () => {
   }
 
   const canonical = `https://skinlabs.co.za/briefings/${article.slug}`;
+  const seoTitle = article.seo_title || `${article.title} | The Daily Skinny by SkinLabs®`;
+  const seoDescription = article.seo_description || article.excerpt;
+  const socialImage = article.cover_image_url
+    ? article.cover_image_url.startsWith("http")
+      ? article.cover_image_url
+      : `https://skinlabs.co.za${article.cover_image_url.startsWith("/") ? "" : "/"}${article.cover_image_url}`
+    : "https://skinlabs.co.za/og-image.png";
 
   return (
     <>

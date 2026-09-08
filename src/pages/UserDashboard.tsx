@@ -331,7 +331,7 @@ const UserDashboard = () => {
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
                   <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="formulator">AI Formulator</TabsTrigger>
+                  <TabsTrigger value="formulator">Skin Analysis (SKYNN AI)</TabsTrigger>
                   <TabsTrigger value="journey">Skin Journey</TabsTrigger>
                   <TabsTrigger value="reports">AI Reports</TabsTrigger>
                   <TabsTrigger value="security">Security</TabsTrigger>
@@ -438,7 +438,7 @@ const UserDashboard = () => {
                   <Card>
                     <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />AI Skincare Reports</CardTitle><CardDescription>Your personalized recommendations history</CardDescription></CardHeader>
                     <CardContent>
-                      {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try the <a href="/ai-formulator" className="text-primary hover:underline">AI Formulator</a>.</p> :
+                      {recommendations.length === 0 ? <p className="text-sm text-muted-foreground">No reports yet. Try <a href="/skynn-ai" className="text-primary hover:underline">Skin Analysis (SKYNN AI)</a>.</p> :
                         <div className="space-y-3">
                           {recommendations.map((rec) => (
                             <div key={rec.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">

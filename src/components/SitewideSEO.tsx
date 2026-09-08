@@ -17,7 +17,7 @@ const absolute = (value: string | undefined) => value ? (value.startsWith("http"
 const SitewideSEO = () => {
   const { pathname } = useLocation();
   const { getImage } = useReviewImages();
-  const [article, setArticle] = useState<null | { title: string; excerpt: string; slug: string; cover_image_url?: string | null; seo_title?: string | null; seo_description?: string | null; publish_date?: string | null; updated_at?: string | null }>(null);
+  const [article, setArticle] = useState<null | { title: string; excerpt: string; slug: string; cover_image_url?: string | null; seo_title?: string | null; seo_description?: string | null; publish_date?: string | null }>(null);
   const articleSlug = pathname.startsWith("/briefings/") ? pathname.split("/")[2] : null;
 
   useEffect(() => {
@@ -26,7 +26,7 @@ const SitewideSEO = () => {
     if (!articleSlug) return;
     void (async () => {
       const { data } = await supabase.from("news_articles_public")
-        .select("title, excerpt, slug, cover_image_url, seo_title, seo_description, publish_date, updated_at")
+        .select("title, excerpt, slug, cover_image_url, seo_title, seo_description, publish_date")
         .eq("slug", articleSlug).maybeSingle();
       if (active) setArticle((data as typeof article) ?? null);
     })();
@@ -48,7 +48,7 @@ const SitewideSEO = () => {
       const image = absolute(article.cover_image_url ?? undefined);
       return { title, description, canonical, ogType: "article", ogImage: image, jsonLd: {
         "@context": "https://schema.org", "@type": "Article", headline: article.title, description,
-        ...(image ? { image } : {}), datePublished: article.publish_date, dateModified: article.updated_at || article.publish_date,
+        ...(image ? { image } : {}), datePublished: article.publish_date, dateModified: article.publish_date,
         author: { "@type": "Organization", name: BRAND, url: SITE_URL }, publisher: { "@type": "Organization", name: BRAND, url: SITE_URL, logo: { "@type": "ImageObject", url: `${SITE_URL}/pwa-512.png` } },
         mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` },
       }};

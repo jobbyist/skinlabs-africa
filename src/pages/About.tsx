@@ -78,10 +78,10 @@ const About = () => {
     },
     {
       icon: <Sparkles className="h-6 w-6" />,
-      title: "AI Formulator",
+      title: "Skin Analysis (SKYNN AI)",
       description: "Personalized skincare routines, progress trackers, and dermatologist-approved recommendations.",
       highlight: "Premium member feature",
-      link: "/ai-formulator"
+      link: "/skynn-ai"
     },
     {
       icon: <Mic className="h-6 w-6" />,
@@ -170,7 +170,7 @@ const About = () => {
     {
       icon: <Brain className="h-8 w-8" />,
       title: "AI Technology",
-      description: "Our AI Formulator analyses thousands of skin profiles to recommend the optimal routine and actives"
+      description: "Our SKYNN AI analyses thousands of skin profiles to recommend the optimal routine and actives"
     },
     {
       icon: <Award className="h-8 w-8" />,
@@ -370,7 +370,7 @@ const About = () => {
                         score and say so.
                       </p>
                       <p>
-                        Our AI Formulator applies the same evidence-first standard: it translates dermatology
+                        Our SKYNN AI applies the same evidence-first standard: it translates dermatology
                         research into a routine matched to your skin type, climate zone and budget, reviewed
                         against clinical guidance rather than trend cycles.
                       </p>

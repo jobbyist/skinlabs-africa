@@ -2,6 +2,28 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DERMATOLOGIST_KNOWLEDGE } from "./dermatologist-knowledge.ts";
 
+// Diagnosis words the system prompt explicitly forbids naming (both prompts say to
+// describe visible signs descriptively instead). A hit here means the model violated
+// its own instruction — logged for human review via skynn_fairness_events, never
+// auto-corrected or hidden from the client (the response still goes out as generated).
+const FORBIDDEN_DIAGNOSIS_TERMS = ["eczema", "rosacea", "psoriasis", "fungal acne", "pcos"];
+
+function scanComplianceFlags(text: string): string[] {
+  const lower = text.toLowerCase();
+  const flags: string[] = [];
+  for (const term of FORBIDDEN_DIAGNOSIS_TERMS) {
+    if (lower.includes(term)) flags.push(`named_diagnosis:${term.replace(/\s+/g, "_")}`);
+  }
+  return flags;
+}
+
+function mstBandOf(tone: number | null): "light" | "medium" | "deep" | "unknown" {
+  if (tone === null) return "unknown";
+  if (tone <= 3) return "light";
+  if (tone <= 7) return "medium";
+  return "deep";
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -65,11 +87,13 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 
     const body = await req.json();
-    const { quizAnswers, skinImage, contactName } = body as {
+    const { quizAnswers, skinImage, contactName, mstTone } = body as {
       quizAnswers?: Array<{ question: string; answer: string }>;
       skinImage?: string | null; // base64 data URL OR null
       contactName?: string;
+      mstTone?: number | null; // self-reported Monk Skin Tone (1-10), optional — fairness signal only, never diagnostic
     };
+    const validMstTone = typeof mstTone === "number" && mstTone >= 1 && mstTone <= 10 ? mstTone : null;
 
     if (!quizAnswers || !Array.isArray(quizAnswers) || quizAnswers.length === 0) {
       return new Response(JSON.stringify({ error: "Missing quiz answers" }), {
@@ -118,6 +142,7 @@ CLIENT SKIN ASSESSMENT (20-question quiz):
 ${answersText}
 
 ${skinImage ? "A clear selfie has been attached — analyse it for visible skin tone (Fitzpatrick estimate), oil/shine distribution, visible texture, redness, post-inflammatory marks, congestion, and barrier signs. Cross-reference the visual observations with the quiz answers." : "(No selfie provided — base analysis on quiz answers only.)"}
+${validMstTone ? `Client self-reported Monk Skin Tone (MST): ${validMstTone}/10. This is a fairness/self-report signal, not a diagnosis — use it only to sanity-check your Fitzpatrick estimate and to tailor PIH-risk and sun-protection guidance, never to infer race, ethnicity or identity.` : ""}
 
 OUTPUT FORMAT — use EXACTLY these markdown sections in this order:
 
@@ -176,7 +201,7 @@ ${DERMATOLOGIST_KNOWLEDGE}
 Output rules:
 - Use clean markdown with the exact section headers requested by the user prompt.
 - Be specific (product type + key ingredients + reason), but never name competitor brands.
-- Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status.
+- Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status. If a self-reported Monk Skin Tone (MST) is given, use it only as a sanity-check/fairness signal alongside your own Fitzpatrick estimate — never as a diagnosis, and never to infer race, ethnicity or identity.
 - This is cosmetic skincare guidance, not medical advice. Never name or imply a medical diagnosis (e.g. eczema, rosacea, psoriasis, fungal acne, PCOS) — describe visible signs descriptively instead, and recommend a licensed dermatologist or HPCSA-registered practitioner for anything that looks medical.
 - Never claim or imply this report cures, treats or prevents a disease.`;
 
@@ -298,12 +323,41 @@ This is cosmetic skincare guidance, not medical advice or diagnosis — never na
         recommendation,
         status: "delivered",
         contact_name: contactName ?? null,
+        mst_tone: validMstTone,
+        mst_source: validMstTone !== null ? "user_reported" : null,
       });
     } catch (persistErr) {
       console.warn("Could not persist recommendation:", persistErr);
     }
 
-    return new Response(JSON.stringify({ 
+    // Fairness-benchmarking pipeline (full, AI-usage path) — best-effort, never blocks
+    // the response. Distinct from the deterministic starter path in one key way: it can
+    // actually inspect the model's own output, so it scans for the one rule the system
+    // prompt states unambiguously (never name a medical diagnosis) rather than fabricating
+    // an accuracy/bias score no dermatologist-labelled ground truth exists to support.
+    try {
+      const answeredCount = (quizAnswers ?? []).filter((qa) => qa.answer !== "Not answered").length;
+      const totalQuestions = (quizAnswers ?? []).length || 1;
+      const profilePct = (answeredCount / totalQuestions) * 100;
+      const photoPct = skinImage ? 100 : 40;
+      const mstPct = validMstTone !== null ? 100 : 60;
+      const completenessScore = Math.round((profilePct + photoPct + mstPct) / 3);
+
+      await supabaseAuth.from("skynn_fairness_events").insert({
+        source: "live_ai",
+        result_tier: isPremiumMember ? "premium" : "free",
+        mst_tone: validMstTone,
+        mst_band: mstBandOf(validMstTone),
+        had_photo: Boolean(skinImage),
+        completeness_score: completenessScore,
+        compliance_flags: scanComplianceFlags(recommendation),
+        model_version: isPremiumMember ? "google/gemini-3-flash-preview" : "gemini-1.5-flash",
+      });
+    } catch (fairnessErr) {
+      console.warn("Could not log fairness event:", fairnessErr);
+    }
+
+    return new Response(JSON.stringify({
       recommendation,
       tier: isPremiumMember ? "premium" : "free"
     }), {

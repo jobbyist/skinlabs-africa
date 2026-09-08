@@ -21,7 +21,7 @@ const configs: Record<string, ComingSoonConfig> = {
     eyebrow: "Routines",
     title: "Smart Routines is coming soon",
     description:
-      "A living AM and PM routine that adapts to your skin, the season and the products already on your shelf — built from your AI Formulator profile.",
+      "A living AM and PM routine that adapts to your skin, the season and the products already on your shelf — built from your SKYNN AI profile.",
     bullets: [
       "Step-by-step AM and PM schedules with timing and layering",
       "Automatic actives calendar so you never over-exfoliate",
@@ -29,7 +29,7 @@ const configs: Record<string, ComingSoonConfig> = {
     ],
     launch: "Launching to members first",
     icon: Target,
-    primary: { label: "Build your AI skin profile", to: "/ai-formulator" },
+    primary: { label: "Build your AI skin profile", to: "/skynn-ai" },
   },
   "/marketplace": {
     eyebrow: "Marketplace",

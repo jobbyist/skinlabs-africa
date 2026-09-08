@@ -60,7 +60,7 @@ interface NavItem {
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Routines", href: "/routines", icon: Target, badge: "Coming Soon" },
-  { label: "AI Formulator", href: "/ai-formulator", icon: FlaskConical, badge: "BETA" },
+  { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
   { label: "Business Suite", href: "/business", icon: TrendingUp, badge: "NEW" },
 ];
 

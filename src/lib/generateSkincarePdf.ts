@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { MST_SCALE } from "@/data/mstScale";
 
 export interface SkincarePdfData {
   clientName: string;
@@ -6,7 +7,14 @@ export interface SkincarePdfData {
   recommendation: string;
   skinType?: string;
   generatedAt?: Date;
+  /** Self-reported Monk Skin Tone (1–10), optional. */
+  mstTone?: number | null;
 }
+
+const hexToRgb = (hex: string): [number, number, number] => {
+  const clean = hex.replace("#", "");
+  return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
+};
 
 const BRAND = {
   primary: [30, 41, 59] as [number, number, number], // slate-800
@@ -55,7 +63,7 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
   doc.text("SKINLABS®", margin, 50);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("Personalized AI Skincare Report", margin, 70);
+  doc.text("SKYNN AI (beta) — Personalized AI Skincare Report", margin, 70);
 
   doc.setFontSize(9);
   doc.text(
@@ -98,6 +106,23 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
       y + 42,
       { align: "right" },
     );
+  }
+  if (data.mstTone) {
+    const swatch = MST_SCALE.find((s) => s.level === data.mstTone);
+    doc.setTextColor(...BRAND.muted);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(
+      `Monk Skin Tone: ${data.mstTone}/10 (self-reported, fairness signal only)`,
+      pageWidth - margin - 16,
+      y + 58,
+      { align: "right" },
+    );
+    if (swatch) {
+      const rgb = hexToRgb(swatch.hex);
+      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
+      doc.circle(pageWidth - margin - 138, y + 55, 4, "F");
+    }
   }
   y += 90;
 

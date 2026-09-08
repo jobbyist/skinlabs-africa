@@ -99,15 +99,15 @@ const Hero = () => {
 
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
               We read the ingredient list so you don't have to. Evidence-graded product reviews, daily skin
-              science briefings and an AI formulator that builds your routine around your skin, our climate
-              and your budget — no affiliate deals, no gifted samples.
+              science briefings and SKYNN AI (beta) — a skin assessment that builds your routine around your
+              skin, our climate and your budget — no affiliate deals, no gifted samples.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
-                <a href="/ai-formulator">
+                <a href="/skynn-ai">
                   <Atom className="h-4 w-4" />
-                  Start Your Skin Analysis
+                  Try SKYNN AI (beta)
                 </a>
               </Button>
               {/* Already a paying member — offering a free trial they can't use is redundant/misleading. */}

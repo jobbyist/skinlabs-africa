@@ -12,7 +12,7 @@ interface TrialWelcomeModalProps {
 
 const stops = [
   {
-    to: "/ai-formulator",
+    to: "/skynn-ai",
     icon: Sparkles,
     title: "Build your custom AI routine",
     description: "A full routine re-analysed weekly, not just a basic result",

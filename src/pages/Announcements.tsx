@@ -14,6 +14,14 @@ interface Announcement {
 
 const announcements: Announcement[] = [
   {
+    date: "2026-09-07",
+    tag: "Platform",
+    icon: <Sparkles className="h-5 w-5" />,
+    title: "SKYNN AI (beta) is here",
+    description:
+      "The AI Formulator is now SKYNN AI (beta), at a new home: /skynn-ai. It adds an optional Monk Skin Tone (MST) step for fairness testing across skin tones, product picks grounded in SkinLabs' own reviewed catalogue, and a transparent \"analysis completeness\" indicator instead of a vague confidence score.",
+  },
+  {
     date: "2026-08-28",
     tag: "Coming Soon",
     icon: <ShoppingBag className="h-5 w-5" />,

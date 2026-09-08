@@ -49,7 +49,7 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
             <Link to="/pricing">See membership plans</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/ai-formulator">Try the free starter version</Link>
+            <Link to="/skynn-ai">Try the free starter version</Link>
           </Button>
         </CardContent>
       </Card>

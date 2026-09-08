@@ -16,11 +16,33 @@ const PER_ROUTE_TIMEOUT_MS = 20_000;
 const MAX_ROUTES = 1000;
 
 const STATIC_ROUTES = [
-  "/about", "/pricing", "/contact", "/business", "/partners", "/ai-formulator", "/products",
-  "/knowledge-hub", "/privacy-policy", "/terms-of-service", "/cookie-policy", "/shop", "/podcast",
-  "/briefings", "/reviews", "/compare", "/consultations", "/consult", "/announcements", "/spotlight",
-  "/spotlight/methodology", "/spotlight/archive", "/seasonals", "/seasonals/spring", "/seasonals/summer",
-  "/seasonals/autumn", "/seasonals/winter",
+  "/about",
+  "/pricing",
+  "/contact",
+  "/business",
+  "/partners",
+  "/skynn-ai",
+  "/products",
+  "/knowledge-hub",
+  "/privacy-policy",
+  "/terms-of-service",
+  "/cookie-policy",
+  "/shop",
+  "/podcast",
+  "/briefings",
+  "/reviews",
+  "/compare",
+  "/consultations",
+  "/consult",
+  "/announcements",
+  "/spotlight",
+  "/spotlight/methodology",
+  "/spotlight/archive",
+  "/seasonals",
+  "/seasonals/spring",
+  "/seasonals/summer",
+  "/seasonals/autumn",
+  "/seasonals/winter",
 ];
 
 const extractQuoted = (source: string, field: string): string[] => {

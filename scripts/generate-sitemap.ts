@@ -23,7 +23,7 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/contact", changefreq: "monthly", priority: "0.6" },
   { path: "/business", changefreq: "monthly", priority: "0.6" },
   { path: "/partners", changefreq: "monthly", priority: "0.8" },
-  { path: "/ai-formulator", changefreq: "weekly", priority: "0.95" },
+  { path: "/skynn-ai", changefreq: "weekly", priority: "0.95" },
   { path: "/briefings", changefreq: "daily", priority: "0.95" },
   { path: "/reviews", changefreq: "weekly", priority: "0.95" },
   { path: "/compare", changefreq: "weekly", priority: "0.9" },
@@ -92,14 +92,14 @@ async function main() {
     const supabase = createClient(supabaseUrl, supabaseKey);
     const { data, error } = await supabase
       .from("news_articles_public")
-      .select("slug, publish_date, updated_at")
+      .select("slug, publish_date")
       .order("publish_date", { ascending: false });
     if (error) {
       console.warn("generate-sitemap: could not fetch published briefings:", error.message);
     } else {
       for (const article of data ?? []) {
         if (typeof article.slug === "string") {
-          add(`/briefings/${article.slug}`, "weekly", "0.85", article.updated_at?.slice(0, 10) || article.publish_date?.slice(0, 10) || today);
+          add(`/briefings/${article.slug}`, "weekly", "0.85", article.publish_date?.slice(0, 10) || today);
         }
       }
     }

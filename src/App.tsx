@@ -65,7 +65,8 @@ const AppContent = () => (
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
         <Route path="/products" element={<Products />} />
-        <Route path="/ai-formulator" element={<AIFormulator />} />
+        <Route path="/skynn-ai" element={<AIFormulator />} />
+        <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/business" element={<Business />} />
