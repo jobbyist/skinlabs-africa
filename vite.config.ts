@@ -53,7 +53,9 @@ export default defineConfig(({ mode }) => ({
         webp: { quality: 78 },
         svg: {
           multipass: true,
-          plugins: [{ name: "preset-default", params: { overrides: { removeViewBox: false } } }],
+          plugins: [
+            { name: "preset-default", params: { overrides: { removeViewBox: false } } },
+          ] as unknown as import("svgo").PluginConfig[],
         },
       }),
   ].filter(Boolean),

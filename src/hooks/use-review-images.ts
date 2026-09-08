@@ -15,23 +15,23 @@ let inflight: Promise<ImageMap> | null = null;
 const load = async (): Promise<ImageMap> => {
   if (cache) return cache;
   if (!inflight) {
-    inflight = supabase
-      .from("review_images")
-      .select("review_id, image_url, alt, credit_name, credit_url")
-      .then(({ data }) => {
-        const map: ImageMap = {};
-        for (const row of data ?? []) {
-          map[row.review_id] = {
-            reviewId: row.review_id,
-            url: row.image_url,
-            alt: row.alt,
-            creditName: row.credit_name,
-            creditUrl: row.credit_url,
-          };
-        }
-        cache = map;
-        return map;
-      });
+    inflight = (async () => {
+      const { data } = await supabase
+        .from("review_images")
+        .select("review_id, image_url, alt, credit_name, credit_url");
+      const map: ImageMap = {};
+      for (const row of data ?? []) {
+        map[row.review_id] = {
+          reviewId: row.review_id,
+          url: row.image_url,
+          alt: row.alt,
+          creditName: row.credit_name,
+          creditUrl: row.credit_url,
+        };
+      }
+      cache = map;
+      return map;
+    })();
   }
   return inflight;
 };
