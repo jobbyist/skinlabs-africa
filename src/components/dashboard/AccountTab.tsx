@@ -38,65 +38,92 @@ const AccountTab = () => {
   const handleExport = async () => {
     if (!user) return;
     setExporting(true);
-    const [profileRes, recsRes, journeyRes, txRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("skincare_recommendations").select("created_at, skin_type, concerns").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("skin_journey_entries").select("entry_date, mood, skin_condition_rating").eq("user_id", user.id).order("entry_date", { ascending: false }),
-      supabase.from("payment_transactions").select("created_at, description, amount_zar, reference").eq("user_id", user.id).order("created_at", { ascending: false }),
-    ]);
-    const profile = profileRes.data;
-    downloadAccountDataPdf({
-      fullName: profile?.full_name ?? null,
-      email: user.email ?? "",
-      createdAt: profile?.created_at ?? user.created_at,
-      profileFields: {
-        Username: profile?.username ?? "",
-        Phone: profile?.phone ?? "",
-        "Date of birth": profile?.date_of_birth ?? "",
-        Gender: profile?.gender ?? "",
-        "Skin type (Fitzpatrick)": profile?.skin_color ?? "",
-        Address: [profile?.address_line1, profile?.address_line2, profile?.city, profile?.province, profile?.postal_code, profile?.country]
-          .filter(Boolean)
-          .join(", "),
-        Allergies: (profile?.allergies ?? []).join(", "),
-        "Skin conditions": (profile?.skin_conditions ?? []).join(", "),
-      },
-      recommendations: recsRes.data ?? [],
-      journeyEntries: journeyRes.data ?? [],
-      transactions: (txRes.data ?? []).map((t) => ({ ...t, amount_zar: Number(t.amount_zar) })),
-    });
-    setExporting(false);
-    toast.success("Your data export has downloaded.");
+    try {
+      const [profileRes, recsRes, journeyRes, txRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("skincare_recommendations").select("created_at, skin_type, concerns").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("skin_journey_entries").select("entry_date, mood, skin_condition_rating").eq("user_id", user.id).order("entry_date", { ascending: false }),
+        supabase.from("payment_transactions").select("created_at, description, amount_zar, reference").eq("user_id", user.id).order("created_at", { ascending: false }),
+      ]);
+
+      // supabase-js resolves with { data: null, error } rather than throwing
+      // on a query error, so treating .data as always-present let a failed
+      // profile fetch (RLS hiccup, dropped connection) silently generate a
+      // near-empty PDF — surface it instead and stop before generating one.
+      const failed = [profileRes, recsRes, journeyRes, txRes].find((r) => r.error);
+      if (failed?.error) throw failed.error;
+
+      const profile = profileRes.data;
+      downloadAccountDataPdf({
+        fullName: profile?.full_name ?? null,
+        email: user.email ?? "",
+        createdAt: profile?.created_at ?? user.created_at,
+        profileFields: {
+          Username: profile?.username ?? "",
+          Phone: profile?.phone ?? "",
+          "Date of birth": profile?.date_of_birth ?? "",
+          Gender: profile?.gender ?? "",
+          "Skin type (Fitzpatrick)": profile?.skin_color ?? "",
+          Address: [profile?.address_line1, profile?.address_line2, profile?.city, profile?.province, profile?.postal_code, profile?.country]
+            .filter(Boolean)
+            .join(", "),
+          Allergies: (profile?.allergies ?? []).join(", "),
+          "Skin conditions": (profile?.skin_conditions ?? []).join(", "),
+        },
+        recommendations: recsRes.data ?? [],
+        journeyEntries: journeyRes.data ?? [],
+        transactions: (txRes.data ?? []).map((t) => ({ ...t, amount_zar: Number(t.amount_zar) })),
+      });
+      toast.success("Your data export has downloaded.");
+    } catch (err) {
+      console.error("account data export failed", err);
+      toast.error("Could not generate your data export — please try again.");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleDeactivate = async () => {
     setDeactivating(true);
-    const { error } = await supabase.rpc("deactivate_account");
-    setDeactivating(false);
-    setDeactivateOpen(false);
-    if (error) {
+    try {
+      const { error } = await supabase.rpc("deactivate_account");
+      if (error) throw error;
+      setDeactivateOpen(false);
+      toast.success("Your account is deactivated. Sign in any time to reactivate it.");
+      await signOut();
+      navigate("/");
+    } catch (err) {
+      console.error("account deactivation failed", err);
       toast.error("Could not deactivate your account right now.");
-      return;
+    } finally {
+      setDeactivating(false);
     }
-    toast.success("Your account is deactivated. Sign in any time to reactivate it.");
-    await signOut();
-    navigate("/");
   };
 
   const handleDelete = async () => {
     if (deleteConfirm !== "DELETE") return;
     setDeleting(true);
-    const { data, error } = await supabase.functions.invoke("account-delete", {
-      body: { confirm: "DELETE" },
-    });
-    setDeleting(false);
-    if (error || !(data as { deleted?: boolean })?.deleted) {
+    try {
+      const { data, error } = await supabase.functions.invoke("account-delete", {
+        body: { confirm: "DELETE" },
+      });
+      if (error || !(data as { deleted?: boolean })?.deleted) {
+        throw error ?? new Error("Deletion did not complete");
+      }
+      toast.success("Your account has been permanently deleted.");
+      await signOut();
+      navigate("/");
+    } catch (err) {
+      console.error("account deletion failed", err);
+      // A failed attempt must not leave "DELETE" sitting in the field: the
+      // button is only disabled by deleteConfirm !== "DELETE", so a cached
+      // value would let a bare click re-submit the deletion on retry without
+      // the user consciously retyping the confirmation phrase again.
+      setDeleteConfirm("");
       toast.error("Could not delete your account. Please try again or contact us.");
-      return;
+    } finally {
+      setDeleting(false);
     }
-    toast.success("Your account has been permanently deleted.");
-    await signOut();
-    navigate("/");
   };
 
   return (

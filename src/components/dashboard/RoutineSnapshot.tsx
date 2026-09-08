@@ -6,7 +6,7 @@ const ICONS = [Droplet, Sparkles, PenTool, SunIcon];
 
 /** Compact AM/PM routine snapshot shown on the Overview tab, matching the icon-row pattern. */
 const RoutineSnapshot = () => {
-  const { steps, loading, isChecked, toggleCheckin } = useRoutine();
+  const { steps, loading, isChecked, isPending, toggleCheckin } = useRoutine();
 
   if (loading || steps.length === 0) return null;
 
@@ -15,13 +15,15 @@ const RoutineSnapshot = () => {
       {steps.slice(0, 4).map((step, i) => {
         const slot = step.time_of_day === "pm" ? "pm" : "am";
         const done = isChecked(step.id, slot);
+        const pending = isPending(step.id, slot);
         const Icon = ICONS[i % ICONS.length];
         return (
           <button
             key={step.id}
             onClick={() => toggleCheckin(step.id, slot)}
+            disabled={pending}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-colors",
+              "flex flex-col items-center gap-1.5 rounded-2xl border p-3 text-center transition-colors disabled:opacity-60",
               done ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/50",
             )}
           >

@@ -14,17 +14,19 @@ const StepRow = ({
   step,
   slot,
   checked,
+  pending,
   onToggle,
   onRemove,
 }: {
   step: RoutineStep;
   slot: "am" | "pm";
   checked: boolean;
+  pending: boolean;
   onToggle: () => void;
   onRemove: () => void;
 }) => (
   <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5">
-    <Checkbox checked={checked} onCheckedChange={onToggle} id={`${step.id}-${slot}`} />
+    <Checkbox checked={checked} disabled={pending} onCheckedChange={onToggle} id={`${step.id}-${slot}`} />
     <label htmlFor={`${step.id}-${slot}`} className="min-w-0 flex-1 cursor-pointer">
       <p className={`truncate text-sm font-medium ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
         {step.step_name}
@@ -38,7 +40,7 @@ const StepRow = ({
 );
 
 const RoutineTrackerTab = () => {
-  const { amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, addStep, removeStep, toggleCheckin } = useRoutine();
+  const { amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin } = useRoutine();
   const [draftName, setDraftName] = useState("");
   const [draftProduct, setDraftProduct] = useState("");
   const [draftTime, setDraftTime] = useState<RoutineStep["time_of_day"]>("both");
@@ -100,6 +102,7 @@ const RoutineTrackerTab = () => {
                     step={step}
                     slot="am"
                     checked={isChecked(step.id, "am")}
+                    pending={isPending(step.id, "am")}
                     onToggle={() => toggleCheckin(step.id, "am")}
                     onRemove={() => removeStep(step.id)}
                   />
@@ -118,6 +121,7 @@ const RoutineTrackerTab = () => {
                     step={step}
                     slot="pm"
                     checked={isChecked(step.id, "pm")}
+                    pending={isPending(step.id, "pm")}
                     onToggle={() => toggleCheckin(step.id, "pm")}
                     onRemove={() => removeStep(step.id)}
                   />

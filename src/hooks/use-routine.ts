@@ -18,7 +18,21 @@ const DEFAULT_STEPS: Array<Pick<RoutineStep, "step_name" | "time_of_day">> = [
   { step_name: "Sunscreen", time_of_day: "am" },
 ];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+/**
+ * "Today" as the member's own wall-clock date, not UTC. `toISOString()`
+ * normalises to UTC first, which silently shifts the day boundary for every
+ * timezone ahead of UTC (all of South Africa, UTC+2) — a checkin made
+ * between local midnight and 2am would otherwise land on what the server
+ * considers "yesterday". Using the local getFullYear/getMonth/getDate parts
+ * keeps the checkin, the "today" filter and the streak walk all agreeing on
+ * the same calendar day the member actually experiences.
+ */
+const localDateStr = (d: Date = new Date()): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
 
 /**
  * A member's own AM/PM routine checklist. Steps are user-authored (no
@@ -29,6 +43,7 @@ export const useRoutine = () => {
   const { user } = useAuth();
   const [steps, setSteps] = useState<RoutineStep[]>([]);
   const [todayCheckins, setTodayCheckins] = useState<Set<string>>(new Set());
+  const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -63,10 +78,10 @@ export const useRoutine = () => {
       .from("routine_checkins")
       .select("step_id, time_slot, checkin_date")
       .eq("user_id", user.id)
-      .eq("checkin_date", todayIso());
+      .eq("checkin_date", localDateStr());
     setTodayCheckins(new Set((checkinRows ?? []).map((c) => `${c.step_id}:${c.time_slot}`)));
 
-    // Streak: consecutive days (up to 60 back) with at least one checkin.
+    // Streak: consecutive days (up to 500 rows back) with at least one checkin.
     const { data: history } = await supabase
       .from("routine_checkins")
       .select("checkin_date")
@@ -76,7 +91,7 @@ export const useRoutine = () => {
     const daySet = new Set((history ?? []).map((h) => h.checkin_date as string));
     let streakCount = 0;
     const cursor = new Date();
-    while (daySet.has(cursor.toISOString().slice(0, 10))) {
+    while (daySet.has(localDateStr(cursor))) {
       streakCount += 1;
       cursor.setDate(cursor.getDate() - 1);
     }
@@ -106,9 +121,21 @@ export const useRoutine = () => {
     void load();
   };
 
+  /**
+   * Guarded against rapid double-clicks: a key already in flight is ignored
+   * rather than re-read from a possibly-stale `todayCheckins` closure, which
+   * previously let two quick clicks both see "not done" and both fire an
+   * insert — the second failed its unique constraint silently, and if the
+   * user's intent was actually on-then-off, the real toggle never happened.
+   * A failed write now reverts the optimistic UI and tells the user, instead
+   * of leaving the checkbox showing a state the database doesn't have.
+   */
   const toggleCheckin = async (stepId: string, slot: "am" | "pm") => {
     if (!user) return;
     const key = `${stepId}:${slot}`;
+    if (pendingKeys.has(key)) return;
+
+    setPendingKeys((prev) => new Set(prev).add(key));
     const isDone = todayCheckins.has(key);
     setTodayCheckins((prev) => {
       const next = new Set(prev);
@@ -116,16 +143,38 @@ export const useRoutine = () => {
       else next.add(key);
       return next;
     });
-    if (isDone) {
-      await supabase
-        .from("routine_checkins")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("step_id", stepId)
-        .eq("time_slot", slot)
-        .eq("checkin_date", todayIso());
-    } else {
-      await supabase.from("routine_checkins").insert({ user_id: user.id, step_id: stepId, time_slot: slot });
+
+    const { error } = isDone
+      ? await supabase
+          .from("routine_checkins")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("step_id", stepId)
+          .eq("time_slot", slot)
+          .eq("checkin_date", localDateStr())
+      : await supabase.from("routine_checkins").insert({
+          user_id: user.id,
+          step_id: stepId,
+          time_slot: slot,
+          checkin_date: localDateStr(),
+        });
+
+    setPendingKeys((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
+
+    if (error) {
+      // Revert the optimistic flip — the database write didn't happen.
+      setTodayCheckins((prev) => {
+        const next = new Set(prev);
+        if (isDone) next.add(key);
+        else next.delete(key);
+        return next;
+      });
+      toast.error("Could not update your routine — please try again.");
+      return;
     }
     void load();
   };
@@ -145,6 +194,7 @@ export const useRoutine = () => {
     todayDone,
     todayTotal,
     isChecked: (stepId: string, slot: "am" | "pm") => todayCheckins.has(`${stepId}:${slot}`),
+    isPending: (stepId: string, slot: "am" | "pm") => pendingKeys.has(`${stepId}:${slot}`),
     addStep,
     removeStep,
     toggleCheckin,

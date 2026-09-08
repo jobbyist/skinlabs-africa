@@ -205,18 +205,26 @@ Deno.serve(async (req) => {
         }
 
         const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const reference = (event.data?.reference as string | undefined) ?? crypto.randomUUID();
+
+        // Every DB write below is checked: a silent failure here means a
+        // customer paid but their plan/credits never landed, so any error
+        // makes this handler return 5xx instead of "OK" — Paystack retries
+        // webhooks on non-2xx responses, giving a transient DB error (as
+        // opposed to a logic error) a real chance to self-heal on retry.
+        let entitlementError: unknown = null;
+        let entitlementNeedsReview = false;
 
         // Log every verified charge for the dashboard's Billing tab (transaction
         // history + downloadable invoices) — real data only, never fabricated.
         // ON CONFLICT guards against Paystack's at-least-once webhook retries.
-        const reference = (event.data?.reference as string | undefined) ?? crypto.randomUUID();
         const description =
           purchaseType === "plan"
             ? `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`
             : purchaseType === "credit_pack"
               ? `${meta.credits ?? ""} AI analysis credit${meta.credits === 1 ? "" : "s"}`.trim()
               : "Founding Member";
-        await admin.from("payment_transactions").upsert(
+        const { error: txError } = await admin.from("payment_transactions").upsert(
           {
             user_id: userId,
             reference,
@@ -228,9 +236,15 @@ Deno.serve(async (req) => {
           },
           { onConflict: "reference", ignoreDuplicates: true },
         );
+        if (txError) {
+          // Not fatal on its own (it's a record of the charge, not the
+          // entitlement grant) but worth surfacing loudly — a gap here means
+          // the Billing tab and support both lose visibility into this charge.
+          console.error("paystack webhook: failed to log payment_transactions row", { userId, reference, txError });
+        }
 
         if (purchaseType === "plan") {
-          await admin
+          const { error } = await admin
             .from("profiles")
             .update({
               subscription_status: meta.plan_id,
@@ -238,17 +252,23 @@ Deno.serve(async (req) => {
               billing_interval: meta.interval,
             })
             .eq("user_id", userId);
+          if (error) entitlementError = error;
         } else if (purchaseType === "credit_pack") {
-          await admin.rpc("grant_ai_credits", {
+          const { error } = await admin.rpc("grant_ai_credits", {
             p_user_id: userId,
             p_reason: `purchase:${meta.pack_id}`,
             p_credits: meta.credits,
             p_expires_after_days: meta.expires_after_days ?? null,
           });
+          if (error) entitlementError = error;
         } else if (purchaseType === "founding_member") {
-          const { data: claimed } = await admin.rpc("claim_founding_member_slot", { p_offer_id: meta.offer_id });
-          if (claimed) {
-            await admin
+          const { data: claimed, error: claimError } = await admin.rpc("claim_founding_member_slot", {
+            p_offer_id: meta.offer_id,
+          });
+          if (claimError) {
+            entitlementError = claimError;
+          } else if (claimed) {
+            const { error } = await admin
               .from("profiles")
               .update({
                 founding_member: true,
@@ -257,16 +277,48 @@ Deno.serve(async (req) => {
                 billing_interval: "annual",
               })
               .eq("user_id", userId);
+            if (error) entitlementError = error;
           } else {
-            // The offer sold out between checkout start and payment confirmation.
-            // The charge already succeeded on Paystack's side — this needs a
-            // manual refund; there is no automated refund flow in this pass.
-            console.error("paystack webhook: founding member slot unavailable, manual refund needed", {
+            // The offer sold out between checkout start and payment
+            // confirmation — claim_founding_member_slot's atomic UPDATE
+            // already prevents overselling the slot itself, but the paying
+            // customer still needs *something* for a charge that already
+            // succeeded on Paystack's side. Rather than leave them with
+            // nothing (the previously-unhandled case), grant the plan the
+            // offer maps to as a regular paid membership — no founding
+            // badge, but an active account — and flag the transaction for a
+            // human to reconcile the price difference/refund.
+            entitlementNeedsReview = true;
+            const { error } = await admin
+              .from("profiles")
+              .update({
+                subscription_status: meta.grants_plan ?? "insider",
+                subscription_started_at: new Date().toISOString(),
+                billing_interval: "annual",
+              })
+              .eq("user_id", userId);
+            if (error) entitlementError = error;
+            console.error("paystack webhook: founding member slot unavailable, granted plan without badge — needs manual price/refund review", {
               userId,
               offerId: meta.offer_id,
-              reference: event.data?.reference,
+              reference,
             });
           }
+        }
+
+        if (entitlementNeedsReview && !entitlementError) {
+          const { error } = await admin
+            .from("payment_transactions")
+            .update({ status: "needs_review", metadata: { ...meta, founding_member_slot_unavailable: true } })
+            .eq("reference", reference);
+          if (error) {
+            console.error("paystack webhook: failed to flag transaction for review", { userId, reference, error });
+          }
+        }
+
+        if (entitlementError) {
+          console.error("paystack webhook: entitlement grant failed", { userId, purchaseType, reference, entitlementError });
+          return new Response("Entitlement grant failed", { status: 500, headers: corsHeaders });
         }
       }
 
