@@ -1,0 +1,9 @@
+-- Three Daily Skinny briefings (2026-09-08).
+-- Full bodies live in content/daily-skinny/*.md (2000+ words each).
+-- Index: src/data/dailySkinnyBriefingsSept082026.ts
+-- Slugs (idempotent inserts should key on slug):
+--   load-shedding-waterless-skincare-south-africa
+--   malassezia-folliculitis-humid-south-africa
+--   rooibos-marula-skincare-evidence-south-africa
+-- Apply full INSERT from editorial pipeline / artifacts SQL when hydrating news_articles.
+-- Do not insert duplicates: WHERE NOT EXISTS (SELECT 1 FROM news_articles WHERE slug = ...).

@@ -86,3 +86,5 @@ export const dailySkinnyBriefingsSept2026 = [
     body_path: "content/daily-skinny/retinal-vs-retinol-hot-bathrooms-sa.md",
   },
 ] as const;
+
+export { dailySkinnyBriefingsSept082026 } from "./dailySkinnyBriefingsSept082026";
