@@ -57,7 +57,7 @@ export const membershipPlans: MembershipPlan[] = [
   {
     id: "glow_lite",
     name: "Glow Lite",
-    tagline: "For the skin-curious who aren't ready to commit",
+    tagline: "Try free for 7 days — for the skin-curious",
     priceMonthly: 39,
     priceAnnual: 390,
     trialEligible: true,
@@ -67,6 +67,7 @@ export const membershipPlans: MembershipPlan[] = [
     cta: "Start Glow Lite",
     features: [
       "Everything in Explorer",
+      "7-day free trial — no card required",
       "Unlimited product comparisons and Spotlight profiles",
       "Priority access to new Daily Skinny briefings",
       "30-day money-back guarantee",
@@ -75,7 +76,7 @@ export const membershipPlans: MembershipPlan[] = [
   {
     id: "insider",
     name: "Glow Insider",
-    tagline: "A skin routine that actually keeps up with you",
+    tagline: "Try free for 7 days — a routine that keeps up with you",
     priceMonthly: 99,
     priceAnnual: 990,
     highlight: true,
@@ -85,6 +86,7 @@ export const membershipPlans: MembershipPlan[] = [
     isPurchasable: true,
     cta: "Become an Insider",
     features: [
+      "7-day free trial — no card required",
       "A live AI routine that re-analyses your skin every week",
       "Full podcast library and unlimited reviews",
       "Full Spotlight brand profiles and practitioner directory",
