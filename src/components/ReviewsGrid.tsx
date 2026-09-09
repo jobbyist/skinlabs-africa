@@ -239,7 +239,7 @@ const ReviewsGrid = ({
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {pageItems.map((review, index) => {
-            const productImage = getReviewImage(review.id, review.category);
+            const productImage = getReviewImage(review.id, review.category, review.brand);
             return (
             <motion.div
               key={review.id}
@@ -258,18 +258,20 @@ const ReviewsGrid = ({
                     loading="lazy"
                     className="h-40 w-full object-cover"
                   />
-                  <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                    Photo:{" "}
-                    <a
-                      href={productImage.creditUrl}
-                      target="_blank"
-                      rel="noopener noreferrer nofollow"
-                      className="underline underline-offset-2"
-                    >
-                      {productImage.creditName}
-                    </a>{" "}
-                    / Unsplash
-                  </figcaption>
+                  {productImage.creditUrl !== "#" && (
+                    <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
+                      Photo:{" "}
+                      <a
+                        href={productImage.creditUrl}
+                        target="_blank"
+                        rel="noopener noreferrer nofollow"
+                        className="underline underline-offset-2"
+                      >
+                        {productImage.creditName}
+                      </a>{" "}
+                      / Unsplash
+                    </figcaption>
+                  )}
                 </figure>
               )}
 

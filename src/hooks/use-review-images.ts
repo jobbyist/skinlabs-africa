@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getProductImage, type CategoryImage } from "@/data/productImages";
+import { getBrandBanner } from "@/lib/brand-banners";
 
 export interface ReviewImage extends CategoryImage {
   reviewId: string;
@@ -36,7 +37,12 @@ const load = async (): Promise<ImageMap> => {
   return inflight;
 };
 
-/** Per-review Unsplash photos from the database, with the category pool as fallback. */
+/** 
+ * Per-review images with brand banner priority:
+ * 1. Brand-specific banner image (if available)
+ * 2. If found, it uses /public/brandbanners/{brandname}.jpg or /public/brandbanners/{brandname}.PNG
+ * 3. Category pool as fallback
+ */
 export const useReviewImages = () => {
   const [images, setImages] = useState<ImageMap>(() => cache ?? {});
 
@@ -50,8 +56,23 @@ export const useReviewImages = () => {
     };
   }, []);
 
-  const getImage = (reviewId: string, category: string): CategoryImage | null =>
-    images[reviewId] ?? getProductImage(category, reviewId);
+  const getImage = (reviewId: string, category: string, brandName?: string): CategoryImage | null => {
+    // Priority 1: Check for brand banner
+    if (brandName) {
+      const bannerPath = getBrandBanner(brandName);
+      if (bannerPath) {
+        return {
+          url: bannerPath,
+          alt: `${brandName} brand banner`,
+          creditName: brandName,
+          creditUrl: "#",
+        };
+      }
+    }
+    
+    // Priority 2 & 3: Database images or category pool
+    return images[reviewId] ?? getProductImage(category, reviewId);
+  };
 
   return { images, getImage };
 };

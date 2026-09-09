@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Calendar, FileText, TrendingUp } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -198,6 +198,103 @@ const SpotlightMethodology = () => {
                 on the Radar tiers, monthly full-edition refresh.
               </li>
             </ul>
+          </div>
+
+          {/* Archives Section */}
+          <div className="mt-16 border-t border-border pt-12">
+            <div className="text-center mb-10">
+              <h2 className="font-heading text-2xl font-bold text-foreground md:text-3xl mb-2">
+                Methodology Archives
+              </h2>
+              <p className="text-muted-foreground">
+                All published methodology versions and their effective dates
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* v1.1.2 - Upcoming */}
+              <div className="bg-card border-2 border-primary rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-foreground">v1.1.2</h3>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">
+                        Upcoming
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>September 2026 (revised)</span>
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Minor revisions to clarify Top 3 rotation mechanics and add transparency around 
+                      coverage count updates. No changes to scoring methodology or eligibility criteria.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* v1.1 - Current */}
+              <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-foreground">v1.1</h3>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
+                        Current
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>September 2026</span>
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Expanded brand coverage from 21 to 50 South African skincare brands. Introduced 
+                      weekly Top 3 rotation, SEO-friendly pagination, and 3-profile-per-month free 
+                      allowance for brand profiles.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* v1.0 - Initial */}
+              <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-foreground">v1.0</h3>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>August 2026</span>
+                    </div>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Initial release. Four-axis product-review scoring (Efficacy, Value, Texture, SA 
+                      Climate Match), Ranked and New on the Radar tiers, monthly full-edition refresh.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 text-center">
+              <Link 
+                to="/spotlight" 
+                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                View current Spotlight rankings
+              </Link>
+            </div>
           </div>
         </div>
       </main>
