@@ -304,7 +304,7 @@ const About = () => {
                       <p className="text-muted-foreground">
                         SKYNN AI isn't a gimmick — it's a practical tool that translates dermatology research into a personalized routine matched to your skin type, climate zone, and budget. It's privacy-first, non-diagnostic, and explicitly designed to stay on the cosmetic side of medical advice.
                       </p>
-                    </p>
+                    </div>
                   </div>
                 </div>
 
