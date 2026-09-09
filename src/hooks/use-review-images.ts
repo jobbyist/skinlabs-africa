@@ -40,7 +40,7 @@ const load = async (): Promise<ImageMap> => {
 /** 
  * Per-review images with brand banner priority:
  * 1. Brand-specific banner image (if available)
- * 2. Database Unsplash photos
+ * 2. If found, it uses /public/brandbanners/{brandname}.jpg or /public/brandbanners/{brandname}.PNG
  * 3. Category pool as fallback
  */
 export const useReviewImages = () => {
