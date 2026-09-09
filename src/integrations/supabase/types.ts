@@ -404,6 +404,27 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_waitlist: {
+        Row: {
+          created_at: string
+          feature_key: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feature_key: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feature_key?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       founding_member_offers: {
         Row: {
           benefits: Json
@@ -868,6 +889,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       openhaus_waitlist: {
         Row: {
           city: string
@@ -946,6 +1000,42 @@ export type Database = {
           updated_at?: string
           website?: string | null
           work_email?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          amount_zar: number
+          created_at: string
+          description: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          reference: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_zar: number
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json
+          purchase_type: string
+          reference: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount_zar?: number
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json
+          purchase_type?: string
+          reference?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1773,161 +1863,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notifications: {
-        Row: {
-          body: string | null
-          category: string
-          created_at: string
-          id: string
-          link: string | null
-          read_at: string | null
-          title: string
-          user_id: string
-        }
-        Insert: {
-          body?: string | null
-          category?: string
-          created_at?: string
-          id?: string
-          link?: string | null
-          read_at?: string | null
-          title: string
-          user_id: string
-        }
-        Update: {
-          body?: string | null
-          category?: string
-          created_at?: string
-          id?: string
-          link?: string | null
-          read_at?: string | null
-          title?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      feature_waitlist: {
-        Row: {
-          created_at: string
-          feature_key: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          feature_key: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          feature_key?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      payment_transactions: {
-        Row: {
-          amount_zar: number
-          created_at: string
-          description: string
-          id: string
-          metadata: Json
-          purchase_type: string
-          reference: string
-          status: string
-          user_id: string
-        }
-        Insert: {
-          amount_zar: number
-          created_at?: string
-          description: string
-          id?: string
-          metadata?: Json
-          purchase_type: string
-          reference: string
-          status?: string
-          user_id: string
-        }
-        Update: {
-          amount_zar?: number
-          created_at?: string
-          description?: string
-          id?: string
-          metadata?: Json
-          purchase_type?: string
-          reference?: string
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      routine_steps: {
-        Row: {
-          created_at: string
-          id: string
-          product_name: string | null
-          sort_order: number
-          step_name: string
-          time_of_day: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          product_name?: string | null
-          sort_order?: number
-          step_name: string
-          time_of_day?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          product_name?: string | null
-          sort_order?: number
-          step_name?: string
-          time_of_day?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      routine_checkins: {
-        Row: {
-          checkin_date: string
-          created_at: string
-          id: string
-          step_id: string
-          time_slot: string
-          user_id: string
-        }
-        Insert: {
-          checkin_date?: string
-          created_at?: string
-          id?: string
-          step_id: string
-          time_slot: string
-          user_id: string
-        }
-        Update: {
-          checkin_date?: string
-          created_at?: string
-          id?: string
-          step_id?: string
-          time_slot?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "routine_checkins_step_id_fkey"
-            columns: ["step_id"]
-            isOneToOne: false
-            referencedRelation: "routine_steps"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       retailer_products: {
         Row: {
           created_at: string
@@ -2260,6 +2195,71 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      routine_checkins: {
+        Row: {
+          checkin_date: string
+          created_at: string
+          id: string
+          step_id: string
+          time_slot: string
+          user_id: string
+        }
+        Insert: {
+          checkin_date?: string
+          created_at?: string
+          id?: string
+          step_id: string
+          time_slot: string
+          user_id: string
+        }
+        Update: {
+          checkin_date?: string
+          created_at?: string
+          id?: string
+          step_id?: string
+          time_slot?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "routine_checkins_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      routine_steps: {
+        Row: {
+          created_at: string
+          id: string
+          product_name: string | null
+          sort_order: number
+          step_name: string
+          time_of_day: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_name?: string | null
+          sort_order?: number
+          step_name: string
+          time_of_day?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_name?: string | null
+          sort_order?: number
+          step_name?: string
+          time_of_day?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       skin_concerns: {
         Row: {
@@ -2662,13 +2662,21 @@ export type Database = {
         Args: never
         Returns: {
           allowed: boolean
-          transaction_id: string | null
           remaining: number
+          transaction_id: string
         }[]
       }
-      refund_analysis_pass: { Args: { p_transaction_id: string }; Returns: boolean }
+      create_notification: {
+        Args: {
+          p_body?: string
+          p_category: string
+          p_link?: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       deactivate_account: { Args: never; Returns: boolean }
-      reactivate_account: { Args: never; Returns: boolean }
       expire_finished_trials: { Args: never; Returns: number }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }
@@ -2678,16 +2686,26 @@ export type Database = {
         }[]
       }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
-      grant_ai_credits: {
-        Args: {
-          p_credits: number
-          p_expires_after_days?: number
-          p_reason: string
-          p_user_id: string
-          p_reference?: string
-        }
-        Returns: boolean
-      }
+      grant_ai_credits:
+        | {
+            Args: {
+              p_credits: number
+              p_expires_after_days?: number
+              p_reason: string
+              p_user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_credits: number
+              p_expires_after_days?: number
+              p_reason: string
+              p_reference?: string
+              p_user_id: string
+            }
+            Returns: boolean
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2699,6 +2717,11 @@ export type Database = {
       is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      reactivate_account: { Args: never; Returns: boolean }
+      refund_analysis_pass: {
+        Args: { p_transaction_id: string }
+        Returns: boolean
+      }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
       search_products: {

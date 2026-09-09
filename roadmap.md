@@ -8,3 +8,4 @@
 - [ ] Unique Unsplash thumbnails for every product review (no duplicates)
 - [ ] AI Formulator in dashboard: membership gating, PDF export, completed-profile requirement
 - [ ] Security findings: preorders_privileged_column_rls_open, profiles_privileged_column_rls_open
+- [ ] Build responsive OpenHaus marketplace landing and product detail pages from supplied mockups
