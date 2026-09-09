@@ -40,7 +40,6 @@ const Footer = () => {
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
       { label: "Seasonal Guides", href: "/seasonals", isNew: true },
       { label: "Podcast Series", href: "/podcast" },
-      { label: "Whitepaper 2026/27", href: "/whitepapers", isNew: true },
     ],
     platform: [
       { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
@@ -173,7 +172,6 @@ const Footer = () => {
             <Link to="/cookie-policy" className="hover:text-background transition-colors">Cookie Policy</Link>
             <Link to="/editorial-policy" className="hover:text-background transition-colors">Editorial Policy</Link>
             <Link to="/community-guidelines" className="hover:text-background transition-colors">Community Guidelines</Link>
-            <Link to="/whitepapers" className="hover:text-background transition-colors">Whitepaper 2026/27</Link>
           </div>
         </div>
       </div>

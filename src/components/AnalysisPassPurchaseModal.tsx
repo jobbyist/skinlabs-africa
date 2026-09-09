@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Ticket } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,7 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Ticket className="h-5 w-5 text-primary" />
             Unlock Advanced Skin Analysis
           </DialogTitle>
           <DialogDescription>
