@@ -92,7 +92,6 @@ const Footer = () => {
               <div className="space-y-2 text-sm text-background/70">
                 <p>Email: <a href="mailto:support@skinlabs.co.za" className="hover:text-background">support@skinlabs.co.za</a></p>
                 <p>WhatsApp: <a href="https://wa.me/27680200749" className="hover:text-background">+27 68 020 0749</a></p>
-              </div>
             </div>
             <div className="mb-6">
               <p className="text-sm font-semibold text-background mb-3">Coming Soon</p>

@@ -255,21 +255,55 @@ const About = () => {
                   <h2 className="text-3xl font-bold text-foreground mb-6">Our story</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p>
-                      Here's the thing: most skincare advice reaching South Africans was written for
-                      someone else's climate, someone else's shelves and, often, someone else's skin. So we
-                      rebuilt it locally — a daily editorial brief, independent product reviews scored
-                      against actual SA conditions, a podcast and an AI formulator that turns dermatology
-                      research into a routine you can actually stick to.
+                      SkinLabs was born from a simple frustration: most skincare advice reaching South Africans was written for someone else's climate, someone else's shelves, and often, someone else's skin. The imported content didn't account for Highveld dryness, coastal humidity, intense UV exposure at altitude, hard municipal water, or the unique needs of melanin-rich skin that dominates our demographic.
                     </p>
                     <p>
-                      We're content-first, not a storefront. No affiliate deals, no gifted samples, no
-                      pressure to sell you anything — our members fund the work, so the work answers to
-                      them. Not to a brand.
+                      So we rebuilt skincare intelligence from the ground up for South Africa. What started as a small AI-powered e-commerce experiment in 2023 has evolved into something far more ambitious: an independent, evidence-based skincare intelligence platform that puts editorial integrity and community value above everything else.
                     </p>
                     <p>
-                      Every briefing gets summarised from credible global sources, then translated into
-                      what it actually means here: seasonal UV, Highveld dryness, coastal humidity, hard
-                      municipal water, local pricing and the realities of melanin-rich skin.
+                      We're not a beauty retailer with a blog attached. We're a content and community-first platform with a clear mission: to deliver research-grounded skincare guidance that's actually useful for South African skin, climate, and budget — with no affiliate deals, no gifted samples, and no pressure to sell you anything you don't need.
+                    </p>
+                    <p>
+                      Our members fund the work, which means the work answers to them — not to brands, not to advertisers, and not to anyone trying to game our scores. Every briefing is summarized from credible global sources and translated into what it actually means here: seasonal UV, Highveld dryness, coastal humidity, hard municipal water, local pricing, and the realities of melanin-rich skin.
+                    </p>
+                    <p>
+                      Today, SkinLabs serves over 3,700 community members across South Africa with daily science briefings (The Daily Skinny), independent product reviews scored for local conditions, a monthly brand ranking (Spotlight), seasonal skincare guides, podcast episodes, and SKYNN AI — our flagship skin assessment and routine-building tool that stays firmly on the cosmetic side of medical advice.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
+                  <h2 className="text-3xl font-bold text-foreground mb-6">What makes SkinLabs different</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">Built for South African skin</h3>
+                      <p className="text-muted-foreground">
+                        We're not a European or American platform with "ZAR" swapped in. Every product review, every briefing, and every AI recommendation is explicitly designed for South African climate zones (Highveld, coastal, Western Cape), water quality, UV intensity at altitude, and melanin-rich skin — which the majority of South Africans have.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">Truly independent reviews</h3>
+                      <p className="text-muted-foreground">
+                        No affiliate commissions. No gifted samples. No brand partnerships that influence scores. If a product gets a high score, it's because the formulation, value, texture, and SA climate fit genuinely earned it — not because a brand paid for placement or sent us free product.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">Evidence over hype</h3>
+                      <p className="text-muted-foreground">
+                        Every score, every briefing, and every AI recommendation is grounded in published dermatology research and cosmetic chemistry evidence. Where a brand's claims outpace what its formula can actually deliver, we cap the score and say so clearly.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">Member-funded, not ad-funded</h3>
+                      <p className="text-muted-foreground">
+                        Our business model is simple: members pay for access to premium features (AI routines, full briefings, unlimited reviews), and that subscription revenue funds everything we do. No banner ads, no sponsored content, no pressure to recommend products that don't deserve it.
+                      </p>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">AI where it actually helps</h3>
+                      <p className="text-muted-foreground">
+                        SKYNN AI isn't a gimmick — it's a practical tool that translates dermatology research into a personalized routine matched to your skin type, climate zone, and budget. It's privacy-first, non-diagnostic, and explicitly designed to stay on the cosmetic side of medical advice.
+                      </p>
                     </p>
                   </div>
                 </div>
