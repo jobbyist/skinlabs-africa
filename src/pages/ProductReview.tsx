@@ -56,7 +56,7 @@ const ProductReview = () => {
   const { getImage: getReviewImage } = useReviewImages();
   const productImage = useMemo(
     () => (review ? getReviewImage(review.id, review.category) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
     [review, getReviewImage],
   );
 
@@ -262,13 +262,15 @@ const ProductReview = () => {
                 className="h-64 w-full rounded-3xl object-cover sm:h-80"
                 loading="lazy"
               />
-              <figcaption className="mt-2 text-xs text-muted-foreground">
-                Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
-                <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
-                  {productImage.creditName}
-                </a>{" "}
-                on Unsplash.
-              </figcaption>
+              {productImage.creditUrl !== "#" && (
+                <figcaption className="mt-2 text-xs text-muted-foreground">
+                  Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
+                  <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
+                    {productImage.creditName}
+                  </a>{" "}
+                  on Unsplash.
+                </figcaption>
+              )}
             </figure>
           )}
 
