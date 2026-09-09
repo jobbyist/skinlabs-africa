@@ -142,6 +142,50 @@ const SpotlightMethodology = () => {
 
             <h2>Changelog</h2>
             <ul>
+            <h2>Archives</h2>
+            <p>
+              Browse past editions of Spotlight by SkinLabs to see how brand rankings and methodology have evolved
+              over time. Each edition represents a snapshot of South African skincare brands at a specific point in time.
+            </p>
+            <div className="my-6 space-y-4 rounded-2xl border border-border bg-card/50 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  v1.1.2
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-baseline gap-2">
+                    <h4 className="font-semibold text-foreground">September 2026 (revised edition) — v1.1.2</h4>
+                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-600">Upcoming</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    A refined, patched update to the current methodology which includes 25 additional brands and new features like Brand Comparison and enhanced search filters.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  v1.1
+                </div>
+                <div className="flex-1">
+                  <h4 className="mb-1 font-semibold text-foreground">September 2026 edition — v1.1</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Expanded brand coverage from 21 to 50 South African skincare brands. Introduced weekly Top 3 rotation. Added pagination and 3-profile-per-month free allowance.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  v1.0
+                </div>
+                <div className="flex-1">
+                  <h4 className="mb-1 font-semibold text-foreground">August 2026 edition — v1.0</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Initial release with 21 brands. Four-axis product-review scoring, Ranked and New on the Radar tiers, monthly full-edition refresh.
+                  </p>
+                </div>
+              </div>
+            </div>
+
               <li>
                 <strong>v1.1 — September 2026:</strong> Expanded brand coverage from 21 to 50 South African skincare
                 brands with published product reviews. Introduced the weekly Top 3 rotation described above (the

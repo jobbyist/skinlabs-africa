@@ -52,6 +52,8 @@ const Consultations = lazy(() => import("./pages/Consultations"));
 const DermatologistDirectory = lazy(() => import("./pages/DermatologistDirectory"));
 const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const MarketplaceLanding = lazy(() => import("./pages/marketplace/MarketplaceLanding"));
+const MarketplaceProductDetail = lazy(() => import("./pages/marketplace/MarketplaceProductDetail"));
 
 const queryClient = new QueryClient();
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
@@ -102,7 +104,13 @@ const AppContent = () => (
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/shop" element={<Openhaus />} />
         <Route path="/routines" element={<ComingSoon />} />
-        <Route path="/marketplace" element={<ComingSoon />} />
+        <Route path="/marketplace" element={<MarketplaceLanding />} />
+        <Route path="/marketplace/product/:slug" element={<MarketplaceProductDetail />} />
+        <Route path="/marketplace/brand/:slug" element={<ComingSoon />} />
+        <Route path="/marketplace/concern/:slug" element={<ComingSoon />} />
+        <Route path="/marketplace/brands" element={<ComingSoon />} />
+        <Route path="/marketplace/categories" element={<ComingSoon />} />
+        <Route path="/marketplace/saved" element={<ComingSoon />} />
         <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
