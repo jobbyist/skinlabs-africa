@@ -1,1 +1,1 @@
-placeholder
+See live news_articles.slug = december-holiday-skin-barrier-repair (2006 words). January skin is December plus UV, chlorine and gift sets. Repair is cleanse, cream and SPF, not a New Year peel. Full manuscript generated 2026-09-11.
