@@ -22,11 +22,6 @@ import {
 import { STORAGE_GROUPS, clearAllKnownStorage, countStoredKeys } from "@/lib/storage-preferences";
 import { toast } from "sonner";
 
-/**
- * Always-visible cookie settings + storage preferences, embedded directly on the
- * Cookie Policy page (as opposed to CookieConsent's floating first-visit banner,
- * which this component shares its read/write logic with via lib/cookie-consent).
- */
 const CookieSettingsPanel = () => {
   const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -36,7 +31,11 @@ const CookieSettingsPanel = () => {
     const record = readCookieConsent();
     if (record) {
       setPreferences(record.preferences);
-      setSavedAt(record.timestamp);
+      const ts =
+        typeof record.timestamp === "string"
+          ? Date.parse(record.timestamp)
+          : Number(record.timestamp);
+      setSavedAt(Number.isFinite(ts) ? ts : null);
     }
     setStoredKeyCount(countStoredKeys());
   }, []);
@@ -127,7 +126,7 @@ const CookieSettingsPanel = () => {
         <h3 className="font-semibold text-foreground">Storage preferences</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Beyond cookies, SkinLabs stores a few things directly in your browser (not on our servers) to make the site
-          work without an account — free-tier counters, liked briefings, podcast progress. Here's exactly what that
+          work without an account — free-tier counters, liked briefings, podcast progress. Here&apos;s exactly what that
           is, and a way to clear it.
         </p>
 
