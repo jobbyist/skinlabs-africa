@@ -30,6 +30,7 @@ import {
   Sparkles,
   Users,
   Handshake,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -85,6 +86,7 @@ const resourceLinks: NavItem[] = [
   { label: "Methodologies", href: "/spotlight/methodology", icon: Compass },
   { label: "Partner Program", href: "/partners", icon: Users },
   { label: "Work With Us", href: "/partners", icon: Handshake },
+  { label: "Brand Ambassadors", href: "/brand-ambassadors", icon: Video },
 ];
 
 const NavBadge = ({ badge }: { badge: NonNullable<NavItem["badge"]> }) => (
