@@ -107,6 +107,8 @@ const AppContent = () => (
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/shop" element={<Openhaus />} />
         <Route path="/routines" element={<ComingSoon />} />
+        <Route path="/learn" element={<ComingSoon />} />
+        <Route path="/ingredients" element={<ComingSoon />} />
         <Route path="/marketplace" element={<MarketplaceLanding />} />
         <Route path="/marketplace/product/:slug" element={<MarketplaceProductDetail />} />
         <Route path="/marketplace/brand/:slug" element={<ComingSoon />} />

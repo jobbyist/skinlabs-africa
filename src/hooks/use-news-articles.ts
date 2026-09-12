@@ -29,6 +29,8 @@ const SELECT_COLUMNS =
 export interface NewsArticlesPage {
   page: number;
   pageSize: number;
+  /** Filter by SA context tag across the full published catalogue (server-side). */
+  region?: string | null;
 }
 
 const isPaginatedOptions = (value: unknown): value is NewsArticlesPage =>
@@ -36,9 +38,7 @@ const isPaginatedOptions = (value: unknown): value is NewsArticlesPage =>
 
 /**
  * Live Daily Skinny briefings. Bodies are never fetched here — they are member gated server side.
- * Pass a number for a simple top-N fetch (e.g. the homepage teaser), or `{ page, pageSize }` for
- * SEO-friendly range-based pagination (e.g. the full /newsroom listing) — the latter also returns
- * `totalCount` so callers can render real page links.
+ * Pass a number for a simple top-N fetch, or `{ page, pageSize, region? }` for paginated listing.
  */
 export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
   const [articles, setArticles] = useState<NewsArticleSummary[]>([]);
@@ -48,6 +48,10 @@ export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
   const limit = typeof limitOrPage === "number" ? limitOrPage : undefined;
   const page = paginated ? limitOrPage.page : 1;
   const pageSize = paginated ? limitOrPage.pageSize : 0;
+  const region =
+    paginated && limitOrPage.region && limitOrPage.region !== "all"
+      ? limitOrPage.region
+      : null;
 
   useEffect(() => {
     let active = true;
@@ -58,12 +62,18 @@ export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
         .select(SELECT_COLUMNS, paginated ? { count: "exact" } : undefined)
         .order("publish_date", { ascending: false })
         .order("created_at", { ascending: false });
+
+      if (region) {
+        query = query.eq("sa_context_tag", region);
+      }
+
       if (paginated) {
         const from = (page - 1) * pageSize;
         query = query.range(from, from + pageSize - 1);
       } else if (limit) {
         query = query.limit(limit);
       }
+
       const { data, count } = await query;
       if (!active) return;
       setArticles((data as unknown as NewsArticleSummary[]) ?? []);
@@ -74,9 +84,42 @@ export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
     return () => {
       active = false;
     };
-  }, [limit, paginated, page, pageSize]);
+  }, [limit, paginated, page, pageSize, region]);
 
   return { articles, loading, totalCount };
+};
+
+/** Distinct SA context tags from all published briefings (for global filter dropdown). */
+export const useSaContextTags = () => {
+  const [tags, setTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const { data } = await supabase
+        .from("news_articles_public")
+        .select("sa_context_tag")
+        .not("sa_context_tag", "is", null)
+        .order("sa_context_tag", { ascending: true });
+      if (!active) return;
+      const unique = Array.from(
+        new Set(
+          ((data as { sa_context_tag: string | null }[] | null) ?? [])
+            .map((r) => r.sa_context_tag)
+            .filter((t): t is string => Boolean(t && t.trim())),
+        ),
+      ).sort((a, b) => a.localeCompare(b));
+      setTags(unique);
+      setLoading(false);
+    };
+    void load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return { tags, loading };
 };
 
 export const useNewsArticle = (slug?: string) => {

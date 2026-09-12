@@ -1,86 +1,51 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { useAuth } from "@/hooks/use-auth";
+import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import {
   DEFAULT_COOKIE_PREFERENCES,
-  isCookieConsentFresh,
-  readCookieConsent,
-  writeCookieConsent,
   type CookiePreferences,
 } from "@/lib/cookie-consent";
-import { isEntryGateResolved, onEntryGateResolved } from "@/lib/entry-gate";
 
-const SHOW_AFTER_MS = 1_200;
-
-/** Dispatch this to reopen the banner on demand, e.g. a "Cookie Settings" button on the Cookie Policy page. */
+/** Dispatch this to reopen the banner on demand, e.g. from the Cookie Policy page. */
 export const OPEN_COOKIE_PREFERENCES_EVENT = "skinlabs:open-cookie-preferences";
 
+/**
+ * Presentation-only cookie consent banner.
+ * Persistence, expiry, and auth sync live in useCookieConsent().
+ * Mount exactly once at the application root (App.tsx).
+ */
 const CookieConsent = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [isVisible, setIsVisible] = useState(false);
+  const {
+    status,
+    shouldShowBanner,
+    preferences: storedPreferences,
+    acceptConsent,
+    rejectConsent,
+    savePreferences,
+    openPreferences,
+  } = useCookieConsent();
+
   const [showPreferences, setShowPreferences] = useState(true);
-  const [preferences, setPreferences] = useState<CookiePreferences>(
-    () => readCookieConsent()?.preferences ?? DEFAULT_COOKIE_PREFERENCES,
-  );
-  const timerRef = useRef<number | null>(null);
+  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
 
   useEffect(() => {
-    // Wait for auth state to resolve so a signed-in visitor never sees a flash of the banner.
-    if (authLoading) return;
-    
-    // Signed-in users never see the banner
-    if (user) {
-      setIsVisible(false);
-      return;
-    }
-    
-    // Check if consent is fresh (first-time visitors will not have fresh consent)
-    if (isCookieConsentFresh(readCookieConsent())) return;
-
-    const startTimer = () => {
-      timerRef.current = window.setTimeout(() => {
-        setIsVisible(true);
-      }, SHOW_AFTER_MS);
-    };
-
-    // Never compete with the full-screen entry gate for attention: wait for it
-    // to resolve (dismissed, or not applicable this session) before queuing up.
-    if (isEntryGateResolved()) {
-      startTimer();
-      return () => {
-        if (timerRef.current) window.clearTimeout(timerRef.current);
-      };
-    }
-
-    const unsubscribe = onEntryGateResolved(startTimer);
-    return () => {
-      unsubscribe();
-      if (timerRef.current) window.clearTimeout(timerRef.current);
-    };
-  }, [authLoading, user]);
+    setPreferences(storedPreferences);
+  }, [storedPreferences]);
 
   useEffect(() => {
-    const openPreferences = () => {
-      setPreferences(readCookieConsent()?.preferences ?? DEFAULT_COOKIE_PREFERENCES);
-      setShowPreferences(true);
-      setIsVisible(true);
-    };
-    window.addEventListener(OPEN_COOKIE_PREFERENCES_EVENT, openPreferences);
-    return () => window.removeEventListener(OPEN_COOKIE_PREFERENCES_EVENT, openPreferences);
-  }, []);
+    const handler = () => openPreferences();
+    window.addEventListener(OPEN_COOKIE_PREFERENCES_EVENT, handler);
+    return () => window.removeEventListener(OPEN_COOKIE_PREFERENCES_EVENT, handler);
+  }, [openPreferences]);
 
-  const persist = (nextPreferences: CookiePreferences) => {
-    writeCookieConsent(nextPreferences);
-    setIsVisible(false);
-  };
+  if (status === "initializing" || !shouldShowBanner) return null;
 
-  const handleSave = () => persist(preferences);
-  const handleAcceptAll = () => persist({ analytics: true, personalisation: true, targetedAdvertising: true });
-  const handleRejectNonEssential = () => persist({ ...DEFAULT_COOKIE_PREFERENCES });
-
-  if (!isVisible) return null;
+  const handleSave = () => void savePreferences(preferences);
+  const handleAcceptAll = () =>
+    void acceptConsent({ analytics: true, personalisation: true, targetedAdvertising: true });
+  const handleRejectNonEssential = () => void rejectConsent();
 
   return (
     <div
@@ -127,7 +92,9 @@ const CookieConsent = () => {
               <Switch
                 id="cookie-pref-ads"
                 checked={preferences.targetedAdvertising}
-                onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, targetedAdvertising: checked }))}
+                onCheckedChange={(checked) =>
+                  setPreferences((prev) => ({ ...prev, targetedAdvertising: checked }))
+                }
               />
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -138,7 +105,9 @@ const CookieConsent = () => {
                 <Switch
                   id="cookie-pref-personalisation"
                   checked={preferences.personalisation}
-                  onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, personalisation: checked }))}
+                  onCheckedChange={(checked) =>
+                    setPreferences((prev) => ({ ...prev, personalisation: checked }))
+                  }
                 />
               </div>
               <div className="flex items-center gap-3">
@@ -148,7 +117,9 @@ const CookieConsent = () => {
                 <Switch
                   id="cookie-pref-analytics"
                   checked={preferences.analytics}
-                  onCheckedChange={(checked) => setPreferences((prev) => ({ ...prev, analytics: checked }))}
+                  onCheckedChange={(checked) =>
+                    setPreferences((prev) => ({ ...prev, analytics: checked }))
+                  }
                 />
               </div>
             </div>

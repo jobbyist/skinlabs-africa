@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -15,6 +13,7 @@ import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import BriefingBody from "@/components/briefings/BriefingBody";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -49,80 +48,65 @@ const NewsroomArticle = () => {
   const [commentBody, setCommentBody] = useState("");
   const [posting, setPosting] = useState(false);
 
-  // Register a view once per article per session
   useEffect(() => {
-    if (!article) return;
-    const key = `viewed:${article.id}`;
-    if (sessionStorage.getItem(key)) {
-      setViews(article.view_count);
-      return;
-    }
-    sessionStorage.setItem(key, "1");
-    void (async () => {
-      const { data } = await supabase.rpc("register_article_view", { p_article_id: article.id });
-      setViews(typeof data === "number" ? data : article.view_count + 1);
-    })();
-  }, [article]);
-
-  // Body: fully public for is_premium=false articles, member-gated (with a free
-  // weekly allowance) for everything else. The RPC itself decides what to return —
-  // we always attempt the call so public articles render for signed-out visitors too.
-  useEffect(() => {
-    if (!article || !slug || membershipLoading) return;
+    if (!slug) return;
+    let cancelled = false;
     setBodyLoading(true);
-    void (async () => {
+    (async () => {
       const { data, error } = await supabase.rpc("get_article_body", { p_slug: slug });
+      if (cancelled) return;
       if (error) {
         console.error("get_article_body failed:", error);
-        toast.error("Couldn't load this briefing — please try again.");
         setBody(null);
-        setInlineImages([]);
         setBodyLoading(false);
         return;
       }
-      const row = (Array.isArray(data) ? data[0] : null) as
-        | { body_markdown?: string; inline_images?: unknown }
-        | null;
-      setBody(row?.body_markdown ?? null);
-      const imgs = row?.inline_images;
-      setInlineImages(Array.isArray(imgs) ? (imgs as InlineImage[]) : []);
+      const row = Array.isArray(data) ? data[0] : data;
+      const typed = row as { body_markdown?: string; inline_images?: unknown } | null;
+      setBody(typed?.body_markdown ?? null);
+      setInlineImages(Array.isArray(typed?.inline_images) ? (typed!.inline_images as InlineImage[]) : []);
       setBodyLoading(false);
     })();
-  }, [article, slug, isMember, membershipLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
-  // Engagement + comments
   useEffect(() => {
-    if (!article) return;
-    void (async () => {
-      const [engagementRes, commentRes] = await Promise.all([
-        user
-          ? supabase
-              .from("news_article_engagement")
-              .select("kind")
-              .eq("article_id", article.id)
-              .eq("user_id", user.id)
-          : Promise.resolve({ data: [] as { kind: string }[] }),
-        supabase
-          .from("news_comments")
-          .select("id, author_name, body, created_at")
-          .eq("article_id", article.id)
-          .order("created_at", { ascending: false }),
-      ]);
-      const kinds = (engagementRes.data ?? []).map((r: { kind: string }) => r.kind);
-      setLiked(kinds.includes("like"));
-      setSaved(kinds.includes("save"));
-      setComments((commentRes.data as Comment[]) ?? []);
-    })();
-  }, [article, user]);
+    if (!article?.id) return;
+    setViews(article.view_count);
+    void supabase.rpc("increment_article_views", { p_article_id: article.id }).then(({ data }) => {
+      if (typeof data === "number") setViews(data);
+    });
+  }, [article?.id, article?.view_count]);
+
+  useEffect(() => {
+    if (!article?.id || !user) return;
+    void supabase
+      .from("news_article_engagement")
+      .select("kind")
+      .eq("user_id", user.id)
+      .eq("article_id", article.id)
+      .then(({ data }) => {
+        setLiked((data ?? []).some((r) => r.kind === "like"));
+        setSaved((data ?? []).some((r) => r.kind === "save"));
+      });
+    void supabase
+      .from("news_article_comments")
+      .select("id, author_name, body, created_at")
+      .eq("article_id", article.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setComments(data ?? []));
+  }, [article?.id, user]);
 
   const toggleEngagement = async (kind: "like" | "save") => {
-    if (!article) return;
-    if (!user) {
-      toast.message("Sign in to like and save briefings.");
+    if (!user || !article) {
+      toast.message("Sign in to like or save briefings.");
       return;
     }
     const active = kind === "like" ? liked : saved;
-    (kind === "like" ? setLiked : setSaved)(!active);
+    const setter = kind === "like" ? setLiked : setSaved;
+    setter(!active);
     if (active) {
       await supabase
         .from("news_article_engagement")
@@ -138,36 +122,40 @@ const NewsroomArticle = () => {
   };
 
   const postComment = async () => {
-    if (!article || !user) {
-      toast.message("Sign in to join the conversation.");
-      return;
-    }
+    if (!user || !article) return;
     const text = commentBody.trim();
     if (text.length < 2) return;
     setPosting(true);
-    const authorName = (user.user_metadata?.full_name as string) || user.email?.split("@")[0] || "Member";
+    const authorName =
+      (user.user_metadata as { username?: string; full_name?: string } | undefined)?.username ||
+      (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
+      user.email?.split("@")[0] ||
+      "Member";
     const { data, error } = await supabase
-      .from("news_comments")
+      .from("news_article_comments")
       .insert({ article_id: article.id, user_id: user.id, author_name: authorName, body: text.slice(0, 2000) })
       .select("id, author_name, body, created_at")
-      .maybeSingle();
+      .single();
     setPosting(false);
     if (error) {
-      toast.error("Could not post your comment. Please try again.");
+      toast.error("Could not post comment");
       return;
     }
-    if (data) setComments((prev) => [data as Comment, ...prev]);
+    setComments((prev) => [data as Comment, ...prev]);
     setCommentBody("");
+    toast.success("Comment posted");
   };
 
-  const jsonLd = useMemo(() => article?.json_ld ?? null, [article]);
-
-  // Falls back to editorial seed comments only when this briefing has no
-  // live member comments yet — same pattern as product reviews.
   const displayComments = useMemo(() => {
-    if (comments.length > 0 || !article) return comments;
+    if (comments.length > 0) return comments;
+    if (!article) return [];
     const seeded = newsroomComments[article.slug] ?? [];
-    return seeded.map((c, i) => ({ id: `seeded-${i}`, author_name: c.display_name, body: c.body, created_at: c.created_at }));
+    return seeded.map((c, i) => ({
+      id: `seeded-${i}`,
+      author_name: c.display_name,
+      body: c.body,
+      created_at: c.created_at,
+    }));
   }, [comments, article]);
 
   if (loading) {
@@ -182,9 +170,8 @@ const NewsroomArticle = () => {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="container mx-auto px-4 pt-32 text-center">
-          <h1 className="font-heading text-3xl font-bold text-foreground">Briefing not found</h1>
-          <p className="mt-3 text-muted-foreground">This story may have been unpublished.</p>
+        <main className="container mx-auto px-4 py-24 text-center">
+          <h1 className="font-heading text-2xl font-bold">Briefing not found</h1>
           <Button asChild className="mt-6">
             <Link to="/briefings">Back to The Daily Skinny</Link>
           </Button>
@@ -194,49 +181,32 @@ const NewsroomArticle = () => {
     );
   }
 
-  const canonical = `https://skinlabs.co.za/briefings/${article.slug}`;
-  const seoTitle = article.seo_title || `${article.title} | The Daily Skinny by SkinLabs®`;
-  const seoDescription = article.seo_description || article.excerpt;
   const socialImage = article.cover_image_url
     ? article.cover_image_url.startsWith("http")
       ? article.cover_image_url
       : `https://skinlabs.co.za${article.cover_image_url.startsWith("/") ? "" : "/"}${article.cover_image_url}`
-    : "https://skinlabs.co.za/og-image.png";
+    : undefined;
 
   return (
     <>
       <Helmet>
-        <title>{seoTitle}</title>
-        <meta name="description" content={seoDescription} />
-        <link rel="canonical" href={canonical} />
-        <meta property="og:type" content="article" />
-        <meta property="og:title" content={seoTitle} />
-        <meta property="og:description" content={seoDescription} />
-        <meta property="og:url" content={canonical} />
-        <meta property="og:image" content={socialImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={seoTitle} />
-        <meta name="twitter:description" content={seoDescription} />
-        <meta name="twitter:image" content={socialImage} />
-        {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
+        <title>{article.seo_title || `${article.title} | SkinLabs®`}</title>
+        <meta name="description" content={article.seo_description || article.excerpt} />
+        <link rel="canonical" href={`https://skinlabs.co.za/briefings/${article.slug}`} />
+        {socialImage && <meta property="og:image" content={socialImage} />}
       </Helmet>
 
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-20">
-          <article className="container mx-auto max-w-3xl px-4 py-10">
-            <Link
-              to="/briefings"
-              className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" /> The Daily Skinny
+        <main className="pt-20 pb-24">
+          <article className="container mx-auto max-w-3xl px-4">
+            <Link to="/briefings" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <ArrowLeft className="h-4 w-4" /> Back to The Daily Skinny
             </Link>
 
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-foreground">
+            <div className="mt-6 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-foreground">
               <MapPin className="h-3 w-3" /> {article.sa_context_tag}
-            </span>
+            </div>
 
             <h1 className="mt-4 font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
               {article.title}
@@ -251,11 +221,7 @@ const NewsroomArticle = () => {
 
             {article.cover_image_url && (
               <figure className="mt-8">
-                <img
-                  src={article.cover_image_url}
-                  alt={article.cover_image_alt || article.title}
-                  className="w-full rounded-3xl object-cover"
-                />
+                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} className="w-full rounded-3xl object-cover" />
                 {article.cover_credit_name && (
                   <figcaption className="mt-2 text-xs text-muted-foreground">
                     Photo by{" "}
@@ -272,7 +238,7 @@ const NewsroomArticle = () => {
 
             {article.key_takeaways.length > 0 && (
               <div className="mt-8 rounded-3xl border border-border bg-card p-6">
-                <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Key takeaways</h2>
+                <h2 className="mb-3 font-heading text-2xl font-bold tracking-tight text-foreground">Key takeaways</h2>
                 <ul className="space-y-2">
                   {article.key_takeaways.map((t) => (
                     <li key={t} className="flex gap-2 text-sm text-muted-foreground">
@@ -286,15 +252,14 @@ const NewsroomArticle = () => {
 
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
 
-            {/* Body: members only */}
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : body ? (
-                <div className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary prose-table:text-sm">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{body}</ReactMarkdown>
+                <>
+                  <BriefingBody body={body} />
                   {inlineImages.length > 0 && (
                     <div className="not-prose mt-8 grid gap-6 sm:grid-cols-2">
                       {inlineImages.map((img) => (
@@ -313,7 +278,7 @@ const NewsroomArticle = () => {
                       ))}
                     </div>
                   )}
-                </div>
+                </>
               ) : user ? (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
                   <h2 className="font-heading text-xl font-bold text-foreground">
@@ -341,7 +306,7 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-border pt-6">
+            <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
               </Button>
@@ -349,16 +314,27 @@ const NewsroomArticle = () => {
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
               {article.source_url && (
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={article.source_url} target="_blank" rel="noreferrer noopener">
-                    Read the original on {article.source_name}
-                    <ExternalLink className="ml-2 h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="max-w-full min-w-0 h-auto whitespace-normal py-2"
+                >
+                  <a
+                    href={article.source_url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex max-w-full min-w-0 items-start gap-2 text-left"
+                  >
+                    <span className="min-w-0 flex-1 break-words">
+                      Read the original on {article.source_name}
+                    </span>
+                    <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
                   </a>
                 </Button>
               )}
             </div>
 
-            {/* Comments */}
             <section className="mt-12">
               <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
                 Comments ({displayComments.length})
