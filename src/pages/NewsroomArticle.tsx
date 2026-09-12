@@ -126,6 +126,7 @@ const NewsroomArticle = () => {
   };
 
   const shareBriefing = async () => {
+    if (!article) return;
     const shareData = { title: article.title, text: article.excerpt, url: window.location.href };
     if (navigator.share) {
       try {
