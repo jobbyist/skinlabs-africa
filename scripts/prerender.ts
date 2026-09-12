@@ -21,6 +21,7 @@ const STATIC_ROUTES = [
   "/contact",
   "/business",
   "/partners",
+  "/brand-ambassadors",
   "/skynn-ai",
   "/products",
   "/knowledge-hub",

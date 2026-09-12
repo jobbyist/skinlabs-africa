@@ -48,6 +48,7 @@ const Footer = () => {
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
+      { label: "Brand Ambassadors", href: "/brand-ambassadors" },
       { label: "Contact Us", href: "/contact" },
     ],
   };
