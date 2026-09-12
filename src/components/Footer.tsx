@@ -1,5 +1,11 @@
 import { Link } from "react-router-dom";
-import { Instagram, Linkedin, Youtube, MessageCircle } from "lucide-react";
+import {
+  Instagram,
+  Facebook,
+  Youtube,
+  MessageCircle,
+} from "lucide-react";
+import { SiTiktok, SiWhatsapp } from "react-icons/si";
 import { useMembership } from "@/hooks/use-membership";
 import logo from "@/assets/newskinlabs.png";
 
@@ -10,7 +16,7 @@ const Footer = () => {
     products: [
       { label: "The Daily Skinny", href: "/briefings" },
       { label: "Product Reviews", href: "/reviews" },
-      { label: "Shelf Showdowns", href: "/compare", isNew: true },
+      { label: "Shelf Showdown", href: "/compare", isNew: true },
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
       { label: "Seasonal Guides", href: "/seasonals", isNew: true },
       { label: "Podcast Series", href: "/podcast" },
@@ -36,34 +42,52 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: Instagram, href: "https://instagram.com/skinlabs.africa", label: "Instagram" },
-    { icon: Linkedin, href: "https://www.linkedin.com/company/skinlabssa/", label: "LinkedIn" },
-    { icon: Youtube, href: "https://www.youtube.com/@skinlabssa", label: "YouTube" },
-    { icon: MessageCircle, href: "https://wa.me/27600000000", label: "WhatsApp" },
+    { icon: Instagram, href: "https://instagram.com/skinlabsza", label: "@skinlabsza" },
+    { icon: Facebook, href: "http://facebook.com/skinlabs.co.za/", label: "Facebook" },
+    {
+      icon: Youtube,
+      href: "https://www.youtube.com/channel/UCcKSyVsu6Ip6bnHOBJZ5PLg",
+      label: "YouTube",
+    },
+    {
+      icon: SiTiktok,
+      href: "https://www.tiktok.com/@skinlabsza",
+      label: "TikTok",
+    },
+    {
+      icon: SiWhatsapp,
+      href: "https://whatsapp.com/channel/0029Vb6AAeX7YSdws80fii1m",
+      label: "WhatsApp Channel",
+    },
   ];
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <img src={logo} alt="SkinLabs" className="h-8 w-auto" />
+    <footer className="bg-foreground text-background">
+      <div className="container mx-auto px-4 py-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
+          <div className="col-span-2 md:col-span-4 lg:col-span-1 mb-8 lg:mb-0">
+            <Link to="/" className="inline-block mb-4">
+              <img
+                src={logo}
+                alt="SkinLabs — South Africa's Skin Intelligence Platform"
+                className="h-16 w-auto brightness-0 invert"
+              />
             </Link>
-            <p className="mt-4 max-w-sm text-sm text-muted-foreground">
-              South Africa&apos;s Skin Intelligence Platform — briefings, reviews and tools built for local climate, shelves and skin.
+            <p className="text-background/60 text-sm leading-relaxed mb-4">
+              South Africa&apos;s Skin Intelligence Platform. Evidence-led skincare education,
+              product intelligence and tools built for local climate, shelves and skin.
             </p>
-            <div className="mt-6 flex gap-3">
-              {socialLinks.map(({ icon: Icon, href, label }) => (
+            <div className="flex gap-3">
+              {socialLinks.map((social) => (
                 <a
-                  key={label}
-                  href={href}
+                  key={social.label}
+                  href={social.href}
                   target="_blank"
-                  rel="noreferrer noopener"
-                  aria-label={label}
-                  className="rounded-full border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full bg-background/10 flex items-center justify-center hover:bg-primary transition-colors"
+                  aria-label={social.label}
                 >
-                  <Icon className="h-4 w-4" />
+                  <social.icon className="w-4 h-4" />
                 </a>
               ))}
             </div>
@@ -73,11 +97,14 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Editorial</h4>
             <ul className="space-y-2">
               {footerLinks.products.map((link) => (
-                <li key={link.href + link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-background/60 text-sm hover:text-background transition-colors"
+                  >
                     {link.label}
                     {"isNew" in link && link.isNew ? (
-                      <span className="ml-2 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">NEW</span>
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-primary">New</span>
                     ) : null}
                   </Link>
                 </li>
@@ -89,11 +116,14 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Platform</h4>
             <ul className="space-y-2">
               {footerLinks.platform.map((link) => (
-                <li key={link.href + link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-background/60 text-sm hover:text-background transition-colors"
+                  >
                     {link.label}
                     {"isComingSoon" in link && link.isComingSoon ? (
-                      <span className="ml-2 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-400">Soon</span>
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-400">Soon</span>
                     ) : null}
                   </Link>
                 </li>
@@ -105,8 +135,11 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Company</h4>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
-                <li key={link.href + link.label}>
-                  <Link to={link.href} className="text-sm text-muted-foreground hover:text-foreground">
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-background/60 text-sm hover:text-background transition-colors"
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -115,13 +148,23 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} SkinLabs®. All rights reserved.</p>
-          <div className="flex flex-wrap gap-4">
-            <Link to="/privacy-policy" className="hover:text-foreground">Privacy</Link>
-            <Link to="/terms-of-service" className="hover:text-foreground">Terms</Link>
-            <Link to="/cookie-policy" className="hover:text-foreground">Cookies</Link>
-            <Link to="/editorial-policy" className="hover:text-foreground">Editorial</Link>
+        <div className="border-t border-background/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-background/40 text-sm">
+            © {new Date().getFullYear()} SkinLabs®. All rights reserved.
+          </p>
+          <div className="flex flex-wrap gap-4 text-sm text-background/40">
+            <Link to="/privacy-policy" className="hover:text-background transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms-of-service" className="hover:text-background transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="/cookie-policy" className="hover:text-background transition-colors">
+              Cookie Policy
+            </Link>
+            <Link to="/editorial-policy" className="hover:text-background transition-colors">
+              Editorial Policy
+            </Link>
           </div>
         </div>
       </div>
