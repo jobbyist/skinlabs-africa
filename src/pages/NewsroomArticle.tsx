@@ -98,10 +98,12 @@ const NewsroomArticle = () => {
       return;
     }
     if (kind === "like") {
+      const wasLiked = getLikedBriefingIds().includes(article.id);
       const isLiked = toggleLikedBriefing(article.id).includes(article.id);
       setLiked(isLiked);
-      toast.success(isLiked ? "Briefing liked" : "Like removed");
+      toast.success(wasLiked ? "Like removed" : "Briefing liked");
       return;
+    }
     }
     if (!user) {
       toast.message("Sign in to save briefings.");
