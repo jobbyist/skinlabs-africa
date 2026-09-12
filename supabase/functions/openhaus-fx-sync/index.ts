@@ -68,8 +68,11 @@ Deno.serve(async (req) => {
       const { error } = await admin
         .from("marketplace_fx_rates")
         .upsert({ currency_code: currency, rate_from_zar: rate, updated_at: new Date().toISOString() }, { onConflict: "currency_code" });
-      if (error) errors.push(`${currency}: ${error.message}`);
-      else updated += 1;
+      if (error) {
+        errors.push(`${currency}: ${error.message}`);
+      } else {
+        updated += 1;
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, updated, errors }), {
