@@ -52,7 +52,31 @@ function loadDraft(): AmbassadorFormData {
     const raw = window.localStorage.getItem(AMBASSADOR_DRAFT_STORAGE_KEY);
     if (!raw) return initialAmbassadorForm;
     const parsed = JSON.parse(raw);
-    return { ...initialAmbassadorForm, ...parsed };
+    
+    // Validate parsed data has expected structure
+    if (typeof parsed !== "object" || parsed === null) {
+      return initialAmbassadorForm;
+    }
+    
+    // Only merge string and array fields, ignore unexpected properties
+    const safeData: Partial<AmbassadorFormData> = {};
+    for (const key in parsed) {
+      if (key in initialAmbassadorForm) {
+        const value = parsed[key];
+        const initialValue = initialAmbassadorForm[key as keyof AmbassadorFormData];
+        
+        // Type-check each field
+        if (typeof initialValue === "string" && typeof value === "string") {
+          safeData[key as keyof AmbassadorFormData] = value as any;
+        } else if (typeof initialValue === "boolean" && typeof value === "boolean") {
+          safeData[key as keyof AmbassadorFormData] = value as any;
+        } else if (Array.isArray(initialValue) && Array.isArray(value)) {
+          safeData[key as keyof AmbassadorFormData] = value.filter((v: any) => typeof v === "string") as any;
+        }
+      }
+    }
+    
+    return { ...initialAmbassadorForm, ...safeData };
   } catch {
     return initialAmbassadorForm;
   }
