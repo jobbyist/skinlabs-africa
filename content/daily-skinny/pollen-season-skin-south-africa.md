@@ -1,1 +1,1 @@
-See live news_articles.slug = pollen-season-skin-south-africa (2236 words). Pollen is not a moisturiser. SA tree pollen often peaks August to October; grass pollen can run September to March. Rinse, bland cream, real allergy care. Full manuscript generated 2026-09-11 for The Daily Skinny.
+Full 2236-word manuscript live on news_articles.slug = pollen-season-skin-south-africa (2026-09-11). Artifact: /home/workdir/artifacts/briefings/pollen-season-skin-south-africa.md
