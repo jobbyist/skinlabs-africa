@@ -13,8 +13,6 @@ import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
-import AdSlot from "@/components/AdSlot";
-import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
