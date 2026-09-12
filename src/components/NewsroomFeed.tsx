@@ -2,13 +2,10 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowUpDown, ArrowUpRight, Bookmark, Clock, Eye, Filter, Heart, Loader2, MapPin, Search, X,
+  ArrowUpDown, ArrowUpRight, Clock, Eye, Filter, Heart, Loader2, MapPin, Search, X,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/use-auth";
-import { useEngagementStore } from "@/stores/engagementStore";
 import { useNewsArticles, useSaContextTags, type NewsArticleSummary } from "@/hooks/use-news-articles";
 import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
@@ -18,6 +15,9 @@ import { usePageParam } from "@/hooks/use-page-param";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { useUnsplashImage } from "@/hooks/use-unsplash-image";
+import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+
+const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
 
 const NEWSROOM_PAGE_SIZE = 5;
 type SortOption = "newest" | "oldest" | "popular" | "reading";
@@ -34,13 +34,16 @@ interface NewsroomFeedProps {
 const BriefingCover = ({ article }: { article: NewsArticleSummary }) => {
   const query = `${article.sa_context_tag || "skincare"} ${article.title.split(" ").slice(0, 4).join(" ")} south africa skin`;
   const { image, loading } = useUnsplashImage(query, article.cover_image_url || "/briefing-placeholder-cover.svg");
-  const src = article.cover_image_url || image?.url || "/briefing-placeholder-cover.svg";
+  const src = article.cover_image_url || image?.url || PEXELS_FALLBACK_COVER;
   const alt = article.cover_image_alt || image?.alt || article.title;
   return (
     <img
       src={src}
       alt={alt}
       loading="lazy"
+      onError={(event) => {
+        if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER;
+      }}
       className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${loading && !article.cover_image_url ? "opacity-70" : ""}`}
     />
   );
@@ -54,7 +57,6 @@ const NewsroomFeed = ({
   showExploreLink = false,
   paginate = false,
 }: NewsroomFeedProps) => {
-  const { user } = useAuth();
   const [page, setPage] = usePageParam("page");
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
@@ -71,9 +73,7 @@ const NewsroomFeed = ({
   );
   const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
   const HeadingTag = paginate ? "h1" : "h2";
-  const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
-  const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
-  const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
+  const [likedIds, setLikedIds] = useState<string[]>(getLikedBriefingIds);
 
   useEffect(() => {
     if (!paginate) return;
@@ -121,37 +121,9 @@ const NewsroomFeed = ({
     return list;
   }, [fetchedArticles, query, searchable, paginate, sort]);
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      if (!user) { setRemoteLiked([]); setRemoteSaved([]); return; }
-      const { data } = await supabase.from("news_article_engagement").select("article_id, kind").eq("user_id", user.id);
-      if (!active) return;
-      setRemoteLiked((data ?? []).filter((r) => r.kind === "like").map((r) => r.article_id));
-      setRemoteSaved((data ?? []).filter((r) => r.kind === "save").map((r) => r.article_id));
-    };
-    void load();
-    return () => { active = false; };
-  }, [user]);
-
-  const isLiked = (id: string) => (user ? remoteLiked.includes(id) : likedIds.includes(id));
-  const isSaved = (id: string) => (user ? remoteSaved.includes(id) : savedIds.includes(id));
-
-  const handleEngagement = async (article: NewsArticleSummary, kind: "like" | "save") => {
-    if (!user) {
-      if (kind === "like") toggleLike(article.id); else toggleSave(article.id);
-      toast.message("Sign in to sync your saved briefings across devices.");
-      return;
-    }
-    const current = kind === "like" ? remoteLiked : remoteSaved;
-    const setter = kind === "like" ? setRemoteLiked : setRemoteSaved;
-    const active = current.includes(article.id);
-    setter(active ? current.filter((x) => x !== article.id) : [...current, article.id]);
-    if (active) {
-      await supabase.from("news_article_engagement").delete().eq("user_id", user.id).eq("article_id", article.id).eq("kind", kind);
-    } else {
-      await supabase.from("news_article_engagement").insert({ user_id: user.id, article_id: article.id, kind });
-    }
+  const handleLike = (article: NewsArticleSummary) => {
+    setLikedIds(toggleLikedBriefing(article.id));
+    toast.success(likedIds.includes(article.id) ? "Like removed" : "Briefing liked");
   };
 
   const clearFilters = () => {
@@ -294,11 +266,8 @@ const NewsroomFeed = ({
                         Read the breakdown <ArrowUpRight className="h-4 w-4" />
                       </Link>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleEngagement(article, "like")} aria-label="Like article" className="rounded-full p-2 hover:bg-accent">
-                          <Heart className={cn("h-4 w-4", isLiked(article.id) && "fill-primary text-primary")} />
-                        </button>
-                        <button onClick={() => handleEngagement(article, "save")} aria-label="Save article" className="rounded-full p-2 hover:bg-accent">
-                          <Bookmark className={cn("h-4 w-4", isSaved(article.id) && "fill-primary text-primary")} />
+                        <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 hover:bg-accent">
+                          <Heart className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")} />
                         </button>
                       </div>
                     </div>

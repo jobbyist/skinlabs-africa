@@ -1,21 +1,20 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, MessageCircle } from "lucide-react";
+import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, Share2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
-import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getLikedBriefingIds, recordBriefingView, toggleLikedBriefing } from "@/lib/briefing-engagement";
 
 interface InlineImage {
   url: string;
@@ -25,12 +24,7 @@ interface InlineImage {
   after_paragraph?: number;
 }
 
-interface Comment {
-  id: string;
-  author_name: string;
-  body: string;
-  created_at: string;
-}
+const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
 const NewsroomArticle = () => {
   const { slug } = useParams();
@@ -44,9 +38,6 @@ const NewsroomArticle = () => {
   const [views, setViews] = useState<number | null>(null);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [commentBody, setCommentBody] = useState("");
-  const [posting, setPosting] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -74,39 +65,50 @@ const NewsroomArticle = () => {
 
   useEffect(() => {
     if (!article?.id) return;
-    setViews(article.view_count);
-    void supabase.rpc("increment_article_views", { p_article_id: article.id }).then(({ data }) => {
-      if (typeof data === "number") setViews(data);
-    });
+    setViews(recordBriefingView(article.id, article.view_count));
   }, [article?.id, article?.view_count]);
 
   useEffect(() => {
-    if (!article?.id || !user) return;
+    if (!article?.id) return;
+    setLiked(getLikedBriefingIds().includes(article.id));
+  }, [article?.id]);
+
+  useEffect(() => {
+    if (!article?.id || !user) {
+      setSaved(false);
+      return;
+    }
+    let active = true;
     void supabase
       .from("news_article_engagement")
       .select("kind")
       .eq("user_id", user.id)
       .eq("article_id", article.id)
+      .eq("kind", "save")
       .then(({ data }) => {
-        setLiked((data ?? []).some((r) => r.kind === "like"));
-        setSaved((data ?? []).some((r) => r.kind === "save"));
+        if (active) setSaved((data ?? []).length > 0);
       });
-    void supabase
-      .from("news_article_comments")
-      .select("id, author_name, body, created_at")
-      .eq("article_id", article.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => setComments(data ?? []));
+    return () => {
+      active = false;
+    };
   }, [article?.id, user]);
 
   const toggleEngagement = async (kind: "like" | "save") => {
-    if (!user || !article) {
-      toast.message("Sign in to like or save briefings.");
+    if (!article) {
       return;
     }
-    const active = kind === "like" ? liked : saved;
-    const setter = kind === "like" ? setLiked : setSaved;
-    setter(!active);
+    if (kind === "like") {
+      const isLiked = toggleLikedBriefing(article.id).includes(article.id);
+      setLiked(isLiked);
+      toast.success(isLiked ? "Briefing liked" : "Like removed");
+      return;
+    }
+    if (!user) {
+      toast.message("Sign in to save briefings.");
+      return;
+    }
+    const active = saved;
+    setSaved(!active);
     if (active) {
       await supabase
         .from("news_article_engagement")
@@ -121,42 +123,23 @@ const NewsroomArticle = () => {
     }
   };
 
-  const postComment = async () => {
-    if (!user || !article) return;
-    const text = commentBody.trim();
-    if (text.length < 2) return;
-    setPosting(true);
-    const authorName =
-      (user.user_metadata as { username?: string; full_name?: string } | undefined)?.username ||
-      (user.user_metadata as { full_name?: string } | undefined)?.full_name ||
-      user.email?.split("@")[0] ||
-      "Member";
-    const { data, error } = await supabase
-      .from("news_article_comments")
-      .insert({ article_id: article.id, user_id: user.id, author_name: authorName, body: text.slice(0, 2000) })
-      .select("id, author_name, body, created_at")
-      .single();
-    setPosting(false);
-    if (error) {
-      toast.error("Could not post comment");
-      return;
+  const shareBriefing = async () => {
+    const shareData = { title: article.title, text: article.excerpt, url: window.location.href };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
     }
-    setComments((prev) => [data as Comment, ...prev]);
-    setCommentBody("");
-    toast.success("Comment posted");
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      toast.success("Briefing link copied");
+    } catch {
+      toast.error("Could not copy the briefing link");
+    }
   };
-
-  const displayComments = useMemo(() => {
-    if (comments.length > 0) return comments;
-    if (!article) return [];
-    const seeded = newsroomComments[article.slug] ?? [];
-    return seeded.map((c, i) => ({
-      id: `seeded-${i}`,
-      author_name: c.display_name,
-      body: c.body,
-      created_at: c.created_at,
-    }));
-  }, [comments, article]);
 
   if (loading) {
     return (
@@ -216,12 +199,11 @@ const NewsroomArticle = () => {
               <span>{new Date(article.publish_date).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
               <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {(views ?? article.view_count).toLocaleString()} views</span>
-              <span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" /> {displayComments.length}</span>
             </div>
 
             {article.cover_image_url && (
               <figure className="mt-8">
-                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} className="w-full rounded-3xl object-cover" />
+                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} onError={(event) => { if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER; }} className="w-full rounded-3xl object-cover" />
                 {article.cover_credit_name && (
                   <figcaption className="mt-2 text-xs text-muted-foreground">
                     Photo by{" "}
@@ -310,6 +292,9 @@ const NewsroomArticle = () => {
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
               </Button>
+              <Button variant="outline" size="sm" onClick={() => void shareBriefing()}>
+                <Share2 className="mr-2 h-4 w-4" /> Share
+              </Button>
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("save")}>
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
@@ -335,40 +320,6 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <section className="mt-12">
-              <h2 className="mb-4 font-heading text-xl font-bold text-foreground">
-                Comments ({displayComments.length})
-              </h2>
-              {user ? (
-                <div className="space-y-3">
-                  <Textarea
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    placeholder="Share your take on this briefing…"
-                    maxLength={2000}
-                    rows={3}
-                  />
-                  <Button size="sm" onClick={postComment} disabled={posting || commentBody.trim().length < 2}>
-                    {posting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Post comment
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Sign in to join the conversation.</p>
-              )}
-
-              <div className="mt-6 space-y-5">
-                {displayComments.map((c) => (
-                  <div key={c.id} className="rounded-2xl border border-border bg-card p-4">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">{c.author_name}</span>
-                      <span>{new Date(c.created_at).toLocaleDateString("en-ZA")}</span>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">{c.body}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
           </article>
         </main>
         <Footer />
