@@ -74,11 +74,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const remoteQtyByProduct = new Map((remote ?? []).map((r) => [r.product_id, r.quantity]));
 
         for (const item of local) {
-          const mergedQty = (remoteQtyByProduct.get(item.productId) ?? 0) + item.quantity;
+          const existingQty = remoteQtyByProduct.get(item.productId) ?? 0;
+          const mergedQty = existingQty + item.quantity;
+          if (mergedQty > 999) {
+            console.warn(`Cart merge exceeded limit for product ${item.productId}, capping at 999`);
+          }
           await supabase
             .from("marketplace_cart_items")
             .upsert(
-              { user_id: user.id, product_id: item.productId, quantity: mergedQty },
+              { user_id: user.id, product_id: item.productId, quantity: Math.min(mergedQty, 999) },
               { onConflict: "user_id,product_id" },
             );
         }
