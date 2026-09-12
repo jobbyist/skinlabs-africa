@@ -39,7 +39,7 @@ import { BA_APPLICATIONS_CLOSE } from "@/data/brandAmbassador";
 
 const FORMSPREE_ENDPOINT =
   (import.meta.env.VITE_FORMSPREE_BRAND_AMBASSADOR_ENDPOINT as string | undefined)?.trim() ||
-  "https://formspree.io/f/xaeyzgpo";
+  "";
 
 interface BrandAmbassadorModalProps {
   open: boolean;
