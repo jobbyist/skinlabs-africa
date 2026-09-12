@@ -14,6 +14,8 @@ import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import CookieConsent from "./components/CookieConsent";
 import SitewideSEO from "./components/SitewideSEO";
+import { CartProvider } from "./contexts/CartContext";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Products = lazy(() => import("./pages/Products"));
@@ -54,6 +56,13 @@ const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const MarketplaceLanding = lazy(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazy(() => import("./pages/marketplace/MarketplaceProductDetail"));
+const MarketplaceBrandPage = lazy(() => import("./pages/marketplace/MarketplaceBrandPage"));
+const MarketplaceBrandsPage = lazy(() => import("./pages/marketplace/MarketplaceBrandsPage"));
+const MarketplaceConcernPage = lazy(() => import("./pages/marketplace/MarketplaceConcernPage"));
+const MarketplaceCategoriesPage = lazy(() => import("./pages/marketplace/MarketplaceCategoriesPage"));
+const MarketplaceValuesPage = lazy(() => import("./pages/marketplace/MarketplaceValuesPage"));
+const MarketplaceSkinTonePage = lazy(() => import("./pages/marketplace/MarketplaceSkinTonePage"));
+const MarketplaceSavedPage = lazy(() => import("./pages/marketplace/MarketplaceSavedPage"));
 
 const queryClient = new QueryClient();
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
@@ -106,11 +115,13 @@ const AppContent = () => (
         <Route path="/routines" element={<ComingSoon />} />
         <Route path="/marketplace" element={<MarketplaceLanding />} />
         <Route path="/marketplace/product/:slug" element={<MarketplaceProductDetail />} />
-        <Route path="/marketplace/brand/:slug" element={<ComingSoon />} />
-        <Route path="/marketplace/concern/:slug" element={<ComingSoon />} />
-        <Route path="/marketplace/brands" element={<ComingSoon />} />
-        <Route path="/marketplace/categories" element={<ComingSoon />} />
-        <Route path="/marketplace/saved" element={<ComingSoon />} />
+        <Route path="/marketplace/brand/:slug" element={<MarketplaceBrandPage />} />
+        <Route path="/marketplace/concern/:slug" element={<MarketplaceConcernPage />} />
+        <Route path="/marketplace/values/:slug" element={<MarketplaceValuesPage />} />
+        <Route path="/marketplace/skin-tone/:band" element={<MarketplaceSkinTonePage />} />
+        <Route path="/marketplace/brands" element={<MarketplaceBrandsPage />} />
+        <Route path="/marketplace/categories" element={<MarketplaceCategoriesPage />} />
+        <Route path="/marketplace/saved" element={<MarketplaceSavedPage />} />
         <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
@@ -152,7 +163,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <PodcastPlayerProvider>
-            <AppContent />
+            <CurrencyProvider>
+              <CartProvider>
+                <AppContent />
+              </CartProvider>
+            </CurrencyProvider>
           </PodcastPlayerProvider>
         </BrowserRouter>
         <Analytics />

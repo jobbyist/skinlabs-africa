@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_analysis_usage: {
+        Row: {
+          created_at: string
+          id: string
+          plan_at_use: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan_at_use: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan_at_use?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_analysis_uses: {
         Row: {
           id: string
@@ -634,6 +655,347 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_brands: {
+        Row: {
+          cover_image_path: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          origin: string | null
+          slug: string
+          source_url: string | null
+          values: string[]
+        }
+        Insert: {
+          cover_image_path?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          origin?: string | null
+          slug: string
+          source_url?: string | null
+          values?: string[]
+        }
+        Update: {
+          cover_image_path?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          origin?: string | null
+          slug?: string
+          source_url?: string | null
+          values?: string[]
+        }
+        Relationships: []
+      }
+      marketplace_cart_items: {
+        Row: {
+          added_at: string
+          id: string
+          product_id: string
+          quantity: number
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_fx_rates: {
+        Row: {
+          currency_code: string
+          rate_from_zar: number
+          updated_at: string
+        }
+        Insert: {
+          currency_code: string
+          rate_from_zar: number
+          updated_at?: string
+        }
+        Update: {
+          currency_code?: string
+          rate_from_zar?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketplace_price_sync_log: {
+        Row: {
+          error: string | null
+          id: string
+          new_price: number | null
+          old_price: number | null
+          product_id: string
+          run_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          product_id: string
+          run_at?: string
+          status: string
+        }
+        Update: {
+          error?: string | null
+          id?: string
+          new_price?: number | null
+          old_price?: number | null
+          product_id?: string
+          run_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_price_sync_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_images: {
+        Row: {
+          alt: string | null
+          created_at: string
+          id: string
+          is_primary: boolean
+          position: number
+          product_id: string
+          url: string
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          position?: number
+          product_id: string
+          url: string
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          position?: number
+          product_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_ratings: {
+        Row: {
+          product_id: string
+          rating: number | null
+          review_count: number | null
+          scraped_at: string
+          source_url: string
+        }
+        Insert: {
+          product_id: string
+          rating?: number | null
+          review_count?: number | null
+          scraped_at?: string
+          source_url: string
+        }
+        Update: {
+          product_id?: string
+          rating?: number | null
+          review_count?: number | null
+          scraped_at?: string
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_ratings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_user_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          rating: number
+          review_text: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          rating: number
+          review_text?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          rating?: number
+          review_text?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_user_ratings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_products: {
+        Row: {
+          brand_id: string
+          category: string
+          concern: string[]
+          created_at: string
+          data_quality_status: string
+          description: string
+          how_to_use: string | null
+          id: string
+          in_stock: boolean
+          key_actives: string[]
+          marked_up_price_zar: number
+          name: string
+          original_price_zar: number
+          size: string | null
+          skin_tone_claims: string[]
+          slug: string
+          source_last_synced_at: string | null
+          source_url: string
+          updated_at: string
+          values: string[]
+        }
+        Insert: {
+          brand_id: string
+          category: string
+          concern?: string[]
+          created_at?: string
+          data_quality_status?: string
+          description: string
+          how_to_use?: string | null
+          id?: string
+          in_stock?: boolean
+          key_actives?: string[]
+          marked_up_price_zar: number
+          name: string
+          original_price_zar: number
+          size?: string | null
+          skin_tone_claims?: string[]
+          slug: string
+          source_last_synced_at?: string | null
+          source_url: string
+          updated_at?: string
+          values?: string[]
+        }
+        Update: {
+          brand_id?: string
+          category?: string
+          concern?: string[]
+          created_at?: string
+          data_quality_status?: string
+          description?: string
+          how_to_use?: string | null
+          id?: string
+          in_stock?: boolean
+          key_actives?: string[]
+          marked_up_price_zar?: number
+          name?: string
+          original_price_zar?: number
+          size?: string | null
+          skin_tone_claims?: string[]
+          slug?: string
+          source_last_synced_at?: string | null
+          source_url?: string
+          updated_at?: string
+          values?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_products_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_skinlabs_picks: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          product_id: string
+          week_of: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          product_id: string
+          week_of: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          product_id?: string
+          week_of?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_skinlabs_picks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       news_article_engagement: {
         Row: {
           article_id: string
@@ -1036,6 +1398,33 @@ export type Database = {
           reference?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      podcast_plays: {
+        Row: {
+          created_at: string | null
+          episode_slug: string
+          episode_title: string
+          id: string
+          played_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          episode_slug: string
+          episode_title: string
+          id?: string
+          played_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          episode_slug?: string
+          episode_title?: string
+          id?: string
+          played_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1786,6 +2175,7 @@ export type Database = {
           subscription_status: string | null
           trial_ends_at: string | null
           trial_plan: string | null
+          trial_started_at: string | null
           trial_used_at: string | null
           updated_at: string
           user_id: string
@@ -1821,6 +2211,7 @@ export type Database = {
           subscription_status?: string | null
           trial_ends_at?: string | null
           trial_plan?: string | null
+          trial_started_at?: string | null
           trial_used_at?: string | null
           updated_at?: string
           user_id: string
@@ -1856,6 +2247,7 @@ export type Database = {
           subscription_status?: string | null
           trial_ends_at?: string | null
           trial_plan?: string | null
+          trial_started_at?: string | null
           trial_used_at?: string | null
           updated_at?: string
           user_id?: string
@@ -2554,6 +2946,22 @@ export type Database = {
             columns: ["retailer_id"]
             isOneToOne: false
             referencedRelation: "retailers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_internal_rating_summary: {
+        Row: {
+          avg_rating: number | null
+          product_id: string | null
+          rating_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_user_ratings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
             referencedColumns: ["id"]
           },
         ]
