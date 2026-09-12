@@ -24,10 +24,21 @@ const FileUploadField = ({ label, description, file, onChange, error }: FileUplo
   const handleFiles = (fileList: FileList | null) => {
     const picked = fileList?.[0];
     if (!picked) return;
+    
+    // Validate file extension as primary check
+    const ext = picked.name.toLowerCase().split('.').pop();
+    const allowedExtensions = ['png', 'jpg', 'jpeg', 'pdf'];
+    if (!ext || !allowedExtensions.includes(ext)) {
+      onChange(null, "Please upload a PNG, JPG/JPEG or PDF file.");
+      return;
+    }
+    
+    // Validate MIME type as secondary check
     if (!ACCEPTED_TYPES.includes(picked.type)) {
       onChange(null, "Please upload a PNG, JPG/JPEG or PDF file.");
       return;
     }
+    
     if (picked.size > MAX_FILE_BYTES) {
       onChange(null, `That file is ${formatBytes(picked.size)} — please upload a file under 10MB.`);
       return;
