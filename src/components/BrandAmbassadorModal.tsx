@@ -65,13 +65,18 @@ function loadDraft(): AmbassadorFormData {
         const value = parsed[key];
         const initialValue = initialAmbassadorForm[key as keyof AmbassadorFormData];
         
-        // Type-check each field
+        // Type-check each field. Assigning through a generic `keyof` indexer
+        // onto a Partial<T> with mixed-type properties resolves to `never`
+        // under TS's strict indexed-access narrowing, so write through an
+        // unknown-keyed view instead — the runtime typeof/Array.isArray
+        // checks above already guarantee the value matches the field.
+        const target = safeData as Record<string, unknown>;
         if (typeof initialValue === "string" && typeof value === "string") {
-          safeData[key as keyof AmbassadorFormData] = value as any;
+          target[key] = value;
         } else if (typeof initialValue === "boolean" && typeof value === "boolean") {
-          safeData[key as keyof AmbassadorFormData] = value as any;
+          target[key] = value;
         } else if (Array.isArray(initialValue) && Array.isArray(value)) {
-          safeData[key as keyof AmbassadorFormData] = value.filter((v: any) => typeof v === "string") as any;
+          target[key] = value.filter((v: unknown) => typeof v === "string");
         }
       }
     }
