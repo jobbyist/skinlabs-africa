@@ -84,7 +84,6 @@ const resourceLinks: NavItem[] = [
   { label: "Knowledge Hub", href: "/knowledge-hub", icon: BookOpenCheck },
   { label: "Methodologies", href: "/spotlight/methodology", icon: Compass },
   { label: "Partner Program", href: "/partners", icon: Users },
-  { label: "Work With Us", href: "/partners", icon: Handshake },
 ];
 
 const NavBadge = ({ badge }: { badge: NonNullable<NavItem["badge"]> }) => (
@@ -335,7 +334,7 @@ const Header = () => {
 
       {/* Mobile sheet — kept for small screens */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full max-w-sm overflow-y-auto p-0">
+        <SheetContent side="right" className="w-full max-w-sm overflow-y-auto p-0 [&>button]:hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="font-heading text-lg font-bold">Menu</span>
             <Button variant="ghost" size="icon" onClick={closeMenu} aria-label="Close menu">
