@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { CalendarClock, Sparkles, Target, ShoppingBag } from "lucide-react";
+import { CalendarClock, Sparkles, Target, ShoppingBag, GraduationCap, FlaskConical } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,34 @@ interface ComingSoonConfig {
 }
 
 const configs: Record<string, ComingSoonConfig> = {
+  "/learn": {
+    eyebrow: "Academy",
+    title: "SkinLabs® Academy is coming soon",
+    description:
+      "A self-paced online learning platform for people who want to start — and run — their own skincare business in South Africa. Curriculum designed around formulation literacy, compliance, sourcing and go-to-market.",
+    bullets: [
+      "Modules on actives, barriers, claims language and SA regulatory basics",
+      "Business tracks: pricing, shelf strategy, supplier diligence and brand voice",
+      "Practical assignments scored against the same SkinLabs review standards",
+    ],
+    launch: "Curriculum in development — join the waitlist via membership",
+    icon: GraduationCap,
+    primary: { label: "Explore Business Suite", to: "/business" },
+  },
+  "/ingredients": {
+    eyebrow: "Ingredients",
+    title: "The Ingredients Hub is coming soon",
+    description:
+      "A skincare ingredients knowledge base with plain-language science and a combination analyser that flags clashes and compatible stacks — part of the SkinLabs® intelligence layer.",
+    bullets: [
+      "Ingredient profiles: what it does, who it suits, SA climate caveats",
+      "Clash and mesh analyser for multi-active routines",
+      "Linked to briefings, reviews and SKYNN AI recommendations across the platform",
+    ],
+    launch: "Rolling out inside the skincare intelligence layer",
+    icon: FlaskConical,
+    primary: { label: "Try SKYNN AI skin analysis", to: "/skynn-ai" },
+  },
   "/routines": {
     eyebrow: "Routines",
     title: "Smart Routines is coming soon",
@@ -38,68 +66,79 @@ const configs: Record<string, ComingSoonConfig> = {
       "A curated shelf of vetted local and global skincare, scored by the same review methodology you already read here — with member pricing.",
     bullets: [
       "Only products that pass our review scoring",
-      "Local stock, local pricing, local delivery",
-      "Member-only bundles and loyalty rewards",
+      "Transparent ingredient and claim context for South African shoppers",
+      "Saved lists and restock alerts for members",
     ],
-    launch: "Opening 1 December 2026",
+    launch: "Phased rollout after curation",
     icon: ShoppingBag,
-    primary: { label: "Join the launch list", to: "/shop" },
+    primary: { label: "Read product reviews", to: "/reviews" },
+  },
+  "/consult": {
+    eyebrow: "Consult",
+    title: "Consultations are coming soon",
+    description:
+      "Book structured skin consultations informed by your SkinLabs profile — not a generic ten-minute chat.",
+    bullets: [
+      "Prep pack from your SKYNN AI and routine history",
+      "Clear next steps you can take to a clinic or pharmacy",
+      "Member priority booking when slots open",
+    ],
+    launch: "Pilot with selected partners",
+    icon: CalendarClock,
+    primary: { label: "Explore memberships", to: "/pricing" },
   },
 };
 
-const fallback = configs["/routines"];
+const fallback: ComingSoonConfig = {
+  eyebrow: "Coming soon",
+  title: "This page is almost ready",
+  description: "SkinLabs is building the next layer of skin intelligence for South Africa. Check back shortly.",
+  bullets: ["Editorial briefings already live", "SKYNN AI skin analysis in beta", "More tools rolling out to members first"],
+  launch: "In progress",
+  icon: Sparkles,
+  primary: { label: "Back to home", to: "/" },
+};
 
 const ComingSoon = () => {
   const { pathname } = useLocation();
   const config = configs[pathname] ?? fallback;
   const Icon = config.icon;
+  const canonical = `${SITE_URL}${pathname}`;
 
   return (
     <>
       <Helmet>
-        <title>{`${config.eyebrow} — Coming Soon | SkinLabs®`}</title>
-        <meta name="description" content={config.description.slice(0, 155)} />
-        <link rel="canonical" href={`${SITE_URL}${pathname}`} />
-        <meta property="og:title" content={`${config.eyebrow} — Coming Soon | SkinLabs®`} />
-        <meta property="og:description" content={config.description.slice(0, 155)} />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
+        <title>{config.title} | SkinLabs®</title>
+        <meta name="description" content={config.description} />
+        <link rel="canonical" href={canonical} />
+        <meta name="robots" content="index,follow" />
       </Helmet>
-
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-24 pb-24">
-          <section className="container mx-auto max-w-3xl px-4 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-              <Icon className="h-8 w-8 text-primary" />
-            </div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{config.eyebrow}</p>
-            <h1 className="font-heading text-3xl font-bold text-foreground sm:text-4xl">{config.title}</h1>
-            <p className="mx-auto mt-4 max-w-xl text-muted-foreground">{config.description}</p>
-
-            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-foreground">
-              <CalendarClock className="h-4 w-4 text-primary" />
-              {config.launch}
-            </div>
-
-            <ul className="mx-auto mt-10 max-w-lg space-y-3 text-left">
-              {config.bullets.map((bullet) => (
-                <li key={bullet} className="flex items-start gap-3 rounded-2xl border border-border p-4">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <span className="text-sm text-foreground">{bullet}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button asChild size="lg">
-                <Link to={config.primary.to}>{config.primary.label}</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <Link to="/">Back to home</Link>
-              </Button>
-            </div>
-          </section>
+        <main className="container mx-auto max-w-3xl px-4 pb-24 pt-28">
+          <p className="mb-3 text-sm font-medium uppercase tracking-wider text-primary">{config.eyebrow}</p>
+          <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card">
+            <Icon className="h-7 w-7 text-primary" aria-hidden />
+          </div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl">{config.title}</h1>
+          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{config.description}</p>
+          <ul className="mt-8 space-y-3">
+            {config.bullets.map((b) => (
+              <li key={b} className="flex gap-3 text-sm text-muted-foreground">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden />
+                {b}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 text-sm font-medium text-foreground">{config.launch}</p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button asChild>
+              <Link to={config.primary.to}>{config.primary.label}</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/">Back to home</Link>
+            </Button>
+          </div>
         </main>
         <Footer />
       </div>
