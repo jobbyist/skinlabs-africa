@@ -18,3 +18,12 @@ verify_jwt = false
 
 [functions.account-delete]
 verify_jwt = false
+
+[functions.openhaus-fx-sync]
+verify_jwt = false
+
+[functions.openhaus-picks-rotation]
+verify_jwt = false
+
+[functions.openhaus-price-sync]
+verify_jwt = false

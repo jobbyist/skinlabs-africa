@@ -1,32 +1,18 @@
 import { useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import {
-  Search,
-  ShoppingBag,
-  Menu,
-  Star,
-  Heart,
-  ChevronRight,
-  ArrowRight,
-  Leaf,
-  Truck,
-  Shield,
-  Users,
-  Sparkles,
-  Home,
-  Tag,
-  Bookmark,
-  User,
-  MapPin,
-  ChevronLeft,
-} from "lucide-react";
+import { ChevronRight, ArrowRight, Leaf, Shield, Users, Sparkles, MapPin, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { skinLabsPicks, featuredBrands, concerns, categories } from "./marketplaceData";
+import { featuredBrands, concerns, categories } from "./marketplaceData";
 import { cn } from "@/lib/utils";
+import { MarketplaceHeader } from "@/components/marketplace/MarketplaceHeader";
+import { MobileBottomNav } from "@/components/marketplace/MobileBottomNav";
+import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
+import { useSkinLabsPicks } from "@/hooks/use-skinlabs-picks";
+import { useSavedProducts } from "@/hooks/use-saved-products";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -37,29 +23,9 @@ const stagger = {
   visible: { transition: { staggerChildren: 0.08 } },
 };
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={cn("h-3 w-3", s <= Math.round(rating) ? "fill-amber-400 text-amber-400" : "fill-muted text-muted")}
-        />
-      ))}
-    </div>
-  );
-}
-
-const badgeColors: Record<string, string> = {
-  BESTSELLER: "bg-amber-100 text-amber-800",
-  NEW: "bg-emerald-100 text-emerald-800",
-  POPULAR: "bg-orange-100 text-orange-800",
-};
-
 export default function MarketplaceLanding() {
-  const navigate = useNavigate();
-  const [cartCount] = useState(0);
-  const [savedProducts, setSavedProducts] = useState<Set<string>>(new Set());
+  const { savedIds: savedProducts, toggleSaved } = useSavedProducts();
+  const { picks, isLoading: picksLoading } = useSkinLabsPicks(4);
   const [activeCategory, setActiveCategory] = useState("face");
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
@@ -69,14 +35,6 @@ export default function MarketplaceLanding() {
 
   const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-
-  const toggleSaved = (id: string) => {
-    setSavedProducts((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
 
   return (
     <>
@@ -89,41 +47,11 @@ export default function MarketplaceLanding() {
       </Helmet>
 
       <div className="min-h-screen bg-[#faf9f7] font-sans">
-        {/* ── Header ── */}
-        <header className="sticky top-0 z-40 bg-[#faf9f7]/95 backdrop-blur-sm border-b border-stone-100">
-          <div className="flex items-center justify-between px-4 h-14 max-w-lg mx-auto">
-            <Link to="/marketplace" className="flex items-center gap-2 min-w-0">
-              <div className="flex flex-col leading-none">
-                <span className="font-black text-[13px] tracking-[0.12em] uppercase text-stone-900">OPENHAUS</span>
-                <span className="text-[10px] text-stone-500 tracking-wide font-light">by skinlabs®</span>
-              </div>
-            </Link>
-            <div className="flex items-center gap-3">
-              <button
-                aria-label="Search products"
-                className="p-2 rounded-full hover:bg-stone-100 transition-colors"
-                onClick={() => navigate("/reviews")}
-              >
-                <Search className="h-5 w-5 text-stone-700" />
-              </button>
-              <button aria-label="Shopping bag" className="relative p-2 rounded-full hover:bg-stone-100 transition-colors">
-                <ShoppingBag className="h-5 w-5 text-stone-700" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-stone-900 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
-              <button aria-label="Menu" className="p-2 rounded-full hover:bg-stone-100 transition-colors">
-                <Menu className="h-5 w-5 text-stone-700" />
-              </button>
-            </div>
-          </div>
-        </header>
+        <MarketplaceHeader />
 
         {/* ── Hero ── */}
         <section className="relative overflow-hidden">
-          <div className="max-w-lg mx-auto px-4 pt-8 pb-6 flex items-start gap-4">
+          <div className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pt-8 lg:pt-16 pb-6 lg:pb-14 flex items-start gap-4 lg:gap-16">
             <motion.div
               className="flex-1 min-w-0 z-10"
               initial="hidden"
@@ -137,18 +65,18 @@ export default function MarketplaceLanding() {
               </motion.div>
               <motion.h1
                 variants={fadeUp}
-                className="font-black text-[2.1rem] leading-[1.08] tracking-tight text-stone-900 mb-3"
+                className="font-black text-[2.1rem] lg:text-[3.4rem] leading-[1.08] tracking-tight text-stone-900 mb-3 lg:mb-5"
               >
                 Your skincare shelf,{" "}
                 <span className="italic font-light">reimagined.</span>
               </motion.h1>
-              <motion.p variants={fadeUp} className="text-[13px] text-stone-500 leading-relaxed mb-6 max-w-[240px]">
+              <motion.p variants={fadeUp} className="text-[13px] lg:text-[17px] text-stone-500 leading-relaxed mb-6 lg:mb-8 max-w-[240px] lg:max-w-md">
                 Discover trusted skincare from South African brands, curated by SkinLabs®.
               </motion.p>
-              <motion.div variants={fadeUp} className="flex flex-wrap gap-2">
+              <motion.div variants={fadeUp} className="flex flex-wrap gap-2 lg:gap-3">
                 <Button
                   size="sm"
-                  className="bg-stone-900 text-white hover:bg-stone-800 rounded-full px-5 h-10 text-[13px] font-semibold gap-1"
+                  className="bg-stone-900 text-white hover:bg-stone-800 rounded-full px-5 lg:px-7 h-10 lg:h-12 text-[13px] lg:text-[15px] font-semibold gap-1"
                   onClick={() => document.getElementById("skinlabs-picks")?.scrollIntoView({ behavior: "smooth" })}
                 >
                   Shop skincare <ArrowRight className="h-3.5 w-3.5" />
@@ -156,43 +84,54 @@ export default function MarketplaceLanding() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full px-5 h-10 text-[13px] font-medium"
+                  className="border-stone-300 text-stone-700 hover:bg-stone-50 rounded-full px-5 lg:px-7 h-10 lg:h-12 text-[13px] lg:text-[15px] font-medium"
                   onClick={() => document.getElementById("featured-brands")?.scrollIntoView({ behavior: "smooth" })}
                 >
                   Explore brands
                 </Button>
               </motion.div>
+              <motion.div variants={fadeUp} className="hidden lg:flex items-center gap-6 mt-10 text-stone-500">
+                {[
+                  { icon: <Shield className="h-4 w-4" />, label: "SkinLabs® Promise on every listing" },
+                  { icon: <Leaf className="h-4 w-4" />, label: "Real South African brands" },
+                  { icon: <Users className="h-4 w-4" />, label: "Cruelty-free & vegan filters" },
+                ].map((t) => (
+                  <span key={t.label} className="flex items-center gap-1.5 text-[12px] font-medium">
+                    {t.icon} {t.label}
+                  </span>
+                ))}
+              </motion.div>
             </motion.div>
 
             {/* Hero visual */}
             <motion.div
-              className="relative w-[160px] h-[180px] flex-shrink-0"
+              className="relative w-[160px] h-[180px] lg:w-[420px] lg:h-[420px] flex-shrink-0"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
             >
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-100 via-pink-50 to-amber-50" />
+              <div className="absolute inset-0 rounded-3xl lg:rounded-[2.5rem] bg-gradient-to-br from-purple-100 via-pink-50 to-amber-50" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative flex gap-2 items-end">
+                <div className="relative flex gap-2 lg:gap-5 items-end">
                   <motion.div
                     animate={{ y: [0, -6, 0] }}
                     transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    className="w-9 h-20 bg-stone-900 rounded-2xl shadow-lg"
+                    className="w-9 h-20 lg:w-20 lg:h-48 bg-stone-900 rounded-2xl lg:rounded-[1.5rem] shadow-lg"
                   />
                   <motion.div
                     animate={{ y: [0, -4, 0] }}
                     transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-                    className="w-7 h-14 bg-stone-200 rounded-xl shadow-md"
+                    className="w-7 h-14 lg:w-16 lg:h-32 bg-stone-200 rounded-xl lg:rounded-2xl shadow-md"
                   />
                   <motion.div
                     animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-                    className="w-8 h-16 bg-stone-100 rounded-xl border border-stone-200 shadow-sm"
+                    className="w-8 h-16 lg:w-18 lg:h-40 bg-stone-100 rounded-xl lg:rounded-2xl border border-stone-200 shadow-sm"
                   />
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
                     transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.9 }}
-                    className="w-5 h-12 bg-amber-100 rounded-lg shadow"
+                    className="w-5 h-12 lg:w-12 lg:h-28 bg-amber-100 rounded-lg lg:rounded-xl shadow"
                   />
                 </div>
               </div>
@@ -201,8 +140,8 @@ export default function MarketplaceLanding() {
         </section>
 
         {/* ── Category pills ── */}
-        <section className="max-w-lg mx-auto px-4 pb-6">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <section className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-6 lg:pb-10">
+          <div className="flex gap-2 lg:gap-3 overflow-x-auto scrollbar-hide pb-1">
             {categories.map((cat) => (
               <button
                 key={cat.id}
@@ -222,15 +161,18 @@ export default function MarketplaceLanding() {
         </section>
 
         {/* ── Shop by concern ── */}
-        <section className="max-w-lg mx-auto px-4 pb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-[18px] text-stone-900 tracking-tight">Shop by concern</h2>
-            <button className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors">
+        <section className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-8 lg:pb-14">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="font-bold text-[18px] lg:text-[26px] text-stone-900 tracking-tight">Shop by concern</h2>
+            <Link
+              to="/marketplace/categories"
+              className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors"
+            >
               View all <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           </div>
           <motion.div
-            className="grid grid-cols-2 gap-3"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-40px" }}
@@ -258,43 +200,52 @@ export default function MarketplaceLanding() {
         </section>
 
         {/* ── Featured brands ── */}
-        <section id="featured-brands" className="max-w-lg mx-auto px-4 pb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-[18px] text-stone-900 tracking-tight">Featured brands</h2>
-            <button className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors">
+        <section id="featured-brands" className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-8 lg:pb-14">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="font-bold text-[18px] lg:text-[26px] text-stone-900 tracking-tight">Featured brands</h2>
+            <Link
+              to="/marketplace/brands"
+              className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors"
+            >
               View all <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           </div>
 
           {/* Autoplay brand carousel */}
           <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-3">
+            <div className="flex gap-3 lg:gap-4">
               {[...featuredBrands, ...featuredBrands].map((brand, i) => (
                 <motion.div
                   key={`${brand.id}-${i}`}
-                  className="flex-shrink-0 w-[calc(50%-6px)]"
+                  className="flex-shrink-0 w-[calc(50%-6px)] lg:w-[calc(25%-12px)]"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.2 }}
                 >
                   <Link
                     to={`/marketplace/brand/${brand.slug}`}
-                    className="block rounded-2xl bg-stone-900 overflow-hidden"
+                    className="block rounded-2xl overflow-hidden"
                   >
-                    <div className="h-20 flex items-center justify-center">
-                      <span
-                        className={cn(
-                          "text-xl text-white",
-                          brand.id === "standard-beauty" ? "font-light text-lg" :
-                          brand.id === "esse" ? "italic font-thin text-2xl tracking-widest" :
-                          brand.id === "lelive" ? "font-light text-xl tracking-widest" :
-                          "font-black text-xl tracking-widest"
-                        )}
-                      >
-                        {brand.logoText}
-                      </span>
-                    </div>
-                    <div className="px-3 pb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-stone-400 text-[10px]">
+                    {brand.coverImage ? (
+                      <div className="h-20 lg:h-40 relative">
+                        <img src={brand.coverImage} alt={brand.name} className="h-full w-full object-cover" loading="lazy" />
+                      </div>
+                    ) : (
+                      <div className="h-20 lg:h-40 bg-stone-900 flex items-center justify-center">
+                        <span
+                          className={cn(
+                            "text-xl lg:text-3xl text-white",
+                            brand.id === "standard-beauty" ? "font-light text-lg lg:text-2xl" :
+                            brand.id === "esse" ? "italic font-thin text-2xl lg:text-4xl tracking-widest" :
+                            brand.id === "lelive" ? "font-light text-xl lg:text-3xl tracking-widest" :
+                            "font-black text-xl lg:text-3xl tracking-widest"
+                          )}
+                        >
+                          {brand.logoText}
+                        </span>
+                      </div>
+                    )}
+                    <div className="px-3 py-2.5 bg-stone-900 flex items-center justify-between">
+                      <div className="flex items-center gap-1 text-stone-400 text-[10px] lg:text-xs">
                         <MapPin className="h-3 w-3" />
                         {brand.origin}
                       </div>
@@ -322,82 +273,44 @@ export default function MarketplaceLanding() {
         </section>
 
         {/* ── SkinLabs picks ── */}
-        <section id="skinlabs-picks" className="max-w-lg mx-auto px-4 pb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-[18px] text-stone-900 tracking-tight">SkinLabs picks</h2>
-            <button className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors">
+        <section id="skinlabs-picks" className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-8 lg:pb-14">
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="font-bold text-[18px] lg:text-[26px] text-stone-900 tracking-tight">SkinLabs® picks</h2>
+            <Link
+              to="/marketplace/categories"
+              className="text-[12px] text-stone-500 font-medium flex items-center gap-1 hover:text-stone-700 transition-colors"
+            >
               View all <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Link>
           </div>
 
-          <motion.div
-            className="grid grid-cols-2 gap-3"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-40px" }}
-            variants={stagger}
-          >
-            {skinLabsPicks.map((product) => (
-              <motion.div key={product.id} variants={fadeUp}>
-                <Link to={`/marketplace/product/${product.slug}`} className="block">
-                  <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200">
-                    {/* Product image area */}
-                    <div className="relative bg-stone-50 h-40 flex items-center justify-center">
-                      {product.badge && (
-                        <span
-                          className={cn(
-                            "absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            badgeColors[product.badge]
-                          )}
-                        >
-                          {product.badge}
-                        </span>
-                      )}
-                      <button
-                        onClick={(e) => { e.preventDefault(); toggleSaved(product.id); }}
-                        className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white shadow-sm flex items-center justify-center hover:scale-110 transition-transform"
-                      >
-                        <Heart
-                          className={cn(
-                            "h-3.5 w-3.5 transition-colors",
-                            savedProducts.has(product.id) ? "fill-red-400 text-red-400" : "text-stone-400"
-                          )}
-                        />
-                      </button>
-                      {/* Product visual placeholder */}
-                      <div className="flex flex-col items-center gap-1 opacity-40">
-                        <div className="w-8 h-16 bg-stone-300 rounded-xl" />
-                        <div className="w-12 h-2 bg-stone-200 rounded" />
-                      </div>
-                    </div>
-
-                    {/* Product info */}
-                    <div className="p-3">
-                      <div className="flex items-center gap-1 mb-1">
-                        <StarRating rating={product.rating} />
-                        <span className="text-[10px] text-stone-500">({product.reviewCount})</span>
-                      </div>
-                      <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wide truncate">{product.brand}</p>
-                      <p className="font-semibold text-[12px] text-stone-900 leading-snug mt-0.5 line-clamp-2">{product.name}</p>
-                      <p className="text-[10px] text-stone-500 mt-1 truncate">{product.benefits.join(" • ")}</p>
-                      <p className="font-bold text-[14px] text-stone-900 mt-2">R {product.price}</p>
-                      <button
-                        onClick={(e) => e.preventDefault()}
-                        className="mt-2 w-full flex items-center justify-center gap-1.5 bg-stone-900 text-white rounded-xl py-2 text-[11px] font-semibold hover:bg-stone-800 transition-colors"
-                      >
-                        <ShoppingBag className="h-3 w-3" />
-                        Add to bag
-                      </button>
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+          {picksLoading ? (
+            <p className="text-sm text-stone-400">Loading…</p>
+          ) : picks.length === 0 ? (
+            <p className="text-sm text-stone-400">Products coming soon.</p>
+          ) : (
+            <motion.div
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5"
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-40px" }}
+              variants={stagger}
+            >
+              {picks.map((product) => (
+                <motion.div key={product.id} variants={fadeUp}>
+                  <MarketplaceProductCard
+                    product={product}
+                    saved={savedProducts.has(product.id)}
+                    onToggleSave={() => toggleSaved(product.id)}
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+          )}
         </section>
 
         {/* ── AI Routine builder promo ── */}
-        <section className="max-w-lg mx-auto px-4 pb-8">
+        <section className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-8 lg:pb-14">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -446,8 +359,8 @@ export default function MarketplaceLanding() {
         </section>
 
         {/* ── Trust badges ── */}
-        <section className="max-w-lg mx-auto px-4 pb-24">
-          <div className="grid grid-cols-4 gap-3">
+        <section className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-24 lg:pb-28">
+          <div className="grid grid-cols-4 gap-3 lg:gap-6">
             {[
               { icon: <Shield className="h-4 w-4" />, label: "Curated by SkinLabs®" },
               { icon: <Leaf className="h-4 w-4" />, label: "South African skin & climate" },
@@ -464,30 +377,7 @@ export default function MarketplaceLanding() {
           </div>
         </section>
 
-        {/* ── Mobile bottom nav ── */}
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-100">
-          <div className="max-w-lg mx-auto flex items-center justify-around h-16">
-            {[
-              { icon: <Home className="h-5 w-5" />, label: "Home", href: "/marketplace", active: true },
-              { icon: <Tag className="h-5 w-5" />, label: "Brands", href: "/marketplace/brands" },
-              { icon: <Menu className="h-5 w-5" />, label: "Categories", href: "/marketplace/categories" },
-              { icon: <Bookmark className="h-5 w-5" />, label: "Saved", href: "/marketplace/saved" },
-              { icon: <User className="h-5 w-5" />, label: "Account", href: "/dashboard" },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-1 px-3 py-1 transition-colors",
-                  item.active ? "text-stone-900" : "text-stone-400 hover:text-stone-600"
-                )}
-              >
-                {item.icon}
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </Link>
-            ))}
-          </div>
-        </nav>
+        <MobileBottomNav />
       </div>
     </>
   );

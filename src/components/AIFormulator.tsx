@@ -51,6 +51,7 @@ import PriorityList from "@/components/ai-formulator/PriorityList";
 import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
+import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
 import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { MST_SCALE } from "@/data/mstScale";
@@ -1222,6 +1223,8 @@ const AIFormulator = () => {
                       </div>
                     )}
                   </div>
+
+                  {starterResult && <OpenHausShopLinks routine={starterResult.groundedRoutine} />}
 
                   {starterResult && (
                     <RefinementPanel

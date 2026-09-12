@@ -13,7 +13,8 @@ import AdSlot from "@/components/AdSlot";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import skinlabsPromiseBadge from "@/assets/skinlabs-promise-badge.png";
+import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
+import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
 import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
@@ -69,6 +70,22 @@ const ProductReview = () => {
   const [posting, setPosting] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fullReview, setFullReview] = useState<string | null>(null);
+  const [marketplaceMatch, setMarketplaceMatch] = useState<MarketplaceMatch | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (!review) {
+      setMarketplaceMatch(null);
+      return;
+    }
+    void (async () => {
+      const match = await findMarketplaceMatch(review.brand, review.product_name);
+      if (active) setMarketplaceMatch(match);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [review]);
 
   useEffect(() => {
     let active = true;
@@ -298,23 +315,7 @@ const ProductReview = () => {
             </button>
           </div>
 
-          <div className="mt-6 flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
-            <img
-              src={skinlabsPromiseBadge}
-              alt="SkinLabs Promise — No Hype. Just Evidence."
-              className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
-              loading="lazy"
-              width={80}
-              height={80}
-            />
-            <div>
-              <p className="text-sm font-semibold text-foreground">The SkinLabs Promise</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                No hype, just evidence — this review is independently researched from publicly available
-                information, ingredient analysis and editorial testing.
-              </p>
-            </div>
-          </div>
+          <SkinLabsPromiseBadge className="mt-6" />
 
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
@@ -340,6 +341,21 @@ const ProductReview = () => {
               ))}
             </div>
           </div>
+
+          {marketplaceMatch && (
+            <Link
+              to={`/marketplace/product/${marketplaceMatch.slug}`}
+              className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm hover:border-primary"
+            >
+              <span className="flex items-center gap-2 font-medium text-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                  Sponsored
+                </span>
+                Also available on OpenHaus
+              </span>
+              <span className="text-xs text-muted-foreground">Shop now →</span>
+            </Link>
+          )}
 
           <RoutineBuilder anchor={review} isVip={isVip} />
 

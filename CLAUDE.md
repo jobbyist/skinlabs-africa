@@ -138,6 +138,61 @@ feature appear operational.
   `src/pages/AdminDashboard.tsx`. Seed ETL: `scripts/seed-skincare-
   intelligence.ts` (imports real data from `src/data/reviews.ts` only —
   never fabricates).
+- **OpenHaus marketplace** (`/marketplace/*`, `src/pages/marketplace/`) —
+  SkinLabs' in-app skincare marketplace, deliberately its own schema
+  (`marketplace_brands`/`marketplace_products`/`marketplace_product_images`/
+  `marketplace_product_ratings` [external]/`marketplace_product_user_ratings`
+  [internal]/`marketplace_cart_items`/`marketplace_fx_rates`/
+  `marketplace_skinlabs_picks`/`marketplace_price_sync_log`, migration
+  `20260912000000_openhaus_marketplace_core.sql`) rather than folded into
+  the editorial skincare-intelligence tables above, cross-linked only in
+  two narrow places: `src/lib/marketplaceCrossLink.ts` (SKYNN AI grounded
+  recommendations → "Shop on OpenHaus") and a "Sponsored"-badged link on
+  `ProductReview.tsx`. Live-seeded with 84 real products (Lelive 21/Esse
+  17/SKOON 26/Standard Beauty 20) transcribed from a Faithful to Nature
+  wholesale catalog into `src/data/marketplace/ftn-catalog.ts`, with
+  rewritten (non-copy-pasted) descriptions/tags in `src/data/marketplace/
+  tags/*.ts` and Firecrawl-sourced, URL-verified image sets in
+  `src/data/marketplace/tags/images-*.ts` — `scripts/seed-openhaus-
+  marketplace.ts` joins these into `supabase/migrations/
+  20260912010000_openhaus_marketplace_seed.sql` (idempotent upserts,
+  applied and verified live: 84 products / 220 images / 4 brands via
+  direct REST check). Pricing is `computeMarkedUpPrice()` (`src/lib/
+  marketplace/pricing.ts`, also duplicated into the edge function below
+  with a "keep in sync" comment since edge functions can't cleanly share
+  a module with the Vite app): source ZAR price × 1.04, charm-rounded up
+  to end in `.99`. Product images reference the verified FTN CDN URLs
+  directly rather than being re-hosted into the (provisioned but not yet
+  used) `openhaus-product-images` storage bucket — a deliberate
+  simplification since this environment has no service-role key to
+  upload with; fast-follow if re-hosting is ever needed. Ratings are
+  dual and never blended: `marketplace_product_ratings` is
+  externally-sourced (currently empty — the FTN wholesale catalog PDF
+  had no ratings data, confirmed by re-rendering its pages, so nothing
+  was fabricated there) shown with a source-crediting tooltip, separate
+  from `marketplace_product_user_ratings` (SkinLabs' own signed-in-user
+  1-5 star ratings, aggregated by the `marketplace_product_internal_
+  rating_summary` view). Cart is `CartContext.tsx` (localStorage for
+  guests, synced to `marketplace_cart_items` on sign-in) and currency
+  display is `CurrencyContext.tsx` reading `marketplace_fx_rates`; both
+  are display/local-storage layers only — ZAR stays canonical. Three
+  edge functions keep the catalogue live: `openhaus-fx-sync` (Frankfurter.
+  app rates, every 6h), `openhaus-picks-rotation` (weekly "SkinLabs
+  Picks" diversity-favouring rotation, Mondays 00:00 SAST), and
+  `openhaus-price-sync` (re-parses each product's FTN page JSON-LD for
+  price drift, daily) — all three deployed and pg_cron-scheduled, but
+  **the `MARKETPLACE_CRON_SECRET` project secret these cron jobs
+  authenticate with has not been set** (no tool in this environment can
+  set a Supabase project secret) — until a human runs `supabase secrets
+  set MARKETPLACE_CRON_SECRET=<value>` (the value used in the cron job
+  definitions) matching what's embedded in the `openhaus_fx_sync_cron`/
+  `openhaus_picks_rotation_cron`/`openhaus_price_sync_cron` pg_cron jobs,
+  scheduled runs will 401; an admin JWT still works as a manual-trigger
+  fallback. `openhaus-price-sync` is also untested against a real FTN
+  product page in production — FTN sits behind a Cloudflare bot
+  challenge that blocks this sandbox's outbound fetches (confirmed
+  browser-UA curl requests succeed, bare/HEAD requests don't), so whether
+  Supabase's edge runtime gets a cleaner path is unverified.
 
 ## Infrastructure notes
 
