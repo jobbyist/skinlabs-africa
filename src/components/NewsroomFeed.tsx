@@ -122,8 +122,9 @@ const NewsroomFeed = ({
   }, [fetchedArticles, query, searchable, paginate, sort]);
 
   const handleLike = (article: NewsArticleSummary) => {
+    const wasLiked = likedIds.includes(article.id);
     setLikedIds(toggleLikedBriefing(article.id));
-    toast.success(likedIds.includes(article.id) ? "Like removed" : "Briefing liked");
+    toast.success(wasLiked ? "Like removed" : "Briefing liked");
   };
 
   const clearFilters = () => {
