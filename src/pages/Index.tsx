@@ -5,11 +5,12 @@ import SeasonalsTeaser from "@/components/SeasonalsTeaser";
 import Editorials from "@/components/Editorials";
 import SpotlightTeaser from "@/components/SpotlightTeaser";
 import AIFormulator from "@/components/AIFormulator";
-import Features from "@/components/Features";
+import BrandAmbassadorTeaser from "@/components/BrandAmbassadorTeaser";
 import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import AffiliateBanner from "@/components/AffiliateBanner";
+import FaithfulToNature from "@/components/FaithfulToNature";
 import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
 import { pageSeo, SITE_URL, BRAND } from "@/lib/seo-config";
@@ -71,29 +72,53 @@ const Index = () => {
         <Header />
         <main>
           <Hero />
-          <NewsroomFeed limit={3} showExploreLink />
+
+          {/* Faithful to Nature affiliate banner directly below hero */}
           <div className="container mx-auto px-4 py-8">
-            <AdSlot placement="home-mid-1" compact />
+            <FaithfulToNature placement="home-below-hero" />
+          </div>
+
+          <NewsroomFeed limit={3} showExploreLink />
+          <div className="container mx-auto px-4 py-6">
+            <AdSlot placement="home-after-newsroom" compact />
           </div>
           <SectionDivider />
+
           <SeasonalsTeaser />
+          <div className="container mx-auto px-4 py-6">
+            <AdSlot placement="home-after-seasonals" compact />
+          </div>
           <SectionDivider />
+
           <Editorials />
+          <div className="container mx-auto px-4 py-6">
+            <AdSlot placement="home-after-editorials" compact />
+          </div>
           <SectionDivider />
+
           <SpotlightTeaser />
           <div className="container mx-auto px-4 py-8">
             <AffiliateBanner placement="home-mid-2" />
           </div>
           <SectionDivider />
+
           <AIFormulator />
+          <div className="container mx-auto px-4 py-6">
+            <AdSlot placement="home-after-aiformulator" compact />
+          </div>
           <SectionDivider />
-          <PodcastSection />
+
+          {/* Show 3 published podcast episodes */}
+          <PodcastSection limit={3} />
           <div className="container mx-auto px-4 py-8">
             <AdSlot placement="home-after-podcast" />
           </div>
           <SectionDivider />
-          <Features />
+
+          {/* Brand Ambassador Programme 2026 announcement (replaces The Short Version / Features) */}
+          <BrandAmbassadorTeaser />
           <SectionDivider />
+
           <Newsletter />
         </main>
         <Footer />
