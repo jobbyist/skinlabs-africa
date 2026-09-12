@@ -1,62 +1,64 @@
-# Unsplash API Integration
+# Cover Image Integration (Pexels + Unsplash)
 
-Automated image fetching from Unsplash for all content deployments with proper photographer attribution.
+Automated image fetching for briefings, articles and social previews with proper photographer attribution.
+
+**Default provider: Pexels** (via `VITE_PEXELS_API_KEY`).  
+**Fallback: Unsplash** (via `VITE_UNSPLASH_ACCESS_KEY`).
 
 ## Configuration
 
-### Environment Variables
-
-Add to your Vercel project environment variables:
+### Environment Variables (Vercel)
 
 ```
-VITE_UNSPLASH_ACCESS_KEY=your_access_key_here
+VITE_PEXELS_API_KEY=your_pexels_key_here
+VITE_UNSPLASH_ACCESS_KEY=your_unsplash_key_here
 ```
 
-Get your Unsplash Access Key:
-1. Visit https://unsplash.com/oauth/applications
-2. Create a new application
-3. Copy the Access Key
-4. Add to Vercel: Project Settings → Environment Variables
+- Pexels free tier: 200 requests / hour, 20 000 / month.  
+- The client caches results in-memory to stay well under the limits.
+
+Get keys:
+- Pexels: https://www.pexels.com/api/
+- Unsplash: https://unsplash.com/oauth/applications
 
 ### Local Development
 
-Copy `.env.example` to `.env` and add your key:
-
 ```bash
 cp .env.example .env
-# Edit .env and add VITE_UNSPLASH_ACCESS_KEY
+# Edit .env and add the two keys
 ```
 
 ## Usage
 
-### In Components (React Hook)
+### In Components (preferred)
 
 ```typescript
-import { useUnsplashImage } from "@/hooks/use-unsplash-image";
+import { useCoverImage } from "@/hooks/use-unsplash-image"; // alias kept for compatibility
 
-const { image, loading } = useUnsplashImage(
+const { image, loading } = useCoverImage(
   "skincare moisturizer",
-  "fallback-url.jpg"
+  "/fallback.jpg"
 );
+// image.creditName / image.creditUrl contain the attribution
 ```
 
 ### Direct API Usage
 
 ```typescript
-import { fetchUnsplashImage } from "@/lib/unsplash";
+import { fetchCoverImage } from "@/lib/pexels";
 
-const image = await fetchUnsplashImage("sunscreen product", "fallback.jpg");
-console.log(image.alt); // Includes photographer attribution
+const image = await fetchCoverImage("sunscreen product", "fallback.jpg");
+// Tries Pexels first, then Unsplash, then the fallback URL.
 ```
 
 ## Features
 
-- **Automatic caching**: Reduces API calls by caching results in memory
-- **UTM tracking**: Adds proper attribution parameters to all URLs
-- **Photographer credits**: Automatically includes photographer name in alt text
-- **Fallback support**: Uses provided fallback URLs if API is unavailable
-- **Type-safe**: Full TypeScript support with proper types
+- **Pexels first** – preferred source for new and hydrated briefings.
+- **Unsplash fallback** – used automatically when Pexels key is missing or the request fails.
+- **Aggressive caching** – reduces API calls and respects rate limits.
+- **Photographer credits** – "Photo by … on Pexels/Unsplash" with a link to the photo page.
+- **Type-safe** – full TypeScript support.
 
-## Content Deployment
+## Existing briefings
 
-All future content (briefings, articles, etc.) will automatically use Unsplash API for cover images when the environment variable is configured. If not configured, falls back to hardcoded URLs.
+Hard-coded Unsplash URLs in the data files continue to work. New or re-hydrated content that goes through `useCoverImage` / `fetchCoverImage` will prefer Pexels.
