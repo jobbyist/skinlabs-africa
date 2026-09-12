@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useEngagementStore } from "@/stores/engagementStore";
-import { useNewsArticles, type NewsArticleSummary } from "@/hooks/use-news-articles";
+import { useNewsArticles, useSaContextTags, type NewsArticleSummary } from "@/hooks/use-news-articles";
 import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -57,20 +57,23 @@ const NewsroomFeed = ({
   const { user } = useAuth();
   const [page, setPage] = usePageParam("page");
   const [searchParams, setSearchParams] = useSearchParams();
-  const { articles: fetchedArticles, loading, totalCount } = useNewsArticles(
-    paginate ? { page, pageSize: NEWSROOM_PAGE_SIZE } : limit,
-  );
-  const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
-  const HeadingTag = paginate ? "h1" : "h2";
-  const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
-  const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
-  const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [sort, setSort] = useState<SortOption>(() => {
     const s = searchParams.get("sort");
     return s === "oldest" || s === "popular" || s === "reading" ? s : "newest";
   });
   const [regionFilter, setRegionFilter] = useState(() => searchParams.get("region") ?? "all");
+  const { tags: allRegionTags } = useSaContextTags();
+  const { articles: fetchedArticles, loading, totalCount } = useNewsArticles(
+    paginate
+      ? { page, pageSize: NEWSROOM_PAGE_SIZE, region: regionFilter !== "all" ? regionFilter : null }
+      : limit,
+  );
+  const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
+  const HeadingTag = paginate ? "h1" : "h2";
+  const { likedIds, savedIds, toggleLike, toggleSave } = useEngagementStore();
+  const [remoteLiked, setRemoteLiked] = useState<string[]>([]);
+  const [remoteSaved, setRemoteSaved] = useState<string[]>([]);
 
   useEffect(() => {
     if (!paginate) return;
@@ -83,15 +86,11 @@ const NewsroomFeed = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, sort, regionFilter, paginate]);
 
-  const regions = useMemo(() => {
-    const tags = new Set<string>();
-    fetchedArticles.forEach((a) => { if (a.sa_context_tag) tags.add(a.sa_context_tag); });
-    return Array.from(tags).sort();
-  }, [fetchedArticles]);
+  // Global SA context tags from the full published catalogue (not just this page).
+  const regions = allRegionTags;
 
   const articles = useMemo(() => {
     let list = [...fetchedArticles];
-    if (regionFilter !== "all") list = list.filter((a) => a.sa_context_tag === regionFilter);
     if ((searchable || paginate) && query.trim()) {
       list = list
         .map((article) => ({
@@ -120,7 +119,7 @@ const NewsroomFeed = ({
         list.sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
     }
     return list;
-  }, [fetchedArticles, query, searchable, paginate, sort, regionFilter]);
+  }, [fetchedArticles, query, searchable, paginate, sort]);
 
   useEffect(() => {
     let active = true;
@@ -155,7 +154,12 @@ const NewsroomFeed = ({
     }
   };
 
-  const clearFilters = () => { setQuery(""); setSort("newest"); setRegionFilter("all"); };
+  const clearFilters = () => {
+    setQuery("");
+    setSort("newest");
+    setRegionFilter("all");
+    if (paginate) setPage(1);
+  };
   const hasActiveFilters = query.trim() !== "" || sort !== "newest" || regionFilter !== "all";
   const showToolbar = searchable || paginate;
 
@@ -211,7 +215,10 @@ const NewsroomFeed = ({
                   <select
                     id="briefing-region"
                     value={regionFilter}
-                    onChange={(e) => setRegionFilter(e.target.value)}
+                    onChange={(e) => {
+                      setRegionFilter(e.target.value);
+                      if (paginate) setPage(1);
+                    }}
                     className="h-10 max-w-[200px] appearance-none rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground"
                     aria-label="Filter by SA context"
                   >
