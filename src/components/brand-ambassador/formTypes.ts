@@ -53,12 +53,6 @@ export interface AmbassadorFormData {
   agreeReviewTerms: boolean;
 }
 
-/** Non-serializable file state, kept separate from the persisted draft. */
-export interface AmbassadorFormFiles {
-  tiktokAnalyticsFile: File | null;
-  igAnalyticsFile: File | null;
-}
-
 export const initialAmbassadorForm: AmbassadorFormData = {
   fullName: "",
   email: "",
@@ -106,11 +100,6 @@ export const initialAmbassadorForm: AmbassadorFormData = {
   agreeReviewTerms: false,
 };
 
-export const initialAmbassadorFiles: AmbassadorFormFiles = {
-  tiktokAnalyticsFile: null,
-  igAnalyticsFile: null,
-};
-
 export const TOTAL_STEPS = 8;
 
 export const STEP_META: { title: string; description: string }[] = [
@@ -131,11 +120,7 @@ export type FormErrors = Partial<Record<keyof AmbassadorFormData, string>> & {
 
 const isBlank = (v: string) => v.trim().length === 0;
 
-export function validateStep(
-  step: number,
-  form: AmbassadorFormData,
-  files: AmbassadorFormFiles,
-): FormErrors {
+export function validateStep(step: number, form: AmbassadorFormData): FormErrors {
   const errors: FormErrors = {};
 
   if (step === 1) {
@@ -165,10 +150,8 @@ export function validateStep(
   }
 
   if (step === 4) {
-    const hasTiktokEvidence = Boolean(files.tiktokAnalyticsFile) || !isBlank(form.tiktokAnalyticsUrl);
-    const hasIgEvidence = Boolean(files.igAnalyticsFile) || !isBlank(form.igAnalyticsUrl);
-    if (!hasTiktokEvidence) errors.tiktokAnalytics = "Upload a TikTok analytics screenshot or provide a verification link.";
-    if (!hasIgEvidence) errors.igAnalytics = "Upload an Instagram analytics screenshot or provide a verification link.";
+    if (isBlank(form.tiktokAnalyticsUrl)) errors.tiktokAnalytics = "Please provide a TikTok analytics verification link.";
+    if (isBlank(form.igAnalyticsUrl)) errors.igAnalytics = "Please provide an Instagram analytics verification link.";
     if (!form.analyticsConfirmed) errors.analyticsConfirmed = "Please confirm your analytics evidence is accurate and current.";
   }
 

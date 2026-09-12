@@ -28,12 +28,10 @@ import {
   AMBASSADOR_DRAFT_STORAGE_KEY,
   STEP_META,
   TOTAL_STEPS,
-  initialAmbassadorFiles,
   initialAmbassadorForm,
   isFormDirty,
   validateStep,
   type AmbassadorFormData,
-  type AmbassadorFormFiles,
   type FormErrors,
 } from "./brand-ambassador/formTypes";
 import { BA_APPLICATIONS_CLOSE, getApplicationWindowStatus } from "@/data/brandAmbassador";
@@ -88,7 +86,7 @@ function loadDraft(): AmbassadorFormData {
   }
 }
 
-const buildFormData = (form: AmbassadorFormData, files: AmbassadorFormFiles) => {
+const buildFormData = (form: AmbassadorFormData) => {
   const fd = new FormData();
   fd.append("_subject", `SkinLabs Brand Ambassador Application — ${form.fullName}`);
 
@@ -97,16 +95,12 @@ const buildFormData = (form: AmbassadorFormData, files: AmbassadorFormFiles) => 
     else fd.append(key, String(value));
   });
 
-  if (files.tiktokAnalyticsFile) fd.append("tiktok_analytics_screenshot", files.tiktokAnalyticsFile);
-  if (files.igAnalyticsFile) fd.append("instagram_analytics_screenshot", files.igAnalyticsFile);
-
   return fd;
 };
 
 const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps) => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<AmbassadorFormData>(loadDraft);
-  const [files, setFiles] = useState<AmbassadorFormFiles>(initialAmbassadorFiles);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -146,14 +140,8 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
     setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
-  const updateFile = <K extends keyof AmbassadorFormFiles>(field: K, file: File | null) => {
-    setFiles((f) => ({ ...f, [field]: file }));
-    const key = field === "tiktokAnalyticsFile" ? "tiktokAnalytics" : "igAnalytics";
-    setErrors((e) => ({ ...e, [key]: undefined }));
-  };
-
   const goNext = () => {
-    const stepErrors = validateStep(step, form, files);
+    const stepErrors = validateStep(step, form);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       requestAnimationFrame(() => errorSummaryRef.current?.focus());
@@ -167,7 +155,6 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
 
   const resetForNewApplication = () => {
     setForm(initialAmbassadorForm);
-    setFiles(initialAmbassadorFiles);
     setErrors({});
     setStep(1);
     setSubmitted(false);
@@ -182,7 +169,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
   const handleSubmit = async () => {
     if (submittingRef.current) return;
     if (!applicationsOpen) return;
-    const stepErrors = validateStep(8, form, files);
+    const stepErrors = validateStep(8, form);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
       requestAnimationFrame(() => errorSummaryRef.current?.focus());
@@ -194,7 +181,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
     try {
       const res = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
-        body: buildFormData(form, files),
+        body: buildFormData(form),
         headers: { Accept: "application/json" },
       });
       if (!res.ok) throw new Error("Formspree request failed");
@@ -304,9 +291,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
                     {step === 1 && <Step1AboutYou form={form} errors={errors} onChange={updateField} />}
                     {step === 2 && <Step2TikTok form={form} errors={errors} onChange={updateField} />}
                     {step === 3 && <Step3Instagram form={form} errors={errors} onChange={updateField} />}
-                    {step === 4 && (
-                      <Step4Analytics form={form} files={files} errors={errors} onChange={updateField} onFileChange={updateFile} />
-                    )}
+                    {step === 4 && <Step4Analytics form={form} errors={errors} onChange={updateField} />}
                     {step === 5 && <Step5Content form={form} errors={errors} onChange={updateField} />}
                     {step === 6 && <Step6Partnership form={form} errors={errors} onChange={updateField} />}
                     {step === 7 && <Step7Availability form={form} errors={errors} onChange={updateField} />}

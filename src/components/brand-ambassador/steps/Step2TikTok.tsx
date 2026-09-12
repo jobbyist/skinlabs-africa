@@ -52,7 +52,7 @@ const Step2TikTok = ({ form, errors, onChange }: StepProps) => {
           <SelectTrigger id="ba-tt-followers" aria-invalid={Boolean(errors.tiktokFollowerRange)}>
             <SelectValue placeholder="Select a range" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[110]">
             {FOLLOWER_RANGE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
@@ -95,7 +95,7 @@ const Step2TikTok = ({ form, errors, onChange }: StepProps) => {
           <SelectTrigger id="ba-tt-engagement" aria-invalid={Boolean(errors.tiktokEngagement)}>
             <SelectValue placeholder="Select an engagement level" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[110]">
             {ENGAGEMENT_LEVEL_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}

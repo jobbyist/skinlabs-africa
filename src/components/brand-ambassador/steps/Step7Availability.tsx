@@ -38,7 +38,7 @@ const Step7Availability = ({ form, errors, onChange }: StepProps) => {
           <SelectTrigger id="ba-frequency" aria-invalid={Boolean(errors.contentFrequency)}>
             <SelectValue placeholder="Select a frequency" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[110]">
             {CONTENT_FREQUENCY_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}

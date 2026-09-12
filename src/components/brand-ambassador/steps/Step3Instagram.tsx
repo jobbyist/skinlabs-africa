@@ -51,7 +51,7 @@ const Step3Instagram = ({ form, errors, onChange }: StepProps) => {
           <SelectTrigger id="ba-ig-followers" aria-invalid={Boolean(errors.igFollowerRange)}>
             <SelectValue placeholder="Select a range" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[110]">
             {FOLLOWER_RANGE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}
@@ -91,7 +91,7 @@ const Step3Instagram = ({ form, errors, onChange }: StepProps) => {
           <SelectTrigger id="ba-ig-engagement" aria-invalid={Boolean(errors.igEngagement)}>
             <SelectValue placeholder="Select an engagement level" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="z-[110]">
             {ENGAGEMENT_LEVEL_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}

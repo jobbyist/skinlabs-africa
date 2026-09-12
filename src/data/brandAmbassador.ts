@@ -88,7 +88,7 @@ export const brandAmbassadorFaqs: BAFaqItem[] = [
   },
   {
     q: "Why do you need audience analytics?",
-    a: "We verify audience analytics for both platforms — things like follower count, audience location, age range, reach/views and engagement — so we can confirm authentic, relevant South African audiences. This can be a screenshot from your creator/analytics dashboard, or a link where that's easier. We never ask for your password or account credentials.",
+    a: "We verify audience analytics for both platforms — things like follower count, audience location, age range, reach/views and engagement — so we can confirm authentic, relevant South African audiences. Share a link for each platform: your platform's own shareable analytics link if it has one, or a screenshot uploaded somewhere with link-sharing turned on (Google Drive, Dropbox, Imgur, etc.). We never ask for your password or account credentials.",
   },
   {
     q: "How does the 20% commission work?",
