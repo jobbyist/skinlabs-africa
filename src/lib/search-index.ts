@@ -33,6 +33,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "The Openhaus Shop", description: "SkinLabs' curated shop", href: "/shop", keywords: "openhaus shop store" },
   { title: "For Business", description: "SkinLabs for salons, clinics and retailers", href: "/business" },
   { title: "Partner Program", description: "Affiliate, editorial and strategic commerce partnerships with SkinLabs", href: "/partners", keywords: "partners partnerships affiliate editorial strategic commerce book a call" },
+  { title: "Brand Ambassador Programme", description: "Apply to become a SkinLabs TikTok or Instagram Brand Ambassador", href: "/brand-ambassadors", keywords: "brand ambassador creator programme tiktok instagram affiliate commission apply" },
   { title: "About Us", description: "SkinLabs' story, science and sustainability", href: "/about", keywords: "our science sustainability" },
   { title: "Knowledge Hub", description: "Evidence-backed skincare answers, searchable by ingredient, concern or routine", href: "/knowledge-hub", keywords: "faq frequently asked questions shipping returns track order help" },
   { title: "Contact", description: "Get in touch with SkinLabs", href: "/contact" },

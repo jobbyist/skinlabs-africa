@@ -26,6 +26,7 @@ import {
   UserPlus,
   ChevronDown,
   ChevronRight,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -81,6 +82,7 @@ const resourceLinks: NavItem[] = [
   { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Knowledge Hub", href: "/knowledge-hub", icon: BookOpenCheck },
   { label: "Methodologies", href: "/spotlight/methodology", icon: Compass },
+  { label: "Brand Ambassadors", href: "/brand-ambassadors", icon: Video },
 ];
 
 const NavBadge = ({ badge }: { badge: NonNullable<NavItem["badge"]> }) => (

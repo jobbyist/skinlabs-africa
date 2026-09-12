@@ -22,6 +22,7 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Business = lazy(() => import("./pages/Business"));
 const Partners = lazy(() => import("./pages/Partners"));
+const BrandAmbassadors = lazy(() => import("./pages/BrandAmbassadors"));
 const KnowledgeHub = lazy(() => import("./pages/KnowledgeHub"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
@@ -77,6 +78,8 @@ const AppContent = () => (
         <Route path="/contact" element={<Contact />} />
         <Route path="/business" element={<Business />} />
         <Route path="/partners" element={<Partners />} />
+        <Route path="/brand-ambassadors" element={<BrandAmbassadors />} />
+        <Route path="/brand-ambassadors/apply" element={<BrandAmbassadors />} />
         <Route path="/our-science" element={<Navigate to="/about#science" replace />} />
         <Route path="/sustainability" element={<Navigate to="/about#sustainability" replace />} />
         <Route path="/knowledge-hub" element={<KnowledgeHub />} />
