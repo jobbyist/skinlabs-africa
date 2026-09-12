@@ -105,25 +105,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = useCallback(
     async (productId: string, quantity = 1) => {
+      let newQty = 0;
       setItems((prev) => {
         const existing = prev.find((i) => i.productId === productId);
+        newQty = (existing?.quantity ?? 0) + quantity;
         const next = existing
-          ? prev.map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + quantity } : i))
+          ? prev.map((i) => (i.productId === productId ? { ...i, quantity: newQty } : i))
           : [...prev, { productId, quantity }];
         if (!user) writeLocalCart(next);
         return next;
       });
       if (user) {
-        const existingQty = items.find((i) => i.productId === productId)?.quantity ?? 0;
         await supabase
           .from("marketplace_cart_items")
           .upsert(
-            { user_id: user.id, product_id: productId, quantity: existingQty + quantity },
+            { user_id: user.id, product_id: productId, quantity: newQty },
             { onConflict: "user_id,product_id" },
           );
       }
     },
-    [user, items],
+    [user],
   );
 
   const removeItem = useCallback(
