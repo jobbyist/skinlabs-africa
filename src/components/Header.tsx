@@ -274,7 +274,7 @@ const Header = () => {
               <Search className="h-4 w-4" />
             </Button>
 
-            {/* SKYNN AI — animated multicolour gradient border, white bg, black text + Sparkles */
+            {/* SKYNN AI — animated multicolour gradient border, white bg, black text + Sparkles */}
             <Link
               to="/skynn-ai"
               className={cn(
