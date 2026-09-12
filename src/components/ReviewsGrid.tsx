@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, Fragment } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
+import AdSlot from "@/components/AdSlot";
+import AffiliateBanner from "@/components/AffiliateBanner";
+import FaithfulToNature from "@/components/FaithfulToNature";
 
 const PAGE_SIZE = 6;
 
@@ -60,11 +62,8 @@ const ReviewsGrid = ({
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   const filtered = useMemo(() => {
-    // .filter() always returns a fresh array — important since sortBy below sorts in
-    // place, and productReviews is a shared module-level array read elsewhere in the app.
     let base = productReviews.filter((r) => category === "All" || r.category === category);
-    
-    // Apply price range filter
+
     if (priceRange !== "all") {
       base = base.filter((r) => {
         const price = r.local_price_zar;
@@ -74,13 +73,11 @@ const ReviewsGrid = ({
         return true;
       });
     }
-    
-    // Apply skin type filter
+
     if (skinType !== "all") {
       base = base.filter((r) => r.skin_type_match.includes(skinType));
     }
 
-    // Apply sorting
     if (sortBy === "newest") {
       base = base.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
     } else if (sortBy === "rating") {
@@ -91,8 +88,6 @@ const ReviewsGrid = ({
       base = base.sort((a, b) => b.local_price_zar - a.local_price_zar);
     }
 
-    // Natural-language search — "contains hyaluronic acid", "best for hyperpigmentation" —
-    // resolves via the ingredient/concern-aware relevance engine, overriding manual sort.
     if (query.trim()) {
       base = base
         .map((review) => ({ review, match: scoreProductReview(query, review) }))
@@ -117,8 +112,6 @@ const ReviewsGrid = ({
     return map;
   }, [filtered, query]);
 
-  const paginatedReviews = filtered;
-
   const totalPages = paginate && !limit ? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)) : 1;
   const page = Math.min(currentPage, totalPages);
   const pageItems =
@@ -128,6 +121,129 @@ const ReviewsGrid = ({
     if (p <= 1) navigate("/reviews");
     else navigate(`/reviews/page/${p}`);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Insert an ad row after every 3 cards (one FaithfulToNature or AffiliateBanner + 2 AdSlots across the feed)
+  const renderWithAds = () => {
+    const nodes: React.ReactNode[] = [];
+    pageItems.forEach((review, index) => {
+      const productImage = getReviewImage(review.id, review.category, review.brand);
+      nodes.push(
+        <motion.div
+          key={review.id}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
+          whileHover={{ y: -4 }}
+          className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
+        >
+          {productImage && (
+            <figure className="relative">
+              <img
+                src={productImage.url}
+                alt={`${review.category} product photography — ${productImage.alt}`}
+                loading="lazy"
+                className="h-40 w-full object-cover"
+              />
+              {productImage.creditUrl !== "#" && (
+                <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
+                  Photo:{" "}
+                  <a
+                    href={productImage.creditUrl}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="underline underline-offset-2"
+                  >
+                    {productImage.creditName}
+                  </a>{" "}
+                  / Unsplash
+                </figcaption>
+              )}
+            </figure>
+          )}
+
+          <div className="flex flex-1 flex-col p-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand}</p>
+                <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
+                  {review.product_name}
+                </h3>
+              </div>
+              <div className="flex shrink-0 flex-col items-center rounded-2xl bg-primary px-3 py-2 text-primary-foreground">
+                <span className="font-heading text-lg font-extrabold leading-none">{overallScore(review)}</span>
+                <span className="text-[10px] uppercase tracking-wide opacity-80">score</span>
+              </div>
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+                <MapPin className="h-3 w-3" /> {review.where_to_buy}
+              </span>
+              {review.isNew && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
+                  <Star className="h-3 w-3" /> New
+                </span>
+              )}
+            </div>
+
+            <div className="mb-5 space-y-2.5">
+              <ScoreBar label="Efficacy" value={review.score_efficacy} />
+              <ScoreBar label="Value for money" value={review.score_value} />
+              <ScoreBar label="Texture" value={review.score_texture} />
+              <ScoreBar label="SA climate fit" value={review.score_climate} />
+            </div>
+
+            <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
+
+            {query.trim() && (matchReasons.get(review.id)?.length ?? 0) > 0 && (
+              <div className="mb-5 flex flex-wrap gap-1.5">
+                {matchReasons.get(review.id)!.map((reason) => (
+                  <span
+                    key={reason}
+                    className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-auto flex items-center justify-between">
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
+              </Button>
+              <button
+                onClick={() => toggleLike(review.id)}
+                aria-label="Like review"
+                className="rounded-full p-2 hover:bg-accent"
+              >
+                <Heart className={cn("h-4 w-4", likedIds.includes(review.id) && "fill-primary text-primary")} />
+              </button>
+            </div>
+          </div>
+        </motion.div>,
+      );
+
+      // After every 3rd card, insert a full-width ad row
+      if ((index + 1) % 3 === 0 && index < pageItems.length - 1) {
+        const adIndex = Math.floor(index / 3);
+        nodes.push(
+          <div key={`ad-row-${adIndex}`} className="col-span-full space-y-4 py-4">
+            {adIndex % 2 === 0 ? (
+              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact />
+            ) : (
+              <AffiliateBanner placement={`reviews-grid-${adIndex}`} compact />
+            )}
+            <AdSlot placement={`reviews-grid-slot-a-${adIndex}`} compact />
+            <AdSlot placement={`reviews-grid-slot-b-${adIndex}`} compact />
+          </div>,
+        );
+      }
+    });
+    return nodes;
   };
 
   return (
@@ -157,64 +273,64 @@ const ReviewsGrid = ({
         )}
 
         {!limit && (
-          <>
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Sort By</label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="rating">Highest Rated</SelectItem>
-                    <SelectItem value="price-low">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Price Range</label>
-                <Select value={priceRange} onValueChange={setPriceRange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All prices" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="under-200">Under R200</SelectItem>
-                    <SelectItem value="200-500">R200 - R500</SelectItem>
-                    <SelectItem value="over-500">Over R500</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">Skin Type</label>
-                <Select value={skinType} onValueChange={setSkinType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All skin types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Skin Types</SelectItem>
-                    <SelectItem value="Oily">Oily</SelectItem>
-                    <SelectItem value="Dry">Dry</SelectItem>
-                    <SelectItem value="Combination">Combination</SelectItem>
-                    <SelectItem value="Sensitive">Sensitive</SelectItem>
-                    <SelectItem value="Normal">Normal</SelectItem>
-                    <SelectItem value="Mature">Mature</SelectItem>
-                    <SelectItem value="Acne-prone">Acne-prone</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-end">
-                <p className="text-sm text-muted-foreground">Showing {paginatedReviews.length} of {filtered.length} reviews</p>
-              </div>
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Sort By</label>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="rating">Highest Rated</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Price Range</label>
+              <Select value={priceRange} onValueChange={setPriceRange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All prices" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Prices</SelectItem>
+                  <SelectItem value="under-200">Under R200</SelectItem>
+                  <SelectItem value="200-500">R200 - R500</SelectItem>
+                  <SelectItem value="over-500">Over R500</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Skin Type</label>
+              <Select value={skinType} onValueChange={setSkinType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All skin types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Skin Types</SelectItem>
+                  <SelectItem value="Oily">Oily</SelectItem>
+                  <SelectItem value="Dry">Dry</SelectItem>
+                  <SelectItem value="Combination">Combination</SelectItem>
+                  <SelectItem value="Sensitive">Sensitive</SelectItem>
+                  <SelectItem value="Normal">Normal</SelectItem>
+                  <SelectItem value="Mature">Mature</SelectItem>
+                  <SelectItem value="Acne-prone">Acne-prone</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <p className="text-sm text-muted-foreground">
+                Showing {pageItems.length} of {filtered.length} reviews
+              </p>
+            </div>
+          </div>
         )}
-        
+
         {!limit && (
           <div className="mb-8 flex flex-wrap gap-2">
             {["All", ...reviewCategories].map((item) => (
@@ -237,109 +353,7 @@ const ReviewsGrid = ({
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {pageItems.map((review, index) => {
-            const productImage = getReviewImage(review.id, review.category, review.brand);
-            return (
-            <motion.div
-              key={review.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
-              whileHover={{ y: -4 }}
-              className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card"
-            >
-              {productImage && (
-                <figure className="relative">
-                  <img
-                    src={productImage.url}
-                    alt={`${review.category} product photography — ${productImage.alt}`}
-                    loading="lazy"
-                    className="h-40 w-full object-cover"
-                  />
-                  {productImage.creditUrl !== "#" && (
-                    <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                      Photo:{" "}
-                      <a
-                        href={productImage.creditUrl}
-                        target="_blank"
-                        rel="noopener noreferrer nofollow"
-                        className="underline underline-offset-2"
-                      >
-                        {productImage.creditName}
-                      </a>{" "}
-                      / Unsplash
-                    </figcaption>
-                  )}
-                </figure>
-              )}
-
-              <div className="flex flex-1 flex-col p-6">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand}</p>
-                  <h3 className="font-heading text-lg font-bold leading-snug text-foreground">
-                    {review.product_name}
-                  </h3>
-                </div>
-                <div className="flex shrink-0 flex-col items-center rounded-2xl bg-primary px-3 py-2 text-primary-foreground">
-                  <span className="font-heading text-lg font-extrabold leading-none">{overallScore(review)}</span>
-                  <span className="text-[10px] uppercase tracking-wide opacity-80">score</span>
-                </div>
-              </div>
-
-              <div className="mb-4 flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-                  <MapPin className="h-3 w-3" /> {review.where_to_buy}
-                </span>
-                {review.isNew && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
-                    <Star className="h-3 w-3" /> New
-                  </span>
-                )}
-              </div>
-
-              <div className="mb-5 space-y-2.5">
-                <ScoreBar label="Efficacy" value={review.score_efficacy} />
-                <ScoreBar label="Value for money" value={review.score_value} />
-                <ScoreBar label="Texture" value={review.score_texture} />
-                <ScoreBar label="SA climate fit" value={review.score_climate} />
-              </div>
-
-              <p className="mb-3 text-sm leading-relaxed text-muted-foreground">{review.verdict}</p>
-
-              {query.trim() && (matchReasons.get(review.id)?.length ?? 0) > 0 && (
-                <div className="mb-5 flex flex-wrap gap-1.5">
-                  {matchReasons.get(review.id)!.map((reason) => (
-                    <span
-                      key={reason}
-                      className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary"
-                    >
-                      {reason}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-auto flex items-center justify-between">
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
-                </Button>
-                <button
-                  onClick={() => toggleLike(review.id)}
-                  aria-label="Like review"
-                  className="rounded-full p-2 hover:bg-accent"
-                >
-                  <Heart className={cn("h-4 w-4", likedIds.includes(review.id) && "fill-primary text-primary")} />
-                </button>
-              </div>
-              </div>
-            </motion.div>
-            );
-          })}
-        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{renderWithAds()}</div>
 
         {pageItems.length === 0 && (
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
