@@ -109,12 +109,22 @@ for (const product of ftnCatalog) {
   if (!imageEntry || imageEntry.imageUrls.length === 0) missingImages += 1;
 
   const markedUp = computeMarkedUpPrice(product.originalPriceZar);
+  
+  // Validate brand slug to prevent SQL injection
+  const validBrandSlug = ['lelive', 'esse', 'skoon', 'standard-beauty'].includes(product.brand) 
+    ? product.brand 
+    : null;
+  
+  if (!validBrandSlug) {
+    console.error(`Invalid brand slug: ${product.brand} for product: ${product.name}`);
+    continue;
+  }
 
   sql += `insert into public.marketplace_products (
   brand_id, slug, name, description, original_price_zar, marked_up_price_zar,
   source_url, category, concern, values, skin_tone_claims, size, how_to_use, key_actives, in_stock
 ) values (
-  (select id from public.marketplace_brands where slug = ${sqlString(product.brand)}),
+  (select id from public.marketplace_brands where slug = ${sqlString(validBrandSlug)}),
   ${sqlString(tag.slug)}, ${sqlString(product.name)}, ${sqlString(tag.description)},
   ${product.originalPriceZar}, ${markedUp},
   ${sqlString(product.sourceUrl)}, ${sqlString(tag.category)}, ${sqlArray(tag.concern)}, ${sqlArray(tag.values)},
