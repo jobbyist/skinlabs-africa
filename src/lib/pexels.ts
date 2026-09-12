@@ -7,7 +7,8 @@
  * We cache aggressively in-memory to stay well under these limits.
  */
 
-import { fetchUnsplashImage, type ImageData } from "./unsplash";
+import { fetchUnsplashImage } from "./unsplash";
+import type { ImageData } from "./unsplash";
 
 export type { ImageData };
 
@@ -32,7 +33,6 @@ const addTrackingParams = (imageUrl: string): string => {
   if (!imageUrl) return imageUrl;
   try {
     const parsed = new URL(imageUrl);
-    // Pexels does not require UTM in the same way; keep clean
     return parsed.toString();
   } catch {
     return imageUrl;
@@ -53,10 +53,9 @@ export const fetchPexelsImage = async (
     return cache.get(normalized)!;
   }
 
-  const apiKey = import.meta.env.VITE_PEXELS_API_KEY;
+  const apiKey = import.meta.env.VITE_PEXELS_API_KEY as string | undefined;
 
   if (!apiKey) {
-    // No key – let caller fall through to Unsplash
     return null;
   }
 
@@ -77,14 +76,16 @@ export const fetchPexelsImage = async (
       return null;
     }
 
-    const json: PexelsSearchResult = await res.json();
+    const json = (await res.json()) as PexelsSearchResult;
     const first = json.photos?.[0];
     if (!first) {
       return null;
     }
 
     const imageData: ImageData = {
-      url: addTrackingParams(first.src?.large || first.src?.original || first.src?.medium || defaultUrl || ""),
+      url: addTrackingParams(
+        first.src?.large || first.src?.original || first.src?.medium || defaultUrl || ""
+      ),
       alt: `${first.alt || searchQuery} - Photo by ${first.photographer || "Photographer"} on Pexels`,
       creditName: first.photographer || "Pexels Contributor",
       creditUrl: first.photographer_url || first.url || "https://www.pexels.com",
@@ -109,6 +110,5 @@ export const fetchCoverImage = async (
   const fromPexels = await fetchPexelsImage(searchQuery, defaultUrl);
   if (fromPexels) return fromPexels;
 
-  // Fallback to existing Unsplash integration
   return fetchUnsplashImage(searchQuery, defaultUrl);
 };
