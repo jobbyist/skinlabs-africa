@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -23,11 +22,14 @@ import {
   brandAmbassadorFaqs,
   getApplicationWindowStatus,
 } from "@/data/brandAmbassador";
-import { SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
-import { fetchUnsplashImage } from "@/lib/unsplash";
+import { SITE_URL } from "@/lib/seo-config";
 
 const APPLY_PATH = "/brand-ambassadors/apply";
 const LANDING_PATH = "/brand-ambassadors";
+
+// Static Open Graph / social preview image for the Brand Ambassadors programme
+// (custom landscape design derived from the programme cover artwork).
+const BA_OG_IMAGE = `${SITE_URL}/og-brand-ambassadors.jpg`;
 
 const BrandAmbassadors = () => {
   const location = useLocation();
@@ -36,21 +38,6 @@ const BrandAmbassadors = () => {
   // Computed once per page load — a static campaign page doesn't need a
   // live midnight tick, and the modal re-checks this independently anyway.
   const applicationStatus = getApplicationWindowStatus();
-
-  // Social preview image: a real, relevant photo via Unsplash rather than
-  // reusing the sitewide default. Falls back to it if Unsplash is
-  // unavailable — prerender.ts waits after page load, so the resolved
-  // image still lands in the static og:image tag crawlers read.
-  const [ogImage, setOgImage] = useState<string>(DEFAULT_OG);
-  useEffect(() => {
-    let active = true;
-    fetchUnsplashImage("social media content creator smartphone filming", DEFAULT_OG).then((img) => {
-      if (active && img) setOgImage(img.url);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const openModal = () => {
     if (applicationStatus !== "open") return;
@@ -99,7 +86,7 @@ const BrandAmbassadors = () => {
         title="SkinLabs® Brand Ambassador Programme | TikTok & Instagram Creators South Africa"
         description={`Join the founding SkinLabs® Brand Ambassador Programme: ${BA_SPOTS} spots for South African TikTok and Instagram creators (5K–50K followers, each platform assessed separately), ${BA_COMMISSION_PERCENT} recurring commission and a potential 12-month partnership. Applications close ${BA_APPLICATIONS_CLOSE}.`}
         canonical={`${SITE_URL}${LANDING_PATH}`}
-        ogImage={ogImage}
+        ogImage={BA_OG_IMAGE}
         jsonLd={jsonLd}
       />
 
