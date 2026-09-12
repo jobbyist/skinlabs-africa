@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/button";
+import ApplyCTAButton from "./ApplyCTAButton";
+import type { ApplicationWindowStatus } from "@/data/brandAmbassador";
 
 interface BASubNavProps {
   onApply: () => void;
+  status: ApplicationWindowStatus;
 }
 
 const links = [
@@ -12,7 +14,7 @@ const links = [
   { href: "#faq", label: "FAQ" },
 ];
 
-const BASubNav = ({ onApply }: BASubNavProps) => {
+const BASubNav = ({ onApply, status }: BASubNavProps) => {
   return (
     <div className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur md:top-20">
       <div className="container mx-auto flex max-w-6xl items-center justify-between gap-4 px-4">
@@ -27,9 +29,7 @@ const BASubNav = ({ onApply }: BASubNavProps) => {
             </a>
           ))}
         </nav>
-        <Button size="sm" onClick={onApply} className="shrink-0">
-          Apply Now
-        </Button>
+        <ApplyCTAButton status={status} onApply={onApply} size="sm" className="shrink-0" />
       </div>
     </div>
   );

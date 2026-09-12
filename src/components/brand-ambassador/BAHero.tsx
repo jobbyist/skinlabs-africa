@@ -1,14 +1,17 @@
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ApplyCTAButton from "./ApplyCTAButton";
 import {
   BA_APPLICATIONS_CLOSE,
   BA_APPLICATIONS_OPEN,
   BA_COMMISSION_PERCENT,
   BA_SPOTS,
+  type ApplicationWindowStatus,
 } from "@/data/brandAmbassador";
 
 interface BAHeroProps {
   onApply: () => void;
+  status: ApplicationWindowStatus;
 }
 
 const Metric = ({ value, label }: { value: string; label: string }) => (
@@ -18,7 +21,7 @@ const Metric = ({ value, label }: { value: string; label: string }) => (
   </div>
 );
 
-const BAHero = ({ onApply }: BAHeroProps) => {
+const BAHero = ({ onApply, status }: BAHeroProps) => {
   return (
     <section className="relative overflow-hidden border-b border-border bg-background pt-28 pb-16 sm:pt-32 sm:pb-20">
       <div
@@ -53,9 +56,7 @@ const BAHero = ({ onApply }: BAHeroProps) => {
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
-          <Button size="lg" onClick={onApply} className="gap-2">
-            Apply Now
-          </Button>
+          <ApplyCTAButton status={status} onApply={onApply} size="lg" className="gap-2" />
           <Button size="lg" variant="outline" asChild>
             <a href="#how-it-works">See How It Works</a>
           </Button>

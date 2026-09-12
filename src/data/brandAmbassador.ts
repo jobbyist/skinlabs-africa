@@ -18,6 +18,26 @@ export const BA_PROGRAMME_START = "1 October 2026";
 export const BA_PROGRAMME_END = "31 December 2026";
 export const BA_PROGRAMME_LENGTH = "3 months";
 
+/**
+ * Machine-checkable boundaries for the dates above, in South African
+ * Standard Time (UTC+2, no DST) so "closes 25 September" means the whole
+ * of that day for South African applicants regardless of a visitor's or
+ * server's own timezone. Keep these in sync with BA_APPLICATIONS_OPEN/
+ * BA_APPLICATIONS_CLOSE above if the campaign dates ever change.
+ */
+export const BA_APPLICATIONS_OPEN_AT = "2026-09-01T00:00:00+02:00";
+export const BA_APPLICATIONS_CLOSE_AT = "2026-09-25T23:59:59+02:00";
+
+export type ApplicationWindowStatus = "before" | "open" | "after";
+
+/** Whether the advertised application window is open right now. */
+export function getApplicationWindowStatus(now: Date = new Date()): ApplicationWindowStatus {
+  const t = now.getTime();
+  if (t < new Date(BA_APPLICATIONS_OPEN_AT).getTime()) return "before";
+  if (t > new Date(BA_APPLICATIONS_CLOSE_AT).getTime()) return "after";
+  return "open";
+}
+
 export const BA_NON_GUARANTEE_NOTE =
   "Subject to official programme terms and conditions. Selection, referrals, commission, retainers, products, giveaways and any future 12-month partnership are never guaranteed.";
 

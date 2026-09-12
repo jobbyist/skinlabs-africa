@@ -20,6 +20,7 @@ import {
   BA_COMMISSION_PERCENT,
   BA_SPOTS,
   brandAmbassadorFaqs,
+  getApplicationWindowStatus,
 } from "@/data/brandAmbassador";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -30,8 +31,12 @@ const BrandAmbassadors = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const modalOpen = location.pathname === APPLY_PATH;
+  // Computed once per page load — a static campaign page doesn't need a
+  // live midnight tick, and the modal re-checks this independently anyway.
+  const applicationStatus = getApplicationWindowStatus();
 
   const openModal = () => {
+    if (applicationStatus !== "open") return;
     if (location.pathname !== APPLY_PATH) navigate(APPLY_PATH);
   };
 
@@ -82,21 +87,21 @@ const BrandAmbassadors = () => {
 
       <div className="min-h-screen bg-background pb-20 sm:pb-0">
         <Header />
-        <BASubNav onApply={openModal} />
+        <BASubNav onApply={openModal} status={applicationStatus} />
         <main>
-          <BAHero onApply={openModal} />
+          <BAHero onApply={openModal} status={applicationStatus} />
           <BAProgrammeOverview />
           <BAWhoWereLookingFor />
-          <BAHowItWorks onApply={openModal} />
+          <BAHowItWorks onApply={openModal} status={applicationStatus} />
           <BACommission />
           <BATimeline />
           <BAPerformanceOpportunity />
           <BAWhySkinLabs />
           <BAFAQ />
-          <BAFinalCTA onApply={openModal} />
+          <BAFinalCTA onApply={openModal} status={applicationStatus} />
         </main>
         <Footer />
-        <BAStickyApplyCTA onApply={openModal} />
+        <BAStickyApplyCTA onApply={openModal} status={applicationStatus} />
       </div>
 
       <BrandAmbassadorModal open={modalOpen} onOpenChange={(next) => { if (!next) closeModal(); }} />

@@ -1,16 +1,18 @@
-import { Button } from "@/components/ui/button";
+import ApplyCTAButton from "./ApplyCTAButton";
 import {
   BA_APPLICATIONS_CLOSE,
   BA_APPLICATIONS_OPEN,
   BA_COMMISSION_PERCENT,
   BA_SPOTS,
+  type ApplicationWindowStatus,
 } from "@/data/brandAmbassador";
 
 interface BAFinalCTAProps {
   onApply: () => void;
+  status: ApplicationWindowStatus;
 }
 
-const BAFinalCTA = ({ onApply }: BAFinalCTAProps) => {
+const BAFinalCTA = ({ onApply, status }: BAFinalCTAProps) => {
   return (
     <section className="border-t border-border bg-black py-14 text-background">
       <div className="container mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:flex-row sm:items-center sm:justify-between">
@@ -27,9 +29,13 @@ const BAFinalCTA = ({ onApply }: BAFinalCTAProps) => {
           </p>
         </div>
         <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
-          <Button size="lg" variant="secondary" onClick={onApply} className="bg-background text-foreground hover:bg-background/90">
-            Apply Now
-          </Button>
+          <ApplyCTAButton
+            status={status}
+            onApply={onApply}
+            size="lg"
+            variant="secondary"
+            className="bg-background text-foreground hover:bg-background/90"
+          />
           <a href="#programme" className="text-xs text-background/60 underline underline-offset-2 hover:text-background">
             View programme details →
           </a>

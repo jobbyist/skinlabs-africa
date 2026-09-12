@@ -12,11 +12,20 @@ const tabs = [
   { label: "Profile", href: "/dashboard", icon: User, match: (p: string) => p.startsWith("/dashboard") },
 ];
 
+/**
+ * Routes that render their own primary bottom bar (Openhaus marketplace's
+ * sticky nav/cart bar, the Brand Ambassador page's sticky Apply CTA). This
+ * floating nav must never stack on top of those — hide it there instead of
+ * trying to keep two bottom bars' offsets in sync.
+ */
+const hasOwnBottomBar = (pathname: string) =>
+  pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors");
+
 const FloatingBottomNav = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading || !user) return null;
+  if (loading || !user || hasOwnBottomBar(location.pathname)) return null;
 
   return (
     <nav

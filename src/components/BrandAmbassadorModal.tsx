@@ -23,6 +23,7 @@ import Step6Partnership from "./brand-ambassador/steps/Step6Partnership";
 import Step7Availability from "./brand-ambassador/steps/Step7Availability";
 import Step8Agreement from "./brand-ambassador/steps/Step8Agreement";
 import SuccessScreen from "./brand-ambassador/SuccessScreen";
+import ApplicationWindowClosed from "./brand-ambassador/ApplicationWindowClosed";
 import {
   AMBASSADOR_DRAFT_STORAGE_KEY,
   STEP_META,
@@ -35,7 +36,7 @@ import {
   type AmbassadorFormFiles,
   type FormErrors,
 } from "./brand-ambassador/formTypes";
-import { BA_APPLICATIONS_CLOSE } from "@/data/brandAmbassador";
+import { BA_APPLICATIONS_CLOSE, getApplicationWindowStatus } from "@/data/brandAmbassador";
 
 const FORMSPREE_ENDPOINT =
   (import.meta.env.VITE_FORMSPREE_BRAND_AMBASSADOR_ENDPOINT as string | undefined)?.trim() ||
@@ -117,6 +118,13 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
   const scrollRef = useRef<HTMLDivElement>(null);
   const submittingRef = useRef(false);
 
+  // Authoritative check, independent of the landing page's own CTA state —
+  // this is what actually blocks the form outside the advertised window,
+  // whether the modal was reached via a disabled CTA (it isn't, it's
+  // disabled) or a direct link to /brand-ambassadors/apply.
+  const applicationStatus = getApplicationWindowStatus();
+  const applicationsOpen = applicationStatus === "open";
+
   // Persist a text-only draft so an accidental close (or reload) doesn't lose progress.
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -173,6 +181,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
+    if (!applicationsOpen) return;
     const stepErrors = validateStep(8, form, files);
     if (Object.keys(stepErrors).length > 0) {
       setErrors(stepErrors);
@@ -204,7 +213,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
   };
 
   const requestClose = () => {
-    if (submitted || !isFormDirty(form)) {
+    if (submitted || !applicationsOpen || !isFormDirty(form)) {
       onOpenChange(false);
       return;
     }
@@ -260,7 +269,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              {!submitted && (
+              {!submitted && applicationsOpen && (
                 <div className="mt-3">
                   <FormProgress step={step} />
                 </div>
@@ -271,6 +280,8 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
             <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {submitted ? (
                 <SuccessScreen onClose={handleSuccessClose} />
+              ) : applicationStatus !== "open" ? (
+                <ApplicationWindowClosed status={applicationStatus} onClose={() => onOpenChange(false)} />
               ) : (
                 <div>
                   <h3 ref={headingRef} tabIndex={-1} className="font-heading text-lg font-bold text-foreground outline-none">
@@ -320,7 +331,7 @@ const BrandAmbassadorModal = ({ open, onOpenChange }: BrandAmbassadorModalProps)
             </div>
 
             {/* Fixed footer controls */}
-            {!submitted && (
+            {!submitted && applicationsOpen && (
               <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:rounded-b-2xl sm:px-6">
                 <Button type="button" variant="outline" onClick={goBack} disabled={step === 1 || submitting}>
                   <ChevronLeft className="h-4 w-4" /> Back
