@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -17,6 +15,7 @@ import { newsroomComments } from "@/data/articleComments";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
+import BriefingBody from "@/components/briefings/BriefingBody";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -33,31 +32,6 @@ interface Comment {
   author_name: string;
   body: string;
   created_at: string;
-}
-
-/** Split markdown on <!-- ad:mid-N --> and render AdSlots between segments. */
-function BriefingBody({ body }: { body: string }) {
-  const parts = body.split(/<!--\s*ad:mid-\d+\s*-->/i);
-  return (
-    <div className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-h2:mt-10 prose-h2:mb-4 prose-h2:text-2xl prose-h2:font-bold prose-h3:mt-8 prose-h3:mb-3 prose-h3:text-xl prose-h3:font-semibold prose-p:my-4 prose-p:text-base prose-p:leading-relaxed prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground prose-a:text-primary prose-table:text-sm">
-      {parts.map((segment, i) => (
-        <div key={i}>
-          {segment.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{segment}</ReactMarkdown>
-          ) : null}
-          {i < parts.length - 1 && (
-            <div className="not-prose my-8">
-              {i % 2 === 0 ? (
-                <AdSlot placement={`briefing-mid-${i + 1}`} />
-              ) : (
-                <AdSlotAutorelaxed placement={`briefing-mid-${i + 1}`} />
-              )}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
 }
 
 const NewsroomArticle = () => {
@@ -266,7 +240,7 @@ const NewsroomArticle = () => {
 
             {article.key_takeaways.length > 0 && (
               <div className="mt-8 rounded-3xl border border-border bg-card p-6">
-                <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Key takeaways</h2>
+                <h2 className="mb-3 font-heading text-2xl font-bold tracking-tight text-foreground">Key takeaways</h2>
                 <ul className="space-y-2">
                   {article.key_takeaways.map((t) => (
                     <li key={t} className="flex gap-2 text-sm text-muted-foreground">
@@ -334,7 +308,7 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-border pt-6">
+            <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
               </Button>
@@ -342,10 +316,22 @@ const NewsroomArticle = () => {
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
               {article.source_url && (
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={article.source_url} target="_blank" rel="noreferrer noopener">
-                    Read the original on {article.source_name}
-                    <ExternalLink className="ml-2 h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="max-w-full min-w-0 h-auto whitespace-normal py-2"
+                >
+                  <a
+                    href={article.source_url}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex max-w-full min-w-0 items-start gap-2 text-left"
+                  >
+                    <span className="min-w-0 flex-1 break-words">
+                      Read the original on {article.source_name}
+                    </span>
+                    <ExternalLink className="mt-0.5 h-4 w-4 shrink-0" />
                   </a>
                 </Button>
               )}
