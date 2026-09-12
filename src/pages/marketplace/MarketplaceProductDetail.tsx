@@ -94,12 +94,12 @@ export default function MarketplaceProductDetail() {
           availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
           url: `https://skinlabs.co.za${canonical}`,
         },
-        ...(product.externalRating?.rating
+        ...(product.externalRating?.rating && product.externalRating?.reviewCount > 0
           ? {
               aggregateRating: {
                 "@type": "AggregateRating",
                 ratingValue: product.externalRating.rating,
-                reviewCount: Math.max(1, product.externalRating.reviewCount ?? 1),
+                reviewCount: product.externalRating.reviewCount,
                 bestRating: 5,
               },
             }
