@@ -124,7 +124,8 @@ Deno.serve(async (req) => {
           });
         } else {
           const newMarkedUp = computeMarkedUpPrice(sourcePrice);
-          await admin
+          const newMarkedUp = computeMarkedUpPrice(sourcePrice);
+          const { error: updateError } = await admin
             .from("marketplace_products")
             .update({
               original_price_zar: sourcePrice,
@@ -132,14 +133,25 @@ Deno.serve(async (req) => {
               source_last_synced_at: new Date().toISOString(),
             })
             .eq("id", product.id);
-          ok += 1;
-          logRows.push({
-            product_id: product.id,
-            old_price: Number(product.marked_up_price_zar),
-            new_price: newMarkedUp,
-            status: "ok",
-            error: null,
-          });
+          if (updateError) {
+            failed += 1;
+            logRows.push({
+              product_id: product.id,
+              old_price: Number(product.marked_up_price_zar),
+              new_price: null,
+              status: "error",
+              error: `DB update failed: ${updateError.message}`,
+            });
+          } else {
+            ok += 1;
+            logRows.push({
+              product_id: product.id,
+              old_price: Number(product.marked_up_price_zar),
+              new_price: newMarkedUp,
+              status: "ok",
+              error: null,
+            });
+          }
         }
       } catch (err) {
         failed += 1;
