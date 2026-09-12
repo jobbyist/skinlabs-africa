@@ -32,10 +32,24 @@ const REQUEST_DELAY_MS = 700;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function extractPriceFromJsonLd(html: string): number | null {
-  const scripts = [...html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-  for (const match of scripts) {
+  const scriptStart = '<script type="application/ld+json">';
+  const scriptEnd = '</script>';
+  let startIndex = 0;
+  
+  while (true) {
+    const start = html.indexOf(scriptStart, startIndex);
+    if (start === -1) break;
+    const contentStart = start + scriptStart.length;
+    const end = html.indexOf(scriptEnd, contentStart);
+    if (end === -1) break;
+    
     try {
-      const parsed = JSON.parse(match[1].trim());
+      const content = html.slice(contentStart, end).trim();
+      if (content.length > 100000) {
+        startIndex = end + scriptEnd.length;
+        continue;
+      }
+      const parsed = JSON.parse(content);
       const candidates = Array.isArray(parsed) ? parsed : [parsed];
       for (const entry of candidates) {
         const nodes = entry?.["@graph"] ? entry["@graph"] : [entry];
@@ -48,8 +62,9 @@ function extractPriceFromJsonLd(html: string): number | null {
         }
       }
     } catch {
-      continue;
+      // Continue to next script tag
     }
+    startIndex = end + scriptEnd.length;
   }
   return null;
 }
