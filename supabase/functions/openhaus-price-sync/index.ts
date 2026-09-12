@@ -126,6 +126,18 @@ Deno.serve(async (req) => {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; SkinLabsOpenHausBot/1.0)" },
         });
         const html = await res.text();
+        if (html.length > 5_000_000) {
+          failed += 1;
+          logRows.push({
+            product_id: product.id,
+            old_price: Number(product.marked_up_price_zar),
+            new_price: null,
+            status: "error",
+            error: "Response too large (>5MB)",
+          });
+          await sleep(REQUEST_DELAY_MS);
+          continue;
+        }
         const sourcePrice = extractPriceFromJsonLd(html);
 
         if (!res.ok || sourcePrice === null) {
