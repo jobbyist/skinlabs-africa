@@ -23,7 +23,18 @@ const searchIndexSource = readFileSync(resolve(repoRoot, "src/lib/search-index.t
 
 /** Routes intentionally left out of search-index.ts: internal/auth-gated pages, the
  *  catch-all, and specific instances already surfaced by a dedicated SiteSearch group. */
-const KNOWN_EXCLUSIONS = new Set(["/admin", "/dashboard", "*", "/seasonals/spring"]);
+const KNOWN_EXCLUSIONS = new Set([
+  "/admin",
+  "/dashboard",
+  "*",
+  "/seasonals/spring",
+  // Same component/content as the already-indexed /brand-ambassadors, just deep-linked
+  // to its apply section.
+  "/brand-ambassadors/apply",
+  // Personal, per-user wishlist (empty for guests, no independent content) — same
+  // treatment as /dashboard.
+  "/marketplace/saved",
+]);
 
 interface RouteEntry {
   path: string;
