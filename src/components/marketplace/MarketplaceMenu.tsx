@@ -1,5 +1,17 @@
 import { Link } from "react-router-dom";
-import { X, Grid3x3, Sparkles, Tag, Heart, Palette, Home as HomeIcon, LayoutDashboard } from "lucide-react";
+import {
+  X,
+  Grid3x3,
+  Sparkles,
+  Tag,
+  Heart,
+  Palette,
+  Home as HomeIcon,
+  LayoutDashboard,
+  ExternalLink,
+  FileText,
+  Truck,
+} from "lucide-react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { categories, concerns, values, skinTones } from "@/data/marketplace/taxonomy";
 import { OpenHausLogo } from "./OpenHausLogo";
@@ -44,9 +56,17 @@ export function MarketplaceMenu({ open, onOpenChange }: { open: boolean; onOpenC
         </div>
 
         <Link
+          to="/"
+          onClick={close}
+          className="mx-3 mt-3 flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-50"
+        >
+          <ExternalLink className="h-4 w-4 text-stone-500" /> Back to SkinLabs homepage
+        </Link>
+
+        <Link
           to="/marketplace"
           onClick={close}
-          className="mx-3 mt-3 flex items-center gap-3 rounded-xl px-2 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-50"
+          className="mx-3 mt-2 flex items-center gap-3 rounded-xl px-2 py-3 text-sm font-semibold text-stone-900 hover:bg-stone-50"
         >
           <HomeIcon className="h-4 w-4 text-stone-500" /> OpenHaus Home
         </Link>
@@ -119,6 +139,32 @@ export function MarketplaceMenu({ open, onOpenChange }: { open: boolean; onOpenC
                 {t.icon} {t.label}
               </Link>
             ))}
+          </div>
+        </Section>
+
+        <Section title="Policies" icon={FileText}>
+          <div className="flex flex-col gap-0.5">
+            <Link
+              to="/marketplace/shipping-returns"
+              onClick={close}
+              className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-sm text-stone-800 hover:bg-stone-50"
+            >
+              <Truck className="h-4 w-4 text-stone-500" /> Shipping & returns
+            </Link>
+            <Link
+              to="/marketplace/terms"
+              onClick={close}
+              className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-sm text-stone-800 hover:bg-stone-50"
+            >
+              <FileText className="h-4 w-4 text-stone-500" /> Marketplace terms
+            </Link>
+            <Link
+              to="/privacy-policy"
+              onClick={close}
+              className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-sm text-stone-800 hover:bg-stone-50"
+            >
+              <FileText className="h-4 w-4 text-stone-500" /> Privacy policy
+            </Link>
           </div>
         </Section>
 
