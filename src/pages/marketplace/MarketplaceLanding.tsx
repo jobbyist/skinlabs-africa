@@ -94,7 +94,7 @@ export default function MarketplaceLanding() {
                 {[
                   { icon: <Shield className="h-4 w-4" />, label: "SkinLabs® Promise on every listing" },
                   { icon: <Leaf className="h-4 w-4" />, label: "Real South African brands" },
-                  { icon: <Users className="h-4 w-4" />, label: "Cruelty-free & vegan filters" },
+                  { icon: <Users className="h-4 w-4" />, label: "Cruelty-free & vegan options, clearly marked" },
                 ].map((t) => (
                   <span key={t.label} className="flex items-center gap-1.5 text-[12px] font-medium">
                     {t.icon} {t.label}
@@ -365,7 +365,7 @@ export default function MarketplaceLanding() {
               { icon: <Shield className="h-4 w-4" />, label: "Curated by SkinLabs®" },
               { icon: <Leaf className="h-4 w-4" />, label: "South African skin & climate" },
               { icon: <Shield className="h-4 w-4" />, label: "Secure checkout" },
-              { icon: <Users className="h-4 w-4" />, label: "Multiple trusted brands" },
+              { icon: <Users className="h-4 w-4" />, label: "Every brand vetted by SkinLabs®" },
             ].map((trust) => (
               <div key={trust.label} className="flex flex-col items-center gap-1.5 text-center">
                 <div className="h-9 w-9 rounded-full bg-stone-100 flex items-center justify-center text-stone-600">
