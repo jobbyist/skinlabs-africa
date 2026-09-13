@@ -24,11 +24,18 @@ export interface PodcastEpisode {
   description: string;
   audioScript: string;
   duration: string;
+  /** Exact audio length in seconds (ffprobe-verified), used for itunes:duration in the RSS feed. */
+  durationSeconds?: number;
   topics: string[];
   publishedAt: string;
   showNotes: string[];
   timestamps: { time: string; seconds: number; label: string }[];
-  transcript: string[];
+  /**
+   * Short, human-edited pull-quotes (not a raw ASR dump — see CLAUDE.md),
+   * each anchored to its approximate position in the audio so the episode
+   * page can highlight/scroll to the current line during playback.
+   */
+  transcript: { text: string; seconds: number }[];
   productsMentioned: { name: string; brand: string }[];
   /** Baseline engagement seeds (deterministic). Live counters build on these for auth users. */
   seedPlays: number;
@@ -68,6 +75,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Beef tallow is blowing up online as a natural skincare miracle. We unpack what it actually is — mainly a strong occlusive moisturiser — who it might genuinely help, why it's a high comedogenic-risk ingredient for oily, combination and acne-prone skin, and why the trend is spreading regardless of the evidence.",
     duration: "5 min",
+    durationSeconds: 293,
     topics: ["Ingredient Science", "Trends"],
     publishedAt: "2026-08-21",
     showNotes: [
@@ -83,11 +91,11 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "04:15", seconds: 255, label: "What actually works instead" },
     ],
     transcript: [
-      "Beef tallow is mainly a strong occlusive moisturiser — it forms a barrier on the skin to stop water evaporating, but it isn't a treatment.",
-      "It's a highly comedogenic ingredient. For oily, combination or acne-prone skin, dermatologists warn it's likely to mean more breakouts and irritation, not less.",
-      "It's also sold with no regulatory oversight as a skincare product, so there's no standard for purity — one dermatologist warned you could be rubbing bacterial contamination onto your face.",
-      "The trend is fuelled by the naturalistic fallacy — the assumption that natural automatically means safe — amplified by social media anecdotes rather than evidence.",
-      "For real barrier repair and anti-ageing benefit, ingredients like hyaluronic acid and retinoids already have the research behind them that tallow doesn't.",
+      { text: "Beef tallow is mainly a strong occlusive moisturiser — it forms a barrier on the skin to stop water evaporating, but it isn't a treatment.", seconds: 63 },
+      { text: "It's a highly comedogenic ingredient. For oily, combination or acne-prone skin, dermatologists warn it's likely to mean more breakouts and irritation, not less.", seconds: 115 },
+      { text: "It's also sold with no regulatory oversight as a skincare product, so there's no standard for purity — one dermatologist warned you could be rubbing bacterial contamination onto your face.", seconds: 115 },
+      { text: "The trend is fuelled by the naturalistic fallacy — the assumption that natural automatically means safe — amplified by social media anecdotes rather than evidence.", seconds: 207 },
+      { text: "For real barrier repair and anti-ageing benefit, ingredients like hyaluronic acid and retinoids already have the research behind them that tallow doesn't.", seconds: 255 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[1].plays,
@@ -106,6 +114,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "The skincare fails hall of fame: Mario Badescu's undisclosed steroid creams, Sunday Riley's fake-review scandal, a Korean sunscreen SPF cover-up, and benzoyl peroxide's benzene risk. Then the user errors — over-exfoliation and clashing actives — and how to read a label, patch test properly, and recover a compromised barrier.",
     duration: "8 min",
+    durationSeconds: 487,
     topics: ["Ingredient Science", "Barrier Repair"],
     publishedAt: "2026-08-28",
     showNotes: [
@@ -125,10 +134,10 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "07:05", seconds: 425, label: "Patch testing, always" },
     ],
     transcript: [
-      "Mario Badescu faced a class-action lawsuit after secretly putting prescription-strength corticosteroids into creams like its healing cream — users reported severe steroid withdrawal and skin thinning.",
-      "Independent testing found some Korean sunscreens labelled SPF50+ were actually closer to SPF19 — manufacturers were reportedly prioritising a lighter feel over accurate protection.",
-      "Recent lab findings show benzoyl peroxide can break down into benzene, a known carcinogen, especially when a product is left somewhere hot like a car or bathroom.",
-      "If your barrier is compromised: stop every active, go back to a gentle cleanser and a bland moisturiser, and patch test anything new for seven to ten days before it touches your face.",
+      { text: "Mario Badescu faced a class-action lawsuit after secretly putting prescription-strength corticosteroids into creams like its healing cream — users reported severe steroid withdrawal and skin thinning.", seconds: 60 },
+      { text: "Independent testing found some Korean sunscreens labelled SPF50+ were actually closer to SPF19 — manufacturers were reportedly prioritising a lighter feel over accurate protection.", seconds: 154 },
+      { text: "Recent lab findings show benzoyl peroxide can break down into benzene, a known carcinogen, especially when a product is left somewhere hot like a car or bathroom.", seconds: 193 },
+      { text: "If your barrier is compromised: stop every active, go back to a gentle cleanser and a bland moisturiser, and patch test anything new for seven to ten days before it touches your face.", seconds: 425 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[2].plays,
@@ -147,6 +156,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Glass skin went from K-beauty trend to a global multi-billion-dollar market. We look at what dermatologists say about the real risk of over-exfoliating to chase that look, and the barrier-first, minimalist counter-trend built on protecting your skin instead of polishing it.",
     duration: "5 min",
+    durationSeconds: 297,
     topics: ["Hydration", "Trends"],
     publishedAt: "2026-09-04",
     showNotes: [
@@ -161,9 +171,9 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "04:15", seconds: 255, label: "Building your own approach" },
     ],
     transcript: [
-      "Glass skin comes from K-beauty and has gone global — searches for it are up more than 250%, with the market chasing that look projected in the tens of billions of dollars.",
-      "Dermatologists point out that a lot of what you see online comes down to genetics, lighting and filters rather than a routine — and chasing it too hard can mean over-exfoliating and damaging your barrier.",
-      "The counter-trend rests on three ideas: protect your skin's barrier first, keep your routine simple instead of stacking ten products, and treat real texture and pores as normal, not flaws to fix.",
+      { text: "Glass skin comes from K-beauty and has gone global — searches for it are up more than 250%, with the market chasing that look projected in the tens of billions of dollars.", seconds: 0 },
+      { text: "Dermatologists point out that a lot of what you see online comes down to genetics, lighting and filters rather than a routine — and chasing it too hard can mean over-exfoliating and damaging your barrier.", seconds: 138 },
+      { text: "The counter-trend rests on three ideas: protect your skin's barrier first, keep your routine simple instead of stacking ten products, and treat real texture and pores as normal, not flaws to fix.", seconds: 191 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[3].plays,
@@ -182,6 +192,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "The rules for layering skincare: thinnest to thickest, lowest pH to highest, water before oil. Real power couples like vitamin C, E and ferulic acid, and retinol's soothing sidekicks. The dangerous duos to keep apart, like retinol with AHAs or BHAs. And the damage-control routine if your barrier is compromised.",
     duration: "7 min",
+    durationSeconds: 438,
     topics: ["Retinoids 101", "Ingredient Science"],
     publishedAt: "2026-09-11",
     showNotes: [
@@ -198,10 +209,10 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "06:26", seconds: 386, label: "Three rules to remember" },
     ],
     transcript: [
-      "Layer thinnest to thickest and lowest pH to highest — a low-pH vitamin C applied after a higher-pH niacinamide can end up cancelling the vitamin C out.",
-      "Vitamin C, vitamin E and ferulic acid are a real trio: ferulic acid helps stabilise vitamin C, and together they can boost its defence against environmental damage.",
-      "Retinol paired with an AHA or BHA acid on the same night is one of the fastest ways to over-exfoliate and damage your barrier — alternate them on different nights instead.",
-      "If your barrier is compromised, stop every active — no retinol, no acids, no vitamin C — and rebuild with a gentle cleanser, a bland moisturiser and SPF. It can take weeks to fully recover.",
+      { text: "Layer thinnest to thickest and lowest pH to highest — a low-pH vitamin C applied after a higher-pH niacinamide can end up cancelling the vitamin C out.", seconds: 58 },
+      { text: "Vitamin C, vitamin E and ferulic acid are a real trio: ferulic acid helps stabilise vitamin C, and together they can boost its defence against environmental damage.", seconds: 155 },
+      { text: "Retinol paired with an AHA or BHA acid on the same night is one of the fastest ways to over-exfoliate and damage your barrier — alternate them on different nights instead.", seconds: 246 },
+      { text: "If your barrier is compromised, stop every active — no retinol, no acids, no vitamin C — and rebuild with a gentle cleanser, a bland moisturiser and SPF. It can take weeks to fully recover.", seconds: 327 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[4].plays,
@@ -220,6 +231,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Sun protection is the bedrock topic of this deep dive: the physics of UVA versus UVB, why chemical sunscreen needs reapplying, and why melanin-rich skin still needs daily SPF. It connects into hyperpigmentation and the retinoid rabbit hole, and closes on why a routine has to be built for the climate you actually live in.",
     duration: "18 min",
+    durationSeconds: 1109,
     topics: ["Sun Protection", "Ingredient Science"],
     publishedAt: "2026-09-18",
     showNotes: [
@@ -237,10 +249,10 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "17:24", seconds: 1044, label: "Building a routine for your actual climate" },
     ],
     transcript: [
-      "\"I don't burn\" isn't the same as \"I'm protected\" — melanin defends against UVB, the rays that cause visible sunburn, but UVA penetrates straight to the dermis without any warning sign.",
-      "UVA rays generate free radicals that activate enzymes called matrix metalloproteinases, which break down collagen and elastin — that's the slow, invisible ageing UVA causes regardless of skin tone.",
-      "Chemical sunscreens absorb UV energy and convert it to heat, but that process uses the molecules up — after about two hours of sun exposure, the \"sponge\" is full and needs reapplying.",
-      "Unprotected UV exposure keeps triggering melanocytes to produce pigment, which is why treating a dark mark without daily sunscreen means fighting a losing battle.",
+      { text: "\"I don't burn\" isn't the same as \"I'm protected\" — melanin defends against UVB, the rays that cause visible sunburn, but UVA penetrates straight to the dermis without any warning sign.", seconds: 298 },
+      { text: "UVA rays generate free radicals that activate enzymes called matrix metalloproteinases, which break down collagen and elastin — that's the slow, invisible ageing UVA causes regardless of skin tone.", seconds: 405 },
+      { text: "Chemical sunscreens absorb UV energy and convert it to heat, but that process uses the molecules up — after about two hours of sun exposure, the \"sponge\" is full and needs reapplying.", seconds: 492 },
+      { text: "Unprotected UV exposure keeps triggering melanocytes to produce pigment, which is why treating a dark mark without daily sunscreen means fighting a losing battle.", seconds: 626 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[5].plays,
@@ -259,6 +271,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Hyperpigmentation is a long game: the real difference between post-inflammatory marks and melasma, why stacking every active you own backfires, how niacinamide blocks pigment transfer rather than bleaching it away, debunking the \"purging\" myth, and why daily sunscreen is the one non-negotiable for fading a dark mark at all.",
     duration: "23 min",
+    durationSeconds: 1399,
     topics: ["Hyperpigmentation", "Ingredient Science"],
     publishedAt: "2026-09-25",
     showNotes: [
@@ -277,11 +290,11 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "17:48", seconds: 1069, label: "Building routines around local climate" },
     ],
     transcript: [
-      "Post-inflammatory hyperpigmentation is the ghost of a localized skin trauma, while melasma is often driven by hormonal shifts — treating them the same way can make melasma worse.",
-      "A post-acne mark takes roughly 28 to 45 days to fade because that's how long a skin cell takes to travel from the base of the epidermis to the surface — there's no shortcut around that cycle.",
-      "Niacinamide doesn't bleach pigment away — it blocks the transfer of melanin from the melanocyte up into visible skin cells, which is why it has to be used consistently over weeks.",
-      "\"Purging\" only applies to ingredients that speed up cell turnover, like retinoids or exfoliating acids — if a basic moisturiser you've used for years suddenly causes breakouts, that's irritation, not a detox.",
-      "Treating hyperpigmentation without daily sunscreen doesn't work: UV exposure keeps triggering melanocytes to produce more pigment, undoing weeks of otherwise careful treatment in a single afternoon.",
+      { text: "Post-inflammatory hyperpigmentation is the ghost of a localized skin trauma, while melasma is often driven by hormonal shifts — treating them the same way can make melasma worse.", seconds: 223 },
+      { text: "A post-acne mark takes roughly 28 to 45 days to fade because that's how long a skin cell takes to travel from the base of the epidermis to the surface — there's no shortcut around that cycle.", seconds: 223 },
+      { text: "Niacinamide doesn't bleach pigment away — it blocks the transfer of melanin from the melanocyte up into visible skin cells, which is why it has to be used consistently over weeks.", seconds: 657 },
+      { text: "\"Purging\" only applies to ingredients that speed up cell turnover, like retinoids or exfoliating acids — if a basic moisturiser you've used for years suddenly causes breakouts, that's irritation, not a detox.", seconds: 735 },
+      { text: "Treating hyperpigmentation without daily sunscreen doesn't work: UV exposure keeps triggering melanocytes to produce more pigment, undoing weeks of otherwise careful treatment in a single afternoon.", seconds: 851 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[6].plays,
@@ -300,6 +313,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "The retinoid rabbit hole: why the skin only directly uses retinoic acid, why retinol and retinal need one or two conversion steps first (a built-in safety buffer, not a weakness), how stacking a retinoid with an exfoliating acid destroys the barrier, why that's especially risky for melanin-rich skin, and why packaging — not price — decides whether an active survives to reach your skin at all.",
     duration: "19 min",
+    durationSeconds: 1130,
     topics: ["Retinoids 101", "Barrier Repair"],
     publishedAt: "2026-10-02",
     showNotes: [
@@ -318,11 +332,11 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "14:17", seconds: 857, label: "Localizing your routine to South African climate" },
     ],
     transcript: [
-      "Skin cells only have receptors for one molecule — retinoic acid. Tretinoin is pure retinoic acid, which is why it's fast and effective but also notoriously harsh.",
-      "Retinol and retinal both need enzymatic conversion into retinoic acid first — one or two steps depending on the form — which acts as a built-in safety buffer rather than making them a weaker option.",
-      "Applying an exfoliating acid at the same time as a retinoid dissolves the barrier's lipid mortar while simultaneously forcing faster cell turnover — that combination is where the most severe barrier damage happens.",
-      "For melanin-rich skin, that same barrier-damaging inflammation directly triggers melanocytes to produce more pigment, so an aggressive routine aimed at fading a dark mark can end up creating new ones.",
-      "\"Clean beauty\" is an entirely unregulated marketing term — a clear glass dropper looks premium but exposes light- and oxygen-sensitive actives like vitamin C or retinoids to exactly what degrades them.",
+      { text: "Skin cells only have receptors for one molecule — retinoic acid. Tretinoin is pure retinoic acid, which is why it's fast and effective but also notoriously harsh.", seconds: 228 },
+      { text: "Retinol and retinal both need enzymatic conversion into retinoic acid first — one or two steps depending on the form — which acts as a built-in safety buffer rather than making them a weaker option.", seconds: 228 },
+      { text: "Applying an exfoliating acid at the same time as a retinoid dissolves the barrier's lipid mortar while simultaneously forcing faster cell turnover — that combination is where the most severe barrier damage happens.", seconds: 412 },
+      { text: "For melanin-rich skin, that same barrier-damaging inflammation directly triggers melanocytes to produce more pigment, so an aggressive routine aimed at fading a dark mark can end up creating new ones.", seconds: 496 },
+      { text: "\"Clean beauty\" is an entirely unregulated marketing term — a clear glass dropper looks premium but exposes light- and oxygen-sensitive actives like vitamin C or retinoids to exactly what degrades them.", seconds: 648 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[7].plays,
@@ -341,6 +355,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Barrier damage, explained biologically: why stinging and burning are inflammation, not efficacy, why stacking acids and retinoids outstrips the skin's ability to heal, how to tell a normal purge from real barrier collapse, and the recovery protocol — stop every active, rebuild with hydration layering and peptides, and give it weeks.",
     duration: "17 min",
+    durationSeconds: 1038,
     topics: ["Barrier Repair", "Routine Building"],
     publishedAt: "2026-10-09",
     showNotes: [
@@ -359,11 +374,11 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "13:19", seconds: 799, label: "Why editorial independence changes the advice" },
     ],
     transcript: [
-      "Sustained stinging or burning isn't a sign an active ingredient is penetrating and working — it's your body releasing inflammatory cytokines, a real immune response to barrier damage.",
-      "A normal \"purge\" is localized — existing clogged pores surfacing faster than usual in your normal breakout areas. Widespread redness, heat and stinging everywhere is barrier collapse, not a purge.",
-      "The first step in recovery is stopping every active completely — acids, retinoids, all of it — because you can't heal a compromised barrier while continuing to strip it.",
-      "Hydration layering works by supplying humectants that give the skin's own repair enzymes the water they need to function, so the skin can exfoliate itself at its own pace without acids.",
-      "Barrier-repair peptides signal fibroblasts to produce collagen and structural proteins rather than forcing cell turnover the way an acid or retinoid does — signalling instead of forcing.",
+      { text: "Sustained stinging or burning isn't a sign an active ingredient is penetrating and working — it's your body releasing inflammatory cytokines, a real immune response to barrier damage.", seconds: 68 },
+      { text: "A normal \"purge\" is localized — existing clogged pores surfacing faster than usual in your normal breakout areas. Widespread redness, heat and stinging everywhere is barrier collapse, not a purge.", seconds: 454 },
+      { text: "The first step in recovery is stopping every active completely — acids, retinoids, all of it — because you can't heal a compromised barrier while continuing to strip it.", seconds: 508 },
+      { text: "Hydration layering works by supplying humectants that give the skin's own repair enzymes the water they need to function, so the skin can exfoliate itself at its own pace without acids.", seconds: 587 },
+      { text: "Barrier-repair peptides signal fibroblasts to produce collagen and structural proteins rather than forcing cell turnover the way an acid or retinoid does — signalling instead of forcing.", seconds: 640 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[8].plays,
@@ -382,6 +397,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     audioScript:
       "Standard skincare advice was built almost entirely on lighter skin tones. This deep dive covers why melanocytes in melanin-rich skin are more reactive to trauma, why physical scrubbing makes a dark mark worse, the tyrosinase inhibitors (alpha arbutin, licorice root, tranexamic acid) that safely fade pigmentation, and why UVA exposure keeps driving hyperpigmentation even on skin that never visibly burns.",
     duration: "20 min",
+    durationSeconds: 1180,
     topics: ["Melanin-Rich Skin", "Ingredient Science"],
     publishedAt: "2026-10-16",
     showNotes: [
@@ -393,17 +409,18 @@ export const podcastEpisodes: PodcastEpisode[] = [
       { time: "00:00", seconds: 0, label: "Intro — when brightening serums make it worse" },
       { time: "01:28", seconds: 89, label: "The Fitzpatrick scale and dermatology's blind spot" },
       { time: "04:32", seconds: 273, label: "\"I don't burn\" isn't the same as \"I'm protected\"" },
+      { time: "09:16", seconds: 556, label: "Why scrubbing a dark spot makes it worse" },
       { time: "09:59", seconds: 600, label: "Tyrosinase inhibitors: fading pigment safely" },
-      { time: "12:31", seconds: 751, label: "Why physical scrubbing makes dark marks worse" },
+      { time: "12:31", seconds: 751, label: "The skin barrier, explained: brick and mortar" },
       { time: "14:18", seconds: 858, label: "Put the acids down: rebuilding the barrier" },
       { time: "15:37", seconds: 938, label: "Why routines need to be built for your local climate" },
     ],
     transcript: [
-      "For decades, clinical trials and product development were centred almost exclusively on the lighter end of the Fitzpatrick scale — melanin-rich skin was treated as an anomaly, not the baseline.",
-      "Melanocytes in darker skin tones are larger, denser and more reactive to stimuli — a harsh exfoliant calibrated for lighter skin can read as trauma and trigger more pigment, not less.",
-      "\"I don't burn\" isn't the same as \"I'm protected\": melanin blocks enough UVB to prevent visible burning, but UVA penetrates just as deep regardless of skin tone, quietly stimulating melanocytes and degrading collagen.",
-      "Physical scrubbing to fade a dark mark creates micro-tears that the immune system treats as an injury — the mark almost always heals darker than before.",
-      "Tyrosinase inhibitors like alpha arbutin, licorice root extract and tranexamic acid work by blocking pigment production at the source, rather than attacking pigment that's already there — and it still takes weeks, not days.",
+      { text: "For decades, clinical trials and product development were centred almost exclusively on the lighter end of the Fitzpatrick scale — melanin-rich skin was treated as an anomaly, not the baseline.", seconds: 89 },
+      { text: "Melanocytes in darker skin tones are larger, denser and more reactive to stimuli — a harsh exfoliant calibrated for lighter skin can read as trauma and trigger more pigment, not less.", seconds: 89 },
+      { text: "\"I don't burn\" isn't the same as \"I'm protected\": melanin blocks enough UVB to prevent visible burning, but UVA penetrates just as deep regardless of skin tone, quietly stimulating melanocytes and degrading collagen.", seconds: 273 },
+      { text: "Tyrosinase inhibitors like alpha arbutin, licorice root extract and tranexamic acid work by blocking pigment production at the source, rather than attacking pigment that's already there — and it still takes weeks, not days.", seconds: 600 },
+      { text: "Physical scrubbing to fade a dark mark creates micro-tears that the immune system treats as an injury — the mark almost always heals darker than before.", seconds: 556 },
     ],
     productsMentioned: [],
     seedPlays: engagementSeed[9].plays,

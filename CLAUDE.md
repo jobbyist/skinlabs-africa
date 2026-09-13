@@ -358,6 +358,34 @@ feature appear operational.
   it's whichever published episode has the most recent `publishedAt`,
   computed automatically, not hardcoded. When a new episode publishes,
   this updates itself; no manual badge toggling needed.
+- **Podcast RSS feed** — `scripts/generate-podcast-rss.ts` (bun, build-time,
+  wired into `npm run build` right after the sitemap step) generates
+  `public/podcast.xml` from `publishedPodcastEpisodes`, served at
+  `https://skinlabs.co.za/podcast.xml`. Standard RSS 2.0 + iTunes
+  namespace (title/summary/duration/episode/season/explicit per item,
+  channel-level owner/category/image) — this is what Apple Podcasts
+  Connect and Spotify for Podcasters both want as the feed URL when
+  submitting the show. `itunes:duration` reads from each episode's
+  `durationSeconds` (ffprobe-verified, not derived at build time — see
+  the QA note above) and `enclosure length` reads the real file size off
+  disk via `fs.statSync`, so both stay accurate without needing ffmpeg on
+  the build server. **Known gap: there is no show-level (or per-episode)
+  artwork in this repo that meets Apple/Spotify's 1400x1400+ square
+  minimum** — the feed currently points `itunes:image` at
+  `public/podcast/ep-coming-soon.jpg` (1024x1024) as a placeholder, and
+  episode-level images are 1080x1350 portrait, not square at all. The
+  feed will generate and validate fine, but submitting it as-is to Apple
+  Podcasts Connect or Spotify for Podcasters will likely get flagged or
+  rejected on artwork grounds — a human needs to supply real ≥1400x1400
+  (ideally 3000x3000) square show art before that submission step.
+  Generating this feed is also **not** the same as being live on Apple/
+  Spotify: actually submitting the feed URL through each platform's own
+  podcaster console (Apple Podcasts Connect, Spotify for Podcasters) is a
+  manual step by a human with ownership of those accounts — nothing in
+  this environment can do that submission itself. The hub page links to
+  `/podcast.xml` directly ("Subscribe via RSS") and via
+  `<link rel="alternate" type="application/rss+xml">` for feed-reader
+  autodiscovery in the meantime.
 
 ## Infrastructure notes
 
