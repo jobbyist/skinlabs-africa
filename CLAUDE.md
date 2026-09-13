@@ -138,8 +138,15 @@ feature appear operational.
   `src/pages/AdminDashboard.tsx`. Seed ETL: `scripts/seed-skincare-
   intelligence.ts` (imports real data from `src/data/reviews.ts` only —
   never fabricates).
-- **Product review pipeline** (`api/product-review-sync.ts`) — daily
-  Firecrawl + Gemini pipeline generating 3-5 grounded SA-context product
+- **Product review pipeline** (`api/product-review-sync.ts`) — four clean
+  roles: **Firecrawl = researcher** (finds/fetches real source pages),
+  **Gemini = analyst + writer** (turns a source into a scored, grounded
+  verdict, never inventing facts beyond it), **Supabase = memory +
+  orchestration + publication** (dedup, research cache, quota bookkeeping,
+  storage), **SkinLabs frontend = editorial presentation** (ReviewsGrid/
+  ProductReview/SiteSearch just render whatever lands in
+  `ai_generated_product_reviews`, with zero pipeline-specific UI code).
+  Generates up to `DAILY_REVIEW_CAP` (3/day) grounded SA-context product
   reviews (70% South African brands, 30% global-available-in-SA, disclosed
   sponsored placements like Timeless Skincare), replacing the old
   newsroom-sync (Daily Skinny) auto-generation cron (that edge function and
@@ -151,26 +158,50 @@ feature appear operational.
   `GEMINI_API_KEY` from Vercel's own project environment variables — a
   deliberate product decision, not an accident of convenience. Sources
   candidates from already-verified OpenHaus `marketplace_products` rows
-  (no scraping needed) plus Firecrawl-scraped pages from Faithful to
+  (no Firecrawl needed) plus Firecrawl-researched pages from Faithful to
   Nature's facial-skincare category and named SA/global brand sites (Geve,
-  Orobaa, Kloom, Timeless). Writes to `public.ai_generated_product_reviews`
-  (public SELECT, service_role write only), which `ReviewsGrid.tsx`,
-  `ProductReview.tsx` and `SiteSearch.tsx` all merge in alongside the
-  static `src/data/reviews.ts` catalogue via `src/hooks/
-  use-generated-reviews.ts` — so a new day's reviews appear on `/reviews`
-  with no code deploy. **Requires `GEMINI_API_KEY`, `FIRECRAWL_API_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` as Vercel project
-  environment variables** — none of these can be set from this codebase or
-  from any tool available to Claude Code in this environment, so the
-  function 401s/500s with a clear "not configured" message until a human
-  adds them in the Vercel dashboard (same category of manual step as the
-  already-documented `MARKETPLACE_CRON_SECRET` gap on the Supabase side
-  below). The first 10 reviews (ids prefixed `aigen-`, `generated_by =
-  'claude-manual-seed'`) were hand-seeded by Claude during pipeline setup
-  (2026-09-13) to test the merge end-to-end — real, Firecrawl/WebFetch-
-  sourced products, not run through the live Gemini pipeline, and
-  distinguishable from future real pipeline output by that `generated_by`
-  value.
+  Orobaa, Kloom, Timeless), capped at `MAX_FIRECRAWL_SOURCES_PER_RUN` (5)
+  real Firecrawl network calls per run. Writes to
+  `public.ai_generated_product_reviews` (public SELECT, service_role write
+  only), which `ReviewsGrid.tsx`, `ProductReview.tsx` and `SiteSearch.tsx`
+  all merge in alongside the static `src/data/reviews.ts` catalogue via
+  `src/hooks/use-generated-reviews.ts` — so a new day's reviews appear on
+  `/reviews` with no code deploy.
+  - **Research cache** (`public.pipeline_source_cache`, service-role only,
+    migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
+    Firecrawl result is cached by source (a stable URL for the FTN scrape,
+    a `search:<host>` key for the query-based brand-site searches) for
+    `SOURCE_CACHE_TTL_MS` (3 days) before being fetched fresh again. A
+    cache hit costs nothing against the per-run Firecrawl cap or the daily
+    quota below — this is what actually keeps repeat daily runs against
+    the same handful of listing pages cheap.
+  - **Quota monitor** (`public.pipeline_api_usage`, same migration) — every
+    real Firecrawl/Gemini call is logged here, and checked against
+    `FIRECRAWL_DAILY_LIMIT` (20), `GEMINI_DAILY_LIMIT` (100) and
+    `GEMINI_PER_MINUTE_LIMIT` (10) *before* the next call, so a free-tier
+    ceiling is respected proactively rather than discovered as a run
+    failure. All three are env-var overridable and are conservative
+    placeholders, **not a confirmed reading of either provider's actual
+    plan for this account** — nothing in this environment can check that
+    live, so tune them against the real Firecrawl/Google AI Studio quota
+    pages if they turn out to be wrong in either direction.
+  - **Requires `GEMINI_API_KEY`, `FIRECRAWL_API_KEY`,
+    `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` as Vercel project
+    environment variables** — none of these can be set from this codebase
+    or from any tool available to Claude Code in this environment, so the
+    function 401s/500s with a clear "not configured" message until a human
+    adds them in the Vercel dashboard (same category of manual step as the
+    already-documented `MARKETPLACE_CRON_SECRET` gap on the Supabase side
+    below). `GEMINI_MODEL` defaults to `gemini-3.6-flash` — `gemini-2.0-
+    flash` was retired by Google, confirmed live via a 404 naming
+    `gemini-3.6-flash` as the replacement during this pipeline's first
+    real end-to-end test (2026-09-13).
+  - The first 10 reviews (ids prefixed `aigen-`, `generated_by =
+    'claude-manual-seed'`) were hand-seeded by Claude during pipeline setup
+    (2026-09-13) to test the merge end-to-end — real, Firecrawl/WebFetch-
+    sourced products, not run through the live Gemini pipeline, and
+    distinguishable from future real pipeline output by that `generated_by`
+    value.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded

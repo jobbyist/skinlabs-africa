@@ -1,12 +1,19 @@
 /**
  * Daily South African skincare product review sync.
  *
+ * Four clean roles, each doing only its own job:
+ *   - Firecrawl  = researcher       (finds and fetches real source pages)
+ *   - Gemini     = analyst + writer (turns a source into a scored, grounded verdict)
+ *   - Supabase   = memory + orchestration + publication (dedup, cache, quota, storage)
+ *   - SkinLabs   = editorial presentation (ReviewsGrid/ProductReview/SiteSearch render
+ *                  whatever lands in ai_generated_product_reviews -- see src/hooks/
+ *                  use-generated-reviews.ts -- with zero pipeline-specific UI code)
+ *
  * Replaces the old newsroom-sync (Daily Skinny briefing) cron slot: instead of a daily
- * news column, this generates 3-5 grounded product reviews a day -- 70% South African
- * brands, 30% global brands available in SA -- and publishes them straight to /reviews
- * via the ai_generated_product_reviews table (see supabase/migrations/
- * 20260913020000_product_review_pipeline_core.sql; ReviewsGrid/ProductReview/SiteSearch
- * already merge that table in alongside the static src/data/reviews.ts catalogue).
+ * news column, this generates up to DAILY_REVIEW_CAP grounded product reviews a day --
+ * 70% South African brands, 30% global brands available in SA -- and publishes them
+ * straight to /reviews via the ai_generated_product_reviews table (see supabase/
+ * migrations/20260913020000_product_review_pipeline_core.sql).
  *
  * Runs on Vercel (not a Supabase edge function) because it needs GEMINI_API_KEY from
  * Vercel's own project environment variables, per an explicit product decision -- see
@@ -23,13 +30,20 @@
  *   - CRON_SECRET             Vercel's own convention: when set, Vercel signs every
  *     Cron invocation with `Authorization: Bearer $CRON_SECRET`, which this function
  *     checks. Also usable to trigger a manual/admin run with the same header.
- * Optional:
- *   - GEMINI_MODEL            Defaults to "gemini-3.6-flash" if unset. (gemini-2.0-flash
- *     was retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
+ * Optional (quota knobs -- see "QUOTA MONITOR" below; defaults are deliberately
+ * conservative placeholders, not a confirmed reading of either provider's actual free
+ * tier for this account/model, since nothing in this environment can check that live):
+ *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash". (gemini-2.0-flash was
+ *     retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
  *     which named gemini-3.6-flash as the direct replacement.)
- *   - VITE_SUPABASE_URL       Reused if set (already present for the client build);
+ *   - FIRECRAWL_DAILY_LIMIT     Defaults to 20 real Firecrawl calls/day.
+ *   - GEMINI_DAILY_LIMIT        Defaults to 100 real Gemini calls/day.
+ *   - GEMINI_PER_MINUTE_LIMIT   Defaults to 10 real Gemini calls/minute.
+ *   - VITE_SUPABASE_URL         Reused if set (already present for the client build);
  *     falls back to the hardcoded production project URL otherwise.
  */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 interface VercelReq {
   method?: string;
@@ -42,14 +56,31 @@ interface VercelRes {
 }
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://gnkpzijxuciiaamakgzm.supabase.co";
-const MIN_REVIEWS_PER_RUN = 3;
-const MAX_REVIEWS_PER_RUN = 5;
+
+/** Hard daily publication cap -- SkinLabs' own editorial rate, independent of quota. */
+const DAILY_REVIEW_CAP = 3;
+/** Hard cap on real Firecrawl network calls per run (cache hits don't count). */
+const MAX_FIRECRAWL_SOURCES_PER_RUN = 5;
 /** Target 70% South African brands / 30% global-available-in-SA per the editorial brief. */
 const SA_SHARE_TARGET = 0.7;
 /** Bump the Spotlight edition/methodology version every N published reviews. */
 const SPOTLIGHT_BUMP_INTERVAL = 25;
 /** Count of reviews already in src/data/reviews.ts at the time this pipeline shipped. */
 const STATIC_REVIEW_BASELINE = 160;
+
+// ---------------------------------------------------------------------------
+// QUOTA MONITOR (Supabase as memory) -- every real Firecrawl/Gemini call is logged to
+// pipeline_api_usage, and checked against these thresholds *before* the next call, so
+// a free-tier limit is respected proactively rather than discovered as a mid-run error.
+// The exact numbers are conservative placeholders -- tune them via the env vars above
+// to whatever this account's actual Firecrawl/Google AI Studio plan allows.
+// ---------------------------------------------------------------------------
+const FIRECRAWL_DAILY_LIMIT = Number(process.env.FIRECRAWL_DAILY_LIMIT) || 20;
+const GEMINI_DAILY_LIMIT = Number(process.env.GEMINI_DAILY_LIMIT) || 100;
+const GEMINI_PER_MINUTE_LIMIT = Number(process.env.GEMINI_PER_MINUTE_LIMIT) || 10;
+
+/** How long a cached Firecrawl result is trusted before it's fetched fresh again. */
+const SOURCE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 const KNOWN_RETAILERS = [
   "Clicks",
@@ -120,6 +151,68 @@ const clampScore = (value: unknown): number => {
   if (!Number.isFinite(n)) return 6;
   return Math.min(10, Math.max(0, Math.round(n * 10) / 10));
 };
+
+// ---------------------------------------------------------------------------
+// SUPABASE AS MEMORY: quota bookkeeping + research cache. Kept together since both are
+// "ask Supabase what it remembers before calling out to Firecrawl/Gemini again."
+// ---------------------------------------------------------------------------
+
+type SupabaseAdmin = SupabaseClient;
+
+async function recordApiUsage(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", purpose: string, success: boolean) {
+  try {
+    await admin.from("pipeline_api_usage").insert({ provider, purpose, success });
+  } catch {
+    // Quota logging must never fail the run itself.
+  }
+}
+
+async function withinDailyQuota(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", limit: number): Promise<boolean> {
+  const sinceUtcMidnight = new Date();
+  sinceUtcMidnight.setUTCHours(0, 0, 0, 0);
+  const { count } = await admin
+    .from("pipeline_api_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("provider", provider)
+    .gte("called_at", sinceUtcMidnight.toISOString());
+  return (count ?? 0) < limit;
+}
+
+async function withinPerMinuteQuota(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", limit: number): Promise<boolean> {
+  const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+  const { count } = await admin
+    .from("pipeline_api_usage")
+    .select("id", { count: "exact", head: true })
+    .eq("provider", provider)
+    .gte("called_at", oneMinuteAgo);
+  return (count ?? 0) < limit;
+}
+
+async function getCachedSource(admin: SupabaseAdmin, cacheKey: string): Promise<unknown | null> {
+  const { data } = await admin.from("pipeline_source_cache").select("payload, expires_at").eq("cache_key", cacheKey).maybeSingle();
+  const row = data as { payload?: unknown; expires_at?: string } | null;
+  if (!row?.payload || !row.expires_at) return null;
+  if (new Date(row.expires_at).getTime() < Date.now()) return null;
+  return row.payload;
+}
+
+async function setCachedSource(admin: SupabaseAdmin, cacheKey: string, payload: unknown) {
+  try {
+    await admin.from("pipeline_source_cache").upsert({
+      cache_key: cacheKey,
+      payload,
+      fetched_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + SOURCE_CACHE_TTL_MS).toISOString(),
+    });
+  } catch {
+    // Caching is an optimisation, never a requirement for the run to succeed.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GEMINI: analyst + writer. Takes source text/data and returns a scored, grounded
+// verdict -- never asked to invent a product, price or claim beyond what it's given.
+// ---------------------------------------------------------------------------
 
 interface GeneratedReviewFields {
   product_name: string;
@@ -235,6 +328,11 @@ async function generateReview(sourceText: string, apiKey: string, model: string)
   };
 }
 
+// ---------------------------------------------------------------------------
+// FIRECRAWL: researcher. Finds and fetches real product pages -- every call here is
+// gated by the research cache and the quota monitor before it reaches the network.
+// ---------------------------------------------------------------------------
+
 interface FirecrawlPage {
   url: string;
   title: string;
@@ -292,6 +390,42 @@ async function firecrawlSearchProductPages(site: SourceSite, apiKey: string, lim
     .map((r) => ({ url: r.url as string, title: r.title ?? r.url!, markdown: r.markdown!.slice(0, 14000) }));
 }
 
+/** Cache key for a source site -- a stable URL for scrape targets, a query-shaped key
+ *  for search targets (there's no single fixed page to key off for those). */
+const cacheKeyFor = (site: SourceSite): string =>
+  site.sourceType === "faithful_to_nature" ? `scrape:${site.url}` : `search:${new URL(site.url).hostname.replace(/^www\./, "")}`;
+
+interface ResearchResult {
+  pages: FirecrawlPage[];
+  madeRealCall: boolean;
+  skippedReason?: string;
+}
+
+/** The research step for one source site: cache first, then quota, then network.
+ *  Only a genuine network call counts against the per-run Firecrawl budget or the
+ *  daily/per-minute quota -- a cache hit is free on both. */
+async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: string, runBudgetRemaining: boolean): Promise<ResearchResult> {
+  const cacheKey = cacheKeyFor(site);
+  const cached = await getCachedSource(admin, cacheKey);
+  if (cached) return { pages: cached as FirecrawlPage[], madeRealCall: false };
+
+  if (!runBudgetRemaining) {
+    return { pages: [], madeRealCall: false, skippedReason: `Firecrawl run budget (${MAX_FIRECRAWL_SOURCES_PER_RUN}) exhausted` };
+  }
+  if (!(await withinDailyQuota(admin, "firecrawl", FIRECRAWL_DAILY_LIMIT))) {
+    return { pages: [], madeRealCall: false, skippedReason: `Firecrawl daily quota (${FIRECRAWL_DAILY_LIMIT}) reached` };
+  }
+
+  const pages =
+    site.sourceType === "faithful_to_nature"
+      ? [await firecrawlScrape(site.url, apiKey)].filter((p): p is FirecrawlPage => Boolean(p))
+      : await firecrawlSearchProductPages(site, apiKey, 3);
+
+  await recordApiUsage(admin, "firecrawl", site.url, pages.length > 0);
+  if (pages.length > 0) await setCachedSource(admin, cacheKey, pages);
+  return { pages, madeRealCall: true };
+}
+
 interface MarketplaceProductRow {
   slug: string;
   name: string;
@@ -327,23 +461,24 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
   const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const { createClient } = await import("@supabase/supabase-js");
-  const admin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
+  const admin: SupabaseAdmin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
 
   const today = new Date().toISOString().slice(0, 10);
   const errors: string[] = [];
   let created = 0;
 
   try {
+    // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
+    // Firecrawl/Gemini call is even considered. ----
     const { count: publishedToday } = await admin
       .from("ai_generated_product_reviews")
       .select("id", { count: "exact", head: true })
       .eq("published_date", today);
-    if ((publishedToday ?? 0) >= MAX_REVIEWS_PER_RUN) {
-      res.status(200).json({ ok: true, created: 0, message: "Daily target already met" });
+    if ((publishedToday ?? 0) >= DAILY_REVIEW_CAP) {
+      res.status(200).json({ ok: true, created: 0, message: "Daily review cap already met" });
       return;
     }
-
-    const target = Math.min(MAX_REVIEWS_PER_RUN, Math.max(MIN_REVIEWS_PER_RUN, MAX_REVIEWS_PER_RUN - (publishedToday ?? 0)));
+    const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
 
     const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("source_url, origin");
     const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
@@ -351,7 +486,8 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     const globalCount = (existingRows ?? []).length - saCount;
 
     // ---- Candidate pool A: real OpenHaus marketplace products (already-verified data,
-    // no scraping needed -- Gemini only writes the verdict/scores against real fields). ----
+    // no Firecrawl/scraping needed -- Gemini only writes the verdict/scores against
+    // real fields). ----
     const { data: marketplaceRows } = await admin
       .from("marketplace_products")
       .select("slug, name, description, marked_up_price_zar, category, key_actives, concern, brand:marketplace_brands(name)")
@@ -362,16 +498,17 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       (p) => !seenUrls.has(`https://skinlabs.co.za/marketplace/product/${p.slug}`),
     );
 
-    // ---- Candidate pool B: Firecrawl-sourced real product pages from the named sites. ----
+    // ---- Candidate pool B: Firecrawl-researched real product pages from the named
+    // sites, subject to the research cache and the per-run/daily quota. ----
     const firecrawlCandidates: Array<{ site: SourceSite; page: FirecrawlPage }> = [];
+    let firecrawlCallsThisRun = 0;
     for (const site of SOURCE_SITES) {
       if (firecrawlCandidates.length >= target * 2) break;
       try {
-        const pages =
-          site.sourceType === "faithful_to_nature"
-            ? [await firecrawlScrape(site.url, firecrawlKey as string)].filter((p): p is FirecrawlPage => Boolean(p))
-            : await firecrawlSearchProductPages(site, firecrawlKey as string, 3);
-        for (const page of pages) {
+        const result = await researchSource(admin, site, firecrawlKey as string, firecrawlCallsThisRun < MAX_FIRECRAWL_SOURCES_PER_RUN);
+        if (result.madeRealCall) firecrawlCallsThisRun += 1;
+        if (result.skippedReason) errors.push(`Firecrawl skipped ${site.url}: ${result.skippedReason}`);
+        for (const page of result.pages) {
           if (seenUrls.has(page.url)) continue;
           firecrawlCandidates.push({ site, page });
         }
@@ -418,8 +555,25 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
     for (const candidate of queue) {
       if (created >= target) break;
+
+      // ---- Quota monitor (Gemini side): a daily/per-minute limit hit here means every
+      // remaining candidate would fail identically, so stop the run cleanly instead of
+      // burning through the rest of the queue. ----
+      if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
+        errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping run`);
+        break;
+      }
+      if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+        await sleep(15000);
+        if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+          errors.push(`Gemini per-minute quota (${GEMINI_PER_MINUTE_LIMIT}) reached -- stopping run`);
+          break;
+        }
+      }
+
       try {
         const fields = await generateReview(candidate.text, geminiKey as string, model);
+        await recordApiUsage(admin, "gemini", candidate.sourceUrl, true);
         if (!fields.product_name || !fields.brand) continue;
 
         const slug = slugify(`${fields.brand}-${fields.product_name}`);
@@ -464,6 +618,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           else runningGlobal += 1;
         }
       } catch (err) {
+        await recordApiUsage(admin, "gemini", candidate.sourceUrl, false);
         const message = err instanceof GeminiError ? `Gemini ${err.status}: ${err.message}` : String(err);
         errors.push(message.slice(0, 300));
         if (err instanceof GeminiError && err.status === 429) await sleep(10000);
