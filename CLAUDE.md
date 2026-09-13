@@ -274,6 +274,59 @@ feature appear operational.
   challenge that blocks this sandbox's outbound fetches (confirmed
   browser-UA curl requests succeed, bare/HEAD requests don't), so whether
   Supabase's edge runtime gets a cleaner path is unverified.
+- **The Skin Deep podcast** — episode content is a hardcoded array in
+  `src/data/podcast.ts` (no DB-backed episode table); cover art lives in
+  `public/podcast/`. `/podcast` (hub, `PodcastPage.tsx`) and
+  `/podcast/:slug` (`EpisodePage.tsx`) both read from it, plus the
+  homepage teaser (`PodcastSection.tsx`). New episodes publish **every
+  Friday at 12:00 SAST** (`getNextEpisodeDate()`) — this replaced an
+  earlier "last Friday of the month" cadence on 2026-09-13. Engagement
+  (play/like/share counts, `usePodcastEngagement` +
+  `PodcastEngagementBar.tsx`) follows the same seed-plus-localStorage
+  pattern used elsewhere (briefings' `view_count`): each episode carries
+  a deterministic `seedPlays`/`seedLikes`/`seedShares` baseline, with
+  real increments in localStorage and best-effort Supabase writes to
+  `podcast_plays`/`podcast_likes`/`podcast_shares` for cross-device sync
+  — none of these are a literal live global counter. `podcast_plays`
+  (migration `20260820000000_create_podcast_plays_table.sql`) shipped
+  with RLS enabled but **no INSERT policy at all** (it ends mid-comment),
+  so every play write 42501'd silently until
+  `20260913070000_fix_podcast_plays_insert_policy.sql` fixed it;
+  `podcast_likes` was referenced in `use-podcast-engagement.ts` from the
+  start but never had a migration until
+  `20260913071000_podcast_likes_and_shares.sql` (which also added
+  `podcast_shares`). If engagement writes start failing again, check for
+  exactly this pattern (RLS on, policy missing) before assuming a GRANT
+  problem — this project's `public` schema has `ALTER DEFAULT
+  PRIVILEGES ... GRANT ALL ON TABLES TO anon, authenticated` already set,
+  so RLS policies (not GRANTs) are almost always the real gate here.
+  **Episodes 1-4's real audio does not match what was originally written
+  for them** — confirmed 2026-09-13 by actually transcribing the four
+  `public/epNskinlabs.mp3` files (Adobe's `media_summarize` MCP tool has
+  no working poll/status path in this headless CLI environment — every
+  call starts a fresh job rather than checking an existing one — so the
+  practical route was local: `apt-get install ffmpeg`, `ffmpeg` to 16kHz
+  mono WAV, then Python `vosk` with the `vosk-model-en-us-0.22-lgraph`
+  model). All four are a generic, non-SA-specific two-host "AI deep dive"
+  style recording (think NotebookLM), not scripted SkinLabs-specific
+  audio — e.g. episode 1 ("Weird Skincare") is actually about the beef
+  tallow trend, not snail mucin/edible serums, and real runtimes are far
+  shorter than originally listed (~5-8 min actual vs. 18-22 min claimed).
+  `showNotes`/`timestamps`/`transcript`/`duration` for episodes 1-4 were
+  rewritten from the real transcripts (timestamps verified against
+  word-level ASR timing, not guessed); `productsMentioned` was cleared to
+  `[]` for all four since the real audio never names any SkinLabs-
+  reviewed product — the previous entries were fabricated. The
+  `transcript` field intentionally stays a handful of short paraphrased
+  pull-quotes (the pre-existing pattern, gated behind membership via
+  `GatedOverlay`), not a raw ASR dump — the vosk output has real
+  disfluencies and misheard proper nouns (e.g. dermatologist "Rebecca
+  Marcus" transcribed as "Rebecca tablets") that would misinform readers
+  if published verbatim. Full raw transcripts/JSON word-timing data from
+  this pass were only saved to the session scratchpad, not committed —
+  regenerate with the same ffmpeg+vosk pipeline if needed again. Episodes
+  5-10 are still `comingSoon: true` placeholders (no audio yet) but now
+  have their real cover art wired in.
 
 ## Infrastructure notes
 
