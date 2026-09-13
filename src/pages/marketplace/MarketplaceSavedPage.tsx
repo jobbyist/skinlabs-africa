@@ -1,7 +1,9 @@
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { MarketplaceHeader } from "@/components/marketplace/MarketplaceHeader";
 import { MobileBottomNav } from "@/components/marketplace/MobileBottomNav";
+import { MarketplaceBreadcrumbs } from "@/components/marketplace/MarketplaceBreadcrumbs";
 import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
 import { useMarketplaceProducts } from "@/hooks/use-marketplace-products";
 import { useSavedProducts } from "@/hooks/use-saved-products";
@@ -20,7 +22,16 @@ export default function MarketplaceSavedPage() {
       <div className="min-h-screen bg-[#faf9f7] font-sans pb-24 lg:pb-16">
         <MarketplaceHeader />
         <div className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 py-6 lg:py-10">
-          <h1 className="font-black text-[22px] lg:text-[32px] text-stone-900 tracking-tight mb-5">Saved</h1>
+          <MarketplaceBreadcrumbs items={[{ label: "Saved" }]} />
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <h1 className="font-black text-[22px] lg:text-[32px] text-stone-900 tracking-tight">Saved</h1>
+            <Link
+              to="/dashboard"
+              className="text-xs font-medium text-stone-500 hover:text-stone-800 underline underline-offset-2"
+            >
+              Also on your account dashboard →
+            </Link>
+          </div>
           {isLoading ? (
             <p className="text-sm text-stone-400">Loading…</p>
           ) : saved.length === 0 ? (
@@ -32,7 +43,12 @@ export default function MarketplaceSavedPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-5">
               {saved.map((product) => (
-                <MarketplaceProductCard key={product.id} product={product} saved onToggleSave={() => toggleSaved(product.id)} />
+                <MarketplaceProductCard
+                  key={product.id}
+                  product={product}
+                  saved
+                  onToggleSave={() => toggleSaved(product.id)}
+                />
               ))}
             </div>
           )}
