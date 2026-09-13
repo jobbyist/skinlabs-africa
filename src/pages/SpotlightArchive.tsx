@@ -5,10 +5,13 @@ import AdSlot from "@/components/AdSlot";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
-import { SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION, spotlightRankedBrands } from "@/data/spotlight";
+import { useSpotlightEditionArchive } from "@/hooks/use-spotlight-edition";
 
 const SpotlightArchive = () => {
   const canonical = "https://skinlabs.co.za/spotlight/archive";
+  const { data: editions, isLoading } = useSpotlightEditionArchive();
+  const current = editions?.find((e) => e.isCurrent);
+  const past = (editions ?? []).filter((e) => !e.isCurrent);
 
   return (
     <div className="min-h-screen bg-background">
@@ -27,10 +30,9 @@ const SpotlightArchive = () => {
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight</p>
           <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">Archive</h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
-            Spotlight launched under Methodology v1.0 in August 2026. We don't yet keep a full historical snapshot of
-            past editions with preserved rank and score, so rather than guess at how brands moved between editions,
-            we're starting the real archive from here — each future edition will be added below with its rank, score
-            and methodology version preserved, so you can see how South African skincare brands' standing genuinely
+            Spotlight launched under Methodology v1.0 in August 2026. Each edition below is recorded automatically
+            once our published review count crosses a new milestone, preserving the methodology version and review
+            count in force at the time, so you can see how South African skincare brands' standing genuinely
             changes over time.
           </p>
 
@@ -38,22 +40,42 @@ const SpotlightArchive = () => {
             <AdSlot placement="spotlight-archive-top" compact />
           </div>
 
-          <div className="mt-8 rounded-3xl border border-border bg-card p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-heading text-lg font-bold text-foreground">{SPOTLIGHT_EDITION_MONTH} — current edition</h2>
-              <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Live</span>
+          {current && (
+            <div className="mt-8 rounded-3xl border border-border bg-card p-6">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-heading text-lg font-bold text-foreground">{current.editionLabel} — current edition</h2>
+                <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Live</span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {current.reviewCountAtSnapshot}+ published reviews at last snapshot · {current.methodologyVersion}
+              </p>
+              <Button asChild className="mt-4" size="sm">
+                <Link to="/spotlight">View the full ranking</Link>
+              </Button>
             </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {spotlightRankedBrands.length} ranked brands · {SPOTLIGHT_METHODOLOGY_VERSION}
-            </p>
-            <Button asChild className="mt-4" size="sm">
-              <Link to="/spotlight">View the full ranking</Link>
-            </Button>
-          </div>
+          )}
+
+          {!isLoading && past.length > 0 && (
+            <div className="mt-6 space-y-4">
+              {past.map((edition) => (
+                <div key={edition.id} className="rounded-2xl border border-border bg-card/60 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="font-heading text-base font-semibold text-foreground">{edition.editionLabel}</h3>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(edition.createdAt).toLocaleDateString("en-ZA", { year: "numeric", month: "long" })}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {edition.reviewCountAtSnapshot}+ published reviews at snapshot · {edition.methodologyVersion}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <p className="mt-10 text-sm text-muted-foreground">
-            Past editions will appear here as they are published. Each entry will preserve rank order, scores and the
-            methodology version used so year-on-year movement is transparent.
+            Past editions appear here automatically as they are published. Each entry preserves the review count and
+            methodology version in force at the time, so year-on-year movement stays transparent.
           </p>
         </div>
       </main>

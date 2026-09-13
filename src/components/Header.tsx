@@ -73,7 +73,7 @@ const exploreLinks: NavItem[] = [
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
   { label: "Podcast", href: "/podcast", icon: Mic },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "Coming Soon" },
+  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "NEW" },
   { label: "Ingredients", href: "/ingredients", icon: Beaker, badge: "Coming Soon" },
   { label: "Academy", href: "/learn", icon: GraduationCap, badge: "Coming Soon" },
 ];

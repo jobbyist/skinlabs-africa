@@ -61,5 +61,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/product-review-sync",
+      "schedule": "0 7 * * *"
+    }
   ]
 }

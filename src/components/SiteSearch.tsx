@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Award, FileText, HelpCircle, type LucideIcon, Mic, Newspaper, Sparkles, Star, Sun, Swords } from "lucide-react";
+import { Award, FileText, HelpCircle, type LucideIcon, Mic, Newspaper, ShoppingBag, Sparkles, Star, Sun, Swords } from "lucide-react";
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNewsArticles } from "@/hooks/use-news-articles";
+import { useMarketplaceProducts } from "@/hooks/use-marketplace-products";
+import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
@@ -34,6 +36,12 @@ const GROUP_CAP = 6;
 const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
   const navigate = useNavigate();
   const { articles: briefings } = useNewsArticles(30);
+  const { data: marketplaceProducts } = useMarketplaceProducts();
+  const { data: generatedReviews } = useGeneratedReviews();
+  const allReviews = useMemo(
+    () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
+    [generatedReviews],
+  );
   const [rawQuery, setRawQuery] = useState("");
   const query = useDebouncedValue(rawQuery, 120);
   const hasQuery = query.trim().length > 0;
@@ -79,7 +87,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       return { key: `season-${season}`, score: match.score, reasons: match.reasons, icon: Sun, title: hub.h1, subtitle: "Seasonal", href: `/seasonals/${season}` };
     });
 
-    const reviews: RankedResult[] = productReviews.map((review) => {
+    const reviews: RankedResult[] = allReviews.map((review) => {
       const match = scoreProductReview(query, review);
       return {
         key: `rev-${review.id}`,
@@ -120,15 +128,33 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       };
     });
 
-    return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub };
-  }, [query, briefings]);
+    const marketplace: RankedResult[] = (marketplaceProducts ?? []).map((product) => {
+      const match = scoreTextItem(
+        query,
+        `${product.brand.name} ${product.name}`,
+        product.description,
+        [product.category, ...product.concern, ...product.values, ...product.keyActives],
+      );
+      return {
+        key: `mkt-${product.id}`,
+        score: match.score,
+        reasons: match.reasons,
+        icon: ShoppingBag,
+        title: `${product.brand.name} — ${product.name}`,
+        subtitle: "OpenHaus Marketplace",
+        href: `/marketplace/product/${product.slug}`,
+      };
+    });
+
+    return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace };
+  }, [query, briefings, marketplaceProducts, allReviews]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
   const forDisplay = (list: RankedResult[], fallback: RankedResult[]) => (hasQuery ? matched(list).slice(0, GROUP_CAP) : fallback);
 
   const bestMatches = useMemo(() => {
     if (!hasQuery) return [];
-    return [...ranked.comparisons, ...ranked.spotlight, ...ranked.seasonals, ...ranked.reviews, ...ranked.news, ...ranked.podcast, ...ranked.pages, ...ranked.knowledgeHub]
+    return [...ranked.comparisons, ...ranked.spotlight, ...ranked.seasonals, ...ranked.reviews, ...ranked.marketplace, ...ranked.news, ...ranked.podcast, ...ranked.pages, ...ranked.knowledgeHub]
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, TOP_MATCHES_CAP);
@@ -202,6 +228,17 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
             </CommandItem>
           ))}
         </CommandGroup>
+
+        {ranked.marketplace.length > 0 && (
+          <CommandGroup heading="OpenHaus Marketplace">
+            {forDisplay(ranked.marketplace, ranked.marketplace.slice(0, 60)).map((result) => (
+              <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
+                <ShoppingBag />
+                <span className="flex-1 truncate">{result.title}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
 
         {ranked.news.length > 0 && (
           <CommandGroup heading="The Daily Skinny">

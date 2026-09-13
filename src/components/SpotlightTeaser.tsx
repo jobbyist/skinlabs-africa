@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import SpotlightRankingCard from "@/components/SpotlightRankingCard";
-import { spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH } from "@/data/spotlight";
+import { spotlightTopThisWeek } from "@/data/spotlight";
+import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 
 const SpotlightTeaser = () => {
+  const { data: edition } = useSpotlightEdition();
   return (
     <section id="spotlight" className="bg-background py-20">
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight · {SPOTLIGHT_EDITION_MONTH}</p>
+            <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight · {edition.editionLabel}</p>
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">
               Top 3 South African skincare brands this week
             </h2>

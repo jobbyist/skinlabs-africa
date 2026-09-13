@@ -10,7 +10,8 @@ import BrandRequestModal from "@/components/BrandRequestModal";
 import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
-import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
+import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek } from "@/data/spotlight";
 
 const RANKING_PAGE_SIZE = 5;
 
@@ -21,6 +22,7 @@ const Spotlight = () => {
   const [claimOpen, setClaimOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [rankingPage, setRankingPage] = usePageParam("page");
+  const { data: edition } = useSpotlightEdition();
 
   const totalRankingPages = Math.max(1, Math.ceil(spotlightRankedBrands.length / RANKING_PAGE_SIZE));
   const currentRankingPage = Math.min(rankingPage, totalRankingPages);
@@ -46,7 +48,7 @@ const Spotlight = () => {
       },
       {
         "@type": "ItemList",
-        name: `Spotlight ${SPOTLIGHT_EDITION_MONTH}`,
+        name: `Spotlight ${edition.editionLabel}`,
         itemListElement: spotlightRankedBrands.map((entry) => ({
           "@type": "ListItem",
           position: entry.rank ?? undefined,
@@ -81,9 +83,9 @@ const Spotlight = () => {
             Refreshed monthly as we review more products.
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
-            <span className="rounded-full bg-accent px-3 py-1 font-semibold text-foreground">{SPOTLIGHT_EDITION_MONTH} edition</span>
+            <span className="rounded-full bg-accent px-3 py-1 font-semibold text-foreground">{edition.editionLabel} edition</span>
             <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              {SPOTLIGHT_METHODOLOGY_VERSION}
+              {edition.methodologyVersion}
             </Link>
             <Link to="/spotlight/archive" className="underline hover:text-foreground">
               Archive
@@ -101,7 +103,7 @@ const Spotlight = () => {
 
         <section className="container mx-auto mt-6 px-4">
           <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-            The {SPOTLIGHT_EDITION_MONTH} edition of Brand Spotlight includes {spotlightRanking.length} ranked brands
+            The {edition.editionLabel} edition of Brand Spotlight includes {spotlightRanking.length} ranked brands
             including {spotlightRisingBrands.length} emerging brands under review. The ranked list will expand as
             SkinLabs® develops more product evidence. The Spotlight list and methodology will be updated at least
             once every month.

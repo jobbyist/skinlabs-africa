@@ -10,9 +10,10 @@ import BrandRequestModal from "@/components/BrandRequestModal";
 import ArticleComments from "@/components/ArticleComments";
 import AffiliateAdSlot from "@/components/AffiliateAdSlot";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
-import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+import { getSpotlightBrand } from "@/data/spotlight";
 import { overallScore } from "@/data/reviews";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 import GatedOverlay from "@/components/GatedOverlay";
 import { spotlightComments } from "@/data/articleComments";
 import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from "@/lib/access-quotas";
@@ -23,6 +24,7 @@ const EDITORIAL_DISCLAIMER =
 const SpotlightBrandProfile = () => {
   const { brandSlug } = useParams();
   const [claimOpen, setClaimOpen] = useState(false);
+  const { data: edition } = useSpotlightEdition();
   // Glow Lite and above get full Spotlight profiles — no separate quota beyond that.
   const { can, loading: membershipLoading } = useEntitlements();
   const isMember = can("spotlight.full_profiles");
@@ -215,9 +217,9 @@ const SpotlightBrandProfile = () => {
           </div>
 
           <p className="mt-6 text-xs text-muted-foreground">
-            Assessed for the {SPOTLIGHT_EDITION_MONTH} edition under{" "}
+            Assessed for the {edition.editionLabel} edition under{" "}
             <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              {SPOTLIGHT_METHODOLOGY_VERSION}
+              {edition.methodologyVersion}
             </Link>
             .
           </p>

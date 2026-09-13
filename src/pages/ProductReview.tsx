@@ -25,6 +25,7 @@ import {
   getSeededLikeCount,
 } from "@/data/reviews";
 import { spotlightRanking } from "@/data/spotlight";
+import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
@@ -53,10 +54,14 @@ const ProductReview = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const { isMember, isVip } = useMembership();
-  const review = useMemo(() => productReviews.find((item) => item.id === slug), [slug]);
+  const { data: generatedReviews } = useGeneratedReviews();
+  const allReviews = useMemo(
+    () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
+    [generatedReviews],
+  );
+  const review = useMemo(() => allReviews.find((item) => item.id === slug), [allReviews, slug]);
   const { getImage: getReviewImage } = useReviewImages();
   const productImage = useMemo(
-    () => (review ? getReviewImage(review.id, review.category) : null),
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
     [review, getReviewImage],
   );
@@ -198,7 +203,7 @@ const ProductReview = () => {
 
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
   const displayComments = comments.length === 0 ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` })) : comments;
-  const relatedReviews = productReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
+  const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
   const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
   const seasonalFeature = allSeasons
     .map((season) => seasonHubs[season])
