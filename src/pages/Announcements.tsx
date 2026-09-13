@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
-import { Megaphone, Sparkles, Award, Sun, Mic, ShoppingBag, Calendar } from "lucide-react";
+import { Megaphone, Sparkles, Award, Sun, Mic, ShoppingBag, Calendar, Beaker } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -13,6 +13,14 @@ interface Announcement {
 }
 
 const announcements: Announcement[] = [
+  {
+    date: "2026-09-13",
+    tag: "New",
+    icon: <Beaker className="h-5 w-5" />,
+    title: "Ingredients Directory with Combination Checker now live",
+    description:
+      "We've launched a comprehensive Ingredients directory featuring our new Ingredient Combination checker — a database-driven compatibility checker backed by real, cited sources. The combination checker is available for free to all members for a limited time. Browse ingredient profiles freely, or sign in to use the Combination checker and see which ingredients work together, which need spacing, and which should never be mixed.",
+  },
   {
     date: "2026-09-08",
     tag: "Platform",

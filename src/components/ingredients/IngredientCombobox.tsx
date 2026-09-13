@@ -10,11 +10,12 @@ interface Props {
   value: IngredientOption | null;
   onChange: (value: IngredientOption | null) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 /** Alias-aware ingredient picker (searches by INCI name, common name, or a
  *  known alias like "vit c") for the Combination Checker. */
-const IngredientCombobox = ({ value, onChange, placeholder = "Select an ingredient…" }: Props) => {
+const IngredientCombobox = ({ value, onChange, placeholder = "Select an ingredient…", disabled = false }: Props) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { data: options, isFetching } = useIngredientOptions(query);
@@ -27,6 +28,7 @@ const IngredientCombobox = ({ value, onChange, placeholder = "Select an ingredie
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between font-normal"
+          disabled={disabled}
         >
           {value ? value.label : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
