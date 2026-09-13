@@ -173,7 +173,7 @@ export function MarketplaceMenu({ open, onOpenChange }: { open: boolean; onOpenC
         </div>
 
         <Link
-          to="/dashboard"
+          to="/dashboard?tab=account"
           onClick={close}
           className="mx-3 my-3 flex items-center gap-3 rounded-xl px-2 py-3 text-sm font-medium text-stone-800 hover:bg-stone-50"
         >
