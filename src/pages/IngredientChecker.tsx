@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ArrowLeftRight, AlertTriangle, CheckCircle2, Clock, Sparkles, HelpCircle, Shuffle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,6 +9,7 @@ import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer"
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { Button } from "@/components/ui/button";
 import { useIngredientCompatibility } from "@/hooks/use-ingredient-compatibility";
+import { useAuth } from "@/hooks/use-auth";
 import type { IngredientOption } from "@/hooks/use-ingredient-compatibility";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -23,6 +25,7 @@ const IngredientChecker = () => {
   const [a, setA] = useState<IngredientOption | null>(null);
   const [b, setB] = useState<IngredientOption | null>(null);
   const { data: result, isLoading, isFetched } = useIngredientCompatibility(a?.id, b?.id);
+  const { user } = useAuth();
 
   const swap = () => {
     setA(b);
@@ -30,6 +33,16 @@ const IngredientChecker = () => {
   };
 
   const sameIngredient = !!a && !!b && a.id === b.id;
+
+  // Clear selections when user logs out
+  useEffect(() => {
+    if (!user) {
+      setA(null);
+      setB(null);
+    }
+  }, [user]);
+
+  const showAuthGate = !user && (a || b);
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,21 +62,63 @@ const IngredientChecker = () => {
             </p>
           </div>
 
+          {!user && (
+            <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
+              <p className="text-sm text-foreground">
+                <strong>Sign in required:</strong> The Ingredient Combination checker is available for free to all members for a limited time.{" "}
+                <Link to="/" className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80">
+                  Sign in or create a free account
+                </Link>{" "}
+                to use this feature.
+              </p>
+            </div>
+          )}
+
+          {showAuthGate && (
+            <div className="mt-6 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-8 text-center backdrop-blur-sm">
+              <p className="text-lg font-semibold text-foreground mb-2">Authentication required</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sign in to check ingredient compatibility. Anonymous users can browse ingredient profiles but cannot use the Combination checker.
+              </p>
+              <Button asChild className="mx-auto">
+                <Link to="/">Sign In / Sign Up</Link>
+              </Button>
+            </div>
+          )}
+
           <div className="mt-8 grid grid-cols-[1fr_auto_1fr] items-end gap-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Ingredient A</label>
-              <IngredientCombobox value={a} onChange={setA} placeholder="e.g. Retinol" />
+              <IngredientCombobox 
+                value={a} 
+                onChange={setA} 
+                placeholder="e.g. Retinol"
+                disabled={!user}
+              />
             </div>
-            <Button variant="ghost" size="icon" onClick={swap} aria-label="Swap ingredients" className="mb-0.5">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={swap} 
+              aria-label="Swap ingredients" 
+              className="mb-0.5"
+              disabled={!user}
+            >
               <ArrowLeftRight className="h-4 w-4" />
             </Button>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Ingredient B</label>
-              <IngredientCombobox value={b} onChange={setB} placeholder="e.g. Glycolic Acid" />
+              <IngredientCombobox 
+                value={b} 
+                onChange={setB} 
+                placeholder="e.g. Glycolic Acid"
+                disabled={!user}
+              />
             </div>
           </div>
 
-          <div className="mt-8">
+          {!showAuthGate && (
+            <div className="mt-8">
             {sameIngredient && (
               <div className="rounded-2xl border border-border bg-muted/40 p-6 text-center text-muted-foreground">
                 <Shuffle className="mx-auto mb-2 h-6 w-6" />
@@ -109,6 +164,7 @@ const IngredientChecker = () => {
               </div>
             )}
           </div>
+          )}
 
           <div className="mt-10">
             <IngredientDisclaimer />

@@ -30,6 +30,7 @@ const Footer = () => {
   const footerLinks = {
     products: [
       { label: "The Daily Skinny", href: "/briefings" },
+      { label: "Ingredients", href: "/ingredients" },
       { label: "Product Reviews", href: "/reviews" },
       { label: "Shelf Showdown", href: "/compare", isNew: true },
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
@@ -42,9 +43,7 @@ const Footer = () => {
       { label: "Consultations", href: "/consult", isComingSoon: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
       { label: "Academy", href: "/learn", isComingSoon: true },
-      { label: "Ingredients", href: "/ingredients" },
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
-      { label: "Announcements", href: "/announcements" },
     ],
     company: [
       { label: "About Us", href: "/about" },
@@ -52,7 +51,8 @@ const Footer = () => {
       { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
-      { label: "Brand Ambassadors", href: "/brand-ambassadors" },
+      { label: "Ambassadors", href: "/brand-ambassadors" },
+      { label: "Announcements", href: "/announcements" },
       { label: "Contact Us", href: "/contact" },
     ],
   };
