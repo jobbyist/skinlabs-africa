@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadAccountDataPdf } from "@/lib/generateAccountDataPdf";
 import { toast } from "sonner";
+import OpenHausWishlistCard from "@/components/dashboard/OpenHausWishlistCard";
 
 const AccountTab = () => {
   const { user, signOut } = useAuth();
@@ -46,10 +47,6 @@ const AccountTab = () => {
         supabase.from("payment_transactions").select("created_at, description, amount_zar, reference").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
-      // supabase-js resolves with { data: null, error } rather than throwing
-      // on a query error, so treating .data as always-present let a failed
-      // profile fetch (RLS hiccup, dropped connection) silently generate a
-      // near-empty PDF — surface it instead and stop before generating one.
       const failed = [profileRes, recsRes, journeyRes, txRes].find((r) => r.error);
       if (failed?.error) throw failed.error;
 
@@ -115,10 +112,6 @@ const AccountTab = () => {
       navigate("/");
     } catch (err) {
       console.error("account deletion failed", err);
-      // A failed attempt must not leave "DELETE" sitting in the field: the
-      // button is only disabled by deleteConfirm !== "DELETE", so a cached
-      // value would let a bare click re-submit the deletion on retry without
-      // the user consciously retyping the confirmation phrase again.
       setDeleteConfirm("");
       toast.error("Could not delete your account. Please try again or contact us.");
     } finally {
@@ -128,6 +121,8 @@ const AccountTab = () => {
 
   return (
     <div className="space-y-6">
+      <OpenHausWishlistCard />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><LogOut className="h-5 w-5 text-primary" /> Session</CardTitle>
