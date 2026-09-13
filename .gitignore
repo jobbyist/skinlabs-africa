@@ -36,4 +36,5 @@ scripts/generated/
 # Phase 2 TanStack Start repo-root coexistence test build output (npm run
 # build:tanstack-start-test) — see docs/architecture/tanstack-start-repo-root-coexistence-test.md
 .output/
+.nitro/
 src/routeTree.gen.ts
