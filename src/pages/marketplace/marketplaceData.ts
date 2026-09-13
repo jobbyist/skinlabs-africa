@@ -2,12 +2,16 @@
  *  category/concern taxonomy subsets. Real product data lives in Supabase
  *  (see src/hooks/use-marketplace-products.ts) — this file has no product
  *  rows anymore.
+ *
+ *  Cover images: prefer the refreshed brand banners in /public/marketplace/brands/
+ *  (esse-cover.jpg, standard-beauty-cover.jpg, skoon-cover.jpg, lelive-cover.jpg).
+ *  Bundled PNG imports remain as fallbacks if public files are missing at build time.
  */
 
-import skoonCover from "@/assets/marketplace/brands/skoon-cover.png";
-import standardBeautyCover from "@/assets/marketplace/brands/standard-beauty-cover.png";
-import esseCover from "@/assets/marketplace/brands/esse-cover.png";
-import leliveCover from "@/assets/marketplace/brands/lelive-cover.png";
+import skoonCoverFallback from "@/assets/marketplace/brands/skoon-cover.png";
+import standardBeautyCoverFallback from "@/assets/marketplace/brands/standard-beauty-cover.png";
+import esseCoverFallback from "@/assets/marketplace/brands/esse-cover.png";
+import leliveCoverFallback from "@/assets/marketplace/brands/lelive-cover.png";
 
 export interface MarketplaceBrand {
   id: string;
@@ -18,6 +22,7 @@ export interface MarketplaceBrand {
   logoStyle: string;
   /** Real brand cover artwork — when present, rendered instead of the text logoText fallback. */
   coverImage?: string;
+  shortDescription?: string;
 }
 
 export const featuredBrands: MarketplaceBrand[] = [
@@ -28,7 +33,8 @@ export const featuredBrands: MarketplaceBrand[] = [
     origin: "South African",
     logoText: "SKOON.",
     logoStyle: "font-black tracking-widest text-white bg-black",
-    coverImage: skoonCover,
+    coverImage: "/marketplace/brands/skoon-cover.jpg",
+    shortDescription: "Clean, minimalist SA skincare focused on barrier health.",
   },
   {
     id: "standard-beauty",
@@ -37,7 +43,8 @@ export const featuredBrands: MarketplaceBrand[] = [
     origin: "South African",
     logoText: "standard.",
     logoStyle: "font-light tracking-wide text-white bg-black",
-    coverImage: standardBeautyCover,
+    coverImage: "/marketplace/brands/standard-beauty-cover.jpg",
+    shortDescription: "Affordable actives that work — evidence-led formulas.",
   },
   {
     id: "esse",
@@ -46,7 +53,8 @@ export const featuredBrands: MarketplaceBrand[] = [
     origin: "South African",
     logoText: "esse",
     logoStyle: "font-thin tracking-widest italic text-white bg-black",
-    coverImage: esseCover,
+    coverImage: "/marketplace/brands/esse-cover.jpg",
+    shortDescription: "Probiotic skincare rooted in microbiome science.",
   },
   {
     id: "lelive",
@@ -55,9 +63,18 @@ export const featuredBrands: MarketplaceBrand[] = [
     origin: "South African",
     logoText: "lelive.",
     logoStyle: "font-light tracking-widest text-white bg-black",
-    coverImage: leliveCover,
+    coverImage: "/marketplace/brands/lelive-cover.jpg",
+    shortDescription: "Sun-smart formulas built for South African skin and light.",
   },
 ];
+
+/** Fallbacks if public cover JPGs are not deployed yet */
+export const brandCoverFallbacks: Record<string, string> = {
+  skoon: skoonCoverFallback,
+  "standard-beauty": standardBeautyCoverFallback,
+  esse: esseCoverFallback,
+  lelive: leliveCoverFallback,
+};
 
 export const concerns = [
   {
