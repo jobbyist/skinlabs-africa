@@ -274,6 +274,118 @@ feature appear operational.
   challenge that blocks this sandbox's outbound fetches (confirmed
   browser-UA curl requests succeed, bare/HEAD requests don't), so whether
   Supabase's edge runtime gets a cleaner path is unverified.
+- **The Skin Deep podcast** — episode content is a hardcoded array in
+  `src/data/podcast.ts` (no DB-backed episode table); cover art lives in
+  `public/podcast/`. `/podcast` (hub, `PodcastPage.tsx`) and
+  `/podcast/:slug` (`EpisodePage.tsx`) both read from it, plus the
+  homepage teaser (`PodcastSection.tsx`). New episodes publish **every
+  Friday at 12:00 SAST** (`getNextEpisodeDate()`) — this replaced an
+  earlier "last Friday of the month" cadence on 2026-09-13. Engagement
+  (play/like/share counts, `usePodcastEngagement` +
+  `PodcastEngagementBar.tsx`) follows the same seed-plus-localStorage
+  pattern used elsewhere (briefings' `view_count`): each episode carries
+  a deterministic `seedPlays`/`seedLikes`/`seedShares` baseline, with
+  real increments in localStorage and best-effort Supabase writes to
+  `podcast_plays`/`podcast_likes`/`podcast_shares` for cross-device sync
+  — none of these are a literal live global counter. `podcast_plays`
+  (migration `20260820000000_create_podcast_plays_table.sql`) shipped
+  with RLS enabled but **no INSERT policy at all** (it ends mid-comment),
+  so every play write 42501'd silently until
+  `20260913070000_fix_podcast_plays_insert_policy.sql` fixed it;
+  `podcast_likes` was referenced in `use-podcast-engagement.ts` from the
+  start but never had a migration until
+  `20260913071000_podcast_likes_and_shares.sql` (which also added
+  `podcast_shares`). If engagement writes start failing again, check for
+  exactly this pattern (RLS on, policy missing) before assuming a GRANT
+  problem — this project's `public` schema has `ALTER DEFAULT
+  PRIVILEGES ... GRANT ALL ON TABLES TO anon, authenticated` already set,
+  so RLS policies (not GRANTs) are almost always the real gate here.
+  **Episodes 1-4's real audio does not match what was originally written
+  for them** — confirmed 2026-09-13 by actually transcribing the four
+  `public/epNskinlabs.mp3` files (Adobe's `media_summarize` MCP tool has
+  no working poll/status path in this headless CLI environment — every
+  call starts a fresh job rather than checking an existing one — so the
+  practical route was local: `apt-get install ffmpeg`, `ffmpeg` to 16kHz
+  mono WAV, then Python `vosk` with the `vosk-model-en-us-0.22-lgraph`
+  model). All four are a generic, non-SA-specific two-host "AI deep dive"
+  style recording (think NotebookLM), not scripted SkinLabs-specific
+  audio — e.g. episode 1 ("Weird Skincare") is actually about the beef
+  tallow trend, not snail mucin/edible serums, and real runtimes are far
+  shorter than originally listed (~5-8 min actual vs. 18-22 min claimed).
+  `showNotes`/`timestamps`/`transcript`/`duration` for episodes 1-4 were
+  rewritten from the real transcripts (timestamps verified against
+  word-level ASR timing, not guessed); `productsMentioned` was cleared to
+  `[]` for all four since the real audio never names any SkinLabs-
+  reviewed product — the previous entries were fabricated. The
+  `transcript` field intentionally stays a handful of short paraphrased
+  pull-quotes (the pre-existing pattern, gated behind membership via
+  `GatedOverlay`), not a raw ASR dump — the vosk output has real
+  disfluencies and misheard proper nouns (e.g. dermatologist "Rebecca
+  Marcus" transcribed as "Rebecca tablets") that would misinform readers
+  if published verbatim. Full raw transcripts/JSON word-timing data from
+  this pass were only saved to the session scratchpad, not committed —
+  regenerate with the same ffmpeg+vosk pipeline if needed again.
+  **Episodes 5-9 published 2026-09-13** (same ffmpeg+vosk transcription
+  method), one per week starting 2026-09-18 (`publishedAt`
+  2026-09-18/25, 10-02/09/16). Unlike 1-4, their real audio actually
+  matches the pre-written titles/topics reasonably well — no rewrite of
+  title/topics was needed, only description/showNotes/timestamps/
+  transcript/duration from the real transcripts (same reasoning as 1-4:
+  no fabricated `productsMentioned`, chapter timestamps from word-level
+  ASR timing). One notable trait worth knowing before touching this data
+  again: all nine published episodes (1-9) are the same synthetic
+  "two-host NotebookLM-style deep dive" format, and episodes 5-9
+  specifically frame themselves as reading from and discussing SkinLabs'
+  *own* internal materials/ecosystem (editorial independence, the AI
+  formulator, Seasons, the Review Engine, the dermatologist directory,
+  budget-vs-luxury packaging stability) rather than being independently
+  produced audio — i.e. the podcast is largely narrating the rest of the
+  site back to itself. That's not necessarily a problem, but don't be
+  surprised by it, and don't assume future episode audio will follow the
+  same format without checking. Episode 10 is still `comingSoon: true`
+  (real cover art and audio file are wired in — `public/ep10skinlabs.mp3`
+  — but it has no publishedAt/showNotes/transcript yet, deliberately not
+  published without the same transcription/QA pass).
+- The engagement seed generator changed 2026-09-13 from a deterministic
+  `seed(id, base, spread)` formula to a fixed `engagementSeed` lookup
+  table (per explicit request: every published episode starts at a
+  minimum of 3286 plays, likes/shares randomised proportionally). If
+  asked to reseed again, generate fresh numbers the same way (Python
+  `random` with a fixed seed for reproducibility) rather than reusing the
+  old formula.
+- `latestPublishedEpisode` (`src/data/podcast.ts`) drives the "New"
+  badge on the hub grid, homepage teaser cards, and the episode page —
+  it's whichever published episode has the most recent `publishedAt`,
+  computed automatically, not hardcoded. When a new episode publishes,
+  this updates itself; no manual badge toggling needed.
+- **Podcast RSS feed** — `scripts/generate-podcast-rss.ts` (bun, build-time,
+  wired into `npm run build` right after the sitemap step) generates
+  `public/podcast.xml` from `publishedPodcastEpisodes`, served at
+  `https://skinlabs.co.za/podcast.xml`. Standard RSS 2.0 + iTunes
+  namespace (title/summary/duration/episode/season/explicit per item,
+  channel-level owner/category/image) — this is what Apple Podcasts
+  Connect and Spotify for Podcasters both want as the feed URL when
+  submitting the show. `itunes:duration` reads from each episode's
+  `durationSeconds` (ffprobe-verified, not derived at build time — see
+  the QA note above) and `enclosure length` reads the real file size off
+  disk via `fs.statSync`, so both stay accurate without needing ffmpeg on
+  the build server. **Known gap: there is no show-level (or per-episode)
+  artwork in this repo that meets Apple/Spotify's 1400x1400+ square
+  minimum** — the feed currently points `itunes:image` at
+  `public/podcast/ep-coming-soon.jpg` (1024x1024) as a placeholder, and
+  episode-level images are 1080x1350 portrait, not square at all. The
+  feed will generate and validate fine, but submitting it as-is to Apple
+  Podcasts Connect or Spotify for Podcasters will likely get flagged or
+  rejected on artwork grounds — a human needs to supply real ≥1400x1400
+  (ideally 3000x3000) square show art before that submission step.
+  Generating this feed is also **not** the same as being live on Apple/
+  Spotify: actually submitting the feed URL through each platform's own
+  podcaster console (Apple Podcasts Connect, Spotify for Podcasters) is a
+  manual step by a human with ownership of those accounts — nothing in
+  this environment can do that submission itself. The hub page links to
+  `/podcast.xml` directly ("Subscribe via RSS") and via
+  `<link rel="alternate" type="application/rss+xml">` for feed-reader
+  autodiscovery in the meantime.
 
 ## Infrastructure notes
 
