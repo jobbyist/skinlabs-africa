@@ -49,6 +49,6 @@ alter table public.podcast_shares enable row level security;
 create policy "Anyone can log a podcast share"
   on public.podcast_shares for insert
   to anon, authenticated
-  with check (user_id is null or user_id = (select auth.uid()));
+  with check ((select auth.uid()) is null and user_id is null or user_id = (select auth.uid()));
 
 grant insert on public.podcast_shares to anon, authenticated;
