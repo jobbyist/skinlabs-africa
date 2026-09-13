@@ -3,7 +3,7 @@ import AdDisclosure from "@/components/AdDisclosure";
 
 const AFFILIATE_HREF = "https://c.trackmytarget.com/?a=s1d2fa&i=r344bf";
 const IMPRESSION_SRC = "https://i.trackmytarget.com/?a=s1d2fa&i=r344bf";
-const BANNER_SRC = "/affiliates/faithful-to-nature.jpg";
+const BANNER_SRC = "/affiliates/faithful-to-nature.gif";
 
 /** Fire a 1×1 impression pixel exactly once. Cache-busted so each fire is a unique request. */
 const fireImpressionPixel = () => {
