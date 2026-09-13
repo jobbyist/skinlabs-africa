@@ -32,6 +32,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const AdvertisingPolicy = lazy(() => import("./pages/AdvertisingPolicy"));
 const EditorialPolicy = lazy(() => import("./pages/EditorialPolicy"));
 const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
 const Whitepaper = lazy(() => import("./pages/Whitepaper"));
@@ -118,6 +119,7 @@ const AppContent = () => (
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/advertising-policy" element={<AdvertisingPolicy />} />
         <Route path="/editorial-policy" element={<EditorialPolicy />} />
         <Route path="/community-guidelines" element={<CommunityGuidelines />} />
         <Route path="/whitepapers" element={<Whitepaper />} />
