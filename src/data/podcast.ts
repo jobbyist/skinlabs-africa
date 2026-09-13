@@ -324,7 +324,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     title: "Episode 10: Are You Buying Skincare Or Buying The Marketing?",
     image: cover.ep10,
     thumbnail: cover.ep10,
-    audioFile: "",
+    audioFile: "/ep10skinlabs.mp3",
     description:
       "Cute packaging. Big promises. A suspiciously expensive serum. We look at skincare marketing, ingredient lists, “clean” beauty, celebrity products and the difference between good formulation and clever advertising.",
     audioScript: "",
