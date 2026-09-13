@@ -138,6 +138,44 @@ feature appear operational.
   `src/pages/AdminDashboard.tsx`. Seed ETL: `scripts/seed-skincare-
   intelligence.ts` (imports real data from `src/data/reviews.ts` only —
   never fabricates).
+- **Ingredients Intelligence Layer** (`/ingredients`, `/ingredients/:slug`,
+  `/ingredients/checker`) — public, free, SEO-indexed directory/detail/
+  checker built on the `ingredients`/`ingredient_concerns`/
+  `ingredient_interactions` tables above, extended (never duplicated) by
+  migrations `20260913080000_ingredients_intelligence_extensions.sql`
+  (adds `ingredients.category`, a new `ingredient_aliases` table,
+  `ingredient_interactions.explanation`/`usage_guidance`/
+  `verification_status`/`verified_by`/`last_verified_at`, a `'compatible'`
+  interaction-type enum value for myth-debunking, and three RPCs —
+  `get_ingredient_interaction`, `search_ingredients`,
+  `get_routine_conflicts`) and `20260913081000_ingredients_intelligence_
+  curated_seed.sql` (category backfill, real aliases, real
+  ingredient_concerns mappings, ~18 real sourced ingredient_interactions
+  citing DermNet NZ / JAAD Pinnell et al. 2004 / dermnetnz.org). Ships
+  deliberately on the existing 128-ingredient catalogue — no Firecrawl
+  ingestion pipeline yet; growing past 128 is a scoped future fast-follow,
+  not a gap to "fix" reflexively. New interaction rows go through the same
+  admin Data Quality verification queue as everything else (extended in
+  `AdminDashboard.tsx`).
+  - **Active Ingredient Conflict Matcher** — Glow Insider & VIP exclusive
+    (`"routine.conflict_matcher"` in `LADDER_CAPABILITIES.insider`/`.vip`,
+    `src/lib/entitlements.ts` — both the `FeatureKey` union entry AND the
+    ladder-array membership are required for the gate to actually pass;
+    it's easy to add only the former and ship a feature nobody can reach).
+    `src/lib/conflictMatcher.ts` resolves a member's **SKYNN AI generated
+    routine only** (`GroundedRoutine.am`/`.pm` from
+    `src/lib/skynnProductMatch.ts` — real `ProductReview` picks, `.id` ==
+    `products.slug`) through `product_ingredients` (current
+    `product_versions` only) to real `ingredients`, then calls
+    `get_routine_conflicts` for every pairwise flag/synergy — never an LLM
+    guess, and a pair with no seeded row simply produces nothing rather
+    than being inferred. Deliberately does **not** scan the free-text
+    manual dashboard Routine tracker (`use-routine.ts`), which has no
+    product linkage to resolve ingredients from. `deriveSeasonalGuidance()`
+    is pure, category-keyed, general non-fabricated seasonal/SPF guidance —
+    same precedent as `deriveMstSignal()` in `formulaResults.ts`. Rendered
+    via `ConflictMatcherPanel.tsx` inside `SavedAnalysisCard.tsx`, gated by
+    `FeatureGate`. Unit tests: `src/lib/__tests__/conflictMatcher.test.ts`.
 - **Product review pipeline** (`api/product-review-sync.ts`) — four clean
   roles: **Firecrawl = researcher** (finds/fetches real source pages),
   **Gemini = analyst + writer** (turns a source into a scored, grounded
