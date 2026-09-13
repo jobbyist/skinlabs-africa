@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MarketplaceHeader } from "@/components/marketplace/MarketplaceHeader";
+import { MarketplaceBreadcrumbs } from "@/components/marketplace/MarketplaceBreadcrumbs";
 import { MobileBottomNav } from "@/components/marketplace/MobileBottomNav";
 import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProductCard";
 import { ProductRatings } from "@/components/marketplace/ProductRatings";
@@ -130,20 +131,16 @@ export default function MarketplaceProductDetail() {
         <MarketplaceHeader showBack />
 
         <div className="max-w-lg lg:max-w-5xl mx-auto px-4 pt-3 pb-1">
-          <nav className="flex items-center gap-1.5 text-[10px] text-stone-400 flex-wrap">
-            {["Home", product.category, product.brand.name, product.name].map((crumb, i, arr) => (
-              <span key={crumb} className="flex items-center gap-1.5">
-                <span className={i === arr.length - 1 ? "text-stone-600 font-medium" : "hover:text-stone-600 cursor-pointer"}>
-                  {crumb}
-                </span>
-                {i < arr.length - 1 && <ChevronRight className="h-3 w-3" />}
-              </span>
-            ))}
-          </nav>
+          <MarketplaceBreadcrumbs
+            items={[
+              { label: "Brands", href: "/marketplace/brands" },
+              { label: product.brand.name, href: `/marketplace/brand/${product.brand.slug}` },
+              { label: product.name },
+            ]}
+          />
         </div>
 
         <div className="max-w-lg lg:max-w-5xl mx-auto lg:grid lg:grid-cols-2 lg:gap-10">
-          {/* ── Product gallery ── */}
           <section className="px-4 pt-2 pb-4">
             <div className="relative rounded-3xl overflow-hidden bg-stone-50 h-72 lg:h-[420px]">
               <button
@@ -216,7 +213,6 @@ export default function MarketplaceProductDetail() {
             )}
           </section>
 
-          {/* ── Product info ── */}
           <section className="px-4 pb-4">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
               <Link
@@ -315,7 +311,6 @@ export default function MarketplaceProductDetail() {
           </section>
         </div>
 
-        {/* ── Trust row ── */}
         <section className="max-w-lg lg:max-w-5xl mx-auto px-4 pb-6">
           <div className="grid grid-cols-3 gap-2 border-t border-b border-stone-100 py-4">
             {[
@@ -332,7 +327,6 @@ export default function MarketplaceProductDetail() {
           </div>
         </section>
 
-        {/* ── Tabs ── */}
         <section className="max-w-lg lg:max-w-5xl mx-auto px-4 pb-6">
           <div className="flex border-b border-stone-100 mb-5 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
@@ -395,37 +389,33 @@ export default function MarketplaceProductDetail() {
 
             {activeTab === "Ratings" && (
               <motion.div key="ratings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
-                <div className="bg-stone-50 rounded-2xl p-4">
-                  <ProductRatings productId={product.id} externalRating={product.externalRating} />
-                </div>
+                <ProductRatings productId={product.id} externalRating={product.externalRating} />
               </motion.div>
             )}
           </AnimatePresence>
         </section>
 
-        {/* ── You might also like ── */}
         {related.length > 0 && (
-          <section className="max-w-lg lg:max-w-5xl mx-auto px-4 pb-6">
-            <h2 className="font-bold text-[16px] text-stone-900 mb-4">You might also like</h2>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
-              {related.map((item) => (
-                <div key={item.id} className="flex-shrink-0 w-36">
-                  <MarketplaceProductCard product={item} saved={savedIds.has(item.id)} onToggleSave={() => toggleSaved(item.id)} />
-                </div>
+          <section className="max-w-lg lg:max-w-5xl mx-auto px-4 pb-8">
+            <h2 className="font-bold text-[16px] text-stone-900 mb-4">You may also like</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {related.map((p) => (
+                <MarketplaceProductCard
+                  key={p.id}
+                  product={p}
+                  saved={savedIds.has(p.id)}
+                  onToggleSave={() => toggleSaved(p.id)}
+                />
               ))}
             </div>
           </section>
         )}
 
-        {/* ── Sticky bottom bar ── */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-stone-100 lg:hidden">
-          <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-4">
-            <div>
-              <p className="font-black text-[18px] text-stone-900">{formatZar(product.markedUpPriceZar)}</p>
-              <div className={cn("flex items-center gap-1 text-[10px]", product.inStock ? "text-emerald-600" : "text-stone-400")}>
-                <div className={cn("h-1.5 w-1.5 rounded-full", product.inStock ? "bg-emerald-500" : "bg-stone-300")} />
-                <span>{product.inStock ? "In stock" : "Out of stock"}</span>
-              </div>
+        <div className="fixed bottom-16 left-0 right-0 z-30 border-t border-stone-100 bg-white/95 backdrop-blur px-4 py-3 lg:hidden">
+          <div className="max-w-lg mx-auto flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs text-stone-500">{product.brand.name}</p>
+              <p className="truncate text-sm font-bold text-stone-900">{formatZar(product.markedUpPriceZar)}</p>
             </div>
             <motion.button
               onClick={handleAddToCart}
