@@ -7,7 +7,7 @@ import GatedOverlay from "@/components/GatedOverlay";
 import ArticleComments from "@/components/ArticleComments";
 import PodcastEngagementBar from "@/components/PodcastEngagementBar";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
-import { podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
@@ -105,6 +105,11 @@ const EpisodePage = () => {
           <div className="space-y-8">
             <div>
               <div className="mb-3 flex flex-wrap gap-2">
+                {episode.slug === latestPublishedEpisode?.slug && (
+                  <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary-foreground">
+                    New
+                  </span>
+                )}
                 {episode.topics.map((topic) => (
                   <span key={topic} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
                     {topic}
