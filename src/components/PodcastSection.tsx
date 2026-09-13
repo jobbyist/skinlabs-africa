@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { Play, Pause, Clock, Lock, SkipBack, SkipForward, Heart } from "lucide-react";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
+import ContinueListeningRail from "@/components/ContinueListeningRail";
 
 interface PodcastSectionProps {
   heading?: string;
@@ -15,7 +16,7 @@ interface PodcastSectionProps {
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
   description =
-    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes on the last Friday of every month. Coming soon to all major podcast platforms.",
+    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms.",
   showCta = true,
   limit,
 }: PodcastSectionProps) => {
@@ -47,6 +48,8 @@ const PodcastSection = ({
             </Link>
           )}
         </div>
+
+        <ContinueListeningRail />
 
         {!isMember && (
           <div className="mb-6 text-center">
@@ -81,8 +84,13 @@ const PodcastSection = ({
                     src={episode.image}
                     alt={`${episode.title} cover art`}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                   />
+                  {episode.slug === latestPublishedEpisode?.slug && (
+                    <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground shadow">
+                      New
+                    </span>
+                  )}
                   <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-border/60 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-md">
                     <div className="flex items-center gap-2">
                       <button
