@@ -1,1 +1,1 @@
-RESTORED_PLACEHOLDER - full content in next step
+PLACEHOLDER_WILL_REPLACE
