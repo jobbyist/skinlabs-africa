@@ -3,10 +3,11 @@ import { ArrowLeft, Calendar, FileText, TrendingUp } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
-import { SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from "@/data/spotlight";
+import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 
 const SpotlightMethodology = () => {
   const canonical = "https://skinlabs.co.za/spotlight/methodology";
+  const { data: edition } = useSpotlightEdition();
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,7 +25,7 @@ const SpotlightMethodology = () => {
 
           <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight</p>
           <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">How the ranking works</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{SPOTLIGHT_METHODOLOGY_VERSION} · Effective {SPOTLIGHT_EDITION_MONTH}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{edition.methodologyVersion} · Effective {edition.editionLabel}</p>
 
           <div className="prose prose-neutral mt-8 max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">
             <h2>Purpose</h2>

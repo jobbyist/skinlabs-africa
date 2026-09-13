@@ -83,6 +83,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_generated_product_reviews: {
+        Row: {
+          brand: string
+          category: string
+          created_at: string
+          data_quality_status: string
+          generated_by: string
+          id: string
+          is_sponsored: boolean
+          key_ingredients: string[]
+          local_price_zar: number
+          origin: string
+          product_name: string
+          published_date: string
+          retailers: Json
+          score_climate: number
+          score_efficacy: number
+          score_texture: number
+          score_value: number
+          skin_type_match: string[]
+          source_type: string
+          source_url: string
+          verdict: string
+          where_to_buy: string
+        }
+        Insert: {
+          brand: string
+          category: string
+          created_at?: string
+          data_quality_status?: string
+          generated_by?: string
+          id: string
+          is_sponsored?: boolean
+          key_ingredients?: string[]
+          local_price_zar: number
+          origin: string
+          product_name: string
+          published_date?: string
+          retailers?: Json
+          score_climate: number
+          score_efficacy: number
+          score_texture: number
+          score_value: number
+          skin_type_match?: string[]
+          source_type: string
+          source_url: string
+          verdict: string
+          where_to_buy: string
+        }
+        Update: {
+          brand?: string
+          category?: string
+          created_at?: string
+          data_quality_status?: string
+          generated_by?: string
+          id?: string
+          is_sponsored?: boolean
+          key_ingredients?: string[]
+          local_price_zar?: number
+          origin?: string
+          product_name?: string
+          published_date?: string
+          retailers?: Json
+          score_climate?: number
+          score_efficacy?: number
+          score_texture?: number
+          score_value?: number
+          skin_type_match?: string[]
+          source_type?: string
+          source_url?: string
+          verdict?: string
+          where_to_buy?: string
+        }
+        Relationships: []
+      }
       auth_exchange_codes: {
         Row: {
           code: string
@@ -2152,6 +2227,12 @@ export type Database = {
           allergies: string[] | null
           billing_interval: string
           city: string | null
+          cookie_consent: string | null
+          cookie_consent_at: string | null
+          cookie_consent_expires_at: string | null
+          cookie_consent_preferences: Json | null
+          cookie_consent_version: string | null
+          cookie_preferences: Json | null
           country: string
           created_at: string
           date_of_birth: string | null
@@ -2188,6 +2269,12 @@ export type Database = {
           allergies?: string[] | null
           billing_interval?: string
           city?: string | null
+          cookie_consent?: string | null
+          cookie_consent_at?: string | null
+          cookie_consent_expires_at?: string | null
+          cookie_consent_preferences?: Json | null
+          cookie_consent_version?: string | null
+          cookie_preferences?: Json | null
           country?: string
           created_at?: string
           date_of_birth?: string | null
@@ -2224,6 +2311,12 @@ export type Database = {
           allergies?: string[] | null
           billing_interval?: string
           city?: string | null
+          cookie_consent?: string | null
+          cookie_consent_at?: string | null
+          cookie_consent_expires_at?: string | null
+          cookie_consent_preferences?: Json | null
+          cookie_consent_version?: string | null
+          cookie_preferences?: Json | null
           country?: string
           created_at?: string
           date_of_birth?: string | null
@@ -2899,6 +2992,33 @@ export type Database = {
           role_at_brand?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      spotlight_editions: {
+        Row: {
+          created_at: string
+          edition_label: string
+          id: string
+          is_current: boolean
+          methodology_version: string
+          review_count_at_snapshot: number
+        }
+        Insert: {
+          created_at?: string
+          edition_label: string
+          id?: string
+          is_current?: boolean
+          methodology_version: string
+          review_count_at_snapshot: number
+        }
+        Update: {
+          created_at?: string
+          edition_label?: string
+          id?: string
+          is_current?: boolean
+          methodology_version?: string
+          review_count_at_snapshot?: number
         }
         Relationships: []
       }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
+import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
@@ -50,6 +51,11 @@ const ReviewsGrid = ({
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
   const { getImage: getReviewImage } = useReviewImages();
+  const { data: generatedReviews } = useGeneratedReviews();
+  const allReviews = useMemo(
+    () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
+    [generatedReviews],
+  );
 
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
@@ -62,7 +68,7 @@ const ReviewsGrid = ({
   const currentPage = Math.max(1, parseInt(params.page || "1", 10) || 1);
 
   const filtered = useMemo(() => {
-    let base = productReviews.filter((r) => category === "All" || r.category === category);
+    let base = allReviews.filter((r) => category === "All" || r.category === category);
 
     if (priceRange !== "all") {
       base = base.filter((r) => {
@@ -97,7 +103,7 @@ const ReviewsGrid = ({
     }
     if (limit) return base.slice(0, limit);
     return base;
-  }, [category, limit, query, priceRange, skinType, sortBy]);
+  }, [allReviews, category, limit, query, priceRange, skinType, sortBy]);
 
   const matchReasons = useMemo(() => {
     if (!query.trim()) return new Map<string, string[]>();

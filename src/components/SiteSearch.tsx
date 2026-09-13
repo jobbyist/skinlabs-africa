@@ -4,6 +4,7 @@ import { Award, FileText, HelpCircle, type LucideIcon, Mic, Newspaper, ShoppingB
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { useMarketplaceProducts } from "@/hooks/use-marketplace-products";
+import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
@@ -36,6 +37,11 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
   const navigate = useNavigate();
   const { articles: briefings } = useNewsArticles(30);
   const { data: marketplaceProducts } = useMarketplaceProducts();
+  const { data: generatedReviews } = useGeneratedReviews();
+  const allReviews = useMemo(
+    () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
+    [generatedReviews],
+  );
   const [rawQuery, setRawQuery] = useState("");
   const query = useDebouncedValue(rawQuery, 120);
   const hasQuery = query.trim().length > 0;
@@ -81,7 +87,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       return { key: `season-${season}`, score: match.score, reasons: match.reasons, icon: Sun, title: hub.h1, subtitle: "Seasonal", href: `/seasonals/${season}` };
     });
 
-    const reviews: RankedResult[] = productReviews.map((review) => {
+    const reviews: RankedResult[] = allReviews.map((review) => {
       const match = scoreProductReview(query, review);
       return {
         key: `rev-${review.id}`,
@@ -141,7 +147,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     });
 
     return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace };
-  }, [query, briefings, marketplaceProducts]);
+  }, [query, briefings, marketplaceProducts, allReviews]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
   const forDisplay = (list: RankedResult[], fallback: RankedResult[]) => (hasQuery ? matched(list).slice(0, GROUP_CAP) : fallback);
