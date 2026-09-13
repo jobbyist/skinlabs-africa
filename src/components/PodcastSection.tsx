@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Play, Pause, Clock, Lock, SkipBack, SkipForward, Heart } from "lucide-react";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 
@@ -83,6 +83,11 @@ const PodcastSection = ({
                     loading="lazy"
                     className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                   />
+                  {episode.slug === latestPublishedEpisode?.slug && (
+                    <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground shadow">
+                      New
+                    </span>
+                  )}
                   <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-border/60 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-md">
                     <div className="flex items-center gap-2">
                       <button

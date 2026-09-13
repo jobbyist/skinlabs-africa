@@ -38,8 +38,22 @@ export interface PodcastEpisode {
   comingSoon?: boolean;
 }
 
-/** Deterministic seed from id so numbers look organic but stable across deploys. */
-const seed = (id: number, base: number, spread: number) => base + ((id * 97 + 13) % spread);
+/**
+ * Fixed per-episode engagement baselines (not computed at runtime, so they
+ * stay stable across reloads/deploys). Every published episode starts at a
+ * minimum of 3286 plays, with likes/shares randomised proportionally.
+ */
+const engagementSeed: Record<number, { plays: number; likes: number; shares: number }> = {
+  1: { plays: 3677, likes: 440, shares: 218 },
+  2: { plays: 4239, likes: 573, shares: 291 },
+  3: { plays: 4810, likes: 481, shares: 184 },
+  4: { plays: 4778, likes: 486, shares: 171 },
+  5: { plays: 3835, likes: 480, shares: 164 },
+  6: { plays: 3518, likes: 385, shares: 129 },
+  7: { plays: 4945, likes: 540, shares: 179 },
+  8: { plays: 4341, likes: 554, shares: 178 },
+  9: { plays: 4565, likes: 455, shares: 247 },
+};
 
 export const podcastEpisodes: PodcastEpisode[] = [
   {
@@ -76,9 +90,9 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "For real barrier repair and anti-ageing benefit, ingredients like hyaluronic acid and retinoids already have the research behind them that tallow doesn't.",
     ],
     productsMentioned: [],
-    seedPlays: seed(1, 420, 380),
-    seedLikes: seed(1, 48, 40),
-    seedShares: seed(1, 22, 18),
+    seedPlays: engagementSeed[1].plays,
+    seedLikes: engagementSeed[1].likes,
+    seedShares: engagementSeed[1].shares,
   },
   {
     id: 2,
@@ -117,9 +131,9 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "If your barrier is compromised: stop every active, go back to a gentle cleanser and a bland moisturiser, and patch test anything new for seven to ten days before it touches your face.",
     ],
     productsMentioned: [],
-    seedPlays: seed(2, 380, 320),
-    seedLikes: seed(2, 41, 35),
-    seedShares: seed(2, 19, 16),
+    seedPlays: engagementSeed[2].plays,
+    seedLikes: engagementSeed[2].likes,
+    seedShares: engagementSeed[2].shares,
   },
   {
     id: 3,
@@ -152,9 +166,9 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "The counter-trend rests on three ideas: protect your skin's barrier first, keep your routine simple instead of stacking ten products, and treat real texture and pores as normal, not flaws to fix.",
     ],
     productsMentioned: [],
-    seedPlays: seed(3, 510, 290),
-    seedLikes: seed(3, 62, 28),
-    seedShares: seed(3, 25, 20),
+    seedPlays: engagementSeed[3].plays,
+    seedLikes: engagementSeed[3].likes,
+    seedShares: engagementSeed[3].shares,
   },
   {
     id: 4,
@@ -190,9 +204,9 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "If your barrier is compromised, stop every active — no retinol, no acids, no vitamin C — and rebuild with a gentle cleanser, a bland moisturiser and SPF. It can take weeks to fully recover.",
     ],
     productsMentioned: [],
-    seedPlays: seed(4, 290, 250),
-    seedLikes: seed(4, 33, 30),
-    seedShares: seed(4, 15, 14),
+    seedPlays: engagementSeed[4].plays,
+    seedLikes: engagementSeed[4].likes,
+    seedShares: engagementSeed[4].shares,
   },
   {
     id: 5,
@@ -329,6 +343,11 @@ export const podcastEpisodes: PodcastEpisode[] = [
 ];
 
 export const publishedPodcastEpisodes = podcastEpisodes.filter((e) => !e.comingSoon);
+
+/** The most recently published episode, used to show a "New" badge. */
+export const latestPublishedEpisode = [...publishedPodcastEpisodes].sort(
+  (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+)[0];
 
 export const podcastTopics = Array.from(
   new Set(publishedPodcastEpisodes.flatMap((episode) => episode.topics)),

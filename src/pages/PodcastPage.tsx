@@ -8,7 +8,13 @@ import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { getNextEpisodeDate, podcastEpisodes, podcastTopics, publishedPodcastEpisodes } from "@/data/podcast";
+import {
+  getNextEpisodeDate,
+  latestPublishedEpisode,
+  podcastEpisodes,
+  podcastTopics,
+  publishedPodcastEpisodes,
+} from "@/data/podcast";
 import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
@@ -182,6 +188,12 @@ const PodcastPage = () => {
                         isComingSoon && "opacity-90",
                       )}
                     />
+
+                    {episode.slug === latestPublishedEpisode?.slug && (
+                      <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground shadow">
+                        New
+                      </span>
+                    )}
 
                     {isComingSoon ? (
                       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/90 px-4 py-5 backdrop-blur-md">
