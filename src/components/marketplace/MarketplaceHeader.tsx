@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, ShoppingBag, Menu } from "lucide-react";
+import { ArrowLeft, Search, ShoppingBag, Menu, Home } from "lucide-react";
 import { OpenHausLogo } from "./OpenHausLogo";
 import { MarketplaceSearch } from "./MarketplaceSearch";
 import { MarketplaceMenu } from "./MarketplaceMenu";
@@ -25,21 +25,38 @@ export function MarketplaceHeader({ showBack = false }: { showBack?: boolean }) 
     <>
       <header className="sticky top-0 z-40 bg-[#faf9f7]/95 backdrop-blur-sm border-b border-stone-100">
         <div className="flex items-center justify-between px-4 lg:px-8 h-14 lg:h-16 max-w-lg lg:max-w-6xl mx-auto">
-          {showBack ? (
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-stone-100 transition-colors"
-              aria-label="Go back"
-            >
-              <ArrowLeft className="h-5 w-5 text-stone-700" />
-            </button>
-          ) : (
-            <Link to="/marketplace" className="flex items-center gap-2 min-w-0">
-              <OpenHausLogo />
-            </Link>
-          )}
+          <div className="flex items-center gap-1 min-w-0">
+            {showBack ? (
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 -ml-2 rounded-full hover:bg-stone-100 transition-colors"
+                aria-label="Go back"
+              >
+                <ArrowLeft className="h-5 w-5 text-stone-700" />
+              </button>
+            ) : (
+              <Link to="/marketplace" className="flex items-center gap-2 min-w-0">
+                <OpenHausLogo />
+              </Link>
+            )}
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <Link
+              to="/"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[11px] font-medium text-stone-700 hover:bg-stone-50 transition-colors"
+              aria-label="Back to SkinLabs homepage"
+            >
+              <Home className="h-3.5 w-3.5" />
+              SkinLabs home
+            </Link>
+            <Link
+              to="/"
+              className="sm:hidden p-2 rounded-full hover:bg-stone-100 transition-colors"
+              aria-label="Back to SkinLabs homepage"
+            >
+              <Home className="h-5 w-5 text-stone-700" />
+            </Link>
             <CurrencySelector className="hidden sm:flex h-8 w-[76px] text-[11px] rounded-full border-stone-200" />
             <button
               aria-label="Search OpenHaus products"
