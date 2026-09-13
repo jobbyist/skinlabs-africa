@@ -16,6 +16,8 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: "/podcast", changefreq: "weekly", priority: 0.9 },
   { loc: "/seasonals", changefreq: "weekly", priority: 0.85 },
   { loc: "/skynn-ai", changefreq: "weekly", priority: 0.9 },
+  { loc: "/ingredients", changefreq: "weekly", priority: 0.85 },
+  { loc: "/ingredients/checker", changefreq: "monthly", priority: 0.7 },
   { loc: "/pricing", changefreq: "weekly", priority: 0.9 },
   { loc: "/about", changefreq: "monthly", priority: 0.8 },
   { loc: "/consultations", changefreq: "monthly", priority: 0.8 },

@@ -574,6 +574,38 @@ export type Database = {
           },
         ]
       }
+      ingredient_aliases: {
+        Row: {
+          alias: string
+          alias_type: Database["public"]["Enums"]["ingredient_alias_type"]
+          created_at: string
+          id: string
+          ingredient_id: string
+        }
+        Insert: {
+          alias: string
+          alias_type?: Database["public"]["Enums"]["ingredient_alias_type"]
+          created_at?: string
+          id?: string
+          ingredient_id: string
+        }
+        Update: {
+          alias?: string
+          alias_type?: Database["public"]["Enums"]["ingredient_alias_type"]
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_aliases_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_concerns: {
         Row: {
           concern_id: string
@@ -622,30 +654,45 @@ export type Database = {
       ingredient_interactions: {
         Row: {
           confidence: Database["public"]["Enums"]["confidence_level"] | null
+          explanation: string | null
           id: string
           ingredient_a_id: string
           ingredient_b_id: string
           interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          last_verified_at: string | null
           notes: string | null
           source_url: string | null
+          usage_guidance: string | null
+          verification_status: Database["public"]["Enums"]["data_quality_status"]
+          verified_by: string | null
         }
         Insert: {
           confidence?: Database["public"]["Enums"]["confidence_level"] | null
+          explanation?: string | null
           id?: string
           ingredient_a_id: string
           ingredient_b_id: string
           interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          last_verified_at?: string | null
           notes?: string | null
           source_url?: string | null
+          usage_guidance?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]
+          verified_by?: string | null
         }
         Update: {
           confidence?: Database["public"]["Enums"]["confidence_level"] | null
+          explanation?: string | null
           id?: string
           ingredient_a_id?: string
           ingredient_b_id?: string
           interaction_type?: Database["public"]["Enums"]["ingredient_interaction_type"]
+          last_verified_at?: string | null
           notes?: string | null
           source_url?: string | null
+          usage_guidance?: string | null
+          verification_status?: Database["public"]["Enums"]["data_quality_status"]
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -666,6 +713,7 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          category: string | null
           common_name: string | null
           confidence: Database["public"]["Enums"]["confidence_level"] | null
           created_at: string
@@ -687,6 +735,7 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
+          category?: string | null
           common_name?: string | null
           confidence?: Database["public"]["Enums"]["confidence_level"] | null
           created_at?: string
@@ -708,6 +757,7 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
+          category?: string | null
           common_name?: string | null
           confidence?: Database["public"]["Enums"]["confidence_level"] | null
           created_at?: string
@@ -1476,6 +1526,72 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_api_usage: {
+        Row: {
+          called_at: string
+          id: string
+          provider: string
+          purpose: string | null
+          success: boolean
+        }
+        Insert: {
+          called_at?: string
+          id?: string
+          provider: string
+          purpose?: string | null
+          success?: boolean
+        }
+        Update: {
+          called_at?: string
+          id?: string
+          provider?: string
+          purpose?: string | null
+          success?: boolean
+        }
+        Relationships: []
+      }
+      pipeline_source_cache: {
+        Row: {
+          cache_key: string
+          expires_at: string
+          fetched_at: string
+          payload: Json
+        }
+        Insert: {
+          cache_key: string
+          expires_at: string
+          fetched_at?: string
+          payload: Json
+        }
+        Update: {
+          cache_key?: string
+          expires_at?: string
+          fetched_at?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
+      podcast_likes: {
+        Row: {
+          created_at: string
+          episode_slug: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          episode_slug: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          episode_slug?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       podcast_plays: {
         Row: {
           created_at: string | null
@@ -1499,6 +1615,30 @@ export type Database = {
           episode_title?: string
           id?: string
           played_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      podcast_shares: {
+        Row: {
+          episode_slug: string
+          episode_title: string
+          id: string
+          shared_at: string
+          user_id: string | null
+        }
+        Insert: {
+          episode_slug: string
+          episode_title: string
+          id?: string
+          shared_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          episode_slug?: string
+          episode_title?: string
+          id?: string
+          shared_at?: string
           user_id?: string | null
         }
         Relationships: []
@@ -3213,7 +3353,32 @@ export type Database = {
           inline_images: Json
         }[]
       }
+      get_ingredient_interaction: {
+        Args: { a: string; b: string }
+        Returns: {
+          confidence: Database["public"]["Enums"]["confidence_level"]
+          explanation: string
+          id: string
+          interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          notes: string
+          source_url: string
+          usage_guidance: string
+        }[]
+      }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
+      get_routine_conflicts: {
+        Args: { p_ingredient_ids: string[] }
+        Returns: {
+          confidence: Database["public"]["Enums"]["confidence_level"]
+          explanation: string
+          id: string
+          ingredient_a_id: string
+          ingredient_b_id: string
+          interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          source_url: string
+          usage_guidance: string
+        }[]
+      }
       grant_ai_credits:
         | {
             Args: {
@@ -3252,6 +3417,28 @@ export type Database = {
       }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      search_ingredients: {
+        Args: {
+          p_category?: string
+          p_concern_slug?: string
+          p_evidence?: Database["public"]["Enums"]["evidence_level"]
+          p_page?: number
+          p_per_page?: number
+          p_search?: string
+        }
+        Returns: {
+          category: string
+          common_name: string
+          evidence_level: Database["public"]["Enums"]["evidence_level"]
+          id: string
+          inci_name: string
+          irritancy_risk: Database["public"]["Enums"]["irritancy_risk"]
+          pregnancy_safe: boolean
+          short_description: string
+          slug: string
+          total_count: number
+        }[]
+      }
       search_products: {
         Args: {
           p_category_slug?: string
@@ -3297,12 +3484,18 @@ export type Database = {
         | "clinical_study"
         | "other"
       evidence_level: "strong" | "moderate" | "limited" | "anecdotal" | "none"
+      ingredient_alias_type:
+        | "common_name"
+        | "abbreviation"
+        | "inci_variant"
+        | "synonym"
       ingredient_concern_relationship: "treats" | "may_worsen" | "preventive"
       ingredient_interaction_type:
         | "avoid_combining"
         | "enhances"
         | "buffers"
         | "requires_spacing"
+        | "compatible"
       irritancy_risk: "low" | "moderate" | "high"
       skin_fit_rating: "excellent" | "good" | "caution" | "avoid"
     }
@@ -3453,12 +3646,19 @@ export const Constants = {
         "other",
       ],
       evidence_level: ["strong", "moderate", "limited", "anecdotal", "none"],
+      ingredient_alias_type: [
+        "common_name",
+        "abbreviation",
+        "inci_variant",
+        "synonym",
+      ],
       ingredient_concern_relationship: ["treats", "may_worsen", "preventive"],
       ingredient_interaction_type: [
         "avoid_combining",
         "enhances",
         "buffers",
         "requires_spacing",
+        "compatible",
       ],
       irritancy_risk: ["low", "moderate", "high"],
       skin_fit_rating: ["excellent", "good", "caution", "avoid"],

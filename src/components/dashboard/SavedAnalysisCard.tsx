@@ -4,6 +4,7 @@ import { ChevronDown, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
 import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
+import ConflictMatcherPanel from "@/components/dashboard/ConflictMatcherPanel";
 
 export interface SavedRecommendationRow {
   id: string;
@@ -87,6 +88,7 @@ const SavedAnalysisCard = ({ rec }: SavedAnalysisCardProps) => {
               <p className="text-[10px] text-muted-foreground/70">
                 Result v{result.versions.resultVersion} · scoring v{result.versions.scoringVersion}
               </p>
+              <ConflictMatcherPanel routine={result.groundedRoutine} />
             </>
           ) : (
             <p className="text-xs text-muted-foreground">

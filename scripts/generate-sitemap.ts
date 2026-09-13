@@ -41,6 +41,8 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/consult", changefreq: "weekly", priority: "0.85" },
   { path: "/announcements", changefreq: "monthly", priority: "0.6" },
   { path: "/knowledge-hub", changefreq: "weekly", priority: "0.9" },
+  { path: "/ingredients", changefreq: "weekly", priority: "0.85" },
+  { path: "/ingredients/checker", changefreq: "monthly", priority: "0.7" },
   { path: "/marketplace", changefreq: "daily", priority: "0.9" },
   { path: "/marketplace/brands", changefreq: "weekly", priority: "0.7" },
   { path: "/marketplace/categories", changefreq: "weekly", priority: "0.7" },
@@ -136,6 +138,18 @@ async function main() {
     } else {
       for (const brand of mktBrands ?? []) {
         if (typeof brand.slug === "string") add(`/marketplace/brand/${brand.slug}`, "weekly", "0.6");
+      }
+    }
+
+    const { data: ingredientRows, error: ingredientsError } = await supabase
+      .from("ingredients")
+      .select("slug")
+      .neq("verification_status", "deprecated");
+    if (ingredientsError) {
+      console.warn("generate-sitemap: could not fetch ingredient slugs:", ingredientsError.message);
+    } else {
+      for (const ingredient of ingredientRows ?? []) {
+        if (typeof ingredient.slug === "string") add(`/ingredients/${ingredient.slug}`, "monthly", "0.6");
       }
     }
 

@@ -1,10 +1,23 @@
 # Skincare intelligence DB — live migration status
 
 Tracks progress applying the 5 migrations in `supabase/migrations/20260907*
-_skincare_intelligence_*.sql` to the live "skinlabsza" Supabase project
-(Lovable project_id `3a7fffe1-a651-4cb0-9824-839db53d00ae`, Supabase project
-ref `lxbknnvzkxgmvifksyze`). Background/context: `CLAUDE.md`, `supabase/
-SCHEMA.md`.
+_skincare_intelligence_*.sql` to the **real production** Supabase project
+(ref `gnkpzijxuciiaamakgzm`, "SkinLabs® South Africa" — confirmed live via
+`mcp__Supabase__list_projects`, matching `.env`'s `VITE_SUPABASE_URL` and
+`supabase/config.toml`'s `project_id`). Background/context: `CLAUDE.md`,
+`supabase/SCHEMA.md`.
+
+## Correction (2026-09-13)
+
+Earlier revisions of this file targeted a **different, superseded** Supabase
+project (`lxbknnvzkxgmvifksyze`, the pre-cutover "skinlabsza" project, applied
+via `mcp__Lovable__query_database`). That work is not reflected on the real
+production project at all — as of 2026-09-13, a direct check of
+`gnkpzijxuciiaamakgzm` found the four schema/index migrations applied (tables,
+enums, RLS, `search_products()` all present) but **zero rows** in every
+knowledge table. The seed migration had simply never been run against the
+project the app actually uses. This file now tracks the real project only;
+do not resume against the old ref.
 
 ## Status as of this writing
 
@@ -16,25 +29,26 @@ SCHEMA.md`.
 | `20260907120003_skincare_intelligence_indexes_functions.sql` (indexes, `current_product_prices` view, `search_products()`) | ✅ Applied |
 | `20260907120004_skincare_intelligence_seed.sql` (160 products / 50 brands / 128 ingredients, real data from `src/data/reviews.ts`) | 🔶 Partially applied — see below |
 
-**Don't trust this table blindly** — verify live state before resuming (see
-"Check what's actually live" below). As of this writing: **80 of 160
-products/reviews live** (chunks 00-10 of the 21-chunk split described
-below applied and verified), 50/50 brands, 128/128 ingredients. Chunk 11
-was attempted twice and timed out both times (connector down, not a SQL
-error) — confirmed via REST it did NOT partially apply
-(`biooil-original-60ml` does not exist), so it's safe to just re-run it
-from scratch. Chunks 12-20 have not been attempted yet. The session that
-did this work was closed with the connector still down; a fresh session
-should pick up starting at chunk 11.
+**Live counts, verified via `mcp__Supabase__execute_sql` against
+`gnkpzijxuciiaamakgzm` (not assumed):** 128/128 ingredients, 50/50 brands,
+8/8 categories, 8/8 skin_types, 7/7 skin_concerns, 12/12 retailers all fully
+seeded (chunk 00 of the split below). **40/160 products/reviews live**
+(chunks 01–05 of the 21-chunk split applied and verified — one product per
+review, so review count always matches product count), 81 `product_ingredients`
+rows. Chunks 06–20 (products 41–160) have not been attempted yet.
+
+One transcription slip happened while manually re-applying chunk 01 in this
+session (a dropped `retailer_products` INSERT caused a price to be misattributed
+to the wrong retailer for `sb-niacinamide-10`) — found and repaired via a
+follow-up migration, then chunks 01–05 were re-verified by querying the exact
+expected slug list back out of `products` after every chunk. Do the same
+verification after every future chunk; don't trust "no SQL error" alone.
 
 ## Why the seed migration is chunked
 
-`20260907120004_skincare_intelligence_seed.sql` is ~790KB / ~13,500 lines.
-The only available path to run SQL against this project in this environment
-is `mcp__Lovable__query_database` (the Supabase MCP server has no access to
-this project — see CLAUDE.md), and that tool's `sql` parameter cannot
-reliably carry the whole file in one call. So the file gets split into
-smaller chunks and applied one at a time.
+`20260907120004_skincare_intelligence_seed.sql` is ~790KB / ~13,500 lines —
+too large to reliably paste as a single `mcp__Supabase__apply_migration` call.
+So the file gets split into smaller chunks and applied one at a time.
 
 Every chunk is **idempotent and safe to re-run**: the lookups chunk uses
 `ON CONFLICT ... DO NOTHING`, and every per-product `DO $product$ ... END
@@ -43,10 +57,11 @@ conflict. There is no harm in re-applying an already-applied chunk.
 
 ## How to resume in a new session
 
-1. **Check what's actually live** (don't rely on the table above):
+1. **Check what's actually live** (don't rely on the table above) — either a
+   live REST check:
 
    ```bash
-   cd /path/to/your/repo   # navigate to your local repo directory
+   cd /path/to/your/repo
    set -a; source .env; set +a
    curl -sS "$VITE_SUPABASE_URL/rest/v1/products?select=id" \
      -H "apikey: $VITE_SUPABASE_PUBLISHABLE_KEY" \
@@ -54,79 +69,60 @@ conflict. There is no harm in re-applying an already-applied chunk.
      -H "Prefer: count=exact" -D - -o /dev/null | grep -i content-range
    ```
 
+   or, from inside a session with the Supabase MCP server, just
+   `mcp__Supabase__execute_sql` a `select count(*) from public.products;`
+   against project_id `gnkpzijxuciiaamakgzm` (confirm this is still the real
+   project ref via `mcp__Supabase__list_projects` first — it has changed once
+   already, see CLAUDE.md's infrastructure notes).
+
    The seed data totals 160 products (and 160 published reviews, one per
-   product). If the count is already 160, the seed migration is done —
-   just spot-check a couple of tables (`brands` should be 50, `ingredients`
-   should be 128) and update the status table above.
+   product). If the count is already 160, the seed migration is done.
 
-   If migrations 1-4 haven't landed at all (a `products` query returns
-   `PGRST205: could not find the table`), start from migration 1, not the
-   seed — apply each of files 1-4 in full via `mcp__Lovable__query_database`
-   (each is small enough to send in one call), in order, then come back to
-   the seed migration below.
-
-2. **Regenerate the seed chunks** (they are NOT committed to the repo —
-   only this script and the source migration are):
+2. **Regenerate the seed chunks** (NOT committed to the repo — only this
+   script and the source migration are):
 
    ```bash
    bash scripts/split-seed-migration-chunks.sh
    ```
 
-   This writes `chunk_00_lookups.sql` through `chunk_20_products.sql` to
-   `.seed-chunks/` in the repo root (gitignored — pass a different output
-   dir as the first arg if you'd rather use a scratch directory). It always
-   reproduces the exact same 21 files byte-for-byte from the same source
-   migration.
+   This writes `chunk_00_lookups.sql` through `chunk_20_products.sql` (21
+   files, 8 products per product-chunk — this exact size was chosen because
+   it reliably stays under the `Read` tool's 25,000-token page cap; do not
+   regenerate with a larger group size, it was tried and made things worse)
+   to `.seed-chunks/` in the repo root (gitignored). It always reproduces the
+   exact same 21 files byte-for-byte from the same source migration.
 
-3. **Apply chunks in order**, starting from `chunk_00_lookups.sql`, via the
-   `mcp__Lovable__query_database` tool (`project_id`:
-   `3a7fffe1-a651-4cb0-9824-839db53d00ae`). For each chunk: read its full
-   content, pass that exact content as the `sql` parameter, and confirm the
-   result is `{"rows":[]}`. Since every chunk is idempotent, it's fine (and
-   simplest) to just re-apply chunk 00 and all product chunks from 01
-   onward, even ones that already landed — nothing will be duplicated or
-   overwritten incorrectly.
+3. **Apply chunks 06–20 in order**, via `mcp__Supabase__apply_migration`
+   (`project_id: gnkpzijxuciiaamakgzm`). For each chunk:
+   a. `Read` the chunk file in full.
+   b. Reproduce its exact content as the `query` parameter of
+      `apply_migration` — copy mechanically, do not paraphrase or "clean up"
+      anything, and do not skip any `DO $product$` block.
+   c. **Immediately verify** — extract the chunk's product slugs (e.g.
+      `grep -oE "SELECT '[a-z0-9-]+', b\.id" chunk_NN_products.sql`) and query
+      `select slug from public.products where slug = ANY(ARRAY[...])` to
+      confirm all 8 landed. If any are missing, apply just that missing
+      product's block as a small follow-up migration (do not re-run the
+      whole chunk blind — `ON CONFLICT DO NOTHING` will silently no-op the
+      products that DID land, which is fine, but re-verify after any fixup).
+   d. If a chunk applies but a later spot-check finds a wrong value (e.g. a
+      price attached to the wrong retailer), fix it with a small, explicit
+      `UPDATE`/`INSERT` migration referencing the correct source values from
+      the chunk file — don't try to "undo" by deleting and re-running the
+      whole `DO` block, since `ON CONFLICT DO NOTHING` means most of it won't
+      re-insert.
 
-   If you know roughly how many products are already live (e.g. 32 of 160
-   from the products count in step 1), you can skip straight to the chunk
-   whose products start after that point — each product chunk holds 8
-   products in slug order matching the source file, so 32 live products
-   means chunks 01-04 are done and you can start at chunk_05. When in
-   doubt, just start from chunk_01 anyway — the `ON CONFLICT DO NOTHING`
-   guards make redundant application harmless, just slightly slower.
+4. **Verify — don't trust "no error" alone.** After the last chunk, re-run
+   the REST/SQL count check from step 1 and confirm it reads 160. Also
+   spot-check a couple of specific products' `product_scores`/`product_prices`
+   via REST or SQL against the same product's `DO $product$` block in the
+   source migration file.
 
-   **Important tool-name note:** the Lovable MCP server's tool ID prefix
-   has been observed to change across reconnects in this environment (seen
-   as both `mcp__Lovable__query_database` and
-   `mcp__<random-uuid>__query_database` in the same session). If a call to
-   `mcp__Lovable__query_database` fails with a "tool not found"-style
-   error, use `ToolSearch` with query `"query_database"` to find the
-   current name before retrying.
-
-4. **Handle connector timeouts.** `mcp__Lovable__query_database` has a
-   documented history (see CLAUDE.md) of going unresponsive — 60s timeouts
-   on every call, including trivial ones like `select 1;` — for stretches
-   of a session, while `mcp__Lovable__get_database_status` keeps responding
-   normally on the same connector. There is currently no fallback path (no
-   service-role key in `.env`, and the Supabase MCP server has no access to
-   this project — confirmed via `mcp__Supabase__list_projects`, which only
-   returns an unrelated project). If you hit this: retry a couple of times,
-   and if it's still down, wait and retry later (a `send_later` /
-   scheduled-trigger check-in works well for this — see how this session
-   used it) rather than giving up or routing the data somewhere else.
-
-5. **Verify — don't trust "no error" alone.** After the last chunk, re-run
-   the REST count check from step 1 and confirm it reads 160. Also
-   spot-check a couple of specific products' `product_scores` via REST
-   against the same product's `DO $product$` block in the source migration
-   file — this migration has already had one transcription slip (a hand-
-   copied score off by one) that only a value-level spot-check caught, not
-   just a row-count check.
+5. After all 160 land, run `mcp__Supabase__get_advisors` (security +
+   performance) once more, since this is a large batch of new rows.
 
 ## Once seed data is fully live
 
-Update the status table above, and per the original task tracker: mark
-"Confirm schema migrations applied to live DB" and "Apply seed data to live
-DB and spot-check via REST API" as completed. The "Data Quality" tab in
-`/admin` (`src/pages/AdminDashboard.tsx`) will start showing the imported
-brands/ingredients/products for verification once the seed data is live.
+Update the status table above. The "Data Quality" tab in `/admin`
+(`src/pages/AdminDashboard.tsx`) shows the imported brands/ingredients/products
+for verification as they land — it already reflects the 40 products live now.
