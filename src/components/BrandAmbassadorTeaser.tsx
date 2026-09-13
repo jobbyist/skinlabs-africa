@@ -23,11 +23,11 @@ const BrandAmbassadorTeaser = () => {
         <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
           <div className="grid items-center gap-0 lg:grid-cols-2">
             {/* Visual */}
-            <div className="relative aspect-[4/3] overflow-hidden bg-muted lg:aspect-auto lg:min-h-[420px]">
+            <div className="relative aspect-video overflow-hidden bg-muted lg:aspect-auto lg:min-h-[420px]">
               <img
                 src="/og-brand-ambassadors.jpg"
                 alt="SkinLabs Brand Ambassador Programme 2026 — TikTok & Instagram creators"
-                className="h-full w-full object-cover object-center"
+                className="h-full w-full object-contain object-center"
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-background/10" />

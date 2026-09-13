@@ -2,8 +2,8 @@
 const cover = {
   ep1: "/podcast/ep1-weird-skincare.jpg",
   ep2: "/podcast/ep2-skincare-fails.jpg",
-  ep3: "/podcast/ep3-glass-skin.jpg",
-  ep4: "/podcast/ep4-ingredient-drama.jpg",
+  ep3: "/podcast/ep3-glass-skin.png",
+  ep4: "/podcast/ep4-ingredient-drama.png",
   soon: "/podcast/ep-coming-soon.jpg",
 } as const;
 
