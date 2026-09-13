@@ -41,6 +41,15 @@ const STATIC_ROUTES: StaticRoute[] = [
   { path: "/consult", changefreq: "weekly", priority: "0.85" },
   { path: "/announcements", changefreq: "monthly", priority: "0.6" },
   { path: "/knowledge-hub", changefreq: "weekly", priority: "0.9" },
+  { path: "/marketplace", changefreq: "daily", priority: "0.9" },
+  { path: "/marketplace/brands", changefreq: "weekly", priority: "0.7" },
+  { path: "/marketplace/categories", changefreq: "weekly", priority: "0.7" },
+  { path: "/marketplace/shipping-returns", changefreq: "monthly", priority: "0.3" },
+  { path: "/marketplace/terms", changefreq: "yearly", priority: "0.2" },
+  { path: "/whitepapers", changefreq: "monthly", priority: "0.5" },
+  { path: "/editorial-policy", changefreq: "yearly", priority: "0.3" },
+  { path: "/community-guidelines", changefreq: "yearly", priority: "0.3" },
+  { path: "/refund-policy", changefreq: "yearly", priority: "0.2" },
   { path: "/privacy-policy", changefreq: "yearly", priority: "0.2" },
   { path: "/terms-of-service", changefreq: "yearly", priority: "0.2" },
   { path: "/cookie-policy", changefreq: "yearly", priority: "0.2" },
@@ -82,6 +91,10 @@ async function main() {
   const podcastSource = readFileSync(resolve(root, "src/data/podcast.ts"), "utf-8");
   for (const slug of extractQuoted(podcastSource, "slug")) add(`/podcast/${slug}`, "monthly", "0.7");
 
+  const marketplaceDataSource = readFileSync(resolve(root, "src/pages/marketplace/marketplaceData.ts"), "utf-8");
+  const concernsBlock = marketplaceDataSource.split("export const concerns")[1]?.split("export const categories")[0] ?? "";
+  for (const slug of extractQuoted(concernsBlock, "slug")) add(`/marketplace/concern/${slug}`, "weekly", "0.6");
+
   // Every deep-linked Knowledge Hub answer is a real canonical URL and should
   // be discoverable independently, not only through the accordion hub page.
   const faqSource = readFileSync(resolve(root, "src/data/faq.ts"), "utf-8");
@@ -104,8 +117,42 @@ async function main() {
         }
       }
     }
+
+    const { data: mktProducts, error: mktProductsError } = await supabase
+      .from("marketplace_products")
+      .select("slug")
+      .eq("in_stock", true);
+    if (mktProductsError) {
+      console.warn("generate-sitemap: could not fetch marketplace products:", mktProductsError.message);
+    } else {
+      for (const product of mktProducts ?? []) {
+        if (typeof product.slug === "string") add(`/marketplace/product/${product.slug}`, "weekly", "0.7");
+      }
+    }
+
+    const { data: mktBrands, error: mktBrandsError } = await supabase.from("marketplace_brands").select("slug");
+    if (mktBrandsError) {
+      console.warn("generate-sitemap: could not fetch marketplace brands:", mktBrandsError.message);
+    } else {
+      for (const brand of mktBrands ?? []) {
+        if (typeof brand.slug === "string") add(`/marketplace/brand/${brand.slug}`, "weekly", "0.6");
+      }
+    }
+
+    const { data: generatedReviews, error: generatedReviewsError } = await supabase
+      .from("ai_generated_product_reviews")
+      .select("id, published_date");
+    if (generatedReviewsError) {
+      console.warn("generate-sitemap: could not fetch generated product reviews:", generatedReviewsError.message);
+    } else {
+      for (const review of generatedReviews ?? []) {
+        if (typeof review.id === "string") {
+          add(`/reviews/${review.id}`, "monthly", "0.75", review.published_date?.slice(0, 10) || today);
+        }
+      }
+    }
   } else {
-    console.warn("generate-sitemap: Supabase env vars unavailable — dynamic briefings omitted");
+    console.warn("generate-sitemap: Supabase env vars unavailable — dynamic briefings/marketplace/reviews omitted");
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
