@@ -15,6 +15,9 @@ interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultTab?: "signin" | "signup";
+  /** Controlled tab, for callers (e.g. Header) that need to force a specific tab open. */
+  mode?: "signin" | "signup";
+  onModeChange?: (mode: "signin" | "signup") => void;
   onAuthenticated?: () => void;
 }
 
@@ -28,7 +31,14 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated }: AuthDialogProps) => {
+const AuthDialog = ({
+  open,
+  onOpenChange,
+  defaultTab = "signin",
+  mode,
+  onModeChange,
+  onAuthenticated,
+}: AuthDialogProps) => {
   const { signIn, signUp, signInWithGoogle, signInWithMagicLink } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -142,7 +152,13 @@ const AuthDialog = ({ open, onOpenChange, defaultTab = "signin", onAuthenticated
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <Tabs defaultValue={defaultTab} className="w-full">
+          <Tabs
+            value={mode}
+            defaultValue={defaultTab}
+            onValueChange={(v) => onModeChange?.(v as "signin" | "signup")}
+            className="w-full"
+          >
+
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="signin" className="gap-1.5 text-xs sm:text-sm">
                 <KeyRound className="h-3.5 w-3.5" /> Log in
