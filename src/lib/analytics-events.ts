@@ -56,7 +56,14 @@ export type ConversionEvent =
   | "analysis_pass_purchase_viewed"
   | "analysis_pass_package_selected"
   | "analysis_pass_used"
-  | "analysis_pass_balance_viewed";
+  | "analysis_pass_balance_viewed"
+  // Smart Routines — landing page and conversion funnel events
+  | "smart_routines_page_view"
+  | "smart_routines_cta_clicked"
+  | "smart_routines_demo_interaction"
+  | "smart_routines_faq_opened"
+  | "smart_routines_accessed"
+  | "smart_routines_generated";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

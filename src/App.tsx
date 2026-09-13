@@ -36,6 +36,7 @@ const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
 const Whitepaper = lazy(() => import("./pages/Whitepaper"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Openhaus = lazy(() => import("./pages/Openhaus"));
+const SmartRoutines = lazy(() => import("./pages/SmartRoutines"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const PodcastPage = lazy(() => import("./pages/PodcastPage"));
 const EpisodePage = lazy(() => import("./pages/EpisodePage"));
@@ -122,7 +123,7 @@ const AppContent = () => (
         <Route path="/whitepaper" element={<Navigate to="/whitepapers" replace />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/shop" element={<Openhaus />} />
-        <Route path="/routines" element={<ComingSoon />} />
+        <Route path="/routines" element={<SmartRoutines />} />
         <Route path="/learn" element={<ComingSoon />} />
         <Route path="/ingredients" element={<Ingredients />} />
         <Route path="/ingredients/checker" element={<IngredientChecker />} />
