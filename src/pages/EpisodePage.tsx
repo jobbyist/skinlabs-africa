@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import GatedOverlay from "@/components/GatedOverlay";
 import ArticleComments from "@/components/ArticleComments";
 import PodcastEngagementBar from "@/components/PodcastEngagementBar";
+import AdSlot from "@/components/AdSlot";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { latestPublishedEpisode, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
@@ -15,9 +16,13 @@ import { SITE_URL } from "@/lib/seo-config";
 
 const EpisodePage = () => {
   const { slug } = useParams();
-  const { playEpisode } = usePodcastPlayer();
+  const { playEpisode, current, progress } = usePodcastPlayer();
   const { isMember } = useMembership();
   const episode = podcastEpisodes.find((item) => item.slug === slug);
+  const isCurrentEpisode = current?.slug === episode?.slug;
+  const activeChapterSeconds = isCurrentEpisode
+    ? [...(episode?.timestamps ?? [])].reverse().find((stamp) => progress >= stamp.seconds)?.seconds
+    : undefined;
 
   if (!episode || episode.comingSoon) {
     const teaserImage = episode ? `${SITE_URL}${episode.image}` : undefined;
@@ -132,21 +137,38 @@ const EpisodePage = () => {
               </ul>
             </section>
 
+            <AdSlot placement="episode-mid-1" compact />
+
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Chapters</h2>
               <div className="divide-y divide-border rounded-2xl border border-border">
-                {episode.timestamps.map((stamp) => (
-                  <button
-                    key={stamp.time}
-                    onClick={() => playEpisode(episode, stamp.seconds)}
-                    className="flex w-full items-center gap-4 px-4 py-3 text-left text-sm hover:bg-accent"
-                  >
-                    <span className="font-mono text-xs text-foreground">{stamp.time}</span>
-                    <span className="text-foreground">{stamp.label}</span>
-                  </button>
-                ))}
+                {episode.timestamps.map((stamp) => {
+                  const isActive = stamp.seconds === activeChapterSeconds;
+                  return (
+                    <button
+                      key={stamp.time}
+                      onClick={() => playEpisode(episode, stamp.seconds)}
+                      aria-current={isActive ? "true" : undefined}
+                      className={`flex w-full items-center gap-4 px-4 py-3 text-left text-sm hover:bg-accent ${
+                        isActive ? "bg-accent" : ""
+                      }`}
+                    >
+                      <span className="font-mono text-xs text-foreground">{stamp.time}</span>
+                      <span className={isActive ? "font-semibold text-foreground" : "text-foreground"}>
+                        {stamp.label}
+                      </span>
+                      {isActive && (
+                        <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                          Playing
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </section>
+
+            <AdSlot placement="episode-mid-2" compact />
 
             {episode.productsMentioned.length > 0 && (
               <section>
@@ -166,6 +188,8 @@ const EpisodePage = () => {
             )}
 
             <RelatedKnowledgeHub keywords={episode.topics} />
+
+            <AdSlot placement="episode-mid-3" compact />
 
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Transcript</h2>
