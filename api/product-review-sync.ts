@@ -24,7 +24,9 @@
  *     Cron invocation with `Authorization: Bearer $CRON_SECRET`, which this function
  *     checks. Also usable to trigger a manual/admin run with the same header.
  * Optional:
- *   - GEMINI_MODEL            Defaults to "gemini-2.0-flash" if unset.
+ *   - GEMINI_MODEL            Defaults to "gemini-3.6-flash" if unset. (gemini-2.0-flash
+ *     was retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
+ *     which named gemini-3.6-flash as the direct replacement.)
  *   - VITE_SUPABASE_URL       Reused if set (already present for the client build);
  *     falls back to the hardcoded production project URL otherwise.
  */
@@ -323,7 +325,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     return;
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   const { createClient } = await import("@supabase/supabase-js");
   const admin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
 
