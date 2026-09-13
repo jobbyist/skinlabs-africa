@@ -104,7 +104,6 @@ const NewsroomArticle = () => {
       toast.success(wasLiked ? "Like removed" : "Briefing liked");
       return;
     }
-    }
     if (!user) {
       toast.message("Sign in to save briefings.");
       return;
