@@ -23,6 +23,15 @@ ALTER TABLE public.ingredient_interactions ADD COLUMN IF NOT EXISTS verification
 ALTER TABLE public.ingredient_interactions ADD COLUMN IF NOT EXISTS verified_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
 ALTER TABLE public.ingredient_interactions ADD COLUMN IF NOT EXISTS last_verified_at timestamptz;
 
+-- Add RLS policies for ingredient_interactions
+ALTER TABLE public.ingredient_interactions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read" ON public.ingredient_interactions FOR SELECT USING (true);
+CREATE POLICY "Admins manage ingredient_interactions" ON public.ingredient_interactions FOR ALL TO authenticated
+  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+GRANT SELECT ON public.ingredient_interactions TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.ingredient_interactions TO authenticated;
+GRANT ALL ON public.ingredient_interactions TO service_role;
+
 DO $$ BEGIN
   ALTER TYPE public.ingredient_interaction_type ADD VALUE IF NOT EXISTS 'compatible';
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
