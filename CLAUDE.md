@@ -324,9 +324,40 @@ feature appear operational.
   Marcus" transcribed as "Rebecca tablets") that would misinform readers
   if published verbatim. Full raw transcripts/JSON word-timing data from
   this pass were only saved to the session scratchpad, not committed —
-  regenerate with the same ffmpeg+vosk pipeline if needed again. Episodes
-  5-10 are still `comingSoon: true` placeholders (no audio yet) but now
-  have their real cover art wired in.
+  regenerate with the same ffmpeg+vosk pipeline if needed again.
+  **Episodes 5-9 published 2026-09-13** (same ffmpeg+vosk transcription
+  method), one per week starting 2026-09-18 (`publishedAt`
+  2026-09-18/25, 10-02/09/16). Unlike 1-4, their real audio actually
+  matches the pre-written titles/topics reasonably well — no rewrite of
+  title/topics was needed, only description/showNotes/timestamps/
+  transcript/duration from the real transcripts (same reasoning as 1-4:
+  no fabricated `productsMentioned`, chapter timestamps from word-level
+  ASR timing). One notable trait worth knowing before touching this data
+  again: all nine published episodes (1-9) are the same synthetic
+  "two-host NotebookLM-style deep dive" format, and episodes 5-9
+  specifically frame themselves as reading from and discussing SkinLabs'
+  *own* internal materials/ecosystem (editorial independence, the AI
+  formulator, Seasons, the Review Engine, the dermatologist directory,
+  budget-vs-luxury packaging stability) rather than being independently
+  produced audio — i.e. the podcast is largely narrating the rest of the
+  site back to itself. That's not necessarily a problem, but don't be
+  surprised by it, and don't assume future episode audio will follow the
+  same format without checking. Episode 10 is still `comingSoon: true`
+  (real cover art and audio file are wired in — `public/ep10skinlabs.mp3`
+  — but it has no publishedAt/showNotes/transcript yet, deliberately not
+  published without the same transcription/QA pass).
+- The engagement seed generator changed 2026-09-13 from a deterministic
+  `seed(id, base, spread)` formula to a fixed `engagementSeed` lookup
+  table (per explicit request: every published episode starts at a
+  minimum of 3286 plays, likes/shares randomised proportionally). If
+  asked to reseed again, generate fresh numbers the same way (Python
+  `random` with a fixed seed for reproducibility) rather than reusing the
+  old formula.
+- `latestPublishedEpisode` (`src/data/podcast.ts`) drives the "New"
+  badge on the hub grid, homepage teaser cards, and the episode page —
+  it's whichever published episode has the most recent `publishedAt`,
+  computed automatically, not hardcoded. When a new episode publishes,
+  this updates itself; no manual badge toggling needed.
 
 ## Infrastructure notes
 
