@@ -42,6 +42,9 @@ const readPositions = (): Record<string, number> => {
   }
 };
 
+/** Saved resume position for an episode, in seconds, or undefined if never played. */
+export const getSavedPosition = (slug: string) => readPositions()[slug];
+
 export const formatTime = (value: number) => {
   if (!Number.isFinite(value) || value < 0) return "0:00";
   const minutes = Math.floor(value / 60);

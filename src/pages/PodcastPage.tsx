@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
+import { usePodcastPlayer, formatTime, getSavedPosition } from "@/components/PodcastPlayer";
 import {
   getNextEpisodeDate,
   latestPublishedEpisode,
@@ -28,6 +28,16 @@ const PodcastPage = () => {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("All");
   const engagement = usePodcastEngagement(publishedPodcastEpisodes);
+  const [savedPositions, setSavedPositions] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const map: Record<string, number> = {};
+    for (const ep of publishedPodcastEpisodes) {
+      const saved = getSavedPosition(ep.slug);
+      if (saved) map[ep.slug] = saved;
+    }
+    setSavedPositions(map);
+  }, []);
 
   const episodes = useMemo(() => {
     const byTopic = podcastEpisodes.filter(
@@ -165,8 +175,8 @@ const PodcastPage = () => {
                 isCurrent && duration > 0 ? formatTime(duration) : episode.duration.replace(" min", ":00");
 
               return (
+                <Fragment key={episode.id}>
                 <motion.article
-                  key={episode.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -270,6 +280,11 @@ const PodcastPage = () => {
                     </div>
                     <h2 className="font-heading text-lg font-bold text-foreground">{episode.title}</h2>
                     <p className="text-sm text-muted-foreground line-clamp-3">{episode.description}</p>
+                    {!isCurrent && !isComingSoon && savedPositions[episode.slug] > 15 && (
+                      <p className="text-xs font-medium text-primary">
+                        Continue from {formatTime(savedPositions[episode.slug])}
+                      </p>
+                    )}
                     {engagement.isAuthenticated && !isComingSoon && (
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="tabular-nums">{engagement.getPlays(episode).toLocaleString()} plays</span>
@@ -286,6 +301,10 @@ const PodcastPage = () => {
                     )}
                   </div>
                 </motion.article>
+                {index < episodes.length - 1 && (
+                  <AdSlot placement={`podcast-list-${index}`} compact className="col-span-full" />
+                )}
+                </Fragment>
               );
             })}
           </div>
