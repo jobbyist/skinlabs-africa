@@ -1,27 +1,19 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Play, Pause, Search, SkipBack, SkipForward, Heart, Rss } from "lucide-react";
+import { Clock, Play, Pause, Search, SkipBack, SkipForward, Heart } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { usePodcastPlayer, formatTime, getSavedPosition } from "@/components/PodcastPlayer";
-import {
-  getNextEpisodeDate,
-  latestPublishedEpisode,
-  podcastEpisodes,
-  podcastTopics,
-  publishedPodcastEpisodes,
-} from "@/data/podcast";
+import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
+import { getNextEpisodeDate, podcastEpisodes, podcastTopics, publishedPodcastEpisodes } from "@/data/podcast";
 import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import AffiliateBanner from "@/components/AffiliateBanner";
 import AdSlot from "@/components/AdSlot";
-import ContinueListeningRail from "@/components/ContinueListeningRail";
-import { DEFAULT_OG } from "@/lib/seo-config";
 
 const PodcastPage = () => {
   const { playEpisode, current, isPlaying, toggle, progress, duration, speed, skip, cycleSpeed, seek } =
@@ -29,16 +21,6 @@ const PodcastPage = () => {
   const [query, setQuery] = useState("");
   const [topic, setTopic] = useState("All");
   const engagement = usePodcastEngagement(publishedPodcastEpisodes);
-  const [savedPositions, setSavedPositions] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    const map: Record<string, number> = {};
-    for (const ep of publishedPodcastEpisodes) {
-      const saved = getSavedPosition(ep.slug);
-      if (saved) map[ep.slug] = saved;
-    }
-    setSavedPositions(map);
-  }, []);
 
   const episodes = useMemo(() => {
     const byTopic = podcastEpisodes.filter(
@@ -51,7 +33,7 @@ const PodcastPage = () => {
         score: scoreTextItem(
           query,
           episode.title,
-          `${episode.description} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")} ${episode.showNotes.join(" ")} ${episode.transcript.map((line) => line.text).join(" ")}`,
+          `${episode.description} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")}`,
           episode.topics,
         ).score,
       }))
@@ -72,17 +54,16 @@ const PodcastPage = () => {
         <title>The Skin Deep Podcast — SA Skincare Conversations | SkinLabs®</title>
         <meta
           name="description"
-          content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms."
+          content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes on the last Friday of every month. Coming soon to all major podcast platforms."
         />
         <link rel="canonical" href="https://skinlabs.co.za/podcast" />
-        <link rel="alternate" type="application/rss+xml" title="The Skin Deep Podcast" href="https://skinlabs.co.za/podcast.xml" />
         <meta property="og:title" content="The Skin Deep Podcast | SkinLabs®" />
-        <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes every Friday at 12pm SAST." />
+        <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes on the last Friday of every month." />
         <meta property="og:url" content="https://skinlabs.co.za/podcast" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content={DEFAULT_OG} />
+        <meta property="og:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content={DEFAULT_OG} />
+        <meta name="twitter:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
       </Helmet>
 
       <Header />
@@ -96,19 +77,11 @@ const PodcastPage = () => {
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
             <p className="text-muted-foreground">
               Skincare without the nonsense. Conversations on ingredient science, culture and routines — grounded in
-              South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming
+              South African skin, climate and shelves. New episodes uploaded on the last Friday of every month. Coming
               soon to all major podcast streaming platforms.
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">Next drop {nextDrop} at 12pm SAST.</p>
-            <a
-              href="/podcast.xml"
-              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-            >
-              <Rss className="h-3.5 w-3.5" /> Subscribe via RSS
-            </a>
+            <p className="mt-2 text-sm text-muted-foreground">Next drop around {nextDrop}.</p>
           </div>
-
-          <ContinueListeningRail />
 
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center">
             <div className="relative md:w-72">
@@ -160,7 +133,7 @@ const PodcastPage = () => {
                 manufacturing, what "clean beauty" actually means here).
               </p>
               <p>
-                New episodes drop every Friday at 12pm SAST, with full show notes and the products or
+                New episodes drop on the last Friday of every month, with full show notes and the products or
                 studies discussed linked directly to the relevant{" "}
                 <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
                   SkinLabs review
@@ -185,8 +158,8 @@ const PodcastPage = () => {
                 isCurrent && duration > 0 ? formatTime(duration) : episode.duration.replace(" min", ":00");
 
               return (
-                <Fragment key={episode.id}>
                 <motion.article
+                  key={episode.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -203,17 +176,11 @@ const PodcastPage = () => {
                       alt={`${episode.title} cover art`}
                       loading="lazy"
                       className={cn(
-                        "h-full w-full object-contain transition-transform duration-500",
+                        "h-full w-full object-cover transition-transform duration-500",
                         !isComingSoon && "group-hover:scale-105",
                         isComingSoon && "opacity-90",
                       )}
                     />
-
-                    {episode.slug === latestPublishedEpisode?.slug && (
-                      <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground shadow">
-                        New
-                      </span>
-                    )}
 
                     {isComingSoon ? (
                       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-background/90 px-4 py-5 backdrop-blur-md">
@@ -290,11 +257,6 @@ const PodcastPage = () => {
                     </div>
                     <h2 className="font-heading text-lg font-bold text-foreground">{episode.title}</h2>
                     <p className="text-sm text-muted-foreground line-clamp-3">{episode.description}</p>
-                    {!isCurrent && !isComingSoon && savedPositions[episode.slug] > 15 && (
-                      <p className="text-xs font-medium text-primary">
-                        Continue from {formatTime(savedPositions[episode.slug])}
-                      </p>
-                    )}
                     {engagement.isAuthenticated && !isComingSoon && (
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="tabular-nums">{engagement.getPlays(episode).toLocaleString()} plays</span>
@@ -311,10 +273,6 @@ const PodcastPage = () => {
                     )}
                   </div>
                 </motion.article>
-                {index < episodes.length - 1 && (
-                  <AdSlot placement={`podcast-list-${index}`} compact className="col-span-full" />
-                )}
-                </Fragment>
               );
             })}
           </div>

@@ -5,7 +5,6 @@ import type { PodcastEpisode } from "@/data/podcast";
 
 const LIKES_KEY = "skinlabs-podcast-likes";
 const EXTRA_PLAYS_KEY = "skinlabs-podcast-extra-plays";
-const EXTRA_SHARES_KEY = "skinlabs-podcast-extra-shares";
 
 type CountMap = Record<string, number>;
 
@@ -32,12 +31,10 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
   const [extraPlays, setExtraPlays] = useState<CountMap>({});
   const [likes, setLikes] = useState<CountMap>({});
   const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
-  const [extraShares, setExtraShares] = useState<CountMap>({});
 
   useEffect(() => {
     setExtraPlays(readMap(EXTRA_PLAYS_KEY));
     setLikes(readMap(LIKES_KEY));
-    setExtraShares(readMap(EXTRA_SHARES_KEY));
   }, []);
 
   const getPlays = useCallback(
@@ -48,11 +45,6 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
   const getLikes = useCallback(
     (episode: PodcastEpisode) => episode.seedLikes + (likes[episode.slug] ?? 0),
     [likes],
-  );
-
-  const getShares = useCallback(
-    (episode: PodcastEpisode) => episode.seedShares + (extraShares[episode.slug] ?? 0),
-    [extraShares],
   );
 
   const recordPlay = useCallback(
@@ -112,34 +104,13 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
     [user, likedByMe],
   );
 
-  /** Anyone can share, signed in or not — the count is public and persists per device. */
-  const recordShare = useCallback(async (episode: PodcastEpisode) => {
-    setExtraShares((prev) => {
-      const next = { ...prev, [episode.slug]: (prev[episode.slug] ?? 0) + 1 };
-      writeMap(EXTRA_SHARES_KEY, next);
-      return next;
-    });
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("podcast_shares").insert({
-        user_id: user?.id ?? null,
-        episode_slug: episode.slug,
-        episode_title: episode.title,
-      });
-    } catch {
-      // non-blocking if table/policy unavailable
-    }
-  }, [user]);
-
   return {
     isAuthenticated: Boolean(user),
     getPlays,
     getLikes,
-    getShares,
     isLiked: (slug: string) => Boolean(likedByMe[slug]),
     recordPlay,
     toggleLike,
-    recordShare,
     episodes,
   };
 }
