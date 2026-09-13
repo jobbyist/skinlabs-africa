@@ -10,6 +10,7 @@ const cover = {
   ep7: "/podcast/ep7-retinoid-rabbit-hole.png",
   ep8: "/podcast/ep8-skin-barrier.png",
   ep9: "/podcast/ep9-melanin-rich-skin.png",
+  ep10: "/podcast/ep10-skincare-or-marketing.png",
   soon: "/podcast/ep-coming-soon.jpg",
 } as const;
 
@@ -298,8 +299,8 @@ export const podcastEpisodes: PodcastEpisode[] = [
     id: 10,
     slug: "ep-10-skincare-or-marketing",
     title: "Episode 10: Are You Buying Skincare Or Buying The Marketing?",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep10,
+    thumbnail: cover.ep10,
     audioFile: "",
     description:
       "Cute packaging. Big promises. A suspiciously expensive serum. We look at skincare marketing, ingredient lists, “clean” beauty, celebrity products and the difference between good formulation and clever advertising.",
