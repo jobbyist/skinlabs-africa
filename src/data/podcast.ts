@@ -2,8 +2,14 @@
 const cover = {
   ep1: "/podcast/ep1-weird-skincare.jpg",
   ep2: "/podcast/ep2-skincare-fails.jpg",
-  ep3: "/podcast/ep3-glass-skin.png",
-  ep4: "/podcast/ep4-ingredient-drama.png",
+  // Swapped per editorial request: ep4's cover art now runs on ep3, and vice versa.
+  ep3: "/podcast/ep4-ingredient-drama.png",
+  ep4: "/podcast/ep3-glass-skin.png",
+  ep5: "/podcast/ep5-spf-is-not-optional.png",
+  ep6: "/podcast/ep6-dark-spots-hyperpigmentation.png",
+  ep7: "/podcast/ep7-retinoid-rabbit-hole.png",
+  ep8: "/podcast/ep8-skin-barrier.png",
+  ep9: "/podcast/ep9-melanin-rich-skin.png",
   soon: "/podcast/ep-coming-soon.jpg",
 } as const;
 
@@ -26,6 +32,7 @@ export interface PodcastEpisode {
   /** Baseline engagement seeds (deterministic). Live counters build on these for auth users. */
   seedPlays: number;
   seedLikes: number;
+  seedShares: number;
   /** When true, episode is listed as Coming Soon (no audio yet). Only shown on /podcast. */
   comingSoon?: boolean;
 }
@@ -47,7 +54,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Welcome to episode one of The Skin Deep Podcast. Today we explore the weirdest skincare rituals trending online, from snail mucin to edible serums. We break down which ingredients are backed by dermatology research, how to spot gimmicks, and when a quirky routine can still support the skin barrier.",
     duration: "18 min",
     topics: ["Ingredient Science", "Trends"],
-    publishedAt: "2025-01-29",
+    publishedAt: "2026-08-21",
     showNotes: [
       "Why snail mucin works for some barriers and not others",
       "Edible skincare: what the SA regulatory landscape allows",
@@ -71,6 +78,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     ],
     seedPlays: seed(1, 420, 380),
     seedLikes: seed(1, 48, 40),
+    seedShares: seed(1, 22, 18),
   },
   {
     id: 2,
@@ -85,7 +93,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Episode two dives into the skincare fails we see most often: over-exfoliation, ingredient clashes, and rushing new actives. Hear the reset routines that calm inflammation and restore hydration.",
     duration: "22 min",
     topics: ["Barrier Repair", "Routine Building"],
-    publishedAt: "2025-02-05",
+    publishedAt: "2026-08-28",
     showNotes: [
       "The five-day barrier reset protocol",
       "Signs you have over-exfoliated (and what to stop immediately)",
@@ -108,6 +116,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     ],
     seedPlays: seed(2, 380, 320),
     seedLikes: seed(2, 41, 35),
+    seedShares: seed(2, 19, 16),
   },
   {
     id: 3,
@@ -122,7 +131,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "In episode three we decode the glass skin trend: hydration layering, gentle exfoliation, peptides, and habits that build lasting luminosity.",
     duration: "20 min",
     topics: ["Hydration", "Trends"],
-    publishedAt: "2025-02-12",
+    publishedAt: "2026-09-04",
     showNotes: [
       "Layering order for humid KZN coastal climates",
       "Peptides vs. growth factors: what the evidence says",
@@ -140,6 +149,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [{ name: "10% Niacinamide + 1% Zinc Serum", brand: "Standard Beauty" }],
     seedPlays: seed(3, 510, 290),
     seedLikes: seed(3, 62, 28),
+    seedShares: seed(3, 25, 20),
   },
   {
     id: 4,
@@ -154,7 +164,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
       "Episode four is all about ingredient drama. We separate facts from fear around retinoids, acids, and preservatives, and explain how to read labels with confidence.",
     duration: "19 min",
     topics: ["Retinoids 101", "Ingredient Science"],
-    publishedAt: "2025-02-19",
+    publishedAt: "2026-09-11",
     showNotes: [
       "Retinol + AHA: when the conflict is real",
       "Preservatives are not the enemy",
@@ -172,13 +182,14 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [{ name: "SuperHero Hydrating Cleanser", brand: "Swiitch Beauty" }],
     seedPlays: seed(4, 290, 250),
     seedLikes: seed(4, 33, 30),
+    seedShares: seed(4, 15, 14),
   },
   {
     id: 5,
     slug: "ep-5-spf-is-not-optional",
     title: "Episode 5: SPF Is Not Optional",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep5,
+    thumbnail: cover.ep5,
     audioFile: "",
     description:
       "We need to talk about sunscreen — not just beach days. This episode breaks down SPF, UVA vs UVB, reapplication, darker skin tones and why South Africa’s sun deserves more respect. Because “I don’t burn” isn’t the same as “I’m protected.”",
@@ -192,14 +203,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
   {
     id: 6,
     slug: "ep-6-dark-spots-hyperpigmentation",
     title: "Episode 6: Dark Spots, Hyperpigmentation & The Long Game",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep6,
+    thumbnail: cover.ep6,
     audioFile: "",
     description:
       "Dark marks don’t disappear because you bought a brighter serum. We unpack hyperpigmentation, post-inflammatory marks, melasma and the ingredients that can actually help — especially for deeper skin tones. No miracle creams. Just the facts.",
@@ -213,14 +225,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
   {
     id: 7,
     slug: "ep-7-retinoid-rabbit-hole",
     title: "Episode 7: Retinol, Retinal & The Retinoid Rabbit Hole",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep7,
+    thumbnail: cover.ep7,
     audioFile: "",
     description:
       "Retinol. Retinal. Tretinoin. Same family, very different conversation. We break down what retinoids actually do, who should consider them, and how to start without destroying your barrier. Your routine doesn’t need to become a chemistry experiment.",
@@ -234,14 +247,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
   {
     id: 8,
     slug: "ep-8-skin-barrier",
     title: "Episode 8: Your Skin Barrier Is Begging You To Stop",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep8,
+    thumbnail: cover.ep8,
     audioFile: "",
     description:
       "If your face is burning, peeling or reacting to everything, maybe it’s time to put the acids down. What damages the barrier, what helps repair it, and how to know when your routine has become too much.",
@@ -255,14 +269,15 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
   {
     id: 9,
     slug: "ep-9-melanin-rich-skin",
     title: "Episode 9: Black Skin, Brown Skin & The Skincare Advice We Keep Getting Wrong",
-    image: cover.soon,
-    thumbnail: cover.soon,
+    image: cover.ep9,
+    thumbnail: cover.ep9,
     audioFile: "",
     description:
       "A lot of skincare advice wasn’t written with every skin tone in mind. This episode explores melanin-rich skin — pigmentation, acne marks, sunscreen, irritation and the myths that keep getting recycled. Darker skin isn’t a problem to solve. It needs advice that actually makes sense.",
@@ -276,6 +291,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
   {
@@ -297,6 +313,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     productsMentioned: [],
     seedPlays: 0,
     seedLikes: 0,
+    seedShares: 0,
     comingSoon: true,
   },
 ];
@@ -307,22 +324,20 @@ export const podcastTopics = Array.from(
   new Set(publishedPodcastEpisodes.flatMap((episode) => episode.topics)),
 );
 
+/**
+ * New episodes publish every Friday at 12:00 SAST (10:00 UTC, SAST = UTC+2,
+ * no daylight saving). Returns the next upcoming Friday 10:00 UTC slot.
+ */
 export const getNextEpisodeDate = () => {
   const now = new Date();
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const lastDay = new Date(Date.UTC(year, month + 1, 0));
-  const day = lastDay.getUTCDay();
-  const diff = (day + 2) % 7;
-  lastDay.setUTCDate(lastDay.getUTCDate() - diff);
-  if (lastDay.getTime() <= now.getTime()) {
-    const nextLast = new Date(Date.UTC(year, month + 2, 0));
-    const d = nextLast.getUTCDay();
-    const df = (d + 2) % 7;
-    nextLast.setUTCDate(nextLast.getUTCDate() - df);
-    nextLast.setUTCHours(6, 0, 0, 0);
-    return nextLast;
+  const PUBLISH_HOUR_UTC = 10;
+  const FRIDAY = 5;
+  const next = new Date(now);
+  next.setUTCHours(PUBLISH_HOUR_UTC, 0, 0, 0);
+  let daysUntilFriday = (FRIDAY - next.getUTCDay() + 7) % 7;
+  if (daysUntilFriday === 0 && next.getTime() <= now.getTime()) {
+    daysUntilFriday = 7;
   }
-  lastDay.setUTCHours(6, 0, 0, 0);
-  return lastDay;
+  next.setUTCDate(next.getUTCDate() + daysUntilFriday);
+  return next;
 };

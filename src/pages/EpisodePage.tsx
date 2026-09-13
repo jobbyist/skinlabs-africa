@@ -1,16 +1,17 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
-import { Play } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import GatedOverlay from "@/components/GatedOverlay";
 import ArticleComments from "@/components/ArticleComments";
+import PodcastEngagementBar from "@/components/PodcastEngagementBar";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import { SITE_URL } from "@/lib/seo-config";
 
 const EpisodePage = () => {
   const { slug } = useParams();
@@ -19,8 +20,24 @@ const EpisodePage = () => {
   const episode = podcastEpisodes.find((item) => item.slug === slug);
 
   if (!episode || episode.comingSoon) {
+    const teaserImage = episode ? `${SITE_URL}${episode.image}` : undefined;
     return (
       <div className="min-h-screen bg-background">
+        {episode && (
+          <Helmet>
+            <title>{`${episode.title} (Coming Soon) — The Skin Deep Podcast | SkinLabs`}</title>
+            <meta name="description" content={episode.description} />
+            <link rel="canonical" href={`https://skinlabs.co.za/podcast/${episode.slug}`} />
+            <meta property="og:title" content={`${episode.title} — The Skin Deep Podcast`} />
+            <meta property="og:description" content={episode.description} />
+            <meta property="og:url" content={`https://skinlabs.co.za/podcast/${episode.slug}`} />
+            <meta property="og:type" content="article" />
+            {teaserImage && <meta property="og:image" content={teaserImage} />}
+            {teaserImage && <meta property="og:image:alt" content={`${episode.title} cover art`} />}
+            <meta name="twitter:card" content="summary_large_image" />
+            {teaserImage && <meta name="twitter:image" content={teaserImage} />}
+          </Helmet>
+        )}
         <Header />
         <main className="container mx-auto px-4 pt-32 pb-24 text-center">
           <h1 className="font-heading text-2xl font-bold text-foreground">
@@ -28,7 +45,7 @@ const EpisodePage = () => {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {episode?.comingSoon
-              ? "We’re still recording. New episodes drop on the last Friday of every month."
+              ? "We’re still recording. New episodes drop every Friday at 12pm SAST."
               : "That episode doesn’t exist or has been moved."}
           </p>
           <Button asChild className="mt-6">
@@ -40,6 +57,8 @@ const EpisodePage = () => {
     );
   }
 
+  const socialImage = `${SITE_URL}${episode.image}`;
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -50,12 +69,17 @@ const EpisodePage = () => {
         <meta property="og:description" content={episode.description} />
         <meta property="og:url" content={`https://skinlabs.co.za/podcast/${episode.slug}`} />
         <meta property="og:type" content="article" />
+        <meta property="og:image" content={socialImage} />
+        <meta property="og:image:alt" content={`${episode.title} cover art`} />
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content={socialImage} />
+        <meta name="twitter:image:alt" content={`${episode.title} cover art`} />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
           "@type": "PodcastEpisode",
           name: episode.title,
           description: episode.description,
+          image: socialImage,
           datePublished: episode.publishedAt,
           url: `https://skinlabs.co.za/podcast/${episode.slug}`,
         })}</script>
@@ -70,9 +94,9 @@ const EpisodePage = () => {
               alt={`${episode.title} cover art`}
               className="w-full rounded-3xl border border-border bg-muted object-contain"
             />
-            <Button className="mt-4 w-full gap-2" onClick={() => playEpisode(episode)}>
-              <Play className="h-4 w-4" /> Play episode
-            </Button>
+            <div className="mt-4">
+              <PodcastEngagementBar episode={episode} onPlay={() => playEpisode(episode)} />
+            </div>
             <p className="mt-3 text-center text-xs text-muted-foreground">
               {episode.duration} · Published {episode.publishedAt}
             </p>
