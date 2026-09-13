@@ -106,13 +106,13 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button size="lg" className="gap-2 text-base px-8" asChild>
                 <a href="/skynn-ai">
-                  Try SKYNN AI (beta)
+                Get Your Free AI Skin Analysis
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>
               {/* Already a paying member — offering a free trial they can't use is redundant/misleading. */}
               {!(!membershipLoading && isMember) && (
-                <Button variant="outline" size="lg" className="gap-2 text-base px-8" asChild>
+              <Button variant="outline" size="lg" className="gap-2 text-base px-8 gradient-border-anim" asChild>
                   <a href="/pricing">
                     {!membershipLoading && trialUsed
                       ? "See membership plans"
