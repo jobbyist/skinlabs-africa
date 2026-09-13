@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Play, Pause, Search, SkipBack, SkipForward, Heart } from "lucide-react";
+import { Clock, Play, Pause, Search, SkipBack, SkipForward, Heart, Rss } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import AffiliateBanner from "@/components/AffiliateBanner";
 import AdSlot from "@/components/AdSlot";
+import ContinueListeningRail from "@/components/ContinueListeningRail";
 import { DEFAULT_OG } from "@/lib/seo-config";
 
 const PodcastPage = () => {
@@ -50,7 +51,7 @@ const PodcastPage = () => {
         score: scoreTextItem(
           query,
           episode.title,
-          `${episode.description} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")}`,
+          `${episode.description} ${episode.productsMentioned.map((p) => `${p.brand} ${p.name}`).join(" ")} ${episode.showNotes.join(" ")} ${episode.transcript.map((line) => line.text).join(" ")}`,
           episode.topics,
         ).score,
       }))
@@ -74,6 +75,7 @@ const PodcastPage = () => {
           content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms."
         />
         <link rel="canonical" href="https://skinlabs.co.za/podcast" />
+        <link rel="alternate" type="application/rss+xml" title="The Skin Deep Podcast" href="https://skinlabs.co.za/podcast.xml" />
         <meta property="og:title" content="The Skin Deep Podcast | SkinLabs®" />
         <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes every Friday at 12pm SAST." />
         <meta property="og:url" content="https://skinlabs.co.za/podcast" />
@@ -98,7 +100,15 @@ const PodcastPage = () => {
               soon to all major podcast streaming platforms.
             </p>
             <p className="mt-2 text-sm text-muted-foreground">Next drop {nextDrop} at 12pm SAST.</p>
+            <a
+              href="/podcast.xml"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              <Rss className="h-3.5 w-3.5" /> Subscribe via RSS
+            </a>
           </div>
+
+          <ContinueListeningRail />
 
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center">
             <div className="relative md:w-72">

@@ -4,6 +4,7 @@ import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
 import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
+import ContinueListeningRail from "@/components/ContinueListeningRail";
 
 interface PodcastSectionProps {
   heading?: string;
@@ -47,6 +48,8 @@ const PodcastSection = ({
             </Link>
           )}
         </div>
+
+        <ContinueListeningRail />
 
         {!isMember && (
           <div className="mb-6 text-center">

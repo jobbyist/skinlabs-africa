@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import Header from "@/components/Header";
@@ -7,7 +8,7 @@ import GatedOverlay from "@/components/GatedOverlay";
 import ArticleComments from "@/components/ArticleComments";
 import PodcastEngagementBar from "@/components/PodcastEngagementBar";
 import AdSlot from "@/components/AdSlot";
-import { usePodcastPlayer } from "@/components/PodcastPlayer";
+import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
 import { latestPublishedEpisode, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
@@ -23,6 +24,14 @@ const EpisodePage = () => {
   const activeChapterSeconds = isCurrentEpisode
     ? [...(episode?.timestamps ?? [])].reverse().find((stamp) => progress >= stamp.seconds)?.seconds
     : undefined;
+  const activeTranscriptSeconds = isCurrentEpisode
+    ? [...(episode?.transcript ?? [])].reverse().find((line) => progress >= line.seconds)?.seconds
+    : undefined;
+  const activeLineRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    activeLineRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [activeTranscriptSeconds]);
 
   if (!episode || episode.comingSoon) {
     const teaserImage = episode ? `${SITE_URL}${episode.image}` : undefined;
@@ -198,12 +207,33 @@ const EpisodePage = () => {
                 title="Transcripts are member-only"
                 message="Glow Insider and Glow VIP members get full transcripts and searchable show notes for every episode."
               >
-                <div className="space-y-3">
-                  {episode.transcript.map((line, index) => (
-                    <p key={index} className="text-sm leading-relaxed text-muted-foreground">
-                      {line}
-                    </p>
-                  ))}
+                <div className="space-y-1">
+                  {episode.transcript.map((line, index) => {
+                    const isActive = line.seconds === activeTranscriptSeconds;
+                    return (
+                      <button
+                        key={index}
+                        ref={isActive ? activeLineRef : undefined}
+                        type="button"
+                        onClick={() => playEpisode(episode, line.seconds)}
+                        aria-current={isActive ? "true" : undefined}
+                        className={`flex w-full gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent ${
+                          isActive ? "bg-accent" : ""
+                        }`}
+                      >
+                        <span className="mt-0.5 shrink-0 font-mono text-xs text-muted-foreground">
+                          {formatTime(line.seconds)}
+                        </span>
+                        <span
+                          className={`text-sm leading-relaxed ${
+                            isActive ? "font-medium text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          {line.text}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </GatedOverlay>
             </section>

@@ -106,7 +106,12 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     });
 
     const podcast: RankedResult[] = podcastEpisodes.map((episode) => {
-      const match = scoreTextItem(query, episode.title, episode.description, episode.topics);
+      const match = scoreTextItem(
+        query,
+        episode.title,
+        `${episode.description} ${episode.showNotes.join(" ")} ${episode.transcript.map((line) => line.text).join(" ")}`,
+        episode.topics,
+      );
       return { key: `pod-${episode.id}`, score: match.score, reasons: match.reasons, icon: Mic, title: episode.title, subtitle: "The Skin Deep Podcast", href: `/podcast/${episode.slug}` };
     });
 

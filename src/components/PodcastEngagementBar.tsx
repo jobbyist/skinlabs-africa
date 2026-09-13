@@ -31,18 +31,21 @@ const PodcastEngagementBar = ({ episode, onPlay }: PodcastEngagementBarProps) =>
       text: episode.description,
       url: `${SITE_URL}/podcast/${episode.slug}`,
     };
-    void recordShare(episode);
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        void recordShare(episode);
         return;
       } catch (error) {
+        // User cancelled the native share sheet — not a share, don't record it
+        // and don't fall through to the clipboard fallback.
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
     try {
       await navigator.clipboard.writeText(shareData.url);
       toast.success("Episode link copied");
+      void recordShare(episode);
     } catch {
       toast.error("Couldn't copy the link");
     }
