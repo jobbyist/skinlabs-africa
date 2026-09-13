@@ -67,6 +67,9 @@ const MarketplaceSkinTonePage = lazy(() => import("./pages/marketplace/Marketpla
 const MarketplaceSavedPage = lazy(() => import("./pages/marketplace/MarketplaceSavedPage"));
 const MarketplaceShippingReturns = lazy(() => import("./pages/marketplace/MarketplaceShippingReturns"));
 const MarketplaceTerms = lazy(() => import("./pages/marketplace/MarketplaceTerms"));
+const Ingredients = lazy(() => import("./pages/Ingredients"));
+const IngredientDetail = lazy(() => import("./pages/IngredientDetail"));
+const IngredientChecker = lazy(() => import("./pages/IngredientChecker"));
 
 const queryClient = new QueryClient();
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
@@ -121,7 +124,9 @@ const AppContent = () => (
         <Route path="/shop" element={<Openhaus />} />
         <Route path="/routines" element={<ComingSoon />} />
         <Route path="/learn" element={<ComingSoon />} />
-        <Route path="/ingredients" element={<ComingSoon />} />
+        <Route path="/ingredients" element={<Ingredients />} />
+        <Route path="/ingredients/checker" element={<IngredientChecker />} />
+        <Route path="/ingredients/:slug" element={<IngredientDetail />} />
         <Route path="/marketplace" element={<MarketplaceLanding />} />
         <Route path="/marketplace/product/:slug" element={<MarketplaceProductDetail />} />
         <Route path="/marketplace/brand/:slug" element={<MarketplaceBrandPage />} />

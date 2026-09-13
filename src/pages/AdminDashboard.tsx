@@ -99,6 +99,15 @@ type IntelProduct = {
   created_at: string;
 };
 
+type IntelInteraction = {
+  id: string;
+  interaction_type: string;
+  explanation: string | null;
+  ingredient_a_id: string;
+  ingredient_b_id: string;
+  verification_status: DataQualityStatus;
+};
+
 const AdminDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("submissions");
@@ -118,7 +127,9 @@ const AdminDashboard = () => {
   const [intelBrands, setIntelBrands] = useState<IntelBrand[]>([]);
   const [intelIngredients, setIntelIngredients] = useState<IntelIngredient[]>([]);
   const [intelProducts, setIntelProducts] = useState<IntelProduct[]>([]);
+  const [intelInteractions, setIntelInteractions] = useState<IntelInteraction[]>([]);
   const [brandNames, setBrandNames] = useState<Record<string, string>>({});
+  const [ingredientNames, setIngredientNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (user) checkAdmin();
@@ -133,7 +144,7 @@ const AdminDashboard = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [subRes, waitRes, newsRes, preRes, profRes, brandsQCRes, ingredientsQCRes, productsQCRes, brandMapRes] = await Promise.all([
+    const [subRes, waitRes, newsRes, preRes, profRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
       supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }),
       supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }),
       supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
@@ -142,7 +153,9 @@ const AdminDashboard = () => {
       supabase.from("brands").select("id,name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("ingredients").select("id,inci_name,common_name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("products").select("id,name,slug,brand_id,verification_status,is_discontinued,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
+      supabase.from("ingredient_interactions").select("id,interaction_type,explanation,ingredient_a_id,ingredient_b_id,verification_status").in("verification_status", ["unverified", "partially_verified"]).limit(100),
       supabase.from("brands").select("id,name"),
+      supabase.from("ingredients").select("id,inci_name,common_name"),
     ]);
     setSubmissions((subRes.data as Submission[]) || []);
     setWaitlist((waitRes.data as WaitlistEntry[]) || []);
@@ -152,11 +165,20 @@ const AdminDashboard = () => {
     setIntelBrands((brandsQCRes.data as IntelBrand[]) || []);
     setIntelIngredients((ingredientsQCRes.data as IntelIngredient[]) || []);
     setIntelProducts((productsQCRes.data as IntelProduct[]) || []);
+    setIntelInteractions((interactionsQCRes.data as IntelInteraction[]) || []);
     setBrandNames(Object.fromEntries(((brandMapRes.data as { id: string; name: string }[]) || []).map((b) => [b.id, b.name])));
+    setIngredientNames(
+      Object.fromEntries(
+        ((ingredientMapRes.data as { id: string; inci_name: string; common_name: string | null }[]) || []).map((i) => [
+          i.id,
+          i.common_name || i.inci_name,
+        ]),
+      ),
+    );
     setLoading(false);
   };
 
-  const verifyRecord = async (table: "products" | "brands" | "ingredients", id: string) => {
+  const verifyRecord = async (table: "products" | "brands" | "ingredients" | "ingredient_interactions", id: string) => {
     const { error } = await supabase
       .from(table)
       .update({ verification_status: "verified", verified_by: user!.id, last_verified_at: new Date().toISOString() })
@@ -166,6 +188,7 @@ const AdminDashboard = () => {
     if (table === "brands") setIntelBrands((prev) => prev.filter((b) => b.id !== id));
     if (table === "ingredients") setIntelIngredients((prev) => prev.filter((i) => i.id !== id));
     if (table === "products") setIntelProducts((prev) => prev.filter((p) => p.id !== id));
+    if (table === "ingredient_interactions") setIntelInteractions((prev) => prev.filter((i) => i.id !== id));
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -259,7 +282,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="newsletter">Newsletter ({subscribers.length})</TabsTrigger>
                 <TabsTrigger value="preorders">Pre-Orders ({preorders.length})</TabsTrigger>
                 <TabsTrigger value="members">Members ({premiumProfiles.length})</TabsTrigger>
-                <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length})</TabsTrigger>
+                <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length + intelInteractions.length})</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -451,6 +474,40 @@ const AdminDashboard = () => {
                                 {p.is_discontinued && <Badge variant="outline" className="text-xs">Discontinued</Badge>}
                               </div>
                               <Button size="sm" variant="outline" className="gap-1" onClick={() => verifyRecord("products", p.id)}>
+                                <ShieldCheck className="h-4 w-4" /> Mark Verified
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section>
+                    <h3 className="font-medium text-card-foreground mb-3">Ingredient Interactions ({intelInteractions.length})</h3>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Conflict/synergy pairs feeding the public Combination Checker and the Insider/VIP Active
+                      Ingredient Conflict Matcher — these drive real safety guidance shown to members, so verify
+                      the cited source before marking verified.
+                    </p>
+                    {intelInteractions.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nothing pending verification.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {intelInteractions.map((r) => (
+                          <Card key={r.id}>
+                            <CardContent className="p-3 flex items-center gap-3 justify-between">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-card-foreground">
+                                    {ingredientNames[r.ingredient_a_id] || "Unknown"} + {ingredientNames[r.ingredient_b_id] || "Unknown"}
+                                  </span>
+                                  <Badge variant="secondary" className="text-xs">{r.interaction_type.replace(/_/g, " ")}</Badge>
+                                  <Badge variant="secondary" className="text-xs">{r.verification_status}</Badge>
+                                </div>
+                                {r.explanation && <p className="text-xs text-muted-foreground max-w-xl">{r.explanation}</p>}
+                              </div>
+                              <Button size="sm" variant="outline" className="gap-1 shrink-0" onClick={() => verifyRecord("ingredient_interactions", r.id)}>
                                 <ShieldCheck className="h-4 w-4" /> Mark Verified
                               </Button>
                             </CardContent>

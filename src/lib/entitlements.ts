@@ -51,7 +51,8 @@ export type FeatureKey =
   | "spotlight.full_profiles"
   | "practitioner_directory"
   | "consult.priority_booking"
-  | "dashboard.professional_tools";
+  | "dashboard.professional_tools"
+  | "routine.conflict_matcher";
 
 const LADDER_ORDER: LadderTier[] = ["anonymous", "free", "glow_lite", "insider", "vip"];
 
@@ -69,6 +70,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "comparisons.unlimited",
     "spotlight.full_profiles",
     "practitioner_directory",
+    "routine.conflict_matcher",
   ],
   vip: [
     "ai_analysis.starter",
@@ -80,6 +82,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "spotlight.full_profiles",
     "practitioner_directory",
     "consult.priority_booking",
+    "routine.conflict_matcher",
   ],
 };
 

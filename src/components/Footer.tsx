@@ -42,7 +42,7 @@ const Footer = () => {
       { label: "Consultations", href: "/consult", isComingSoon: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
       { label: "Academy", href: "/learn", isComingSoon: true },
-      { label: "Ingredients", href: "/ingredients", isComingSoon: true },
+      { label: "Ingredients", href: "/ingredients" },
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
       { label: "Announcements", href: "/announcements" },
     ],

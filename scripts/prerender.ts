@@ -44,6 +44,8 @@ const STATIC_ROUTES = [
   "/seasonals/summer",
   "/seasonals/autumn",
   "/seasonals/winter",
+  "/ingredients",
+  "/ingredients/checker",
 ];
 
 const extractQuoted = (source: string, field: string): string[] => {
@@ -76,6 +78,15 @@ async function collectRoutes(): Promise<string[]> {
       for (const row of data ?? []) if (typeof row.slug === "string") routes.add(`/briefings/${row.slug}`);
     } catch (err) {
       console.warn("prerender: could not fetch briefing slugs:", err);
+    }
+    try {
+      const { data } = await supabase
+        .from("ingredients")
+        .select("slug")
+        .neq("verification_status", "deprecated");
+      for (const row of data ?? []) if (typeof row.slug === "string") routes.add(`/ingredients/${row.slug}`);
+    } catch (err) {
+      console.warn("prerender: could not fetch ingredient slugs:", err);
     }
   }
   return [...routes].slice(0, MAX_ROUTES);

@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { CalendarClock, Sparkles, Target, ShoppingBag, GraduationCap, FlaskConical } from "lucide-react";
+import { CalendarClock, Sparkles, Target, ShoppingBag, GraduationCap } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -30,20 +30,6 @@ const configs: Record<string, ComingSoonConfig> = {
     launch: "Curriculum in development — join the waitlist via membership",
     icon: GraduationCap,
     primary: { label: "Explore Business Suite", to: "/business" },
-  },
-  "/ingredients": {
-    eyebrow: "Ingredients",
-    title: "The Ingredients Hub is coming soon",
-    description:
-      "A skincare ingredients knowledge base with plain-language science and a combination analyser that flags clashes and compatible stacks — part of the SkinLabs® intelligence layer.",
-    bullets: [
-      "Ingredient profiles: what it does, who it suits, SA climate caveats",
-      "Clash and mesh analyser for multi-active routines",
-      "Linked to briefings, reviews and SKYNN AI recommendations across the platform",
-    ],
-    launch: "Rolling out inside the skincare intelligence layer",
-    icon: FlaskConical,
-    primary: { label: "Try SKYNN AI skin analysis", to: "/skynn-ai" },
   },
   "/routines": {
     eyebrow: "Routines",
