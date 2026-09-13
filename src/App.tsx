@@ -13,6 +13,7 @@ import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import CookieConsent from "./components/CookieConsent";
+import AdBlockNotice from "./components/AdBlockNotice";
 import SitewideSEO from "./components/SitewideSEO";
 import { CartProvider } from "./contexts/CartContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
@@ -64,6 +65,8 @@ const MarketplaceCategoriesPage = lazy(() => import("./pages/marketplace/Marketp
 const MarketplaceValuesPage = lazy(() => import("./pages/marketplace/MarketplaceValuesPage"));
 const MarketplaceSkinTonePage = lazy(() => import("./pages/marketplace/MarketplaceSkinTonePage"));
 const MarketplaceSavedPage = lazy(() => import("./pages/marketplace/MarketplaceSavedPage"));
+const MarketplaceShippingReturns = lazy(() => import("./pages/marketplace/MarketplaceShippingReturns"));
+const MarketplaceTerms = lazy(() => import("./pages/marketplace/MarketplaceTerms"));
 
 const queryClient = new QueryClient();
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
@@ -76,6 +79,7 @@ const AppContent = () => (
     <ScrollToTop />
     <FloatingBottomNav />
     <CookieConsent />
+    <AdBlockNotice />
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Index />} />
@@ -127,6 +131,8 @@ const AppContent = () => (
         <Route path="/marketplace/brands" element={<MarketplaceBrandsPage />} />
         <Route path="/marketplace/categories" element={<MarketplaceCategoriesPage />} />
         <Route path="/marketplace/saved" element={<MarketplaceSavedPage />} />
+        <Route path="/marketplace/shipping-returns" element={<MarketplaceShippingReturns />} />
+        <Route path="/marketplace/terms" element={<MarketplaceTerms />} />
         <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
