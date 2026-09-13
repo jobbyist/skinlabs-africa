@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import AffiliateBanner from "@/components/AffiliateBanner";
 import AdSlot from "@/components/AdSlot";
+import { DEFAULT_OG } from "@/lib/seo-config";
 
 const PodcastPage = () => {
   const { playEpisode, current, isPlaying, toggle, progress, duration, speed, skip, cycleSpeed, seek } =
@@ -54,16 +55,16 @@ const PodcastPage = () => {
         <title>The Skin Deep Podcast — SA Skincare Conversations | SkinLabs®</title>
         <meta
           name="description"
-          content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes on the last Friday of every month. Coming soon to all major podcast platforms."
+          content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms."
         />
         <link rel="canonical" href="https://skinlabs.co.za/podcast" />
         <meta property="og:title" content="The Skin Deep Podcast | SkinLabs®" />
-        <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes on the last Friday of every month." />
+        <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes every Friday at 12pm SAST." />
         <meta property="og:url" content="https://skinlabs.co.za/podcast" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
+        <meta property="og:image" content={DEFAULT_OG} />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://skinlabs.co.za/podcast/ep1-weird-skincare.jpg" />
+        <meta name="twitter:image" content={DEFAULT_OG} />
       </Helmet>
 
       <Header />
@@ -77,10 +78,10 @@ const PodcastPage = () => {
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
             <p className="text-muted-foreground">
               Skincare without the nonsense. Conversations on ingredient science, culture and routines — grounded in
-              South African skin, climate and shelves. New episodes uploaded on the last Friday of every month. Coming
+              South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming
               soon to all major podcast streaming platforms.
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">Next drop around {nextDrop}.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Next drop {nextDrop} at 12pm SAST.</p>
           </div>
 
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center">
@@ -133,7 +134,7 @@ const PodcastPage = () => {
                 manufacturing, what "clean beauty" actually means here).
               </p>
               <p>
-                New episodes drop on the last Friday of every month, with full show notes and the products or
+                New episodes drop every Friday at 12pm SAST, with full show notes and the products or
                 studies discussed linked directly to the relevant{" "}
                 <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
                   SkinLabs review
@@ -176,7 +177,7 @@ const PodcastPage = () => {
                       alt={`${episode.title} cover art`}
                       loading="lazy"
                       className={cn(
-                        "h-full w-full object-cover transition-transform duration-500",
+                        "h-full w-full object-contain transition-transform duration-500",
                         !isComingSoon && "group-hover:scale-105",
                         isComingSoon && "opacity-90",
                       )}

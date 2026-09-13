@@ -15,7 +15,7 @@ interface PodcastSectionProps {
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
   description =
-    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes on the last Friday of every month. Coming soon to all major podcast platforms.",
+    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms.",
   showCta = true,
   limit,
 }: PodcastSectionProps) => {
@@ -81,7 +81,7 @@ const PodcastSection = ({
                     src={episode.image}
                     alt={`${episode.title} cover art`}
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-x-3 bottom-3 rounded-2xl border border-border/60 bg-background/95 px-3 py-2.5 shadow-lg backdrop-blur-md">
                     <div className="flex items-center gap-2">
