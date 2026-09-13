@@ -65,20 +65,10 @@ const KNOWN_RETAILERS = [
 ] as const;
 type Retailer = (typeof KNOWN_RETAILERS)[number];
 
-const KNOWN_CATEGORIES = [
-  "Moisturiser",
-  "Serum",
-  "Cleanser",
-  "SPF",
-  "Sunscreen",
-  "Toner",
-  "Exfoliant",
-  "Eye Cream",
-  "Body Care",
-  "Mask",
-  "Oil",
-  "Lip Care",
-] as const;
+/** Must exactly match the category taxonomy already used across src/data/reviews.ts --
+ *  ReviewsGrid's category filter dropdown is derived from that static set, so a
+ *  category outside it would still render but wouldn't be selectable by name. */
+const KNOWN_CATEGORIES = ["Moisturiser", "Serum", "Cleanser", "Sunscreen", "Exfoliant", "Eye Cream", "Body", "Mist"] as const;
 
 type SourceType = "faithful_to_nature" | "brand_direct" | "sponsored" | "openhaus_marketplace";
 type Origin = "south_africa" | "global_available_in_sa";
