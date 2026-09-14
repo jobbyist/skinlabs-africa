@@ -38,3 +38,4 @@ scripts/generated/
 .output/
 .nitro/
 src/routeTree.gen.ts
+*.tsbuildinfo
