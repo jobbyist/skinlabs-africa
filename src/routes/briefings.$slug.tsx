@@ -43,15 +43,25 @@ interface BriefingRow {
   is_premium: boolean
 }
 
+// Same fallback pattern as src/integrations/supabase/client.ts (public-by-
+// design production values, RLS-enforced) -- applied here because it was
+// empirically confirmed that this Preview deployment's environment does not
+// reliably expose VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY to a
+// serverless function's process.env at runtime, matching the exact gap that
+// client.ts's own fallback comment already anticipates ("Avoid a hard crash
+// ... when Vercel/build env vars are missing").
+const FALLBACK_SUPABASE_URL = 'https://gnkpzijxuciiaamakgzm.supabase.co'
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdua3B6aWp4dWNpaWFhbWFrZ3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MjMzOTksImV4cCI6MjEwNDM5OTM5OX0.JFSg0IUBH1UPbKsqxctVRoPV2__SZw7u8OBbvHdId4U'
+
 const fetchBriefing = createServerFn({ method: 'GET' })
   .validator((slug: unknown) => {
     if (typeof slug !== 'string' || !slug) throw new Error('slug required')
     return slug
   })
   .handler(async ({ data: slug }) => {
-    const url = process.env.VITE_SUPABASE_URL
-    const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-    if (!url || !key) return { found: false as const }
+    const url = process.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL
+    const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY
     const supabase = createClient(url, key)
     const { data, error } = await supabase
       .from('news_articles')
