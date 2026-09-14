@@ -72,13 +72,15 @@ async function collectRoutes(): Promise<string[]> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (supabaseUrl && supabaseKey) {
-    try {
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data } = await supabase.from("news_articles_public").select("slug");
-      for (const row of data ?? []) if (typeof row.slug === "string") routes.add(`/briefings/${row.slug}`);
-    } catch (err) {
-      console.warn("prerender: could not fetch briefing slugs:", err);
-    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    // /briefings/:slug is NOT crawled here anymore -- it's SSR-migrated
+    // (src/routes/briefings.$slug.tsx) and takes routing priority over any
+    // static file at that path (see scripts/assemble-vercel-output.ts's
+    // SSR_ROUTE_PATTERNS, ordered before the filesystem phase), so
+    // prerendering it would be both wasted Chromium time and dead output.
+    // The /briefings list page itself is still a plain SPA route, unaffected
+    // and still covered by STATIC_ROUTES above. See
+    // docs/architecture/tanstack-start-production-migration.md.
     try {
       const { data } = await supabase
         .from("ingredients")
