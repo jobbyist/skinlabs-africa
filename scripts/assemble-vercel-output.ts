@@ -48,12 +48,17 @@ const vercelJsonPath = resolve(root, "vercel.json");
  * Path patterns of TanStack Start routes that render server-side today.
  * Each entry becomes a Build Output API route sending matching requests to
  * the Nitro `__server` function *before* the filesystem phase, so a
- * previously-prerendered static file at the same path (scripts/prerender.ts
- * still crawls /briefings/:slug as of this commit) never shadows the live
- * SSR response. Extend this array, not the routing logic, as more content
- * types migrate.
+ * previously-prerendered static file at the same path never shadows the
+ * live SSR response (both /briefings/:slug and, as of this commit,
+ * /reviews/:slug -- for the static-catalogue portion of it -- were removed
+ * from scripts/prerender.ts's crawl only after being live-validated). Each
+ * pattern intentionally matches exactly one path segment ([^/]+, anchored
+ * with $) so it can never capture a route with additional segments --
+ * confirmed this does not collide with /reviews/versus/:slug (2 segments
+ * after /reviews/) or /reviews/page/:page (2 segments). Extend this array,
+ * not the routing logic, as more content types migrate.
  */
-const SSR_ROUTE_PATTERNS = ["^/briefings/([^/]+)$"];
+const SSR_ROUTE_PATTERNS = ["^/briefings/([^/]+)$", "^/reviews/([^/]+)$"];
 
 function assertExists(path: string, what: string) {
   if (!existsSync(path)) {
