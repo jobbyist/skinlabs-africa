@@ -208,6 +208,15 @@ All colors MUST be HSL.
   .gradient-border-anim::before {
     animation: none;
   }
+
+  /* Dialog/modal entrance-exit (tailwindcss-animate's animate-in/animate-out,
+     used by every Dialog in the app, the SKYNN video modal included) —
+     collapse to an instant state change instead of a fade/zoom/slide. */
+  .animate-in,
+  .animate-out {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 @layer utilities {
