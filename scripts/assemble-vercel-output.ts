@@ -33,6 +33,7 @@
 import { existsSync, mkdirSync, readdirSync, rmSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
+import { getTransformedRoutes } from "@vercel/routing-utils";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -79,69 +80,50 @@ function walk(dir: string, base = dir): string[] {
   return out;
 }
 
-/**
- * Minimal vercel.json `source` -> Build Output API `src` regex converter.
- * Deliberately narrow: this project's vercel.json only ever uses a literal
- * path or a single `:param` capturing one full segment (no `*`, `+`, or
- * optional-segment syntax). Anything wider throws rather than silently
- * mis-routing -- extend this function first if vercel.json grows a pattern
- * it doesn't cover.
- */
-function sourceToRegex(source: string): string {
-  if (source === "/(.*)" || source.includes("(.*)")) return `^${source}$`.replace(/\^\^/, "^");
-  if (/[*+?]/.test(source) || source.includes("(")) {
-    throw new Error(`sourceToRegex: unsupported vercel.json source pattern "${source}" -- extend the converter.`);
-  }
-  const pattern = source.replace(/:[A-Za-z0-9_]+/g, "([^/]+)");
-  return `^${pattern}$`;
-}
-
-function destFromDestination(destination: string): string {
-  // vercel.json uses the same `:param` placeholders in redirect destinations;
-  // Build Output API destinations use positional $1, $2, ... instead.
-  let i = 0;
-  return destination.replace(/:[A-Za-z0-9_]+/g, () => `$${++i}`);
-}
-
 type BoapiRoute = Record<string, unknown>;
 
+/**
+ * Builds config.json's `routes` from vercel.json's own high-level
+ * headers/redirects/rewrites/trailingSlash (single source of truth) using
+ * `@vercel/routing-utils`'s `getTransformedRoutes()` -- the same official
+ * transform Vercel's own zero-config framework builders use internally
+ * (confirmed by reading its source), rather than a hand-rolled regex
+ * converter. That hand-rolled version shipped once (commit history) and
+ * caused a real, live bug: it emitted the SPA-fallback rule as
+ * `{src: "/(.*)", dest: "/index.html"}`, missing a `"check": true` flag
+ * `getTransformedRoutes()` always adds -- without it, any path that isn't
+ * a real static file AND isn't SSR-migrated (e.g. /dashboard, or any
+ * other unmigrated, non-prerendered SPA route) 404'd at the Vercel
+ * platform level instead of falling through to serve the real SPA.
+ * Confirmed via live deployment testing before this fix, confirmed fixed
+ * after it -- see docs/architecture/tanstack-start-production-migration.md.
+ */
 function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[] } {
   const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf-8"));
-  const routes: BoapiRoute[] = [];
-
-  // 1. Redirects first (vercel.json's own order), converted 1:1.
-  for (const r of vercelJson.redirects ?? []) {
-    routes.push({
-      src: sourceToRegex(r.source),
-      headers: { Location: destFromDestination(r.destination) },
-      status: r.permanent ? 308 : 307,
-    });
+  const { routes: baseRoutes, error } = getTransformedRoutes({
+    trailingSlash: vercelJson.trailingSlash,
+    redirects: vercelJson.redirects,
+    headers: vercelJson.headers,
+    rewrites: vercelJson.rewrites,
+  });
+  if (error || !baseRoutes) {
+    throw new Error(`assemble-vercel-output: getTransformedRoutes failed on vercel.json: ${JSON.stringify(error)}`);
   }
 
-  // 2. Response headers (annotate, don't terminate routing).
-  for (const h of vercelJson.headers ?? []) {
-    const headerMap: Record<string, string> = {};
-    for (const { key, value } of h.headers ?? []) headerMap[key] = value;
-    routes.push({ src: sourceToRegex(h.source), headers: headerMap, continue: true });
+  // Splice the SSR-migrated routes in just before the `handle: filesystem`
+  // phase getTransformedRoutes() already emits -- must precede it (see
+  // SSR_ROUTE_PATTERNS comment above) and follow the redirect/header rules
+  // (also already correctly ordered by getTransformedRoutes()). Skipped
+  // entirely when the Nitro build didn't produce a usable function -- those
+  // paths then fall through to whatever static/prerendered file
+  // scripts/prerender.ts already produced for them (today's behavior),
+  // rather than routing to a function that doesn't exist.
+  const filesystemIndex = baseRoutes.findIndex((r) => "handle" in r && r.handle === "filesystem");
+  if (filesystemIndex === -1) {
+    throw new Error("assemble-vercel-output: getTransformedRoutes() did not emit a filesystem handle phase as expected.");
   }
-
-  // 3. SSR-migrated routes -> the Nitro server function. Must precede the
-  //    filesystem phase (see SSR_ROUTE_PATTERNS comment above). Skipped
-  //    entirely when the Nitro build didn't produce a usable function --
-  //    those paths then fall through to whatever static/prerendered file
-  //    scripts/prerender.ts already produced for them (today's behavior),
-  //    rather than routing to a function that doesn't exist.
-  if (ssrAvailable) {
-    for (const pattern of SSR_ROUTE_PATTERNS) routes.push({ src: pattern, dest: "/__server" });
-  }
-
-  // 4. Filesystem phase: serve any real static/prerendered file as-is.
-  routes.push({ handle: "filesystem" });
-
-  // 5. SPA fallback for every route the SPA's client-side router owns that
-  //    wasn't prerendered to a static file (mirrors vercel.json's own
-  //    `rewrites: [{source: "/(.*)", destination: "/index.html"}]`).
-  routes.push({ src: "/(.*)", dest: "/index.html" });
+  const ssrRoutes: BoapiRoute[] = ssrAvailable ? SSR_ROUTE_PATTERNS.map((pattern) => ({ src: pattern, dest: "/__server" })) : [];
+  const routes: BoapiRoute[] = [...baseRoutes.slice(0, filesystemIndex), ...ssrRoutes, ...baseRoutes.slice(filesystemIndex)];
 
   // Deliberately NOT duplicating vercel.json's `crons` into config.json here.
   // Confirmed on real Vercel infrastructure (not just inferred from docs):
