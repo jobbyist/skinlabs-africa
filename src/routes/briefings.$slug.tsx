@@ -1,25 +1,30 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient } from '@/lib/content/supabaseServerClient'
+import { buildHeadTags } from '@/lib/seo/head'
+import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
+import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
+import { canonicalUrl } from '@/lib/seo/canonical'
+import { articleTitle } from '@/lib/seo-config'
 
-// Briefing SSR proof-of-concept (Phase 3 of the TanStack Start feasibility
-// work). Mirrors the real /briefings/:slug route (src/pages/NewsroomArticle.tsx)
-// but renders server-side via TanStack Start instead of client-side
-// react-router + a post-mount Supabase fetch. Not wired into the real app --
-// only reachable through the separate build:tanstack-start-test pipeline.
-// See docs/architecture/tanstack-start-briefing-ssr-poc.md.
+// Production SSR route for /briefings/:slug (Briefings is the first content
+// type migrated to TanStack Start -- see
+// docs/architecture/tanstack-start-production-migration.md). Mirrors the
+// real client-side route (src/pages/NewsroomArticle.tsx) and its data
+// shape, but renders server-side, using the shared SEO/JSON-LD builders in
+// src/lib/seo/* so every future migrated content type produces consistent
+// metadata instead of re-deriving it per route. Originated as the Phase 3
+// feasibility POC -- see docs/architecture/tanstack-start-briefing-ssr-poc.md
+// for that validation history.
 //
 // Queries the BASE `news_articles` table (not the `news_articles_public`
 // view) with an explicit `status = 'published'` filter -- identical to the
 // view's own WHERE clause, and covered by the same RLS policy either way --
 // specifically to read `updated_at`, which the view does not expose. A real
 // migration should likely add updated_at to the view instead of querying
-// the base table directly; this POC does it explicitly so dateModified can
-// be correct, rather than perpetuating the existing json_ld column's
+// the base table directly; this route does it explicitly so dateModified
+// can be correct, rather than perpetuating the existing json_ld column's
 // hardcoded dateModified === datePublished.
-
-const SITE_URL = 'https://skinlabs.co.za'
-const BRAND = 'SkinLabs®'
 
 interface BriefingRow {
   slug: string
@@ -43,26 +48,13 @@ interface BriefingRow {
   is_premium: boolean
 }
 
-// Same fallback pattern as src/integrations/supabase/client.ts (public-by-
-// design production values, RLS-enforced) -- applied here because it was
-// empirically confirmed that this Preview deployment's environment does not
-// reliably expose VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY to a
-// serverless function's process.env at runtime, matching the exact gap that
-// client.ts's own fallback comment already anticipates ("Avoid a hard crash
-// ... when Vercel/build env vars are missing").
-const FALLBACK_SUPABASE_URL = 'https://gnkpzijxuciiaamakgzm.supabase.co'
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdua3B6aWp4dWNpaWFhbWFrZ3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MjMzOTksImV4cCI6MjEwNDM5OTM5OX0.JFSg0IUBH1UPbKsqxctVRoPV2__SZw7u8OBbvHdId4U'
-
 const fetchBriefing = createServerFn({ method: 'GET' })
   .validator((slug: unknown) => {
     if (typeof slug !== 'string' || !slug) throw new Error('slug required')
     return slug
   })
   .handler(async ({ data: slug }) => {
-    const url = process.env.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL
-    const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_PUBLISHABLE_KEY
-    const supabase = createClient(url, key)
+    const supabase = createSupabaseServerClient()
     const { data, error } = await supabase
       .from('news_articles')
       .select(
@@ -85,10 +77,8 @@ export const Route = createFileRoute('/briefings/$slug')({
     if (!loaderData) return {}
     const a = loaderData
     const path = `/briefings/${a.slug}`
-    const canonicalUrl = `${SITE_URL}${path}`
-    const title = a.seo_title || `${a.title} | The Daily Skinny by ${BRAND}`
+    const title = a.seo_title || articleTitle(a.title)
     const description = (a.seo_description || a.excerpt).replace(/\s+/g, ' ').trim().slice(0, 160)
-    const ogImage = a.cover_image_url || `${SITE_URL}/og-image.png`
     const datePublished = a.publish_date
     // Real fix vs. the DB's own json_ld column pattern (confirmed via direct
     // inspection of a live row): that column hardcodes dateModified to equal
@@ -96,61 +86,35 @@ export const Route = createFileRoute('/briefings/$slug')({
     // timestamp, so a genuine post-publish edit is reflected correctly.
     const dateModified = a.updated_at ? a.updated_at.slice(0, 10) : datePublished
 
-    const articleJsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      '@id': `${canonicalUrl}#article`,
-      mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+    const article = articleJsonLd({
+      canonicalUrl: canonicalUrl(path),
       headline: a.title,
       description,
-      image: a.cover_image_url ? [a.cover_image_url] : undefined,
+      images: a.cover_image_url ? [a.cover_image_url] : undefined,
       datePublished,
       dateModified,
-      author: { '@type': 'Organization', name: BRAND, url: SITE_URL },
-      publisher: {
-        '@type': 'Organization',
-        name: BRAND,
-        logo: { '@type': 'ImageObject', url: `${SITE_URL}/og-image.png` },
-      },
       articleSection: 'The Daily Skinny',
-    }
+    })
 
-    const breadcrumbJsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'SkinLabs', item: SITE_URL },
-        { '@type': 'ListItem', position: 2, name: 'Briefings', item: `${SITE_URL}/briefings` },
-        { '@type': 'ListItem', position: 3, name: a.title, item: canonicalUrl },
-      ],
-    }
+    const breadcrumb = breadcrumbJsonLd(
+      siteBreadcrumbTrail([
+        { name: 'Briefings', path: '/briefings' },
+        { name: a.title, path },
+      ]),
+    )
 
-    return {
-      meta: [
-        { charSet: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { title },
-        { name: 'description', content: description },
-        { name: 'robots', content: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' },
-        { property: 'og:title', content: title },
-        { property: 'og:description', content: description },
-        { property: 'og:url', content: canonicalUrl },
-        { property: 'og:type', content: 'article' },
-        { property: 'og:image', content: ogImage },
-        { property: 'og:site_name', content: BRAND },
-        { property: 'article:published_time', content: datePublished },
-        { property: 'article:modified_time', content: dateModified },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: title },
-        { name: 'twitter:description', content: description },
-        { name: 'twitter:image', content: ogImage },
-      ],
-      links: [{ rel: 'canonical', href: canonicalUrl }],
-      scripts: [
-        { type: 'application/ld+json', children: JSON.stringify(articleJsonLd) },
-        { type: 'application/ld+json', children: JSON.stringify(breadcrumbJsonLd) },
-      ],
-    }
+    return buildHeadTags(
+      {
+        title,
+        description,
+        canonicalPath: path,
+        ogType: 'article',
+        ogImage: a.cover_image_url ?? undefined,
+        publishedTime: datePublished,
+        modifiedTime: dateModified,
+      },
+      [article, breadcrumb],
+    )
   },
   component: BriefingPage,
   notFoundComponent: () => (

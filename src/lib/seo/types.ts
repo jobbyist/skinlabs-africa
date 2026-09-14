@@ -1,0 +1,51 @@
+/**
+ * Shared types for the TanStack Start SSR SEO layer (src/lib/seo/*). Content-
+ * type-agnostic -- Briefings is the first consumer, but nothing here assumes
+ * anything about a specific table/schema. See
+ * docs/architecture/tanstack-start-production-migration.md.
+ */
+
+export interface PageMeta {
+  /** Search-facing title. Pass the full, final title -- callers append the
+   * brand themselves via their own title-generator (e.g. seo-config.ts's
+   * `articleTitle`), matching the existing convention. */
+  title: string;
+  /** Page-specific description, already clamped to ~160 chars. */
+  description: string;
+  /** Site-relative path, e.g. "/briefings/some-slug". */
+  canonicalPath: string;
+  ogType?: "website" | "article";
+  /** Absolute or site-relative image URL. Falls back to DEFAULT_OG. */
+  ogImage?: string;
+  noindex?: boolean;
+  publishedTime?: string;
+  modifiedTime?: string;
+}
+
+export interface ArticleJsonLdInput {
+  canonicalUrl: string;
+  headline: string;
+  description: string;
+  /** Absolute image URL(s). Omit entirely if there's no real cover image --
+   * never fabricate one. */
+  images?: string[];
+  datePublished: string;
+  dateModified: string;
+  /** Real content section label, e.g. "The Daily Skinny". */
+  articleSection?: string;
+}
+
+export interface BreadcrumbItem {
+  name: string;
+  /** Absolute URL. */
+  url: string;
+}
+
+/** The exact shape TanStack Router's `head()` expects back (confirmed by
+ * reading node_modules/@tanstack/react-router/dist/esm/headContentUtils.js --
+ * `scripts` entries are FLAT {type, children}, not {attrs, children}). */
+export interface HeadTags {
+  meta: Array<Record<string, string>>;
+  links: Array<{ rel: string; href: string }>;
+  scripts: Array<{ type: string; children: string }>;
+}
