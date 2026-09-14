@@ -1,5 +1,5 @@
 import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
-import type { ArticleJsonLdInput, BreadcrumbItem } from "./types";
+import type { ArticleJsonLdInput, BreadcrumbItem, ProductReviewJsonLdInput } from "./types";
 
 /**
  * Article JSON-LD, grounded only in fields the caller actually has -- never
@@ -25,6 +25,53 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
       logo: { "@type": "ImageObject", url: DEFAULT_OG },
     },
     ...(input.articleSection ? { articleSection: input.articleSection } : {}),
+  };
+}
+
+/**
+ * Product + Review + AggregateRating JSON-LD, matching the shape
+ * src/pages/ProductReview.tsx already emits inline (verified byte-equivalent
+ * fields) -- extracted here so the SSR-migrated route and the existing
+ * client-rendered page describe the same product identically. Emitted as
+ * separate script tags via buildHeadTags() rather than the page's own
+ * `@graph` wrapper; both are valid JSON-LD, and separate blocks match the
+ * convention already established for Briefings (Article + BreadcrumbList
+ * as two blocks). Every field here is real, computed data -- ratingValue is
+ * the same overallScore() used throughout the app, reviewCount reflects
+ * actual comment rows, never a fabricated count.
+ */
+export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${input.canonicalUrl}#product`,
+    name: input.productName,
+    brand: { "@type": "Brand", name: input.brand },
+    category: input.category,
+    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.offers
+      ? {
+          offers: {
+            "@type": "AggregateOffer",
+            priceCurrency: "ZAR",
+            lowPrice: input.offers.lowPrice,
+            highPrice: input.offers.highPrice,
+            offerCount: input.offers.offerCount,
+          },
+        }
+      : {}),
+    review: {
+      "@type": "Review",
+      reviewRating: { "@type": "Rating", ratingValue: input.ratingValue, bestRating: 10 },
+      author: { "@type": "Organization", name: BRAND },
+      reviewBody: input.reviewBody,
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: input.ratingValue,
+      bestRating: 10,
+      reviewCount: input.reviewCount,
+    },
   };
 }
 
