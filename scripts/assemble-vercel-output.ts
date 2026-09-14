@@ -23,8 +23,12 @@
  * discarding Nitro's own static/ output (dist/ is the authoritative,
  * already-optimized version of the same public/ files) except for the
  * genuinely new, Nitro-specific asset chunks, then rebuilding config.json
- * from vercel.json's own headers/redirects/crons (single source of truth)
- * plus explicit routing for the migrated SSR paths.
+ * from vercel.json's own headers/redirects (single source of truth) plus
+ * explicit routing for the migrated SSR paths. Crons are deliberately NOT
+ * duplicated into config.json -- Vercel's platform reads those straight off
+ * the project's git-connected vercel.json regardless, and generating them
+ * here too fails the deployment with "duplicated_cron_job" (confirmed on
+ * real infrastructure, see buildConfigJson()).
  */
 import { existsSync, mkdirSync, readdirSync, rmSync, cpSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -96,11 +100,7 @@ function destFromDestination(destination: string): string {
 
 type BoapiRoute = Record<string, unknown>;
 
-function buildConfigJson(ssrAvailable: boolean): {
-  version: 3;
-  routes: BoapiRoute[];
-  crons?: { path: string; schedule: string }[];
-} {
+function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[] } {
   const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf-8"));
   const routes: BoapiRoute[] = [];
 
@@ -138,12 +138,15 @@ function buildConfigJson(ssrAvailable: boolean): {
   //    `rewrites: [{source: "/(.*)", destination: "/index.html"}]`).
   routes.push({ src: "/(.*)", dest: "/index.html" });
 
-  const config: { version: 3; routes: BoapiRoute[]; crons?: { path: string; schedule: string }[] } = {
-    version: 3,
-    routes,
-  };
-  if (Array.isArray(vercelJson.crons) && vercelJson.crons.length > 0) config.crons = vercelJson.crons;
-  return config;
+  // Deliberately NOT duplicating vercel.json's `crons` into config.json here.
+  // Confirmed on real Vercel infrastructure (not just inferred from docs):
+  // the platform reads crons from the project's git-connected vercel.json
+  // even when a custom buildCommand supplies .vercel/output, and doing both
+  // fails the deployment outright with errorCode "duplicated_cron_job" ("A
+  // duplicated cron job with the same schedule and path was found") --
+  // vercel.json stays the sole source of truth for crons; nothing extra is
+  // needed here.
+  return { version: 3, routes };
 }
 
 function main() {
@@ -213,7 +216,7 @@ function main() {
   console.log(
     `[assemble-vercel-output] functions/: ${existsSync(functionsDir) ? readdirSync(functionsDir).join(", ") : "(none -- static-only deployment)"}`,
   );
-  console.log(`[assemble-vercel-output] config.json: ${config.routes.length} route rules${config.crons ? `, ${config.crons.length} cron(s)` : ""}`);
+  console.log(`[assemble-vercel-output] config.json: ${config.routes.length} route rules`);
 }
 
 main();
