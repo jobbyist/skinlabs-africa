@@ -25,10 +25,12 @@ import {
   Info,
   UserRound,
   Leaf,
+  Play,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -53,6 +55,7 @@ import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSectio
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
+import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
 import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { MST_SCALE } from "@/data/mstScale";
 import { QUESTIONS } from "@/data/quiz";
@@ -146,6 +149,10 @@ const AIFormulator = () => {
   const [authPassword, setAuthPassword] = useState("");
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
+  const preAnalysisUpsellViewedRef = useRef(false);
+  const midQuizUpsellViewedRef = useRef(false);
+  const resultsUpsellViewedRef = useRef(false);
   // Starter Analysis 2.0 — What Changed / Routine Reality Check answers, the
   // deterministic result object, and its refinement history.
   const [analysisId, setAnalysisId] = useState<string>(() => crypto.randomUUID());
@@ -301,6 +308,7 @@ const AIFormulator = () => {
     }
     if (!claim?.allowed) {
       setAnalysisError("You don't have an Analysis Pass available right now.");
+      trackConversionEvent("advanced_assessment_access_denied", { reason: "no_analysis_pass" });
       return false;
     }
 
@@ -343,6 +351,7 @@ const AIFormulator = () => {
       }
       if (!result?.allowed) {
         setAllowanceExhausted(true);
+        trackConversionEvent("advanced_assessment_access_denied", { reason: "free_allowance_exhausted" });
         return false;
       }
     }
@@ -581,9 +590,27 @@ const AIFormulator = () => {
     });
   }, [step, answers, mstTone, changeStatus, changeDetail, priorityPreference, skinImage, contactName, contactEmail, contactWhatsApp, analysisId]);
 
-  const handleStartAnalysis = () => {
-    trackConversionEvent("analysis_started");
+  const handleStartAnalysis = (options?: { useAdvancedPass?: boolean }) => {
+    useAdvancedPassRef.current = Boolean(options?.useAdvancedPass);
+    trackConversionEvent("analysis_started", options?.useAdvancedPass ? { advancedPass: true } : undefined);
     setStep(STEP_CONSENT);
+  };
+
+  /** Pre-quiz "Want to go deeper?" teaser CTA — adapts to what the visitor can already access. */
+  const handlePreAnalysisAdvancedCta = () => {
+    trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "pre_analysis" });
+    if (isMember) {
+      trackConversionEvent("advanced_assessment_membership_cta_clicked", { funnelLocation: "pre_analysis" });
+      handleStartAnalysis();
+      return;
+    }
+    if (passBalance && passBalance > 0) {
+      toast.message("Your next analysis will use an Analysis Pass.");
+      handleStartAnalysis({ useAdvancedPass: true });
+      return;
+    }
+    trackConversionEvent("analysis_pass_purchase_viewed", { source: "pre_analysis" });
+    setPassPurchaseOpen(true);
   };
 
   const handleSaveResults = async (e: React.FormEvent) => {
@@ -872,14 +899,26 @@ const AIFormulator = () => {
                       </div>
                     ))}
                   </div>
-                  <Button
-                    size="lg"
-                    onClick={handleStartAnalysis}
-                    className="w-full gap-2 bg-background text-foreground hover:bg-background/90"
-                  >
-                    Get started
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      size="lg"
+                      onClick={() => handleStartAnalysis()}
+                      className="w-full gap-2 bg-background text-foreground hover:bg-background/90 gradient-border-anim"
+                    >
+                      Get started for free
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setVideoModalOpen(true)}
+                      aria-label="Watch a short video showing how SKYNN AI works"
+                      className="w-full gap-2 text-background/80 hover:bg-background/10 hover:text-background"
+                    >
+                      <Play className="h-4 w-4 fill-current" />
+                      See how it works
+                    </Button>
+                  </div>
                   {!user && (
                     <button
                       type="button"
@@ -889,6 +928,52 @@ const AIFormulator = () => {
                       Already have an account? Sign in
                     </button>
                   )}
+
+                  <div
+                    ref={(el) => {
+                      if (el && !preAnalysisUpsellViewedRef.current) {
+                        preAnalysisUpsellViewedRef.current = true;
+                        trackConversionEvent("advanced_assessment_upsell_viewed", {
+                          funnelLocation: "pre_analysis",
+                          accessState: isMember ? "member" : passBalance && passBalance > 0 ? "pass_holder" : "none",
+                        });
+                      }
+                    }}
+                    className="rounded-xl border border-background/15 bg-background/5 p-4 space-y-3"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-background/90">Want to go deeper?</p>
+                      <p className="text-xs text-background/60 mt-1">
+                        The free Starter Analysis gives you a quick snapshot of your skin. The Advanced Assessment goes
+                        further with a more comprehensive skin profile and advanced personalised insights.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-2 border-background/30 bg-transparent text-background hover:bg-background/10 hover:text-background"
+                        onClick={handlePreAnalysisAdvancedCta}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {isMember
+                          ? "Start Advanced Assessment"
+                          : passBalance && passBalance > 0
+                            ? "Use 1 Analysis Pass"
+                            : "Explore Advanced Assessment"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-background/60 hover:bg-background/10 hover:text-background"
+                        onClick={() => handleStartAnalysis()}
+                      >
+                        Continue with Starter Analysis
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1064,6 +1149,43 @@ const AIFormulator = () => {
                 </div>
               )}
 
+              {step === STEP_CHANGE && !isMember && (
+                <div
+                  ref={(el) => {
+                    if (el && !midQuizUpsellViewedRef.current) {
+                      midQuizUpsellViewedRef.current = true;
+                      trackConversionEvent("advanced_assessment_upsell_viewed", { funnelLocation: "during_analysis" });
+                    }
+                  }}
+                  className="mb-5 rounded-xl border border-primary/20 bg-accent/30 p-4 space-y-2"
+                >
+                  <p className="text-sm text-card-foreground">
+                    <span className="font-medium">You're building your skin profile.</span> Want the full picture? The
+                    Advanced Assessment looks deeper at the factors behind your skin concerns and creates a much more
+                    comprehensive profile.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "during_analysis" });
+                      if (passBalance && passBalance > 0) {
+                        useAdvancedPassRef.current = true;
+                        toast.message("Your next analysis will use an Analysis Pass.");
+                      } else {
+                        trackConversionEvent("analysis_pass_purchase_viewed", { source: "during_analysis" });
+                        setPassPurchaseOpen(true);
+                      }
+                    }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    See Advanced Assessment
+                  </Button>
+                </div>
+              )}
+
               {step === STEP_CHANGE && (
                 <ChangeQuestionStep status={changeStatus} detail={changeDetail} onStatusChange={setChangeStatus} onDetailChange={setChangeDetail} />
               )}
@@ -1140,19 +1262,23 @@ const AIFormulator = () => {
 
                   {isMember && resultTier === "free" && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-accent/40 p-4">
-                      <p className="text-sm text-card-foreground">
-                        You're a member now — get your live Advanced SKYNN AI report using these same answers, no re-doing the assessment.
-                      </p>
+                      <div className="space-y-1">
+                        <Badge variant="secondary" className="mb-1">Included with your membership</Badge>
+                        <p className="text-sm text-card-foreground">
+                          Get your Advanced Assessment — a live, dermatology-grounded report using these same answers, no re-doing the assessment.
+                        </p>
+                      </div>
                       <Button
                         size="sm"
                         className="gap-2 shrink-0"
                         onClick={() => {
                           trackConversionEvent("advanced_analysis_started");
+                          trackConversionEvent("advanced_assessment_membership_cta_clicked", { funnelLocation: "results" });
                           setStep(STEP_ANALYSIS);
                         }}
                       >
                         <Sparkles className="h-4 w-4" />
-                        Get my Advanced analysis
+                        Start Advanced Assessment
                       </Button>
                     </div>
                   )}
@@ -1337,12 +1463,29 @@ const AIFormulator = () => {
                   ) : null}
 
                   {!isMember && starterResult && (
-                    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3">
-                      <h4 className="font-heading font-semibold text-card-foreground">Go Deeper With Advanced Analysis</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Your Starter Analysis gives you a personalised foundation. Explore your skin in greater depth
-                        with an Advanced Skin Analysis.
+                    <div
+                      ref={(el) => {
+                        if (el && !resultsUpsellViewedRef.current) {
+                          resultsUpsellViewedRef.current = true;
+                          trackConversionEvent("advanced_assessment_upsell_viewed", {
+                            funnelLocation: "results",
+                            accessState: passBalance && passBalance > 0 ? "pass_holder" : "none",
+                          });
+                        }
+                      }}
+                      className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3"
+                    >
+                      <p className="text-sm font-medium text-card-foreground">
+                        This is your starting point. There's more to your skin story.
                       </p>
+                      <div>
+                        <h4 className="font-heading font-semibold text-card-foreground">Go deeper with Advanced Assessment</h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Your Starter Analysis gives you a personalised snapshot. The Advanced Assessment takes the next
+                          step — combining a deeper skin questionnaire, additional skin-profile data and a more
+                          comprehensive AI analysis to build a detailed report tailored to you.
+                        </p>
+                      </div>
                       {passBalanceLoading ? (
                         <Button size="lg" disabled className="gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking your Analysis Passes…</Button>
                       ) : passBalance && passBalance > 0 ? (
@@ -1356,12 +1499,13 @@ const AIFormulator = () => {
                           className="gap-2"
                           onClick={() => {
                             trackConversionEvent("advanced_analysis_cta_clicked", { cta: "get_pass" });
+                            trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "results" });
                             trackConversionEvent("analysis_pass_purchase_viewed", { source: "starter_results" });
                             setPassPurchaseOpen(true);
                           }}
                         >
                           <Sparkles className="h-4 w-4" />
-                          Get an Analysis Pass
+                          Unlock Advanced Assessment
                         </Button>
                       )}
                     </div>
@@ -1396,6 +1540,7 @@ const AIFormulator = () => {
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
       <AnalysisPassPurchaseModal open={passPurchaseOpen} onOpenChange={setPassPurchaseOpen} />
+      <SkynnVideoModal open={videoModalOpen} onOpenChange={setVideoModalOpen} />
     </>
   );
 };

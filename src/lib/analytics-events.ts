@@ -63,7 +63,17 @@ export type ConversionEvent =
   | "smart_routines_demo_interaction"
   | "smart_routines_faq_opened"
   | "smart_routines_accessed"
-  | "smart_routines_generated";
+  | "smart_routines_generated"
+  // SKYNN "See how it works" video modal + Advanced Assessment upsell moments —
+  // genuinely new events only. Assessment start/access-denied/pass-selection
+  // already reuse "advanced_analysis_started"/"advanced_analysis_cta_clicked"/
+  // "analysis_pass_package_selected" fired at their existing call sites.
+  | "skynn_video_opened"
+  | "skynn_video_completed"
+  | "advanced_assessment_upsell_viewed"
+  | "advanced_assessment_upsell_clicked"
+  | "advanced_assessment_access_denied"
+  | "advanced_assessment_membership_cta_clicked";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
