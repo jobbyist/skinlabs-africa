@@ -98,7 +98,7 @@ type BoapiRoute = Record<string, unknown>;
  * Confirmed via live deployment testing before this fix, confirmed fixed
  * after it -- see docs/architecture/tanstack-start-production-migration.md.
  */
-function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[] } {
+function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[]; framework: { name: string } } {
   const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf-8"));
   const { routes: baseRoutes, error } = getTransformedRoutes({
     trailingSlash: vercelJson.trailingSlash,
@@ -133,7 +133,15 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
   // duplicated cron job with the same schedule and path was found") --
   // vercel.json stays the sole source of truth for crons; nothing extra is
   // needed here.
-  return { version: 3, routes };
+  // Also declare `framework` in config.json itself (distinct from
+  // vercel.json's own now-removed `framework` field) -- one of the few
+  // fields in the documented config.json schema
+  // ({version, routes, images, wildcard, overrides, cache, framework,
+  // crons, services}) this script hasn't tried yet, while diagnosing why
+  // the SPA-fallback `check: true` rewrite -- confirmed byte-for-byte
+  // identical to what getTransformedRoutes() itself emits -- still 404s
+  // live on /dashboard and other non-prerendered, non-SSR paths.
+  return { version: 3, routes, framework: { name: "vite" } };
 }
 
 function main() {
