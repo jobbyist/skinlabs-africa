@@ -30,12 +30,12 @@ const Footer = () => {
   const footerLinks = {
     products: [
       { label: "The Daily Skinny", href: "/briefings" },
-      { label: "Ingredients", href: "/ingredients" },
       { label: "Product Reviews", href: "/reviews" },
       { label: "Shelf Showdown", href: "/compare", isNew: true },
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
       { label: "Seasonal Guides", href: "/seasonals", isNew: true },
       { label: "Podcast Series", href: "/podcast" },
+      { label: "Ingredients", href: "/ingredients" },
     ],
     platform: [
       { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
@@ -86,7 +86,7 @@ const Footer = () => {
               <img
                 src={logo}
                 alt="SkinLabs — South Africa's Skin Intelligence Platform"
-                className="h-16 w-auto brightness-0 invert"
+                className="h-16 w-auto dark:brightness-0 dark:invert"
               />
             </Link>
             <p className="text-background/60 text-sm leading-relaxed mb-4">
@@ -180,6 +180,9 @@ const Footer = () => {
             </Link>
             <Link to="/advertising-policy" className="hover:text-background transition-colors">
               Advertising Policy
+            </Link>
+            <Link to="/corrections-removals" className="hover:text-background transition-colors">
+              Corrections/Removals
             </Link>
             <Link to="/editorial-policy" className="hover:text-background transition-colors">
               Editorial Policy
