@@ -115,10 +115,19 @@ type BoapiRoute = Record<string, unknown>;
  */
 function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[] } {
   const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf-8"));
+  // `rewrites: []` (not omitted) is deliberate: getTransformedRoutes() only
+  // emits the {handle:"filesystem"} phase marker inside its own
+  // `if (typeof rewrites !== "undefined")` branch (confirmed by reading its
+  // source, node_modules/@vercel/routing-utils/dist/index.js) -- omitting
+  // the key entirely (as this script did briefly while removing the broken
+  // check:true rewrite) skips that marker altogether and crashes the
+  // `filesystemIndex === -1` guard below. An empty array still satisfies
+  // that check and contributes zero actual rewrite rules.
   const { routes: baseRoutes, error } = getTransformedRoutes({
     trailingSlash: vercelJson.trailingSlash,
     redirects: vercelJson.redirects,
     headers: vercelJson.headers,
+    rewrites: [],
   });
   if (error || !baseRoutes) {
     throw new Error(`assemble-vercel-output: getTransformedRoutes failed on vercel.json: ${JSON.stringify(error)}`);
