@@ -204,6 +204,7 @@ function main() {
     `[assemble-vercel-output] functions/: ${existsSync(functionsDir) ? readdirSync(functionsDir).join(", ") : "(none -- static-only deployment)"}`,
   );
   console.log(`[assemble-vercel-output] config.json: ${config.routes.length} route rules`);
+  console.log(`[assemble-vercel-output] full config.json:\n${JSON.stringify(config, null, 2)}`);
 }
 
 main();
