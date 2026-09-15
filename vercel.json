@@ -54,12 +54,6 @@
       "permanent": true
     }
   ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "crons": [
     {
       "path": "/api/product-review-sync",

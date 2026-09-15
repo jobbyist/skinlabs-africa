@@ -84,27 +84,41 @@ type BoapiRoute = Record<string, unknown>;
 
 /**
  * Builds config.json's `routes` from vercel.json's own high-level
- * headers/redirects/rewrites/trailingSlash (single source of truth) using
+ * headers/redirects/trailingSlash (single source of truth) using
  * `@vercel/routing-utils`'s `getTransformedRoutes()` -- the same official
  * transform Vercel's own zero-config framework builders use internally
  * (confirmed by reading its source), rather than a hand-rolled regex
- * converter. That hand-rolled version shipped once (commit history) and
- * caused a real, live bug: it emitted the SPA-fallback rule as
- * `{src: "/(.*)", dest: "/index.html"}`, missing a `"check": true` flag
- * `getTransformedRoutes()` always adds -- without it, any path that isn't
- * a real static file AND isn't SSR-migrated (e.g. /dashboard, or any
- * other unmigrated, non-prerendered SPA route) 404'd at the Vercel
- * platform level instead of falling through to serve the real SPA.
- * Confirmed via live deployment testing before this fix, confirmed fixed
- * after it -- see docs/architecture/tanstack-start-production-migration.md.
+ * converter.
+ *
+ * The SPA fallback itself is NOT derived from vercel.json's `rewrites`
+ * (that field has been removed) and does NOT use the documented
+ * `{handle:"filesystem"}` + `{dest:"/index.html", check:true}` static-
+ * rewrite pattern. That pattern was tried three times on real Vercel
+ * infrastructure this phase -- first with a hand-rolled transform, then
+ * with getTransformedRoutes()'s own official output (confirmed byte-for-
+ * byte identical to the documented shape), then with a `framework` field
+ * added to config.json -- and in every case /dashboard, /reviews/page/2,
+ * and every other non-prerendered, non-SSR-migrated path still returned
+ * Vercel's platform-level NOT_FOUND instead of falling through to serve
+ * the real SPA. Root cause unresolved (see docs/architecture/
+ * tanstack-start-production-migration.md); `check: true` static rewrites
+ * simply do not behave as documented in this project's real deployment
+ * context, so this script no longer relies on them at all.
+ *
+ * The fallback instead routes to `/__server` -- the exact same
+ * function-based mechanism already proven reliable, on real Vercel
+ * infrastructure, for every SSR_ROUTE_PATTERNS entry above. src/routes/
+ * $.ts is a TanStack Start splat/catch-all server route that responds
+ * with the real dist/index.html verbatim, letting the client-side SPA
+ * boot exactly as a static-file fallback would have. Only available when
+ * ssrAvailable -- see the static-only branch below for the degraded case.
  */
-function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[]; framework: { name: string } } {
+function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRoute[] } {
   const vercelJson = JSON.parse(readFileSync(vercelJsonPath, "utf-8"));
   const { routes: baseRoutes, error } = getTransformedRoutes({
     trailingSlash: vercelJson.trailingSlash,
     redirects: vercelJson.redirects,
     headers: vercelJson.headers,
-    rewrites: vercelJson.rewrites,
   });
   if (error || !baseRoutes) {
     throw new Error(`assemble-vercel-output: getTransformedRoutes failed on vercel.json: ${JSON.stringify(error)}`);
@@ -123,7 +137,18 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
     throw new Error("assemble-vercel-output: getTransformedRoutes() did not emit a filesystem handle phase as expected.");
   }
   const ssrRoutes: BoapiRoute[] = ssrAvailable ? SSR_ROUTE_PATTERNS.map((pattern) => ({ src: pattern, dest: "/__server" })) : [];
-  const routes: BoapiRoute[] = [...baseRoutes.slice(0, filesystemIndex), ...ssrRoutes, ...baseRoutes.slice(filesystemIndex)];
+
+  // Final catch-all, placed AFTER the filesystem phase so a real static
+  // file (a prerendered page, a real asset) always wins first. ssrAvailable
+  // routes it to the SSR function (see comment above); the ssrAvailable:false
+  // branch has no function to route to, so it falls back to the
+  // still-unproven-working check:true static rewrite as a last resort --
+  // a known, documented limitation of that degraded path, not a claim that
+  // it's confirmed fixed there too.
+  const fallbackRoute: BoapiRoute = ssrAvailable
+    ? { src: "/(.*)", dest: "/__server" }
+    : { src: "/(.*)", dest: "/index.html", check: true };
+  const routes: BoapiRoute[] = [...baseRoutes.slice(0, filesystemIndex), ...ssrRoutes, ...baseRoutes.slice(filesystemIndex), fallbackRoute];
 
   // Deliberately NOT duplicating vercel.json's `crons` into config.json here.
   // Confirmed on real Vercel infrastructure (not just inferred from docs):
@@ -133,15 +158,7 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
   // duplicated cron job with the same schedule and path was found") --
   // vercel.json stays the sole source of truth for crons; nothing extra is
   // needed here.
-  // Also declare `framework` in config.json itself (distinct from
-  // vercel.json's own now-removed `framework` field) -- one of the few
-  // fields in the documented config.json schema
-  // ({version, routes, images, wildcard, overrides, cache, framework,
-  // crons, services}) this script hasn't tried yet, while diagnosing why
-  // the SPA-fallback `check: true` rewrite -- confirmed byte-for-byte
-  // identical to what getTransformedRoutes() itself emits -- still 404s
-  // live on /dashboard and other non-prerendered, non-SSR paths.
-  return { version: 3, routes, framework: { name: "vite" } };
+  return { version: 3, routes };
 }
 
 function main() {
