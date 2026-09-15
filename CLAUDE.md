@@ -82,6 +82,65 @@ feature appear operational.
     and a wholesale palette swap wasn't asked for or warranted. Don't add
     more than one gradient-text moment per screen — it's meant to read as
     a rare accent, not a new default text color.
+  - **Site-wide design-system pass (2026-09-15, same day follow-up)** —
+    on top of the above, a broader Clerk.com-style consistency pass:
+    - `--gradient-brand` is now the single CSS variable both `.gradient-text`
+      and `.gradient-border-anim` are meant to derive from (`.gradient-text`
+      references it directly; `.gradient-border-anim`'s `conic-gradient()`
+      still spells the four stops out again in `src/index.css` because
+      conic gradients need their own repeated closing stop to loop — that
+      duplication is intentional, not drift). A new `.gradient-bg-soft`
+      utility blends the same gradient into `--accent` at low opacity for
+      "hint of colour" surfaces (the floating bottom nav's active-tab tint).
+    - The gradient treatment now also appears on the homepage hero's
+      eyebrow pill (`Hero.tsx`, `.gradient-border-anim`) and on
+      `Header.tsx`'s `NavBadge` ("NEW"/"BETA" → the brand gradient,
+      "Coming Soon" → an amber→orange gradient) — still one clear accent
+      per element, not a background-color replacement everywhere.
+    - `--shadow-*` (both `:root` and `.dark` in `src/index.css`) were
+      rewritten from single-layer box-shadows to a genuine two-layer
+      "contact + ambient" stack per Clerk's documented approach — every
+      component using the `shadow-*` Tailwind utilities (most of them, via
+      the theme's `boxShadow` mapping in `tailwind.config.ts`) picked this
+      up automatically; no per-component changes were needed or made. In
+      passing, fixed a pre-existing gap where `tailwind.config.ts`'s
+      `boxShadow` mapped `2xs`/`xs`/`sm`/`md`/`lg`/`xl`/`2xl` to their CSS
+      vars but never mapped bare `shadow` (Tailwind's `DEFAULT` key) to
+      `--shadow` — that variable existed in `index.css` but every plain
+      `shadow` class in the app (sidebar, several page heroes) was silently
+      falling back to Tailwind's built-in default instead. Added
+      `DEFAULT: 'var(--shadow)'` so it isn't stranded again.
+    - Radii were made consistent at the shared-primitive level rather than
+      per-usage: `ui/card.tsx`'s default is now `rounded-2xl` (was
+      `rounded-lg`), and `ui/dialog.tsx` / `ui/alert-dialog.tsx` are now
+      `sm:rounded-xl` (was `sm:rounded-lg`). `ui/sheet.tsx` was deliberately
+      left un-rounded — it's an edge-anchored drawer, not a floating modal,
+      and rounding the anchored edge would look wrong. `ui/badge.tsx` /
+      `ui/avatar.tsx` were already `rounded-full` and needed no change.
+    - Headings get a default `letter-spacing: -0.015em` via a `@layer base`
+      rule targeting `h1`–`h4` and `.font-heading` in `src/index.css` —
+      lands below Tailwind's `utilities` layer regardless of source-file
+      order (layer precedence is set by the `@tailwind base;` /
+      `@tailwind utilities;` directive order at the top of the file, not by
+      where a given `@layer` block physically sits), so any component with
+      an explicit `tracking-*` utility still wins; this just raises the
+      *default* for headings that don't specify one.
+    - `Header.tsx` gained a new `ScrollProgressBar` component
+      (`src/components/ScrollProgressBar.tsx`) — a 2px `--gradient-brand`
+      bar absolutely positioned at the fixed header's own bottom edge,
+      width driven by `scrollTop / (scrollHeight - clientHeight)`. It's
+      `aria-hidden` (purely decorative) and its own component specifically
+      so Header.tsx (already large) didn't need its own scroll listener.
+    - `FloatingBottomNav.tsx` no longer gates the whole nav behind
+      `!!user` — five of its six destinations (Home/News/Stream/Reviews/
+      Book) are free public content, so hiding it from anonymous mobile
+      visitors worked against the free-acquisition/SEO-discovery product
+      principle for most first-time traffic. The last tab now adapts
+      instead of the whole bar disappearing: signed in it's "Profile" ->
+      `/dashboard`; signed out it's "Sign In" -> opens the existing
+      `AuthDialog` in place (never a route to `/dashboard` that would just
+      bounce a logged-out visitor back out). Its active-tab tint now uses
+      `.gradient-bg-soft` instead of a flat `bg-primary/10`.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a

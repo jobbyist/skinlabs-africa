@@ -42,6 +42,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import AuthDialog from "@/components/AuthDialog";
 import SiteSearch from "@/components/SiteSearch";
+import ScrollProgressBar from "@/components/ScrollProgressBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { toast } from "sonner";
@@ -89,8 +90,10 @@ const resourceLinks: NavItem[] = [
 const NavBadge = ({ badge }: { badge: NonNullable<NavItem["badge"]> }) => (
   <span
     className={cn(
-      "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none whitespace-nowrap",
-      badge === "Coming Soon" ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground",
+      "rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none whitespace-nowrap text-white",
+      badge === "Coming Soon"
+        ? "bg-gradient-to-r from-amber-500 to-orange-500"
+        : "bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500",
     )}
   >
     {badge}
@@ -214,6 +217,7 @@ const Header = () => {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
+        <ScrollProgressBar />
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2" onClick={closeMenu}>

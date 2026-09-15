@@ -90,6 +90,7 @@ export default {
   			'2xs': 'var(--shadow-2xs)',
   			xs: 'var(--shadow-xs)',
   			sm: 'var(--shadow-sm)',
+  			DEFAULT: 'var(--shadow)',
   			md: 'var(--shadow-md)',
   			lg: 'var(--shadow-lg)',
   			xl: 'var(--shadow-xl)',

@@ -84,7 +84,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-2xl mx-auto text-center lg:text-left lg:mx-0">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
+            <div className="gradient-border-anim inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground">
               {/* SA flag on mobile; Atom icon on larger screens */}
               <span className="text-base leading-none md:hidden" aria-hidden="true">
                 🇿🇦
