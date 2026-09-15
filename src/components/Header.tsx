@@ -217,7 +217,7 @@ const Header = () => {
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2" onClick={closeMenu}>
-            <img src={logo} alt="SkinLabs" className="h-8 w-auto md:h-9" />
+            <img src={logo} alt="SkinLabs" className="h-8 w-auto md:h-9 dark:brightness-0 dark:invert" />
           </Link>
 
           {/* Desktop Menu button (replaces individual primary links) */}
