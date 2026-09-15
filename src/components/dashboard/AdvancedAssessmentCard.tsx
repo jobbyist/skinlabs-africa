@@ -59,7 +59,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             {eligible ? <Sparkles className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
-            SKYNN AI — Advanced AI Dermatology Report
+            <span className="gradient-text font-bold">SKYNN AI</span> — Advanced AI Dermatology Report
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">

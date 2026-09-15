@@ -139,7 +139,7 @@ const SmartRoutines = () => {
             <div className="mb-6 flex items-center justify-center">
               <Badge variant="outline" className="gap-2 rounded-full px-4 py-1.5 text-sm">
                 <Sparkles className="h-3.5 w-3.5" />
-                Powered by your Advanced AI Dermatology Report from SKYNN AI
+                Powered by your Advanced AI Dermatology Report from <span className="gradient-text font-bold">SKYNN AI</span>
               </Badge>
             </div>
 

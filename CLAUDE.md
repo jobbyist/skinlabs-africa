@@ -61,6 +61,27 @@ feature appear operational.
     (a second button that just repeated the primary "get your report" CTA)
     was replaced with a distinct "Compare access options" anchor to the
     pricing cards.
+  - **`.gradient-text` utility + "flagship AI" visual treatment
+    (2026-09-15)** — `src/index.css` gained a `.gradient-text` class
+    (same brand gradient stops as the pre-existing `.gradient-border-anim`:
+    emerald `#22c55e` → blue `#3b82f6` → purple `#a855f7` → pink
+    `#ec4899`), applied deliberately sparingly — one accent phrase per
+    view — to mark SKYNN AI as the site's flagship AI feature rather than
+    a generic form: the "Smarter care." headline and "SKYNN AI" wordmark
+    in `AIFormulator.tsx`'s intro/step-badge, `StepperHeader.tsx`'s
+    current-step circle (now a gradient fill instead of a flat primary
+    border), `ConfidencePanel.tsx`'s radial completeness ring (via an SVG
+    `<linearGradient>` in Recharts' `<defs>`, id
+    `skynn-confidence-gradient`) and percentage label, and the "SKYNN AI"
+    mentions in `AdvancedAssessmentCard.tsx` and `SmartRoutines.tsx`'s
+    hero badge. Homepage `Hero.tsx` got a lighter, Clerk.com-style pass
+    instead (hover lift + shadow on the stat cards, a subtle two-tone
+    gradient tint on their icon chips, hover scale on the primary CTA) —
+    deliberately no full-page color-scheme change, since the base theme
+    (`src/index.css` `:root`) is still intentionally monochrome/greyscale
+    and a wholesale palette swap wasn't asked for or warranted. Don't add
+    more than one gradient-text moment per screen — it's meant to read as
+    a rare accent, not a new default text color.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a

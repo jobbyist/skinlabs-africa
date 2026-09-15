@@ -11,7 +11,9 @@ interface StepperHeaderProps {
  * Compact 4-phase progress stepper shown across the SKYNN AI (beta) consent, photo,
  * MST and profile-question screens — mirrors the beta reference design's persistent
  * "where am I in this flow" affordance without inventing a dashboard/sidebar that
- * doesn't otherwise exist in the app.
+ * doesn't otherwise exist in the app. The current step uses the same brand gradient
+ * as .gradient-border-anim/.gradient-text so the active step reads as "the flagship
+ * AI flow" rather than a generic form wizard.
  */
 const StepperHeader = ({ phase }: StepperHeaderProps) => (
   <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-8" aria-label={`Step ${phase} of 4: ${PHASES[phase - 1]}`}>
@@ -27,7 +29,7 @@ const StepperHeader = ({ phase }: StepperHeaderProps) => (
                 (state === "done"
                   ? "bg-primary text-primary-foreground"
                   : state === "current"
-                    ? "border-2 border-primary text-primary bg-background"
+                    ? "bg-gradient-to-br from-emerald-500 via-blue-500 to-purple-500 text-white shadow-md shadow-primary/20"
                     : "bg-secondary text-muted-foreground")
               }
             >
@@ -36,7 +38,11 @@ const StepperHeader = ({ phase }: StepperHeaderProps) => (
             <span
               className={
                 "text-[10px] uppercase tracking-wide whitespace-nowrap " +
-                (state === "upcoming" ? "text-muted-foreground/60" : "text-muted-foreground")
+                (state === "current"
+                  ? "font-semibold text-foreground"
+                  : state === "upcoming"
+                    ? "text-muted-foreground/60"
+                    : "text-muted-foreground")
               }
             >
               {label}
