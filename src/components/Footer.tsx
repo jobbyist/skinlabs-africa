@@ -4,7 +4,8 @@ import {
   Facebook,
 } from "lucide-react";
 import { useMembership } from "@/hooks/use-membership";
-import logo from "@/assets/newskinlabs.png";
+import logoBlack from "@/assets/skinlabs-logo-black.svg";
+import logoWhite from "@/assets/skinlabs-logo-white.svg";
 
 const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -83,10 +84,17 @@ const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 md:col-span-4 lg:col-span-1 mb-8 lg:mb-0">
             <Link to="/" className="inline-block mb-4">
+              {/* Footer uses inverse of page theme: light mode → dark footer → white logo;
+                  dark mode → light footer → black logo */}
               <img
-                src={logo}
+                src={logoWhite}
                 alt="SkinLabs — South Africa's Skin Intelligence Platform"
-                className="h-16 w-auto dark:brightness-0 dark:invert"
+                className="h-16 w-auto dark:hidden"
+              />
+              <img
+                src={logoBlack}
+                alt="SkinLabs — South Africa's Skin Intelligence Platform"
+                className="h-16 w-auto hidden dark:block"
               />
             </Link>
             <p className="text-background/60 text-sm leading-relaxed mb-4">
