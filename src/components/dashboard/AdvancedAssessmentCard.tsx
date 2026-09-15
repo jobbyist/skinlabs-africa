@@ -15,12 +15,12 @@ interface AdvancedAssessmentCardProps {
 }
 
 /**
- * Dashboard presence for the Advanced (AI Dermatology) Assessment — sits next to
+ * Dashboard presence for the Advanced AI Dermatology Report — sits next to
  * "Your AM/PM Routine" in the Overview tab so the funnel (Starter Analysis →
- * Advanced Assessment → Smart Routines) reads as one continuous journey rather
- * than a separate product. Reuses the existing Analysis Pass balance
- * (threaded down from UserDashboard.tsx, same source AnalysisPassesCard reads —
- * no second fetch) and membership state; the actual assessment still runs
+ * Advanced AI Dermatology Report → Smart Routines) reads as one continuous
+ * journey rather than a separate product. Reuses the existing Analysis Pass
+ * balance (threaded down from UserDashboard.tsx, same source AnalysisPassesCard
+ * reads — no second fetch) and membership state; the report itself still runs
  * through the existing SKYNN AI flow at /skynn-ai (or the dashboard's own
  * "Skin Analysis (SKYNN AI)" tab), never a duplicate product surface.
  */
@@ -59,14 +59,14 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             {eligible ? <Sparkles className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
-            SKYNN AI — Advanced Dermatology Assessment
+            <span className="gradient-text font-bold">SKYNN AI</span> — Advanced AI Dermatology Report
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
             {eligible
-              ? "Go deeper than your Starter Analysis with a comprehensive assessment designed to understand your skin profile in greater detail."
-              : "Unlock a deeper understanding of your skin with SKYNN AI — a more comprehensive assessment than the free Starter Analysis."}
+              ? "Go deeper than your Starter Analysis with a comprehensive AI dermatology report built to understand your skin profile in greater detail."
+              : "Unlock a deeper understanding of your skin with SKYNN AI — a more comprehensive AI dermatology report than the free Starter Analysis."}
           </p>
           {isMember ? (
             <div className="flex flex-wrap items-center gap-2">
@@ -74,7 +74,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
                 <Link to="/skynn-ai">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Start Advanced Assessment
+                  Start My Dermatology Report
                 </Link>
               </Button>
             </div>
@@ -84,7 +84,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
                 <Link to="/skynn-ai">
                   <Sparkles className="h-3.5 w-3.5" />
-                  Start Advanced Assessment
+                  Start My Dermatology Report
                 </Link>
               </Button>
             </div>

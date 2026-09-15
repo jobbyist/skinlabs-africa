@@ -30,12 +30,32 @@ interface CommandDialogProps extends DialogProps {
 const CommandDialog = ({ children, shouldFilter = true, ...props }: CommandDialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0 shadow-lg">
+      {/* Anchored higher than a normal dialog (top-20, not dead-center) so it reads as a
+          command palette rather than a modal, and so an on-screen keyboard never covers
+          it on mobile. w-[calc(100%-2rem)] keeps a visible margin on phones instead of
+          the default edge-to-edge full-bleed sheet every other Dialog gets; rounded-2xl
+          (below sm:) + overflow-hidden makes that margin actually read as a floating card. */}
+      {/* The default Dialog close (X) sits top-4 right-4 — directly over the search
+          input row here, since CommandInput has no header to push it below. ESC (now
+          advertised in the footer below) and the overlay click already close this,
+          so the X is a redundant affordance that was overlapping real content. */}
+      <DialogContent className="top-20 w-[calc(100%-2rem)] translate-y-0 gap-0 overflow-hidden rounded-2xl p-0 shadow-lg [&>button]:hidden sm:top-[15%] sm:w-full">
         <Command
           shouldFilter={shouldFilter}
           className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
         >
           {children}
+          <div className="hidden items-center justify-end gap-3 border-t border-border px-3 py-2 text-[11px] text-muted-foreground sm:flex">
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border bg-muted px-1 font-mono">↑↓</kbd> Navigate
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border bg-muted px-1 font-mono">↵</kbd> Select
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="rounded border bg-muted px-1 font-mono">Esc</kbd> Close
+            </span>
+          </div>
         </Command>
       </DialogContent>
     </Dialog>
@@ -67,7 +87,7 @@ const CommandList = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <CommandPrimitive.List
     ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
+    className={cn("max-h-[60vh] overflow-y-auto overflow-x-hidden overscroll-contain sm:max-h-[420px]", className)}
     {...props}
   />
 ));
@@ -77,7 +97,9 @@ CommandList.displayName = CommandPrimitive.List.displayName;
 const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
->((props, ref) => <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />);
+>((props, ref) => (
+  <CommandPrimitive.Empty ref={ref} className="py-10 text-center text-sm text-muted-foreground" {...props} />
+));
 
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName;
 

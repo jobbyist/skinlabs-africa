@@ -827,7 +827,8 @@ const AIFormulator = () => {
               <div className="text-center mb-8">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                   <Sparkles className="h-4 w-4" />
-                  SKYNN AI <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
+                  <span className="gradient-text font-bold">SKYNN AI</span>{" "}
+                  <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
@@ -849,8 +850,9 @@ const AIFormulator = () => {
             >
               {step === STEP_INTRO && (
                 <>
-                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-background/10 blur-3xl pointer-events-none" />
-                  <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-background/5 blur-3xl pointer-events-none" />
+                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
+                  <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
+                  <div className="absolute right-1/3 top-1/4 h-40 w-40 rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
                 </>
               )}
 
@@ -880,7 +882,7 @@ const AIFormulator = () => {
                     <h3 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
                       Your skin.
                       <br />
-                      Smarter care.
+                      <span className="gradient-text">Smarter care.</span>
                     </h3>
                     <p className="text-background/70 max-w-md">
                       AI-powered skin assessment and personalised routine formulation, built for every skin tone.
@@ -888,14 +890,16 @@ const AIFormulator = () => {
                   </div>
                   <div className="grid gap-3">
                     {[
-                      { icon: BarChart3, label: "Advanced skin analysis" },
-                      { icon: Layers, label: "Personalised routines" },
-                      { icon: ShieldCheck, label: "Dermatologist reviewed" },
-                      { icon: Lock, label: "Privacy-first" },
-                    ].map(({ icon: Icon, label }) => (
+                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400" },
+                      { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400" },
+                      { icon: ShieldCheck, label: "Dermatologist reviewed", tint: "bg-purple-500/15 text-purple-400" },
+                      { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400" },
+                    ].map(({ icon: Icon, label, tint }) => (
                       <div key={label} className="flex items-center gap-3">
-                        <Icon className="h-4 w-4 text-background/70 shrink-0" />
-                        <span className="text-sm text-background/90">{label}</span>
+                        <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", tint)}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="text-sm font-medium text-background/90">{label}</span>
                       </div>
                     ))}
                   </div>
