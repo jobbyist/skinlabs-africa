@@ -33,6 +33,13 @@ const SkynnVideoModal = ({ open, onOpenChange }: SkynnVideoModalProps) => {
       }
       if (video) {
         video.currentTime = 0;
+        // Muted is set imperatively here (once, when the modal opens) rather than as a
+        // React-controlled JSX prop — a plain `muted` attribute gets resynced to true on
+        // every re-render of this component (which happens often, since it's a child of
+        // AIFormulator and re-renders whenever unrelated parent state changes), silently
+        // re-muting the video even after a visitor unmutes it via the native controls.
+        // Browser autoplay policy still requires it to start muted, so set that once here.
+        video.muted = true;
         const playPromise = video.play();
         if (playPromise) playPromise.catch(() => setShowPlayButton(true));
       }
@@ -73,8 +80,6 @@ const SkynnVideoModal = ({ open, onOpenChange }: SkynnVideoModalProps) => {
             poster={POSTER_SRC}
             className="absolute inset-0 h-full w-full object-cover"
             playsInline
-            muted
-            autoPlay
             controls
             preload="auto"
             onPlay={() => setShowPlayButton(false)}
