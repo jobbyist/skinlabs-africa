@@ -63,7 +63,17 @@ async function collectRoutes(): Promise<string[]> {
     for (const slug of extractQuoted(source, field)) routes.add(`${prefix}/${slug}`);
   };
 
-  addDataSlugs("src/data/reviews.ts", "id", "/reviews");
+  // /reviews/:slug is NOT crawled here anymore, for either data source --
+  // it's SSR-migrated (src/routes/reviews.$slug.tsx) and takes routing
+  // priority over any static file at that path (see scripts/
+  // assemble-vercel-output.ts's SSR_ROUTE_PATTERNS, ordered before the
+  // filesystem phase). This closes a real, previously documented gap: the
+  // static productReviews catalogue used to get prerendered here, but
+  // AI-generated reviews (ai_generated_product_reviews) never did --
+  // SSR now covers both uniformly. /reviews/versus/:slug (comparisons) and
+  // /reviews/page/:page are untouched -- neither is SSR-migrated, and
+  // SSR_ROUTE_PATTERNS' single-segment pattern can't collide with either.
+  // See docs/architecture/tanstack-start-production-migration.md.
   addDataSlugs("src/data/comparisons.ts", "slug", "/reviews/versus");
   addDataSlugs("src/data/spotlight.ts", "slug", "/spotlight");
   addDataSlugs("src/data/podcast.ts", "slug", "/podcast");

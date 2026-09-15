@@ -381,3 +381,243 @@ this same gap open.
    (Reviews, comparisons, Spotlight, Podcast, Knowledge Hub, Ingredients);
    none of that crawl was touched, reduced, or otherwise affected by this
    phase beyond the one Briefings-specific removal.
+
+**Superseded by Phase 5 below:** limitation 3's "Reviews... remain
+unmigrated" and limitation 5's inclusion of Reviews in the still-crawled
+list are no longer current — see Phase 5.
+
+---
+
+# Phase 5: Reviews — dual data source, and the SPA-fallback bug
+
+**Status: complete. Verdict: GO.** Second content type migrated onto the
+Phase 4 architecture, per the explicit instruction to "proceed to Reviews
+as the next content type, carrying forward this build architecture, the
+shared SEO layer, and the discipline of validating each migration on real
+infrastructure, not just local build success." All work stayed on the same
+branch/PR (`claude/skinlabs-tanstack-start-migration-lko468`, PR #87);
+`main`/production was never touched.
+
+This phase reused Phase 4's architecture directly — no redesign — but
+surfaced a genuinely severe, previously-latent bug affecting the *entire
+site*, not just Reviews. That bug, its three failed fix attempts, and its
+eventual resolution are the most important thing in this section.
+
+## `/reviews/:slug` SSR route
+
+`src/routes/reviews.$slug.tsx`. Unlike Briefings, a review is sourced from
+**either** of two places: the static, hand-curated `productReviews`
+catalogue (`src/data/reviews.ts`) or the `ai_generated_product_reviews`
+table (the Firecrawl+Gemini pipeline documented in `CLAUDE.md`). Per
+`CLAUDE.md`, generated reviews were sitemapped but never prerendered — a
+real, previously-documented crawlability gap. This migration closes it
+outright: the server loader (`fetchReview`, a `createServerFn`) checks the
+static array first, then falls back to a single-row Supabase query by
+`id`, so both sources now get identical SSR coverage. Image resolution
+mirrors `src/hooks/use-review-images.ts`'s exact three-tier priority (brand
+banner → `review_images` row → category pool) server-side; related reviews
+are resolved from both sources too (a static filter plus a scoped,
+non-full-table generated-reviews query).
+
+**`MemoryRouter` wrapper.** `ProductReview.tsx`'s existing, unmodified
+production components (`RoutineBuilder`, `GatedOverlay`,
+`RelatedKnowledgeHub`) use `react-router-dom`'s `<Link>`, which requires a
+Router context — one this route's TanStack Router tree doesn't natively
+provide. Wrapping the page body in `react-router-dom`'s `MemoryRouter`
+(never touches `window.history`, purely satisfies the context requirement)
+lets these components be reused completely unmodified rather than forked
+or rewritten; every link inside still requires a full page navigation to
+leave the SSR page and enter the SPA, identical to today's cross-page
+navigation behavior anywhere else on the site.
+
+**Shared SEO layer extended, not duplicated.** `src/lib/seo/types.ts` +
+`jsonLd.ts` gained `ProductReviewJsonLdInput` / `productReviewJsonLd()` —
+`Product` + `Review` + `AggregateRating` schema.org types, matching the
+shape `ProductReview.tsx`'s own inline JSON-LD already emits. One real bug
+found and fixed here: `offers` (an `AggregateOffer` built from
+`Math.min`/`Math.max` over a review's retailer listings) is invalid JSON
+when a review has zero retailers — `Math.min()`/`Math.max()` on an empty
+array is `±Infinity`, which serializes to `null`. Fixed by making `offers`
+genuinely optional in the builder's input type, populated only when
+`retailers.length > 0`. Verified against both a real static-catalog review
+(3 retailers, `offers` correctly present) and a real generated review
+confirmed via direct Supabase query to have `retailers: []` (`offers`
+correctly absent). The identical bug still exists, unfixed, in
+`ProductReview.tsx`'s own inline JSON-LD — deliberately left alone, out of
+this phase's scope.
+
+## The SPA-fallback bug — the real story of this phase
+
+Live-testing this migration on real Vercel infrastructure (the same
+discipline Phase 4 established) surfaced a severe, site-wide regression
+that had nothing to do with Reviews specifically: **`/dashboard`,
+`/reviews/page/2`, `/reviews/versus/:slug`, `/spotlight/<nonexistent>` —
+any real SPA route with no prerendered static file and not itself
+SSR-migrated — returned Vercel's own platform-level `NOT_FOUND`
+(`x-vercel-error: NOT_FOUND`) instead of falling through to serve the real
+SPA.** This was a latent bug present since the very first Briefings-only
+deployment in Phase 4, undetected until now because every earlier
+validation pass only tested root-level and already-statically-covered
+paths, never a genuinely dynamic, non-prerendered nested route. Deployed
+as-is, this would have broken every authenticated/dashboard route,
+comparison articles, pagination, and any other unmigrated SPA route with no
+prerendered file — a correctness regression far larger than anything
+Reviews-specific, and a hard blocker on shipping this phase, or continuing
+to build on this architecture at all, until resolved.
+
+### Three failed attempts at the documented fix
+
+The documented, `@vercel/routing-utils`-generated canonical pattern for a
+Build Output API v3 SPA fallback is `{handle:"filesystem"}` followed by
+`{src:"^(?:/(.*))$", dest:"/index.html", check:true}`. All three attempts
+below produced this exact rule and deployed it live; all three failed
+identically.
+
+1. **`05e2ba1` (`dpl_HexRr4E6pKUhwRN4hRod2S4qhXsU`).** The original
+   hand-rolled `vercel.json`→routes transform was missing `check: true`
+   entirely — confirmed by diffing its output against
+   `@vercel/routing-utils`'s own `getTransformedRoutes()` (the real
+   function Vercel's own zero-config framework builders call internally).
+   Installed `@vercel/routing-utils@6.5.0` as a real devDependency, rewrote
+   `buildConfigJson()` to call it directly instead of hand-rolling.
+   **Result: bug persisted identically on live re-test.**
+2. **`bbb5564` (`dpl_TBGu4zTnqcDz9emdDwFDby1ocQbN`).** Hypothesized
+   `vercel.json`'s vestigial `"framework": "vite"` / `"outputDirectory":
+   "dist"` fields (left over from before this project had a custom
+   `buildCommand`) might trigger some zero-config Vite-specific handling
+   conflicting with the custom Build Output API deployment. Removed both,
+   and added a full `config.json` dump to build logs for better
+   diagnostics. Build logs confirmed the deployed `config.json` was
+   byte-for-byte identical to `getTransformedRoutes()`'s own official
+   output. **Result: bug persisted identically on live re-test.**
+3. **`ef02343` (`dpl_BekFwHuiETUQfA1p3M2gn4vJPdBx`).** Noted
+   `config.json`'s documented schema includes a `framework` field
+   (`{version, routes, images, wildcard, overrides, cache, framework,
+   crons, services}`) this script never set, and that Nitro's own
+   `generateBuildConfig()` (read directly from `node_modules/nitro/dist/
+   _presets.mjs`) always sets one. Added `framework: {name: "vite"}` to
+   the generated `config.json`. **Result: bug persisted identically on
+   live re-test.**
+
+Also ruled out along the way: `cleanUrls` (confirmed, by calling
+`getTransformedRoutes()` locally with and without it, that it only adds
+extra redirect rules — the fallback rule itself is byte-identical either
+way); Nitro's own source offering a working reference implementation
+(`node_modules/nitro/dist/_presets.mjs`'s `generateBuildConfig()` was read
+directly — Nitro's own "static" preset doesn't implement an index.html
+SPA-fallback at all, and its SSR preset's fallback routes to the server
+function, not a static file, so it offers no precedent either validating
+or invalidating the `check:true` approach here). Vercel's own documentation
+(`mcp__Vercel__search_vercel_documentation`) only restates the generic
+`{handle, src, dest, status}` schema, with no deeper explanation of
+`check`'s actual runtime resolution behavior found in any fetched excerpt.
+
+**Root cause remains genuinely unresolved.** The documented, officially-
+generated pattern simply does not behave as documented in this project's
+specific deployment context (a custom `buildCommand` producing
+`.vercel/output` directly, combined with a project whose dashboard-level
+Framework Preset setting is still "vite" and cannot be changed from
+`vercel.json`). This is recorded here as an open platform-behavior finding,
+not a solved mystery — a future revisit with fresh eyes, or a Vercel
+support engagement, might explain it; this phase did not.
+
+### The fix: route the fallback through the SSR function, not a static rewrite
+
+Rather than continue guessing at `config.json` field permutations, the
+final catch-all was pointed at `/__server` — **the exact function-based
+mechanism already proven reliable, across every real deployment this and
+the prior phase made, for the Briefings and Reviews SSR route patterns.**
+A new TanStack Start splat/catch-all server route, `src/routes/$.ts`,
+responds to any request reaching the function with the real,
+build-time-embedded `dist/index.html` verbatim (a Vite `?raw` import,
+resolved at `build:tanstack-start` time since `vite build` always runs
+first in the `npm run build` pipeline), letting the client-side SPA boot
+and take over exactly as a static-file fallback would have. It is
+deliberately server-only (no `component`): the `Response` it returns is
+the final HTTP response, with no TanStack Start document/head wrapping
+applied — matching what a static file serve would have produced. Commit
+`459858a`.
+
+`vercel.json`'s `rewrites` field (the source of the broken rule) was
+removed entirely — the fallback is now assembled directly in
+`scripts/assemble-vercel-output.ts`, appended after the filesystem phase:
+`ssrAvailable ? {src:"/(.*)", dest:"/__server"} : {src:"/(.*)",
+dest:"/index.html", check:true}` (the degraded, no-function case keeps the
+old, still-unproven-working rewrite as a last resort — see Known
+limitations).
+
+**A real bug in the fix itself, found and fixed before deploying:**
+removing `rewrites` from `vercel.json` and simply omitting the `rewrites`
+key from the `getTransformedRoutes()` call crashed the local build.
+Reading `@vercel/routing-utils`'s own source
+(`node_modules/@vercel/routing-utils/dist/index.js`) directly showed why:
+`getTransformedRoutes()` only pushes the `{handle:"filesystem"}` phase
+marker inside its own `if (typeof rewrites !== "undefined")` branch — an
+omitted key skips that marker altogether, and this script's own
+`filesystemIndex === -1` guard then throws. Fixed by passing `rewrites: []`
+(present, but empty) instead of omitting the key — satisfies the check,
+contributes zero actual rewrite rules. Caught locally (a crashed `bun run
+scripts/assemble-vercel-output.ts`) before ever reaching a live deployment;
+committed separately (`260e5f8`) for a clean diagnostic trail.
+
+### Live validation (`dpl_GhVNksoxiawsXXzRa4Mm9jWHp5BD`, `READY`,
+`lambdaRuntimeStats: {"nodejs":2}`)
+
+Same temporarily-disable-SSO / test-in-one-tight-window /
+immediately-re-enable methodology as Phase 3/4, verified via
+`get_project_deployment_protection` immediately before and after the
+window:
+
+| Check | Result |
+|---|---|
+| `GET /dashboard` | `200`, real `dist/index.html` (`<!DOCTYPE html>`, real hashed bundle, `<div id="root">`) — previously platform `404` |
+| `GET /reviews/page/2` | `200`, real `dist/index.html` — previously platform `404` |
+| `GET /briefings/pollen-season-skin-south-africa` | `200`, live SSR, `<title>` correct, `"@type":"Article"` + `"@type":"BreadcrumbList"` present — regression-checked, still correct after the fallback rewrite |
+| `GET /reviews/sb-cerious-proatection` (real static-catalog review) | `200`, live SSR, `<title>` correct, `"@type":"Product"` + `"@type":"AggregateRating"` present |
+| `GET /briefings/this-slug-does-not-exist-xyz-999` | `404` — TanStack Start's own `notFound()`, not swallowed by the new splat fallback (route-priority confirmed correct: specific routes still beat the catch-all) |
+| `GET /favicon.ico` | `200`, real static asset, correct `content-type`/`content-length` — confirms the filesystem phase still takes priority over the function-routed fallback for real files |
+
+Also locally verified, before the live pass, via a local `srvx` run against
+the assembled `__server.func` (mirroring Phase 3/4's local-verification
+discipline): `/reviews/versus/some-slug` (a 2-segment, non-SSR-migrated
+path) correctly served the SPA shell via the splat fallback rather than
+being incorrectly matched by the single-segment `/reviews/:slug` SSR
+pattern — confirming no route-priority collision between the two.
+
+All checks pass. **The site-wide SPA-fallback regression is resolved.**
+
+## `prerender.ts` reduction
+
+`/reviews/:slug` removed from `scripts/prerender.ts`'s crawl list (the
+`addDataSlugs("src/data/reviews.ts", "id", "/reviews")` call), only after
+the live validation above proved equivalent SSR coverage — same discipline
+as Phase 4's Briefings reduction, not preemptive. Unlike Briefings, this
+also closes the Reviews-specific gap noted above: the static catalogue used
+to get prerendered here, but generated reviews never did; SSR now covers
+both uniformly, so this is a net crawlability improvement, not just a
+build-time optimization. `/reviews/versus/:slug` (comparisons) and
+`/reviews/page/:page` are untouched — neither is SSR-migrated, and
+`SSR_ROUTE_PATTERNS`' single-segment pattern cannot collide with either
+(both have 2+ path segments after `/reviews/`).
+
+## Known limitations / remaining risks (Phase 5 additions)
+
+1. **The SPA-fallback `check:true` root cause is unresolved**, not just
+   worked around. The function-based fix is a proven, working alternative,
+   not an explanation. If Vercel's platform behavior changes again, or if
+   a future engineer wants a pure static-file fallback (marginally cheaper
+   than invoking a function for every non-prerendered path), this gap is
+   worth revisiting with fresh eyes.
+2. **The degraded `ssrAvailable:false` path** (Nitro build itself fails,
+   producing no server function to route the fallback to) still uses the
+   old `check:true` static rewrite — the same rule proven broken in the
+   primary path. This is a known, documented, *not* silently-assumed-fixed
+   gap: if the Nitro build ever fails in production, the fallback for
+   non-prerendered SPA routes may 404 until the Nitro build is fixed.
+   Building full resilience for a failure-of-a-failure path was judged out
+   of scope for this phase.
+3. Reviews is the second and, as of this phase, last content type
+   SSR-migrated. Knowledge Hub, Ingredients, Podcast, Seasonals, and every
+   authenticated/application route remain unmigrated.
+4. Same Rich Results Test / Schema.org Validator third-party UI submission
+   gap as Phase 4 — not proven, low-effort follow-up.
