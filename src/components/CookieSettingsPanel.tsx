@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, ShieldCheck, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,35 +14,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  DEFAULT_COOKIE_PREFERENCES,
-  readCookieConsent,
-  writeCookieConsent,
-  type CookiePreferences,
-} from "@/lib/cookie-consent";
+import { DEFAULT_COOKIE_PREFERENCES, type CookiePreferences } from "@/lib/cookie-consent";
 import { STORAGE_GROUPS, clearAllKnownStorage, countStoredKeys } from "@/lib/storage-preferences";
 import { toast } from "sonner";
 
 const CookieSettingsPanel = () => {
-  const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
+  const { preferences: storedPreferences, savePreferences, decision } = useCookieConsent();
+  const [preferences, setPreferences] = useState<CookiePreferences>(storedPreferences);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [storedKeyCount, setStoredKeyCount] = useState(0);
 
   useEffect(() => {
-    const record = readCookieConsent();
-    if (record) {
-      setPreferences(record.preferences);
-      const ts =
-        typeof record.timestamp === "string"
-          ? Date.parse(record.timestamp)
-          : Number(record.timestamp);
-      setSavedAt(Number.isFinite(ts) ? ts : null);
-    }
+    setPreferences(storedPreferences);
     setStoredKeyCount(countStoredKeys());
-  }, []);
+  }, [storedPreferences]);
 
-  const persist = (next: CookiePreferences) => {
-    writeCookieConsent(next);
+  const persist = async (next: CookiePreferences) => {
+    await savePreferences(next);
     setPreferences(next);
     setSavedAt(Date.now());
     toast.success("Cookie preferences saved");

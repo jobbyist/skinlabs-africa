@@ -27,7 +27,7 @@ const CookieConsent = () => {
     openPreferences,
   } = useCookieConsent();
 
-  const [showPreferences, setShowPreferences] = useState(true);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
 
   useEffect(() => {
