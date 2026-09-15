@@ -182,6 +182,57 @@ feature appear operational.
     blocks `truncate` from working, not just the visible width) and
     hiding the secondary subtitle span below `sm:` where there isn't
     room for a title *and* a reason on one line anyway.
+  - **Light/dark mode wired up (2026-09-15, third follow-up)** — before
+    this, `tailwind.config.ts` had `darkMode: ["class"]` and `index.css`
+    had a full `.dark { ... }` variable block, but **nothing in the app
+    ever added the `dark` class or wrapped anything in a theme
+    provider** — dark mode was unreachable dead CSS in production, and
+    there was no toggle anywhere in the UI. Fixed by adding `next-themes`
+    (already an installed dependency, previously only imported inside
+    `ui/sonner.tsx` for toast styling) as the outermost provider in
+    `App.tsx`: `<ThemeProvider attribute="class" defaultTheme="system"
+    enableSystem disableTransitionOnChange>`. Visitors now get their
+    OS/browser `prefers-color-scheme` automatically with zero action —
+    verified by loading fresh pages with Playwright's `colorScheme:
+    'dark'`/`'light'` emulation and confirming `<html>` picks up
+    `class="dark"` (or not) with no manual toggle click. `src/components/
+    ThemeToggle.tsx` is a single Sun/Moon button (`useTheme()`'s
+    `resolvedTheme`/`setTheme`) that lets a visitor override the OS
+    default; the choice then persists in `localStorage` ("theme") and
+    wins over the OS setting on future visits. It's rendered twice: in
+    `Header.tsx`'s desktop right cluster (`hidden sm:inline-flex`,
+    ghost-variant so it's exempt from the "white-bg/black-text gets
+    gradient-border-anim" rule — ghost has no visible background at
+    rest) and in the mobile hamburger `Sheet`'s header row next to the
+    close button (the persistent mobile top bar was already tight —
+    search icon, SKYNN AI icon, hamburger — so the mobile toggle lives
+    one tap deeper instead of crowding it further). Known limitation:
+    `scripts/prerender.ts` crawls pages with a plain headless browser
+    (no forced color scheme) for SEO/social-card snapshots, and
+    `main.tsx` uses `createRoot` (not `hydrateRoot`), so a visitor whose
+    OS prefers dark will see the prerendered light-mode HTML for an
+    instant before client JS mounts and swaps in the correct theme —
+    an inherent tradeoff of static-prerendering an SPA, not something
+    next-themes' usual "no flash" script-injection trick can fully
+    solve here (that trick targets SSR/hydration mismatches, not a
+    pre-JS static snapshot). Not worth solving further unless it's
+    actually reported as a visible problem.
+  - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
+    snapshot reference of the whole visual design system (brand logo
+    usage, color tokens in both modes, the brand gradient and everywhere
+    it's used, typography, the shadow/radius scales, core component
+    patterns, and the theming setup above), written for onboarding both
+    human engineers and other AI coding assistants working on this repo
+    without needing to reverse-engineer `index.css`/`tailwind.config.ts`
+    from scratch. Every value in it was read directly from the live
+    source files at generation time (see its own final "Source Index"
+    page for the exact file list) — it is a snapshot, not a second
+    source of truth, and **the code always wins** if the two ever
+    disagree. Regenerate it (HTML authored by hand, rendered to PDF via
+    a headless-Chromium `page.pdf()` call — the generation script itself
+    wasn't kept, since it's a one-off, not a build step) after a design-
+    system change substantial enough to warrant its own dated bullet in
+    this file, not for every minor tweak.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a

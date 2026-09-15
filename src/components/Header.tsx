@@ -43,6 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import AuthDialog from "@/components/AuthDialog";
 import SiteSearch from "@/components/SiteSearch";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
+import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { toast } from "sonner";
@@ -334,6 +335,10 @@ const Header = () => {
               </Button>
             )}
 
+            {/* Theme toggle — desktop only; the mobile row is already tight (search,
+                SKYNN AI, hamburger), so the mobile equivalent lives in the sheet header. */}
+            <ThemeToggle className="hidden sm:inline-flex" />
+
             {/* Mobile hamburger */}
             <Button
               variant="ghost"
@@ -353,9 +358,12 @@ const Header = () => {
         <SheetContent side="right" className="w-full max-w-sm overflow-y-auto p-0 [&>button]:hidden">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="font-heading text-lg font-bold">Menu</span>
-            <Button variant="ghost" size="icon" onClick={closeMenu} aria-label="Close menu">
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" onClick={closeMenu} aria-label="Close menu">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
           <nav aria-label="Primary" className="flex flex-col gap-1 px-3 py-3">
             {primaryLinks.map((item) => (

@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
@@ -174,25 +175,32 @@ const AppContent = () => (
 );
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <PodcastPlayerProvider>
-            <CurrencyProvider>
-              <CartProvider>
-                <AppContent />
-              </CartProvider>
-            </CurrencyProvider>
-          </PodcastPlayerProvider>
-        </BrowserRouter>
-        <Analytics />
-        <SpeedInsights />
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+  // attribute="class" matches tailwind.config.ts's darkMode: ["class"] and index.css's
+  // .dark selector. defaultTheme="system" + enableSystem (both next-themes defaults,
+  // spelled out here so the intent survives a future refactor) means visitors get the
+  // OS/browser's prefers-color-scheme automatically; ThemeToggle.tsx lets them override
+  // it, and that explicit choice then wins over the OS setting via localStorage.
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <PodcastPlayerProvider>
+              <CurrencyProvider>
+                <CartProvider>
+                  <AppContent />
+                </CartProvider>
+              </CurrencyProvider>
+            </PodcastPlayerProvider>
+          </BrowserRouter>
+          <Analytics />
+          <SpeedInsights />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </ThemeProvider>
 );
 
 export default App;
