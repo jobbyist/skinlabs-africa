@@ -5,6 +5,7 @@ import { ArrowLeft, Heart, Loader2, MapPin, Star } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import { ScoreBar } from "@/components/ScoreBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
@@ -37,18 +38,6 @@ interface CommentRow {
   body: string;
   created_at: string;
 }
-
-const ScoreBar = ({ label, value }: { label: string; value: number }) => (
-  <div className="space-y-1">
-    <div className="flex items-center justify-between text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold text-foreground">{value.toFixed(1)}</span>
-    </div>
-    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-      <div className="h-full rounded-full bg-primary" style={{ width: `${value * 10}%` }} />
-    </div>
-  </div>
-);
 
 const ProductReview = () => {
   const { slug } = useParams();

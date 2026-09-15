@@ -1,26 +1,77 @@
 # SkinLabs Robots.txt
+# Disallow rules apply to every crawler below, including the catch-all --
+# a prior version only disallowed /admin and /dashboard under Googlebot,
+# leaving every other crawler (Bingbot, social-card bots, and every AI
+# crawler not explicitly named) free to index authenticated/admin surfaces.
+
 User-agent: Googlebot
 Allow: /
-
-# Disallow admin and user-specific pages
 Disallow: /admin
 Disallow: /dashboard
 
-# Sitemap
-Sitemap: https://skinlabs.co.za/sitemap.xml
-
-# Crawl delay (optional, helps prevent server overload)
-Crawl-delay: 1
-
-# This site is optimized for AI search and indexing
 User-agent: Bingbot
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
 
+# Named AI crawlers, explicitly welcomed -- editorial content (Briefings,
+# Reviews, Knowledge Hub, Ingredients) is meant to be discoverable and
+# citable by AI search/answer engines, not just traditional search.
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+# Catch-all for every other crawler, including AI crawlers not named above.
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+
+Sitemap: https://skinlabs.co.za/sitemap.xml
+Crawl-delay: 1

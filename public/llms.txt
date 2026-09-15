@@ -1,0 +1,57 @@
+# SkinLabs®
+
+> South African skincare intelligence infrastructure: AI-powered skin
+> analysis, independently reviewed products, ingredient science, and a
+> normalized skincare-product database, built for South African skin
+> tones, climate and retail availability. Not a content subscription --
+> the product is a free-first, first-party skin-profile and product-
+> knowledge system, with selective membership monetisation layered on top.
+
+## Core content
+
+- [Skin Analysis (SKYNN AI)](https://skinlabs.co.za/skynn-ai): free AI
+  skin analysis (photo + self-reported Monk Skin Tone + quiz), grounded,
+  SA-context AM/PM routine recommendations from real reviewed products --
+  never a fabricated recommendation.
+- [Reviews](https://skinlabs.co.za/reviews): independently scored South
+  African and globally-available skincare product reviews (70% SA brands),
+  editorially independent from monetisation.
+- [Briefings](https://skinlabs.co.za/briefings): dermatology-grounded news
+  and explainer articles.
+- [Ingredients](https://skinlabs.co.za/ingredients): ingredient directory,
+  detail pages, and a conflict/interaction checker
+  ([/ingredients/checker](https://skinlabs.co.za/ingredients/checker)),
+  sourced from DermNet NZ, JAAD and other cited dermatology literature.
+- [Knowledge Hub](https://skinlabs.co.za/knowledge-hub): skincare FAQ and
+  education content.
+- [Spotlight](https://skinlabs.co.za/spotlight): a recurring, methodology-
+  versioned brand ranking/editorial feature.
+- [Seasonal Guides](https://skinlabs.co.za/seasonals): climate- and season-
+  specific skincare guidance for South Africa's four seasons.
+- [The Skin Deep podcast](https://skinlabs.co.za/podcast): editorial audio
+  content, transcribed and indexed per episode.
+- [OpenHaus marketplace](https://skinlabs.co.za/marketplace): an in-app
+  skincare marketplace, sourced from verified wholesale catalogues.
+
+## Standing editorial principles (apply to every page above)
+
+Never fabricated: social proof, scarcity, product data, reviews, ratings,
+performance claims, or clinical/diagnostic claims. Every AI-generated
+recommendation is grounded in a real, reviewed product or a real cited
+source -- never invented. Unshipped features are explicitly labelled
+"Coming soon," never presented as operational.
+
+## Machine-readable indexes
+
+- [Sitemap](https://skinlabs.co.za/sitemap.xml): every canonical,
+  indexable URL on the site, programmatically generated at build time from
+  the same content sources above.
+- [Podcast RSS feed](https://skinlabs.co.za/podcast.xml): RSS 2.0 +
+  iTunes namespace, per-episode duration/transcript metadata.
+
+## Access
+
+- `/admin` and `/dashboard` are authenticated, user-specific surfaces --
+  intentionally excluded from indexing (see /robots.txt).
+- Every other path listed in /sitemap.xml is public and intended to be
+  crawled, cited and linked to.
