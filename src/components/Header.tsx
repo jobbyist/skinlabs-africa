@@ -104,7 +104,7 @@ const ExploreCard = ({ item, onClick }: { item: NavItem; onClick?: () => void })
   <Link
     to={item.href}
     onClick={onClick}
-    className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border border-border px-2 py-4 text-center transition-colors hover:bg-accent"
+    className="gradient-border-anim flex flex-col items-center justify-center gap-1.5 rounded-2xl px-2 py-4 text-center transition-colors hover:bg-accent"
   >
     <item.icon className="h-5 w-5 text-foreground" aria-hidden />
     <span className="flex flex-wrap items-center justify-center gap-1 text-sm font-medium text-foreground">
@@ -231,7 +231,7 @@ const Header = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full gap-1.5 px-3 font-medium"
+                  className="gradient-border-anim rounded-full gap-1.5 border-transparent px-3 font-medium"
                 >
                   Menu
                   <ChevronDown
@@ -258,7 +258,7 @@ const Header = () => {
             <Button
               variant="outline"
               size="sm"
-              className="hidden sm:inline-flex h-9 gap-2 rounded-full border-border/80 px-3 text-muted-foreground hover:text-foreground"
+              className="gradient-border-anim hidden sm:inline-flex h-9 gap-2 rounded-full border-transparent px-3 text-muted-foreground hover:text-foreground"
               onClick={() => setSearchOpen(true)}
               aria-label="Search"
             >
@@ -278,12 +278,20 @@ const Header = () => {
               <Search className="h-4 w-4" />
             </Button>
 
-            {/* SKYNN AI — animated multicolour gradient border, white bg, black text + Sparkles */}
+            {/* SKYNN AI — animated multicolour gradient border, white bg, black text + Sparkles.
+                Mobile gets a compact icon-only version next to the search icon; the full
+                labelled pill takes over from sm: up, so the affordance is never fully hidden
+                behind the hamburger menu on small screens. */}
             <Link
               to="/skynn-ai"
-              className={cn(
-                "gradient-border-anim hidden sm:inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-medium text-black shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]",
-              )}
+              aria-label="SKYNN AI — Skin Analysis"
+              className="gradient-border-anim inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black shadow-sm transition-transform hover:scale-[1.05] active:scale-[0.98] sm:hidden"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden />
+            </Link>
+            <Link
+              to="/skynn-ai"
+              className="gradient-border-anim hidden h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-sm font-medium text-black shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98] sm:inline-flex"
             >
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               SKYNN AI
@@ -293,7 +301,11 @@ const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="hidden sm:inline-flex rounded-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gradient-border-anim hidden sm:inline-flex rounded-full border-transparent"
+                  >
                     Account
                   </Button>
                 </DropdownMenuTrigger>
@@ -380,7 +392,11 @@ const Header = () => {
           </div>
           <div className="border-t border-border px-4 py-4">
             {user ? (
-              <Button variant="outline" className="w-full" onClick={handleSignOut}>
+              <Button
+                variant="outline"
+                className="gradient-border-anim w-full border-transparent"
+                onClick={handleSignOut}
+              >
                 Sign out
               </Button>
             ) : (
@@ -397,7 +413,7 @@ const Header = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="gradient-border-anim w-full border-transparent"
                   onClick={() => {
                     setAuthMode("signup");
                     setAuthOpen(true);

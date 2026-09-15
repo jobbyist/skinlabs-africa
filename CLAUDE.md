@@ -141,6 +141,47 @@ feature appear operational.
       `AuthDialog` in place (never a route to `/dashboard` that would just
       bounce a logged-out visitor back out). Its active-tab tint now uses
       `.gradient-bg-soft` instead of a flat `bg-primary/10`.
+  - **Nav gradient accents + search dialog polish (2026-09-15, second
+    follow-up)** — extended `.gradient-border-anim` to the rest of
+    `Header.tsx`'s nav chrome: every `ExploreCard` in the Explore grid
+    (desktop popover and mobile sheet share the one component), plus
+    every button that renders a white background with black text in
+    light mode — the desktop "Menu"/"Search"/"Account" pills (all
+    `variant="outline"`, which is `bg-background` + default foreground —
+    that's the literal criterion, not "every outline button sitewide")
+    and the mobile sheet's "Create account"/"Sign out" buttons. Buttons
+    that are black-bg/white-text (`variant="default"` — "Log In / Sign
+    Up", "Sign in", the desktop panel's "Sign Up / Log In") were
+    deliberately left alone since they don't match that criterion.
+    `outline`-variant buttons need `border-transparent` alongside
+    `gradient-border-anim` or the CVA's own `border-input` shows through
+    underneath the animated ring — `cn()`'s `tailwind-merge` resolves
+    that cleanly since both are the same `border-color` utility group.
+    Mobile also gained a compact icon-only SKYNN AI button (same
+    `gradient-border-anim` white pill, just `h-9 w-9` with no label) next
+    to the search icon in the header's mobile row — previously the whole
+    SKYNN AI affordance was `hidden` below the `sm:` breakpoint, i.e.
+    invisible on actual phones until you opened the hamburger menu.
+    Separately, `ui/command.tsx`'s `CommandDialog` (shared by both
+    `SiteSearch.tsx` and `MarketplaceSearch.tsx`) got a real polish pass:
+    anchored higher (`top-20`/`sm:top-[15%]`, not dead-center, so it
+    reads as a command palette and an on-screen keyboard never covers
+    it), `w-[calc(100%-2rem)]` + `rounded-2xl` on mobile instead of the
+    generic Dialog's edge-to-edge full-bleed sheet, the default Dialog
+    close (X) hidden via `[&>button]:hidden` (it was sitting directly
+    over the search input — ESC and the overlay click already close it,
+    and ESC is now advertised in a new desktop-only keyboard-hint footer
+    row), and `CommandList` given a responsive `max-h-[60vh] sm:max-h-
+    [420px]` instead of a flat 300px. While in there, fixed a real
+    overflow bug in `SiteSearch.tsx`: several `CommandItem` result rows
+    paired a `flex-1 truncate` title span with a `shrink-0 truncate`
+    subtitle/reasons span — `shrink-0` on the second span meant it never
+    gave up space, so on narrow (mobile) widths the row overflowed the
+    dialog instead of truncating. Fixed by adding `min-w-0` to the title
+    span (a flex item's implicit `min-width: auto` is what actually
+    blocks `truncate` from working, not just the visible width) and
+    hiding the secondary subtitle span below `sm:` where there isn't
+    room for a title *and* a reason on one line anyway.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
