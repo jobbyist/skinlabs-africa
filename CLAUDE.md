@@ -42,6 +42,25 @@ feature appear operational.
   content (dated newsroom articles, the 2025 roadmap timeline entry in
   About.tsx, past `Announcements.tsx` entries) which must keep the old
   name since it's a factual record of what shipped at the time.
+  - **"Advanced" tier naming (2026-09-15)** — the paid/membership tier of
+    SKYNN AI's analysis (previously "Advanced Skin Analysis"/"Advanced
+    Analysis") is now branded **"Advanced AI Dermatology Report"** across
+    `src/pages/SmartRoutines.tsx`, `AdvancedAssessmentCard.tsx`,
+    `AnalysisPassPurchaseModal.tsx` and `AnalysisPassesCard.tsx` —
+    deliberately "from SKYNN AI" rather than a bare possessive, to avoid
+    implying SKYNN AI itself is a dermatologist. The medical-advice FAQ on
+    `/routines` was strengthened to explicitly say the report is
+    AI-generated, not a clinical diagnosis, precisely because "Dermatology
+    Report" reads more clinical than the old name — don't drop that
+    disclaimer if this copy is touched again. `/routines`'s hero also
+    gained a real, Adobe-Stock-licensed editorial photo
+    (`public/images/smart-routines-hero.jpg`, licensed and cropped via the
+    Adobe MCP connector, not AI-generated — this environment's Adobe
+    connector has no text-to-image tool, only Stock search/license +
+    Photoshop-style editing) and the page's duplicate bottom-of-page CTA
+    (a second button that just repeated the primary "get your report" CTA)
+    was replaced with a distinct "Compare access options" anchor to the
+    pricing cards.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
