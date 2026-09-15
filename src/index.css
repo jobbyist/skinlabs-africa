@@ -60,14 +60,18 @@ All colors MUST be HSL.
     --font-mono: 'Space Mono', ui-monospace, monospace;
     --font-heading: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-    --shadow-2xs: 0 1px 2px 0 hsl(0 0% 0% / 0.03);
-    --shadow-xs: 0 1px 3px 0 hsl(0 0% 0% / 0.04);
-    --shadow-sm: 0 2px 8px -2px hsl(0 0% 0% / 0.08);
-    --shadow: 0 4px 16px -4px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 8px 24px -8px hsl(0 0% 0% / 0.12);
-    --shadow-lg: 0 16px 40px -12px hsl(0 0% 0% / 0.15);
-    --shadow-xl: 0 24px 60px -16px hsl(0 0% 0% / 0.2);
-    --shadow-2xl: 0 32px 80px -20px hsl(0 0% 0% / 0.25);
+    /* Multi-layer shadow stack (Clerk-style): a tight, low-opacity "contact"
+       shadow close to the surface plus a softer, wider "ambient" shadow —
+       never a single hard-edged shadow. Each layer stays under ~0.18 opacity
+       so stacking reads as depth, not a heavy drop shadow. */
+    --shadow-2xs: 0 1px 1px 0 hsl(0 0% 0% / 0.03);
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.04), 0 1px 1px 0 hsl(0 0% 0% / 0.03);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04), 0 3px 8px -2px hsl(0 0% 0% / 0.06);
+    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.05), 0 6px 16px -4px hsl(0 0% 0% / 0.08);
+    --shadow-md: 0 2px 4px 0 hsl(0 0% 0% / 0.05), 0 10px 24px -6px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 4px 6px 0 hsl(0 0% 0% / 0.04), 0 16px 36px -10px hsl(0 0% 0% / 0.12);
+    --shadow-xl: 0 6px 10px 0 hsl(0 0% 0% / 0.04), 0 24px 52px -14px hsl(0 0% 0% / 0.15);
+    --shadow-2xl: 0 8px 14px 0 hsl(0 0% 0% / 0.04), 0 32px 72px -18px hsl(0 0% 0% / 0.18);
 
     --tracking-normal: 0em;
     --spacing: 0.25rem;
@@ -77,11 +81,18 @@ All colors MUST be HSL.
     --grey-light: 0 0% 90%;
     --grey: 0 0% 50%;
     --grey-dark: 0 0% 30%;
-    
+
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(0 0% 96%) 0%, hsl(0 0% 98%) 50%, hsl(0 0% 100%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(0 0% 15%) 0%, hsl(0 0% 30%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(0 0% 100% / 0.7) 100%);
+
+    /* The single source of truth for SkinLabs' "flagship AI feature" brand
+       gradient — used by .gradient-text, .gradient-border-anim and
+       .gradient-bg-soft below, and by the header scroll-progress bar and
+       FloatingBottomNav's active-tab tint. Keep this the only place these
+       four stops are defined; everything else should reference it. */
+    --gradient-brand: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7, #ec4899);
   }
 
   .dark {
@@ -126,14 +137,17 @@ All colors MUST be HSL.
     --chart-4: 304 26.5% 62.7%;
     --chart-5: 16 24.6% 64.5%;
     --sidebar: 266 4% 20.8%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+    /* Same contact + ambient two-layer approach as :root, just darker/higher
+       opacity since these sit on an already-dark background. */
+    --shadow-2xs: 0 1px 1px 0 hsl(0 0% 0% / 0.2);
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 1px 1px 0 hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 3px 8px -2px hsl(0 0% 0% / 0.3);
+    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 6px 16px -4px hsl(0 0% 0% / 0.35);
+    --shadow-md: 0 2px 4px 0 hsl(0 0% 0% / 0.3), 0 10px 24px -6px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 4px 6px 0 hsl(0 0% 0% / 0.3), 0 16px 36px -10px hsl(0 0% 0% / 0.45);
+    --shadow-xl: 0 6px 10px 0 hsl(0 0% 0% / 0.35), 0 24px 52px -14px hsl(0 0% 0% / 0.5);
+    --shadow-2xl: 0 8px 14px 0 hsl(0 0% 0% / 0.35), 0 32px 72px -18px hsl(0 0% 0% / 0.55);
   }
 }
 
@@ -177,6 +191,9 @@ All colors MUST be HSL.
     z-index: 1;
     padding: 2px;
     border-radius: inherit;
+    /* conic-gradient() can't take var(--gradient-brand) directly (it needs its
+       own repeated first stop at the end to loop seamlessly) — these are the
+       same four brand stops, just spelled out again for that reason. */
     background: conic-gradient(
       from var(--gradient-angle),
       #22c55e,
@@ -196,6 +213,43 @@ All colors MUST be HSL.
     position: relative;
     z-index: 0;
   }
+
+  /* Same brand gradient family as .gradient-border-anim, applied to text
+     instead of a border — used sparingly, one accent phrase per view, on
+     SKYNN AI's own headline and similar "flagship AI feature" moments. */
+  .gradient-text {
+    background: var(--gradient-brand);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* A very low-opacity wash of the brand gradient — for section/pill
+     backgrounds that want a hint of colour without competing with
+     .gradient-text or .gradient-border-anim for attention. */
+  .gradient-bg-soft {
+    background-image: var(--gradient-brand);
+    background-color: hsl(var(--accent));
+    background-blend-mode: soft-light;
+  }
+
+  .dark .gradient-bg-soft {
+    background-blend-mode: overlay;
+  }
+}
+
+/* Headings default to a touch of negative tracking (Clerk-style precision) —
+   components can still override with an explicit tracking-* utility, which
+   wins because Tailwind's utilities layer loads after this base layer. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  .font-heading {
+    letter-spacing: -0.015em;
+  }
 }
 
 @keyframes gradient-border-spin {
@@ -207,6 +261,15 @@ All colors MUST be HSL.
 @media (prefers-reduced-motion: reduce) {
   .gradient-border-anim::before {
     animation: none;
+  }
+
+  /* Dialog/modal entrance-exit (tailwindcss-animate's animate-in/animate-out,
+     used by every Dialog in the app, the SKYNN video modal included) —
+     collapse to an instant state change instead of a fade/zoom/slide. */
+  .animate-in,
+  .animate-out {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 

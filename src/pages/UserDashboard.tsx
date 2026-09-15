@@ -26,6 +26,7 @@ import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
+import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import ReportBugButton from "@/components/ReportBugButton";
 import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ const UserDashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tier, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
+  const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
@@ -466,15 +467,18 @@ const UserDashboard = () => {
                     </Card>
                   </div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                      <CardTitle className="text-base">Your AM/PM Routine</CardTitle>
-                      <Button variant="ghost" size="sm" className="h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("routine")}>See all</Button>
-                    </CardHeader>
-                    <CardContent>
-                      <RoutineSnapshot />
-                    </CardContent>
-                  </Card>
+                  <div className="grid md:grid-cols-2 gap-6 items-start">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                        <CardTitle className="text-base">Your AM/PM Routine</CardTitle>
+                        <Button variant="ghost" size="sm" className="h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("routine")}>See all</Button>
+                      </CardHeader>
+                      <CardContent>
+                        <RoutineSnapshot />
+                      </CardContent>
+                    </Card>
+                    <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading} />
+                  </div>
 
                   <Card>
                     <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>

@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Preloader from "./components/Preloader";
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
@@ -36,6 +38,7 @@ const CommunityGuidelines = lazy(() => import("./pages/CommunityGuidelines"));
 const Whitepaper = lazy(() => import("./pages/Whitepaper"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Openhaus = lazy(() => import("./pages/Openhaus"));
+const SmartRoutines = lazy(() => import("./pages/SmartRoutines"));
 const ComingSoon = lazy(() => import("./pages/ComingSoon"));
 const PodcastPage = lazy(() => import("./pages/PodcastPage"));
 const EpisodePage = lazy(() => import("./pages/EpisodePage"));
@@ -122,7 +125,7 @@ const AppContent = () => (
         <Route path="/whitepaper" element={<Navigate to="/whitepapers" replace />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/shop" element={<Openhaus />} />
-        <Route path="/routines" element={<ComingSoon />} />
+        <Route path="/routines" element={<SmartRoutines />} />
         <Route path="/learn" element={<ComingSoon />} />
         <Route path="/ingredients" element={<Ingredients />} />
         <Route path="/ingredients/checker" element={<IngredientChecker />} />
@@ -172,24 +175,32 @@ const AppContent = () => (
 );
 
 const App = () => (
-  <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <PodcastPlayerProvider>
-            <CurrencyProvider>
-              <CartProvider>
-                <AppContent />
-              </CartProvider>
-            </CurrencyProvider>
-          </PodcastPlayerProvider>
-        </BrowserRouter>
-        <Analytics />
-      </TooltipProvider>
-    </QueryClientProvider>
-  </HelmetProvider>
+  // attribute="class" matches tailwind.config.ts's darkMode: ["class"] and index.css's
+  // .dark selector. defaultTheme="system" + enableSystem (both next-themes defaults,
+  // spelled out here so the intent survives a future refactor) means visitors get the
+  // OS/browser's prefers-color-scheme automatically; ThemeToggle.tsx lets them override
+  // it, and that explicit choice then wins over the OS setting via localStorage.
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <PodcastPlayerProvider>
+              <CurrencyProvider>
+                <CartProvider>
+                  <AppContent />
+                </CartProvider>
+              </CurrencyProvider>
+            </PodcastPlayerProvider>
+          </BrowserRouter>
+          <Analytics />
+          <SpeedInsights />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </ThemeProvider>
 );
 
 export default App;

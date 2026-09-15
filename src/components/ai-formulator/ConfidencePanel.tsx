@@ -23,16 +23,28 @@ const ConfidencePanel = ({ completeness, limitations }: ConfidencePanelProps) =>
           <RadialBarChart
             innerRadius="72%"
             outerRadius="100%"
-            data={[{ value: completeness.overall, fill: "hsl(var(--primary))" }]}
+            data={[{ value: completeness.overall }]}
             startAngle={90}
             endAngle={-270}
           >
+            <defs>
+              <linearGradient id="skynn-confidence-gradient" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#22c55e" />
+                <stop offset="50%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#a855f7" />
+              </linearGradient>
+            </defs>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-            <RadialBar background={{ fill: "hsl(var(--muted))" }} dataKey="value" cornerRadius={12} />
+            <RadialBar
+              background={{ fill: "hsl(var(--muted))" }}
+              dataKey="value"
+              cornerRadius={12}
+              fill="url(#skynn-confidence-gradient)"
+            />
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-heading font-bold text-card-foreground">{completeness.overall}%</span>
+          <span className="gradient-text text-lg font-heading font-bold">{completeness.overall}%</span>
         </div>
       </div>
       <div>

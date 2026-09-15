@@ -84,7 +84,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-2xl mx-auto text-center lg:text-left lg:mx-0">
           <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium">
+            <div className="gradient-border-anim inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-foreground">
               {/* SA flag on mobile; Atom icon on larger screens */}
               <span className="text-base leading-none md:hidden" aria-hidden="true">
                 🇿🇦
@@ -104,7 +104,11 @@ const Hero = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button size="lg" className="gap-2 text-base px-8" asChild>
+              <Button
+                size="lg"
+                className="gap-2 text-base px-8 shadow-lg shadow-primary/10 transition-transform hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/15"
+                asChild
+              >
                 <a href="/skynn-ai">
                 Get Your Free AI Skin Analysis
                   <ArrowRight className="h-4 w-4" />
@@ -127,9 +131,9 @@ const Hero = () => {
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-border/60 bg-background/55 px-2 py-3 text-center shadow-sm backdrop-blur-md sm:px-4 sm:py-4"
+                  className="rounded-2xl border border-border/60 bg-background/55 px-2 py-3 text-center shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md sm:px-4 sm:py-4"
                 >
-                  <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary sm:h-9 sm:w-9">
+                  <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 text-primary sm:h-9 sm:w-9">
                     <stat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
                   </span>
                   <p className="font-heading text-xl font-extrabold tracking-tight text-foreground drop-shadow-sm sm:text-2xl md:text-3xl">

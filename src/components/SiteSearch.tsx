@@ -182,9 +182,9 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
             {bestMatches.map((result) => (
               <CommandItem key={`best-${result.key}`} value={result.key} onSelect={() => go(result.href)}>
                 <result.icon />
-                <span className="flex-1 truncate">{result.title}</span>
+                <span className="min-w-0 flex-1 truncate">{result.title}</span>
                 {result.reasons.length > 0 && (
-                  <span className="ml-2 shrink-0 truncate text-xs text-muted-foreground">
+                  <span className="ml-2 hidden shrink-0 truncate text-xs text-muted-foreground sm:inline sm:max-w-[45%]">
                     {result.reasons.filter((r) => r !== result.title).slice(0, 2).join(" · ")}
                   </span>
                 )}
@@ -224,9 +224,9 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
           {forDisplay(ranked.reviews, ranked.reviews.slice(0, 60)).map((result) => (
             <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
               <Star />
-              <span className="flex-1 truncate">{result.title}</span>
+              <span className="min-w-0 flex-1 truncate">{result.title}</span>
               {hasQuery && result.subtitle && (
-                <span className="ml-2 flex shrink-0 items-center gap-1 truncate text-xs text-muted-foreground">
+                <span className="ml-2 hidden shrink-0 items-center gap-1 truncate text-xs text-muted-foreground sm:flex sm:max-w-[45%]">
                   <Sparkles className="h-3 w-3" /> {result.subtitle}
                 </span>
               )}
@@ -239,7 +239,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
             {forDisplay(ranked.marketplace, ranked.marketplace.slice(0, 60)).map((result) => (
               <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
                 <ShoppingBag />
-                <span className="flex-1 truncate">{result.title}</span>
+                <span className="min-w-0 flex-1 truncate">{result.title}</span>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -278,7 +278,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
           {forDisplay(ranked.knowledgeHub, ranked.knowledgeHub.slice(0, 60)).map((result) => (
             <CommandItem key={result.key} value={result.key} onSelect={() => go(result.href)}>
               <HelpCircle />
-              <span className="flex-1 truncate">{result.title}</span>
+              <span className="min-w-0 flex-1 truncate">{result.title}</span>
             </CommandItem>
           ))}
         </CommandGroup>

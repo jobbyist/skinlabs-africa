@@ -64,7 +64,7 @@ const AnalysisPassesCard = ({ balance, loading, error, onRetry }: AnalysisPasses
               <p className="text-2xl font-bold text-foreground">{balance ?? 0} available</p>
               <p className="text-xs text-muted-foreground mb-3">
                 {hasPasses
-                  ? "Use a pass to unlock a deeper Advanced Skin Analysis."
+                  ? "Use a pass to unlock your Advanced AI Dermatology Report."
                   : "Unlock deeper insights into your skin whenever you need them."}
               </p>
               <div className="flex flex-wrap gap-2">

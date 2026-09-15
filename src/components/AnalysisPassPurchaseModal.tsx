@@ -21,8 +21,8 @@ interface AnalysisPassPurchaseModalProps {
 }
 
 /**
- * "Unlock Advanced Skin Analysis" — the Analysis Pass purchase flow (Section
- * 6). Reuses the existing Paystack checkout (startCreditPackCheckout) and
+ * "Unlock your Advanced AI Dermatology Report" — the Analysis Pass purchase
+ * flow (Section 6). Reuses the existing Paystack checkout (startCreditPackCheckout) and
  * DB-driven credit_packs pricing wholesale; this only adds the compact
  * choose-1-or-3 presentation for it. Packages/prices are never hardcoded
  * here — they come from usePricingConfig(), the same source the Pricing
@@ -53,7 +53,7 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5 text-primary" />
-            Unlock Advanced Skin Analysis
+            Unlock Your Advanced AI Dermatology Report
           </DialogTitle>
           <DialogDescription>
             Go beyond your Starter Analysis with a deeper, more personalised look at your skin.
@@ -82,7 +82,9 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
                         {pack.credits} Analysis Pass{pack.credits === 1 ? "" : "es"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {pack.credits === 1 ? "One Advanced Skin Analysis" : `${pack.credits} Advanced Skin Analyses`}
+                        {pack.credits === 1
+                          ? "One Advanced AI Dermatology Report"
+                          : `${pack.credits} Advanced AI Dermatology Reports`}
                         {pack.pack_id === bestValuePackId && singlePrice
                           ? ` · Save R${Math.max(0, Math.round(singlePrice * pack.credits - Number(pack.price)))}`
                           : ""}

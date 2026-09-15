@@ -42,6 +42,197 @@ feature appear operational.
   content (dated newsroom articles, the 2025 roadmap timeline entry in
   About.tsx, past `Announcements.tsx` entries) which must keep the old
   name since it's a factual record of what shipped at the time.
+  - **"Advanced" tier naming (2026-09-15)** — the paid/membership tier of
+    SKYNN AI's analysis (previously "Advanced Skin Analysis"/"Advanced
+    Analysis") is now branded **"Advanced AI Dermatology Report"** across
+    `src/pages/SmartRoutines.tsx`, `AdvancedAssessmentCard.tsx`,
+    `AnalysisPassPurchaseModal.tsx` and `AnalysisPassesCard.tsx` —
+    deliberately "from SKYNN AI" rather than a bare possessive, to avoid
+    implying SKYNN AI itself is a dermatologist. The medical-advice FAQ on
+    `/routines` was strengthened to explicitly say the report is
+    AI-generated, not a clinical diagnosis, precisely because "Dermatology
+    Report" reads more clinical than the old name — don't drop that
+    disclaimer if this copy is touched again. `/routines`'s hero also
+    gained a real, Adobe-Stock-licensed editorial photo
+    (`public/images/smart-routines-hero.jpg`, licensed and cropped via the
+    Adobe MCP connector, not AI-generated — this environment's Adobe
+    connector has no text-to-image tool, only Stock search/license +
+    Photoshop-style editing) and the page's duplicate bottom-of-page CTA
+    (a second button that just repeated the primary "get your report" CTA)
+    was replaced with a distinct "Compare access options" anchor to the
+    pricing cards.
+  - **`.gradient-text` utility + "flagship AI" visual treatment
+    (2026-09-15)** — `src/index.css` gained a `.gradient-text` class
+    (same brand gradient stops as the pre-existing `.gradient-border-anim`:
+    emerald `#22c55e` → blue `#3b82f6` → purple `#a855f7` → pink
+    `#ec4899`), applied deliberately sparingly — one accent phrase per
+    view — to mark SKYNN AI as the site's flagship AI feature rather than
+    a generic form: the "Smarter care." headline and "SKYNN AI" wordmark
+    in `AIFormulator.tsx`'s intro/step-badge, `StepperHeader.tsx`'s
+    current-step circle (now a gradient fill instead of a flat primary
+    border), `ConfidencePanel.tsx`'s radial completeness ring (via an SVG
+    `<linearGradient>` in Recharts' `<defs>`, id
+    `skynn-confidence-gradient`) and percentage label, and the "SKYNN AI"
+    mentions in `AdvancedAssessmentCard.tsx` and `SmartRoutines.tsx`'s
+    hero badge. Homepage `Hero.tsx` got a lighter, Clerk.com-style pass
+    instead (hover lift + shadow on the stat cards, a subtle two-tone
+    gradient tint on their icon chips, hover scale on the primary CTA) —
+    deliberately no full-page color-scheme change, since the base theme
+    (`src/index.css` `:root`) is still intentionally monochrome/greyscale
+    and a wholesale palette swap wasn't asked for or warranted. Don't add
+    more than one gradient-text moment per screen — it's meant to read as
+    a rare accent, not a new default text color.
+  - **Site-wide design-system pass (2026-09-15, same day follow-up)** —
+    on top of the above, a broader Clerk.com-style consistency pass:
+    - `--gradient-brand` is now the single CSS variable both `.gradient-text`
+      and `.gradient-border-anim` are meant to derive from (`.gradient-text`
+      references it directly; `.gradient-border-anim`'s `conic-gradient()`
+      still spells the four stops out again in `src/index.css` because
+      conic gradients need their own repeated closing stop to loop — that
+      duplication is intentional, not drift). A new `.gradient-bg-soft`
+      utility blends the same gradient into `--accent` at low opacity for
+      "hint of colour" surfaces (the floating bottom nav's active-tab tint).
+    - The gradient treatment now also appears on the homepage hero's
+      eyebrow pill (`Hero.tsx`, `.gradient-border-anim`) and on
+      `Header.tsx`'s `NavBadge` ("NEW"/"BETA" → the brand gradient,
+      "Coming Soon" → an amber→orange gradient) — still one clear accent
+      per element, not a background-color replacement everywhere.
+    - `--shadow-*` (both `:root` and `.dark` in `src/index.css`) were
+      rewritten from single-layer box-shadows to a genuine two-layer
+      "contact + ambient" stack per Clerk's documented approach — every
+      component using the `shadow-*` Tailwind utilities (most of them, via
+      the theme's `boxShadow` mapping in `tailwind.config.ts`) picked this
+      up automatically; no per-component changes were needed or made. In
+      passing, fixed a pre-existing gap where `tailwind.config.ts`'s
+      `boxShadow` mapped `2xs`/`xs`/`sm`/`md`/`lg`/`xl`/`2xl` to their CSS
+      vars but never mapped bare `shadow` (Tailwind's `DEFAULT` key) to
+      `--shadow` — that variable existed in `index.css` but every plain
+      `shadow` class in the app (sidebar, several page heroes) was silently
+      falling back to Tailwind's built-in default instead. Added
+      `DEFAULT: 'var(--shadow)'` so it isn't stranded again.
+    - Radii were made consistent at the shared-primitive level rather than
+      per-usage: `ui/card.tsx`'s default is now `rounded-2xl` (was
+      `rounded-lg`), and `ui/dialog.tsx` / `ui/alert-dialog.tsx` are now
+      `sm:rounded-xl` (was `sm:rounded-lg`). `ui/sheet.tsx` was deliberately
+      left un-rounded — it's an edge-anchored drawer, not a floating modal,
+      and rounding the anchored edge would look wrong. `ui/badge.tsx` /
+      `ui/avatar.tsx` were already `rounded-full` and needed no change.
+    - Headings get a default `letter-spacing: -0.015em` via a `@layer base`
+      rule targeting `h1`–`h4` and `.font-heading` in `src/index.css` —
+      lands below Tailwind's `utilities` layer regardless of source-file
+      order (layer precedence is set by the `@tailwind base;` /
+      `@tailwind utilities;` directive order at the top of the file, not by
+      where a given `@layer` block physically sits), so any component with
+      an explicit `tracking-*` utility still wins; this just raises the
+      *default* for headings that don't specify one.
+    - `Header.tsx` gained a new `ScrollProgressBar` component
+      (`src/components/ScrollProgressBar.tsx`) — a 2px `--gradient-brand`
+      bar absolutely positioned at the fixed header's own bottom edge,
+      width driven by `scrollTop / (scrollHeight - clientHeight)`. It's
+      `aria-hidden` (purely decorative) and its own component specifically
+      so Header.tsx (already large) didn't need its own scroll listener.
+    - `FloatingBottomNav.tsx` no longer gates the whole nav behind
+      `!!user` — five of its six destinations (Home/News/Stream/Reviews/
+      Book) are free public content, so hiding it from anonymous mobile
+      visitors worked against the free-acquisition/SEO-discovery product
+      principle for most first-time traffic. The last tab now adapts
+      instead of the whole bar disappearing: signed in it's "Profile" ->
+      `/dashboard`; signed out it's "Sign In" -> opens the existing
+      `AuthDialog` in place (never a route to `/dashboard` that would just
+      bounce a logged-out visitor back out). Its active-tab tint now uses
+      `.gradient-bg-soft` instead of a flat `bg-primary/10`.
+  - **Nav gradient accents + search dialog polish (2026-09-15, second
+    follow-up)** — extended `.gradient-border-anim` to the rest of
+    `Header.tsx`'s nav chrome: every `ExploreCard` in the Explore grid
+    (desktop popover and mobile sheet share the one component), plus
+    every button that renders a white background with black text in
+    light mode — the desktop "Menu"/"Search"/"Account" pills (all
+    `variant="outline"`, which is `bg-background` + default foreground —
+    that's the literal criterion, not "every outline button sitewide")
+    and the mobile sheet's "Create account"/"Sign out" buttons. Buttons
+    that are black-bg/white-text (`variant="default"` — "Log In / Sign
+    Up", "Sign in", the desktop panel's "Sign Up / Log In") were
+    deliberately left alone since they don't match that criterion.
+    `outline`-variant buttons need `border-transparent` alongside
+    `gradient-border-anim` or the CVA's own `border-input` shows through
+    underneath the animated ring — `cn()`'s `tailwind-merge` resolves
+    that cleanly since both are the same `border-color` utility group.
+    Mobile also gained a compact icon-only SKYNN AI button (same
+    `gradient-border-anim` white pill, just `h-9 w-9` with no label) next
+    to the search icon in the header's mobile row — previously the whole
+    SKYNN AI affordance was `hidden` below the `sm:` breakpoint, i.e.
+    invisible on actual phones until you opened the hamburger menu.
+    Separately, `ui/command.tsx`'s `CommandDialog` (shared by both
+    `SiteSearch.tsx` and `MarketplaceSearch.tsx`) got a real polish pass:
+    anchored higher (`top-20`/`sm:top-[15%]`, not dead-center, so it
+    reads as a command palette and an on-screen keyboard never covers
+    it), `w-[calc(100%-2rem)]` + `rounded-2xl` on mobile instead of the
+    generic Dialog's edge-to-edge full-bleed sheet, the default Dialog
+    close (X) hidden via `[&>button]:hidden` (it was sitting directly
+    over the search input — ESC and the overlay click already close it,
+    and ESC is now advertised in a new desktop-only keyboard-hint footer
+    row), and `CommandList` given a responsive `max-h-[60vh] sm:max-h-
+    [420px]` instead of a flat 300px. While in there, fixed a real
+    overflow bug in `SiteSearch.tsx`: several `CommandItem` result rows
+    paired a `flex-1 truncate` title span with a `shrink-0 truncate`
+    subtitle/reasons span — `shrink-0` on the second span meant it never
+    gave up space, so on narrow (mobile) widths the row overflowed the
+    dialog instead of truncating. Fixed by adding `min-w-0` to the title
+    span (a flex item's implicit `min-width: auto` is what actually
+    blocks `truncate` from working, not just the visible width) and
+    hiding the secondary subtitle span below `sm:` where there isn't
+    room for a title *and* a reason on one line anyway.
+  - **Light/dark mode wired up (2026-09-15, third follow-up)** — before
+    this, `tailwind.config.ts` had `darkMode: ["class"]` and `index.css`
+    had a full `.dark { ... }` variable block, but **nothing in the app
+    ever added the `dark` class or wrapped anything in a theme
+    provider** — dark mode was unreachable dead CSS in production, and
+    there was no toggle anywhere in the UI. Fixed by adding `next-themes`
+    (already an installed dependency, previously only imported inside
+    `ui/sonner.tsx` for toast styling) as the outermost provider in
+    `App.tsx`: `<ThemeProvider attribute="class" defaultTheme="system"
+    enableSystem disableTransitionOnChange>`. Visitors now get their
+    OS/browser `prefers-color-scheme` automatically with zero action —
+    verified by loading fresh pages with Playwright's `colorScheme:
+    'dark'`/`'light'` emulation and confirming `<html>` picks up
+    `class="dark"` (or not) with no manual toggle click. `src/components/
+    ThemeToggle.tsx` is a single Sun/Moon button (`useTheme()`'s
+    `resolvedTheme`/`setTheme`) that lets a visitor override the OS
+    default; the choice then persists in `localStorage` ("theme") and
+    wins over the OS setting on future visits. It's rendered twice: in
+    `Header.tsx`'s desktop right cluster (`hidden sm:inline-flex`,
+    ghost-variant so it's exempt from the "white-bg/black-text gets
+    gradient-border-anim" rule — ghost has no visible background at
+    rest) and in the mobile hamburger `Sheet`'s header row next to the
+    close button (the persistent mobile top bar was already tight —
+    search icon, SKYNN AI icon, hamburger — so the mobile toggle lives
+    one tap deeper instead of crowding it further). Known limitation:
+    `scripts/prerender.ts` crawls pages with a plain headless browser
+    (no forced color scheme) for SEO/social-card snapshots, and
+    `main.tsx` uses `createRoot` (not `hydrateRoot`), so a visitor whose
+    OS prefers dark will see the prerendered light-mode HTML for an
+    instant before client JS mounts and swaps in the correct theme —
+    an inherent tradeoff of static-prerendering an SPA, not something
+    next-themes' usual "no flash" script-injection trick can fully
+    solve here (that trick targets SSR/hydration mismatches, not a
+    pre-JS static snapshot). Not worth solving further unless it's
+    actually reported as a visible problem.
+  - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
+    snapshot reference of the whole visual design system (brand logo
+    usage, color tokens in both modes, the brand gradient and everywhere
+    it's used, typography, the shadow/radius scales, core component
+    patterns, and the theming setup above), written for onboarding both
+    human engineers and other AI coding assistants working on this repo
+    without needing to reverse-engineer `index.css`/`tailwind.config.ts`
+    from scratch. Every value in it was read directly from the live
+    source files at generation time (see its own final "Source Index"
+    page for the exact file list) — it is a snapshot, not a second
+    source of truth, and **the code always wins** if the two ever
+    disagree. Regenerate it (HTML authored by hand, rendered to PDF via
+    a headless-Chromium `page.pdf()` call — the generation script itself
+    wasn't kept, since it's a one-off, not a build step) after a design-
+    system change substantial enough to warrant its own dated bullet in
+    this file, not for every minor tweak.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
