@@ -90,8 +90,17 @@ async function main() {
   const spotlightSource = readFileSync(resolve(root, "src/data/spotlight.ts"), "utf-8");
   for (const slug of extractQuoted(spotlightSource, "slug")) add(`/spotlight/${slug}`, "monthly", "0.75");
 
+  // Only published episodes -- extractQuoted's blind field scan would
+  // otherwise sitemap the current comingSoon episode too (empty
+  // publishedAt, no real showNotes/transcript yet), indexing an
+  // unfinished page. Split on comingSoon: true to exclude any episode
+  // object containing that flag, rather than assuming episode count/order.
   const podcastSource = readFileSync(resolve(root, "src/data/podcast.ts"), "utf-8");
-  for (const slug of extractQuoted(podcastSource, "slug")) add(`/podcast/${slug}`, "monthly", "0.7");
+  const podcastEpisodeBlocks = podcastSource.split(/(?=\n\s*\{\s*\n\s*id:)/);
+  for (const block of podcastEpisodeBlocks) {
+    if (/comingSoon:\s*true/.test(block)) continue;
+    for (const slug of extractQuoted(block, "slug")) add(`/podcast/${slug}`, "monthly", "0.7");
+  }
 
   const marketplaceDataSource = readFileSync(resolve(root, "src/pages/marketplace/marketplaceData.ts"), "utf-8");
   const concernsBlock = marketplaceDataSource.split("export const concerns")[1]?.split("export const categories")[0] ?? "";
