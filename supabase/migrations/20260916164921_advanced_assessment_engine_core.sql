@@ -587,7 +587,7 @@ BEGIN
      SET status = 'submitted',
          submitted_at = now(),
          access_type = v_access.access_type,
-         pass_transaction_id = v_pass.transaction_id,
+         pass_transaction_id = CASE WHEN v_access.access_type = 'analysis_pass' THEN v_pass.transaction_id ELSE NULL END,
          idempotency_key = v_key,
          safety_screen = coalesce(p_safety_screen, safety_screen)
    WHERE id = p_session_id;
