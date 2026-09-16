@@ -4,20 +4,24 @@ Original columns for The Daily Skinny, written in SkinLabs brand voice against t
 
 Bodies are 2,000+ words each. Thumbnails are Unsplash URLs.
 
-## 9 September 2026 — wave C
+## 16 September 2026
 
 | Slug | Title | Tag | Words |
 | --- | --- | --- | --- |
-| chlorine-pool-skin-barrier-sa-summers | Chlorine Doesn't Tan You. It Takes the Barrier With It. | Barrier Repair | 2282 |
-| comrades-argus-outdoor-sports-skincare | Comrades and the Argus Are UV Events That Happen to Include Sport | Sun Protection | 2023 |
-| joburg-cape-town-pollution-skin-barrier | Joburg Haze and Cape Wind Are Not a Detox. They're a Cleanse Problem. | Barrier Repair | 2010 |
+| ppe-maskne-sa-shift-workers | The Mask Is Occupational. The Jawline Acne Is Physics. | Skin Conditions | 2223 |
+| african-net-sponge-body-pih-south-africa | The Net Sponge Is Not a Bleach. Over-Scrubbing Is How Bodies Collect PIH. | Hyperpigmentation | 2304 |
+| outdoor-workers-uv-ohs-south-africa | Outdoor Work in SA Is a UV Job. A Serum Is Not PPE. | Sun Protection | 2089 |
 
-Index: `src/data/dailySkinnyBriefingsSept09c2026.ts`
+Index: `src/data/dailySkinnyBriefingsSept162026.ts`
 
 Primary sources aggregated via Firecrawl:
-- Columbia Skin Clinic / swimming barrier literature
-- SA sun-protection consensus and endurance-event practice
-- Urban pollution and skin oxidative-stress literature (PMC)
+- PMC maskne / PPE facial dermatosis literature
+- PIH epidemiology in skin of colour
+- Wright et al. outdoor worker solar UVR risks (South Africa)
+
+## 9 September 2026 — wave C
+
+See `src/data/dailySkinnyBriefingsSept09c2026.ts`.
 
 ## 9 September 2026
 
