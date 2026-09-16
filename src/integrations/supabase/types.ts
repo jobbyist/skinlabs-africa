@@ -14,6 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
+      advanced_assessment_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_assessment_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advanced_assessment_evidence: {
+        Row: {
+          created_at: string
+          evidence_version: string
+          id: string
+          publication_date: string | null
+          publisher: string | null
+          source_type: string
+          summary: string
+          title: string
+          topic_tags: string[]
+          url: string | null
+          verification_status: string
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          evidence_version: string
+          id?: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_type: string
+          summary: string
+          title: string
+          topic_tags?: string[]
+          url?: string | null
+          verification_status?: string
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          evidence_version?: string
+          id?: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_type?: string
+          summary?: string
+          title?: string
+          topic_tags?: string[]
+          url?: string | null
+          verification_status?: string
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      advanced_assessment_reports: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          engine_version: string | null
+          error_message: string | null
+          evidence_version: string | null
+          generated_at: string | null
+          generation_status: string
+          id: string
+          model: string | null
+          prompt_version: string | null
+          report: Json | null
+          safety_flags: Json | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          engine_version?: string | null
+          error_message?: string | null
+          evidence_version?: string | null
+          generated_at?: string | null
+          generation_status?: string
+          id?: string
+          model?: string | null
+          prompt_version?: string | null
+          report?: Json | null
+          safety_flags?: Json | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          engine_version?: string | null
+          error_message?: string | null
+          evidence_version?: string | null
+          generated_at?: string | null
+          generation_status?: string
+          id?: string
+          model?: string | null
+          prompt_version?: string | null
+          report?: Json | null
+          safety_flags?: Json | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_assessment_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "advanced_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      advanced_assessment_sessions: {
+        Row: {
+          access_type: string | null
+          assessment_definition_id: string
+          assessment_version: string
+          completed_at: string | null
+          completeness_pct: number
+          created_at: string
+          current_section_id: string | null
+          engine_version: string
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          idempotency_key: string | null
+          pass_transaction_id: string | null
+          question_library_version: string
+          responses: Json
+          safety_screen: Json | null
+          scoring_rules_version: string
+          status: string
+          submission_version: number
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_type?: string | null
+          assessment_definition_id: string
+          assessment_version: string
+          completed_at?: string | null
+          completeness_pct?: number
+          created_at?: string
+          current_section_id?: string | null
+          engine_version?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          idempotency_key?: string | null
+          pass_transaction_id?: string | null
+          question_library_version: string
+          responses?: Json
+          safety_screen?: Json | null
+          scoring_rules_version: string
+          status?: string
+          submission_version?: number
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_type?: string | null
+          assessment_definition_id?: string
+          assessment_version?: string
+          completed_at?: string | null
+          completeness_pct?: number
+          created_at?: string
+          current_section_id?: string | null
+          engine_version?: string
+          expires_at?: string
+          failure_reason?: string | null
+          id?: string
+          idempotency_key?: string | null
+          pass_transaction_id?: string | null
+          question_library_version?: string
+          responses?: Json
+          safety_screen?: Json | null
+          scoring_rules_version?: string
+          status?: string
+          submission_version?: number
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_assessment_sessions_assessment_definition_id_fkey"
+            columns: ["assessment_definition_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advanced_assessment_sessions_pass_transaction_id_fkey"
+            columns: ["pass_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ai_credit_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analysis_usage: {
         Row: {
           created_at: string
@@ -155,6 +384,78 @@ export type Database = {
           source_url?: string
           verdict?: string
           where_to_buy?: string
+        }
+        Relationships: []
+      }
+      assessment_definitions: {
+        Row: {
+          created_at: string
+          evidence_version: string
+          id: string
+          notes: string | null
+          question_library_version: string
+          scoring_rules_version: string
+          sections: Json
+          status: string
+          title: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_version: string
+          id?: string
+          notes?: string | null
+          question_library_version: string
+          scoring_rules_version: string
+          sections: Json
+          status?: string
+          title: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          evidence_version?: string
+          id?: string
+          notes?: string | null
+          question_library_version?: string
+          scoring_rules_version?: string
+          sections?: Json
+          status?: string
+          title?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      assessment_prompt_versions: {
+        Row: {
+          created_at: string
+          id: string
+          is_placeholder: boolean
+          model_default: string | null
+          notes: string | null
+          status: string
+          system_prompt: string | null
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_placeholder?: boolean
+          model_default?: string | null
+          notes?: string | null
+          status?: string
+          system_prompt?: string | null
+          version: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_placeholder?: boolean
+          model_default?: string | null
+          notes?: string | null
+          status?: string
+          system_prompt?: string | null
+          version?: string
         }
         Relationships: []
       }
@@ -402,6 +703,42 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          message: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          message: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          message?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_packs: {
         Row: {
           credits: number
@@ -499,6 +836,166 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      email_delivery_events: {
+        Row: {
+          event_type: string
+          id: string
+          outbox_id: string | null
+          provider_message_id: string | null
+          raw_payload: Json
+          received_at: string
+          resend_event_id: string
+        }
+        Insert: {
+          event_type: string
+          id?: string
+          outbox_id?: string | null
+          provider_message_id?: string | null
+          raw_payload: Json
+          received_at?: string
+          resend_event_id: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          outbox_id?: string | null
+          provider_message_id?: string | null
+          raw_payload?: Json
+          received_at?: string
+          resend_event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_delivery_events_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "email_outbox"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          idempotency_key: string
+          occurred_at: string
+          payload: Json
+          recipient_email: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          idempotency_key: string
+          occurred_at?: string
+          payload?: Json
+          recipient_email?: string | null
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string
+          occurred_at?: string
+          payload?: Json
+          recipient_email?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_outbox: {
+        Row: {
+          attempt_count: number
+          cancelled_at: string | null
+          category: string
+          created_at: string
+          event_id: string
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          priority: number
+          processing_started_at: string | null
+          processing_token: string | null
+          provider_message_id: string | null
+          recipient_email: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          template_id: string
+          transactional: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          cancelled_at?: string | null
+          category: string
+          created_at?: string
+          event_id: string
+          failed_at?: string | null
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          processing_started_at?: string | null
+          processing_token?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          template_id: string
+          transactional?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          cancelled_at?: string | null
+          category?: string
+          created_at?: string
+          event_id?: string
+          failed_at?: string | null
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          max_attempts?: number
+          payload?: Json
+          priority?: number
+          processing_started_at?: string | null
+          processing_token?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string
+          transactional?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_outbox_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "email_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feature_waitlist: {
         Row: {
@@ -2488,6 +2985,78 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_ss_beauty_requests: {
+        Row: {
+          additional_notes: string | null
+          budget_range: string | null
+          business_name: string | null
+          created_at: string
+          email: string
+          email_error: string | null
+          email_sent: boolean
+          estimate: Json | null
+          formulation_notes: string | null
+          full_name: string
+          hair_concerns: string[]
+          has_branding: string | null
+          id: string
+          needs_compliance_help: boolean
+          needs_label_design: boolean
+          needs_logo: boolean
+          packaging_route: string | null
+          phone: string | null
+          products: Json
+          timeline: string | null
+          white_label_interest: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          budget_range?: string | null
+          business_name?: string | null
+          created_at?: string
+          email: string
+          email_error?: string | null
+          email_sent?: boolean
+          estimate?: Json | null
+          formulation_notes?: string | null
+          full_name: string
+          hair_concerns?: string[]
+          has_branding?: string | null
+          id?: string
+          needs_compliance_help?: boolean
+          needs_label_design?: boolean
+          needs_logo?: boolean
+          packaging_route?: string | null
+          phone?: string | null
+          products: Json
+          timeline?: string | null
+          white_label_interest?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          budget_range?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string
+          email_error?: string | null
+          email_sent?: boolean
+          estimate?: Json | null
+          formulation_notes?: string | null
+          full_name?: string
+          hair_concerns?: string[]
+          has_branding?: string | null
+          id?: string
+          needs_compliance_help?: boolean
+          needs_label_design?: boolean
+          needs_logo?: boolean
+          packaging_route?: string | null
+          phone?: string | null
+          products?: Json
+          timeline?: string | null
+          white_label_interest?: string | null
+        }
+        Relationships: []
+      }
       retailer_products: {
         Row: {
           created_at: string
@@ -3039,6 +3608,45 @@ export type Database = {
         }
         Relationships: []
       }
+      skynn_advanced_assessment_config: {
+        Row: {
+          active_definition_version: string
+          active_prompt_version: string
+          id: boolean
+          rollout_stage: string
+          updated_at: string
+        }
+        Insert: {
+          active_definition_version: string
+          active_prompt_version: string
+          id?: boolean
+          rollout_stage?: string
+          updated_at?: string
+        }
+        Update: {
+          active_definition_version?: string
+          active_prompt_version?: string
+          id?: boolean
+          rollout_stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skynn_advanced_assessment_config_active_definition_version_fkey"
+            columns: ["active_definition_version"]
+            isOneToOne: false
+            referencedRelation: "assessment_definitions"
+            referencedColumns: ["version"]
+          },
+          {
+            foreignKeyName: "skynn_advanced_assessment_config_active_prompt_version_fkey"
+            columns: ["active_prompt_version"]
+            isOneToOne: false
+            referencedRelation: "assessment_prompt_versions"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
       skynn_fairness_events: {
         Row: {
           completeness_score: number | null
@@ -3313,10 +3921,48 @@ export type Database = {
     }
     Functions: {
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
+      cancel_email_job: {
+        Args: { p_job_id: string; p_reason: string }
+        Returns: boolean
+      }
       cancel_subscription: { Args: never; Returns: boolean }
       claim_founding_member_slot: {
         Args: { p_offer_id: string }
         Returns: boolean
+      }
+      claim_pending_email_jobs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempt_count: number
+          cancelled_at: string | null
+          category: string
+          created_at: string
+          event_id: string
+          failed_at: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          max_attempts: number
+          payload: Json
+          priority: number
+          processing_started_at: string | null
+          processing_token: string | null
+          provider_message_id: string | null
+          recipient_email: string | null
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          template_id: string
+          transactional: boolean
+          updated_at: string
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       claim_starter_analysis: {
         Args: { p_variant_key?: string }
@@ -3325,6 +3971,31 @@ export type Database = {
           remaining_free: number
           source: string
         }[]
+      }
+      complete_advanced_assessment_session: {
+        Args: {
+          p_confidence: string
+          p_engine_version: string
+          p_evidence_version: string
+          p_model: string
+          p_prompt_version: string
+          p_report: Json
+          p_safety_flags: Json
+          p_session_id: string
+        }
+        Returns: undefined
+      }
+      complete_email_job: {
+        Args: {
+          p_job_id: string
+          p_processing_token: string
+          p_provider_message_id: string
+        }
+        Returns: boolean
+      }
+      compute_assessment_completeness: {
+        Args: { p_responses: Json; p_sections: Json }
+        Returns: number
       }
       consume_analysis_pass: {
         Args: never
@@ -3345,7 +4016,69 @@ export type Database = {
         Returns: undefined
       }
       deactivate_account: { Args: never; Returns: boolean }
+      enqueue_email: {
+        Args: {
+          p_category: string
+          p_event_idempotency_key: string
+          p_event_type: string
+          p_job_idempotency_key?: string
+          p_payload: Json
+          p_priority?: number
+          p_recipient_email: string
+          p_scheduled_at?: string
+          p_source: string
+          p_template_id: string
+          p_transactional?: boolean
+          p_user_id: string
+        }
+        Returns: string
+      }
+      enqueue_email_event: {
+        Args: {
+          p_event_type: string
+          p_idempotency_key: string
+          p_payload: Json
+          p_recipient_email: string
+          p_source: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      enqueue_email_job: {
+        Args: {
+          p_category: string
+          p_event_id: string
+          p_idempotency_key: string
+          p_payload: Json
+          p_priority?: number
+          p_recipient_email: string
+          p_scheduled_at?: string
+          p_template_id: string
+          p_transactional: boolean
+          p_user_id: string
+        }
+        Returns: string
+      }
+      enqueue_trial_expiring_events: { Args: never; Returns: number }
       expire_finished_trials: { Args: never; Returns: number }
+      fail_advanced_assessment_session: {
+        Args: { p_error_message: string; p_session_id: string }
+        Returns: undefined
+      }
+      fail_email_job: {
+        Args: { p_error: string; p_job_id: string; p_processing_token: string }
+        Returns: boolean
+      }
+      get_advanced_assessment_access: {
+        Args: never
+        Returns: {
+          access_type: string
+          eligible: boolean
+          membership_tier: string
+          passes_available: number
+          rollout_stage: string
+        }[]
+      }
       get_article_body: {
         Args: { p_device_id?: string; p_slug: string }
         Returns: {
@@ -3410,6 +4143,10 @@ export type Database = {
       is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      mark_advanced_assessment_processing: {
+        Args: { p_session_id: string }
+        Returns: undefined
+      }
       reactivate_account: { Args: never; Returns: boolean }
       refund_analysis_pass: {
         Args: { p_transaction_id: string }
@@ -3417,6 +4154,44 @@ export type Database = {
       }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      save_advanced_assessment_progress: {
+        Args: {
+          p_current_section_id: string
+          p_responses: Json
+          p_safety_screen?: Json
+          p_session_id: string
+        }
+        Returns: {
+          access_type: string | null
+          assessment_definition_id: string
+          assessment_version: string
+          completed_at: string | null
+          completeness_pct: number
+          created_at: string
+          current_section_id: string | null
+          engine_version: string
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          idempotency_key: string | null
+          pass_transaction_id: string | null
+          question_library_version: string
+          responses: Json
+          safety_screen: Json | null
+          scoring_rules_version: string
+          status: string
+          submission_version: number
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "advanced_assessment_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search_ingredients: {
         Args: {
           p_category?: string
@@ -3459,10 +4234,52 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      start_advanced_assessment_session: {
+        Args: never
+        Returns: {
+          access_type: string | null
+          assessment_definition_id: string
+          assessment_version: string
+          completed_at: string | null
+          completeness_pct: number
+          created_at: string
+          current_section_id: string | null
+          engine_version: string
+          expires_at: string
+          failure_reason: string | null
+          id: string
+          idempotency_key: string | null
+          pass_transaction_id: string | null
+          question_library_version: string
+          responses: Json
+          safety_screen: Json | null
+          scoring_rules_version: string
+          status: string
+          submission_version: number
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "advanced_assessment_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       start_free_trial: {
         Args: { p_plan: string; p_variant_key?: string }
         Returns: boolean
       }
+      submit_advanced_assessment_session: {
+        Args: { p_safety_screen?: Json; p_session_id: string }
+        Returns: {
+          access_type: string
+          report_id: string
+          session_status: string
+        }[]
+      }
+      subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

@@ -1,10 +1,60 @@
+import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Mail, MessageCircle, MapPin } from "lucide-react";
+import { Mail, MessageCircle, MapPin, CheckCircle2, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+const initialForm = {
+  first_name: "",
+  last_name: "",
+  email: "",
+  subject: "",
+  message: "",
+};
+
+const RESUBMIT_COOLDOWN_MS = 15_000;
 
 const Contact = () => {
+  const [form, setForm] = useState(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [nextSubmitAllowedAt, setNextSubmitAllowedAt] = useState(0);
+  const isRateLimited = Date.now() < nextSubmitAllowedAt;
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isRateLimited) {
+      toast.error("Please wait a few seconds before submitting again.");
+      return;
+    }
+    if (!form.first_name || !form.last_name || !form.email || !form.subject || !form.message) {
+      toast.error("Please fill in every field before sending.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await supabase.from("contact_submissions").insert(form);
+      setNextSubmitAllowedAt(Date.now() + RESUBMIT_COOLDOWN_MS);
+      if (error) {
+        const isServerRateLimited = error.message?.includes("Too many messages");
+        toast.error(
+          isServerRateLimited
+            ? error.message
+            : "That didn't go through — please try again, or email support@skinlabs.co.za directly."
+        );
+        return;
+      }
+      setForm(initialForm);
+      setDone(true);
+      toast.success("Message sent — we'll respond within 24 hours.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const contactMethods = [
     {
       icon: <Mail className="h-6 w-6" />,
@@ -73,63 +123,89 @@ const Contact = () => {
 
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-12">
                   <h2 className="text-2xl font-bold text-foreground mb-6">Send us a message</h2>
-                  <form className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
+                  {done ? (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden="true" />
+                      <p className="mt-4 text-lg font-medium text-foreground">Message sent</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        We'll respond within 24 hours.
+                      </p>
+                    </div>
+                  ) : (
+                    <form onSubmit={submit} className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            First Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="John"
+                            value={form.first_name}
+                            onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            Last Name
+                          </label>
+                          <input
+                            type="text"
+                            className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                            placeholder="Doe"
+                            value={form.last_name}
+                            onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
-                          First Name
+                          Email
                         </label>
                         <input
-                          type="text"
+                          type="email"
                           className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="John"
+                          placeholder="john@example.com"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          required
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">
-                          Last Name
+                          Subject
                         </label>
                         <input
                           type="text"
                           className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="Doe"
+                          placeholder="How can we help?"
+                          value={form.subject}
+                          onChange={(e) => setForm({ ...form, subject: e.target.value })}
+                          required
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="john@example.com"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Subject
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="How can we help?"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Message
-                      </label>
-                      <textarea
-                        rows={6}
-                        className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                        placeholder="Tell us more about your inquiry..."
-                      />
-                    </div>
-                    <Button type="submit" className="w-full h-12" size="lg">
-                      Send Message
-                    </Button>
-                  </form>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Message
+                        </label>
+                        <textarea
+                          rows={6}
+                          className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                          placeholder="Tell us more about your inquiry..."
+                          value={form.message}
+                          onChange={(e) => setForm({ ...form, message: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" className="w-full h-12" size="lg" disabled={submitting || isRateLimited}>
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        Send Message
+                      </Button>
+                    </form>
+                  )}
                 </div>
 
                 <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-3xl p-8 text-center">

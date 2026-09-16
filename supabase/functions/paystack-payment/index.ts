@@ -324,6 +324,42 @@ Deno.serve(async (req) => {
           console.error("paystack webhook: entitlement grant failed", { userId, purchaseType, reference, entitlementError });
           return new Response("Entitlement grant failed", { status: 500, headers: corsHeaders });
         }
+      } else if (event?.event === "charge.failed") {
+        // Previously unhandled — this webhook only ever recorded a successful
+        // charge, so a failed one left no trace anywhere and the
+        // PAYMENT_FAILED email had nothing to enqueue from. metadata here is
+        // the same object set at transaction/initialize time, so it still
+        // carries user_id/purchase_type/expected_amount_zar even though the
+        // charge itself never completed.
+        const meta = event.data?.metadata ?? {};
+        const userId = meta.user_id as string | undefined;
+        const purchaseType = meta.purchase_type as PurchaseType | undefined;
+        const reference = (event.data?.reference as string | undefined) ?? crypto.randomUUID();
+
+        if (userId && purchaseType) {
+          const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+          const description =
+            purchaseType === "plan"
+              ? `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`
+              : purchaseType === "credit_pack"
+                ? `${meta.credits ?? ""} AI analysis credit${meta.credits === 1 ? "" : "s"}`.trim()
+                : "Founding Member";
+          const { error: txError } = await admin.from("payment_transactions").upsert(
+            {
+              user_id: userId,
+              reference,
+              purchase_type: purchaseType,
+              description,
+              amount_zar: Number(meta.expected_amount_zar ?? 0),
+              status: "failed",
+              metadata: meta,
+            },
+            { onConflict: "reference", ignoreDuplicates: true },
+          );
+          if (txError) {
+            console.error("paystack webhook: failed to log failed-charge payment_transactions row", { userId, reference, txError });
+          }
+        }
       }
 
       return new Response("OK", { status: 200 });
