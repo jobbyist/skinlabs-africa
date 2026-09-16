@@ -100,7 +100,7 @@ const EdibleSkincare = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="gap-2" asChild>
-                <Link to="/edible-pouches">
+                <Link to="/">
                   <ShoppingCart className="h-5 w-5" />
                   Pre-Order Now
                 </Link>
