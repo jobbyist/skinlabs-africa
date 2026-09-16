@@ -135,8 +135,8 @@ const NewsroomFeed = ({
         break;
       case "reading":
         list.sort((a, b) => {
-          const ra = parseInt(String(a.reading_time).replace(/\\D/g, ""), 10) || 0;
-          const rb = parseInt(String(b.reading_time).replace(/\\D/g, ""), 10) || 0;
+          const ra = parseInt(String(a.reading_time).replace(/\D/g, ""), 10) || 0;
+          const rb = parseInt(String(b.reading_time).replace(/\D/g, ""), 10) || 0;
           return ra - rb;
         });
         break;
