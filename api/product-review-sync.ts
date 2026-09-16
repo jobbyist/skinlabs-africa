@@ -312,7 +312,13 @@ async function generateReview(sourceText: string, apiKey: string, model: string)
   const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof text !== "string") throw new Error("Gemini returned no usable content");
 
-  const parsed = JSON.parse(text);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    throw new Error(`Failed to parse Gemini JSON response: ${err instanceof Error ? err.message : 'unknown error'}`);
+  }
+
   return {
     product_name: String(parsed.product_name ?? "").slice(0, 120),
     brand: String(parsed.brand ?? "").slice(0, 80),
