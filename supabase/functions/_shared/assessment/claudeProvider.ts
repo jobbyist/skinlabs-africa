@@ -1,21 +1,36 @@
 /**
  * ClaudeAssessmentProvider — the Anthropic-backed implementation of
  * AssessmentAIProvider (section 4). Called server-side only; the frontend
- * never sees ANTHROPIC_API_KEY, the system prompt, or this module at all.
+ * never sees ANTHROPIC_API_KEY, AI_GATEWAY_API_KEY, the system prompt, or
+ * this module at all.
  *
- * Uses the Messages API directly via fetch (no SDK dependency — none of
- * this repo's edge functions currently import the Anthropic SDK, and the
- * existing convention here is a thin fetch wrapper per provider, see
- * supabase/functions/_shared/ai.ts for the Lovable Gateway equivalent).
- * Structured output is obtained the standard, officially-documented way for
- * the Messages API: a single forced tool call whose input_schema mirrors
- * reportSchema.ts, rather than asking for free-form JSON in prose.
+ * Two transports, same model family and same report contract — this is
+ * still "Claude" either way, so it stays one provider class rather than a
+ * second AssessmentAIProvider implementation:
+ *   1. ANTHROPIC_API_KEY set -> Anthropic's own Messages API directly via
+ *      fetch (no SDK dependency — matches this repo's existing
+ *      thin-fetch-wrapper convention, see supabase/functions/_shared/ai.ts
+ *      for the Lovable Gateway equivalent). Structured output via a single
+ *      forced tool call whose input_schema mirrors reportSchema.ts.
+ *   2. ANTHROPIC_API_KEY absent, AI_GATEWAY_API_KEY set -> falls back to
+ *      Vercel's AI Gateway (the same key already configured as a Vercel
+ *      project env var for the product-review pipeline's Gemini calls —
+ *      see CLAUDE.md), routed to Claude via its OpenAI-compatible chat
+ *      completions endpoint with an `anthropic/<model>` model string and
+ *      OpenAI-style forced function-calling for the same structured
+ *      output. This path has not been exercised against a real Gateway
+ *      key from this environment (no tool here can set Supabase edge
+ *      function secrets — see the "Requires ANTHROPIC_API_KEY /
+ *      AI_GATEWAY_API_KEY" note in CLAUDE.md) — verify once a human adds
+ *      either secret.
+ *   Neither key set -> AssessmentProviderError("not_configured").
  */
 import { AssessmentProviderError, type AssessmentGenerationInput, type AssessmentGenerationResult } from "./types.ts";
 import { validateReportShape } from "./reportSchema.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
+const AI_GATEWAY_CHAT_COMPLETIONS_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
 
 // Configurable via SKYNN_ADVANCED_MODEL (section 4) — never assume this stays
 // the production model. Confirm against Anthropic's current model list
@@ -177,14 +192,100 @@ async function callAnthropic(args: {
   return toolUse.input;
 }
 
+/** `claude-sonnet-5` -> `anthropic/claude-sonnet-5`. Left untouched if an
+ *  operator already supplies a provider-prefixed model string. */
+function toGatewayModelId(model: string): string {
+  return model.includes("/") ? model : `anthropic/${model}`;
+}
+
+/**
+ * Vercel AI Gateway fallback transport — its chat completions endpoint is
+ * OpenAI-compatible, so structured output uses OpenAI-style forced
+ * function-calling rather than Anthropic's native tool_use block, even
+ * though the underlying model is still Claude (see toGatewayModelId).
+ */
+async function callViaGateway(args: {
+  apiKey: string;
+  model: string;
+  systemPrompt: string;
+  userMessage: string;
+}): Promise<unknown> {
+  let res: Response;
+  try {
+    res = await fetch(AI_GATEWAY_CHAT_COMPLETIONS_URL, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${args.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: toGatewayModelId(args.model),
+        messages: [
+          { role: "system", content: args.systemPrompt },
+          { role: "user", content: args.userMessage },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: REPORT_TOOL_NAME,
+              description: "Submit the structured Advanced Dermatology Report.",
+              parameters: REPORT_INPUT_SCHEMA,
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: REPORT_TOOL_NAME } },
+      }),
+    });
+  } catch (err) {
+    throw new AssessmentProviderError(`Could not reach the AI gateway: ${(err as Error).message}`, "upstream_error");
+  }
+
+  if (res.status === 429) {
+    throw new AssessmentProviderError("The AI gateway is rate-limited. Please try again shortly.", "rate_limited");
+  }
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new AssessmentProviderError(`AI gateway error ${res.status}: ${detail.slice(0, 300)}`, "upstream_error");
+  }
+
+  const data = await res.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.find(
+    (t: { type: string; function?: { name: string } }) => t.type === "function" && t.function?.name === REPORT_TOOL_NAME,
+  );
+  const rawArgs = toolCall?.function?.arguments;
+  if (typeof rawArgs !== "string") {
+    throw new AssessmentProviderError("AI gateway did not return a structured report.", "invalid_response");
+  }
+  try {
+    return JSON.parse(rawArgs);
+  } catch {
+    throw new AssessmentProviderError("AI gateway returned malformed JSON.", "invalid_response");
+  }
+}
+
+interface ResolvedTransport {
+  call: (args: { apiKey: string; model: string; systemPrompt: string; userMessage: string }) => Promise<unknown>;
+  apiKey: string;
+}
+
+/** ANTHROPIC_API_KEY wins when both are set — the direct API is the
+ *  primary, best-understood path; the gateway is strictly a fallback. */
+function resolveTransport(): ResolvedTransport {
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey) return { call: callAnthropic, apiKey: anthropicKey };
+
+  const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
+  if (gatewayKey) return { call: callViaGateway, apiKey: gatewayKey };
+
+  throw new AssessmentProviderError("Neither ANTHROPIC_API_KEY nor AI_GATEWAY_API_KEY is configured.", "not_configured");
+}
+
 export class ClaudeAssessmentProvider {
   constructor(private readonly systemPrompt: string, private readonly promptVersion: string) {}
 
   async generateReport(input: AssessmentGenerationInput): Promise<AssessmentGenerationResult> {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) {
-      throw new AssessmentProviderError("ANTHROPIC_API_KEY is not configured.", "not_configured");
-    }
+    const { call, apiKey } = resolveTransport();
     const model = Deno.env.get("SKYNN_ADVANCED_MODEL") || DEFAULT_MODEL;
     const userMessage = buildUserMessage(input);
 
@@ -192,11 +293,11 @@ export class ClaudeAssessmentProvider {
     // retry from the caller is a separate, idempotent concern handled by
     // the edge function's use of submit_advanced_assessment_session's
     // idempotency key, not by retrying Claude calls silently forever here.
-    let raw = await callAnthropic({ apiKey, model, systemPrompt: this.systemPrompt, userMessage });
+    let raw = await call({ apiKey, model, systemPrompt: this.systemPrompt, userMessage });
     let validated = validateReportShape(raw);
 
     if (!validated.success) {
-      raw = await callAnthropic({
+      raw = await call({
         apiKey,
         model,
         systemPrompt: this.systemPrompt,

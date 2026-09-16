@@ -300,6 +300,24 @@ feature appear operational.
       service-role client and throws a safe `not_configured` error
       otherwise — this is what actually enforces the "don't fabricate the
       methodology" boundary at runtime, not just a comment.
+      **`AI_GATEWAY_API_KEY` fallback (2026-09-16, same-day follow-up)** —
+      `claudeProvider.ts` resolves its transport at call time:
+      `ANTHROPIC_API_KEY` wins when set (direct Anthropic Messages API, as
+      above); if absent, it falls back to `AI_GATEWAY_API_KEY` — the same
+      key already configured as a Vercel project env var for the
+      product-review pipeline's Gemini calls (see that section above) —
+      routed to Claude through Vercel AI Gateway's OpenAI-compatible chat
+      completions endpoint (`https://ai-gateway.vercel.sh/v1/chat/
+      completions`, model string `anthropic/<SKYNN_ADVANCED_MODEL>`,
+      OpenAI-style forced function-calling in place of Anthropic's native
+      tool_use block) rather than a second `AssessmentAIProvider`
+      implementation, since it's still Claude either way and the report
+      contract stays identical. **Unverified**: this environment has no
+      way to set a Supabase edge function secret, so the gateway path has
+      never been exercised against a real `AI_GATEWAY_API_KEY` — confirm
+      Vercel AI Gateway's exact endpoint/response shape once a human adds
+      that secret, the same category of gap already documented for
+      `MARKETPLACE_CRON_SECRET`/`GEMINI_API_KEY` elsewhere in this file.
     - **Safety screening** (`_shared/assessment/safety.ts`) — a
       deterministic, non-clinical triage heuristic computed from the
       respondent's own `safety_red_flags` answer only (never from the
@@ -349,6 +367,19 @@ feature appear operational.
       Smart Routines integration CONTRACT only (section 35) — no write path
       into `use-routine.ts` exists yet, deliberately, to avoid building a
       second routine engine.
+    - **"Get started for free" CTA copy (2026-09-16, same-day follow-up)**
+      — `AIFormulator.tsx`'s intro-screen primary CTA (rendered both at
+      `/skynn-ai` and embedded in the dashboard's "Skin Analysis (SKYNN
+      AI)" tab via `FormulatorTab.tsx`) now reads "Start My Analysis"
+      instead of "Get started for free" whenever `isMember` (Insider/VIP)
+      or `passBalance > 0` (an Explorer/Lite member holding an Analysis
+      Pass) — both already resolved in that component for the "Want to go
+      deeper?" panel just below it, reused rather than re-fetched. "Get
+      started for free" only remains for a visitor who genuinely has
+      neither, since telling an already-entitled paying member to "get
+      started for free" misrepresents what they're actually doing. This is
+      copy-only — `handleStartAnalysis()` and the entitlement/pass-
+      consumption logic underneath are unchanged.
     - **Deferred / not yet safe to build**: the actual dermatologist-
       approved SKYNN methodology and system prompt (blocks activation
       entirely — the registry/interface boundary is ready for it); sourced
