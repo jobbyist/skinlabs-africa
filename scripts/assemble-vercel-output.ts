@@ -48,47 +48,51 @@ const vercelJsonPath = resolve(root, "vercel.json");
 /**
  * Content types whose TanStack Start slug route renders server-side today.
  * `prefix` + a bare `([^/]+)$` single-segment match becomes a Build Output
- * API route sending matching requests to the Nitro `__server` function
- * *before* the filesystem phase, so a previously-prerendered static file at
- * the same path never shadows the live SSR response (both /briefings/:slug
- * and, as of this commit, /reviews/:slug -- for the static-catalogue
- * portion of it -- were removed from scripts/prerender.ts's crawl only
- * after being live-validated). Matching exactly one path segment
- * (anchored with $) means it can never capture a route with additional
- * segments -- confirmed this does not collide with /reviews/versus/:slug
- * (2 segments after /reviews/) or /reviews/page/:page (2 segments).
+ * API route sending matching requests to the Nitro `__server` function.
+ * Matching exactly one path segment (anchored with $) means it can never
+ * capture a route with additional segments -- confirmed this does not
+ * collide with /reviews/versus/:slug (2 segments after /reviews/) or
+ * /reviews/page/:page (2 segments).
  *
- * `siblings`: some content types have single-segment sibling *static*
- * routes under the same path prefix as their SSR-migrated slug pattern
- * (/ingredients/checker vs /ingredients/:slug; /spotlight/methodology and
- * /spotlight/archive vs /spotlight/:brandSlug -- see src/App.tsx). Unlike
- * Briefings/Reviews (whose siblings live under different prefixes
- * entirely, e.g. /briefings vs /briefings/:slug), these are genuinely one
- * path segment, so the bare slug pattern above would otherwise swallow
- * them into the SSR route (a false ingredient/brand-slug 404) instead of
- * letting the filesystem phase serve their real static pages.
+ * Split into two groups by where they're spliced relative to the
+ * `{handle:"filesystem"}` phase `getTransformedRoutes()` already emits:
  *
- * A negative-lookahead regex (`(?!checker$)`) would also exclude them, but
- * Vercel's production routing layer is not confirmed to run a lookahead-
- * capable regex engine (some platforms use a linear-time engine, e.g.
- * Rust's `regex` crate or RE2, which reject lookaround entirely) -- an
- * unverified assumption not worth risking on production routing.
- * `continue: true` is instead a documented, first-class Build Output API
- * v3 route field (confirmed in
- * node_modules/@vercel/routing-utils/dist/types.d.ts): a matched route
- * with `continue: true` applies no destination and simply falls through to
- * the next route in the array. Listing each `siblings` entry as its own
- * `continue: true` route immediately before the content type's general
- * slug pattern achieves the identical exclusion with zero reliance on
- * lookahead support. Extend this array, not the routing logic, as more
- * content types migrate.
+ * - `PRE_FILESYSTEM`: spliced in *before* filesystem, so a stale
+ *   prerendered file at the same path can never shadow a live SSR
+ *   response. Safe for Briefings/Reviews because their non-slug siblings
+ *   live under a completely different prefix (e.g. /briefings vs.
+ *   /briefings/:slug) -- there's nothing for the bare slug pattern to
+ *   wrongly swallow.
+ * - `POST_FILESYSTEM`: spliced in *after* filesystem instead. Ingredients
+ *   and Spotlight each have a single-segment sibling *static* route under
+ *   the exact same prefix as their slug pattern (/ingredients/checker vs.
+ *   /ingredients/:slug; /spotlight/methodology and /spotlight/archive vs.
+ *   /spotlight/:brandSlug -- see src/App.tsx), so a bare
+ *   `^/prefix/([^/]+)$` placed before filesystem would swallow them into
+ *   the SSR route (a false ingredient/brand-slug 404) -- confirmed live on
+ *   a real deployment, not just reasoned about: an earlier version of this
+ *   file tried excluding each sibling with its own `continue: true` route
+ *   spliced immediately before the general pattern, but `continue: true`
+ *   only advances to the *next* route in the array, which was that very
+ *   general pattern -- so it matched again immediately and the exclusion
+ *   was a no-op (confirmed by `/ingredients/checker` and
+ *   `/spotlight/methodology` both 404ing on a live preview deployment). A
+ *   negative-lookahead regex would also work but Vercel's production
+ *   routing layer is not confirmed to run a lookahead-capable engine (some
+ *   platforms use a linear-time engine, e.g. Rust's `regex` crate or RE2,
+ *   which reject lookaround entirely) -- not worth risking on production
+ *   routing. Placing these content types' SSR routes *after* filesystem
+ *   instead needs no exclusion list at all: the filesystem phase's own
+ *   real-file check is the correct mechanism, already proven reliable
+ *   (it's the same primitive the site-wide catch-all already relies on).
+ *   This *requires* scripts/prerender.ts to no longer crawl these two
+ *   content types' real `:slug` pages (otherwise their stale prerendered
+ *   files would win the filesystem-phase check ahead of the live SSR
+ *   route, defeating the point of migrating them) -- see prerender.ts's
+ *   own comment on this same requirement.
  */
-const SSR_ROUTE_CONTENT_TYPES: Array<{ prefix: string; siblings?: string[] }> = [
-  { prefix: "/briefings/" },
-  { prefix: "/reviews/" },
-  { prefix: "/ingredients/", siblings: ["checker"] },
-  { prefix: "/spotlight/", siblings: ["methodology", "archive"] },
-];
+const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/"];
+const SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM = ["/ingredients/", "/spotlight/"];
 
 function assertExists(path: string, what: string) {
   if (!existsSync(path)) {
@@ -136,7 +140,8 @@ type BoapiRoute = Record<string, unknown>;
  *
  * The fallback instead routes to `/__server` -- the exact same
  * function-based mechanism already proven reliable, on real Vercel
- * infrastructure, for every SSR_ROUTE_CONTENT_TYPES entry above. src/routes/
+ * infrastructure, for every SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM/
+ * _POST_FILESYSTEM entry above. src/routes/
  * $.ts is a TanStack Start splat/catch-all server route that responds
  * with the real dist/index.html verbatim, letting the client-side SPA
  * boot exactly as a static-file fallback would have. Only available when
@@ -162,36 +167,44 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
     throw new Error(`assemble-vercel-output: getTransformedRoutes failed on vercel.json: ${JSON.stringify(error)}`);
   }
 
-  // Splice the SSR-migrated routes in just before the `handle: filesystem`
-  // phase getTransformedRoutes() already emits -- must precede it (see
-  // SSR_ROUTE_CONTENT_TYPES comment above) and follow the redirect/header rules
-  // (also already correctly ordered by getTransformedRoutes()). Skipped
-  // entirely when the Nitro build didn't produce a usable function -- those
-  // paths then fall through to whatever static/prerendered file
+  // Splice the pre-filesystem SSR routes in just before the
+  // `handle: filesystem` phase getTransformedRoutes() already emits --
+  // must precede it (see SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM comment
+  // above) and follow the redirect/header rules (also already correctly
+  // ordered by getTransformedRoutes()). The post-filesystem SSR routes go
+  // immediately after that same marker instead. Both skipped entirely
+  // when the Nitro build didn't produce a usable function -- those paths
+  // then fall through to whatever static/prerendered file
   // scripts/prerender.ts already produced for them (today's behavior),
   // rather than routing to a function that doesn't exist.
   const filesystemIndex = baseRoutes.findIndex((r) => "handle" in r && r.handle === "filesystem");
   if (filesystemIndex === -1) {
     throw new Error("assemble-vercel-output: getTransformedRoutes() did not emit a filesystem handle phase as expected.");
   }
-  const ssrRoutes: BoapiRoute[] = ssrAvailable
-    ? SSR_ROUTE_CONTENT_TYPES.flatMap(({ prefix, siblings = [] }): BoapiRoute[] => [
-        ...siblings.map((sibling): BoapiRoute => ({ src: `^${prefix}${sibling}$`, continue: true })),
-        { src: `^${prefix}([^/]+)$`, dest: "/__server" },
-      ])
-    : [];
+  const toSsrRoutes = (prefixes: string[]): BoapiRoute[] =>
+    ssrAvailable ? prefixes.map((prefix): BoapiRoute => ({ src: `^${prefix}([^/]+)$`, dest: "/__server" })) : [];
+  const preFilesystemSsrRoutes = toSsrRoutes(SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM);
+  const postFilesystemSsrRoutes = toSsrRoutes(SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM);
 
-  // Final catch-all, placed AFTER the filesystem phase so a real static
-  // file (a prerendered page, a real asset) always wins first. ssrAvailable
-  // routes it to the SSR function (see comment above); the ssrAvailable:false
-  // branch has no function to route to, so it falls back to the
-  // still-unproven-working check:true static rewrite as a last resort --
-  // a known, documented limitation of that degraded path, not a claim that
-  // it's confirmed fixed there too.
+  // Final catch-all, placed AFTER the filesystem phase (and the
+  // post-filesystem SSR routes) so a real static file (a prerendered page,
+  // a real asset) always wins first. ssrAvailable routes it to the SSR
+  // function (see comment above); the ssrAvailable:false branch has no
+  // function to route to, so it falls back to the still-unproven-working
+  // check:true static rewrite as a last resort -- a known, documented
+  // limitation of that degraded path, not a claim that it's confirmed
+  // fixed there too.
   const fallbackRoute: BoapiRoute = ssrAvailable
     ? { src: "/(.*)", dest: "/__server" }
     : { src: "/(.*)", dest: "/index.html", check: true };
-  const routes: BoapiRoute[] = [...baseRoutes.slice(0, filesystemIndex), ...ssrRoutes, ...baseRoutes.slice(filesystemIndex), fallbackRoute];
+  const routes: BoapiRoute[] = [
+    ...baseRoutes.slice(0, filesystemIndex),
+    ...preFilesystemSsrRoutes,
+    baseRoutes[filesystemIndex],
+    ...postFilesystemSsrRoutes,
+    ...baseRoutes.slice(filesystemIndex + 1),
+    fallbackRoute,
+  ];
 
   // Deliberately NOT duplicating vercel.json's `crons` into config.json here.
   // Confirmed on real Vercel infrastructure (not just inferred from docs):

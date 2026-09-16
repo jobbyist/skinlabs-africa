@@ -2,7 +2,6 @@
  * Build-time prerendering for SEO, social unfurling and crawler accessibility.
  * Routes are enumerated from static pages plus every current programmatic/content slug.
  */
-import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
@@ -62,44 +61,29 @@ async function collectRoutes(): Promise<string[]> {
     for (const slug of extractQuoted(source, field)) routes.add(`${prefix}/${slug}`);
   };
 
-  // /reviews/:slug is NOT crawled here anymore, for either data source --
-  // it's SSR-migrated (src/routes/reviews.$slug.tsx) and takes routing
-  // priority over any static file at that path (see scripts/
-  // assemble-vercel-output.ts's SSR_ROUTE_PATTERNS, ordered before the
-  // filesystem phase). This closes a real, previously documented gap: the
-  // static productReviews catalogue used to get prerendered here, but
-  // AI-generated reviews (ai_generated_product_reviews) never did --
-  // SSR now covers both uniformly. /reviews/versus/:slug (comparisons) and
-  // /reviews/page/:page are untouched -- neither is SSR-migrated, and
-  // SSR_ROUTE_PATTERNS' single-segment pattern can't collide with either.
-  // See docs/architecture/tanstack-start-production-migration.md.
+  // /reviews/:slug, /ingredients/:slug and /spotlight/:brandSlug are NOT
+  // crawled here -- each is SSR-migrated (src/routes/reviews.$slug.tsx,
+  // ingredients.$slug.tsx, spotlight.$slug.tsx). Ingredients/Spotlight
+  // specifically must NOT be prerendered: their SSR routes are spliced in
+  // *after* the {handle:"filesystem"} phase in scripts/
+  // assemble-vercel-output.ts (SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM),
+  // precisely so the filesystem phase's real-file check is what protects
+  // their single-segment static siblings (/ingredients/checker,
+  // /spotlight/methodology, /spotlight/archive) from being swallowed by
+  // the SSR slug pattern -- a stale prerendered file at a real slug's own
+  // path would win that same filesystem check ahead of the live SSR
+  // route, silently defeating the migration. Reviews/Briefings are the
+  // opposite case (SSR spliced in *before* filesystem, since their
+  // non-slug siblings live under a different prefix entirely and can't
+  // collide) and still shouldn't be prerendered either, since a stale file
+  // there would only ever be dead, unreachable output. /reviews/versus/:slug
+  // (comparisons) and /reviews/page/:page are untouched -- neither is
+  // SSR-migrated. See docs/architecture/tanstack-start-production-migration.md
+  // and tanstack-start-ingredients-spotlight-ssr.md.
   addDataSlugs("src/data/comparisons.ts", "slug", "/reviews/versus");
-  addDataSlugs("src/data/spotlight.ts", "slug", "/spotlight");
   addDataSlugs("src/data/podcast.ts", "slug", "/podcast");
   addDataSlugs("src/data/faq.ts", "slug", "/knowledge-hub");
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  if (supabaseUrl && supabaseKey) {
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    // /briefings/:slug is NOT crawled here anymore -- it's SSR-migrated
-    // (src/routes/briefings.$slug.tsx) and takes routing priority over any
-    // static file at that path (see scripts/assemble-vercel-output.ts's
-    // SSR_ROUTE_PATTERNS, ordered before the filesystem phase), so
-    // prerendering it would be both wasted Chromium time and dead output.
-    // The /briefings list page itself is still a plain SPA route, unaffected
-    // and still covered by STATIC_ROUTES above. See
-    // docs/architecture/tanstack-start-production-migration.md.
-    try {
-      const { data } = await supabase
-        .from("ingredients")
-        .select("slug")
-        .neq("verification_status", "deprecated");
-      for (const row of data ?? []) if (typeof row.slug === "string") routes.add(`/ingredients/${row.slug}`);
-    } catch (err) {
-      console.warn("prerender: could not fetch ingredient slugs:", err);
-    }
-  }
   return [...routes].slice(0, MAX_ROUTES);
 }
 
