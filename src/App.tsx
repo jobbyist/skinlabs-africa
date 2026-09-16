@@ -60,6 +60,7 @@ const Consultations = lazy(() => import("./pages/Consultations"));
 const DermatologistDirectory = lazy(() => import("./pages/DermatologistDirectory"));
 const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazy(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazy(() => import("./pages/marketplace/MarketplaceProductDetail"));
@@ -159,6 +160,7 @@ const AppContent = () => (
         <Route path="/seasonals/spring" element={<SeasonalHub />} />
         <Route path="/seasonals/:season" element={<SeasonalHub />} />
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
