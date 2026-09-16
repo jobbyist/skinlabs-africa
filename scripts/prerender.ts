@@ -23,7 +23,6 @@ const STATIC_ROUTES = [
   "/partners",
   "/brand-ambassadors",
   "/skynn-ai",
-  "/products",
   "/knowledge-hub",
   "/privacy-policy",
   "/terms-of-service",

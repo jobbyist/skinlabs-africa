@@ -80,7 +80,12 @@ const Footer = () => {
 
   return (
     <footer className="bg-foreground text-background">
-      <div className="container mx-auto px-4 py-16">
+      {/* pb-32 clears FloatingBottomNav (fixed, centered, bottom-4 on mobile) so the
+          copyright row below is never hidden underneath it once scrolled to the very
+          end of the page; the nav's layout no longer centers over this content from
+          md up (flex-row + justify-between), so the original py-16 bottom space is
+          enough there. */}
+      <div className="container mx-auto px-4 pt-16 pb-32 md:pb-16">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 mb-12">
           <div className="col-span-2 md:col-span-4 lg:col-span-1 mb-8 lg:mb-0">
             <Link to="/" className="inline-block mb-4">
@@ -186,6 +191,9 @@ const Footer = () => {
             <Link to="/cookie-policy" className="hover:text-background transition-colors">
               Cookie Policy
             </Link>
+            <Link to="/refund-policy" className="hover:text-background transition-colors">
+              Refund Policy
+            </Link>
             <Link to="/advertising-policy" className="hover:text-background transition-colors">
               Advertising Policy
             </Link>
@@ -194,6 +202,9 @@ const Footer = () => {
             </Link>
             <Link to="/editorial-policy" className="hover:text-background transition-colors">
               Editorial Policy
+            </Link>
+            <Link to="/community-guidelines" className="hover:text-background transition-colors">
+              Community Guidelines
             </Link>
           </div>
         </div>

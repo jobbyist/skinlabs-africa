@@ -21,7 +21,6 @@ import { CartProvider } from "./contexts/CartContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Products = lazy(() => import("./pages/Products"));
 const AIFormulator = lazy(() => import("./pages/AIFormulator"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
@@ -92,7 +91,6 @@ const AppContent = () => (
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
-        <Route path="/products" element={<Products />} />
         <Route path="/skynn-ai" element={<AIFormulator />} />
         <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
         <Route path="/about" element={<About />} />
@@ -106,17 +104,6 @@ const AppContent = () => (
         <Route path="/knowledge-hub" element={<KnowledgeHub />} />
         <Route path="/knowledge-hub/:slug" element={<KnowledgeHub />} />
         <Route path="/faq" element={<Navigate to="/knowledge-hub" replace />} />
-        <Route path="/devices" element={<Navigate to="/" replace />} />
-        <Route path="/serums" element={<Navigate to="/" replace />} />
-        <Route path="/custom-formulas" element={<Navigate to="/" replace />} />
-        <Route path="/bundled-kits" element={<Navigate to="/" replace />} />
-        <Route path="/gift-sets" element={<Navigate to="/" replace />} />
-        <Route path="/shipping" element={<Navigate to="/knowledge-hub" replace />} />
-        <Route path="/returns" element={<Navigate to="/refund-policy" replace />} />
-        <Route path="/track-order" element={<Navigate to="/knowledge-hub" replace />} />
-        <Route path="/edible-pouches" element={<Navigate to="/" replace />} />
-        <Route path="/careers" element={<Navigate to="/about" replace />} />
-        <Route path="/press" element={<Navigate to="/about" replace />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-of-service" element={<TermsOfService />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
