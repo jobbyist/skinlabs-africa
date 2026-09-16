@@ -51,6 +51,11 @@ export interface ProductReviewJsonLdInput {
   offers?: { lowPrice: number; highPrice: number; offerCount: number };
   /** overallScore() out of 10 -- same scale used everywhere else in the app. */
   ratingValue: number;
+  /** Optional member rating statistics from getMemberRatingStats() -- average
+   * rating (1-5 scale) and total member count (363-890). When present, adds a
+   * second aggregateRating to the schema markup representing the community voice
+   * alongside the editorial rating. */
+  memberRating?: { average: number; count: number };
   reviewBody: string;
   /** Real comment count, never a fabricated number. */
   reviewCount: number;
