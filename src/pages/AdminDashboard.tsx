@@ -5,13 +5,17 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck } from "lucide-react";
+import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck, LogOut } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
+import { useAdminGate } from "@/hooks/use-admin-gate";
+import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
 
 type Submission = {
   id: string;
@@ -109,7 +113,11 @@ type IntelInteraction = {
 };
 
 const AdminDashboard = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signIn } = useAuth();
+  const gate = useAdminGate();
+  const [bridgePassword, setBridgePassword] = useState("");
+  const [bridgeLoading, setBridgeLoading] = useState(false);
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("submissions");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -133,7 +141,15 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user) checkAdmin();
-  }, [user]);
+    // Pre-existing gap, surfaced while adding the ADMIN_PASSWORD gate above this: for a
+    // signed-out visitor, checkAdmin() (which resolves both `loading` and `isAdmin`) never
+    // ran at all, leaving this page spinning on "Checking access" forever instead of
+    // reaching the "Access Denied"/sign-in state below.
+    else if (!authLoading) {
+      setIsAdmin(false);
+      setLoading(false);
+    }
+  }, [user, authLoading]);
 
   const checkAdmin = async () => {
     const { data } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "admin" });
@@ -207,6 +223,15 @@ const AdminDashboard = () => {
     delivered: submissions.filter((s) => s.status === "delivered").length,
   };
 
+  // The ADMIN_PASSWORD gate (api/admin-auth.ts) comes first — nothing about the
+  // dashboard, its data, or even the "checking access" spinner below is reachable
+  // until this server-verified check passes. See src/hooks/use-admin-gate.ts.
+  if (gate.status !== "unlocked") {
+    return (
+      <AdminLoginScreen status={gate.status} error={gate.error} submitting={gate.submitting} onSubmit={gate.submit} />
+    );
+  }
+
   if (authLoading || loading || isAdmin === null) {
     return (
       <div className="min-h-screen bg-background">
@@ -224,9 +249,48 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20 flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
+          <div className="w-full max-w-sm text-center">
             <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-            <p className="text-muted-foreground">You do not have permission to access this page.</p>
+            <p className="text-muted-foreground mb-6">
+              {user
+                ? "This SkinLabs® account doesn't hold the admin role."
+                : "The admin password was correct, but no admin session could be started automatically."}
+            </p>
+            {!user && (
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setBridgeError(null);
+                  setBridgeLoading(true);
+                  const { error } = await signIn("admin@skinlabs.co.za", bridgePassword);
+                  setBridgeLoading(false);
+                  if (error) setBridgeError("Invalid SkinLabs® admin credentials.");
+                }}
+                className="space-y-3 text-left"
+              >
+                <div className="space-y-1.5">
+                  <Label htmlFor="bridge-password" className="text-xs">
+                    SkinLabs® admin account password
+                  </Label>
+                  <Input
+                    id="bridge-password"
+                    type="password"
+                    value={bridgePassword}
+                    onChange={(e) => setBridgePassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+                {bridgeError && <p role="alert" className="text-xs font-medium text-destructive">{bridgeError}</p>}
+                <Button type="submit" className="w-full" disabled={bridgeLoading || !bridgePassword}>
+                  {bridgeLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Sign in
+                </Button>
+              </form>
+            )}
+            <Button variant="ghost" size="sm" className="mt-4 gap-1.5" onClick={() => void gate.logout()}>
+              <LogOut className="h-3.5 w-3.5" /> Log out
+            </Button>
           </div>
         </main>
         <Footer />
@@ -250,8 +314,15 @@ const AdminDashboard = () => {
         <Header />
         <main className="pt-20 pb-16">
           <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-heading font-bold text-foreground mb-2">Admin Dashboard</h1>
-            <p className="text-muted-foreground mb-8">Manage submissions, waitlist, subscribers & pre-orders</p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-heading font-bold text-foreground mb-2">Admin Dashboard</h1>
+                <p className="text-muted-foreground mb-8">Manage submissions, waitlist, subscribers & pre-orders</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => void gate.logout()}>
+                <LogOut className="h-3.5 w-3.5" /> Log out
+              </Button>
+            </div>
 
             {/* Overview Stats */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">

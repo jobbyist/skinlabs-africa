@@ -424,6 +424,92 @@ feature appear operational.
     No admin UI reads this yet (deliberately — query it directly via SQL
     until there's a concrete reason to build one; don't add a dashboard
     tab speculatively).
+- **Auth + membership onboarding redesign (2026-09-16)** — reworked
+  `src/components/AuthDialog.tsx` (still the single auth surface app-wide —
+  no new `/auth/*` routes were introduced) into a clearer sign-in/sign-up
+  experience: a theme-aware SkinLabs® wordmark (`skinlabs-logo-black.svg`
+  light / `skinlabs-logo-white.svg` dark, via `next-themes`), a full-screen
+  presentation below the `sm:` breakpoint (edge-to-edge, no nested-modal
+  feel) and a centered card above it, a "Forgot password?" link, inline
+  `role="alert"` error text alongside the existing toasts, and password
+  visibility toggles. Magic-link sign-in is disabled (not deleted) via
+  `src/lib/auth-flags.ts`'s `AUTH_FLAGS.magicLinkEnabled = false` — flip
+  that one flag back on once the project's SMTP delivery issue is
+  resolved; `useAuth().signInWithMagicLink()` itself is untouched.
+  - **Pending-plan intent** (`src/lib/pendingPlan.ts`) — replaces the
+    plain-React-state `pendingAction` that used to live in `Pricing.tsx`
+    (lost on refresh or a full-page Google OAuth redirect) with a durable
+    `sessionStorage`-backed intent, plus a URL-query-param fallback channel
+    (`withPendingPlanParams()`) for a cross-tab email-confirmation click.
+    `Pricing.tsx` now runs the pending trial/checkout from a `useEffect`
+    keyed on `user` transitioning to signed-in, rather than from
+    `AuthDialog`'s `onAuthenticated` callback, so it fires the same way
+    whether auth completed in-page or via a full redirect back. This is a
+    UX convenience only — it never grants anything itself. The actual
+    authority was already in place before this change and was not
+    modified: `start_free_trial()` (`supabase/migrations/
+    20260907000001_starter_analysis_and_trial_variants.sql`) is
+    `SECURITY DEFINER`, re-validates the plan against `pricing_plans`
+    server-side, and enforces one trial per account via `trial_used_at`;
+    paid checkout prices itself server-side in the `paystack-payment` edge
+    function. A tampered `?plan=` or forged `pendingPlan` intent simply
+    gets rejected by that RPC/edge function exactly as a stale legitimate
+    one would.
+  - **`/reset-password`** (`src/pages/ResetPassword.tsx`, new route in
+    `App.tsx`) — Supabase's own recovery flow end to end:
+    `useAuth().sendPasswordReset()` calls `resetPasswordForEmail()` with
+    `redirectTo` pointed here; this page waits for the resulting
+    `PASSWORD_RECOVERY` session (supabase-js's `detectSessionInUrl`
+    exchanges the recovery token automatically) and calls
+    `useAuth().updatePassword()`. No separate token-validation endpoint or
+    reset system — an expired/invalid/reused link simply never produces a
+    session, which is how the "Link expired" state is detected. Both
+    `sendPasswordReset()` and the "check your email" confirmation
+    deliberately don't reveal whether the address is registered.
+  - **`/admin` gate** (`api/admin-auth.ts`, `src/hooks/use-admin-gate.ts`,
+    `src/components/admin/AdminLoginScreen.tsx`) — this project already had
+    a real admin system before this change: a genuine Supabase Auth
+    account (`admin@skinlabs.co.za`) holding the `admin` role via
+    `has_role()`/`user_roles`, which every admin-facing RLS policy is
+    keyed to. That was reused as-is, not duplicated. What's new is one
+    additional, dedicated credential gate in front of it: `api/admin-auth.ts`
+    (same HMAC-cookie pattern as the pre-existing `api/marketplace-auth.ts`)
+    checks a submitted password against the Vercel-only `ADMIN_PASSWORD`
+    secret with a timing-safe compare, sets a short-lived (12h)
+    `HttpOnly`/`SameSite=Lax`/`Secure`-in-prod `skinlabs_admin_gate` cookie
+    scoped to `/admin` on success, and — using the `SUPABASE_SERVICE_ROLE_KEY`
+    already required by `api/product-review-sync.ts` — calls GoTrue's
+    `admin/generate_link` endpoint for that one fixed account and returns
+    the resulting one-time `token_hash` (never the password, never a
+    standing secret). The browser exchanges that for a real session via
+    `supabase.auth.verifyOtp({ token_hash, type: 'magiclink' })` — no email
+    is sent, so this is unaffected by the SMTP issue disabling consumer
+    magic-link above. `AdminDashboard.tsx`'s own `has_role` check and every
+    RLS policy keep working completely unmodified; if
+    `SUPABASE_SERVICE_ROLE_KEY` isn't configured, the password gate still
+    passes but `tokenHash` comes back `null`, and `AdminDashboard.tsx`
+    falls back to a minimal inline Supabase sign-in for that one account
+    (not the consumer `AuthDialog` — the admin never goes through the
+    normal membership onboarding flow) so `has_role` can still resolve.
+    `ADMIN_PASSWORD` is never returned in any response, logged, or
+    embedded client-side — verified by unit-testing `api/admin-auth.ts`'s
+    handler directly (missing-secret, wrong-password, correct-password,
+    cookie-GET, invalid-cookie-GET and DELETE/logout paths all checked).
+    While wiring this in, also fixed a real pre-existing bug in
+    `AdminDashboard.tsx`: its `useEffect` only ever called `checkAdmin()`
+    (which resolves both `loading` and `isAdmin`) `if (user)` — a
+    signed-out visitor hitting `/admin` spun on "Checking access" forever
+    instead of ever reaching "Access Denied", because nothing resolved
+    `isAdmin` away from `null`. Now resolves both to `false` immediately
+    once `useAuth()` confirms there's no session.
+  - New analytics events (`src/lib/analytics-events.ts`):
+    `membership_plan_selected`, `auth_started`, `signin_completed`,
+    `password_reset_started`, `password_reset_completed`,
+    `trial_activation_started`, `trial_activation_failed`,
+    `dashboard_entered`, `admin_login_success`, `admin_login_failure` —
+    fired through the same existing `trackConversionEvent()`/Vercel
+    Analytics pipeline as every other conversion event in this file, not a
+    new analytics platform.
 - **Monetisation** — DB-driven, not hardcoded: `pricing_plans`,
   `credit_packs`, `pricing_experiment_variants` tables; `src/lib/
   pricing-config.ts` does variant bucketing; `paystack-payment` edge
@@ -771,6 +857,64 @@ feature appear operational.
   `/podcast.xml` directly ("Subscribe via RSS") and via
   `<link rel="alternate" type="application/rss+xml">` for feed-reader
   autodiscovery in the meantime.
+
+## Temporary, single-client features
+
+- **`/quote-ss-beauty` (2026-09-16)** — an unlisted, noindex'd interactive
+  multistep quote-request form built for one Business Suite client
+  (Siphokazi / SS Beauty) who wants contract manufacturing + white-label
+  + branding/labelling for a hair growth oil, hair food and leave-in
+  conditioner line. Not linked from nav/sitemap. **Delete once her quote
+  has been handled**: the route + lazy import in `src/App.tsx`, `src/
+  pages/QuoteSSBeauty.tsx`, `src/components/quote-ss-beauty/`, `src/lib/
+  quoteSsBeautyPricing.ts`, the `quote-ss-beauty-submit` edge function
+  (`supabase/functions/quote-ss-beauty-submit/` + its `config.toml`
+  entry), and the `quote_ss_beauty_requests` table (already applied live
+  on `gnkpzijxuciiaamakgzm`).
+  - On submit, the `quote-ss-beauty-submit` edge function computes an
+    indicative ZAR estimate (pricing logic duplicated — different
+    runtimes — between `src/lib/quoteSsBeautyPricing.ts` for the form's
+    own live preview and the edge function itself, which is the
+    authoritative copy for the PDF; keep both in sync if pricing
+    changes), generates a branded PDF quotation with `jspdf` (works fine
+    via `npm:jspdf@4.2.1` in the Deno edge runtime — no canvas/DOM
+    dependency for the plain text/rect drawing this uses), records the
+    submission in `quote_ss_beauty_requests` (RLS enabled, zero
+    policies — reachable only via the function's service-role client,
+    never from anon/authenticated), and emails the full submission +
+    PDF to **michael@skinlabs.co.za only** (never to the client
+    directly — matches the existing "I'll put together a tailored
+    proposal on a call" plan already communicated to her, so a human
+    reviews the numbers before anything goes back to her). Estimate
+    numbers are explicitly labelled "preliminary/indicative" everywhere
+    they appear (in-form review step and the PDF) — never presented as
+    a binding quote.
+  - Sending actually depends on the `RESEND_API_KEY` project secret,
+    which **is already set** on this project (confirmed live: a real
+    smoke-test submission returned `email_sent: true` with no
+    `email_error`, and the row/estimate math checked out — then
+    deleted from the table afterwards). It was *not* set up by any tool
+    available in this session, and its value doesn't correspond to the
+    "Onboarding" key on the connected `Resend_for_SkinLabs` MCP account
+    (which has zero verified domains and shows no matching request in
+    its own `/emails` or request logs for that send) — so it's a
+    separate, already-configured Resend key/account a human set up
+    directly in Supabase, not something this session provisioned.
+    Concretely: confirm the smoke-test PDF actually landed in
+    michael@skinlabs.co.za's inbox before trusting `email_sent: true`
+    at face value for a real client submission — it's a strong signal,
+    not independently cross-verified end-to-end from this environment.
+  - Deliberately did **not** integrate the Perspective AI connector for
+    this form — its toolset (perspective_create/respond/
+    get_embed_options, participant_invite, workspace_get_default) is
+    built for embeddable AI-moderated conversational surveys, which
+    would mean an off-brand iframe widget instead of a first-party
+    stepper matching the rest of the site's design system (SKYNN AI's
+    `StepperHeader`-style gradient current-step circle, `.gradient-
+    text`, existing shadcn form primitives). "Intelligent" here means
+    conditional per-product steps, honeypot spam protection, and a live
+    running price estimate as she fills the form — revisit only if the
+    Perspective AI product itself is specifically wanted.
 
 ## Infrastructure notes
 

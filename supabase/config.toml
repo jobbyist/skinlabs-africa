@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.openhaus-price-sync]
 verify_jwt = false
+
+[functions.quote-ss-beauty-submit]
+verify_jwt = false
