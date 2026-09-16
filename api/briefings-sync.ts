@@ -563,7 +563,13 @@ async function generateBriefing(
   apiKey: string,
   model: string,
 ): Promise<GeneratedBriefing> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const endpoint = `
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
   const res = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
