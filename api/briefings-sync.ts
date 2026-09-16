@@ -49,8 +49,10 @@ interface VercelRes {
   json: (body: unknown) => void;
 }
 
-const SUPABASE_URL =
-  process.env.VITE_SUPABASE_URL || "https://gnkpzijxuciiaamakgzm.supabase.co";
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error("VITE_SUPABASE_URL environment variable is required");
+}
 
 /** Max briefings published per calendar day (editorial cap, not quota). */
 const DAILY_BRIEFINGS_CAP = 3;
