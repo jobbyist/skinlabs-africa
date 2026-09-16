@@ -60,6 +60,7 @@ const Consultations = lazy(() => import("./pages/Consultations"));
 const DermatologistDirectory = lazy(() => import("./pages/DermatologistDirectory"));
 const Announcements = lazy(() => import("./pages/Announcements"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazy(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazy(() => import("./pages/marketplace/MarketplaceProductDetail"));
 const MarketplaceBrandPage = lazy(() => import("./pages/marketplace/MarketplaceBrandPage"));
@@ -121,17 +122,17 @@ const AppContent = () => (
         <Route path="/ingredients" element={<Ingredients />} />
         <Route path="/ingredients/checker" element={<IngredientChecker />} />
         <Route path="/ingredients/:slug" element={<IngredientDetail />} />
-        <Route path="/marketplace" element={<MarketplaceLanding />} />
-        <Route path="/marketplace/product/:slug" element={<MarketplaceProductDetail />} />
-        <Route path="/marketplace/brand/:slug" element={<MarketplaceBrandPage />} />
-        <Route path="/marketplace/concern/:slug" element={<MarketplaceConcernPage />} />
-        <Route path="/marketplace/values/:slug" element={<MarketplaceValuesPage />} />
-        <Route path="/marketplace/skin-tone/:band" element={<MarketplaceSkinTonePage />} />
-        <Route path="/marketplace/brands" element={<MarketplaceBrandsPage />} />
-        <Route path="/marketplace/categories" element={<MarketplaceCategoriesPage />} />
-        <Route path="/marketplace/saved" element={<MarketplaceSavedPage />} />
-        <Route path="/marketplace/shipping-returns" element={<MarketplaceShippingReturns />} />
-        <Route path="/marketplace/terms" element={<MarketplaceTerms />} />
+        <Route path="/marketplace" element={<MarketplaceGate><MarketplaceLanding /></MarketplaceGate>} />
+        <Route path="/marketplace/product/:slug" element={<MarketplaceGate><MarketplaceProductDetail /></MarketplaceGate>} />
+        <Route path="/marketplace/brand/:slug" element={<MarketplaceGate><MarketplaceBrandPage /></MarketplaceGate>} />
+        <Route path="/marketplace/concern/:slug" element={<MarketplaceGate><MarketplaceConcernPage /></MarketplaceGate>} />
+        <Route path="/marketplace/values/:slug" element={<MarketplaceGate><MarketplaceValuesPage /></MarketplaceGate>} />
+        <Route path="/marketplace/skin-tone/:band" element={<MarketplaceGate><MarketplaceSkinTonePage /></MarketplaceGate>} />
+        <Route path="/marketplace/brands" element={<MarketplaceGate><MarketplaceBrandsPage /></MarketplaceGate>} />
+        <Route path="/marketplace/categories" element={<MarketplaceGate><MarketplaceCategoriesPage /></MarketplaceGate>} />
+        <Route path="/marketplace/saved" element={<MarketplaceGate><MarketplaceSavedPage /></MarketplaceGate>} />
+        <Route path="/marketplace/shipping-returns" element={<MarketplaceGate><MarketplaceShippingReturns /></MarketplaceGate>} />
+        <Route path="/marketplace/terms" element={<MarketplaceGate><MarketplaceTerms /></MarketplaceGate>} />
         <Route path="/openhaus" element={<Navigate to="/shop" replace />} />
         <Route path="/podcast" element={<PodcastPage />} />
         <Route path="/podcast/:slug" element={<EpisodePage />} />
