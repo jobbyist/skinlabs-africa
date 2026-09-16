@@ -14,8 +14,11 @@ export function MobileBottomNav() {
   const { pathname } = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-100 lg:hidden">
-      <div className="max-w-lg mx-auto flex items-center justify-around h-16">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-stone-100 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+      aria-label="Marketplace"
+    >
+      <div className="mx-auto flex h-16 max-w-lg items-center justify-around">
         {navItems.map((item) => {
           const active =
             item.match === "/marketplace"
