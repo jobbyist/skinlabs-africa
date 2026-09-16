@@ -35,26 +35,22 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
 }
 
 /**
- * Product + Review + AggregateRating JSON-LD, matching the shape
- * src/pages/ProductReview.tsx already emits inline (verified byte-equivalent
- * fields) -- extracted here so the SSR-migrated route and the existing
- * client-rendered page describe the same product identically. Emitted as
- * separate script tags via buildHeadTags() rather than the page's own
- * `@graph` wrapper; both are valid JSON-LD, and separate blocks match the
- * convention already established for Briefings (Article + BreadcrumbList
- * as two blocks). Every field here is real, computed data -- ratingValue is
- * the same overallScore() used throughout the app, reviewCount reflects
- * actual comment rows, never a fabricated count.
+ * Product + Review (+ optional paywall WebPage) JSON-LD matching the published
+ * product-review schema template. Emits a single Product node with @id,
+ * description, brand, review (incl. worstRating), and when paywallCssSelector
+ * is set, a companion WebPage node with isAccessibleForFree: false + hasPart
+ * so Googlebot does not treat CSS-hidden premium content as cloaking.
+ * BreadcrumbList is emitted separately via breadcrumbJsonLd().
  */
 export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
-  return {
-    "@context": "https://schema.org",
+  const product: Record<string, unknown> = {
     "@type": "Product",
     "@id": `${input.canonicalUrl}#product`,
     name: input.productName,
     brand: { "@type": "Brand", name: input.brand },
     category: input.category,
-    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: input.image } : {}),
     ...(input.offers
       ? {
           offers: {
@@ -68,16 +64,46 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
       : {}),
     review: {
       "@type": "Review",
-      reviewRating: { "@type": "Rating", ratingValue: input.ratingValue, bestRating: 10 },
       author: { "@type": "Organization", name: BRAND },
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: String(input.ratingValue),
+        bestRating: "10",
+        worstRating: "1",
+      },
       reviewBody: input.reviewBody,
     },
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: input.ratingValue,
       bestRating: 10,
+      worstRating: 1,
       reviewCount: input.reviewCount,
     },
+  };
+
+  if (!input.paywallCssSelector) {
+    return { "@context": "https://schema.org", ...product };
+  }
+
+  // Paywalled lab breakdown remains in the DOM (CSS-hidden for non-members).
+  // Declare it explicitly so crawlers do not interpret the hidden content as cloaking.
+  const webPage = {
+    "@type": "WebPage",
+    "@id": `${input.canonicalUrl}#webpage`,
+    url: input.canonicalUrl,
+    isAccessibleForFree: false,
+    hasPart: {
+      "@type": "WebPageElement",
+      isAccessibleForFree: false,
+      cssSelector: input.paywallCssSelector,
+    },
+    mainEntity: { "@id": `${input.canonicalUrl}#product` },
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [product, webPage],
   };
 }
 

@@ -40,6 +40,8 @@ export interface ProductReviewJsonLdInput {
   productName: string;
   brand: string;
   category: string;
+  /** Short product description (typically the verdict). */
+  description?: string;
   /** Absolute image URL. Omit if no real image resolved -- never fabricate one. */
   image?: string;
   /** Omit entirely (not zero/null) when there are no real retailer listings --
@@ -52,6 +54,13 @@ export interface ProductReviewJsonLdInput {
   reviewBody: string;
   /** Real comment count, never a fabricated number. */
   reviewCount: number;
+  /**
+   * When the page has membership-gated lab-breakdown content that remains in
+   * the DOM (CSS-hidden for non-members), set this so Google understands the
+   * paywall and does not treat it as cloaking. cssSelector must match a real
+   * element on the page (e.g. ".paywalled-lab-breakdown").
+   */
+  paywallCssSelector?: string;
 }
 
 export interface IngredientJsonLdInput {

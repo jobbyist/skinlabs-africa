@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/seo-config";
+
 /**
  * Brand banner image mappings for product reviews
  * Maps brand names to their respective banner images stored in /public/brandbanners/
@@ -51,4 +53,12 @@ export const getBrandBanner = (brandName: string): string | null => {
  */
 export const hasBrandBanner = (brandName: string): boolean => {
   return getBrandBanner(brandName) !== null;
+};
+
+/** Absolute brand-banner URL for schema / img src (never relative). */
+export const getAbsoluteBrandBanner = (brandName: string): string | null => {
+  const path = getBrandBanner(brandName);
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 };
