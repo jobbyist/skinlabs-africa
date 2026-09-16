@@ -22,6 +22,7 @@ import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AIFormulator = lazy(() => import("./pages/AIFormulator"));
+const AdvancedAssessment = lazy(() => import("./pages/AdvancedAssessment"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Business = lazy(() => import("./pages/Business"));
@@ -94,6 +95,10 @@ const AppContent = () => (
         <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
         <Route path="/skynn-ai" element={<AIFormulator />} />
         <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
+        {/* Deliberately not linked from any nav yet — see src/pages/AdvancedAssessment.tsx's
+            header comment: the engine is feature-flagged 'disabled' server-side and has no
+            dermatologist-approved prompt yet. Reachable by direct URL for internal QA only. */}
+        <Route path="/skynn-ai/advanced" element={<AdvancedAssessment />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/business" element={<Business />} />

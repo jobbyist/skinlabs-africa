@@ -233,6 +233,131 @@ feature appear operational.
     wasn't kept, since it's a one-off, not a build step) after a design-
     system change substantial enough to warrant its own dated bullet in
     this file, not for every minor tweak.
+  - **Advanced Dermatology Assessment engine (2026-09-16)** — a new,
+    separate backend foundation for a future Claude-powered "Advanced AI
+    Dermatology Report", distinct from both the free Starter Analysis above
+    and the existing premium tier of the live `skincare-ai` edge function.
+    Ships **feature-flagged off** (`skynn_advanced_assessment_config.
+    rollout_stage = 'disabled'`) and reachable only at the unlinked route
+    `/skynn-ai/advanced` — nothing in existing navigation (Header, Footer,
+    `AdvancedAssessmentCard.tsx`, the dashboard) points at it, and it must
+    stay that way until a human flips the flag, per the standing "never make
+    an unfinished feature appear operational" instruction. Two reasons it's
+    off: no dermatologist-approved SKYNN methodology/system prompt exists
+    yet (see below), and it hasn't been through a real end-to-end QA pass.
+    - **Schema** — `supabase/migrations/20260916130000_advanced_assessment_
+      engine_core.sql` (+`...130100_..._seed.sql`, +`..._advisor_fixes.sql`):
+      `assessment_definitions` (versioned question library, one JSONB
+      `sections` doc per version — same "evolving-shape JSONB column"
+      precedent as `skincare_recommendations.result_payload`, not a
+      normalised questions table), `assessment_prompt_versions` (the
+      PromptRegistry — RLS-enabled with **zero** policies for anon/
+      authenticated, so only `service_role` can ever read it; seeded with a
+      `1.0.0-placeholder` row, `system_prompt IS NULL`, `is_placeholder =
+      true` — no clinical prompt is fabricated anywhere in this feature),
+      `skynn_advanced_assessment_config` (the singleton feature-flag row,
+      same zero-policy lockdown), `advanced_assessment_evidence` (controlled
+      citation catalogue, empty until SkinLabs supplies sourced content),
+      `advanced_assessment_sessions`, `advanced_assessment_reports`,
+      `advanced_assessment_events`. Session mutations are deliberately NOT
+      reachable via a plain client `INSERT`/whole-row `UPDATE` — only a
+      column-limited autosave `UPDATE` (`responses`/`current_section_id`/
+      `completeness_pct`) plus `SECURITY DEFINER` RPCs
+      (`start_advanced_assessment_session`, `save_advanced_assessment_
+      progress`, `submit_advanced_assessment_session`, and service-role-only
+      `mark_advanced_assessment_processing`/`complete_advanced_assessment_
+      session`/`fail_advanced_assessment_session`) — a bare ownership-only
+      RLS policy would still let a client write `status = 'completed'` or an
+      arbitrary `pass_transaction_id` directly, which this closes off
+      structurally. `compute_assessment_completeness()` is the ONLY thing
+      `submit_advanced_assessment_session` trusts to gate submission
+      (recomputed server-side from the session's own pinned definition +
+      actual `responses` every time) — the client-writable `completeness_pct`
+      column is a cosmetic progress-bar cache only, never trusted for the
+      gate. Reuses existing infra rather than duplicating it: `is_member()`
+      for membership, and the **same** `consume_analysis_pass()`/
+      `refund_analysis_pass()` pair the existing Advanced AI Dermatology
+      Report already uses — an Analysis Pass is consumed exactly once, at
+      submission (never at session creation), with an idempotency key
+      (`session_id:submission_version`) so a retried submit returns the
+      existing report instead of charging or generating twice.
+    - **Provider abstraction** — `supabase/functions/_shared/assessment/`:
+      `provider.ts` (`AssessmentAIProvider` interface) →
+      `claudeProvider.ts` (`ClaudeAssessmentProvider`, the only Anthropic
+      implementation so far) — the Anthropic Messages API called directly
+      via `fetch` (no SDK dependency, matching this repo's existing
+      thin-fetch-wrapper convention for `_shared/ai.ts`'s Lovable Gateway
+      equivalent), forcing structured output via a single tool call whose
+      `input_schema` mirrors `reportSchema.ts`'s zod schema, with one
+      repair retry on a malformed response. Model is
+      `SKYNN_ADVANCED_MODEL`-configurable (default `claude-sonnet-5` —
+      reconfirm against Anthropic's current model list before activating,
+      same caution already given elsewhere in this file for the Gemini
+      model id); `ANTHROPIC_API_KEY` and `SKYNN_SYSTEM_PROMPT_VERSION`
+      (an operational override to pin a specific prompt version) are the
+      other two env vars, neither ever exposed to Vite/client-side env.
+      `promptRegistry.ts` loads the active (non-placeholder) prompt via a
+      service-role client and throws a safe `not_configured` error
+      otherwise — this is what actually enforces the "don't fabricate the
+      methodology" boundary at runtime, not just a comment.
+    - **Safety screening** (`_shared/assessment/safety.ts`) — a
+      deterministic, non-clinical triage heuristic computed from the
+      respondent's own `safety_red_flags` answer only (never from the
+      model's output, so a hallucination can't suppress or invent a flag).
+      Explicitly documented as NOT dermatologist-approved diagnostic
+      criteria — SkinLabs hasn't supplied any yet — kept in application code
+      specifically so it can be reviewed/replaced without a migration.
+    - **Evidence/compliance** (`_shared/assessment/evidence.ts`,
+      `compliance.ts`) — `validateCitedEvidence()` strips any citation id
+      the model returns that wasn't in the `advanced_assessment_evidence`
+      rows actually given to it (never trusts the model's restatement of an
+      allowed citation either — always substitutes the server's own record);
+      `scanComplianceFlags()` reuses the exact `FORBIDDEN_DIAGNOSIS_TERMS`
+      list from `skincare-ai/index.ts` so the two AI paths can't drift on
+      what counts as a named-diagnosis violation.
+    - **API** — single action-routed edge function
+      `supabase/functions/skynn-advanced-assessment/index.ts` (same
+      one-function/JSON-`action` convention as `paystack-payment`/
+      `newsroom-sync`): `access`, `create_session`, `get_session`,
+      `update_session`, `submit`, `status`, `get_report`, `list_reports`,
+      `log_event`. The frontend never talks to `advanced_assessment_*`
+      tables/RPCs directly — everything goes through this function, which
+      holds both a user-scoped client (RLS-honest, forwards the caller's
+      JWT) and a service-role client (prompt/evidence reads, completion/
+      failure RPCs). Generation is synchronous within the `submit` request —
+      **documented limitation**: this platform has no background worker/
+      queue infra, so there's no async job step; the function is structured
+      so a future queue-based worker could pick up `generation_status =
+      'pending'` reports without a rewrite. Simple per-user daily rate
+      limits (10 session creates / 5 submits per 24h) reuse the existing
+      count-query pattern from `newsroom-sync`'s daily cap rather than new
+      infra.
+    - **Frontend contract** — `src/lib/assessment/` (`types.ts`, `client.ts`
+      edge-function wrapper, `completeness.ts` — a client-side mirror of the
+      SQL completeness function for instant progress-bar UX only, never
+      trusted for gating), `src/hooks/use-advanced-assessment.ts`,
+      `src/components/advanced-assessment/*` (question renderer, section
+      progress, the assess/review/processing/report-reveal flow),
+      `src/pages/AdvancedAssessment.tsx` at `/skynn-ai/advanced` (see
+      feature-flag note above — deliberately unlinked). `entitlements.ts`
+      gained an `"assessment.advanced"` `FeatureKey` on Insider/VIP for
+      documentation purposes only — actual access is hybrid (membership OR
+      an Analysis Pass, same shape as the existing card), so the real gate
+      is always the server-side `get_advanced_assessment_access()` RPC via
+      `useAdvancedAssessmentAccess()`, never `hasCapability()` alone.
+      `buildRoutineHandoffContext()` in `src/lib/assessment/types.ts` is the
+      Smart Routines integration CONTRACT only (section 35) — no write path
+      into `use-routine.ts` exists yet, deliberately, to avoid building a
+      second routine engine.
+    - **Deferred / not yet safe to build**: the actual dermatologist-
+      approved SKYNN methodology and system prompt (blocks activation
+      entirely — the registry/interface boundary is ready for it); sourced
+      `advanced_assessment_evidence` content (table is empty); per-concern
+      dynamic sub-forms (v1 asks duration/impact/triggers/progression once
+      for the concern set rather than looping per selection); a real
+      product-catalogue search for the `product_list` question type
+      (currently name-only entries); true async/background generation;
+      end-to-end QA with a real (non-placeholder) prompt.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
