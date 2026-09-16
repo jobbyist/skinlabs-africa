@@ -32,9 +32,10 @@ export interface QuoteFormState {
 }
 
 export const INITIAL_QUOTE_FORM_STATE: QuoteFormState = {
-  fullName: "Siphokazi",
+export const INITIAL_QUOTE_FORM_STATE: QuoteFormState = {
+  fullName: "",
   businessName: "",
-  email: "siphokaziss@icloud.com",
+  email: "",
   phone: "",
 
   products: [],
