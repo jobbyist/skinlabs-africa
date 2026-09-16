@@ -161,19 +161,28 @@ const NewsroomFeed = ({
     setSavedIds((prev) =>
       isSaved ? prev.filter((id) => id !== article.id) : [...prev, article.id],
     );
-    if (isSaved) {
-      await supabase
-        .from("news_article_engagement")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("article_id", article.id)
-        .eq("kind", "save");
-      toast.success("Removed from saved");
-    } else {
-      await supabase
-        .from("news_article_engagement")
-        .insert({ user_id: user.id, article_id: article.id, kind: "save" });
-      toast.success("Briefing saved");
+    try {
+      if (isSaved) {
+        const { error } = await supabase
+          .from("news_article_engagement")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("article_id", article.id)
+          .eq("kind", "save");
+        if (error) throw error;
+        toast.success("Removed from saved");
+      } else {
+        const { error } = await supabase
+          .from("news_article_engagement")
+          .insert({ user_id: user.id, article_id: article.id, kind: "save" });
+        if (error) throw error;
+        toast.success("Briefing saved");
+      }
+    } catch (error) {
+      setSavedIds((prev) =>
+        isSaved ? [...prev, article.id] : prev.filter((id) => id !== article.id),
+      );
+      toast.error("Failed to save. Please try again.");
     }
   };
 
