@@ -58,6 +58,10 @@
     {
       "path": "/api/product-review-sync",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/briefings-sync",
+      "schedule": "0 4 * * *"
     }
   ]
 }
