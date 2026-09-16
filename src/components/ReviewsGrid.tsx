@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
+import { getMemberRatingStats } from "@/lib/memberRatings";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
@@ -39,7 +40,6 @@ interface ReviewsGridProps {
   limit?: number;
   heading?: string;
   description?: string;
-  /** When true (default on full /reviews page), enable SEO pagination at 6 per page */
   paginate?: boolean;
 }
 
@@ -129,7 +129,6 @@ const ReviewsGrid = ({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Insert an ad row after every 3 cards (one FaithfulToNature or AffiliateBanner + 2 AdSlots across the feed)
   const renderWithAds = () => {
     const nodes: React.ReactNode[] = [];
     pageItems.forEach((review, index) => {
@@ -163,7 +162,7 @@ const ReviewsGrid = ({
                   >
                     {productImage.creditName}
                   </a>{" "}
-                  / Unsplash
+                  / {productImage.creditUrl?.includes("pexels") ? "Pexels" : productImage.creditUrl?.includes("unsplash") ? "Unsplash" : "Photo"}
                 </figcaption>
               )}
             </figure>
@@ -182,6 +181,18 @@ const ReviewsGrid = ({
                 <span className="text-[10px] uppercase tracking-wide opacity-80">score</span>
               </div>
             </div>
+
+            {(() => {
+              const members = getMemberRatingStats(review);
+              return (
+                <p className="mb-3 text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">{members.average}</span>
+                  <span className="text-muted-foreground">/5 from </span>
+                  <span className="font-medium text-foreground">{members.count.toLocaleString("en-ZA")}</span>
+                  <span className="text-muted-foreground"> members</span>
+                </p>
+              );
+            })()}
 
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
@@ -233,7 +244,6 @@ const ReviewsGrid = ({
         </motion.div>,
       );
 
-      // After every 3rd card, insert a full-width ad row
       if ((index + 1) % 3 === 0 && index < pageItems.length - 1) {
         const adIndex = Math.floor(index / 3);
         nodes.push(
