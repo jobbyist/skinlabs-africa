@@ -2,6 +2,8 @@ import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
 import type {
   ArticleJsonLdInput,
   BreadcrumbItem,
+  EnhancedProductReviewJsonLdInput,
+  FAQJsonLdInput,
   IngredientJsonLdInput,
   ProductReviewJsonLdInput,
   SpotlightBrandJsonLdInput,
@@ -36,18 +38,22 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
 
 /**
  * Product + Review + AggregateRating JSON-LD, matching the shape
- * src/pages/ProductReview.tsx already emits inline (verified byte-equivalent
- * fields) -- extracted here so the SSR-migrated route and the existing
- * client-rendered page describe the same product identically. Emitted as
- * separate script tags via buildHeadTags() rather than the page's own
- * `@graph` wrapper; both are valid JSON-LD, and separate blocks match the
- * convention already established for Briefings (Article + BreadcrumbList
- * as two blocks). Every field here is real, computed data -- ratingValue is
- * the same overallScore() used throughout the app, reviewCount reflects
- * actual comment rows, never a fabricated count.
- */
+ * DEPRECATED: Use enhancedProductReviewJsonLd() instead.
+ * 
+ * This function incorrectly uses editorial score as AggregateRating,
+ * which should represent customer/community ratings per Schema.org guidelines.
+ * Kept for backwards compatibility until all callers migrate.
+ * 
+ * @deprecated Use enhancedProductReviewJsonLd() which properly separates
+ * editorial Review from community AggregateRating per Schema.org guidelines.
 export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
   return {
+  if (typeof console !== 'undefined') {
+    console.warn(
+      'productReviewJsonLd() is deprecated. Use enhancedProductReviewJsonLd() instead to properly separate editorial reviews from community ratings.'
+    );
+  }
+  
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${input.canonicalUrl}#product`,
@@ -83,6 +89,88 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
 
 /**
  * DefinedTerm JSON-LD for an ingredient detail page -- there's no dedicated
+ * Enhanced Product Review JSON-LD following Schema.org and Google guidelines.
+ * 
+ * Key improvements:
+ * 1. Separates editorial Review from community AggregateRating
+ * 2. Editorial review uses Organization author (SkinLabs)
+ * 3. AggregateRating only included when community ratings exist
+ * 4. Editorial score is 0-10, community is 0-5 (different scales clearly marked)
+ * 5. Never fabricates data - all fields from real database content
+ * 
+ * Per Google's product review guidelines:
+ * - Review must be from the reviewing organization (SkinLabs)
+ * - AggregateRating should reflect actual customer/community ratings
+ * - Never use editorial score as if it's aggregate customer rating
+ */
+export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdInput) {
+  const productData: any = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${input.canonicalUrl}#product`,
+    name: input.productName,
+    brand: { "@type": "Brand", name: input.brand },
+    category: input.category,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.size ? { size: input.size } : {}),
+    ...(input.countryOfOrigin ? { countryOfOrigin: input.countryOfOrigin } : {}),
+  };
+
+  // Add offers if available
+  if (input.offers) {
+    productData.offers = {
+      "@type": "AggregateOffer",
+      priceCurrency: "ZAR",
+      lowPrice: input.offers.lowPrice,
+      highPrice: input.offers.highPrice,
+      offerCount: input.offers.offerCount,
+    };
+  }
+
+  // Editorial review (always present)
+  productData.review = {
+    "@type": "Review",
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: input.editorialScore,
+      bestRating: 10,
+    },
+    author: { "@type": "Organization", name: BRAND },
+    reviewBody: input.reviewBody,
+    ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
+  };
+
+  // Community rating (only if it exists)
+  if (input.communityRating !== undefined && input.communityReviewCount !== undefined && input.communityReviewCount > 0) {
+    productData.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: input.communityRating,
+      bestRating: 5, // Community uses 5-star scale
+      reviewCount: input.communityReviewCount,
+    };
+  }
+
+  return productData;
+}
+
+/**
+ * FAQ JSON-LD for a product review page.
+ * Only include this when genuine product-specific FAQs exist.
+ */
+export function faqJsonLd(input: FAQJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: input.faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
+  };
+}
+
+/**
  * schema.org type for a cosmetic-ingredient reference entry, and DefinedTerm
  * (a term defined within some larger vocabulary/dataset) is the closest
  * accurate fit without overclaiming (e.g. Product, which this isn't).
