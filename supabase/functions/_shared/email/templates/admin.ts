@@ -24,6 +24,26 @@ registerTemplate({
 });
 
 registerTemplate({
+  id: "admin_notify_me_request",
+  category: "ADMIN",
+  internalName: "Notify-me request (coming-soon feature)",
+  transactional: false,
+  requiredVars: ["feature_key"],
+  subject: (vars) => `New notify-me request: ${vars.feature_key}`,
+  preheader: () => "A visitor asked to be notified about an upcoming feature.",
+  render: (vars) => `
+    ${emailHeading("New notify-me request")}
+    ${emailParagraph(`A visitor asked to be notified when this feature launches — no automated reminder is sent, this is a manual outreach list.`)}
+    ${emailKeyValueTable([
+      ["Feature", String(vars.feature_key ?? "")],
+      ["Contact method", String(vars.contact_method ?? "")],
+      ["Email", String(vars.email ?? "—")],
+      ["Phone", String(vars.phone ?? "—")],
+    ])}
+  `,
+});
+
+registerTemplate({
   id: "admin_delivery_failed",
   category: "ADMIN",
   internalName: "Transactional email permanently failed",

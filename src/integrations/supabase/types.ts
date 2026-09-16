@@ -1906,6 +1906,33 @@ export type Database = {
         }
         Relationships: []
       }
+      notify_me_requests: {
+        Row: {
+          contact_method: string
+          created_at: string
+          email: string | null
+          feature_key: string
+          id: string
+          phone: string | null
+        }
+        Insert: {
+          contact_method?: string
+          created_at?: string
+          email?: string | null
+          feature_key: string
+          id?: string
+          phone?: string | null
+        }
+        Update: {
+          contact_method?: string
+          created_at?: string
+          email?: string | null
+          feature_key?: string
+          id?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
       openhaus_waitlist: {
         Row: {
           city: string

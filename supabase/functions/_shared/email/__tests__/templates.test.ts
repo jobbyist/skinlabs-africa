@@ -17,6 +17,9 @@ describe("email template registry", () => {
       "form_confirmation_custom_formula", "admin_form_notification_custom_formula",
       "form_confirmation_business", "admin_form_notification_business",
       "form_confirmation_feature_waitlist",
+      "form_confirmation_openhaus_waitlist", "admin_form_notification_openhaus_waitlist",
+      "form_confirmation_newsletter", "admin_form_notification_newsletter",
+      "admin_notify_me_request",
       "admin_payment_needs_review", "admin_delivery_failed",
     ];
     for (const id of expectedIds) {

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const REOPEN_DATE = "7th January 2026";
 const MAINTENANCE_MODAL_KEY = "skinlabs_maintenance_modal_dismissed";
@@ -85,21 +86,41 @@ const MaintenanceModal = () => {
     setIsOpen(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (contactMethod === "email" && email.trim()) {
-      toast.success("Thank you! We'll notify you via email when we reopen.");
-      localStorage.setItem(MAINTENANCE_MODAL_KEY, "true");
-      setIsOpen(false);
-    } else if (contactMethod === "sms" && phone.trim()) {
-      toast.success("Thank you! We'll notify you via SMS when we reopen.");
-      localStorage.setItem(MAINTENANCE_MODAL_KEY, "true");
-      setIsOpen(false);
-    } else {
-      // Show error if no value provided
-      toast.error(`Please enter a valid ${contactMethod === "email" ? "email address" : "phone number"}.`);
+
+    if (contactMethod === "email" && !email.trim()) {
+      toast.error("Please enter a valid email address.");
+      return;
     }
+    if (contactMethod === "sms" && !phone.trim()) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+
+    const { error } = await supabase.from("notify_me_requests").insert({
+      feature_key: "site_reopen",
+      contact_method: contactMethod,
+      email: contactMethod === "email" ? email.trim() : null,
+      phone: contactMethod === "sms" ? phone.trim() : null,
+    });
+
+    if (error) {
+      toast.error(
+        error.message?.includes("Too many requests")
+          ? error.message
+          : "That didn't go through — please try again."
+      );
+      return;
+    }
+
+    toast.success(
+      contactMethod === "email"
+        ? "Thank you! We'll notify you via email when we reopen."
+        : "Thank you! We'll notify you via SMS when we reopen."
+    );
+    localStorage.setItem(MAINTENANCE_MODAL_KEY, "true");
+    setIsOpen(false);
   };
 
   return (

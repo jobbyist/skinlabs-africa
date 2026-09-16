@@ -93,6 +93,23 @@ registerFormPair({
   ],
 });
 
+registerFormPair({
+  slug: "openhaus_waitlist",
+  formLabel: "OpenHaus waitlist request",
+  confirmationCopy: `Thanks for joining the OpenHaus marketplace waitlist — we'll email you the moment it's ready.`,
+  adminFields: [
+    ["first_name", "First name"], ["last_name", "Last name"], ["email", "Email"],
+    ["phone", "Phone"], ["city", "City"], ["country", "Country"],
+  ],
+});
+
+registerFormPair({
+  slug: "newsletter",
+  formLabel: "Early access signup",
+  confirmationCopy: `You're on the early access list for virtual dermatologist consultations. We'll email you the moment it launches.`,
+  adminFields: [["email", "Email"]],
+});
+
 // Feature waitlist only sends a user confirmation — it's an opt-in, not a
 // lead requiring admin follow-up (admins can query feature_waitlist
 // directly when scoping the feature).
