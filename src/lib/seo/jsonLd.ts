@@ -73,14 +73,33 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
       },
       reviewBody: input.reviewBody,
     },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: input.ratingValue,
-      bestRating: 10,
-      worstRating: 1,
-      reviewCount: input.reviewCount,
-    },
   };
+
+  // Editorial aggregate rating (0-10 scale)
+  const editorialRating = {
+    "@type": "AggregateRating",
+    ratingValue: input.ratingValue,
+    bestRating: 10,
+    worstRating: 1,
+    reviewCount: input.reviewCount,
+  };
+
+  // If member ratings are available, include them as a second aggregateRating
+  // (1-5 scale, representing community voice)
+  if (input.memberRating) {
+    product.aggregateRating = [
+      editorialRating,
+      {
+      "@type": "AggregateRating",
+        ratingValue: input.memberRating.average,
+        bestRating: 5,
+      worstRating: 1,
+        reviewCount: input.memberRating.count,
+      },
+    ];
+  } else {
+    product.aggregateRating = editorialRating;
+  }
 
   if (!input.paywallCssSelector) {
     return { "@context": "https://schema.org", ...product };
