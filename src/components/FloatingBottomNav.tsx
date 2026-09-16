@@ -36,7 +36,10 @@ const FloatingBottomNav = () => {
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
 
-  if (loading || hasOwnBottomBar(location.pathname)) return null;
+  // Never hide the whole bar while auth is resolving — that caused a missing
+  // bottom nav flash (and a stuck-empty bar if the session check hung). Show
+  // the public tabs immediately; only the account tab depends on user.
+  if (hasOwnBottomBar(location.pathname)) return null;
 
   const accountActive = location.pathname.startsWith("/dashboard");
 
@@ -44,7 +47,7 @@ const FloatingBottomNav = () => {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:bottom-6"
+        className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[max(0px,env(safe-area-inset-bottom))] sm:bottom-6"
       >
         <div
           className={cn(
