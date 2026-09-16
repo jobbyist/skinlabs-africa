@@ -93,7 +93,7 @@ const SavedContentTab = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bookmark className="h-5 w-5 text-primary" />
-            Saved & content
+            Saved content
           </CardTitle>
           <CardDescription>
             Briefings you&apos;ve saved or liked. Saves sync to your account and appear here across devices.
