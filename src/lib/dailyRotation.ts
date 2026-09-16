@@ -17,7 +17,9 @@ export const sastDayIndex = (now: Date = new Date(), hourBoundary = 0): number =
   let m = parseInt(parts.month, 10);
   let d = parseInt(parts.day, 10);
   if (hour < hourBoundary) {
-    const utcApprox = Date.UTC(y, m - 1, d) - 24 * 60 * 60 * 1000;
+    const oneDay = 86400000;
+    const utcApprox = Date.UTC(y, m - 1, d);
+    const prevDayUTC = new Date(utcApprox - oneDay);
     const back = new Intl.DateTimeFormat("en-CA", {
       timeZone: "Africa/Johannesburg",
       year: "numeric",
