@@ -51,7 +51,12 @@ type VercelRes = {
 const ADMIN_EMAIL = "admin@skinlabs.co.za";
 const COOKIE_NAME = "skinlabs_admin_gate";
 const COOKIE_MAX_AGE = 60 * 60 * 12; // 12 hours -- short-lived by design, re-checked server-side on every load.
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://gnkpzijxuciiaamakgzm.supabase.co";
+// Deliberately no hardcoded fallback here (unlike api/product-review-sync.ts's non-security-critical
+// use of the same env var): silently defaulting a security-sensitive admin-session bridge to a
+// baked-in project URL risks talking to the wrong project on a misconfigured deployment. If this is
+// unset, the bridge below is simply skipped (same graceful-degradation path as a missing service-role
+// key) rather than the whole login failing, since GET/DELETE never need it at all.
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 
 function expectedToken(secret: string): string {
   return createHmac("sha256", secret).update("skinlabs-admin-gate-v1").digest("hex");
@@ -107,9 +112,9 @@ function parseBody(req: VercelReq): { password?: string } {
 }
 
 /** Bridges the password check into a real Supabase session for the fixed admin account, without sending an email. */
-async function generateAdminSessionToken(serviceRoleKey: string): Promise<string | null> {
+async function generateAdminSessionToken(supabaseUrl: string, serviceRoleKey: string): Promise<string | null> {
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+    const response = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -171,7 +176,8 @@ export default async function handler(req: VercelReq, res: VercelRes) {
   setGateCookie(res, expectedToken(adminPassword));
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const tokenHash = serviceRoleKey ? await generateAdminSessionToken(serviceRoleKey) : null;
+  const tokenHash =
+    serviceRoleKey && SUPABASE_URL ? await generateAdminSessionToken(SUPABASE_URL, serviceRoleKey) : null;
 
   res.status(200).json({ ok: true, tokenHash, email: ADMIN_EMAIL });
 }
