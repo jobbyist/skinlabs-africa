@@ -1,5 +1,11 @@
 import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
-import type { ArticleJsonLdInput, BreadcrumbItem, ProductReviewJsonLdInput } from "./types";
+import type {
+  ArticleJsonLdInput,
+  BreadcrumbItem,
+  IngredientJsonLdInput,
+  ProductReviewJsonLdInput,
+  SpotlightBrandJsonLdInput,
+} from "./types";
 
 /**
  * Article JSON-LD, grounded only in fields the caller actually has -- never
@@ -72,6 +78,53 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
       bestRating: 10,
       reviewCount: input.reviewCount,
     },
+  };
+}
+
+/**
+ * DefinedTerm JSON-LD for an ingredient detail page -- there's no dedicated
+ * schema.org type for a cosmetic-ingredient reference entry, and DefinedTerm
+ * (a term defined within some larger vocabulary/dataset) is the closest
+ * accurate fit without overclaiming (e.g. Product, which this isn't).
+ */
+export function ingredientJsonLd(input: IngredientJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "DefinedTerm",
+    "@id": `${input.canonicalUrl}#ingredient`,
+    name: input.name,
+    description: input.description,
+    inDefinedTermSet: {
+      "@type": "DefinedTermSet",
+      name: `${BRAND} Ingredients Intelligence`,
+      url: `${SITE_URL}/ingredients`,
+    },
+    ...(input.category ? { termCode: input.category } : {}),
+    mainEntityOfPage: { "@type": "WebPage", "@id": input.canonicalUrl },
+  };
+}
+
+/**
+ * Matches SpotlightBrandProfile.tsx's existing inline Article block
+ * (headline/description/author/publisher/mainEntityOfPage only -- see
+ * SpotlightBrandJsonLdInput's own doc comment for why date/image fields
+ * are deliberately absent here) so the SSR route and the client page
+ * describe a brand profile identically.
+ */
+export function spotlightBrandJsonLd(input: SpotlightBrandJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": `${input.canonicalUrl}#article`,
+    headline: input.headline,
+    description: input.description,
+    author: { "@type": "Organization", name: BRAND, url: SITE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: BRAND,
+      logo: { "@type": "ImageObject", url: DEFAULT_OG },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": input.canonicalUrl },
   };
 }
 

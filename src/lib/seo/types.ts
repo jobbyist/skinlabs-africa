@@ -54,6 +54,29 @@ export interface ProductReviewJsonLdInput {
   reviewCount: number;
 }
 
+export interface IngredientJsonLdInput {
+  canonicalUrl: string;
+  /** Display name -- common_name || inci_name, same precedence as the page itself. */
+  name: string;
+  /** Human-readable category label, e.g. "Humectant" -- via ingredientCategoryLabel(). */
+  category: string;
+  description: string;
+}
+
+/**
+ * Deliberately narrower than ArticleJsonLdInput: SpotlightBrandProfile.tsx's
+ * own inline JSON-LD (the shape this must match byte-for-byte) has never
+ * carried datePublished/dateModified/image -- brand entries in
+ * src/data/spotlight.ts have no real per-brand date or logo-URL field to
+ * source them from, and CLAUDE.md's standing rule is never fabricate.
+ * Revisit if spotlight.ts ever gains real per-brand timestamps.
+ */
+export interface SpotlightBrandJsonLdInput {
+  canonicalUrl: string;
+  headline: string;
+  description: string;
+}
+
 export interface BreadcrumbItem {
   name: string;
   /** Absolute URL. */
