@@ -616,6 +616,64 @@ feature appear operational.
   `<link rel="alternate" type="application/rss+xml">` for feed-reader
   autodiscovery in the meantime.
 
+## Temporary, single-client features
+
+- **`/quote-ss-beauty` (2026-09-16)** — an unlisted, noindex'd interactive
+  multistep quote-request form built for one Business Suite client
+  (Siphokazi / SS Beauty) who wants contract manufacturing + white-label
+  + branding/labelling for a hair growth oil, hair food and leave-in
+  conditioner line. Not linked from nav/sitemap. **Delete once her quote
+  has been handled**: the route + lazy import in `src/App.tsx`, `src/
+  pages/QuoteSSBeauty.tsx`, `src/components/quote-ss-beauty/`, `src/lib/
+  quoteSsBeautyPricing.ts`, the `quote-ss-beauty-submit` edge function
+  (`supabase/functions/quote-ss-beauty-submit/` + its `config.toml`
+  entry), and the `quote_ss_beauty_requests` table (already applied live
+  on `gnkpzijxuciiaamakgzm`).
+  - On submit, the `quote-ss-beauty-submit` edge function computes an
+    indicative ZAR estimate (pricing logic duplicated — different
+    runtimes — between `src/lib/quoteSsBeautyPricing.ts` for the form's
+    own live preview and the edge function itself, which is the
+    authoritative copy for the PDF; keep both in sync if pricing
+    changes), generates a branded PDF quotation with `jspdf` (works fine
+    via `npm:jspdf@4.2.1` in the Deno edge runtime — no canvas/DOM
+    dependency for the plain text/rect drawing this uses), records the
+    submission in `quote_ss_beauty_requests` (RLS enabled, zero
+    policies — reachable only via the function's service-role client,
+    never from anon/authenticated), and emails the full submission +
+    PDF to **michael@skinlabs.co.za only** (never to the client
+    directly — matches the existing "I'll put together a tailored
+    proposal on a call" plan already communicated to her, so a human
+    reviews the numbers before anything goes back to her). Estimate
+    numbers are explicitly labelled "preliminary/indicative" everywhere
+    they appear (in-form review step and the PDF) — never presented as
+    a binding quote.
+  - Sending actually depends on the `RESEND_API_KEY` project secret,
+    which **is already set** on this project (confirmed live: a real
+    smoke-test submission returned `email_sent: true` with no
+    `email_error`, and the row/estimate math checked out — then
+    deleted from the table afterwards). It was *not* set up by any tool
+    available in this session, and its value doesn't correspond to the
+    "Onboarding" key on the connected `Resend_for_SkinLabs` MCP account
+    (which has zero verified domains and shows no matching request in
+    its own `/emails` or request logs for that send) — so it's a
+    separate, already-configured Resend key/account a human set up
+    directly in Supabase, not something this session provisioned.
+    Concretely: confirm the smoke-test PDF actually landed in
+    michael@skinlabs.co.za's inbox before trusting `email_sent: true`
+    at face value for a real client submission — it's a strong signal,
+    not independently cross-verified end-to-end from this environment.
+  - Deliberately did **not** integrate the Perspective AI connector for
+    this form — its toolset (perspective_create/respond/
+    get_embed_options, participant_invite, workspace_get_default) is
+    built for embeddable AI-moderated conversational surveys, which
+    would mean an off-brand iframe widget instead of a first-party
+    stepper matching the rest of the site's design system (SKYNN AI's
+    `StepperHeader`-style gradient current-step circle, `.gradient-
+    text`, existing shadcn form primitives). "Intelligent" here means
+    conditional per-product steps, honeypot spam protection, and a live
+    running price estimate as she fills the form — revisit only if the
+    Perspective AI product itself is specifically wanted.
+
 ## Infrastructure notes
 
 - **There are two, unrelated live databases reachable from this

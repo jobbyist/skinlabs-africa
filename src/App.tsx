@@ -22,6 +22,7 @@ import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AIFormulator = lazy(() => import("./pages/AIFormulator"));
+const QuoteSSBeauty = lazy(() => import("./pages/QuoteSSBeauty"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Business = lazy(() => import("./pages/Business"));
@@ -94,6 +95,7 @@ const AppContent = () => (
         <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
         <Route path="/skynn-ai" element={<AIFormulator />} />
         <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
+        <Route path="/quote-ss-beauty" element={<QuoteSSBeauty />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/business" element={<Business />} />
