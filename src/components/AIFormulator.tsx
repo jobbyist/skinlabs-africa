@@ -909,7 +909,15 @@ const AIFormulator = () => {
                       onClick={() => handleStartAnalysis()}
                       className="w-full gap-2 bg-background text-foreground hover:bg-background/90 gradient-border-anim"
                     >
-                      Get started for free
+                      {/* "Get started for free" is the right framing for a visitor who
+                          doesn't yet have access to the Advanced AI Dermatology Report —
+                          but it reads oddly for an Insider/VIP member, or an Explorer/Lite
+                          member holding an Analysis Pass, since they're not starting a
+                          free trial of anything; they already have paid/entitled access.
+                          Both are already resolved above (isMember/passBalance) for the
+                          "Want to go deeper?" panel just below, so this reuses the same
+                          state rather than adding a new check. */}
+                      {isMember || (passBalance && passBalance > 0) ? "Start My Analysis" : "Get started for free"}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                     <Button
