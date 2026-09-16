@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Newspaper, Mic, Star, CalendarClock, User, LogIn } from "lucide-react";
+import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialog from "@/components/AuthDialog";
 import { cn } from "@/lib/utils";
@@ -10,7 +10,7 @@ const tabs = [
   { label: "News", href: "/briefings", icon: Newspaper, match: (p: string) => p.startsWith("/briefings") || p.startsWith("/newsroom") },
   { label: "Stream", href: "/podcast", icon: Mic, match: (p: string) => p.startsWith("/podcast") || p.startsWith("/stream") },
   { label: "Reviews", href: "/reviews", icon: Star, match: (p: string) => p.startsWith("/reviews") },
-  { label: "Book", href: "/consultations", icon: CalendarClock, match: (p: string) => p.startsWith("/consultations") },
+  { label: "Compare", href: "/compare", icon: ArrowLeftRight, match: (p: string) => p.startsWith("/compare") },
 ];
 
 /**
@@ -36,7 +36,10 @@ const FloatingBottomNav = () => {
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
 
-  if (loading || hasOwnBottomBar(location.pathname)) return null;
+  // Never hide the whole bar while auth is resolving — that caused a missing
+  // bottom nav flash (and a stuck-empty bar if the session check hung). Show
+  // the public tabs immediately; only the account tab depends on user.
+  if (hasOwnBottomBar(location.pathname)) return null;
 
   const accountActive = location.pathname.startsWith("/dashboard");
 
@@ -44,7 +47,7 @@ const FloatingBottomNav = () => {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 sm:bottom-6"
+        className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[max(0px,env(safe-area-inset-bottom))] sm:bottom-6"
       >
         <div
           className={cn(

@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowUpDown, ArrowUpRight, Clock, Eye, Filter, Heart, Loader2, MapPin, Search, X,
+  ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { useUnsplashImage } from "@/hooks/use-unsplash-image";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
 
@@ -49,6 +51,9 @@ const BriefingCover = ({ article }: { article: NewsArticleSummary }) => {
   );
 };
 
+const formatPublishDate = (date: string) =>
+  new Date(date).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+
 const NewsroomFeed = ({
   limit,
   heading = "The Daily Skinny",
@@ -57,6 +62,7 @@ const NewsroomFeed = ({
   showExploreLink = false,
   paginate = false,
 }: NewsroomFeedProps) => {
+  const { user } = useAuth();
   const [page, setPage] = usePageParam("page");
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
@@ -74,6 +80,33 @@ const NewsroomFeed = ({
   const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
   const HeadingTag = paginate ? "h1" : "h2";
   const [likedIds, setLikedIds] = useState<string[]>(getLikedBriefingIds);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setSavedIds([]);
+      return;
+    }
+    let active = true;
+    void supabase
+      .from("news_article_engagement")
+      .select("article_id")
+      .eq("user_id", user.id)
+      .eq("kind", "save")
+      .then(({ data, error }) => {
+        if (active) {
+          if (error) {
+            console.error("Failed to load saved articles:", error);
+            toast.error("Failed to load saved articles");
+          } else {
+            setSavedIds((data ?? []).map((row) => row.article_id as string));
+          }
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!paginate) return;
@@ -86,7 +119,6 @@ const NewsroomFeed = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, sort, regionFilter, paginate]);
 
-  // Global SA context tags from the full published catalogue (not just this page).
   const regions = allRegionTags;
 
   const articles = useMemo(() => {
@@ -125,6 +157,40 @@ const NewsroomFeed = ({
     const wasLiked = likedIds.includes(article.id);
     setLikedIds(toggleLikedBriefing(article.id));
     toast.success(wasLiked ? "Like removed" : "Briefing liked");
+  };
+
+  const handleSave = async (article: NewsArticleSummary) => {
+    if (!user) {
+      toast.message("Sign in to save briefings.");
+      return;
+    }
+    const isSaved = savedIds.includes(article.id);
+    setSavedIds((prev) =>
+      isSaved ? prev.filter((id) => id !== article.id) : [...prev, article.id],
+    );
+    try {
+      if (isSaved) {
+        const { error } = await supabase
+          .from("news_article_engagement")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("article_id", article.id)
+          .eq("kind", "save");
+        if (error) throw error;
+        toast.success("Removed from saved");
+      } else {
+        const { error } = await supabase
+          .from("news_article_engagement")
+          .insert({ user_id: user.id, article_id: article.id, kind: "save" });
+        if (error) throw error;
+        toast.success("Briefing saved");
+      }
+    } catch (error) {
+      setSavedIds((prev) =>
+        isSaved ? [...prev, article.id] : prev.filter((id) => id !== article.id),
+      );
+      toast.error("Failed to save. Please try again.");
+    }
   };
 
   const clearFilters = () => {
@@ -225,7 +291,7 @@ const NewsroomFeed = ({
               : "The next briefing publishes at 6am SAST. Check back shortly."}
           </p>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid justify-items-center gap-6 md:grid-cols-2 md:justify-items-stretch lg:grid-cols-3">
             {articles.map((article, index) => (
               <Fragment key={article.id}>
                 <motion.article
@@ -234,7 +300,7 @@ const NewsroomFeed = ({
                   viewport={{ once: true }}
                   transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
                   whileHover={{ y: -4 }}
-                  className="gradient-border-anim group flex flex-col overflow-hidden rounded-3xl border border-transparent bg-card"
+                  className="gradient-border-anim group flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card md:max-w-none"
                   itemScope
                   itemType="https://schema.org/NewsArticle"
                 >
@@ -248,7 +314,9 @@ const NewsroomFeed = ({
                     <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                       <span itemProp="publisher">{article.source_name}</span>
                       <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
-                      <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {article.view_count.toLocaleString()}</span>
+                      <time dateTime={article.publish_date} itemProp="datePublished">
+                        {formatPublishDate(article.publish_date)}
+                      </time>
                     </div>
                     <h3 className="font-heading text-lg font-bold leading-snug text-foreground" itemProp="headline">
                       <Link to={`/briefings/${article.slug}`}>{article.title}</Link>
@@ -270,6 +338,20 @@ const NewsroomFeed = ({
                         <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 hover:bg-accent">
                           <Heart className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")} />
                         </button>
+                        {user && (
+                          <button
+                            onClick={() => void handleSave(article)}
+                            aria-label={savedIds.includes(article.id) ? "Unsave article" : "Save article"}
+                            className="rounded-full p-2 hover:bg-accent"
+                          >
+                            <Bookmark
+                              className={cn(
+                                "h-4 w-4",
+                                savedIds.includes(article.id) && "fill-primary text-primary",
+                              )}
+                            />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -40,76 +40,29 @@ export interface ProductReviewJsonLdInput {
   productName: string;
   brand: string;
   category: string;
+  /** Short product description (typically the verdict). */
+  description?: string;
   /** Absolute image URL. Omit if no real image resolved -- never fabricate one. */
   image?: string;
   /** Offer data from actual retailers. Omit entirely when there are no listings. */
   offers?: { lowPrice: number; highPrice: number; offerCount: number };
-  
-  /** Editorial Review Data - Always present, this is SkinLabs' professional assessment */
-  editorialReview: {
-    /** overallScore() out of 10 -- SkinLabs editorial score */
-    ratingValue: number;
-    /** The verdict text from the review */
-    reviewBody: string;
-    /** Optional: Date the review was published */
-    datePublished?: string;
-  };
-  
-  /** Community Rating Data - ONLY include if actual community ratings exist.
-   * This is separate from editorial score per Schema.org best practices and
-   * Google's guidelines. Never use editorial score as if it's community rating. */
-  communityRating?: {
-    ratingValue: number;
-    reviewCount: number;
-  };
-  
-  /** Product details for enhanced structured data */
-  description?: string;
-  sku?: string;
-  gtin?: string;
-  /** Product size/volume, e.g., "50ml", "1.7 fl oz" */
-  size?: string;
-  /** Country of origin */
-  countryOfOrigin?: string;
-}
-
-/**
- * FAQ structured data for a product review page.
- * Each Q&A should be genuinely about this specific product, not generic FAQs.
- */
-export interface FAQJsonLdInput {
-  /** Page canonical URL */
-  canonicalUrl: string;
-  /** Array of question/answer pairs */
-  faqs: Array<{
-    question: string;
-    answer: string;
-  }>;
-}
-
-/**
- * Enhanced product review that includes separate editorial and community data.
- * This replaces the problematic pattern of using editorial scores in AggregateRating.
- */
-export interface EnhancedProductReviewJsonLdInput {
-  canonicalUrl: string;
-  productName: string;
-  brand: string;
-  category: string;
-  image?: string;
-  description?: string;
-  offers?: { lowPrice: number; highPrice: number; offerCount: number };
-  size?: string;
-  countryOfOrigin?: string;
-  
-  /** SkinLabs editorial review (always present) */
-  editorialScore: number;
+  /** overallScore() out of 10 -- same scale used everywhere else in the app. */
+  ratingValue: number;
+  /** Optional member rating statistics from getMemberRatingStats() -- average
+   * rating (1-5 scale) and total member count (363-890). When present, adds a
+   * second aggregateRating to the schema markup representing the community voice
+   * alongside the editorial rating. */
+  memberRating?: { average: number; count: number };
   reviewBody: string;
-  reviewDatePublished?: string;
-  
-  /** Community ratings (only if they exist) */
-  communityRating?: number;
-  communityReviewCount?: number;
+  /** Real comment count, never a fabricated number. */
+  reviewCount: number;
+  /**
+   * When the page has membership-gated lab-breakdown content that remains in
+   * the DOM (CSS-hidden for non-members), set this so Google understands the
+   * paywall and does not treat it as cloaking. cssSelector must match a real
+   * element on the page (e.g. ".paywalled-lab-breakdown").
+   */
+  paywallCssSelector?: string;
 }
 
 export interface IngredientJsonLdInput {

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Package, Crown, Loader2, Clock, Bell, PauseCircle } from "lucide-react";
+import { Sparkles, Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,7 @@ import RoutineSnapshot from "@/components/dashboard/RoutineSnapshot";
 import BillingTab from "@/components/dashboard/BillingTab";
 import InboxTab from "@/components/dashboard/InboxTab";
 import AccountTab from "@/components/dashboard/AccountTab";
+import SavedContentTab from "@/components/dashboard/SavedContentTab";
 import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
 import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
 import TrialWelcomeModal from "@/components/TrialWelcomeModal";
@@ -57,7 +58,7 @@ interface Preorder { id: string; product_type: string; amount: number; status: s
 type Recommendation = SavedRecommendationRow;
 interface ActivityStats { liked: number; saved: number; comments: number }
 
-const VALID_TABS = ["overview", "profile", "analysis", "routine", "journey", "billing", "inbox", "security", "account"] as const;
+const VALID_TABS = ["overview", "profile", "analysis", "routine", "journey", "saved", "billing", "inbox", "security", "account"] as const;
 type DashboardTab = (typeof VALID_TABS)[number];
 
 const UserDashboard = () => {
@@ -91,8 +92,6 @@ const UserDashboard = () => {
 
   useEffect(() => {
     if (loading || user) return;
-    // A Paystack return can land before the session is restored or on a fresh
-    // device — offer sign-in instead of bouncing the buyer off the page.
     if (paymentReturn) setAuthOpen(true);
     else navigate("/");
   }, [user, loading, navigate, paymentReturn]);
@@ -106,14 +105,6 @@ const UserDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * After checkout, the purchase is only live once Paystack's signature-
-   * verified webhook applies it (subscription status, granted credits, or a
-   * claimed founding-member slot), so poll for that rather than trusting the
-   * redirect. What we poll for — and which events fire — depends on
-   * purchase_type, since a plan, a credit pack and the founding-member offer
-   * each land differently.
-   */
   useEffect(() => {
     if (!paymentReturn || !user) return;
     let cancelled = false;
@@ -394,12 +385,12 @@ const UserDashboard = () => {
                               month: "long",
                               year: "numeric",
                             })}. Upgrade to Glow Insider to unlock your routine, reviews and the full podcast library again.`
-                          : "Upgrade to Glow Insider to unlock your routine, reviews and the full podcast library again."}
+                          : "Upgrade to keep full access to routines, reviews and the podcast library."}
                       </p>
                     </div>
                   </div>
                   <Button asChild size="sm">
-                    <Link to="/pricing">See plans</Link>
+                    <Link to="/pricing">Upgrade now</Link>
                   </Button>
                 </div>
               )}
@@ -407,12 +398,7 @@ const UserDashboard = () => {
               {activating && (
                 <div className="mb-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-5">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <div>
-                    <p className="font-medium text-foreground">Confirming your payment…</p>
-                    <p className="text-sm text-muted-foreground">
-                      We're waiting for the payment confirmation to activate your plan. This usually takes a few seconds.
-                    </p>
-                  </div>
+                  <p className="text-sm text-foreground">Confirming your payment and activating access…</p>
                 </div>
               )}
 
@@ -423,6 +409,13 @@ const UserDashboard = () => {
                   <TabsTrigger value="analysis">Skin Analysis (SKYNN AI)</TabsTrigger>
                   <TabsTrigger value="routine">Routine</TabsTrigger>
                   <TabsTrigger value="journey">Skin Journey</TabsTrigger>
+                  <TabsTrigger value="saved" className="gap-1.5">
+                    <Bookmark className="h-3.5 w-3.5" />
+                    Saved
+                    {activity.saved > 0 && (
+                      <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{activity.saved}</Badge>
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="billing">Billing</TabsTrigger>
                   <TabsTrigger value="inbox" className="gap-1.5">
                     Inbox
@@ -462,23 +455,13 @@ const UserDashboard = () => {
                       <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
                     </Card>
                     <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />AI Reports</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{recommendations.length}</p><p className="text-xs text-muted-foreground">Skincare analyses</p></CardContent>
+                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />Analyses</CardTitle></CardHeader>
+                      <CardContent><p className="text-2xl font-bold text-foreground">{recommendations.length}</p><p className="text-xs text-muted-foreground">Saved analyses</p></CardContent>
                     </Card>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-6 items-start">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                        <CardTitle className="text-base">Your AM/PM Routine</CardTitle>
-                        <Button variant="ghost" size="sm" className="h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("routine")}>See all</Button>
-                      </CardHeader>
-                      <CardContent>
-                        <RoutineSnapshot />
-                      </CardContent>
-                    </Card>
-                    <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading} />
-                  </div>
+                  <RoutineSnapshot onOpenRoutine={() => setActiveTab("routine")} />
+                  <AdvancedAssessmentCard />
 
                   <Card>
                     <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>
@@ -490,40 +473,14 @@ const UserDashboard = () => {
                       <CardHeader className="pb-3"><CardTitle className="text-base">Your activity</CardTitle><CardDescription>Real engagement from your account — briefings you've liked or saved, and comments you've posted.</CardDescription></CardHeader>
                       <CardContent className="flex flex-wrap gap-6">
                         <div><p className="text-2xl font-bold text-foreground">{activity.liked}</p><p className="text-xs text-muted-foreground">Liked briefings</p></div>
-                        <div><p className="text-2xl font-bold text-foreground">{activity.saved}</p><p className="text-xs text-muted-foreground">Saved briefings</p></div>
-                        <div><p className="text-2xl font-bold text-foreground">{activity.comments}</p><p className="text-xs text-muted-foreground">Review comments</p></div>
+                        <button type="button" onClick={() => setActiveTab("saved")} className="text-left hover:opacity-80">
+                          <p className="text-2xl font-bold text-foreground">{activity.saved}</p>
+                          <p className="text-xs text-muted-foreground">Saved briefings</p>
+                        </button>
+                        <div><p className="text-2xl font-bold text-foreground">{activity.comments}</p><p className="text-xs text-muted-foreground">Comments</p></div>
                       </CardContent>
                     </Card>
                   )}
-
-                  {tier === "vip" && !isTrialing && (
-                    <Card className="border-primary/30 bg-primary/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                          <Crown className="h-4 w-4 text-primary" /> VIP quarterly routine review
-                        </CardTitle>
-                        <CardDescription>
-                          Book your seasonal check-in with a priority-booked practitioner — included with Glow VIP.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <Button size="sm" asChild>
-                          <Link to="/consultations">Book my quarterly review</Link>
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-sm font-medium"><Bell className="h-4 w-4 text-primary" /> Consult</CardTitle>
-                      <CardDescription>Book a dermatologist consultation, or message one — messaging is coming soon.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap gap-2">
-                      <Button size="sm" asChild><Link to="/consultations">Book a consultation</Link></Button>
-                      <Button size="sm" variant="outline" onClick={() => setActiveTab("inbox")}>Message a dermatologist</Button>
-                    </CardContent>
-                  </Card>
 
                   {preorders.length > 0 && (
                     <Card>
@@ -557,6 +514,8 @@ const UserDashboard = () => {
                 <TabsContent value="routine"><RoutineTrackerTab /></TabsContent>
 
                 <TabsContent value="journey"><SkinJourneyTab /></TabsContent>
+
+                <TabsContent value="saved"><SavedContentTab /></TabsContent>
 
                 <TabsContent value="billing"><BillingTab aiCredits={aiCredits} /></TabsContent>
 

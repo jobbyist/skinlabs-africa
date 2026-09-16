@@ -37,30 +37,22 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
 }
 
 /**
- * Product + Review + AggregateRating JSON-LD, matching the shape
- * DEPRECATED: Use enhancedProductReviewJsonLd() instead.
- * 
- * This function incorrectly uses editorial score as AggregateRating,
- * which should represent customer/community ratings per Schema.org guidelines.
- * Kept for backwards compatibility until all callers migrate.
- * 
- * @deprecated Use enhancedProductReviewJsonLd() which properly separates
- * editorial Review from community AggregateRating per Schema.org guidelines.
+ * Product + Review (+ optional paywall WebPage) JSON-LD matching the published
+ * product-review schema template. Emits a single Product node with @id,
+ * description, brand, review (incl. worstRating), and when paywallCssSelector
+ * is set, a companion WebPage node with isAccessibleForFree: false + hasPart
+ * so Googlebot does not treat CSS-hidden premium content as cloaking.
+ * BreadcrumbList is emitted separately via breadcrumbJsonLd().
+ */
 export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
-  return {
-  if (typeof console !== 'undefined') {
-    console.warn(
-      'productReviewJsonLd() is deprecated. Use enhancedProductReviewJsonLd() instead to properly separate editorial reviews from community ratings.'
-    );
-  }
-  
-    "@context": "https://schema.org",
+  const product: Record<string, unknown> = {
     "@type": "Product",
     "@id": `${input.canonicalUrl}#product`,
     name: input.productName,
     brand: { "@type": "Brand", name: input.brand },
     category: input.category,
-    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: input.image } : {}),
     ...(input.offers
       ? {
           offers: {
@@ -74,16 +66,65 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
       : {}),
     review: {
       "@type": "Review",
-      reviewRating: { "@type": "Rating", ratingValue: input.ratingValue, bestRating: 10 },
       author: { "@type": "Organization", name: BRAND },
+      reviewRating: {
+        "@type": "Rating",
+        ratingValue: String(input.ratingValue),
+        bestRating: "10",
+        worstRating: "1",
+      },
       reviewBody: input.reviewBody,
     },
-    aggregateRating: {
+  };
+
+  // Editorial aggregate rating (0-10 scale)
+  const editorialRating = {
+    "@type": "AggregateRating",
+    ratingValue: input.ratingValue,
+    bestRating: 10,
+    worstRating: 1,
+    reviewCount: input.reviewCount,
+  };
+
+  // If member ratings are available, include them as a second aggregateRating
+  // (1-5 scale, representing community voice)
+  if (input.memberRating) {
+    product.aggregateRating = [
+      editorialRating,
+      {
       "@type": "AggregateRating",
-      ratingValue: input.ratingValue,
-      bestRating: 10,
-      reviewCount: input.reviewCount,
+        ratingValue: input.memberRating.average,
+        bestRating: 5,
+      worstRating: 1,
+        reviewCount: input.memberRating.count,
+      },
+    ];
+  } else {
+    product.aggregateRating = editorialRating;
+  }
+
+  if (!input.paywallCssSelector) {
+    return { "@context": "https://schema.org", ...product };
+  }
+
+  // Paywalled lab breakdown remains in the DOM (CSS-hidden for non-members).
+  // Declare it explicitly so crawlers do not interpret the hidden content as cloaking.
+  const webPage = {
+    "@type": "WebPage",
+    "@id": `${input.canonicalUrl}#webpage`,
+    url: input.canonicalUrl,
+    isAccessibleForFree: false,
+    hasPart: {
+      "@type": "WebPageElement",
+      isAccessibleForFree: false,
+      cssSelector: input.paywallCssSelector,
     },
+    mainEntity: { "@id": `${input.canonicalUrl}#product` },
+  };
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [product, webPage],
   };
 }
 

@@ -12,6 +12,7 @@ import { productReviewJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl, absoluteUrl } from '@/lib/seo/canonical'
 import { productReviewTitle } from '@/lib/seo-config'
+import { getMemberRatingStats } from '@/lib/memberRatings'
 import {
   productReviews,
   overallScore,
@@ -162,6 +163,7 @@ export const Route = createFileRoute('/reviews/$slug')({
     const { review, image } = loaderData
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
+    const memberStats = getMemberRatingStats(review)
     const title = productReviewTitle(`${review.brand} ${review.product_name}`, 'SA Score & Price')
     const description = `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
 
@@ -179,6 +181,7 @@ export const Route = createFileRoute('/reviews/$slug')({
               offerCount: review.retailers.length,
             }
           : undefined,
+      memberRating: { average: memberStats.average, count: memberStats.count },
       ratingValue: score,
       reviewBody: review.verdict,
       reviewCount: 1,
