@@ -93,8 +93,15 @@ const NewsroomFeed = ({
       .select("article_id")
       .eq("user_id", user.id)
       .eq("kind", "save")
-      .then(({ data }) => {
-        if (active) setSavedIds((data ?? []).map((row) => row.article_id as string));
+      .then(({ data, error }) => {
+        if (active) {
+          if (error) {
+            console.error("Failed to load saved articles:", error);
+            toast.error("Failed to load saved articles");
+          } else {
+            setSavedIds((data ?? []).map((row) => row.article_id as string));
+          }
+        }
       });
     return () => {
       active = false;
