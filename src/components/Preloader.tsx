@@ -136,7 +136,7 @@ const Preloader = () => {
       image: article.cover_image_url,
       imageAlt: article.cover_image_alt || article.title,
     })),
-    ...(buildAmbassadorSlide() ? [buildAmbassadorSlide()!] : []),
+    ...(() => { const slide = buildAmbassadorSlide(); return slide ? [slide] : []; })(),
     ...buildEvergreenSlides(),
   ];
 
