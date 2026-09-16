@@ -36,6 +36,8 @@ import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
+import { getPendingPlan, clearPendingPlan } from "@/lib/pending-plan";
+import { startFreeTrial } from "@/lib/trial";
 interface Profile {
   subscription_status: string | null;
   subscription_started_at: string | null;
@@ -79,6 +81,7 @@ const UserDashboard = () => {
   const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
+  const variantKey = "control"; // Could be enhanced to read from pricing config
   const tabParam = searchParams.get("tab");
   const activeTab: DashboardTab = (VALID_TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as DashboardTab) : "overview";
   const setActiveTab = (tab: string) => {
@@ -88,7 +91,59 @@ const UserDashboard = () => {
   };
 
   const paymentReturn = searchParams.get("payment") === "success";
+  const planParam = searchParams.get("plan");
   const purchaseType = searchParams.get("purchase_type") ?? "plan";
+
+  // Handle pending plan provisioning after authentication
+  useEffect(() => {
+    if (!user || !planParam) return;
+    
+    // Only process if it's a valid trial plan
+    if (planParam !== "insider" && planParam !== "glow_lite") return;
+    
+    // Check if there's a matching pending plan in storage
+    const storedPlan = getPendingPlan();
+    if (storedPlan !== planParam) return;
+    
+    // Prevent provisioning if user already has this tier or higher
+    if (tier === planParam || tier === "vip") {
+      clearPendingPlan();
+      const next = new URLSearchParams(searchParams);
+      next.delete("plan");
+      setSearchParams(next, { replace: true });
+      toast.info("You already have this membership level.");
+      return;
+    }
+    
+    // Prevent duplicate trials
+    if (trialUsed) {
+      clearPendingPlan();
+      const next = new URLSearchParams(searchParams);
+      next.delete("plan");
+      setSearchParams(next, { replace: true });
+      toast.info("You've already used your free trial. You can subscribe from the pricing page.");
+      return;
+    }
+    
+    // Provision the trial
+    (async () => {
+      setActivating(true);
+      const { error } = await startFreeTrial(planParam, variantKey);
+      setActivating(false);
+      
+      clearPendingPlan();
+      const next = new URLSearchParams(searchParams);
+      next.delete("plan");
+      next.set("trial", "started");
+      setSearchParams(next, { replace: true });
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        refreshMembership();
+      }
+    })();
+  }, [user, planParam, tier, trialUsed, searchParams, setSearchParams, refreshMembership, variantKey]);
 
   useEffect(() => {
     if (loading || user) return;

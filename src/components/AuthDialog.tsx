@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, KeyRound, Wand2 } from "lucide-react";
 import logo from "@/assets/newskinlabs.png";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import type { PendingPlanId } from "@/lib/pending-plan";
 
 interface AuthDialogProps {
   open: boolean;
@@ -20,6 +21,8 @@ interface AuthDialogProps {
   onModeChange?: (mode: "signin" | "signup") => void;
   onAuthenticated?: () => void;
 }
+  /** Pending plan selection - shown during signup for context */
+  pendingPlan?: PendingPlanId | null;
 
 /** Google's standard four-colour "G" mark. */
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -38,6 +41,7 @@ const AuthDialog = ({
   mode,
   onModeChange,
   onAuthenticated,
+  pendingPlan,
 }: AuthDialogProps) => {
   const { signIn, signUp, signInWithGoogle, signInWithMagicLink } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -47,6 +51,13 @@ const AuthDialog = ({
   const [username, setUsername] = useState("");
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+
+  // Derive plan display name for UI
+  const pendingPlanName = pendingPlan === "insider" 
+    ? "Glow Insider" 
+    : pendingPlan === "glow_lite" 
+    ? "Glow Lite" 
+    : null;
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -120,9 +131,17 @@ const AuthDialog = ({
           <div className="relative flex flex-col items-center text-center gap-3">
             <img src={logo} alt="SkinLabs®" className="h-8 w-auto" />
             <DialogHeader className="space-y-1.5">
-              <DialogTitle className="font-heading text-xl">Log in or create an account</DialogTitle>
+              <DialogTitle className="font-heading text-xl">
+                {pendingPlanName && mode === "signup" 
+                  ? `Start your ${pendingPlanName} trial`
+                  : "Log in or create an account"}
+              </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
+                {pendingPlanName && mode === "signup" ? (
+                  `Create your account to activate your ${pendingPlanName} free trial — no card required.`
+                ) : (
                 Save reviews, unlock full podcast episodes and build your AI routine — grounded in SA skin and climate.
+                )}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -265,6 +284,14 @@ const AuthDialog = ({
 
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignUp} className="space-y-4">
+                {pendingPlanName && (
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-sm">
+                    <p className="font-medium text-foreground">🎁 {pendingPlanName} Free Trial</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Creating an account will activate your 7-day free trial — no payment required.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="username-signup">Username</Label>
                   <Input
