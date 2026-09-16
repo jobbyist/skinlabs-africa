@@ -30,31 +30,36 @@ export const useAuth = () => {
     return { data, error };
   };
 
-  const signUp = async (email: string, password: string, username?: string) => {
+  const signUp = async (email: string, password: string, username?: string, redirectTo?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: redirectTo ?? window.location.origin,
         data: username ? { username } : undefined,
       },
     });
     return { data, error };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+      options: { redirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
     });
     return { data, error };
   };
 
-  /** Passwordless sign-in: emails a one-time magic link, no password required. */
-  const signInWithMagicLink = async (email: string) => {
+  /**
+   * Passwordless sign-in: emails a one-time magic link, no password required.
+   * Temporarily disabled site-wide via AUTH_FLAGS.magicLinkEnabled (see
+   * src/lib/auth-flags.ts) while SMTP delivery is unreliable — the function
+   * itself is left intact so it can be re-enabled with a single flag flip.
+   */
+  const signInWithMagicLink = async (email: string, redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
+      options: { emailRedirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
     });
     return { data, error };
   };
@@ -62,6 +67,36 @@ export const useAuth = () => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     return { error };
+  };
+
+  /**
+   * Forgot-password: emails a recovery link via Supabase's own recovery flow
+   * (no custom token/reset system). Deliberately returns success-shaped
+   * results even on failure paths that would otherwise leak whether an
+   * email is registered — see callers for the account-enumeration handling.
+   */
+  const sendPasswordReset = async (email: string) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { data, error };
+  };
+
+  /** Completes a password reset — call once a recovery session is active (see /reset-password). */
+  const updatePassword = async (newPassword: string) => {
+    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    return { data, error };
+  };
+
+  /**
+   * Verifies a one-time token_hash issued by a server-side admin.generateLink
+   * call (see api/admin-auth.ts) to establish a real Supabase session for a
+   * specific account without sending an email — used only by the /admin
+   * gate, never by consumer auth.
+   */
+  const verifyRecoveryOrMagicLinkToken = async (tokenHash: string, type: "magiclink" | "recovery" = "magiclink") => {
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
+    return { data, error };
   };
 
   /** Optional email verification, initiated by the user from the dashboard. */
@@ -111,6 +146,9 @@ export const useAuth = () => {
     signInWithGoogle,
     signInWithMagicLink,
     signOut,
+    sendPasswordReset,
+    updatePassword,
+    verifyRecoveryOrMagicLinkToken,
     sendEmailVerification,
     enrollMFA,
     challengeAndVerifyMFA,

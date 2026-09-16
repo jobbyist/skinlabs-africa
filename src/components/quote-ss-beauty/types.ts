@@ -32,7 +32,6 @@ export interface QuoteFormState {
 }
 
 export const INITIAL_QUOTE_FORM_STATE: QuoteFormState = {
-export const INITIAL_QUOTE_FORM_STATE: QuoteFormState = {
   fullName: "",
   businessName: "",
   email: "",
