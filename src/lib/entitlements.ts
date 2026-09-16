@@ -52,7 +52,8 @@ export type FeatureKey =
   | "practitioner_directory"
   | "consult.priority_booking"
   | "dashboard.professional_tools"
-  | "routine.conflict_matcher";
+  | "routine.conflict_matcher"
+  | "ingredients.combination_checker";
 
 const LADDER_ORDER: LadderTier[] = ["anonymous", "free", "glow_lite", "insider", "vip"];
 
@@ -61,7 +62,13 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
   anonymous: ["ai_analysis.starter"],
   free: ["ai_analysis.starter"],
   // Provisional — see file header. Not resolvable from real data yet.
-  glow_lite: ["ai_analysis.starter", "comparisons.unlimited", "spotlight.full_profiles", "practitioner_directory"],
+  glow_lite: [
+    "ai_analysis.starter",
+    "comparisons.unlimited",
+    "spotlight.full_profiles",
+    "practitioner_directory",
+    "ingredients.combination_checker",
+  ],
   insider: [
     "ai_analysis.starter",
     "ai_analysis.live_weekly",
@@ -71,6 +78,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "spotlight.full_profiles",
     "practitioner_directory",
     "routine.conflict_matcher",
+    "ingredients.combination_checker",
   ],
   vip: [
     "ai_analysis.starter",
@@ -83,6 +91,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "practitioner_directory",
     "consult.priority_booking",
     "routine.conflict_matcher",
+    "ingredients.combination_checker",
   ],
 };
 

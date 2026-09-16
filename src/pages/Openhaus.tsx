@@ -168,7 +168,7 @@ const Openhaus = () => {
                     <p className="text-sm text-muted-foreground">
                       Paid SkinLabs members are added automatically — no opt-in needed.{" "}
                       <a href="/pricing" className="text-primary hover:underline font-medium">
-                        Or become a Glow Insider member for R99 a month
+                        Or become a Glow Insider member for R79 a month
                       </a>
                     </p>
                   </div>

@@ -771,7 +771,7 @@ const SmartRoutines = () => {
                       <Sparkles className="h-3 w-3" />
                       Recommended
                     </Badge>
-                    <span className="text-sm font-semibold text-foreground">R99/mo</span>
+                    <span className="text-sm font-semibold text-foreground">R79/mo</span>
                   </div>
                   <CardTitle className="text-xl">Glow Insider</CardTitle>
                 </CardHeader>
@@ -803,7 +803,7 @@ const SmartRoutines = () => {
                 <CardHeader>
                   <div className="mb-2 flex items-center justify-between">
                     <Badge variant="secondary">VIP</Badge>
-                    <span className="text-sm text-muted-foreground">R299/mo</span>
+                    <span className="text-sm text-muted-foreground">R199/mo</span>
                   </div>
                   <CardTitle className="text-xl">Glow VIP</CardTitle>
                 </CardHeader>
@@ -942,7 +942,7 @@ const SmartRoutines = () => {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Glow Explorer and Glow Lite members can access the Advanced AI Dermatology Report using an Analysis
-                  Pass, starting from R25. It's also included with Glow Insider (R99/month) and Glow VIP (R299/month)
+                  Pass, starting from R25. It's also included with Glow Insider (R79/month) and Glow VIP (R199/month)
                   memberships.
                 </AccordionContent>
               </AccordionItem>
