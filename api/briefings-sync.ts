@@ -597,7 +597,12 @@ async function generateBriefing(
   const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (typeof text !== "string") throw new Error("Gemini returned no usable content");
 
-  const parsed: Partial<GeneratedBriefing> = JSON.parse(text);
+  let parsed: Partial<GeneratedBriefing>;
+  try {
+    parsed = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Failed to parse Gemini response as JSON: ${String(e)}`);
+  }
 
   return {
     title: String(parsed.title ?? "").slice(0, 130),
