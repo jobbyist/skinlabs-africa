@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Lock, Sparkles } from "lucide-react";
+import { Lock, Fingerprint } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
       <Card className={eligible ? "border-primary/30" : undefined}>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            {eligible ? <Sparkles className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
+            {eligible ? <Fingerprint className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
             <span className="gradient-text font-bold">SKYNN AI</span> — Advanced AI Dermatology Report
           </CardTitle>
         </CardHeader>
@@ -73,7 +73,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
               <Badge variant="secondary">Included with your membership</Badge>
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
                 <Link to="/skynn-ai">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Fingerprint className="h-3.5 w-3.5" />
                   Start My Dermatology Report
                 </Link>
               </Button>
@@ -83,7 +83,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
               <Badge variant="secondary">{balance} Analysis Pass{balance === 1 ? "" : "es"} available</Badge>
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
                 <Link to="/skynn-ai">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Fingerprint className="h-3.5 w-3.5" />
                   Start My Dermatology Report
                 </Link>
               </Button>

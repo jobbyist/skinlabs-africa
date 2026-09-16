@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Check, Gift, Atom, Sparkles, Crown, Loader2 } from "lucide-react";
+import { Check, Gift, Atom, Fingerprint, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import AuthDialog from "@/components/AuthDialog";
@@ -18,7 +18,7 @@ import {
 } from "@/lib/pricing-config";
 import { membershipPlans as fallbackPlans, type BillingInterval, type PlanId } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
-import { startPaystackCheckout, startCreditPackCheckout, startFoundingMemberCheckout, type PaystackPlan } from "@/lib/paystack";
+import { startPaystackCheckout, startCreditPackCheckout, type PaystackPlan } from "@/lib/paystack";
 import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
@@ -60,12 +60,6 @@ const Pricing = () => {
   useEffect(() => {
     if (config?.creditPacks.length) trackConversionEvent("credit_pack_viewed");
   }, [config?.creditPacks.length]);
-
-  useEffect(() => {
-    if (config?.foundingOffer) {
-      trackConversionEvent("founding_member_viewed", { offerId: config.foundingOffer.id });
-    }
-  }, [config?.foundingOffer]);
 
   // Fall back to static plan data (src/data/plans.ts) only if the DB fetch genuinely
   // failed — this keeps the page from rendering blank, it is never the priced source.
@@ -157,24 +151,6 @@ const Pricing = () => {
       toast.error(error.message);
     }
   };
-
-  const handleBuyFoundingMember = async () => {
-    if (!config?.foundingOffer) return;
-    if (!user) {
-      setAuthOpen(true);
-      return;
-    }
-    setProcessingPlan("founding-member");
-    const { error } = await startFoundingMemberCheckout(config.foundingOffer.id);
-    if (error) {
-      setProcessingPlan(null);
-      toast.error(error.message);
-    }
-  };
-
-  const founding = config?.foundingOffer;
-  const foundingSpotsLeft = founding ? Math.max(founding.member_cap - founding.redeemed_count, 0) : 0;
-  const foundingAvailable = Boolean(founding) && foundingSpotsLeft > 0;
 
   return (
     <>
@@ -341,7 +317,7 @@ const Pricing = () => {
                   >
                     <div className="flex items-start gap-4">
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent">
-                        <Sparkles className="h-5 w-5 text-primary" />
+                        <Fingerprint className="h-5 w-5 text-primary" />
                       </span>
                       <div>
                         <h3 className="font-heading text-lg font-bold text-foreground">{pack.name}</h3>
@@ -362,42 +338,6 @@ const Pricing = () => {
                     </Button>
                   </div>
                 ))}
-
-                {foundingAvailable && founding && (
-                  <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-primary/40 bg-primary/5 p-8">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-start gap-4">
-                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                          <Crown className="h-5 w-5 text-primary" />
-                        </span>
-                        <div>
-                          <h3 className="font-heading text-lg font-bold text-foreground">{founding.name}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            A once-off R{founding.price}
-                            {founding.duration_months ? ` for ${founding.duration_months} months` : " for lifetime"} of
-                            Glow Insider — only {founding.member_cap} spots, {foundingSpotsLeft} left.
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        size="lg"
-                        className="gap-2"
-                        disabled={processingPlan === "founding-member"}
-                        onClick={handleBuyFoundingMember}
-                      >
-                        Become a Founding Member
-                      </Button>
-                    </div>
-                    <ul className="mt-6 grid gap-2 sm:grid-cols-2">
-                      {(founding.benefits as string[]).map((benefit) => (
-                        <li key={benefit} className="flex items-start gap-2 text-sm text-foreground">
-                          <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                          {benefit}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
               </>
             )}
 
