@@ -205,35 +205,61 @@ const ProductReview = () => {
     "@graph": [
       {
         "@type": "Product",
+        "@id": `${canonical}#product`,
         name: review.product_name,
+        image: productImage?.url,
+        description: review.verdict,
         brand: { "@type": "Brand", name: review.brand },
         category: review.category,
-        ...(productImage ? { image: productImage.url } : {}),
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "ZAR",
-          lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
-          highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
-          offerCount: review.retailers.length,
-        },
+        ...(review.retailers.length > 0
+          ? {
+              offers: {
+                "@type": "AggregateOffer",
+                priceCurrency: "ZAR",
+                lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
+                highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
+                offerCount: review.retailers.length,
+              },
+            }
+          : {}),
         review: {
           "@type": "Review",
-          reviewRating: { "@type": "Rating", ratingValue: score, bestRating: 10 },
           author: { "@type": "Organization", name: "SkinLabs" },
+          reviewRating: {
+            "@type": "Rating",
+            ratingValue: String(score),
+            bestRating: "10",
+            worstRating: "1",
+          },
           reviewBody: review.verdict,
         },
         aggregateRating: {
           "@type": "AggregateRating",
           ratingValue: score,
           bestRating: 10,
+          worstRating: 1,
           reviewCount: Math.max(1, displayComments.length),
         },
       },
       {
+        "@type": "WebPage",
+        "@id": `${canonical}#webpage`,
+        url: canonical,
+        isAccessibleForFree: false,
+        hasPart: {
+          "@type": "WebPageElement",
+          isAccessibleForFree: false,
+          cssSelector: ".paywalled-lab-breakdown",
+        },
+        mainEntity: { "@id": `${canonical}#product` },
+      },
+      {
         "@type": "BreadcrumbList",
+        "@id": `${canonical}#breadcrumb`,
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Reviews", item: "https://skinlabs.co.za/reviews" },
-          { "@type": "ListItem", position: 2, name: review.product_name, item: canonical },
+          { "@type": "ListItem", position: 1, name: "SkinLabs", item: "https://skinlabs.co.za/" },
+          { "@type": "ListItem", position: 2, name: "Reviews", item: "https://skinlabs.co.za/reviews" },
+          { "@type": "ListItem", position: 3, name: review.product_name, item: canonical },
         ],
       },
     ],
@@ -386,8 +412,8 @@ const ProductReview = () => {
               title="Unlock the full lab breakdown"
               message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
             >
-              <div className="space-y-4 rounded-3xl border border-border bg-card p-6">
-                <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown</h2>
+              <div className="paywalled-lab-breakdown space-y-4 rounded-3xl border border-border bg-card p-6">
+                <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown (Insider + VIP)</h2>
                 <p className="text-sm leading-relaxed text-foreground">{fullReview ?? (isMember ? "Loading the full verdict…" : review.verdict)}</p>
                 <div>
                   <h3 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h3>

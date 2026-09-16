@@ -123,7 +123,7 @@ const fetchReview = createServerFn({ method: 'GET' })
     let image: CategoryImage | null = null
     const bannerPath = getBrandBanner(review.brand)
     if (bannerPath) {
-      image = { url: bannerPath, alt: `${review.brand} brand banner`, creditName: review.brand, creditUrl: '#' }
+      image = { url: absoluteUrl(bannerPath), alt: `${review.brand} brand banner`, creditName: review.brand, creditUrl: '#' }
     } else {
       const { data: imgRow } = await supabase
         .from('review_images')
@@ -132,8 +132,11 @@ const fetchReview = createServerFn({ method: 'GET' })
         .maybeSingle()
       image = imgRow
         ? { url: imgRow.image_url, alt: imgRow.alt, creditName: imgRow.credit_name, creditUrl: imgRow.credit_url }
-        : getProductImage(review.category, review.id)
-    }
+        ? { url: absoluteUrl(imgRow.image_url), alt: imgRow.alt, creditName: imgRow.credit_name, creditUrl: imgRow.credit_url }
+        : (() => {
+            const fallback = getProductImage(review.category, review.id)
+            return fallback ? { ...fallback, url: absoluteUrl(fallback.url) } : null
+          })()
 
     // Related reviews: same category, excluding self -- static catalogue plus a
     // scoped (not full-table) generated-reviews query, same field set as the main
@@ -170,6 +173,7 @@ export const Route = createFileRoute('/reviews/$slug')({
       productName: review.product_name,
       brand: review.brand,
       category: review.category,
+      description: review.verdict,
       image: image ? absoluteUrl(image.url) : undefined,
       offers:
         review.retailers.length > 0
@@ -180,6 +184,7 @@ export const Route = createFileRoute('/reviews/$slug')({
             }
           : undefined,
       ratingValue: score,
+      paywallCssSelector: '.paywalled-lab-breakdown',
       reviewBody: review.verdict,
       reviewCount: 1,
     })
@@ -339,7 +344,7 @@ function ReviewPage() {
 
         {image && (
           <figure>
-            <img src={image.url} alt={`${review.category} product photography — ${image.alt}`} width={1200} height={630} loading="lazy" />
+            <img src={absoluteUrl(image.url)} alt={`${review.category} product photography — ${image.alt}`} width={1200} height={630} loading="lazy" />
             {image.creditUrl !== '#' && (
               <figcaption>
                 Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{' '}
@@ -406,8 +411,8 @@ function ReviewPage() {
           title="Unlock the full lab breakdown"
           message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
         >
-          <div>
-            <h2>The full breakdown</h2>
+          <div className="paywalled-lab-breakdown">
+            <h2>The full breakdown (Insider + VIP)</h2>
             <p>{fullReview ?? (isMember ? 'Loading the full verdict…' : review.verdict)}</p>
             <h3>Key ingredients</h3>
             <ul>
