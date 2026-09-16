@@ -23,6 +23,7 @@ import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { setPendingPlan, type PendingPlanId } from "@/lib/pending-plan";
 
 type PendingAction =
   | { kind: "subscribe"; plan: PaystackPlan }
@@ -37,6 +38,7 @@ const Pricing = () => {
   const [intervalTouched, setIntervalTouched] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [pendingPlanForAuth, setPendingPlanForAuth] = useState<PendingPlanId | null>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
   const variantKey = config?.variantKey ?? "control";
@@ -138,11 +140,23 @@ const Pricing = () => {
     if (planId !== "insider" && planId !== "glow_lite") return;
     const plan = planId;
     if (!user) {
+      // Store the plan selection in sessionStorage for persistence across auth flow
+      setPendingPlan(plan);
+      setPendingPlanForAuth(plan);
       setPendingAction({ kind: "trial", plan });
+      trackConversionEvent("plan_selected", { plan, intent: "trial" });
       setAuthOpen(true);
       return;
     }
+    // User is already authenticated - start trial immediately
     void beginTrial(plan);
+  };
+
+  const handleAuthComplete = () => {
+    const action = pendingAction;
+    setPendingAction(null);
+    setPendingPlanForAuth(null);
+    runPendingAction(action);
   };
 
   const handleBuyCreditPack = async (packId: string) => {
@@ -413,10 +427,12 @@ const Pricing = () => {
       <AuthDialog
         open={authOpen}
         onOpenChange={setAuthOpen}
-        onAuthenticated={() => {
-          const action = pendingAction;
-          setPendingAction(null);
-          runPendingAction(action);
+        onAuthenticated={handleAuthComplete}
+        pendingPlan={pendingPlanForAuth}
+        mode={pendingPlanForAuth ? "signup" : undefined}
+        onModeChange={(mode) => {
+          // Clear pending plan if user switches to sign-in
+          if (mode === "signin") setPendingPlanForAuth(null);
         }}
       />
     </>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
+import { getPendingPlan } from "@/lib/pending-plan";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -25,6 +26,27 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  /**
+   * Builds a redirect URL that preserves pending plan intent.
+   * If a plan is pending, adds it as a query parameter.
+   */
+  const buildRedirectUrl = (basePath: string = "/dashboard"): string => {
+    const pendingPlan = getPendingPlan();
+    const url = new URL(window.location.origin + basePath);
+    
+    if (pendingPlan) {
+      url.searchParams.set("plan", pendingPlan);
+    }
+    
+    // Preserve any existing query params from current location
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.forEach((value, key) => {
+      if (key !== "plan") url.searchParams.set(key, value);
+    });
+    
+    return url.toString();
+  };
+
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { data, error };
@@ -32,30 +54,30 @@ export const useAuth = () => {
 
   const signUp = async (email: string, password: string, username?: string) => {
     const { data, error } = await supabase.auth.signUp({
-      email,
+  const signUp = async (email: string, password: string, username?: string, redirectTo?: string) => {
       password,
       options: {
         emailRedirectTo: window.location.origin,
         data: username ? { username } : undefined,
-      },
+        emailRedirectTo: redirectTo ?? buildRedirectUrl(),
     });
     return { data, error };
   };
 
   const signInWithGoogle = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+  const signInWithGoogle = async (redirectTo?: string) => {
       provider: "google",
       options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
-    });
+      options: { redirectTo: redirectTo ?? buildRedirectUrl() },
     return { data, error };
   };
 
   /** Passwordless sign-in: emails a one-time magic link, no password required. */
   const signInWithMagicLink = async (email: string) => {
-    const { data, error } = await supabase.auth.signInWithOtp({
+  const signInWithMagicLink = async (email: string, redirectTo?: string) => {
       email,
       options: { emailRedirectTo: `${window.location.origin}${window.location.pathname}` },
-    });
+      options: { emailRedirectTo: redirectTo ?? buildRedirectUrl() },
     return { data, error };
   };
 
