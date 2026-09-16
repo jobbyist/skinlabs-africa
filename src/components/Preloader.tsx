@@ -6,12 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { useAuth } from "@/hooks/use-auth";
 import { useNewsArticles } from "@/hooks/use-news-articles";
-import { productReviews } from "@/data/reviews";
+import { productReviews, overallScore } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
 import logo from "@/assets/newskinlabs.png";
 import Autoplay from "embla-carousel-autoplay";
 import { markEntryGateResolved } from "@/lib/entry-gate";
+import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
+import { getApplicationWindowStatus } from "@/data/brandAmbassador";
+import { getProductImage } from "@/data/productImages";
 
 interface GateSlide {
   key: string;
@@ -25,29 +28,64 @@ interface GateSlide {
 const featuredComparison = comparisonArticles.find((c) => c.featured) ?? comparisonArticles[0];
 const springReset = seasonHubs.spring;
 
-/** Static picks alongside the live Daily Skinny briefings: one Shelf Showdown, one Seasonals hub. */
-const evergreenSlides: GateSlide[] = [
-  ...(featuredComparison
-    ? [
-        {
-          key: `compare-${featuredComparison.slug}`,
-          tag: featuredComparison.saContext,
-          title: featuredComparison.title,
-          href: `/reviews/versus/${featuredComparison.slug}`,
-          image: featuredComparison.thumbnail.url,
-          imageAlt: featuredComparison.thumbnail.alt,
-        },
-      ]
-    : []),
-  {
+/** Shelf Showdown + seasonals — Shelf Showdown rotates daily at 05:00 SAST. */
+const buildEvergreenSlides = (): GateSlide[] => {
+  const showdowns = comparisonArticles.length
+    ? comparisonArticles
+    : featuredComparison
+      ? [featuredComparison]
+      : [];
+  const dailyShowdown = pickDaily(showdowns, new Date(), 5);
+  const slides: GateSlide[] = [];
+  if (dailyShowdown) {
+    slides.push({
+      key: `compare-${dailyShowdown.slug}`,
+      tag: dailyShowdown.saContext || "Shelf Showdown",
+      title: dailyShowdown.title,
+      href: `/reviews/versus/${dailyShowdown.slug}`,
+      image: dailyShowdown.thumbnail?.url ?? null,
+      imageAlt: dailyShowdown.thumbnail?.alt ?? dailyShowdown.title,
+    });
+  }
+  slides.push({
     key: "seasonal-spring",
     tag: springReset.eyebrow,
     title: springReset.h1,
     href: "/seasonals/spring",
     image: springReset.heroImage.url,
     imageAlt: springReset.heroImage.alt,
-  },
-];
+  });
+  return slides;
+};
+
+/** Brand Ambassador applications card — auto-removed after 25 Sep 2026 SAST. */
+const buildAmbassadorSlide = (): GateSlide | null => {
+  if (getApplicationWindowStatus() === "after") return null;
+  return {
+    key: "brand-ambassadors-2026",
+    tag: "Applications open",
+    title: "SkinLabs® Brand Ambassador Programme 2026 — apply now",
+    href: "/brand-ambassadors",
+    image: "/og-brand-ambassadors.jpg",
+    imageAlt: "SkinLabs Brand Ambassador Programme 2026",
+  };
+};
+
+/** Three product reviews rotated daily when the set of published reviews changes. */
+const buildDailyReviewSlides = (): GateSlide[] => {
+  const picks = pickDailySlice(productReviews, 3, new Date(), 0);
+  return picks.map((review) => {
+    const img = getProductImage(review.category, review.id);
+    return {
+      key: `review-${review.id}`,
+      tag: `${overallScore(review)}/10 · ${review.brand}`,
+      title: review.product_name,
+      href: `/reviews/${review.id}`,
+      image: img?.url ?? null,
+      imageAlt: img?.alt ?? `${review.brand} ${review.product_name}`,
+    };
+  });
+};
 
 const LOADING_KEY = "skinlabs-preloader-shown";
 const GATE_KEY = "skinlabs-gate-shown";
@@ -65,13 +103,6 @@ const UNLOCK_ANIMATION_MS = 650;
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|googlebot|bingbot|yandex|baiduspider|duckduckbot|facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|lighthouse|headlesschrome|prerender/i;
 
-/**
- * True only for a same-session, cross-site arrival on the homepage — i.e. someone
- * clicking in from Google, social, another site, etc. Direct navigation (empty
- * referrer, which is also how every search-engine crawler and our own
- * prerender step fetch the page) and in-site navigation never qualify, so the
- * gate can never be the thing a crawler sees or indexes.
- */
 const isExternalArrival = (): boolean => {
   if (typeof document === "undefined" || typeof navigator === "undefined") return false;
   if (BOT_UA_PATTERN.test(navigator.userAgent)) return false;
@@ -96,6 +127,7 @@ const Preloader = () => {
   const [externalArrival] = useState(isExternalArrival);
 
   const gateSlides: GateSlide[] = [
+    ...buildDailyReviewSlides(),
     ...articles.map((article) => ({
       key: article.id,
       tag: article.sa_context_tag,
@@ -104,7 +136,8 @@ const Preloader = () => {
       image: article.cover_image_url,
       imageAlt: article.cover_image_alt || article.title,
     })),
-    ...evergreenSlides,
+    ...(buildAmbassadorSlide() ? [buildAmbassadorSlide()!] : []),
+    ...buildEvergreenSlides(),
   ];
 
   const [showLoading, setShowLoading] = useState(() => {
@@ -150,10 +183,6 @@ const Preloader = () => {
     }
   }, [user, gateVisible]);
 
-  // Let other first-visit UI (e.g. the cookie consent banner) know it's clear to
-  // appear: either this gate has just been dismissed / was already shown before,
-  // the visitor is signed in, or the gate simply doesn't apply to this visit
-  // (not the homepage, or not a cross-site arrival) so it will never show.
   useEffect(() => {
     if (gateDismissed) {
       markEntryGateResolved();
@@ -228,10 +257,6 @@ const Preloader = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: "easeInOut" }}
-            // Belt-and-braces: this only ever mounts for a real, cross-site human
-            // arrival (see isExternalArrival above), never for a crawler or our own
-            // prerender pass — data-nosnippet keeps its copy out of search snippets
-            // even so, without affecting the real homepage content sitting behind it.
             data-nosnippet=""
           >
             <div className="border-b border-border bg-background/95 py-3 text-center backdrop-blur">
@@ -250,8 +275,6 @@ const Preloader = () => {
                 style={{ width: 160, height: "auto" }}
                 className="mx-auto mb-8 dark:invert"
               />
-              {/* Not an h1: this overlay sits on top of the homepage's own h1 (Hero) without
-                  hiding it from the accessibility tree, so the page must keep exactly one h1. */}
               <p className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                 Uncover the whole story behind your skincare.
               </p>
