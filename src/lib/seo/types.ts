@@ -44,10 +44,7 @@ export interface ProductReviewJsonLdInput {
   description?: string;
   /** Absolute image URL. Omit if no real image resolved -- never fabricate one. */
   image?: string;
-  /** Omit entirely (not zero/null) when there are no real retailer listings --
-   * some AI-generated reviews genuinely have none yet. Never synthesize a
-   * price range from an empty list (Math.min/max of [] is +-Infinity, which
-   * serializes to invalid `null` JSON-LD). */
+  /** Offer data from actual retailers. Omit entirely when there are no listings. */
   offers?: { lowPrice: number; highPrice: number; offerCount: number };
   /** overallScore() out of 10 -- same scale used everywhere else in the app. */
   ratingValue: number;
