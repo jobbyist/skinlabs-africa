@@ -144,8 +144,8 @@ const CorrectionsRemovals = () => {
                     <div className="bg-primary/5 rounded-xl p-6 mb-4">
                       <div className="flex items-center gap-3">
                         <Mail className="h-5 w-5 text-primary" />
-                        <a href="mailto:corrections@skinlabs.co.za" className="text-primary font-medium hover:underline">
-                          corrections@skinlabs.co.za
+                        <a href="mailto:legal@skinlabs.co.za" className="text-primary font-medium hover:underline">
+                          legal@skinlabs.co.za
                         </a>
                       </div>
                     </div>
@@ -175,7 +175,7 @@ const CorrectionsRemovals = () => {
                       </li>
                     </ul>
                     <Button asChild className="w-full sm:w-auto">
-                      <a href="mailto:corrections@skinlabs.co.za">Submit a Request</a>
+                      <a href="mailto:legal@skinlabs.co.za">Submit a Request</a>
                     </Button>
                   </div>
 
@@ -223,11 +223,7 @@ const CorrectionsRemovals = () => {
                       </li>
                       <li className="flex items-start">
                         <span className="mr-2">•</span>
-                        <span>Privacy matters: <a href="mailto:privacy@skinlabs.co.za" className="text-primary hover:underline">privacy@skinlabs.co.za</a></span>
-                      </li>
-                      <li className="flex items-start">
-                        <span className="mr-2">•</span>
-                        <span>Legal matters: <a href="mailto:legal@skinlabs.co.za" className="text-primary hover:underline">legal@skinlabs.co.za</a></span>
+                        <span>Privacy and legal matters: <a href="mailto:legal@skinlabs.co.za" className="text-primary hover:underline">legal@skinlabs.co.za</a></span>
                       </li>
                     </ul>
                   </div>
