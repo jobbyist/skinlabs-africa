@@ -177,11 +177,11 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-background/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-background/10 pt-8 flex flex-col items-center gap-4 text-center">
           <p className="text-background/40 text-sm">
             © {new Date().getFullYear()} SkinLabs®. All rights reserved.
           </p>
-          <div className="flex flex-wrap gap-4 text-sm text-background/40">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-background/40">
             <Link to="/privacy-policy" className="hover:text-background transition-colors">
               Privacy Policy
             </Link>
