@@ -301,23 +301,47 @@ feature appear operational.
       otherwise — this is what actually enforces the "don't fabricate the
       methodology" boundary at runtime, not just a comment.
       **`AI_GATEWAY_API_KEY` fallback (2026-09-16, same-day follow-up)** —
-      `claudeProvider.ts` resolves its transport at call time:
-      `ANTHROPIC_API_KEY` wins when set (direct Anthropic Messages API, as
-      above); if absent, it falls back to `AI_GATEWAY_API_KEY` — the same
-      key already configured as a Vercel project env var for the
-      product-review pipeline's Gemini calls (see that section above) —
-      routed to Claude through Vercel AI Gateway's OpenAI-compatible chat
-      completions endpoint (`https://ai-gateway.vercel.sh/v1/chat/
-      completions`, model string `anthropic/<SKYNN_ADVANCED_MODEL>`,
-      OpenAI-style forced function-calling in place of Anthropic's native
-      tool_use block) rather than a second `AssessmentAIProvider`
-      implementation, since it's still Claude either way and the report
-      contract stays identical. **Unverified**: this environment has no
-      way to set a Supabase edge function secret, so the gateway path has
-      never been exercised against a real `AI_GATEWAY_API_KEY` — confirm
-      Vercel AI Gateway's exact endpoint/response shape once a human adds
-      that secret, the same category of gap already documented for
+      `claudeProvider.ts` resolves its transport at call time, routed to
+      Claude through Vercel AI Gateway's OpenAI-compatible chat completions
+      endpoint (`https://ai-gateway.vercel.sh/v1/chat/completions`, model
+      string `anthropic/<model>`, OpenAI-style forced function-calling in
+      place of Anthropic's native tool_use block) rather than a second
+      `AssessmentAIProvider` implementation, since it's still Claude either
+      way and the report contract stays identical. **Unverified**: this
+      environment has no way to set a Supabase edge function secret, so the
+      gateway path has never been exercised against a real
+      `AI_GATEWAY_API_KEY` — confirm Vercel AI Gateway's exact
+      endpoint/response shape once a human adds that secret, the same
+      category of gap already documented for
       `MARKETPLACE_CRON_SECRET`/`GEMINI_API_KEY` elsewhere in this file.
+      **`AI_GATEWAY_API_KEY` promoted to the default transport, per-task
+      model routing added (2026-09-17)** — explicit product decision:
+      `resolveTransport()` in `claudeProvider.ts` now tries
+      `AI_GATEWAY_API_KEY` first and only falls back to `ANTHROPIC_API_KEY`
+      when it's unset (inverted from the 09-16 priority above), so this
+      engine runs on the same "no direct Anthropic key needed" operational
+      story as the product-review pipeline's Gemini calls, rather than
+      requiring a second, differently-scoped secret. Model selection moved
+      out of a single `DEFAULT_MODEL` constant into a new
+      `_shared/assessment/modelConfig.ts` (`resolveModelForTask()`), a
+      per-task routing table: report generation and everything folded into
+      that one call today (complex assessment reasoning, evidence
+      synthesis over the ALLOWED EVIDENCE list, safety/clinical-boundary
+      language) plus report regeneration all route to **Opus 5**
+      (`claude-opus-5`); routine/simple transformations to **Sonnet 5**
+      (`claude-sonnet-5`); lightweight classification to **Haiku 4.5**
+      (`claude-haiku-4-5`); simple UI/chat interactions default to Sonnet 5
+      with Haiku 4.5 available for the cheapest surfaces. Only
+      `report_generation` has a real call site today (`generateReport()`);
+      the other task keys exist so a future call site (an explicit
+      regenerate action, a classification pre-pass, a chat surface) picks
+      up the right model by construction. `SKYNN_ADVANCED_MODEL` still
+      overrides every task globally when set. Also bumped both transports'
+      `max_tokens` from 4096 to 8192 (and added the previously-missing
+      `max_tokens` on the Gateway call, which had none) — Opus 5's adaptive
+      thinking shares the same token budget as the forced tool-call output
+      on a non-streaming request, so the old 4096 ceiling risked truncating
+      a real report before the model ever emitted the tool call.
     - **Safety screening** (`_shared/assessment/safety.ts`) — a
       deterministic, non-clinical triage heuristic computed from the
       respondent's own `safety_red_flags` answer only (never from the
@@ -673,6 +697,62 @@ feature appear operational.
     sourced products, not run through the live Gemini pipeline, and
     distinguishable from future real pipeline output by that `generated_by`
     value.
+  - **Sibling Briefings pipeline: `api/briefings-sync.ts` (added
+    2026-09-16, previously undocumented here)** — same four-role
+    architecture as this file (Firecrawl researcher / Gemini columnist /
+    Pexels+Unsplash photo / Supabase memory+quota+publication), but for
+    Daily Skinny briefings into `news_articles` instead of product
+    reviews: 2-3 full-length (1800+ word) briefings/day via Vercel Cron at
+    04:00 UTC (`vercel.json`), its own `*_BRIEFINGS`-suffixed env vars
+    (`GEMINI_API_KEY_BRIEFINGS`, `FIRECRAWL_API_KEY_BRIEFINGS`,
+    `PEXELS_API_KEY_BRIEFINGS`, `CRON_SECRET_BRIEFINGS` — falls back to
+    accepting the shared `CRON_SECRET` too), its own cache/quota
+    namespace (`pipeline_source_cache`/`pipeline_api_usage`, same tables
+    as product-review-sync, distinguished by key prefix), and 9 curated
+    SA skincare news source channels. This coexists with, and is
+    unrelated to, both the older `newsroom-sync` Supabase edge function
+    (see below — cron already unscheduled) and the pre-existing
+    hand-authored Daily Skinny workflow in `content/daily-skinny/` (a
+    human writes 2000+ word manuscripts against the brand's editorial
+    blueprint, then a SQL seed migration inserts them into
+    `news_articles` directly — see that directory's own `README.md`);
+    all three can leave rows in the same `news_articles` table, so a
+    fresh row there is not by itself proof any *one* of them is working.
+  - **Pipeline health check (2026-09-17)** — asked to "trigger" both
+    Vercel-cron pipelines to confirm they're still configured properly.
+    Could not literally invoke either: both require a bearer secret
+    (`CRON_SECRET` / `CRON_SECRET_BRIEFINGS`) that is a Vercel-dashboard-
+    only project env var, and — confirmed by searching this session's
+    actual Vercel MCP tool list — nothing available here can read,
+    decrypt, or otherwise obtain a Vercel env var's value, nor invoke a
+    deployed serverless function directly (only build/runtime *logs* are
+    readable, and the Hobby-plan project's runtime-log retention is 1
+    hour, too short to see a 04:00/07:00 UTC cron run after the fact).
+    Checked configuration health indirectly instead, live against project
+    `gnkpzijxuciiaamakgzm`: `get_runtime_errors` for both routes over the
+    last 7 days came back clean (no 5xx clusters). But `pipeline_api_usage`
+    (real Firecrawl/Gemini calls, shared by both pipelines) has **no rows
+    at all after 2026-09-15**, and `ai_generated_product_reviews` has no
+    real (`generated_by = 'gemini'`) row after 2026-09-15 07:08 UTC either
+    — i.e. **the product-review-sync pipeline shows no evidence of having
+    run successfully on 2026-09-16 or since**, despite its 07:00 UTC daily
+    cron. `news_articles` did gain fresh 2026-09-16/17 rows, but git
+    history shows those specific rows were the hand-authored +
+    SQL-seeded `content/daily-skinny/` workflow above (commits by the
+    human account merged straight to `main` the same morning), not
+    `api/briefings-sync.ts` output — and that pipeline was only added
+    the day before (2026-09-16) and has no confirmed successful run of
+    its own yet either. Read together, this looks like both Vercel-cron
+    pipelines may currently be silently failing (an expired/missing
+    Gemini or Firecrawl key, a quota trip, or a runtime error too old for
+    Hobby-plan log retention to show) and the human has been compensating
+    by hand-writing Daily Skinny content directly — **not confirmed**,
+    since a real invocation was never possible from this environment, but
+    worth a human checking the Vercel dashboard's own Cron Jobs execution
+    history and re-confirming `GEMINI_API_KEY`/`FIRECRAWL_API_KEY`/
+    `GEMINI_API_KEY_BRIEFINGS`/`FIRECRAWL_API_KEY_BRIEFINGS`/
+    `SUPABASE_SERVICE_ROLE_KEY`/`CRON_SECRET`/`CRON_SECRET_BRIEFINGS`
+    directly before assuming either pipeline is healthy.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded

@@ -7,36 +7,42 @@
  * Two transports, same model family and same report contract — this is
  * still "Claude" either way, so it stays one provider class rather than a
  * second AssessmentAIProvider implementation:
- *   1. ANTHROPIC_API_KEY set -> Anthropic's own Messages API directly via
- *      fetch (no SDK dependency — matches this repo's existing
- *      thin-fetch-wrapper convention, see supabase/functions/_shared/ai.ts
- *      for the Lovable Gateway equivalent). Structured output via a single
- *      forced tool call whose input_schema mirrors reportSchema.ts.
- *   2. ANTHROPIC_API_KEY absent, AI_GATEWAY_API_KEY set -> falls back to
- *      Vercel's AI Gateway (the same key already configured as a Vercel
- *      project env var for the product-review pipeline's Gemini calls —
- *      see CLAUDE.md), routed to Claude via its OpenAI-compatible chat
- *      completions endpoint with an `anthropic/<model>` model string and
- *      OpenAI-style forced function-calling for the same structured
- *      output. This path has not been exercised against a real Gateway
- *      key from this environment (no tool here can set Supabase edge
- *      function secrets — see the "Requires ANTHROPIC_API_KEY /
- *      AI_GATEWAY_API_KEY" note in CLAUDE.md) — verify once a human adds
- *      either secret.
+ *   1. AI_GATEWAY_API_KEY (the DEFAULT, 2026-09-17) -> Vercel's AI Gateway
+ *      — the same key already configured as a Vercel project env var for
+ *      the product-review pipeline's Gemini calls, see CLAUDE.md — routed
+ *      to Claude via its OpenAI-compatible chat completions endpoint with
+ *      an `anthropic/<model>` model string and OpenAI-style forced
+ *      function-calling for structured output. Standardising on the
+ *      Gateway here keeps this engine on the same "no direct Anthropic
+ *      key needed" operational story as the rest of the app's AI calls
+ *      (all of which already run through a Vercel-managed key), rather
+ *      than requiring a second, differently-scoped secret.
+ *   2. ANTHROPIC_API_KEY set, AI_GATEWAY_API_KEY absent -> falls back to
+ *      Anthropic's own Messages API directly via fetch (no SDK dependency
+ *      — matches this repo's existing thin-fetch-wrapper convention, see
+ *      supabase/functions/_shared/ai.ts for the Lovable Gateway
+ *      equivalent). Structured output via a single forced tool call whose
+ *      input_schema mirrors reportSchema.ts. Useful for local/manual
+ *      testing against Anthropic directly without going through Vercel.
  *   Neither key set -> AssessmentProviderError("not_configured").
+ *
+ * Model selection is per-task via modelConfig.ts's resolveModelForTask —
+ * see that file for the full Opus 5 / Sonnet 5 / Haiku 4.5 routing table.
+ * SKYNN_ADVANCED_MODEL remains a global override on top of that routing.
  */
 import { AssessmentProviderError, type AssessmentGenerationInput, type AssessmentGenerationResult } from "./types.ts";
 import { validateReportShape } from "./reportSchema.ts";
+import { resolveModelForTask } from "./modelConfig.ts";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const AI_GATEWAY_CHAT_COMPLETIONS_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
 
-// Configurable via SKYNN_ADVANCED_MODEL (section 4) — never assume this stays
-// the production model. Confirm against Anthropic's current model list
-// before activating this engine in production (same caution CLAUDE.md
-// already documents for the Gemini model id used elsewhere in this repo).
-const DEFAULT_MODEL = "claude-sonnet-5";
+// Non-streaming request against a reasoning-heavy model (Opus 5 by default
+// for report_generation — see modelConfig.ts) whose adaptive thinking
+// shares this same token budget: 4096 left real reports at risk of being
+// cut off mid-generation before the model ever emits the forced tool call.
+const MAX_REPORT_TOKENS = 8192;
 const REPORT_TOOL_NAME = "submit_advanced_dermatology_report";
 
 const REPORT_INPUT_SCHEMA = {
@@ -159,7 +165,7 @@ async function callAnthropic(args: {
       },
       body: JSON.stringify({
         model: args.model,
-        max_tokens: 4096,
+        max_tokens: MAX_REPORT_TOKENS,
         system: args.systemPrompt,
         messages: [{ role: "user", content: args.userMessage }],
         tools: [
@@ -220,6 +226,7 @@ async function callViaGateway(args: {
       },
       body: JSON.stringify({
         model: toGatewayModelId(args.model),
+        max_tokens: MAX_REPORT_TOKENS,
         messages: [
           { role: "system", content: args.systemPrompt },
           { role: "user", content: args.userMessage },
@@ -269,16 +276,17 @@ interface ResolvedTransport {
   apiKey: string;
 }
 
-/** ANTHROPIC_API_KEY wins when both are set — the direct API is the
- *  primary, best-understood path; the gateway is strictly a fallback. */
+/** AI_GATEWAY_API_KEY wins when both are set — the Vercel AI Gateway is now
+ *  the default transport (2026-09-17); ANTHROPIC_API_KEY is a fallback for
+ *  direct-Anthropic testing, not the primary path. */
 function resolveTransport(): ResolvedTransport {
-  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (anthropicKey) return { call: callAnthropic, apiKey: anthropicKey };
-
   const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
   if (gatewayKey) return { call: callViaGateway, apiKey: gatewayKey };
 
-  throw new AssessmentProviderError("Neither ANTHROPIC_API_KEY nor AI_GATEWAY_API_KEY is configured.", "not_configured");
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (anthropicKey) return { call: callAnthropic, apiKey: anthropicKey };
+
+  throw new AssessmentProviderError("Neither AI_GATEWAY_API_KEY nor ANTHROPIC_API_KEY is configured.", "not_configured");
 }
 
 export class ClaudeAssessmentProvider {
@@ -286,7 +294,7 @@ export class ClaudeAssessmentProvider {
 
   async generateReport(input: AssessmentGenerationInput): Promise<AssessmentGenerationResult> {
     const { call, apiKey } = resolveTransport();
-    const model = Deno.env.get("SKYNN_ADVANCED_MODEL") || DEFAULT_MODEL;
+    const model = resolveModelForTask("report_generation");
     const userMessage = buildUserMessage(input);
 
     // One repair retry on a malformed response (section 12/20) — a network
