@@ -1,0 +1,1 @@
+-- seed applied via Supabase MCP; full file in artifacts
