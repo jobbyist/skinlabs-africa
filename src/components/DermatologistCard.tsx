@@ -20,6 +20,8 @@ import {
 import { Input } from "@/components/ui/input";
 import type { Dermatologist } from "@/data/dermatologists";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface DermatologistCardProps {
   dermatologist: Dermatologist;
@@ -89,9 +91,25 @@ const DermatologistCard = ({ dermatologist, index = 0 }: DermatologistCardProps)
     setNotifyEmail("");
   };
 
-  const handleNotify = (e: React.FormEvent) => {
+  const handleNotify = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!notifyEmail.trim()) return;
+
+    const { error } = await supabase.from("notify_me_requests").insert({
+      feature_key: "dermatologist_booking_messaging",
+      contact_method: "email",
+      email: notifyEmail.trim(),
+    });
+
+    if (error) {
+      toast.error(
+        error.message?.includes("Too many requests")
+          ? error.message
+          : "That didn't go through — please try again."
+      );
+      return;
+    }
+
     setNotified(true);
   };
 

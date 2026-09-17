@@ -31,5 +31,14 @@ verify_jwt = false
 [functions.openhaus-price-sync]
 verify_jwt = false
 
+[functions.send-email]
+verify_jwt = true
+
+[functions.email-processor]
+verify_jwt = false
+
+[functions.email-webhooks]
+verify_jwt = false
+
 [functions.quote-ss-beauty-submit]
 verify_jwt = false

@@ -55,6 +55,30 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+  // Enqueued BEFORE deleteUser() runs, deliberately: email_events/email_outbox
+  // reference auth.users(id) ON DELETE SET NULL (not CASCADE) precisely so
+  // this confirmation survives the very deletion it describes, but the
+  // recipient_email snapshot still needs to be captured while the claims are
+  // available. Best-effort — a failure here must never block account
+  // deletion itself.
+  const email = (claimsData.claims.email as string | undefined) ?? null;
+  if (email) {
+    const { error: enqueueError } = await admin.rpc("enqueue_email", {
+      p_event_type: "ACCOUNT_DELETED",
+      p_event_idempotency_key: `account_deleted:${userId}`,
+      p_template_id: "account_deleted",
+      p_category: "ACCOUNT",
+      p_user_id: userId,
+      p_recipient_email: email,
+      p_payload: {},
+      p_source: "edge:account-delete",
+    });
+    if (enqueueError) {
+      console.warn("account-delete: failed to enqueue ACCOUNT_DELETED email", enqueueError);
+    }
+  }
+
   const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
   if (deleteError) {
     console.error("account-delete: failed to delete user", deleteError);
