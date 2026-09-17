@@ -73,7 +73,18 @@ export type ConversionEvent =
   | "advanced_assessment_upsell_viewed"
   | "advanced_assessment_upsell_clicked"
   | "advanced_assessment_access_denied"
-  | "advanced_assessment_membership_cta_clicked";
+  | "advanced_assessment_membership_cta_clicked"
+  // Auth + membership onboarding funnel (AuthDialog, Pricing, /reset-password, /admin)
+  | "membership_plan_selected"
+  | "auth_started"
+  | "signin_completed"
+  | "password_reset_started"
+  | "password_reset_completed"
+  | "trial_activation_started"
+  | "trial_activation_failed"
+  | "dashboard_entered"
+  | "admin_login_success"
+  | "admin_login_failure";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

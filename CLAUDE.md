@@ -233,6 +233,162 @@ feature appear operational.
     wasn't kept, since it's a one-off, not a build step) after a design-
     system change substantial enough to warrant its own dated bullet in
     this file, not for every minor tweak.
+  - **Advanced Dermatology Assessment engine (2026-09-16)** — a new,
+    separate backend foundation for a future Claude-powered "Advanced AI
+    Dermatology Report", distinct from both the free Starter Analysis above
+    and the existing premium tier of the live `skincare-ai` edge function.
+    Ships **feature-flagged off** (`skynn_advanced_assessment_config.
+    rollout_stage = 'disabled'`) and reachable only at the unlinked route
+    `/skynn-ai/advanced` — nothing in existing navigation (Header, Footer,
+    `AdvancedAssessmentCard.tsx`, the dashboard) points at it, and it must
+    stay that way until a human flips the flag, per the standing "never make
+    an unfinished feature appear operational" instruction. Two reasons it's
+    off: no dermatologist-approved SKYNN methodology/system prompt exists
+    yet (see below), and it hasn't been through a real end-to-end QA pass.
+    - **Schema** — `supabase/migrations/20260916130000_advanced_assessment_
+      engine_core.sql` (+`...130100_..._seed.sql`, +`..._advisor_fixes.sql`):
+      `assessment_definitions` (versioned question library, one JSONB
+      `sections` doc per version — same "evolving-shape JSONB column"
+      precedent as `skincare_recommendations.result_payload`, not a
+      normalised questions table), `assessment_prompt_versions` (the
+      PromptRegistry — RLS-enabled with **zero** policies for anon/
+      authenticated, so only `service_role` can ever read it; seeded with a
+      `1.0.0-placeholder` row, `system_prompt IS NULL`, `is_placeholder =
+      true` — no clinical prompt is fabricated anywhere in this feature),
+      `skynn_advanced_assessment_config` (the singleton feature-flag row,
+      same zero-policy lockdown), `advanced_assessment_evidence` (controlled
+      citation catalogue, empty until SkinLabs supplies sourced content),
+      `advanced_assessment_sessions`, `advanced_assessment_reports`,
+      `advanced_assessment_events`. Session mutations are deliberately NOT
+      reachable via a plain client `INSERT`/whole-row `UPDATE` — only a
+      column-limited autosave `UPDATE` (`responses`/`current_section_id`/
+      `completeness_pct`) plus `SECURITY DEFINER` RPCs
+      (`start_advanced_assessment_session`, `save_advanced_assessment_
+      progress`, `submit_advanced_assessment_session`, and service-role-only
+      `mark_advanced_assessment_processing`/`complete_advanced_assessment_
+      session`/`fail_advanced_assessment_session`) — a bare ownership-only
+      RLS policy would still let a client write `status = 'completed'` or an
+      arbitrary `pass_transaction_id` directly, which this closes off
+      structurally. `compute_assessment_completeness()` is the ONLY thing
+      `submit_advanced_assessment_session` trusts to gate submission
+      (recomputed server-side from the session's own pinned definition +
+      actual `responses` every time) — the client-writable `completeness_pct`
+      column is a cosmetic progress-bar cache only, never trusted for the
+      gate. Reuses existing infra rather than duplicating it: `is_member()`
+      for membership, and the **same** `consume_analysis_pass()`/
+      `refund_analysis_pass()` pair the existing Advanced AI Dermatology
+      Report already uses — an Analysis Pass is consumed exactly once, at
+      submission (never at session creation), with an idempotency key
+      (`session_id:submission_version`) so a retried submit returns the
+      existing report instead of charging or generating twice.
+    - **Provider abstraction** — `supabase/functions/_shared/assessment/`:
+      `provider.ts` (`AssessmentAIProvider` interface) →
+      `claudeProvider.ts` (`ClaudeAssessmentProvider`, the only Anthropic
+      implementation so far) — the Anthropic Messages API called directly
+      via `fetch` (no SDK dependency, matching this repo's existing
+      thin-fetch-wrapper convention for `_shared/ai.ts`'s Lovable Gateway
+      equivalent), forcing structured output via a single tool call whose
+      `input_schema` mirrors `reportSchema.ts`'s zod schema, with one
+      repair retry on a malformed response. Model is
+      `SKYNN_ADVANCED_MODEL`-configurable (default `claude-sonnet-5` —
+      reconfirm against Anthropic's current model list before activating,
+      same caution already given elsewhere in this file for the Gemini
+      model id); `ANTHROPIC_API_KEY` and `SKYNN_SYSTEM_PROMPT_VERSION`
+      (an operational override to pin a specific prompt version) are the
+      other two env vars, neither ever exposed to Vite/client-side env.
+      `promptRegistry.ts` loads the active (non-placeholder) prompt via a
+      service-role client and throws a safe `not_configured` error
+      otherwise — this is what actually enforces the "don't fabricate the
+      methodology" boundary at runtime, not just a comment.
+      **`AI_GATEWAY_API_KEY` fallback (2026-09-16, same-day follow-up)** —
+      `claudeProvider.ts` resolves its transport at call time:
+      `ANTHROPIC_API_KEY` wins when set (direct Anthropic Messages API, as
+      above); if absent, it falls back to `AI_GATEWAY_API_KEY` — the same
+      key already configured as a Vercel project env var for the
+      product-review pipeline's Gemini calls (see that section above) —
+      routed to Claude through Vercel AI Gateway's OpenAI-compatible chat
+      completions endpoint (`https://ai-gateway.vercel.sh/v1/chat/
+      completions`, model string `anthropic/<SKYNN_ADVANCED_MODEL>`,
+      OpenAI-style forced function-calling in place of Anthropic's native
+      tool_use block) rather than a second `AssessmentAIProvider`
+      implementation, since it's still Claude either way and the report
+      contract stays identical. **Unverified**: this environment has no
+      way to set a Supabase edge function secret, so the gateway path has
+      never been exercised against a real `AI_GATEWAY_API_KEY` — confirm
+      Vercel AI Gateway's exact endpoint/response shape once a human adds
+      that secret, the same category of gap already documented for
+      `MARKETPLACE_CRON_SECRET`/`GEMINI_API_KEY` elsewhere in this file.
+    - **Safety screening** (`_shared/assessment/safety.ts`) — a
+      deterministic, non-clinical triage heuristic computed from the
+      respondent's own `safety_red_flags` answer only (never from the
+      model's output, so a hallucination can't suppress or invent a flag).
+      Explicitly documented as NOT dermatologist-approved diagnostic
+      criteria — SkinLabs hasn't supplied any yet — kept in application code
+      specifically so it can be reviewed/replaced without a migration.
+    - **Evidence/compliance** (`_shared/assessment/evidence.ts`,
+      `compliance.ts`) — `validateCitedEvidence()` strips any citation id
+      the model returns that wasn't in the `advanced_assessment_evidence`
+      rows actually given to it (never trusts the model's restatement of an
+      allowed citation either — always substitutes the server's own record);
+      `scanComplianceFlags()` reuses the exact `FORBIDDEN_DIAGNOSIS_TERMS`
+      list from `skincare-ai/index.ts` so the two AI paths can't drift on
+      what counts as a named-diagnosis violation.
+    - **API** — single action-routed edge function
+      `supabase/functions/skynn-advanced-assessment/index.ts` (same
+      one-function/JSON-`action` convention as `paystack-payment`/
+      `newsroom-sync`): `access`, `create_session`, `get_session`,
+      `update_session`, `submit`, `status`, `get_report`, `list_reports`,
+      `log_event`. The frontend never talks to `advanced_assessment_*`
+      tables/RPCs directly — everything goes through this function, which
+      holds both a user-scoped client (RLS-honest, forwards the caller's
+      JWT) and a service-role client (prompt/evidence reads, completion/
+      failure RPCs). Generation is synchronous within the `submit` request —
+      **documented limitation**: this platform has no background worker/
+      queue infra, so there's no async job step; the function is structured
+      so a future queue-based worker could pick up `generation_status =
+      'pending'` reports without a rewrite. Simple per-user daily rate
+      limits (10 session creates / 5 submits per 24h) reuse the existing
+      count-query pattern from `newsroom-sync`'s daily cap rather than new
+      infra.
+    - **Frontend contract** — `src/lib/assessment/` (`types.ts`, `client.ts`
+      edge-function wrapper, `completeness.ts` — a client-side mirror of the
+      SQL completeness function for instant progress-bar UX only, never
+      trusted for gating), `src/hooks/use-advanced-assessment.ts`,
+      `src/components/advanced-assessment/*` (question renderer, section
+      progress, the assess/review/processing/report-reveal flow),
+      `src/pages/AdvancedAssessment.tsx` at `/skynn-ai/advanced` (see
+      feature-flag note above — deliberately unlinked). `entitlements.ts`
+      gained an `"assessment.advanced"` `FeatureKey` on Insider/VIP for
+      documentation purposes only — actual access is hybrid (membership OR
+      an Analysis Pass, same shape as the existing card), so the real gate
+      is always the server-side `get_advanced_assessment_access()` RPC via
+      `useAdvancedAssessmentAccess()`, never `hasCapability()` alone.
+      `buildRoutineHandoffContext()` in `src/lib/assessment/types.ts` is the
+      Smart Routines integration CONTRACT only (section 35) — no write path
+      into `use-routine.ts` exists yet, deliberately, to avoid building a
+      second routine engine.
+    - **"Get started for free" CTA copy (2026-09-16, same-day follow-up)**
+      — `AIFormulator.tsx`'s intro-screen primary CTA (rendered both at
+      `/skynn-ai` and embedded in the dashboard's "Skin Analysis (SKYNN
+      AI)" tab via `FormulatorTab.tsx`) now reads "Start My Analysis"
+      instead of "Get started for free" whenever `isMember` (Insider/VIP)
+      or `passBalance > 0` (an Explorer/Lite member holding an Analysis
+      Pass) — both already resolved in that component for the "Want to go
+      deeper?" panel just below it, reused rather than re-fetched. "Get
+      started for free" only remains for a visitor who genuinely has
+      neither, since telling an already-entitled paying member to "get
+      started for free" misrepresents what they're actually doing. This is
+      copy-only — `handleStartAnalysis()` and the entitlement/pass-
+      consumption logic underneath are unchanged.
+    - **Deferred / not yet safe to build**: the actual dermatologist-
+      approved SKYNN methodology and system prompt (blocks activation
+      entirely — the registry/interface boundary is ready for it); sourced
+      `advanced_assessment_evidence` content (table is empty); per-concern
+      dynamic sub-forms (v1 asks duration/impact/triggers/progression once
+      for the concern set rather than looping per selection); a real
+      product-catalogue search for the `product_list` question type
+      (currently name-only entries); true async/background generation;
+      end-to-end QA with a real (non-placeholder) prompt.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
@@ -268,6 +424,92 @@ feature appear operational.
     No admin UI reads this yet (deliberately — query it directly via SQL
     until there's a concrete reason to build one; don't add a dashboard
     tab speculatively).
+- **Auth + membership onboarding redesign (2026-09-16)** — reworked
+  `src/components/AuthDialog.tsx` (still the single auth surface app-wide —
+  no new `/auth/*` routes were introduced) into a clearer sign-in/sign-up
+  experience: a theme-aware SkinLabs® wordmark (`skinlabs-logo-black.svg`
+  light / `skinlabs-logo-white.svg` dark, via `next-themes`), a full-screen
+  presentation below the `sm:` breakpoint (edge-to-edge, no nested-modal
+  feel) and a centered card above it, a "Forgot password?" link, inline
+  `role="alert"` error text alongside the existing toasts, and password
+  visibility toggles. Magic-link sign-in is disabled (not deleted) via
+  `src/lib/auth-flags.ts`'s `AUTH_FLAGS.magicLinkEnabled = false` — flip
+  that one flag back on once the project's SMTP delivery issue is
+  resolved; `useAuth().signInWithMagicLink()` itself is untouched.
+  - **Pending-plan intent** (`src/lib/pendingPlan.ts`) — replaces the
+    plain-React-state `pendingAction` that used to live in `Pricing.tsx`
+    (lost on refresh or a full-page Google OAuth redirect) with a durable
+    `sessionStorage`-backed intent, plus a URL-query-param fallback channel
+    (`withPendingPlanParams()`) for a cross-tab email-confirmation click.
+    `Pricing.tsx` now runs the pending trial/checkout from a `useEffect`
+    keyed on `user` transitioning to signed-in, rather than from
+    `AuthDialog`'s `onAuthenticated` callback, so it fires the same way
+    whether auth completed in-page or via a full redirect back. This is a
+    UX convenience only — it never grants anything itself. The actual
+    authority was already in place before this change and was not
+    modified: `start_free_trial()` (`supabase/migrations/
+    20260907000001_starter_analysis_and_trial_variants.sql`) is
+    `SECURITY DEFINER`, re-validates the plan against `pricing_plans`
+    server-side, and enforces one trial per account via `trial_used_at`;
+    paid checkout prices itself server-side in the `paystack-payment` edge
+    function. A tampered `?plan=` or forged `pendingPlan` intent simply
+    gets rejected by that RPC/edge function exactly as a stale legitimate
+    one would.
+  - **`/reset-password`** (`src/pages/ResetPassword.tsx`, new route in
+    `App.tsx`) — Supabase's own recovery flow end to end:
+    `useAuth().sendPasswordReset()` calls `resetPasswordForEmail()` with
+    `redirectTo` pointed here; this page waits for the resulting
+    `PASSWORD_RECOVERY` session (supabase-js's `detectSessionInUrl`
+    exchanges the recovery token automatically) and calls
+    `useAuth().updatePassword()`. No separate token-validation endpoint or
+    reset system — an expired/invalid/reused link simply never produces a
+    session, which is how the "Link expired" state is detected. Both
+    `sendPasswordReset()` and the "check your email" confirmation
+    deliberately don't reveal whether the address is registered.
+  - **`/admin` gate** (`api/admin-auth.ts`, `src/hooks/use-admin-gate.ts`,
+    `src/components/admin/AdminLoginScreen.tsx`) — this project already had
+    a real admin system before this change: a genuine Supabase Auth
+    account (`admin@skinlabs.co.za`) holding the `admin` role via
+    `has_role()`/`user_roles`, which every admin-facing RLS policy is
+    keyed to. That was reused as-is, not duplicated. What's new is one
+    additional, dedicated credential gate in front of it: `api/admin-auth.ts`
+    (same HMAC-cookie pattern as the pre-existing `api/marketplace-auth.ts`)
+    checks a submitted password against the Vercel-only `ADMIN_PASSWORD`
+    secret with a timing-safe compare, sets a short-lived (12h)
+    `HttpOnly`/`SameSite=Lax`/`Secure`-in-prod `skinlabs_admin_gate` cookie
+    scoped to `/admin` on success, and — using the `SUPABASE_SERVICE_ROLE_KEY`
+    already required by `api/product-review-sync.ts` — calls GoTrue's
+    `admin/generate_link` endpoint for that one fixed account and returns
+    the resulting one-time `token_hash` (never the password, never a
+    standing secret). The browser exchanges that for a real session via
+    `supabase.auth.verifyOtp({ token_hash, type: 'magiclink' })` — no email
+    is sent, so this is unaffected by the SMTP issue disabling consumer
+    magic-link above. `AdminDashboard.tsx`'s own `has_role` check and every
+    RLS policy keep working completely unmodified; if
+    `SUPABASE_SERVICE_ROLE_KEY` isn't configured, the password gate still
+    passes but `tokenHash` comes back `null`, and `AdminDashboard.tsx`
+    falls back to a minimal inline Supabase sign-in for that one account
+    (not the consumer `AuthDialog` — the admin never goes through the
+    normal membership onboarding flow) so `has_role` can still resolve.
+    `ADMIN_PASSWORD` is never returned in any response, logged, or
+    embedded client-side — verified by unit-testing `api/admin-auth.ts`'s
+    handler directly (missing-secret, wrong-password, correct-password,
+    cookie-GET, invalid-cookie-GET and DELETE/logout paths all checked).
+    While wiring this in, also fixed a real pre-existing bug in
+    `AdminDashboard.tsx`: its `useEffect` only ever called `checkAdmin()`
+    (which resolves both `loading` and `isAdmin`) `if (user)` — a
+    signed-out visitor hitting `/admin` spun on "Checking access" forever
+    instead of ever reaching "Access Denied", because nothing resolved
+    `isAdmin` away from `null`. Now resolves both to `false` immediately
+    once `useAuth()` confirms there's no session.
+  - New analytics events (`src/lib/analytics-events.ts`):
+    `membership_plan_selected`, `auth_started`, `signin_completed`,
+    `password_reset_started`, `password_reset_completed`,
+    `trial_activation_started`, `trial_activation_failed`,
+    `dashboard_entered`, `admin_login_success`, `admin_login_failure` —
+    fired through the same existing `trackConversionEvent()`/Vercel
+    Analytics pipeline as every other conversion event in this file, not a
+    new analytics platform.
 - **Monetisation** — DB-driven, not hardcoded: `pricing_plans`,
   `credit_packs`, `pricing_experiment_variants` tables; `src/lib/
   pricing-config.ts` does variant bucketing; `paystack-payment` edge
@@ -615,6 +857,64 @@ feature appear operational.
   `/podcast.xml` directly ("Subscribe via RSS") and via
   `<link rel="alternate" type="application/rss+xml">` for feed-reader
   autodiscovery in the meantime.
+
+## Temporary, single-client features
+
+- **`/quote-ss-beauty` (2026-09-16)** — an unlisted, noindex'd interactive
+  multistep quote-request form built for one Business Suite client
+  (Siphokazi / SS Beauty) who wants contract manufacturing + white-label
+  + branding/labelling for a hair growth oil, hair food and leave-in
+  conditioner line. Not linked from nav/sitemap. **Delete once her quote
+  has been handled**: the route + lazy import in `src/App.tsx`, `src/
+  pages/QuoteSSBeauty.tsx`, `src/components/quote-ss-beauty/`, `src/lib/
+  quoteSsBeautyPricing.ts`, the `quote-ss-beauty-submit` edge function
+  (`supabase/functions/quote-ss-beauty-submit/` + its `config.toml`
+  entry), and the `quote_ss_beauty_requests` table (already applied live
+  on `gnkpzijxuciiaamakgzm`).
+  - On submit, the `quote-ss-beauty-submit` edge function computes an
+    indicative ZAR estimate (pricing logic duplicated — different
+    runtimes — between `src/lib/quoteSsBeautyPricing.ts` for the form's
+    own live preview and the edge function itself, which is the
+    authoritative copy for the PDF; keep both in sync if pricing
+    changes), generates a branded PDF quotation with `jspdf` (works fine
+    via `npm:jspdf@4.2.1` in the Deno edge runtime — no canvas/DOM
+    dependency for the plain text/rect drawing this uses), records the
+    submission in `quote_ss_beauty_requests` (RLS enabled, zero
+    policies — reachable only via the function's service-role client,
+    never from anon/authenticated), and emails the full submission +
+    PDF to **michael@skinlabs.co.za only** (never to the client
+    directly — matches the existing "I'll put together a tailored
+    proposal on a call" plan already communicated to her, so a human
+    reviews the numbers before anything goes back to her). Estimate
+    numbers are explicitly labelled "preliminary/indicative" everywhere
+    they appear (in-form review step and the PDF) — never presented as
+    a binding quote.
+  - Sending actually depends on the `RESEND_API_KEY` project secret,
+    which **is already set** on this project (confirmed live: a real
+    smoke-test submission returned `email_sent: true` with no
+    `email_error`, and the row/estimate math checked out — then
+    deleted from the table afterwards). It was *not* set up by any tool
+    available in this session, and its value doesn't correspond to the
+    "Onboarding" key on the connected `Resend_for_SkinLabs` MCP account
+    (which has zero verified domains and shows no matching request in
+    its own `/emails` or request logs for that send) — so it's a
+    separate, already-configured Resend key/account a human set up
+    directly in Supabase, not something this session provisioned.
+    Concretely: confirm the smoke-test PDF actually landed in
+    michael@skinlabs.co.za's inbox before trusting `email_sent: true`
+    at face value for a real client submission — it's a strong signal,
+    not independently cross-verified end-to-end from this environment.
+  - Deliberately did **not** integrate the Perspective AI connector for
+    this form — its toolset (perspective_create/respond/
+    get_embed_options, participant_invite, workspace_get_default) is
+    built for embeddable AI-moderated conversational surveys, which
+    would mean an off-brand iframe widget instead of a first-party
+    stepper matching the rest of the site's design system (SKYNN AI's
+    `StepperHeader`-style gradient current-step circle, `.gradient-
+    text`, existing shadcn form primitives). "Intelligent" here means
+    conditional per-product steps, honeypot spam protection, and a live
+    running price estimate as she fills the form — revisit only if the
+    Perspective AI product itself is specifically wanted.
 
 ## Infrastructure notes
 

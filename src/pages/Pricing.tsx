@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -23,11 +23,7 @@ import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-type PendingAction =
-  | { kind: "subscribe"; plan: PaystackPlan }
-  | { kind: "trial"; plan: "insider" | "glow_lite" }
-  | null;
+import { getPendingPlanIntent, setPendingPlanIntent, clearPendingPlanIntent } from "@/lib/pendingPlan";
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -36,8 +32,8 @@ const Pricing = () => {
   const [interval, setIntervalState] = useState<BillingInterval>("annual");
   const [intervalTouched, setIntervalTouched] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const ranPendingActionRef = useRef(false);
 
   const variantKey = config?.variantKey ?? "control";
 
@@ -103,9 +99,11 @@ const Pricing = () => {
 
   const beginTrial = async (plan: "insider" | "glow_lite") => {
     setProcessingPlan(`trial-${plan}`);
+    trackConversionEvent("trial_activation_started", { plan });
     const { error } = await startFreeTrial(plan, variantKey);
     setProcessingPlan(null);
     if (error) {
+      trackConversionEvent("trial_activation_failed", { plan, reason: error.message });
       toast.error(error.message);
       return;
     }
@@ -113,13 +111,27 @@ const Pricing = () => {
     window.location.href = "/dashboard?trial=started";
   };
 
-  const runPendingAction = (action: PendingAction) => {
-    if (!action) return;
-    if (action.kind === "subscribe") void beginCheckout(action.plan);
-    else void beginTrial(action.plan);
-  };
+  // Runs whatever plan the visitor selected before authenticating — sourced from the
+  // durable pending-plan module (src/lib/pendingPlan.ts) rather than in-memory React
+  // state, so it survives a page refresh or a full-page Google OAuth redirect. The
+  // server re-validates the plan regardless (start_free_trial RPC / paystack-payment),
+  // this is only ever a UX convenience so the user never re-picks the same plan.
+  useEffect(() => {
+    if (!user || ranPendingActionRef.current) return;
+    const intent = getPendingPlanIntent();
+    if (!intent) return;
+    ranPendingActionRef.current = true;
+    clearPendingPlanIntent();
+    if (intent.kind === "trial" && (intent.plan === "insider" || intent.plan === "glow_lite")) {
+      void beginTrial(intent.plan);
+    } else if (intent.kind === "subscribe" && intent.plan !== "explorer") {
+      void beginCheckout(intent.plan as PaystackPlan);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSelect = (planId: PlanId) => {
+    trackConversionEvent("membership_plan_selected", { plan: planId, kind: "subscribe" });
     if (planId === "explorer") {
       if (!user) setAuthOpen(true);
       else window.location.href = "/dashboard";
@@ -127,7 +139,7 @@ const Pricing = () => {
     }
     const plan = planId as PaystackPlan;
     if (!user) {
-      setPendingAction({ kind: "subscribe", plan });
+      setPendingPlanIntent({ kind: "subscribe", plan, interval, variantKey });
       setAuthOpen(true);
       return;
     }
@@ -137,8 +149,9 @@ const Pricing = () => {
   const handleTrial = (planId: PlanId) => {
     if (planId !== "insider" && planId !== "glow_lite") return;
     const plan = planId;
+    trackConversionEvent("membership_plan_selected", { plan, kind: "trial" });
     if (!user) {
-      setPendingAction({ kind: "trial", plan });
+      setPendingPlanIntent({ kind: "trial", plan, interval, variantKey });
       setAuthOpen(true);
       return;
     }
@@ -410,15 +423,10 @@ const Pricing = () => {
         </main>
         <Footer />
       </div>
-      <AuthDialog
-        open={authOpen}
-        onOpenChange={setAuthOpen}
-        onAuthenticated={() => {
-          const action = pendingAction;
-          setPendingAction(null);
-          runPendingAction(action);
-        }}
-      />
+      {/* The pending plan (if any) is picked up by the effect above once `user` updates —
+          covers password sign-in/up (immediate) and a full-page Google OAuth redirect back
+          to this same page alike, so no onAuthenticated callback is needed here. */}
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </>
   );
 };
