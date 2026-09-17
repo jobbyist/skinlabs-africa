@@ -204,6 +204,15 @@ live join to `auth.users`.
 
 - Sender: `SkinLabs® South Africa <support@skinlabs.co.za>` everywhere —
   no other identity is used.
+- **Brand treatment** (`_shared/email/layout.ts`): the transparent
+  SkinLabs logo (`public/email/skinlabs-logo.png`) renders in every
+  email's header (140px) and again in the shared footer signature
+  (120px). The signature also links `Instagram` (@skinlabsza) and
+  `TikTok` (@skinlabsza) below the website link — one shared block
+  (`renderSignature()`), never duplicated per-template.
+  `templates.test.ts` asserts every one of the 35 templates includes the
+  full signature (support email, website, Instagram, TikTok) once
+  wrapped in the layout, so a new template can't ship without it.
 - **`supabase/functions/send-email`** is the single function that ever
   calls the Resend API. It predates this work (deployed directly to the
   project, untracked by git) and was already used for magic-link-style
@@ -234,9 +243,9 @@ documented-gap pattern as `MARKETPLACE_CRON_SECRET`)
 | Secret | Status |
 |---|---|
 | `RESEND_API_KEY` | Already set (pre-existing, used by `send-email`) |
-| `EMAIL_CRON_SECRET` | **Must be set** to match the literal value hardcoded in the `email-outbox-processor` pg_cron job (see the migration file) |
-| `RESEND_WEBHOOK_SECRET` | **Must be set** — the signing secret returned when the Resend webhook was created |
-| `ADMIN_NOTIFICATION_EMAIL` | Optional — defaults to `support@skinlabs.co.za` in code if unset |
+| `EMAIL_CRON_SECRET` | **Set** — matches the value hardcoded in the `email-outbox-processor` pg_cron job; confirmed live via a direct `curl` against `email-processor` returning `HTTP 200` |
+| `RESEND_WEBHOOK_SECRET` | **Set** — confirmed live: a real test send produced both `email.sent` and `email.delivered` rows in `email_delivery_events`, correctly linked to the originating outbox row |
+| `ADMIN_NOTIFICATION_EMAIL` | Optional — defaults to `support@skinlabs.co.za` in code if unset (not explicitly set; the default is correct per spec but the explicit override is unverified) |
 
 ### DNS / deliverability
 
@@ -370,11 +379,6 @@ practice in `CLAUDE.md`).
 
 ## 14. Known gaps / fast-follows
 
-- Domain verification for `skinlabs.co.za` in Resend (manual, blocks all
-  real sends until done — see §8).
-- `EMAIL_CRON_SECRET` and `RESEND_WEBHOOK_SECRET` need to be set as
-  Supabase Edge Function secrets (manual — no tool in this environment can
-  set them).
 - `MEMBERSHIP_CANCELLED` is dormant until a real cancellation flow exists
   (§7).
 - No admin UI reads `email_events`/`email_outbox`/`email_delivery_events`

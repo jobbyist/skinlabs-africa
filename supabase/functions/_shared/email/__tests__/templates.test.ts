@@ -35,6 +35,8 @@ describe("email template registry", () => {
       const html = renderEmailLayout({ preheader: def.preheader(vars), bodyHtml: def.render(vars) });
       expect(html).toContain("support@skinlabs.co.za");
       expect(html).toContain("skinlabs.co.za");
+      expect(html).toContain("instagram.com/skinlabsza");
+      expect(html).toContain("tiktok.com/@skinlabsza");
     }
   });
 
