@@ -54,6 +54,23 @@ const guards: Record<string, GuardFn> = {
     }
     return { send: true };
   },
+
+  // Marketing consent can be withdrawn (one-click unsubscribe) any time
+  // between the weekly cron's fan-out and the processor actually sending —
+  // re-check it rather than trusting the snapshot at enqueue time.
+  newsletter_weekly_digest: async (supabase, job) => {
+    if (!job.user_id) return { send: false, reason: "no user_id on job" };
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("marketing_consent")
+      .eq("user_id", job.user_id)
+      .maybeSingle();
+    if (error || !data) return { send: false, reason: "profile not found" };
+    if (!data.marketing_consent) {
+      return { send: false, reason: "unsubscribed from marketing before send" };
+    }
+    return { send: true };
+  },
 };
 
 export function getGuard(templateId: string): GuardFn | undefined {

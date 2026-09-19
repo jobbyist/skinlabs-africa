@@ -72,6 +72,26 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'idempotency_key must be a non-empty string of at most 256 characters' }, 400)
   }
 
+  // Only List-Unsubscribe/List-Unsubscribe-Post are ever forwarded to
+  // Resend — an explicit allowlist, not a generic passthrough, so this
+  // endpoint can never be used to inject arbitrary email headers.
+  const ALLOWED_CUSTOM_HEADERS = new Set(['List-Unsubscribe', 'List-Unsubscribe-Post'])
+  const customHeaders: Record<string, string> = {}
+  if (payload.headers !== undefined) {
+    if (typeof payload.headers !== 'object' || payload.headers === null || Array.isArray(payload.headers)) {
+      return json({ error: 'headers must be an object' }, 400)
+    }
+    for (const [key, value] of Object.entries(payload.headers as Record<string, unknown>)) {
+      if (!ALLOWED_CUSTOM_HEADERS.has(key)) {
+        return json({ error: `Unsupported header: ${key}` }, 400)
+      }
+      if (typeof value !== 'string' || value.length === 0 || value.length > 998) {
+        return json({ error: `${key} must be a non-empty string of at most 998 characters` }, 400)
+      }
+      customHeaders[key] = value
+    }
+  }
+
   const resendPayload: Record<string, unknown> = {
     from: FROM,
     to: recipients,
@@ -80,6 +100,7 @@ Deno.serve(async (req: Request) => {
   if (typeof html === 'string') resendPayload.html = html
   if (typeof text === 'string') resendPayload.text = text
   if (isEmail(payload.reply_to)) resendPayload.reply_to = payload.reply_to
+  if (Object.keys(customHeaders).length > 0) resendPayload.headers = customHeaders
 
   const resendHeaders: Record<string, string> = {
     Authorization: `Bearer ${RESEND_API_KEY}`,

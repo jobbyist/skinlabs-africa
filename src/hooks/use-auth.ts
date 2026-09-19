@@ -30,13 +30,19 @@ export const useAuth = () => {
     return { data, error };
   };
 
-  const signUp = async (email: string, password: string, username?: string, redirectTo?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    username?: string,
+    redirectTo?: string,
+    marketingConsent?: boolean,
+  ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectTo ?? window.location.origin,
-        data: username ? { username } : undefined,
+        data: username || marketingConsent ? { username, marketing_consent: marketingConsent ?? false } : undefined,
       },
     });
     return { data, error };

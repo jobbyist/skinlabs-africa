@@ -1852,6 +1852,42 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_offers: {
+        Row: {
+          active_from: string | null
+          active_until: string | null
+          created_at: string
+          cta_label: string
+          cta_url: string
+          description: string
+          headline: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_url: string
+          description: string
+          headline: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_url?: string
+          description?: string
+          headline?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -2955,6 +2991,9 @@ export type Database = {
           gender: string | null
           id: string
           is_professional: boolean
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          marketing_unsubscribe_token: string
           notes: string | null
           phone: string | null
           postal_code: string | null
@@ -2997,6 +3036,9 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          marketing_unsubscribe_token?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -3039,6 +3081,9 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          marketing_unsubscribe_token?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -4135,6 +4180,7 @@ export type Database = {
         Returns: string
       }
       enqueue_trial_expiring_events: { Args: never; Returns: number }
+      enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
       expire_finished_trials: { Args: never; Returns: number }
       fail_advanced_assessment_session: {
         Args: { p_error_message: string; p_session_id: string }
@@ -4355,6 +4401,7 @@ export type Database = {
         }[]
       }
       subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
+      unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

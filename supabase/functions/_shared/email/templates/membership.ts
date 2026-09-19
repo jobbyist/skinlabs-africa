@@ -107,11 +107,11 @@ registerTemplate({
   `,
 });
 
-// Dormant: no code path in the app currently sets a "cancelled" membership
-// state, so nothing enqueues this template today (see docs/
-// email-automation-system.md). Defined now so the moment a cancellation
-// flow ships, wiring the email is a one-line enqueue_email() call rather
-// than a new template.
+// Wired from cancel_subscription() (supabase/migrations/
+// 20260919100000_marketing_consent_and_cancellation.sql) — that RPC moves a
+// member back to Glow Explorer immediately, no grace period, so this copy
+// must never imply continued access through a billing period that doesn't
+// exist in this app's cancellation model.
 registerTemplate({
   id: "membership_cancelled",
   category: "MEMBERSHIP",
@@ -119,10 +119,10 @@ registerTemplate({
   transactional: true,
   requiredVars: ["plan"],
   subject: () => "Your SkinLabs® membership has been cancelled",
-  preheader: () => "Confirming your cancellation — you'll keep access until the end of your billing period.",
+  preheader: () => "Confirming your cancellation — you're back on Glow Explorer (free), effective immediately.",
   render: (vars) => `
     ${emailHeading("Membership cancelled")}
-    ${emailParagraph(`Your ${escapeHtml(planLabel(vars.plan))} membership has been cancelled.`)}
+    ${emailParagraph(`Your ${escapeHtml(planLabel(vars.plan))} membership has been cancelled and your account has moved back to Glow Explorer (free), effective immediately. No further charges will be made.`)}
     ${emailNotice(`Changed your mind? You can resubscribe any time from your dashboard.`, "info")}
     ${emailButton("Manage membership", `${BRAND.siteUrl}/dashboard?tab=billing`)}
   `,

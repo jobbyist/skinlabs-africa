@@ -616,6 +616,57 @@ feature appear operational.
       environment (no credentials to test with) — the ITN/webhook
       signature-verification code paths are implemented per each
       provider's own documented contract but unverified end-to-end.
+- **Email & lifecycle automation** (2026-09-16, extended 2026-09-19) —
+  full design/inventory doc: **`docs/email-automation-system.md`** (read
+  that first before touching anything here — this bullet is a pointer,
+  not a substitute). Business-event → outbox → Resend pipeline:
+  `email_events`/`email_outbox`/`email_delivery_events` tables,
+  `SECURITY DEFINER` RPCs (`enqueue_email`/`enqueue_email_event`/
+  `enqueue_email_job`/`claim_pending_email_jobs`/`complete_email_job`/
+  `fail_email_job`/`cancel_email_job`), a `supabase/functions/email-
+  processor` cron (every minute) that claims jobs, runs a per-template
+  send-time guard, renders from the in-code template registry
+  (`supabase/functions/_shared/email/templates/`), and calls the
+  pre-existing `send-email` function (now service-role-only, was
+  previously callable with any authenticated user's JWT — tightened as
+  part of this work) — `email-webhooks` logs Resend delivery events.
+  Covers auth/trial/membership/billing/SKYNN/account-lifecycle/forms/
+  admin-alert templates, all idempotent via `UNIQUE idempotency_key`
+  columns end to end.
+  - **Marketing consent + weekly newsletter digest + membership
+    cancellation email (2026-09-19)** — `profiles` gained
+    `marketing_consent`/`marketing_consent_at`/
+    `marketing_unsubscribe_token` (genuine opt-in, unchecked by default
+    on `AuthDialog.tsx`'s sign-up checkbox, never inferred). New public
+    `supabase/functions/email-unsubscribe` (RFC 8058 one-click
+    unsubscribe: `List-Unsubscribe`/`List-Unsubscribe-Post` headers on
+    every `MARKETING`-category send, GET → branded confirmation page,
+    POST → mail-client one-click path) — deliberately no follow-up
+    unsubscribe-confirmation *email*, since that defeats the point.
+    `enqueue_weekly_newsletter_digest()` (plain SQL function + Monday
+    07:00 UTC `pg_cron` job, matching the existing
+    `enqueue_trial_expiring_events()` precedent rather than a new edge
+    function) sources a real weekly digest from `news_articles` (top 3 by
+    views), `ai_generated_product_reviews` (top 3 by score) and one
+    active row from the new admin-authored `newsletter_offers` table —
+    skips the send entirely if all three are empty, never fabricates
+    content. The pre-existing `cancel_subscription()` RPC (already wired
+    to a real "Cancel membership" button in `BillingTab.tsx`) now
+    enqueues a `MEMBERSHIP_CANCELLED` email on success. **Bug fixed while
+    wiring this in**: `cancel_subscription()` and the new
+    `unsubscribe_marketing()` both ran `PERFORM set_config(
+    'app.privileged_write', 'off', true)` immediately after their
+    `UPDATE`, which silently clobbers Postgres's `FOUND` variable
+    (`set_config()` always "finds" one row) — `RETURN FOUND` was always
+    `true` regardless of whether the `UPDATE` matched anything. Harmless
+    in `cancel_subscription()` before today (nothing checked its return
+    value), consequential now that `enqueue_email()` is gated on it.
+    Fixed by capturing `FOUND` into a local variable immediately after
+    the `UPDATE`, before any later statement can overwrite it — this
+    `PERFORM set_config(...)` -after- a-row-mutating-statement pattern is
+    worth checking for in any future `SECURITY DEFINER` function that
+    both uses the `app.privileged_write` escape hatch and relies on
+    `FOUND`.
 - **User dashboard** (`src/pages/UserDashboard.tsx`,
   `src/components/dashboard/*`) — tab-based member area:
   Home/Profile/Skin Analysis/Routine/Skin Journey/Billing/Inbox/Security/

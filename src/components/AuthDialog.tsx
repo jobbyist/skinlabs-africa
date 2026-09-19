@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,6 +80,7 @@ const AuthDialog = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [magicLinkMode, setMagicLinkMode] = useState(false);
@@ -172,7 +174,7 @@ const AuthDialog = ({
       toast.error(message);
       return;
     }
-    const { error } = await signUp(email, password, handle, oauthRedirect());
+    const { error } = await signUp(email, password, handle, oauthRedirect(), marketingConsent);
     setIsLoading(false);
     if (error) {
       setFormError(error.message);
@@ -514,6 +516,22 @@ const AuthDialog = ({
                         At least 8 characters. No confirmation email required — you can verify later from your
                         dashboard.
                       </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="marketing-consent-signup"
+                        checked={marketingConsent}
+                        onCheckedChange={(checked) => setMarketingConsent(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <Label htmlFor="marketing-consent-signup" className="text-xs font-normal leading-snug text-muted-foreground">
+                        Send me skincare tips, new reviews and offers by email (optional). You can unsubscribe any
+                        time — see our{" "}
+                        <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+                          privacy policy
+                        </a>
+                        .
+                      </Label>
                     </div>
                     {formError && (
                       <p role="alert" className="text-xs font-medium text-destructive">
