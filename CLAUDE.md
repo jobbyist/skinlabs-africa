@@ -301,47 +301,23 @@ feature appear operational.
       otherwise — this is what actually enforces the "don't fabricate the
       methodology" boundary at runtime, not just a comment.
       **`AI_GATEWAY_API_KEY` fallback (2026-09-16, same-day follow-up)** —
-      `claudeProvider.ts` resolves its transport at call time, routed to
-      Claude through Vercel AI Gateway's OpenAI-compatible chat completions
-      endpoint (`https://ai-gateway.vercel.sh/v1/chat/completions`, model
-      string `anthropic/<model>`, OpenAI-style forced function-calling in
-      place of Anthropic's native tool_use block) rather than a second
-      `AssessmentAIProvider` implementation, since it's still Claude either
-      way and the report contract stays identical. **Unverified**: this
-      environment has no way to set a Supabase edge function secret, so the
-      gateway path has never been exercised against a real
-      `AI_GATEWAY_API_KEY` — confirm Vercel AI Gateway's exact
-      endpoint/response shape once a human adds that secret, the same
-      category of gap already documented for
+      `claudeProvider.ts` resolves its transport at call time:
+      `ANTHROPIC_API_KEY` wins when set (direct Anthropic Messages API, as
+      above); if absent, it falls back to `AI_GATEWAY_API_KEY` — the same
+      key already configured as a Vercel project env var for the
+      product-review pipeline's Gemini calls (see that section above) —
+      routed to Claude through Vercel AI Gateway's OpenAI-compatible chat
+      completions endpoint (`https://ai-gateway.vercel.sh/v1/chat/
+      completions`, model string `anthropic/<SKYNN_ADVANCED_MODEL>`,
+      OpenAI-style forced function-calling in place of Anthropic's native
+      tool_use block) rather than a second `AssessmentAIProvider`
+      implementation, since it's still Claude either way and the report
+      contract stays identical. **Unverified**: this environment has no
+      way to set a Supabase edge function secret, so the gateway path has
+      never been exercised against a real `AI_GATEWAY_API_KEY` — confirm
+      Vercel AI Gateway's exact endpoint/response shape once a human adds
+      that secret, the same category of gap already documented for
       `MARKETPLACE_CRON_SECRET`/`GEMINI_API_KEY` elsewhere in this file.
-      **`AI_GATEWAY_API_KEY` promoted to the default transport, per-task
-      model routing added (2026-09-17)** — explicit product decision:
-      `resolveTransport()` in `claudeProvider.ts` now tries
-      `AI_GATEWAY_API_KEY` first and only falls back to `ANTHROPIC_API_KEY`
-      when it's unset (inverted from the 09-16 priority above), so this
-      engine runs on the same "no direct Anthropic key needed" operational
-      story as the product-review pipeline's Gemini calls, rather than
-      requiring a second, differently-scoped secret. Model selection moved
-      out of a single `DEFAULT_MODEL` constant into a new
-      `_shared/assessment/modelConfig.ts` (`resolveModelForTask()`), a
-      per-task routing table: report generation and everything folded into
-      that one call today (complex assessment reasoning, evidence
-      synthesis over the ALLOWED EVIDENCE list, safety/clinical-boundary
-      language) plus report regeneration all route to **Opus 5**
-      (`claude-opus-5`); routine/simple transformations to **Sonnet 5**
-      (`claude-sonnet-5`); lightweight classification to **Haiku 4.5**
-      (`claude-haiku-4-5`); simple UI/chat interactions default to Sonnet 5
-      with Haiku 4.5 available for the cheapest surfaces. Only
-      `report_generation` has a real call site today (`generateReport()`);
-      the other task keys exist so a future call site (an explicit
-      regenerate action, a classification pre-pass, a chat surface) picks
-      up the right model by construction. `SKYNN_ADVANCED_MODEL` still
-      overrides every task globally when set. Also bumped both transports'
-      `max_tokens` from 4096 to 8192 (and added the previously-missing
-      `max_tokens` on the Gateway call, which had none) — Opus 5's adaptive
-      thinking shares the same token budget as the forced tool-call output
-      on a non-streaming request, so the old 4096 ceiling risked truncating
-      a real report before the model ever emitted the tool call.
     - **Safety screening** (`_shared/assessment/safety.ts`) — a
       deterministic, non-clinical triage heuristic computed from the
       respondent's own `safety_red_flags` answer only (never from the
@@ -359,7 +335,7 @@ feature appear operational.
       what counts as a named-diagnosis violation.
     - **API** — single action-routed edge function
       `supabase/functions/skynn-advanced-assessment/index.ts` (same
-      one-function/JSON-`action` convention as `paystack-payment`/
+      one-function/JSON-`action` convention as `payfast-payment`/
       `newsroom-sync`): `access`, `create_session`, `get_session`,
       `update_session`, `submit`, `status`, `get_report`, `list_reports`,
       `log_event`. The frontend never talks to `advanced_assessment_*`
@@ -475,7 +451,7 @@ feature appear operational.
     20260907000001_starter_analysis_and_trial_variants.sql`) is
     `SECURITY DEFINER`, re-validates the plan against `pricing_plans`
     server-side, and enforces one trial per account via `trial_used_at`;
-    paid checkout prices itself server-side in the `paystack-payment` edge
+    paid checkout prices itself server-side in the `payfast-payment`/`paypal-payment` edge
     function. A tampered `?plan=` or forged `pendingPlan` intent simply
     gets rejected by that RPC/edge function exactly as a stale legitimate
     one would.
@@ -536,7 +512,7 @@ feature appear operational.
     new analytics platform.
 - **Monetisation** — DB-driven, not hardcoded: `pricing_plans`,
   `credit_packs`, `pricing_experiment_variants` tables; `src/lib/
-  pricing-config.ts` does variant bucketing; `paystack-payment` edge
+  pricing-config.ts` does variant bucketing; `payfast-payment`/`paypal-payment` edge
   function is DB-driven. Pricing page and dashboard read plan config from
   the DB, not from constants in code. `credit_packs` includes both
   `single_1` (R25, one "Analysis Pass") and `starter_3` (R59, 3 passes) —
@@ -550,6 +526,96 @@ feature appear operational.
   Billing tab reads for transaction history and downloadable receipts
   (`src/lib/generateInvoicePdf.ts` — a real receipt from that row, never a
   fabricated invoicing system).
+  - **Paystack removed, replaced by PayFast + PayPal (2026-09-18)** —
+    Paystack is fully gone: `supabase/functions/paystack-payment/` deleted,
+    `src/lib/paystack.ts` deleted. `payment_transactions` gained
+    `gateway`/`currency`/`amount_original` columns (migration
+    `20260918010000_payment_gateway_migration.sql`) — every historical row
+    was backfilled `gateway='paystack'` for accuracy, but no code writes
+    that value going forward. Charge-resolution (server-side price lookup
+    from `pricing_plans`/`credit_packs`/`founding_member_offers`) and
+    entitlement-granting (the "a verified charge turns into a membership/
+    Analysis Passes/founding-member slot" logic) both used to live
+    duplicated inline in `paystack-payment`'s webhook handler; extracted
+    into `supabase/functions/_shared/email/` 's sibling,
+    `supabase/functions/_shared/payments/` (`resolveCharge.ts`,
+    `completePurchase.ts`, `failPurchase.ts`, `authedUser.ts`, `fx.ts`), so
+    the two new gateways can't drift on what a plan costs or what a
+    successful charge actually grants.
+    - **`payfast-payment`** — a full rewrite, not a patch: the version this
+      replaced predated the DB-driven pricing architecture entirely
+      (hardcoded R99/R299 amounts, a standalone `preorders` table for a
+      since-superseded physical-product line) and was never wired into any
+      frontend checkout flow. The rewrite implements PayFast's full
+      documented ITN validation — signature check AND a server-to-server
+      POST back to PayFast's own `/eng/query/validate` endpoint requiring
+      the literal response `"VALID"` — deliberately not the source-IP
+      allowlist step (that list changes over time and isn't reliable
+      behind arbitrary hosting infra); the signature + validate round-trip
+      is what most production PayFast integrations rely on regardless.
+      ZAR-native, no currency conversion. Defaults to PayFast's sandbox
+      host (`PAYFAST_MODE=live` required for real charges — same
+      conservative-default philosophy as `GEMINI_MODEL`/quota placeholders
+      elsewhere in this file). The historical `preorders` table read path
+      (Admin Dashboard, `UserDashboard.tsx`'s own "Pre-Orders" tab) is
+      untouched — only the now-superseded *write* path (hardcoded pricing,
+      unreachable from any current UI) was dropped.
+    - **`paypal-payment`** — new, built from scratch (no PayPal code
+      existed anywhere in this repo before). PayPal has no ZAR-native
+      settlement path this environment can confirm one way or the other
+      for a South African merchant account, so charges are placed in USD,
+      converted from the ZAR list price via `marketplace_fx_rates` (the
+      same table OpenHaus already uses for multi-currency display) — a
+      reasoned safe default, not a verified fact about PayPal's actual
+      South African merchant support. Server-side Orders v2 flow:
+      `initialize` creates an order and parks its metadata in the new
+      `payment_checkout_intents` table (PayPal's own `custom_id` field is
+      capped at 127 characters — too small for a JSON metadata blob, unlike
+      PayFast's 255-character `custom_str1`, which round-trips metadata
+      directly); `capture` (called by the frontend once PayPal redirects
+      back) does the actual server-side capture call and grants the
+      entitlement — never trusting a client-side "it worked". A registered
+      PayPal webhook (`?webhook=true`, signature-verified via PayPal's
+      `/v1/notifications/verify-webhook-signature`) is a crash-safety
+      backstop for the gap between "PayPal accepted the capture" and "our
+      own DB write completed" — idempotent on `reference` (the capture id),
+      so both paths firing is safe. Defaults to PayPal's sandbox API
+      (`PAYPAL_ENV=live` required for real charges). `payment_checkout_intents`
+      rows older than 24h are swept by a daily cron
+      (`payment-checkout-intents-cleanup`) — abandoned checkouts (order
+      created, never captured) shouldn't accumulate forever.
+    - **Frontend** — `src/lib/paystack.ts` → `src/lib/payments.ts`
+      (gateway-parameterized: `startCheckout`/`startCreditPackCheckout`/
+      `startFoundingMemberCheckout` all take a `PaymentGateway` first arg).
+      New `src/components/PaymentGatewayDialog.tsx` (PayFast vs PayPal
+      picker) is the one place gateway choice happens — wired into
+      `Pricing.tsx` (plan subscribe, credit packs, founding-member offer),
+      `SubscriptionPaywallModal.tsx`, `AnalysisPassPurchaseModal.tsx` and
+      `BillingTab.tsx`'s Analysis Pass purchases. Gateway choice isn't
+      persisted through an unauthenticated visitor's sign-up redirect
+      (`src/lib/pendingPlan.ts` only ever stored plan/interval/variant) —
+      on resume they pick a gateway again via the same dialog, a small,
+      deliberate UX tradeoff rather than extending that persistence schema.
+      `UserDashboard.tsx`'s existing "wait for the payment to land" poll
+      (unique per purchase type: subscription_status / founding_member /
+      AI-credit balance) needed one addition for PayPal specifically: it
+      now also calls `capturePendingPaypalOrder()` on the same
+      `?payment=success` return trip, since PayFast activates via its own
+      independent server-to-server ITN but nothing grants a PayPal
+      entitlement until the frontend's return trip triggers the capture
+      call — the poll alone would just wait forever for an event nothing
+      had triggered.
+    - **Known gaps**: `PAYFAST_MERCHANT_ID`/`PAYFAST_MERCHANT_KEY`/
+      `PAYFAST_PASSPHRASE`/`PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`/
+      `PAYPAL_WEBHOOK_ID` are Supabase Edge Function secrets no tool in
+      this environment can set (same documented-gap pattern as
+      `MARKETPLACE_CRON_SECRET` elsewhere in this file) — both functions
+      run in their respective sandbox modes until a human sets these plus
+      `PAYFAST_MODE=live`/`PAYPAL_ENV=live`. Neither gateway has been
+      exercised against a real sandbox or live account from this
+      environment (no credentials to test with) — the ITN/webhook
+      signature-verification code paths are implemented per each
+      provider's own documented contract but unverified end-to-end.
 - **User dashboard** (`src/pages/UserDashboard.tsx`,
   `src/components/dashboard/*`) — tab-based member area:
   Home/Profile/Skin Analysis/Routine/Skin Journey/Billing/Inbox/Security/
@@ -697,62 +763,6 @@ feature appear operational.
     sourced products, not run through the live Gemini pipeline, and
     distinguishable from future real pipeline output by that `generated_by`
     value.
-  - **Sibling Briefings pipeline: `api/briefings-sync.ts` (added
-    2026-09-16, previously undocumented here)** — same four-role
-    architecture as this file (Firecrawl researcher / Gemini columnist /
-    Pexels+Unsplash photo / Supabase memory+quota+publication), but for
-    Daily Skinny briefings into `news_articles` instead of product
-    reviews: 2-3 full-length (1800+ word) briefings/day via Vercel Cron at
-    04:00 UTC (`vercel.json`), its own `*_BRIEFINGS`-suffixed env vars
-    (`GEMINI_API_KEY_BRIEFINGS`, `FIRECRAWL_API_KEY_BRIEFINGS`,
-    `PEXELS_API_KEY_BRIEFINGS`, `CRON_SECRET_BRIEFINGS` — falls back to
-    accepting the shared `CRON_SECRET` too), its own cache/quota
-    namespace (`pipeline_source_cache`/`pipeline_api_usage`, same tables
-    as product-review-sync, distinguished by key prefix), and 9 curated
-    SA skincare news source channels. This coexists with, and is
-    unrelated to, both the older `newsroom-sync` Supabase edge function
-    (see below — cron already unscheduled) and the pre-existing
-    hand-authored Daily Skinny workflow in `content/daily-skinny/` (a
-    human writes 2000+ word manuscripts against the brand's editorial
-    blueprint, then a SQL seed migration inserts them into
-    `news_articles` directly — see that directory's own `README.md`);
-    all three can leave rows in the same `news_articles` table, so a
-    fresh row there is not by itself proof any *one* of them is working.
-  - **Pipeline health check (2026-09-17)** — asked to "trigger" both
-    Vercel-cron pipelines to confirm they're still configured properly.
-    Could not literally invoke either: both require a bearer secret
-    (`CRON_SECRET` / `CRON_SECRET_BRIEFINGS`) that is a Vercel-dashboard-
-    only project env var, and — confirmed by searching this session's
-    actual Vercel MCP tool list — nothing available here can read,
-    decrypt, or otherwise obtain a Vercel env var's value, nor invoke a
-    deployed serverless function directly (only build/runtime *logs* are
-    readable, and the Hobby-plan project's runtime-log retention is 1
-    hour, too short to see a 04:00/07:00 UTC cron run after the fact).
-    Checked configuration health indirectly instead, live against project
-    `gnkpzijxuciiaamakgzm`: `get_runtime_errors` for both routes over the
-    last 7 days came back clean (no 5xx clusters). But `pipeline_api_usage`
-    (real Firecrawl/Gemini calls, shared by both pipelines) has **no rows
-    at all after 2026-09-15**, and `ai_generated_product_reviews` has no
-    real (`generated_by = 'gemini'`) row after 2026-09-15 07:08 UTC either
-    — i.e. **the product-review-sync pipeline shows no evidence of having
-    run successfully on 2026-09-16 or since**, despite its 07:00 UTC daily
-    cron. `news_articles` did gain fresh 2026-09-16/17 rows, but git
-    history shows those specific rows were the hand-authored +
-    SQL-seeded `content/daily-skinny/` workflow above (commits by the
-    human account merged straight to `main` the same morning), not
-    `api/briefings-sync.ts` output — and that pipeline was only added
-    the day before (2026-09-16) and has no confirmed successful run of
-    its own yet either. Read together, this looks like both Vercel-cron
-    pipelines may currently be silently failing (an expired/missing
-    Gemini or Firecrawl key, a quota trip, or a runtime error too old for
-    Hobby-plan log retention to show) and the human has been compensating
-    by hand-writing Daily Skinny content directly — **not confirmed**,
-    since a real invocation was never possible from this environment, but
-    worth a human checking the Vercel dashboard's own Cron Jobs execution
-    history and re-confirming `GEMINI_API_KEY`/`FIRECRAWL_API_KEY`/
-    `GEMINI_API_KEY_BRIEFINGS`/`FIRECRAWL_API_KEY_BRIEFINGS`/
-    `SUPABASE_SERVICE_ROLE_KEY`/`CRON_SECRET`/`CRON_SECRET_BRIEFINGS`
-    directly before assuming either pipeline is healthy.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded

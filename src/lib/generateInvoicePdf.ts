@@ -7,7 +7,15 @@ export interface InvoiceData {
   createdAt: string;
   customerName: string;
   customerEmail: string;
+  /** payment_transactions.gateway — 'paystack' only ever appears on historical rows predating the PayFast/PayPal migration. */
+  gateway?: string;
 }
+
+const GATEWAY_LABEL: Record<string, string> = {
+  payfast: "PayFast",
+  paypal: "PayPal",
+  paystack: "Paystack",
+};
 
 const BRAND = {
   primary: [30, 41, 59] as [number, number, number],
@@ -68,8 +76,9 @@ export function generateInvoicePdf(data: InvoiceData): jsPDF {
   y += 160;
   doc.setFontSize(8);
   doc.setTextColor(...BRAND.muted);
+  const providerLabel = (data.gateway && GATEWAY_LABEL[data.gateway]) || "your payment provider";
   const disclaimer = doc.splitTextToSize(
-    "Processed securely by Paystack. This receipt reflects a real, verified transaction on your SkinLabs account.",
+    `Processed securely by ${providerLabel}. This receipt reflects a real, verified transaction on your SkinLabs account.`,
     pageWidth - margin * 2,
   );
   doc.text(disclaimer, margin, y);

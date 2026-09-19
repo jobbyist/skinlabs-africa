@@ -62,7 +62,7 @@ touching the trigger/business-event layer at all.
 | MEMBERSHIP | MEMBERSHIP_UPGRADED | `membership_upgraded` | same trigger, paid → higher paid ladder rank | `membership_upgraded:{user_id}:{subscription_started_at}` |
 | MEMBERSHIP | MEMBERSHIP_CANCELLED | `membership_cancelled` | **no source yet** — template defined, dormant (see §7) | `membership_cancelled:{user_id}:{cancelled_at}` |
 | BILLING | PAYMENT_SUCCEEDED | `payment_succeeded` | trigger on `payment_transactions` INSERT (`status IN ('success','needs_review')`) | `payment_succeeded:{reference}` |
-| BILLING | PAYMENT_FAILED | `payment_failed` | same trigger, `status='failed'` (paystack-payment now logs `charge.failed`) | `payment_failed:{reference}` |
+| BILLING | PAYMENT_FAILED | `payment_failed` | same trigger, `status='failed'` (each gateway's `failPurchase()` call logs it) | `payment_failed:{reference}` |
 | ADMIN | ADMIN_PAYMENT_NEEDS_REVIEW | `admin_payment_needs_review` | same trigger, `status='needs_review'` (founding-member sold-out race) | `admin_payment_review:{reference}` |
 | SKYNN | ANALYSIS_COMPLETED | `analysis_completed` | `notify_new_recommendation()` trigger, `status='delivered'` | `analysis_completed:{recommendation_id}` |
 | SKYNN | ANALYSIS_FAILED | `analysis_failed` | same trigger, `status='failed'` (skincare-ai now writes a failure row) | `analysis_failed:{recommendation_id}` |
@@ -89,7 +89,7 @@ confirmation only, no admin notice).
 |---|---|
 | Auth identity/lifecycle | `auth.users` (Supabase Auth) |
 | Membership/trial tier | `profiles.subscription_status`, `.trial_plan`, `.trial_ends_at`, `.trial_used_at` |
-| Payments | `payment_transactions` (unique on `reference`), written by the `paystack-payment` webhook |
+| Payments | `payment_transactions` (unique on `reference`), written by `payfast-payment`'s ITN handler or `paypal-payment`'s capture/webhook (shared `completePurchase()`/`failPurchase()`) |
 | SKYNN analysis result | `skincare_recommendations.status` |
 | Forms | one row per form table |
 | Account deletion | Supabase Auth admin API result |
@@ -113,10 +113,11 @@ confirmation only, no admin notice).
   `send-email`). If the processor crashes after Resend accepts a send but
   before `complete_email_job()` runs, the stuck-job sweep (below) retries
   the row and Resend recognizes the repeated key instead of sending again.
-- **Webhook retries (Paystack)**: `payment_transactions.reference` is
-  `UNIQUE`, and Postgres never fires `AFTER INSERT` for a row skipped by
-  `ON CONFLICT DO NOTHING` — a redelivered webhook can't re-enqueue an
-  email even before the outbox layer's own dedup applies.
+- **Webhook/ITN retries (PayFast, PayPal)**: `payment_transactions.reference`
+  is `UNIQUE`, and Postgres never fires `AFTER INSERT` for a row skipped by
+  `ON CONFLICT DO NOTHING` — a redelivered PayFast ITN or PayPal webhook
+  can't re-enqueue an email even before the outbox layer's own dedup
+  applies.
 - **Webhook retries (Resend)**: `email_delivery_events.resend_event_id` is
   `UNIQUE`; a redelivered webhook 23505s on the second insert and is
   treated as a success, not an error.

@@ -2014,11 +2014,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_checkout_intents: {
+        Row: {
+          amount_charged: number
+          amount_zar: number
+          consumed_at: string | null
+          created_at: string
+          currency: string
+          gateway: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_charged: number
+          amount_zar: number
+          consumed_at?: string | null
+          created_at?: string
+          currency: string
+          gateway: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          user_id: string
+        }
+        Update: {
+          amount_charged?: number
+          amount_zar?: number
+          consumed_at?: string | null
+          created_at?: string
+          currency?: string
+          gateway?: string
+          id?: string
+          metadata?: Json
+          purchase_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
+          amount_original: number | null
           amount_zar: number
           created_at: string
+          currency: string
           description: string
+          gateway: string
           id: string
           metadata: Json
           purchase_type: string
@@ -2027,9 +2069,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount_original?: number | null
           amount_zar: number
           created_at?: string
+          currency?: string
           description: string
+          gateway: string
           id?: string
           metadata?: Json
           purchase_type: string
@@ -2038,9 +2083,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount_original?: number | null
           amount_zar?: number
           created_at?: string
+          currency?: string
           description?: string
+          gateway?: string
           id?: string
           metadata?: Json
           purchase_type?: string

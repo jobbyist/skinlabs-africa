@@ -17,7 +17,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership, type MembershipTier } from "@/hooks/use-membership";
 import { usePricingConfig } from "@/lib/pricing-config";
-import { startCreditPackCheckout } from "@/lib/paystack";
+import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
+import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadInvoicePdf } from "@/lib/generateInvoicePdf";
 import { toast } from "sonner";
@@ -29,6 +30,7 @@ interface Transaction {
   amount_zar: number;
   purchase_type: string;
   created_at: string;
+  gateway: string;
 }
 
 const TIER_LABEL: Record<MembershipTier, string> = {
@@ -59,7 +61,7 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
     }
     supabase
       .from("payment_transactions")
-      .select("id, reference, description, amount_zar, purchase_type, created_at")
+      .select("id, reference, description, amount_zar, purchase_type, created_at, gateway")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -68,12 +70,22 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
       });
   }, [user]);
 
-  const handleBuyPack = async (packId: string) => {
+  const [gatewayPackId, setGatewayPackId] = useState<string | null>(null);
+
+  const handleBuyPack = (packId: string) => {
+    setGatewayPackId(packId);
+  };
+
+  const handleGatewaySelect = async (gateway: PaymentGateway) => {
+    if (!gatewayPackId) return;
+    const packId = gatewayPackId;
     setBuyingPack(packId);
-    const { error } = await startCreditPackCheckout(packId, config?.variantKey ?? "control");
+    const { error } = await startCreditPackCheckout(gateway, packId, config?.variantKey ?? "control");
     if (error) {
       setBuyingPack(null);
       toast.error(error.message);
+    } else {
+      setGatewayPackId(null);
     }
   };
 
@@ -162,8 +174,9 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Payments are processed securely by Paystack at checkout. SkinLabs never stores your card details — to
-            update a card, simply pay again at checkout and Paystack will prompt you for fresh details.
+            Payments are processed securely by PayFast or PayPal, whichever you choose at checkout. SkinLabs never
+            stores your card details — to update a card, simply pay again at checkout and your chosen provider will
+            prompt you for fresh details.
           </p>
         </CardContent>
       </Card>
@@ -200,6 +213,7 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                           createdAt: tx.created_at,
                           customerName: user?.user_metadata?.full_name ?? "",
                           customerEmail: user?.email ?? "",
+                          gateway: tx.gateway,
                         })
                       }
                       aria-label="Download invoice"
@@ -231,6 +245,12 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PaymentGatewayDialog
+        open={!!gatewayPackId}
+        onOpenChange={(next) => !buyingPack && !next && setGatewayPackId(null)}
+        onSelect={handleGatewaySelect}
+      />
     </div>
   );
 };

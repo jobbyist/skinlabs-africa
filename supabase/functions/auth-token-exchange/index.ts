@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
       // Check membership — via is_member(), the shared source of truth also used by
       // RLS/RPCs elsewhere, rather than comparing subscription_status to a literal.
-      // (Paystack writes "insider"/"vip", so a direct `=== "premium"` check here was
+      // (PayFast/PayPal write "insider"/"vip", so a direct `=== "premium"` check here was
       // silently blocking every real paying member from OpenHaus SSO.)
       const { data: isMemberResult, error: memberCheckError } = await supabaseAdmin.rpc("is_member", {
         _user_id: user.id,
