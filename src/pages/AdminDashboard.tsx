@@ -298,7 +298,7 @@ const AdminDashboard = () => {
     );
   }
 
-  // subscription_status is written as "insider"/"vip" (see paystack-payment), never
+  // subscription_status is written as "insider"/"vip" (see payfast-payment/paypal-payment), never
   // literally "premium" — this used to always read zero. isPaidSubscriptionStatus()
   // is the shared source of truth for "counts as a paying member" (src/lib/entitlements.ts).
   const premiumProfiles = profiles.filter((p) => isPaidSubscriptionStatus(p.subscription_status));

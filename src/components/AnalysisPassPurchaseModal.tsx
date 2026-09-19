@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 import { usePricingConfig } from "@/lib/pricing-config";
-import { startCreditPackCheckout } from "@/lib/paystack";
+import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 
 interface AnalysisPassPurchaseModalProps {
   open: boolean;
@@ -22,7 +23,7 @@ interface AnalysisPassPurchaseModalProps {
 
 /**
  * "Unlock your Advanced AI Dermatology Report" — the Analysis Pass purchase
- * flow (Section 6). Reuses the existing Paystack checkout (startCreditPackCheckout) and
+ * flow (Section 6). Reuses the shared checkout (startCreditPackCheckout) and
  * DB-driven credit_packs pricing wholesale; this only adds the compact
  * choose-1-or-3 presentation for it. Packages/prices are never hardcoded
  * here — they come from usePricingConfig(), the same source the Pricing
@@ -32,19 +33,29 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
   const { data: config, isLoading } = usePricingConfig();
   const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [gatewayDialogOpen, setGatewayDialogOpen] = useState(false);
 
   const packs = [...(config?.creditPacks ?? [])].sort((a, b) => a.credits - b.credits);
   const bestValuePackId = packs.length > 1 ? packs[packs.length - 1].pack_id : null;
   const singlePrice = packs.find((p) => p.credits === 1)?.price;
+  const selectedPack = packs.find((p) => p.pack_id === selectedPackId);
 
-  const handleContinue = async () => {
-    const pack = packs.find((p) => p.pack_id === selectedPackId);
-    if (!pack) return;
+  const handleContinue = () => {
+    if (!selectedPack) return;
+    trackConversionEvent("analysis_pass_package_selected", { packId: selectedPack.pack_id, credits: selectedPack.credits });
+    setGatewayDialogOpen(true);
+  };
+
+  const handleGatewaySelect = async (gateway: PaymentGateway) => {
+    if (!selectedPack) return;
     setSubmitting(true);
-    trackConversionEvent("analysis_pass_package_selected", { packId: pack.pack_id, credits: pack.credits });
-    const { error } = await startCreditPackCheckout(pack.pack_id, config?.variantKey ?? "control");
-    if (error) setSubmitting(false);
-    // On success startCreditPackCheckout redirects the browser — nothing left to do here.
+    const { error } = await startCreditPackCheckout(gateway, selectedPack.pack_id, config?.variantKey ?? "control");
+    if (error) {
+      setSubmitting(false);
+    } else {
+      setGatewayDialogOpen(false);
+    }
+    // On success startCreditPackCheckout redirects/navigates the browser — nothing left to do here.
   };
 
   return (
@@ -103,6 +114,11 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
           </>
         )}
       </DialogContent>
+      <PaymentGatewayDialog
+        open={gatewayDialogOpen}
+        onOpenChange={(next) => !submitting && setGatewayDialogOpen(next)}
+        onSelect={handleGatewaySelect}
+      />
     </Dialog>
   );
 };

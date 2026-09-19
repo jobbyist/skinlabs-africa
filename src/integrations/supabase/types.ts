@@ -1852,6 +1852,42 @@ export type Database = {
         }
         Relationships: []
       }
+      newsletter_offers: {
+        Row: {
+          active_from: string | null
+          active_until: string | null
+          created_at: string
+          cta_label: string
+          cta_url: string
+          description: string
+          headline: string
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_url: string
+          description: string
+          headline: string
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          active_from?: string | null
+          active_until?: string | null
+          created_at?: string
+          cta_label?: string
+          cta_url?: string
+          description?: string
+          headline?: string
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           email: string
@@ -2014,11 +2050,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_checkout_intents: {
+        Row: {
+          amount_charged: number
+          amount_zar: number
+          consumed_at: string | null
+          created_at: string
+          currency: string
+          gateway: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_charged: number
+          amount_zar: number
+          consumed_at?: string | null
+          created_at?: string
+          currency: string
+          gateway: string
+          id: string
+          metadata: Json
+          purchase_type: string
+          user_id: string
+        }
+        Update: {
+          amount_charged?: number
+          amount_zar?: number
+          consumed_at?: string | null
+          created_at?: string
+          currency?: string
+          gateway?: string
+          id?: string
+          metadata?: Json
+          purchase_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
+          amount_original: number | null
           amount_zar: number
           created_at: string
+          currency: string
           description: string
+          gateway: string
           id: string
           metadata: Json
           purchase_type: string
@@ -2027,9 +2105,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          amount_original?: number | null
           amount_zar: number
           created_at?: string
+          currency?: string
           description: string
+          gateway: string
           id?: string
           metadata?: Json
           purchase_type: string
@@ -2038,9 +2119,12 @@ export type Database = {
           user_id: string
         }
         Update: {
+          amount_original?: number | null
           amount_zar?: number
           created_at?: string
+          currency?: string
           description?: string
+          gateway?: string
           id?: string
           metadata?: Json
           purchase_type?: string
@@ -2907,6 +2991,9 @@ export type Database = {
           gender: string | null
           id: string
           is_professional: boolean
+          marketing_consent: boolean
+          marketing_consent_at: string | null
+          marketing_unsubscribe_token: string
           notes: string | null
           phone: string | null
           postal_code: string | null
@@ -2949,6 +3036,9 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          marketing_unsubscribe_token?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -2991,6 +3081,9 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          marketing_consent?: boolean
+          marketing_consent_at?: string | null
+          marketing_unsubscribe_token?: string
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
@@ -4087,6 +4180,7 @@ export type Database = {
         Returns: string
       }
       enqueue_trial_expiring_events: { Args: never; Returns: number }
+      enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
       expire_finished_trials: { Args: never; Returns: number }
       fail_advanced_assessment_session: {
         Args: { p_error_message: string; p_session_id: string }
@@ -4307,6 +4401,7 @@ export type Database = {
         }[]
       }
       subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
+      unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

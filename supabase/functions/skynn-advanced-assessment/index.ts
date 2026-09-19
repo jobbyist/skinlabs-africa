@@ -1,7 +1,7 @@
 /**
  * SKYNN AI Advanced Dermatology Assessment Engine — API surface.
  *
- * Single edge function, action-routed (same convention as paystack-payment
+ * Single edge function, action-routed (same convention as payfast-payment
  * and newsroom-sync in this repo, rather than one function per REST verb —
  * Supabase edge functions are one deployable per directory, so a JSON
  * `action` field is this codebase's existing way of exposing several

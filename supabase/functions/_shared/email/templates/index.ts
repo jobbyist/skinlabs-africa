@@ -7,6 +7,7 @@ import "./billing.ts";
 import "./skynn.ts";
 import "./forms.ts";
 import "./admin.ts";
+import "./marketing.ts";
 
 export { getTemplate, allTemplates, missingRequiredVars } from "./registry.ts";
 export type { EmailTemplateDefinition, EmailCategory, TemplateVars } from "./registry.ts";

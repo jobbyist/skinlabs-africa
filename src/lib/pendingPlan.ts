@@ -14,7 +14,7 @@ import type { PlanId } from "@/data/plans";
  *
  * IMPORTANT: this is a UX convenience only. It is never trusted as
  * authorization — the plan is re-validated server-side on activation
- * (start_free_trial() RPC for trials; the paystack-payment edge function,
+ * (start_free_trial() RPC for trials; the payfast-payment/paypal-payment edge functions,
  * which prices purely from the pricing_plans table, for paid checkout).
  * A tampered or invented plan id here just makes the RPC/edge function
  * reject the request, exactly as it would for a legitimate but stale one.

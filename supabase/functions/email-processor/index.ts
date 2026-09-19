@@ -37,14 +37,21 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-async function sendViaResend(supabaseAdmin: ReturnType<typeof createClient>, to: string, subject: string, html: string, idempotencyKey: string) {
+async function sendViaResend(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  to: string,
+  subject: string,
+  html: string,
+  idempotencyKey: string,
+  headers?: Record<string, string>,
+) {
   const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
     },
-    body: JSON.stringify({ to, subject, html, idempotency_key: idempotencyKey }),
+    body: JSON.stringify({ to, subject, html, idempotency_key: idempotencyKey, headers }),
   });
   const body = await resp.json().catch(() => ({}));
   if (!resp.ok) {
@@ -108,8 +115,21 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
   const bodyHtml = template.render(vars);
   const html = renderEmailLayout({ preheader, bodyHtml });
 
+  // Gmail/Yahoo's 2024 bulk-sender requirements make one-click
+  // List-Unsubscribe mandatory for marketing mail — required here, not
+  // optional polish. unsubscribe_url is always present on a MARKETING job
+  // (set by enqueue_weekly_newsletter_digest()); mailto falls back to the
+  // one confirmed-monitored inbox rather than a guessed address.
+  let resendHeaders: Record<string, string> | undefined;
+  if (job.category === "MARKETING" && typeof vars.unsubscribe_url === "string") {
+    resendHeaders = {
+      "List-Unsubscribe": `<mailto:support@skinlabs.co.za?subject=unsubscribe>, <${vars.unsubscribe_url}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    };
+  }
+
   try {
-    const providerMessageId = await sendViaResend(supabaseAdmin, recipient, subject, html, job.id);
+    const providerMessageId = await sendViaResend(supabaseAdmin, recipient, subject, html, job.id, resendHeaders);
     await supabaseAdmin.rpc("complete_email_job", {
       p_job_id: job.id,
       p_processing_token: job.processing_token,

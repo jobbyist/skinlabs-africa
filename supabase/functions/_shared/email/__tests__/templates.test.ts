@@ -21,6 +21,7 @@ describe("email template registry", () => {
       "form_confirmation_newsletter", "admin_form_notification_newsletter",
       "admin_notify_me_request",
       "admin_payment_needs_review", "admin_delivery_failed",
+      "newsletter_weekly_digest",
     ];
     for (const id of expectedIds) {
       expect(getTemplate(id), `missing template: ${id}`).toBeDefined();

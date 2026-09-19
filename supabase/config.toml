@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = false
 
 
-[functions.paystack-payment]
+[functions.paypal-payment]
 verify_jwt = false
 
 [functions.account-delete]
@@ -38,6 +38,9 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.email-webhooks]
+verify_jwt = false
+
+[functions.email-unsubscribe]
 verify_jwt = false
 
 [functions.quote-ss-beauty-submit]

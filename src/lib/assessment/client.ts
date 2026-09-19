@@ -3,7 +3,7 @@
  * way the frontend talks to the Advanced Assessment engine (see that
  * function's own header comment). Every call is action-routed through a
  * single POST body, matching this repo's existing convention for
- * multi-endpoint edge functions (paystack-payment, newsroom-sync).
+ * multi-endpoint edge functions (payfast-payment, newsroom-sync).
  */
 import { supabase } from "@/integrations/supabase/client";
 import type {

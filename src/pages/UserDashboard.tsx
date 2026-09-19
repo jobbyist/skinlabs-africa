@@ -35,6 +35,7 @@ import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { capturePendingPaypalOrder } from "@/lib/payments";
 
 interface Profile {
   subscription_status: string | null;
@@ -110,6 +111,19 @@ const UserDashboard = () => {
     let cancelled = false;
     let attempts = 0;
     setActivating(true);
+
+    // PayFast activates via its own server-to-server ITN, so by the time the
+    // browser lands back here the entitlement may already be granted — the
+    // poll below just needs to wait for it. PayPal is different: nothing
+    // grants the entitlement until *we* call its capture API, which this
+    // return trip is what triggers. No-ops instantly for a PayFast/direct
+    // return (no matching pending order in sessionStorage).
+    void (async () => {
+      const captureResult = await capturePendingPaypalOrder();
+      if (captureResult.captured && !captureResult.ok) {
+        toast.error(captureResult.error || "We couldn't confirm your PayPal payment. Contact support if you were charged.");
+      }
+    })();
 
     const clearParam = () => {
       const next = new URLSearchParams(window.location.search);
