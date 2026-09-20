@@ -4,6 +4,22 @@ Original columns for The Daily Skinny, written in SkinLabs brand voice against t
 
 Bodies are 2,000+ words each. Thumbnails are Unsplash URLs.
 
+## 20 September 2026
+
+| Slug | Title | Tag | Words |
+| --- | --- | --- | --- |
+| tranexamic-acid-melasma-heat-south-africa | Tranexamic Acid Is Not a Bleach. Heat Still Writes the Patch. | Ingredients | 2299 |
+| keratosis-pilaris-hard-water-south-africa | The Bumps Are Keratin. The Sponge Is How Arms Collect PIH. | Skin Conditions | 2051 |
+| fragrance-laundry-contact-dermatitis-south-africa | The Line Is Not Fresh. It Is Perfume Sitting in a Waistband. | Contact Dermatitis | 2021 |
+
+SQL seed: `supabase/seed-daily-skinny-2026-09-20.sql` (also in artifacts).
+Primary sources aggregated via Firecrawl:
+- Isaacs et al., International Journal of Dermatology 2025 — sun protection advice for the South African population (PMC12712754)
+- Tranexamic acid hyperpigmentation reviews (PMC11439988, PMC12848551, PMC10969640)
+- Keratosis pilaris keratolytic review (PMC12860576) — lactic acid, urea, salicylic acid
+- NHS / contact-dermatitis literature on detergents, fragrance and irritant residue
+- Mayo Clinic KP treatment guidance; Healthline / Cleveland Clinic laundry-rash explainers
+
 ## 19 September 2026
 
 | Slug | Title | Tag | Words |
