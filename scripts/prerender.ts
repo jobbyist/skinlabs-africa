@@ -123,6 +123,24 @@ function outputPathFor(route: string): string {
 }
 
 async function main() {
+  // Escape hatch: even the browser-launch timeout and global watchdog added above
+  // assume a hang can be interrupted by a JS timer, which requires the event loop
+  // to still be alive. Confirmed live (2026-09-21): a production build can enter a
+  // state where NEITHER the 30s browser-launch timeout NOR the 8-minute global
+  // watchdog ever fires -- no warning, no progress, no exit, for 20+ minutes --
+  // which points at something lower-level than an unresolved promise (a frozen
+  // container/process, not just a hung await). No script-level timeout can
+  // guarantee recovery from that. SKIP_PRERENDER=true bypasses this step
+  // entirely (falls back to the same client-side-rendered SPA the existing
+  // `main().catch()` degrade path already ships on any other prerender failure),
+  // set as a temporary Vercel project env var to unblock deploys while that
+  // deeper issue is investigated separately -- remove the env var once resolved
+  // rather than deleting this check.
+  if (process.env.SKIP_PRERENDER === "true") {
+    console.warn("prerender: skipped -- SKIP_PRERENDER=true is set, shipping a client-side-rendered SPA for this build.");
+    return;
+  }
+
   const routes = await collectRoutes();
   console.log(`prerender: ${routes.length} routes to render`);
   const server = await preview({ root, preview: { port: PORT, strictPort: true, host: "127.0.0.1" } });
