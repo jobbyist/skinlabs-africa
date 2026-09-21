@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       advanced_assessment_events: {
         Row: {
           created_at: string
@@ -384,6 +411,33 @@ export type Database = {
           source_url?: string
           verdict?: string
           where_to_buy?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          path: string | null
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          path?: string | null
+          payload?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          path?: string | null
+          payload?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1202,6 +1256,59 @@ export type Database = {
           {
             foreignKeyName: "ingredient_interactions_ingredient_b_id_fkey"
             columns: ["ingredient_b_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_sources: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          evidence_level: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary: string | null
+          fetched_at: string
+          id: string
+          ingredient_id: string
+          publication_date: string | null
+          publisher: string | null
+          source_title: string | null
+          source_type: Database["public"]["Enums"]["data_source_type"]
+          source_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary?: string | null
+          fetched_at?: string
+          id?: string
+          ingredient_id: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_title?: string | null
+          source_type?: Database["public"]["Enums"]["data_source_type"]
+          source_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary?: string | null
+          fetched_at?: string
+          id?: string
+          ingredient_id?: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_title?: string | null
+          source_type?: Database["public"]["Enums"]["data_source_type"]
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_sources_ingredient_id_fkey"
+            columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
             referencedColumns: ["id"]
@@ -2155,6 +2262,84 @@ export type Database = {
           provider?: string
           purpose?: string | null
           success?: boolean
+        }
+        Relationships: []
+      }
+      pipeline_model_calls: {
+        Row: {
+          attempt_number: number
+          candidate_key: string | null
+          created_at: string
+          duration_ms: number
+          http_status: number | null
+          id: number
+          message: string | null
+          model: string
+          outcome: string
+          pipeline: string
+          run_id: string
+        }
+        Insert: {
+          attempt_number: number
+          candidate_key?: string | null
+          created_at?: string
+          duration_ms: number
+          http_status?: number | null
+          id?: never
+          message?: string | null
+          model: string
+          outcome: string
+          pipeline: string
+          run_id: string
+        }
+        Update: {
+          attempt_number?: number
+          candidate_key?: string | null
+          created_at?: string
+          duration_ms?: number
+          http_status?: number | null
+          id?: never
+          message?: string | null
+          model?: string
+          outcome?: string
+          pipeline?: string
+          run_id?: string
+        }
+        Relationships: []
+      }
+      pipeline_retry_queue: {
+        Row: {
+          attempt_count: number
+          candidate_payload: Json
+          created_at: string
+          id: number
+          pipeline: string
+          reason: string | null
+          resolved: boolean
+          resolved_at: string | null
+          retry_after: string
+        }
+        Insert: {
+          attempt_count?: number
+          candidate_payload: Json
+          created_at?: string
+          id?: never
+          pipeline: string
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          retry_after: string
+        }
+        Update: {
+          attempt_count?: number
+          candidate_payload?: Json
+          created_at?: string
+          id?: never
+          pipeline?: string
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          retry_after?: string
         }
         Relationships: []
       }
@@ -4040,6 +4225,37 @@ export type Database = {
       }
     }
     Functions: {
+      admin_override_entitlement: {
+        Args: {
+          _reason: string
+          _subscription_status: string
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_search_profiles: {
+        Args: { _page?: number; _page_size?: number; _query?: string }
+        Returns: {
+          account_status: string
+          created_at: string
+          email: string
+          founding_member: boolean
+          full_name: string
+          id: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          subscription_status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      admin_set_user_role: {
+        Args: {
+          _grant: boolean
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_email_job: {
         Args: { p_job_id: string; p_reason: string }
@@ -4422,6 +4638,8 @@ export type Database = {
         | "distributor_document"
         | "clinical_study"
         | "other"
+        | "peer_reviewed_literature"
+        | "regulatory_database"
       evidence_level: "strong" | "moderate" | "limited" | "anecdotal" | "none"
       ingredient_alias_type:
         | "common_name"
@@ -4583,6 +4801,8 @@ export const Constants = {
         "distributor_document",
         "clinical_study",
         "other",
+        "peer_reviewed_literature",
+        "regulatory_database",
       ],
       evidence_level: ["strong", "moderate", "limited", "anecdotal", "none"],
       ingredient_alias_type: [
