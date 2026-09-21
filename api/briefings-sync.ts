@@ -19,7 +19,7 @@
  *                                     this function accepts either.
  *
  * Optional overrides:
- *   UNSPLASH_ACCESS_KEY_BRIEFINGS     Unsplash fallback if Pexels returns nothing.
+ *   UNSPLASH_API_KEY_BRIEFINGS        Unsplash fallback if Pexels returns nothing.
  *   GEMINI_MODEL_BRIEFINGS            Model ID (default: "gemini-3.6-flash").
  *   FIRECRAWL_BRIEFINGS_DAILY_LIMIT   Max Firecrawl calls/day (default 30).
  *   GEMINI_BRIEFINGS_DAILY_LIMIT      Max Gemini calls/day (default 100).
@@ -49,10 +49,8 @@ interface VercelRes {
   json: (body: unknown) => void;
 }
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-if (!SUPABASE_URL) {
-  throw new Error("VITE_SUPABASE_URL environment variable is required");
-}
+const SUPABASE_URL =
+  process.env.VITE_SUPABASE_URL || "https://gnkpzijxuciiaamakgzm.supabase.co";
 
 /** Max briefings published per calendar day (editorial cap, not quota). */
 const DAILY_BRIEFINGS_CAP = 3;
@@ -317,7 +315,7 @@ async function searchUnsplash(
   query: string,
   exclude: Set<string>,
 ): Promise<StockPhoto | null> {
-  const key = process.env.UNSPLASH_ACCESS_KEY_BRIEFINGS;
+  const key = process.env.UNSPLASH_API_KEY_BRIEFINGS;
   if (!key) return null;
 
   const url = new URL("https://api.unsplash.com/search/photos");
@@ -563,16 +561,13 @@ async function generateBriefing(
   apiKey: string,
   model: string,
 ): Promise<GeneratedBriefing> {
-  const endpoint = `
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
-      "x-goog-api-key": apiKey
+      "x-goog-api-key": apiKey,
     },
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: BRIEFING_INSTRUCTIONS }] },
       contents: [{ parts: [{ text: sourceText.slice(0, 20000) }] }],
