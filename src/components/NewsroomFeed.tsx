@@ -291,7 +291,7 @@ const NewsroomFeed = ({
               : "The next briefing publishes at 6am SAST. Check back shortly."}
           </p>
         ) : (
-          <div className="grid justify-items-center gap-6 md:grid-cols-2 md:justify-items-stretch lg:grid-cols-3">
+          <div className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 md:place-items-stretch lg:grid-cols-3">
             {articles.map((article, index) => (
               <Fragment key={article.id}>
                 <motion.article
@@ -300,7 +300,7 @@ const NewsroomFeed = ({
                   viewport={{ once: true }}
                   transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
                   whileHover={{ y: -4 }}
-                  className="gradient-border-anim group flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card md:max-w-none"
+                  className="gradient-border-anim group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card md:max-w-none"
                   itemScope
                   itemType="https://schema.org/NewsArticle"
                 >
