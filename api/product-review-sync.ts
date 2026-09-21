@@ -36,14 +36,37 @@
  *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash". (gemini-2.0-flash was
  *     retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
  *     which named gemini-3.6-flash as the direct replacement.)
+ *   - GEMINI_MODEL_FALLBACK_1   Defaults to "gemini-3.1-flash-lite" -- tried when
+ *     GEMINI_MODEL is rate-limited, erroring, timing out or returning malformed
+ *     output that a repair retry couldn't fix. See api/_lib/geminiFallback.ts for
+ *     the exact per-error routing table (which errors fall back vs. retry vs. abort
+ *     the whole run outright).
+ *   - GEMINI_MODEL_FALLBACK_2   Defaults to "gemini-3.5-flash-lite" -- tried only if
+ *     both GEMINI_MODEL and GEMINI_MODEL_FALLBACK_1 are exhausted for a candidate.
  *   - FIRECRAWL_DAILY_LIMIT     Defaults to 20 real Firecrawl calls/day.
  *   - GEMINI_DAILY_LIMIT        Defaults to 100 real Gemini calls/day.
  *   - GEMINI_PER_MINUTE_LIMIT   Defaults to 10 real Gemini calls/minute.
  *   - VITE_SUPABASE_URL         Reused if set (already present for the client build);
  *     falls back to the hardcoded production project URL otherwise.
+ *
+ * Manual backfill: POST with ?backfillDate=YYYY-MM-DD (still requires the same
+ * Bearer CRON_SECRET auth) publishes up to DAILY_REVIEW_CAP reviews dated that day
+ * instead of today, and checks/writes the cap against that date -- lets a human
+ * retroactively fill a day the pipeline missed (e.g. while it was broken) without
+ * touching today's own cap or already-published reviews.
+ *
+ * Every Gemini call attempt (across the full fallback chain, including retries and
+ * repair attempts) is logged to pipeline_model_calls -- see the migration
+ * gemini_model_fallback_logging_and_retry_queue.sql. A candidate whose entire
+ * fallback chain is exhausted (all three models failed) is queued in
+ * pipeline_retry_queue for a lazy retry on this pipeline's next invocation (see that
+ * table's own comment for why this is a lazy queue and not a live 15-minute timer --
+ * Vercel Hobby-tier cron doesn't support sub-daily schedules).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback";
+import { scanComplianceFlags } from "./_lib/complianceTerms";
 
 interface VercelReq {
   method?: string;
@@ -276,43 +299,12 @@ local_price_zar: the ZAR price from the source. If the source gives a different
 currency, convert at a reasonable approximate rate and note nothing extra -- just the number.
 category: pick the single best fit from the provided enum.`;
 
-class GeminiError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-
-interface GeminiApiResponse {
-  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-}
-
-async function generateReview(sourceText: string, apiKey: string, model: string): Promise<GeneratedReviewFields> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: REVIEW_INSTRUCTIONS }] },
-      contents: [{ parts: [{ text: sourceText.slice(0, 14000) }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: REVIEW_SCHEMA,
-        temperature: 0.4,
-      },
-    }),
-  });
-
-  const payload = (await res.json().catch(() => null)) as GeminiApiResponse | null;
-  if (!res.ok) {
-    throw new GeminiError(res.status, `Gemini ${res.status}: ${JSON.stringify(payload)?.slice(0, 300)}`);
-  }
-
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string") throw new Error("Gemini returned no usable content");
-
+/** Parses + validates a raw Gemini response into GeneratedReviewFields, throwing on
+ *  anything unparseable so the shared fallback module's malformed_output/repair path
+ *  kicks in -- never silently coerces bad JSON into a "best effort" object. */
+function parseReviewResponse(text: string): GeneratedReviewFields {
   const parsed = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
   return {
     product_name: String(parsed.product_name ?? "").slice(0, 120),
     brand: String(parsed.brand ?? "").slice(0, 80),
@@ -326,6 +318,35 @@ async function generateReview(sourceText: string, apiKey: string, model: string)
     verdict: String(parsed.verdict ?? "").slice(0, 500),
     key_ingredients: Array.isArray(parsed.key_ingredients) ? parsed.key_ingredients.slice(0, 6) : [],
   };
+}
+
+/** QA gate: runs after generation, before insert. A candidate that fails QA is
+ *  skipped (never published) rather than failing the whole run -- matches the
+ *  Firecrawl/Gemini pattern of "one bad candidate doesn't sink the run." */
+function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!fields.product_name || fields.product_name.trim().length < 2) reasons.push("missing/too-short product_name");
+  if (!fields.brand || fields.brand.trim().length < 2) reasons.push("missing/too-short brand");
+  if (!(fields.local_price_zar > 0)) reasons.push("non-positive local_price_zar");
+  if (!(KNOWN_CATEGORIES as readonly string[]).includes(fields.category)) reasons.push("category outside known enum");
+  if (!fields.verdict || fields.verdict.trim().length < 20) reasons.push("verdict too short to be a real review");
+  if (fields.key_ingredients.length === 0) reasons.push("no key_ingredients returned");
+  for (const [label, score] of [
+    ["score_efficacy", fields.score_efficacy],
+    ["score_value", fields.score_value],
+    ["score_texture", fields.score_texture],
+    ["score_climate", fields.score_climate],
+  ] as const) {
+    if (!(score >= 0 && score <= 10)) reasons.push(`${label} out of 0-10 range`);
+  }
+  // Never let an unverifiable superlative or named-condition treatment claim through --
+  // the source material never supports these, so their presence means the model
+  // fabricated language beyond what it was grounded in.
+  if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fields.verdict)) {
+    reasons.push("verdict contains an unverifiable superlative/clinical claim");
+  }
+  for (const flag of scanComplianceFlags(fields.verdict)) reasons.push(flag);
+  return { passed: reasons.length === 0, reasons };
 }
 
 // ---------------------------------------------------------------------------
@@ -459,13 +480,44 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     return;
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const modelChain = [
+    process.env.GEMINI_MODEL || "gemini-3.6-flash",
+    process.env.GEMINI_MODEL_FALLBACK_1 || "gemini-3.1-flash-lite",
+    process.env.GEMINI_MODEL_FALLBACK_2 || "gemini-3.5-flash-lite",
+  ];
   const { createClient } = await import("@supabase/supabase-js");
   const admin: SupabaseAdmin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
 
-  const today = new Date().toISOString().slice(0, 10);
+  const rawBackfillDate = String(req.query.backfillDate ?? "");
+  const backfillDate = /^\d{4}-\d{2}-\d{2}$/.test(rawBackfillDate) ? rawBackfillDate : null;
+  const today = backfillDate ?? new Date().toISOString().slice(0, 10);
+  const runId = crypto.randomUUID();
   const errors: string[] = [];
+  const modelUsage: Record<string, number> = {};
   let created = 0;
+
+  /** Persists every Gemini attempt for this pipeline run: a detailed per-model log
+   *  (pipeline_model_calls) plus the existing aggregate quota counter (pipeline_api_usage,
+   *  provider "gemini") so withinDailyQuota/withinPerMinuteQuota keep counting every real
+   *  call across the whole fallback chain, not just the first attempt per candidate. */
+  const logModelAttempt = (candidateKey: string) => async (log: GeminiAttemptLog) => {
+    await recordApiUsage(admin, "gemini", candidateKey, log.outcome === "success");
+    try {
+      await admin.from("pipeline_model_calls").insert({
+        pipeline: "product-review-sync",
+        run_id: runId,
+        candidate_key: candidateKey,
+        model: log.model,
+        attempt_number: log.attemptNumber,
+        outcome: log.outcome,
+        http_status: log.httpStatus ?? null,
+        message: log.message ?? null,
+        duration_ms: log.durationMs,
+      });
+    } catch {
+      // Model-usage logging must never break the run itself.
+    }
+  };
 
   try {
     // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
@@ -479,6 +531,17 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       return;
     }
     const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
+
+    // ---- Lazy retry queue: process anything already due before pulling fresh
+    // candidates (see pipeline_retry_queue's own migration comment for why this is
+    // lazy-on-next-invocation rather than a live 15-minute timer). ----
+    const { data: dueRetries } = await admin
+      .from("pipeline_retry_queue")
+      .select("id, candidate_payload, attempt_count")
+      .eq("pipeline", "product-review-sync")
+      .eq("resolved", false)
+      .lte("retry_after", new Date().toISOString())
+      .limit(target * 2);
 
     const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("source_url, origin");
     const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
@@ -523,7 +586,25 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     const wantsSa = () => runningSa / Math.max(1, runningSa + runningGlobal) < SA_SHARE_TARGET;
 
     // Interleave: prefer whichever origin the running 70/30 split is short on.
-    const queue: Array<{ text: string; origin: Origin; sourceUrl: string; sourceType: SourceType; isSponsored: boolean; retailerHint: Retailer | null }> = [];
+    interface QueueItem {
+      text: string;
+      origin: Origin;
+      sourceUrl: string;
+      sourceType: SourceType;
+      isSponsored: boolean;
+      retailerHint: Retailer | null;
+      /** Set only for a candidate pulled back out of pipeline_retry_queue. */
+      retryQueueId?: number;
+      retryAttemptCount?: number;
+    }
+    const queue: QueueItem[] = [];
+
+    for (const row of dueRetries ?? []) {
+      const payload = row.candidate_payload as Omit<QueueItem, "retryQueueId" | "retryAttemptCount"> | null;
+      if (!payload?.sourceUrl || seenUrls.has(payload.sourceUrl)) continue; // already published since queuing
+      queue.push({ ...payload, retryQueueId: row.id, retryAttemptCount: row.attempt_count });
+    }
+
     for (const p of marketplaceCandidates) {
       queue.push({
         text: `Product: ${p.name}\nBrand: ${p.brand?.name ?? "Unknown"}\nCategory: ${p.category}\nPrice: R${p.marked_up_price_zar}\nDescription: ${p.description}\nKey actives: ${(p.key_actives ?? []).join(", ")}\nConcerns addressed: ${(p.concern ?? []).join(", ")}`,
@@ -572,9 +653,25 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       }
 
       try {
-        const fields = await generateReview(candidate.text, geminiKey as string, model);
-        await recordApiUsage(admin, "gemini", candidate.sourceUrl, true);
+        const { data: fields, modelUsed } = await callGeminiWithFallback({
+          apiKey: geminiKey as string,
+          models: modelChain,
+          systemInstruction: REVIEW_INSTRUCTIONS,
+          userContent: candidate.text,
+          responseSchema: REVIEW_SCHEMA,
+          temperature: 0.4,
+          parse: parseReviewResponse,
+          onAttempt: logModelAttempt(candidate.sourceUrl),
+        });
+        modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
+
         if (!fields.product_name || !fields.brand) continue;
+
+        const qa = qaProductReview(fields);
+        if (!qa.passed) {
+          errors.push(`QA rejected ${candidate.sourceUrl}: ${qa.reasons.join("; ")}`);
+          continue;
+        }
 
         const slug = slugify(`${fields.brand}-${fields.product_name}`);
         const id = `${slug || Date.now()}`;
@@ -605,7 +702,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           source_url: candidate.sourceUrl,
           source_type: candidate.sourceType,
           is_sponsored: candidate.isSponsored,
-          generated_by: "gemini",
+          generated_by: modelUsed,
           published_date: today,
         });
 
@@ -616,12 +713,62 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           seenUrls.add(candidate.sourceUrl);
           if (candidate.origin === "south_africa") runningSa += 1;
           else runningGlobal += 1;
+          if (candidate.retryQueueId) {
+            await admin
+              .from("pipeline_retry_queue")
+              .update({ resolved: true, resolved_at: new Date().toISOString() })
+              .eq("id", candidate.retryQueueId);
+          }
         }
       } catch (err) {
-        await recordApiUsage(admin, "gemini", candidate.sourceUrl, false);
-        const message = err instanceof GeminiError ? `Gemini ${err.status}: ${err.message}` : String(err);
-        errors.push(message.slice(0, 300));
-        if (err instanceof GeminiError && err.status === 429) await sleep(10000);
+        if (err instanceof GeminiFatalError) {
+          // Auth or invalid-request failure: every remaining candidate would fail
+          // identically, and blindly trying weaker models wouldn't fix a broken API
+          // key or a bad prompt/schema. Stop the whole run and surface this loudly
+          // rather than burning through the queue -- this needs a human to look at
+          // the Vercel/Google AI Studio config, not a retry.
+          errors.push(`ALERT (Gemini config, run stopped): ${err.message}`);
+          break;
+        }
+        if (err instanceof GeminiAllModelsExhaustedError) {
+          errors.push(
+            `All ${modelChain.length} Gemini models exhausted for ${candidate.sourceUrl} -- queued for retry: ` +
+              err.attempts.map((a) => `${a.model}#${a.attemptNumber}=${a.outcome}`).join(", "),
+          );
+          try {
+            if (candidate.retryQueueId) {
+              const nextAttempt = (candidate.retryAttemptCount ?? 1) + 1;
+              if (nextAttempt > 5) {
+                // Cap retries so a persistently-failing candidate doesn't loop forever --
+                // left unresolved for manual review rather than retried indefinitely.
+                errors.push(`${candidate.sourceUrl} exceeded max retry attempts (5) -- left unresolved for manual review`);
+              } else {
+                await admin
+                  .from("pipeline_retry_queue")
+                  .update({ attempt_count: nextAttempt, retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString() })
+                  .eq("id", candidate.retryQueueId);
+              }
+            } else {
+              await admin.from("pipeline_retry_queue").insert({
+                pipeline: "product-review-sync",
+                candidate_payload: {
+                  text: candidate.text,
+                  origin: candidate.origin,
+                  sourceUrl: candidate.sourceUrl,
+                  sourceType: candidate.sourceType,
+                  isSponsored: candidate.isSponsored,
+                  retailerHint: candidate.retailerHint,
+                },
+                reason: err.message.slice(0, 300),
+                retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+              });
+            }
+          } catch (queueErr) {
+            errors.push(`Failed to queue ${candidate.sourceUrl} for retry: ${String(queueErr).slice(0, 200)}`);
+          }
+        } else {
+          errors.push(String(err).slice(0, 300));
+        }
       }
       await sleep(1200);
     }
@@ -660,7 +807,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
     }
 
-    res.status(200).json({ ok: true, created, target, errors });
+    res.status(200).json({ ok: true, created, target, modelUsage, backfillDate, errors });
   } catch (err) {
     res.status(500).json({ error: String(err).slice(0, 500), created, errors });
   }

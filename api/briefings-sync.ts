@@ -20,7 +20,13 @@
  *
  * Optional overrides:
  *   UNSPLASH_API_KEY_BRIEFINGS        Unsplash fallback if Pexels returns nothing.
- *   GEMINI_MODEL_BRIEFINGS            Model ID (default: "gemini-3.6-flash").
+ *   GEMINI_MODEL_BRIEFINGS            Primary model ID (default: "gemini-3.6-flash").
+ *   GEMINI_MODEL_BRIEFINGS_FALLBACK_1 First fallback (default: "gemini-3.1-flash-lite"),
+ *     tried when the primary is rate-limited, erroring, timing out, or returning
+ *     malformed output a repair retry couldn't fix. See api/_lib/geminiFallback.ts
+ *     for the exact per-error routing table.
+ *   GEMINI_MODEL_BRIEFINGS_FALLBACK_2 Second fallback (default: "gemini-3.5-flash-lite"),
+ *     tried only if both the primary and first fallback are exhausted.
  *   FIRECRAWL_BRIEFINGS_DAILY_LIMIT   Max Firecrawl calls/day (default 30).
  *   GEMINI_BRIEFINGS_DAILY_LIMIT      Max Gemini calls/day (default 100).
  *   GEMINI_BRIEFINGS_PER_MINUTE_LIMIT Max Gemini calls/minute (default 10).
@@ -35,9 +41,18 @@
  *   GET https://gnkpzijxuciiaamakgzm.supabase.co/rest/v1/news_articles_public
  *       ?order=publish_date.desc&limit=10
  *   apikey: <VITE_SUPABASE_ANON_KEY>   (the publishable key in .env)
+ *
+ * Every Gemini call attempt (across the full fallback chain, including retries and
+ * repair attempts) is logged to pipeline_model_calls. A channel candidate whose
+ * entire fallback chain is exhausted is queued in pipeline_retry_queue for a lazy
+ * retry on this pipeline's next invocation -- see that table's migration comment
+ * (gemini_model_fallback_logging_and_retry_queue.sql) for why this is a lazy queue
+ * rather than a live 15-minute timer (Vercel Hobby-tier cron is daily-only).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback";
+import { scanComplianceFlags } from "./_lib/complianceTerms";
 
 interface VercelReq {
   method?: string;
@@ -542,63 +557,12 @@ Other required fields:
 - image_queries: exactly 3 short, brand-name-free and person-name-free photo search phrases suitable for Pexels or Unsplash.
 - reading_time_minutes: estimate at 200 words per minute (so 2000 words = 10 min).`;
 
-class GeminiError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-
-interface GeminiApiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
-  }>;
-}
-
-async function generateBriefing(
-  sourceText: string,
-  apiKey: string,
-  model: string,
-): Promise<GeneratedBriefing> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-goog-api-key": apiKey,
-    },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: BRIEFING_INSTRUCTIONS }] },
-      contents: [{ parts: [{ text: sourceText.slice(0, 20000) }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: BRIEFING_SCHEMA,
-        temperature: 0.6,
-        maxOutputTokens: 8192,
-      },
-    }),
-  });
-
-  const payload =
-    (await res.json().catch(() => null)) as GeminiApiResponse | null;
-  if (!res.ok) {
-    throw new GeminiError(
-      res.status,
-      `Gemini ${res.status}: ${JSON.stringify(payload)?.slice(0, 300)}`,
-    );
-  }
-
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string") throw new Error("Gemini returned no usable content");
-
-  let parsed: Partial<GeneratedBriefing>;
-  try {
-    parsed = JSON.parse(text);
-  } catch (e) {
-    throw new Error(`Failed to parse Gemini response as JSON: ${String(e)}`);
-  }
-
+/** Parses + validates a raw Gemini response into GeneratedBriefing, throwing on
+ *  anything unparseable so the shared fallback module's malformed_output/repair
+ *  path kicks in -- never silently coerces bad JSON into a "best effort" object. */
+function parseBriefingResponse(text: string): GeneratedBriefing {
+  const parsed: Partial<GeneratedBriefing> = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
   return {
     title: String(parsed.title ?? "").slice(0, 130),
     excerpt: String(parsed.excerpt ?? "").slice(0, 200),
@@ -617,6 +581,24 @@ async function generateBriefing(
       ? parsed.image_queries.slice(0, 3)
       : [],
   };
+}
+
+/** Editorial/factual QA gate: runs after generation, before insert. A briefing
+ *  that fails QA is skipped (never published) rather than failing the whole run. */
+function qaBriefing(briefing: GeneratedBriefing, wordCount: number): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (wordCount < MIN_BODY_WORD_COUNT) reasons.push(`body word count ${wordCount} below minimum ${MIN_BODY_WORD_COUNT}`);
+  if (!briefing.title || briefing.title.trim().length < 10) reasons.push("missing/too-short title");
+  if (!briefing.excerpt || briefing.excerpt.trim().length < 10) reasons.push("missing/too-short excerpt");
+  if (briefing.key_takeaways.length === 0) reasons.push("no key_takeaways returned");
+  if (!/^## /m.test(briefing.body_markdown)) reasons.push("body_markdown has no '## ' section headings");
+  // The prompt forbids bold/italic markers entirely -- their presence means the
+  // model drifted from the house style, not a factual problem but still a QA fail.
+  if (/\*\*|__/.test(briefing.body_markdown)) reasons.push("body_markdown contains forbidden bold/italic markdown (** or __)");
+  // Named-diagnosis language directed at the reader ("you have eczema") is exactly
+  // what this desk must never say -- it's commentary/education, not a diagnosis.
+  for (const flag of scanComplianceFlags(briefing.body_markdown)) reasons.push(flag);
+  return { passed: reasons.length === 0, reasons };
 }
 
 // ---------------------------------------------------------------------------
@@ -747,7 +729,11 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     return;
   }
 
-  const model = process.env.GEMINI_MODEL_BRIEFINGS || "gemini-3.6-flash";
+  const modelChain = [
+    process.env.GEMINI_MODEL_BRIEFINGS || "gemini-3.6-flash",
+    process.env.GEMINI_MODEL_BRIEFINGS_FALLBACK_1 || "gemini-3.1-flash-lite",
+    process.env.GEMINI_MODEL_BRIEFINGS_FALLBACK_2 || "gemini-3.5-flash-lite",
+  ];
   const { createClient } = await import("@supabase/supabase-js");
   const admin: SupabaseAdmin = createClient(
     SUPABASE_URL,
@@ -756,9 +742,35 @@ export default async function handler(req: VercelReq, res: VercelRes) {
   );
 
   const today = new Date().toISOString().slice(0, 10);
+  const runId = crypto.randomUUID();
   const errors: string[] = [];
+  const modelUsage: Record<string, number> = {};
   let created = 0;
   let firecrawlCallsThisRun = 0;
+
+  /** Persists every Gemini attempt for this run: a detailed per-model log
+   *  (pipeline_model_calls) plus the existing aggregate quota counter
+   *  (pipeline_api_usage, provider "briefings-gemini") so withinDailyQuota/
+   *  withinPerMinuteQuota keep counting every real call across the whole
+   *  fallback chain, not just the first attempt per candidate. */
+  const logModelAttempt = (candidateKey: string) => async (log: GeminiAttemptLog) => {
+    await recordApiUsage(admin, "briefings-gemini", candidateKey, log.outcome === "success");
+    try {
+      await admin.from("pipeline_model_calls").insert({
+        pipeline: "briefings-sync",
+        run_id: runId,
+        candidate_key: candidateKey,
+        model: log.model,
+        attempt_number: log.attemptNumber,
+        outcome: log.outcome,
+        http_status: log.httpStatus ?? null,
+        message: log.message ?? null,
+        duration_ms: log.durationMs,
+      });
+    } catch {
+      // Model-usage logging must never break the run itself.
+    }
+  };
 
   // Manual verification override: ?force=true (still requires the same Bearer
   // auth as every other invocation) bypasses today's editorial cap and limits
@@ -780,6 +792,23 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     }
     const target = forceRun ? 1 : DAILY_BRIEFINGS_CAP - (publishedToday ?? 0);
 
+    // ---- Lazy retry queue: anything already due gets tried before fresh research
+    // (see pipeline_retry_queue's migration comment for why this is lazy-on-next-
+    // invocation rather than a live 15-minute timer). ----
+    interface RetryPayload {
+      channelId: string;
+      topicTag: string;
+      compositeSource: string;
+      primaryPageUrl: string;
+    }
+    const { data: dueRetries } = await admin
+      .from("pipeline_retry_queue")
+      .select("id, candidate_payload, attempt_count")
+      .eq("pipeline", "briefings-sync")
+      .eq("resolved", false)
+      .lte("retry_after", new Date().toISOString())
+      .limit(target * 2);
+
     // Track seen source URLs to prevent duplicates
     const { data: existingRows } = await admin
       .from("news_articles")
@@ -787,6 +816,26 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     const seenUrls = new Set(
       (existingRows ?? []).map((r: { source_url: string }) => r.source_url),
     );
+
+    interface GenerationCandidate {
+      channel: { id: string; topicTag: string };
+      compositeSource: string;
+      primaryPageUrl: string;
+      retryQueueId?: number;
+      retryAttemptCount?: number;
+    }
+    const retriedCandidates: GenerationCandidate[] = [];
+    for (const row of dueRetries ?? []) {
+      const payload = row.candidate_payload as RetryPayload | null;
+      if (!payload?.primaryPageUrl || seenUrls.has(payload.primaryPageUrl)) continue; // already published since queuing
+      retriedCandidates.push({
+        channel: { id: payload.channelId, topicTag: payload.topicTag },
+        compositeSource: payload.compositeSource,
+        primaryPageUrl: payload.primaryPageUrl,
+        retryQueueId: row.id,
+        retryAttemptCount: row.attempt_count,
+      });
+    }
 
     // ---- Research phase: fetch and cache channel search results ----
     const channelResults: ChannelResult[] = [];
@@ -810,20 +859,24 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       await sleep(400);
     }
 
-    // ---- Generation phase: one briefing per channel (up to target) ----
+    // ---- Generation phase: retry-queue candidates first, then one briefing per
+    // fresh channel (up to target) ----
+    const freshCandidates: GenerationCandidate[] = [];
     for (const { channel, pages } of channelResults) {
-      if (created >= target) break;
-
-      // Only use source pages not already published
       const freshPages = pages.filter((p) => !seenUrls.has(p.url));
       if (freshPages.length === 0) continue;
-
-      // Combine up to 3 fresh pages into one composite research brief
       const primaryPage = freshPages[0];
       const compositeSource = freshPages
         .slice(0, 3)
         .map((p, i) => `[Source ${i + 1}]\nTitle: ${p.title}\nURL: ${p.url}\n\n${p.markdown}`)
         .join("\n\n---\n\n");
+      freshCandidates.push({ channel: { id: channel.id, topicTag: channel.topicTag }, compositeSource, primaryPageUrl: primaryPage.url });
+    }
+
+    for (const candidate of [...retriedCandidates, ...freshCandidates]) {
+      if (created >= target) break;
+
+      const { channel, compositeSource, primaryPageUrl } = candidate;
 
       // ---- Gemini quota gate ----
       if (
@@ -857,21 +910,26 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       }
 
       try {
-        const briefing = await generateBriefing(
-          compositeSource,
-          geminiKey as string,
-          model,
-        );
-        await recordApiUsage(admin, "briefings-gemini", channel.id, true);
+        const { data: briefing, modelUsed } = await callGeminiWithFallback({
+          apiKey: geminiKey as string,
+          models: modelChain,
+          systemInstruction: BRIEFING_INSTRUCTIONS,
+          userContent: compositeSource,
+          responseSchema: BRIEFING_SCHEMA,
+          temperature: 0.6,
+          maxOutputTokens: 8192,
+          parse: parseBriefingResponse,
+          onAttempt: logModelAttempt(channel.id),
+        });
+        modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
 
         if (!briefing.title || !briefing.body_markdown) continue;
 
-        // Word count gate — reject incomplete outputs
+        // ---- Editorial/factual QA gate — reject incomplete or non-compliant output ----
         const wc = countWords(briefing.body_markdown);
-        if (wc < MIN_BODY_WORD_COUNT) {
-          errors.push(
-            `${channel.id}: Gemini returned ${wc} words (min ${MIN_BODY_WORD_COUNT}) — skipped`,
-          );
+        const qa = qaBriefing(briefing, wc);
+        if (!qa.passed) {
+          errors.push(`QA rejected ${channel.id}: ${qa.reasons.join("; ")}`);
           continue;
         }
 
@@ -931,7 +989,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
         const sourceName = (() => {
           try {
-            return new URL(primaryPage.url).hostname.replace(/^www\./, "");
+            return new URL(primaryPageUrl).hostname.replace(/^www\./, "");
           } catch {
             return "Source";
           }
@@ -949,7 +1007,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
             stripMarkdownSyntax(briefing.sa_context_tag).slice(0, 40) ||
             channel.topicTag,
           source_name: sourceName,
-          source_url: primaryPage.url,
+          source_url: primaryPageUrl,
           publish_date: today,
           reading_time: `${briefing.reading_time_minutes} min read`,
           word_count: finalWordCount,
@@ -973,7 +1031,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
             imageUrl: cover?.url ?? null,
             publishDate: today,
             sourceName,
-            sourceUrl: primaryPage.url,
+            sourceUrl: primaryPageUrl,
             articleSection: channel.topicTag,
             wordCount: finalWordCount,
           }),
@@ -985,17 +1043,58 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           errors.push(`${channel.id}: ${error.message}`);
         } else {
           created += 1;
-          seenUrls.add(primaryPage.url);
+          seenUrls.add(primaryPageUrl);
+          if (candidate.retryQueueId) {
+            await admin
+              .from("pipeline_retry_queue")
+              .update({ resolved: true, resolved_at: new Date().toISOString() })
+              .eq("id", candidate.retryQueueId);
+          }
         }
       } catch (err) {
-        await recordApiUsage(admin, "briefings-gemini", channel.id, false);
-        const message =
-          err instanceof GeminiError
-            ? `Gemini ${err.status}: ${err.message}`
-            : String(err);
-        errors.push(message.slice(0, 300));
-        if (err instanceof GeminiError && err.status === 429)
-          await sleep(12000);
+        if (err instanceof GeminiFatalError) {
+          // Auth or invalid-request failure: every remaining candidate would fail
+          // identically, and falling back to weaker models can't fix a broken API
+          // key or a bad prompt/schema. Stop the whole run and surface this loudly --
+          // this needs a human to check the Vercel/Google AI Studio config, not a retry.
+          errors.push(`ALERT (Gemini config, run stopped): ${err.message}`);
+          break;
+        }
+        if (err instanceof GeminiAllModelsExhaustedError) {
+          errors.push(
+            `All ${modelChain.length} Gemini models exhausted for ${channel.id} -- queued for retry: ` +
+              err.attempts.map((a) => `${a.model}#${a.attemptNumber}=${a.outcome}`).join(", "),
+          );
+          try {
+            if (candidate.retryQueueId) {
+              const nextAttempt = (candidate.retryAttemptCount ?? 1) + 1;
+              if (nextAttempt > 5) {
+                errors.push(`${channel.id} exceeded max retry attempts (5) -- left unresolved for manual review`);
+              } else {
+                await admin
+                  .from("pipeline_retry_queue")
+                  .update({ attempt_count: nextAttempt, retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString() })
+                  .eq("id", candidate.retryQueueId);
+              }
+            } else {
+              await admin.from("pipeline_retry_queue").insert({
+                pipeline: "briefings-sync",
+                candidate_payload: {
+                  channelId: channel.id,
+                  topicTag: channel.topicTag,
+                  compositeSource,
+                  primaryPageUrl,
+                },
+                reason: err.message.slice(0, 300),
+                retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+              });
+            }
+          } catch (queueErr) {
+            errors.push(`Failed to queue ${channel.id} for retry: ${String(queueErr).slice(0, 200)}`);
+          }
+        } else {
+          errors.push(String(err).slice(0, 300));
+        }
       }
 
       await sleep(1500);
@@ -1022,7 +1121,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       // Run logging is non-critical.
     }
 
-    res.status(200).json({ ok: true, created, target, errors });
+    res.status(200).json({ ok: true, created, target, modelUsage, errors });
   } catch (err) {
     res.status(500).json({
       error: String(err).slice(0, 500),
