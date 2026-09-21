@@ -36,14 +36,14 @@ export type AssessmentTask =
   | "chat";
 
 const TASK_MODELS: Record<AssessmentTask, string> = {
-  report_generation: "claude-3-opus-20240229",
-  complex_reasoning: "claude-3-opus-20240229",
-  evidence_synthesis: "claude-3-opus-20240229",
-  safety_review: "claude-3-opus-20240229",
-  report_regeneration: "claude-3-opus-20240229",
-  routine_transformation: "claude-3-5-sonnet-20241022",
-  classification: "claude-3-5-haiku-20241022",
-  chat: "claude-3-5-sonnet-20241022",
+  report_generation: "claude-opus-5",
+  complex_reasoning: "claude-opus-5",
+  evidence_synthesis: "claude-opus-5",
+  safety_review: "claude-opus-5",
+  report_regeneration: "claude-opus-5",
+  routine_transformation: "claude-sonnet-5",
+  classification: "claude-haiku-4-5",
+  chat: "claude-sonnet-5",
 };
 
 /**
