@@ -13,6 +13,36 @@ const distDir = resolve(root, "dist");
 const PORT = 4488;
 const PER_ROUTE_TIMEOUT_MS = 20_000;
 const MAX_ROUTES = 1000;
+/** Hard ceiling on browser launch. Confirmed live (2026-09-21): a hung
+ *  puppeteer.launch() in this build environment can block indefinitely with
+ *  zero log output, silently stalling the entire production deploy -- three
+ *  consecutive builds stalled here or in the per-route loop below with no
+ *  error, no timeout, and no way to detect it short of external wall-clock
+ *  monitoring against the Vercel API. This gives it 30s then fails loudly,
+ *  which the outer main().catch() below converts into the same graceful
+ *  "ship without prerendering" degrade path a normal error already takes. */
+const BROWSER_LAUNCH_TIMEOUT_MS = 30_000;
+/** Absolute ceiling on the whole per-route render loop. A healthy full run
+ *  of ~115 routes completes in a few minutes; page.content()/page.close()
+ *  have no timeout of their own (only page.goto() does, via
+ *  PER_ROUTE_TIMEOUT_MS), so a hang in either of those -- or in the browser
+ *  process itself -- previously had nothing to bound it. Exiting here lets
+ *  the build continue with whatever was rendered so far; the rest simply
+ *  fall back to client-side rendering, same as any other route this script
+ *  fails on. */
+const GLOBAL_WATCHDOG_MS = 8 * 60 * 1000;
+
+/** Races a promise against a deadline. Rejects with a clear, labelled error
+ *  if `ms` elapses first; the original promise is left to settle on its own
+ *  in the background (harmless here since the whole process exits shortly
+ *  after any watchdog rejection propagates to main().catch() below). */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
+}
 
 const STATIC_ROUTES = [
   "/about",
@@ -99,17 +129,33 @@ async function main() {
   const baseUrl = `http://127.0.0.1:${PORT}`;
   const chromium = (await import("@sparticuz/chromium")).default;
   const puppeteer = (await import("puppeteer-core")).default;
-  const browser = await puppeteer.launch({ args: chromium.args, executablePath: await chromium.executablePath(), headless: true });
+  const browser = await withTimeout(
+    puppeteer.launch({ args: chromium.args, executablePath: await chromium.executablePath(), headless: true }),
+    BROWSER_LAUNCH_TIMEOUT_MS,
+    "browser launch",
+  );
   let ok = 0;
   let failed = 0;
 
+  // Global watchdog: fires if the per-route loop below is still running past
+  // GLOBAL_WATCHDOG_MS, regardless of which route or browser call it's stuck
+  // in. Cleared in the `finally` block on a normal (successful or per-route-
+  // failure) completion, so it never fires on a healthy run.
+  const watchdog = setTimeout(() => {
+    console.warn(
+      `prerender: global watchdog (${GLOBAL_WATCHDOG_MS}ms) exceeded -- exiting so the build doesn't hang ` +
+        `indefinitely. ${ok} route(s) already rendered stay written; the rest fall back to client-side rendering.`,
+    );
+    process.exit(0);
+  }, GLOBAL_WATCHDOG_MS);
+
   try {
     for (const route of routes) {
-      const page = await browser.newPage();
+      const page = await withTimeout(browser.newPage(), PER_ROUTE_TIMEOUT_MS, `newPage(${route})`);
       try {
         await page.goto(`${baseUrl}${route}`, { waitUntil: "domcontentloaded", timeout: PER_ROUTE_TIMEOUT_MS });
         await new Promise((r) => setTimeout(r, 1400));
-        const html = await page.content();
+        const html = await withTimeout(page.content(), PER_ROUTE_TIMEOUT_MS, `content(${route})`);
         const outPath = outputPathFor(route);
         mkdirSync(dirname(outPath), { recursive: true });
         writeFileSync(outPath, html, "utf-8");
@@ -118,10 +164,13 @@ async function main() {
         failed += 1;
         console.warn(`prerender: failed on ${route}:`, err instanceof Error ? err.message : err);
       } finally {
-        await page.close();
+        await withTimeout(page.close(), 5_000, `page.close(${route})`).catch(() => {
+          // Best-effort cleanup only -- a stuck close() must never block the next route.
+        });
       }
     }
   } finally {
+    clearTimeout(watchdog);
     await browser.close();
     await new Promise<void>((res, rej) => server.httpServer.close((err) => (err ? rej(err) : res())));
   }
