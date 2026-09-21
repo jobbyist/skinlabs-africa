@@ -11,7 +11,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 if (!RESEND_API_KEY) throw new Error('RESEND_API_KEY is required')
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY is required')
 
-const FROM = 'SkinLabs® South Africa <support@skinlabs.co.za>'
+const FROM = 'SkinLabs Support <support@skinlabs.co.za>'
 const JSON_HEADERS = {
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store',

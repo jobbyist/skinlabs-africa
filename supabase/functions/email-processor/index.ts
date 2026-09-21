@@ -20,6 +20,15 @@ const EMAIL_CRON_SECRET = Deno.env.get("EMAIL_CRON_SECRET");
 const ADMIN_NOTIFICATION_EMAIL = Deno.env.get("ADMIN_NOTIFICATION_EMAIL") || "support@skinlabs.co.za";
 const BATCH_SIZE = 20;
 
+// Extra recipients CC'd onto specific ADMIN templates alongside
+// ADMIN_NOTIFICATION_EMAIL, for forms whose lead belongs to a specific
+// department mailbox as well as general support. Additive only — never
+// replaces the support@ notification, since support@ is the one confirmed-
+// monitored inbox every admin lead must always reach.
+const ADMIN_TEMPLATE_EXTRA_RECIPIENTS: Record<string, string[]> = {
+  admin_form_notification_partner: ["partners@skinlabs.co.za"],
+};
+
 interface OutboxJob {
   id: string;
   event_id: string;
@@ -39,7 +48,7 @@ function json(body: unknown, status = 200) {
 
 async function sendViaResend(
   supabaseAdmin: ReturnType<typeof createClient>,
-  to: string,
+  to: string | string[],
   subject: string,
   html: string,
   idempotencyKey: string,
@@ -72,7 +81,7 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
   }
 
   let vars: Record<string, unknown> = { ...job.payload };
-  let recipient = job.recipient_email;
+  let recipient: string | string[] | null = job.recipient_email;
 
   const guard = getGuard(job.template_id);
   if (guard) {
@@ -89,7 +98,8 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
 
   if (!recipient) {
     if (job.category === "ADMIN") {
-      recipient = ADMIN_NOTIFICATION_EMAIL;
+      const extra = ADMIN_TEMPLATE_EXTRA_RECIPIENTS[job.template_id];
+      recipient = extra ? [ADMIN_NOTIFICATION_EMAIL, ...extra] : ADMIN_NOTIFICATION_EMAIL;
     } else {
       await supabaseAdmin.rpc("fail_email_job", {
         p_job_id: job.id,
