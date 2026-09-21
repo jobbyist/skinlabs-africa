@@ -1,4 +1,5 @@
 import { track } from "@vercel/analytics";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Central conversion-event vocabulary for SkinLabs' free -> paid funnel.
@@ -84,16 +85,42 @@ export type ConversionEvent =
   | "trial_activation_failed"
   | "dashboard_entered"
   | "admin_login_success"
-  | "admin_login_failure";
+  | "admin_login_failure"
+  // OpenHaus marketplace + podcast — previously uninstrumented entirely.
+  | "marketplace_add_to_cart"
+  | "podcast_played"
+  | "podcast_liked"
+  | "podcast_shared";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
 export const trackConversionEvent = (event: ConversionEvent, payload: ConversionPayload = {}) => {
+  const path = typeof window !== "undefined" ? window.location.pathname : "";
   try {
-    track(event, {
-      ...payload,
-      path: typeof window !== "undefined" ? window.location.pathname : "",
-    });
+    track(event, { ...payload, path });
+  } catch {
+    // Never let analytics failures affect the feature they're instrumenting.
+  }
+  // Best-effort server-side mirror (see supabase/migrations/20260921120000_
+  // analytics_events_core.sql) so the admin dashboard's Analytics tab has a
+  // queryable/segmentable record independent of Vercel's own API — never
+  // awaited, never allowed to throw into the caller. getSession() reads the
+  // already-cached local session rather than making a network call, so this
+  // stays cheap even though it's async.
+  try {
+    void supabase.auth
+      .getSession()
+      .then(({ data }) =>
+        supabase.from("analytics_events").insert({
+          event_name: event,
+          payload,
+          path,
+          user_id: data.session?.user.id ?? null,
+        }),
+      )
+      .then(({ error }) => {
+        if (error) console.warn("analytics_events insert failed:", error.message);
+      });
   } catch {
     // Never let analytics failures affect the feature they're instrumenting.
   }
