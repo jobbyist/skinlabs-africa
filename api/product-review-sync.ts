@@ -425,3 +425,243 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   if (pages.length > 0) await setCachedSource(admin, cacheKey, pages);
   return { pages, madeRealCall: true };
 }
+
+interface MarketplaceProductRow {
+  slug: string;
+  name: string;
+  description: string;
+  marked_up_price_zar: number;
+  category: string;
+  key_actives: string[] | null;
+  concern: string[] | null;
+  brand: { name: string } | null;
+}
+
+export default async function handler(req: VercelReq, res: VercelRes) {
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = String(req.headers.authorization ?? "");
+  const authorised = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`;
+  if (!authorised) {
+    res.status(401).json({ error: "Not authorised" });
+    return;
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const missing = [
+    !geminiKey && "GEMINI_API_KEY",
+    !firecrawlKey && "FIRECRAWL_API_KEY",
+    !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    res.status(500).json({ error: `Not configured: missing ${missing.join(", ")} in Vercel project environment variables` });
+    return;
+  }
+
+  const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin: SupabaseAdmin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const errors: string[] = [];
+  let created = 0;
+
+  try {
+    // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
+    // Firecrawl/Gemini call is even considered. ----
+    const { count: publishedToday } = await admin
+      .from("ai_generated_product_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("published_date", today);
+    if ((publishedToday ?? 0) >= DAILY_REVIEW_CAP) {
+      res.status(200).json({ ok: true, created: 0, message: "Daily review cap already met" });
+      return;
+    }
+    const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
+
+    const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("source_url, origin");
+    const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
+    const saCount = (existingRows ?? []).filter((r: { origin: string }) => r.origin === "south_africa").length;
+    const globalCount = (existingRows ?? []).length - saCount;
+
+    // ---- Candidate pool A: real OpenHaus marketplace products (already-verified data,
+    // no Firecrawl/scraping needed -- Gemini only writes the verdict/scores against
+    // real fields). ----
+    const { data: marketplaceRows } = await admin
+      .from("marketplace_products")
+      .select("slug, name, description, marked_up_price_zar, category, key_actives, concern, brand:marketplace_brands(name)")
+      .eq("in_stock", true)
+      .limit(40);
+
+    const marketplaceCandidates = ((marketplaceRows ?? []) as unknown as MarketplaceProductRow[]).filter(
+      (p) => !seenUrls.has(`https://skinlabs.co.za/marketplace/product/${p.slug}`),
+    );
+
+    // ---- Candidate pool B: Firecrawl-researched real product pages from the named
+    // sites, subject to the research cache and the per-run/daily quota. ----
+    const firecrawlCandidates: Array<{ site: SourceSite; page: FirecrawlPage }> = [];
+    let firecrawlCallsThisRun = 0;
+    for (const site of SOURCE_SITES) {
+      if (firecrawlCandidates.length >= target * 2) break;
+      try {
+        const result = await researchSource(admin, site, firecrawlKey as string, firecrawlCallsThisRun < MAX_FIRECRAWL_SOURCES_PER_RUN);
+        if (result.madeRealCall) firecrawlCallsThisRun += 1;
+        if (result.skippedReason) errors.push(`Firecrawl skipped ${site.url}: ${result.skippedReason}`);
+        for (const page of result.pages) {
+          if (seenUrls.has(page.url)) continue;
+          firecrawlCandidates.push({ site, page });
+        }
+      } catch (err) {
+        errors.push(`Firecrawl ${site.url}: ${String(err).slice(0, 200)}`);
+      }
+      await sleep(500);
+    }
+
+    let runningSa = saCount;
+    let runningGlobal = globalCount;
+    const wantsSa = () => runningSa / Math.max(1, runningSa + runningGlobal) < SA_SHARE_TARGET;
+
+    // Interleave: prefer whichever origin the running 70/30 split is short on.
+    const queue: Array<{ text: string; origin: Origin; sourceUrl: string; sourceType: SourceType; isSponsored: boolean; retailerHint: Retailer | null }> = [];
+    for (const p of marketplaceCandidates) {
+      queue.push({
+        text: `Product: ${p.name}\nBrand: ${p.brand?.name ?? "Unknown"}\nCategory: ${p.category}\nPrice: R${p.marked_up_price_zar}\nDescription: ${p.description}\nKey actives: ${(p.key_actives ?? []).join(", ")}\nConcerns addressed: ${(p.concern ?? []).join(", ")}`,
+        origin: "south_africa",
+        sourceUrl: `https://skinlabs.co.za/marketplace/product/${p.slug}`,
+        sourceType: "openhaus_marketplace",
+        isSponsored: false,
+        retailerHint: null,
+      });
+    }
+    for (const { site, page } of firecrawlCandidates) {
+      queue.push({
+        text: `Source page title: ${page.title}\nSource URL: ${page.url}\n\n${page.markdown}`,
+        origin: site.origin,
+        sourceUrl: page.url,
+        sourceType: site.sourceType,
+        isSponsored: site.isSponsored,
+        retailerHint: site.retailerHint,
+      });
+    }
+
+    // Sort the queue so candidates matching whatever origin the running split needs
+    // next are tried first, without ever fully excluding the other origin.
+    queue.sort((a, b) => {
+      const aWanted = wantsSa() ? a.origin === "south_africa" : a.origin === "global_available_in_sa";
+      const bWanted = wantsSa() ? b.origin === "south_africa" : b.origin === "global_available_in_sa";
+      return Number(bWanted) - Number(aWanted);
+    });
+
+    for (const candidate of queue) {
+      if (created >= target) break;
+
+      // ---- Quota monitor (Gemini side): a daily/per-minute limit hit here means every
+      // remaining candidate would fail identically, so stop the run cleanly instead of
+      // burning through the rest of the queue. ----
+      if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
+        errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping run`);
+        break;
+      }
+      if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+        await sleep(15000);
+        if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+          errors.push(`Gemini per-minute quota (${GEMINI_PER_MINUTE_LIMIT}) reached -- stopping run`);
+          break;
+        }
+      }
+
+      try {
+        const fields = await generateReview(candidate.text, geminiKey as string, model);
+        await recordApiUsage(admin, "gemini", candidate.sourceUrl, true);
+        if (!fields.product_name || !fields.brand) continue;
+
+        const slug = slugify(`${fields.brand}-${fields.product_name}`);
+        const id = `${slug || Date.now()}`;
+        const { data: idTaken } = await admin.from("ai_generated_product_reviews").select("id").eq("id", id).maybeSingle();
+        const finalId = idTaken ? `${id}-${Math.floor(Math.random() * 9000 + 1000)}` : id;
+
+        const retailers = candidate.retailerHint
+          ? [{ retailer: candidate.retailerHint, price_zar: fields.local_price_zar, in_stock: true, url: candidate.sourceUrl }]
+          : [];
+
+        const { error } = await admin.from("ai_generated_product_reviews").insert({
+          id: finalId,
+          product_name: fields.product_name,
+          brand: fields.brand,
+          local_price_zar: fields.local_price_zar,
+          where_to_buy:
+            candidate.sourceType === "openhaus_marketplace" ? "OpenHaus Marketplace" : candidate.retailerHint ?? "Brand Direct",
+          category: fields.category,
+          skin_type_match: fields.skin_type_match,
+          score_efficacy: fields.score_efficacy,
+          score_value: fields.score_value,
+          score_texture: fields.score_texture,
+          score_climate: fields.score_climate,
+          verdict: fields.verdict,
+          key_ingredients: fields.key_ingredients,
+          retailers,
+          origin: candidate.origin,
+          source_url: candidate.sourceUrl,
+          source_type: candidate.sourceType,
+          is_sponsored: candidate.isSponsored,
+          generated_by: "gemini",
+          published_date: today,
+        });
+
+        if (error) {
+          errors.push(`${candidate.sourceUrl}: ${error.message}`);
+        } else {
+          created += 1;
+          seenUrls.add(candidate.sourceUrl);
+          if (candidate.origin === "south_africa") runningSa += 1;
+          else runningGlobal += 1;
+        }
+      } catch (err) {
+        await recordApiUsage(admin, "gemini", candidate.sourceUrl, false);
+        const message = err instanceof GeminiError ? `Gemini ${err.status}: ${err.message}` : String(err);
+        errors.push(message.slice(0, 300));
+        if (err instanceof GeminiError && err.status === 429) await sleep(10000);
+      }
+      await sleep(1200);
+    }
+
+    // ---- Spotlight edition auto-bump every SPOTLIGHT_BUMP_INTERVAL published reviews ----
+    try {
+      const { count: totalGenerated } = await admin.from("ai_generated_product_reviews").select("id", { count: "exact", head: true });
+      const totalReviews = STATIC_REVIEW_BASELINE + (totalGenerated ?? 0);
+
+      const { data: currentEdition } = await admin
+        .from("spotlight_editions")
+        .select("id, review_count_at_snapshot, methodology_version")
+        .eq("is_current", true)
+        .maybeSingle();
+
+      if (currentEdition) {
+        const lastMilestone = Math.floor(currentEdition.review_count_at_snapshot / SPOTLIGHT_BUMP_INTERVAL);
+        const currentMilestone = Math.floor(totalReviews / SPOTLIGHT_BUMP_INTERVAL);
+        if (currentMilestone > lastMilestone) {
+          const versionMatch = /v(\d+)\.(\d+)/.exec(currentEdition.methodology_version);
+          const nextVersion = versionMatch
+            ? `Spotlight Methodology v${versionMatch[1]}.${Number(versionMatch[2]) + 1}`
+            : currentEdition.methodology_version;
+          const nextLabel = new Date().toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
+
+          await admin.from("spotlight_editions").update({ is_current: false }).eq("id", currentEdition.id);
+          await admin.from("spotlight_editions").insert({
+            edition_label: nextLabel,
+            methodology_version: nextVersion,
+            review_count_at_snapshot: totalReviews,
+            is_current: true,
+          });
+        }
+      }
+    } catch (err) {
+      errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
+    }
+
+    res.status(200).json({ ok: true, created, target, errors });
+  } catch (err) {
+    res.status(500).json({ error: String(err).slice(0, 500), created, errors });
+  }
+}
