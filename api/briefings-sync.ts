@@ -760,19 +760,25 @@ export default async function handler(req: VercelReq, res: VercelRes) {
   let created = 0;
   let firecrawlCallsThisRun = 0;
 
+  // Manual verification override: ?force=true (still requires the same Bearer
+  // auth as every other invocation) bypasses today's editorial cap and limits
+  // the run to a single article, so a pipeline health check doesn't have to
+  // wait for tomorrow's cron slot or burn a full day's Firecrawl/Gemini quota.
+  const forceRun = String(req.query.force ?? "") === "true";
+
   try {
     // ---- Daily cap: stop early if today's quota is already met ----
     const { count: publishedToday } = await admin
       .from("news_articles")
       .select("id", { count: "exact", head: true })
       .eq("publish_date", today);
-    if ((publishedToday ?? 0) >= DAILY_BRIEFINGS_CAP) {
+    if (!forceRun && (publishedToday ?? 0) >= DAILY_BRIEFINGS_CAP) {
       res
         .status(200)
         .json({ ok: true, created: 0, message: "Daily briefings cap already met" });
       return;
     }
-    const target = DAILY_BRIEFINGS_CAP - (publishedToday ?? 0);
+    const target = forceRun ? 1 : DAILY_BRIEFINGS_CAP - (publishedToday ?? 0);
 
     // Track seen source URLs to prevent duplicates
     const { data: existingRows } = await admin
