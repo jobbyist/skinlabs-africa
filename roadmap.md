@@ -1,7 +1,7 @@
 # Roadmap
 
 - [ ] Create verified user webmaster@skinlabs.co.za with active Glow VIP
-- [ ] Deploy paystack-payment, verify webhook URL reachable, wire Pricing buttons -> dashboard
+- [ ] Deploy payfast-payment/paypal-payment, verify webhook URLs reachable, wire Pricing buttons -> dashboard
 - [ ] Verify Firecrawl+Gemini newsroom pipeline, trigger 3 briefings, cap 1-2/day at 6am SAST
 - [ ] Dashboard ?payment=success: sign-in prompt, poll activation, redirect
 - [ ] Free-trial onboarding/payment flow for Glow Insider

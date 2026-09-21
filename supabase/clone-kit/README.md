@@ -71,8 +71,8 @@ Do Stage 4 **before** Stage 3's user-owned tables.
 Deploy all functions in `supabase/functions/` to the target:
 
 ```bash
-supabase functions deploy skincare-ai paystack-payment auth-token-exchange \
-  preorder-count newsroom-sync payfast-payment seed-review-images \
+supabase functions deploy skincare-ai payfast-payment paypal-payment auth-token-exchange \
+  preorder-count newsroom-sync seed-review-images \
   --project-ref <TARGET_REF>
 ```
 
@@ -84,7 +84,7 @@ must be preserved. Secrets to set on the target: see `05_secrets.md`.
 1. Point `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`,
    `VITE_SUPABASE_PROJECT_ID`) at the target.
 2. Update `supabase/config.toml` `project_id`.
-3. Re-point the Paystack webhook URL and the cross-domain auth redirect
-   allowlist at the new function host.
+3. Re-point the PayFast ITN URL, the PayPal webhook URL, and the
+   cross-domain auth redirect allowlist at the new function host.
 4. Run `06_verify.sql` on both projects and compare the counts.
 5. Only disable the old cron jobs once the new ones have published a briefing.

@@ -35,6 +35,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Hoisted above the try block so the catch clause below can still
+  // attribute a best-effort ANALYSIS_FAILED record to the right user —
+  // both are undefined if auth never succeeded (those cases already
+  // return 401 directly and never reach the catch block).
+  let userId: string | undefined;
+  let supabaseAuth: ReturnType<typeof createClient> | undefined;
+
   try {
     // ---- AUTH ----
     const authHeader = req.headers.get("Authorization");
@@ -47,7 +54,7 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+    supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
@@ -64,7 +71,7 @@ serve(async (req) => {
     // in the database exactly — those are the source of truth for what counts as a paying tier,
     // and drifting from them here previously meant Insider/VIP members (and anyone on an active
     // free trial) silently fell back to the weak, ungrounded free-tier model below.
-    const userId = claimsData.claims.sub;
+    userId = claimsData.claims.sub;
     const { data: profileData } = await supabaseAuth
       .from("profiles")
       .select("subscription_status, trial_plan, trial_ends_at")
@@ -395,6 +402,28 @@ This is cosmetic skincare guidance, not medical advice or diagnosis — never na
   } catch (error) {
     console.error("Error in skincare-ai function:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to generate recommendation";
+
+    // Best-effort failure record, same non-blocking pattern as the
+    // success-path persist above. Previously a failed analysis left no
+    // trace anywhere (skincare_recommendations only ever got a row on
+    // success), so there was no source of truth for an ANALYSIS_FAILED
+    // email to enqueue from. Expected-state 429/402 responses are
+    // returned directly above and never reach this catch, so this only
+    // ever fires for a genuine unexpected provider/parsing error.
+    if (userId && supabaseAuth) {
+      try {
+        await supabaseAuth.from("skincare_recommendations").insert({
+          user_id: userId,
+          skin_type: "unknown",
+          concerns: [],
+          recommendation: "",
+          status: "failed",
+        });
+      } catch (persistErr) {
+        console.warn("Could not persist analysis failure record:", persistErr);
+      }
+    }
+
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

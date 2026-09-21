@@ -154,7 +154,7 @@ export const minimumTierFor = (feature: FeatureKey): LadderTier | null => {
  * real paying tier with its own narrower benefit set, so it belongs here
  * (checkout/billing) but not in those two "Insider+" checks. Keep this list
  * in sync with the status literals actually written by
- * supabase/functions/paystack-payment.
+ * supabase/functions/payfast-payment or paypal-payment.
  */
 export const PAID_SUBSCRIPTION_STATUSES = ["active", "glow_lite", "insider", "vip", "premium"] as const;
 

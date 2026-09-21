@@ -94,3 +94,4 @@ export { dailySkinnyBriefingsSept09c2026 } from "./dailySkinnyBriefingsSept09c20
 export { dailySkinnyBriefingsSept162026 } from "./dailySkinnyBriefingsSept162026";
 export { dailySkinnyBriefingsSept16b2026 } from "./dailySkinnyBriefingsSept16b2026";
 export { dailySkinnyBriefingsSept172026 } from "./dailySkinnyBriefingsSept172026";
+export { dailySkinnyBriefingsSept182026 } from "./dailySkinnyBriefingsSept182026";

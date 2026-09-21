@@ -18,7 +18,8 @@ import {
 } from "@/lib/pricing-config";
 import { membershipPlans as fallbackPlans, type BillingInterval, type PlanId } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
-import { startPaystackCheckout, startCreditPackCheckout, startFoundingMemberCheckout, type PaystackPlan } from "@/lib/paystack";
+import { startCheckout, startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
+import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const Pricing = () => {
   const [intervalTouched, setIntervalTouched] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+  const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
   const ranPendingActionRef = useRef(false);
 
   const variantKey = config?.variantKey ?? "control";
@@ -87,14 +89,18 @@ const Pricing = () => {
     }));
   }, [config?.plans]);
 
-  const beginCheckout = async (plan: PaystackPlan) => {
-    setProcessingPlan(`subscribe-${plan}`);
+  const beginCheckout = async (plan: PaymentPlan) => {
     trackConversionEvent("plan_selected", { plan, interval });
-    const { error } = await startPaystackCheckout(plan, interval, variantKey);
-    if (error) {
-      setProcessingPlan(null);
-      toast.error(error.message);
-    }
+    setGatewayAction(() => async (gateway: PaymentGateway) => {
+      setProcessingPlan(`subscribe-${plan}`);
+      const { error } = await startCheckout(gateway, plan, interval, variantKey);
+      if (error) {
+        setProcessingPlan(null);
+        toast.error(error.message);
+      } else {
+        setGatewayAction(null);
+      }
+    });
   };
 
   const beginTrial = async (plan: "insider" | "glow_lite") => {
@@ -114,8 +120,10 @@ const Pricing = () => {
   // Runs whatever plan the visitor selected before authenticating — sourced from the
   // durable pending-plan module (src/lib/pendingPlan.ts) rather than in-memory React
   // state, so it survives a page refresh or a full-page Google OAuth redirect. The
-  // server re-validates the plan regardless (start_free_trial RPC / paystack-payment),
-  // this is only ever a UX convenience so the user never re-picks the same plan.
+  // server re-validates the plan regardless (start_free_trial RPC / payfast-payment /
+  // paypal-payment) — this is only ever a UX convenience so the user never re-picks
+  // the same plan. Gateway choice itself isn't persisted through the redirect; the
+  // visitor picks PayFast/PayPal again via PaymentGatewayDialog once resumed.
   useEffect(() => {
     if (!user || ranPendingActionRef.current) return;
     const intent = getPendingPlanIntent();
@@ -125,7 +133,7 @@ const Pricing = () => {
     if (intent.kind === "trial" && (intent.plan === "insider" || intent.plan === "glow_lite")) {
       void beginTrial(intent.plan);
     } else if (intent.kind === "subscribe" && intent.plan !== "explorer") {
-      void beginCheckout(intent.plan as PaystackPlan);
+      void beginCheckout(intent.plan as PaymentPlan);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -137,7 +145,7 @@ const Pricing = () => {
       else window.location.href = "/dashboard";
       return;
     }
-    const plan = planId as PaystackPlan;
+    const plan = planId as PaymentPlan;
     if (!user) {
       setPendingPlanIntent({ kind: "subscribe", plan, interval, variantKey });
       setAuthOpen(true);
@@ -163,12 +171,16 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
-    setProcessingPlan(`credit-${packId}`);
-    const { error } = await startCreditPackCheckout(packId, variantKey);
-    if (error) {
-      setProcessingPlan(null);
-      toast.error(error.message);
-    }
+    setGatewayAction(() => async (gateway: PaymentGateway) => {
+      setProcessingPlan(`credit-${packId}`);
+      const { error } = await startCreditPackCheckout(gateway, packId, variantKey);
+      if (error) {
+        setProcessingPlan(null);
+        toast.error(error.message);
+      } else {
+        setGatewayAction(null);
+      }
+    });
   };
 
   const handleBuyFoundingMember = async () => {
@@ -177,12 +189,17 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
-    setProcessingPlan("founding-member");
-    const { error } = await startFoundingMemberCheckout(config.foundingOffer.id);
-    if (error) {
-      setProcessingPlan(null);
-      toast.error(error.message);
-    }
+    const offerId = config.foundingOffer.id;
+    setGatewayAction(() => async (gateway: PaymentGateway) => {
+      setProcessingPlan("founding-member");
+      const { error } = await startFoundingMemberCheckout(gateway, offerId);
+      if (error) {
+        setProcessingPlan(null);
+        toast.error(error.message);
+      } else {
+        setGatewayAction(null);
+      }
+    });
   };
 
   const founding = config?.foundingOffer;
@@ -427,6 +444,11 @@ const Pricing = () => {
           covers password sign-in/up (immediate) and a full-page Google OAuth redirect back
           to this same page alike, so no onAuthenticated callback is needed here. */}
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+      <PaymentGatewayDialog
+        open={!!gatewayAction}
+        onOpenChange={(open) => !open && setGatewayAction(null)}
+        onSelect={(gateway) => gatewayAction?.(gateway) ?? Promise.resolve()}
+      />
     </>
   );
 };

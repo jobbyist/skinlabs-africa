@@ -1,0 +1,3 @@
+-- Full seed with 2,000+ word bodies lives in artifacts/seed-daily-skinny-2026-09-21.sql
+-- Apply via Supabase execute_sql so body_markdown matches manuscripts byte-for-byte.
+-- slugs: isotretinoin-cheilitis-hard-water-south-africa, keloid-hypertrophic-scars-skin-of-colour-south-africa, visible-light-screens-vs-sun-pigment-south-africa

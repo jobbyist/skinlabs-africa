@@ -141,7 +141,7 @@ const ReviewsGrid = ({
           viewport={{ once: true }}
           transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
           whileHover={{ y: -4 }}
-          className="flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-card md:max-w-none"
+          className="mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-card md:max-w-none"
         >
           {productImage && (
             <figure className="relative">
@@ -369,7 +369,7 @@ const ReviewsGrid = ({
           </div>
         )}
 
-        <div className="grid justify-items-center gap-6 md:grid-cols-2 md:justify-items-stretch lg:grid-cols-3">{renderWithAds()}</div>
+        <div className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 md:place-items-stretch lg:grid-cols-3">{renderWithAds()}</div>
 
         {pageItems.length === 0 && (
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>

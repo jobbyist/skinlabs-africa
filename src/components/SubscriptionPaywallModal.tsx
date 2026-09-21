@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Sparkles, Shield, Lock, Crown, Gift, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { startPaystackCheckout } from "@/lib/paystack";
+import { startCheckout, type PaymentGateway } from "@/lib/payments";
 import { startFreeTrial } from "@/lib/trial";
 import { getPlan } from "@/data/plans";
 import { toast } from "sonner";
+import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 
 const insiderPlan = getPlan("insider")!;
 
@@ -30,18 +31,25 @@ const SubscriptionPaywallModal = ({
 }: SubscriptionPaywallModalProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [gatewayDialogOpen, setGatewayDialogOpen] = useState(false);
   const { user } = useAuth();
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = () => {
     if (!user) {
       toast.error("Please sign in first to subscribe");
       return;
     }
+    setGatewayDialogOpen(true);
+  };
+
+  const handleGatewaySelect = async (gateway: PaymentGateway) => {
     setIsProcessing(true);
-    const { error } = await startPaystackCheckout("insider");
+    const { error } = await startCheckout(gateway, "insider");
     if (error) {
       toast.error(error.message);
       setIsProcessing(false);
+    } else {
+      setGatewayDialogOpen(false);
     }
   };
 
@@ -190,6 +198,11 @@ const SubscriptionPaywallModal = ({
           </div>
         </div>
       </DialogContent>
+      <PaymentGatewayDialog
+        open={gatewayDialogOpen}
+        onOpenChange={(next) => !isProcessing && setGatewayDialogOpen(next)}
+        onSelect={handleGatewaySelect}
+      />
     </Dialog>
   );
 };

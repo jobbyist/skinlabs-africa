@@ -1,0 +1,2 @@
+-- seed file lives in artifacts; apply via Supabase execute_sql
+-- slugs: tranexamic-acid-melasma-heat-south-africa, keratosis-pilaris-hard-water-south-africa, fragrance-laundry-contact-dermatitis-south-africa

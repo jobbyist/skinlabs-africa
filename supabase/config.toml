@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = false
 
 
-[functions.paystack-payment]
+[functions.paypal-payment]
 verify_jwt = false
 
 [functions.account-delete]
@@ -29,6 +29,18 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.openhaus-price-sync]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.email-processor]
+verify_jwt = false
+
+[functions.email-webhooks]
+verify_jwt = false
+
+[functions.email-unsubscribe]
 verify_jwt = false
 
 [functions.quote-ss-beauty-submit]
