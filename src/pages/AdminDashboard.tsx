@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck, LogOut } from "lucide-react";
+import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck, LogOut, BarChart3 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { useAdminGate } from "@/hooks/use-admin-gate";
 import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
+import AnalyticsTab from "@/components/admin/AnalyticsTab";
 
 type Submission = {
   id: string;
@@ -354,6 +355,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="preorders">Pre-Orders ({preorders.length})</TabsTrigger>
                 <TabsTrigger value="members">Members ({premiumProfiles.length})</TabsTrigger>
                 <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length + intelInteractions.length})</TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -588,6 +590,11 @@ const AdminDashboard = () => {
                     )}
                   </section>
                 </div>
+              </TabsContent>
+
+              {/* Analytics Tab — live Vercel Web Analytics, see api/admin-analytics.ts */}
+              <TabsContent value="analytics">
+                <AnalyticsTab />
               </TabsContent>
             </Tabs>
           </div>
