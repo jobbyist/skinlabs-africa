@@ -20,13 +20,31 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
-        manualChunks: undefined,
+        // Every route is already React.lazy()-loaded (see src/App.tsx), so the
+        // per-route chunk Rollup creates for each is the natural split. These
+        // three libraries are heavy and imported from multiple, otherwise
+        // unrelated routes (charts across admin/dashboard/assessment pages,
+        // PDF export across billing/account/formulator, date formatting
+        // everywhere) -- without an explicit vendor chunk each of those route
+        // chunks would carry its own duplicate copy instead of sharing one
+        // long-term-cacheable bundle.
+        manualChunks: {
+          "vendor-charts": ["recharts"],
+          "vendor-pdf": ["jspdf"],
+          "vendor-date": ["date-fns"],
+        },
       },
     },
     // Ensure clean builds
     emptyOutDir: true,
-    // Disable CSS code splitting for better cache control
-    cssCodeSplit: false,
+    // Vite's default. NOTE: measured before/after -- this alone does NOT
+    // split the CSS output here, because Tailwind's JIT scans the whole
+    // codebase and emits one monolithic stylesheet from the single
+    // `import "./index.css"` in main.tsx, regardless of route-level JS code
+    // splitting. Actually shrinking first-load CSS would need per-route CSS
+    // entry points, which this Tailwind setup doesn't have -- left as `true`
+    // since it's still the correct default and is free.
+    cssCodeSplit: true,
     // Minify in production
     minify: mode === "production" ? "esbuild" : false,
     // Optimize chunk size
