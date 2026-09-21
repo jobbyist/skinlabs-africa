@@ -60,11 +60,21 @@ interface ProductLink {
   brand_name: string
 }
 
+interface SourceLink {
+  id: string
+  source_url: string
+  source_title: string | null
+  publisher: string | null
+  publication_date: string | null
+  evidence_summary: string | null
+}
+
 interface IngredientPageData {
   ingredient: IngredientRow
   concerns: ConcernLink[]
   interactions: InteractionLink[]
   products: ProductLink[]
+  sources: SourceLink[]
 }
 
 const INTERACTION_META: Record<InteractionLink['interaction_type'], { label: string; icon: typeof CheckCircle2 }> = {
@@ -91,7 +101,7 @@ const fetchIngredient = createServerFn({ method: 'GET' })
       .maybeSingle()
     if (!ingredient) return { found: false }
 
-    const [{ data: concernRows }, { data: interactionRows }, { data: productRows }] = await Promise.all([
+    const [{ data: concernRows }, { data: interactionRows }, { data: productRows }, { data: sourceRows }] = await Promise.all([
       supabase.from('ingredient_concerns').select('relationship, skin_concerns(name, slug)').eq('ingredient_id', ingredient.id),
       supabase
         .from('ingredient_interactions')
@@ -105,6 +115,11 @@ const fetchIngredient = createServerFn({ method: 'GET' })
         .eq('ingredient_id', ingredient.id)
         .eq('product_versions.is_current', true)
         .limit(12),
+      supabase
+        .from('ingredient_sources')
+        .select('id, source_url, source_title, publisher, publication_date, evidence_summary')
+        .eq('ingredient_id', ingredient.id)
+        .order('publication_date', { ascending: false }),
     ])
 
     const concerns: ConcernLink[] = (concernRows ?? [])
@@ -138,7 +153,9 @@ const fetchIngredient = createServerFn({ method: 'GET' })
       })
       .filter((p): p is ProductLink => p !== null)
 
-    return { found: true, data: { ingredient, concerns, interactions, products } }
+    const sources: SourceLink[] = sourceRows ?? []
+
+    return { found: true, data: { ingredient, concerns, interactions, products, sources } }
   })
 
 export const Route = createFileRoute('/ingredients/$slug')({
@@ -179,15 +196,33 @@ export const Route = createFileRoute('/ingredients/$slug')({
   ),
 })
 
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname
+  } catch {
+    return url
+  }
+}
+
 function IngredientPage() {
-  const { ingredient, concerns, interactions, products } = Route.useLoaderData()
+  const { ingredient, concerns, interactions, products, sources } = Route.useLoaderData()
   const name = ingredient.common_name || ingredient.inci_name
   const worksWith = interactions.filter((i) => i.interaction_type === 'enhances' || i.interaction_type === 'compatible')
   const useWithCaution = interactions.filter(
     (i) => i.interaction_type === 'avoid_combining' || i.interaction_type === 'requires_spacing' || i.interaction_type === 'buffers',
   )
-  const allSources = interactions.filter((i) => i.source_url).map((i) => ({ label: i.source_url as string, url: i.source_url as string }))
-  if (ingredient.source_url) allSources.unshift({ label: ingredient.source_url, url: ingredient.source_url })
+  // Prefer real multi-citation ingredient_sources rows; fall back to the
+  // legacy single source_url columns for ingredients not yet processed by
+  // the content pipeline (see src/pages/IngredientDetail.tsx for the
+  // matching client-side logic this mirrors).
+  const allSources =
+    sources.length > 0
+      ? sources.map((s) => ({ label: s.source_title || s.publisher || safeHostname(s.source_url), url: s.source_url }))
+      : (() => {
+          const legacy = interactions.filter((i) => i.source_url).map((i) => ({ label: i.source_url as string, url: i.source_url as string }))
+          if (ingredient.source_url) legacy.unshift({ label: ingredient.source_url, url: ingredient.source_url })
+          return legacy
+        })()
 
   return (
     <main>
@@ -211,7 +246,7 @@ function IngredientPage() {
         <p>{ingredient.description || ingredient.function_summary || 'A detailed profile for this ingredient is still being written.'}</p>
       </section>
 
-      {ingredient.function_summary && ingredient.description && (
+      {ingredient.function_summary && (
         <section>
           <h2>What does it do?</h2>
           <p>{ingredient.function_summary}</p>
@@ -232,11 +267,11 @@ function IngredientPage() {
         </section>
       )}
 
-      {ingredient.typical_concentration_range && (
+      {(ingredient.typical_concentration_range || ingredient.formulation_notes) && (
         <section>
           <h2>How to use</h2>
           <p>
-            Typically formulated at {ingredient.typical_concentration_range}.
+            {ingredient.typical_concentration_range && `Typically formulated at ${ingredient.typical_concentration_range}.`}
             {ingredient.formulation_notes ? ` ${ingredient.formulation_notes}` : ''}
           </p>
         </section>

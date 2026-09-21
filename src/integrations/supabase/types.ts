@@ -1208,6 +1208,59 @@ export type Database = {
           },
         ]
       }
+      ingredient_sources: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          evidence_level: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary: string | null
+          fetched_at: string
+          id: string
+          ingredient_id: string
+          publication_date: string | null
+          publisher: string | null
+          source_title: string | null
+          source_type: Database["public"]["Enums"]["data_source_type"]
+          source_url: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary?: string | null
+          fetched_at?: string
+          id?: string
+          ingredient_id: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_title?: string | null
+          source_type?: Database["public"]["Enums"]["data_source_type"]
+          source_url: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          evidence_summary?: string | null
+          fetched_at?: string
+          id?: string
+          ingredient_id?: string
+          publication_date?: string | null
+          publisher?: string | null
+          source_title?: string | null
+          source_type?: Database["public"]["Enums"]["data_source_type"]
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_sources_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredients: {
         Row: {
           category: string | null
@@ -2155,6 +2208,84 @@ export type Database = {
           provider?: string
           purpose?: string | null
           success?: boolean
+        }
+        Relationships: []
+      }
+      pipeline_model_calls: {
+        Row: {
+          attempt_number: number
+          candidate_key: string | null
+          created_at: string
+          duration_ms: number
+          http_status: number | null
+          id: number
+          message: string | null
+          model: string
+          outcome: string
+          pipeline: string
+          run_id: string
+        }
+        Insert: {
+          attempt_number: number
+          candidate_key?: string | null
+          created_at?: string
+          duration_ms: number
+          http_status?: number | null
+          id?: never
+          message?: string | null
+          model: string
+          outcome: string
+          pipeline: string
+          run_id: string
+        }
+        Update: {
+          attempt_number?: number
+          candidate_key?: string | null
+          created_at?: string
+          duration_ms?: number
+          http_status?: number | null
+          id?: never
+          message?: string | null
+          model?: string
+          outcome?: string
+          pipeline?: string
+          run_id?: string
+        }
+        Relationships: []
+      }
+      pipeline_retry_queue: {
+        Row: {
+          attempt_count: number
+          candidate_payload: Json
+          created_at: string
+          id: number
+          pipeline: string
+          reason: string | null
+          resolved: boolean
+          resolved_at: string | null
+          retry_after: string
+        }
+        Insert: {
+          attempt_count?: number
+          candidate_payload: Json
+          created_at?: string
+          id?: never
+          pipeline: string
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          retry_after: string
+        }
+        Update: {
+          attempt_count?: number
+          candidate_payload?: Json
+          created_at?: string
+          id?: never
+          pipeline?: string
+          reason?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+          retry_after?: string
         }
         Relationships: []
       }
@@ -4422,6 +4553,8 @@ export type Database = {
         | "distributor_document"
         | "clinical_study"
         | "other"
+        | "peer_reviewed_literature"
+        | "regulatory_database"
       evidence_level: "strong" | "moderate" | "limited" | "anecdotal" | "none"
       ingredient_alias_type:
         | "common_name"
@@ -4583,6 +4716,8 @@ export const Constants = {
         "distributor_document",
         "clinical_study",
         "other",
+        "peer_reviewed_literature",
+        "regulatory_database",
       ],
       evidence_level: ["strong", "moderate", "limited", "anecdotal", "none"],
       ingredient_alias_type: [
