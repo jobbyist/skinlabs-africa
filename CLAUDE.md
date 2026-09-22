@@ -1298,9 +1298,47 @@ feature appear operational.
       `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` /
       `BRIEFINGS_CRON_SECRET=<value>`. This is the correct tradeoff — a
       real secret-management gap that needs one human step, not a security
-      hole that ships to get around it. The admin-JWT auth path on both
+      hole that ships to get around it. ~~The admin-JWT auth path on both
       functions is unaffected and still works immediately for manual
-      triggering in the meantime, exactly as it did before this fix.
+      triggering in the meantime, exactly as it did before this fix.~~
+      **Correction (2026-09-22, third follow-up, see below): this claim was
+      never actually verified and is false** — this environment has no
+      route to a valid admin@skinlabs.co.za session (no `ADMIN_PASSWORD`,
+      no `SUPABASE_SERVICE_ROLE_KEY`, and the project's JWT signing secret
+      isn't stored anywhere SQL-reachable, e.g. Vault). Until a human either
+      sets the two Edge Function secrets above or signs in as the admin
+      account and hands this session a token, **neither pipeline can be
+      manually triggered from this environment at all** — only pg_cron's
+      own scheduled firing (once the secrets are set) will actually run
+      them.
+    - **Split briefings QA word-count floor by model (2026-09-22, third
+      follow-up)** — asked to hold the primary model to a stricter bar than
+      the fallback models: `briefings-sync/index.ts`'s single
+      `MIN_BODY_WORD_COUNT = 1000` (see the "same-day follow-up" bullet
+      above for why it was lowered to 1000 in the first place) is now two
+      constants, `MIN_BODY_WORD_COUNT_PRIMARY_MODEL = 1500` and
+      `MIN_BODY_WORD_COUNT_FALLBACK_MODEL = 1000`. `qaBriefing()` takes the
+      threshold as a parameter now instead of reading the module constant
+      directly, and the call site picks which one to pass based on which
+      model actually produced the candidate: `modelUsed === modelChain[0]
+      ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_
+      MODEL` (`modelChain[0]` is `gemini-3.6-flash` by default, i.e. the
+      primary model). So a `gemini-3.6-flash` candidate is now held back to
+      the original 1500-word editorial bar, while a candidate that only
+      came from the `gemini-3.1-flash-lite`/`gemini-3.5-flash-lite`
+      fallbacks keeps the 1000-word floor that's already known to match
+      what those lighter models actually produce for this prompt. Deployed
+      live (`briefings-sync` version 6, confirmed `ACTIVE`) and pushed to
+      `claude/manual-briefings-job-trigger-fz0aef`. **Not live-verified**:
+      per the correction directly above, this session has no way to
+      trigger either pipeline right now, so this change is confirmed
+      correct by code review (diff re-read, `grep`-confirmed no stray
+      references to the old single constant) but not by an actual run —
+      the next real firing (human-triggered admin session, or once the
+      Vault secrets are set as Edge Function secrets) is what will confirm
+      it live. Re-unify the two constants back to one number once
+      `gemini-3.6-flash`'s rate limit clears for good (same condition
+      already documented above for the flat-1000 floor).
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
