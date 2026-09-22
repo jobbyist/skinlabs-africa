@@ -82,6 +82,13 @@
  * back. Exists because ?backfillMissingFields=true's own selection (`seo_intro IS
  * NULL`) never re-visits a row it already finished, so a row backfilled before the
  * structured-data fields existed would otherwise never get them.
+ *
+ * Manual backfill (primary_image only): POST/GET with ?backfillPrimaryImage=true
+ * (same auth) processes up to 25 rows missing primary_image -- see
+ * runPrimaryImageBackfillPass(). For rows that already have seo_title set (so
+ * ?backfillStructuredData=true no longer selects them) but never got an image because
+ * PEXELS_API_KEY wasn't configured/valid at the time. Single-column update, safe to
+ * re-invoke back to back.
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -1110,6 +1117,48 @@ async function runStructuredDataBackfillPass(admin: SupabaseAdmin): Promise<{
   return { processed: (rows ?? []).length, updated, skipped };
 }
 
+/** Targeted re-run of resolvePrimaryImage() ONLY, for rows that already have every
+ *  other structured-data field set (so `seo_title IS NULL` no longer selects them --
+ *  see runStructuredDataBackfillPass() above) but never got a primary_image because
+ *  PEXELS_API_KEY wasn't configured (or was invalid) at the time they were processed.
+ *  Selects on `primary_image IS NULL` specifically so it never re-touches a row that
+ *  already resolved one, and never recomputes the other fields (cheap, single-column
+ *  update). Exists as its own pass rather than resetting seo_title to null and
+ *  re-running runStructuredDataBackfillPass(), which would needlessly recompute
+ *  everything else. */
+async function runPrimaryImageBackfillPass(admin: SupabaseAdmin): Promise<{
+  processed: number;
+  updated: number;
+  skipped: Array<{ id: string; reason: string }>;
+}> {
+  const { data: rows } = await admin
+    .from("ai_generated_product_reviews")
+    .select("id, category, brand")
+    .is("primary_image", null)
+    .order("published_date", { ascending: true })
+    .limit(25);
+
+  const skipped: Array<{ id: string; reason: string }> = [];
+  let updated = 0;
+
+  for (const row of (rows ?? []) as { id: string; category: string; brand: string }[]) {
+    try {
+      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+      if (!primary_image) {
+        skipped.push({ id: row.id, reason: "no review_images row and no Pexels result (PEXELS_API_KEY unset, invalid, or no match)" });
+        continue;
+      }
+      const { error } = await admin.from("ai_generated_product_reviews").update({ primary_image }).eq("id", row.id);
+      if (error) skipped.push({ id: row.id, reason: `update failed: ${error.message}` });
+      else updated += 1;
+    } catch (err) {
+      skipped.push({ id: row.id, reason: String(err).slice(0, 200) });
+    }
+  }
+
+  return { processed: (rows ?? []).length, updated, skipped };
+}
+
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
   const cronSecret = Deno.env.get("PRODUCT_REVIEW_CRON_SECRET");
   const providedSecret = req.headers.get("x-cron-secret");
@@ -1209,6 +1258,47 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, mode: "backfillStructuredData", ...result });
     } catch (err) {
       return jsonResponse({ ok: false, mode: "backfillStructuredData", error: String(err).slice(0, 500) }, 500);
+    }
+  }
+
+  // Primary-image-only re-run -- see runPrimaryImageBackfillPass()'s own header
+  // comment for why this is separate from ?backfillStructuredData=true.
+  if (url.searchParams.get("backfillPrimaryImage") === "true") {
+    try {
+      const result = await runPrimaryImageBackfillPass(admin);
+      return jsonResponse({ ok: true, mode: "backfillPrimaryImage", ...result });
+    } catch (err) {
+      return jsonResponse({ ok: false, mode: "backfillPrimaryImage", error: String(err).slice(0, 500) }, 500);
+    }
+  }
+
+  // Diagnostic only, never exposes the key itself -- distinguishes "PEXELS_API_KEY
+  // unset" from "set but Pexels rejected/errored" from "set and working but this
+  // exact query found nothing" so a real gap can be told apart from a false negative
+  // without guessing. Safe to leave in permanently; remove once resolvePrimaryImage()
+  // has real production evidence either way and this stops being needed.
+  if (url.searchParams.get("pexelsDiagnostic") === "true") {
+    const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+    if (!pexelsKey) {
+      return jsonResponse({ ok: true, mode: "pexelsDiagnostic", configured: false });
+    }
+    try {
+      const res = await fetch(
+        "https://api.pexels.com/v1/search?query=skincare+moisturiser+bottle&per_page=1&orientation=landscape",
+        { headers: { Authorization: pexelsKey } },
+      );
+      const body = (await res.json().catch(() => null)) as { photos?: unknown[]; error?: string; code?: number } | null;
+      return jsonResponse({
+        ok: true,
+        mode: "pexelsDiagnostic",
+        configured: true,
+        fetchStatus: res.status,
+        fetchOk: res.ok,
+        resultCount: Array.isArray(body?.photos) ? body.photos.length : null,
+        errorFromPexels: !res.ok ? (body?.error ?? body?.code ?? null) : null,
+      });
+    } catch (err) {
+      return jsonResponse({ ok: true, mode: "pexelsDiagnostic", configured: true, fetchThrew: String(err).slice(0, 300) });
     }
   }
 
