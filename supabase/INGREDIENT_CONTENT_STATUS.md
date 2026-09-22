@@ -29,6 +29,36 @@ where the last one left off.
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
 | Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 | 2026-09-21 |
 | Products live (of 160 catalogued) | 160 | 2026-09-22 (Phase 5 complete — see `SEED_MIGRATION_STATUS.md`) |
+| `ingredient_generation_requests` rows (pending) | 1 | 2026-09-22 (see "Demand-driven queue" below) |
+
+## Demand-driven queue (`ingredient_generation_requests`)
+
+New alongside Track A/B: `api/product-review-sync.ts`'s publish step (previously
+missing its orchestrator entirely — see git history around 2026-09-22 for that fix)
+now resolves every generated review's `key_ingredients` against the live catalogue
+and queues anything unresolved into `ingredient_generation_requests`
+(`source = 'product_review_generated'`). A one-time reconciliation pass on
+2026-09-22 did the same for the static `src/data/reviews.ts` catalogue
+(`source = 'product_review_static'`): of 133 unique `key_ingredients` strings across
+all static reviews, 132 already resolve against the live 128-ingredient catalogue;
+the one exception — `"Vitamin C ~10%"` (`avon-anew-vitc-serum`) — was queued. It
+fails to resolve only because the catalogue's own matching stub row is itself
+literally named `"Vitamin C ~10%"` (a pre-existing data-quality artifact from the
+original bulk seed — a real "Vitamin C" row also exists separately) and the
+concentration-stripping candidate resolver (`src/lib/ingredientResolution.ts`)
+strips trailing `10%` but leaves a dangling `"Vitamin C ~"` that doesn't match
+either. Not fixed here since it's a pre-existing catalogue-naming issue outside this
+batch's scope — a future content batch touching Vitamin C can rename that stub row
+to something normal (e.g. "Vitamin C (10%)") and this request will self-resolve.
+
+Every content batch (Track A, Track B, and the refresh rotation) should also check
+`select requested_name, source, source_ref from ingredient_generation_requests where
+status = 'pending' order by requested_at` as a demand-driven priority source
+alongside the curated `INGREDIENT_EXPANSION_CANDIDATES.md` list — real product
+content is already waiting on these. Mark a row `researched`/`published` (with
+`resolved_ingredient_id` set) once its ingredient lands, or `rejected` with a
+`rejection_reason` if it turns out to be a non-specific/duplicate/un-researchable
+name (same discipline as the Track A skip list above).
 
 ## Track A skip list (non-specific stubs / insufficient evidence)
 

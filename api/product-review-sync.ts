@@ -43,7 +43,7 @@
  *     falls back to the hardcoded production project URL otherwise.
  */
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 interface VercelReq {
   method?: string;
@@ -424,4 +424,283 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   await recordApiUsage(admin, "firecrawl", site.url, pages.length > 0);
   if (pages.length > 0) await setCachedSource(admin, cacheKey, pages);
   return { pages, madeRealCall: true };
+}
+
+// ---------------------------------------------------------------------------
+// INGREDIENT DEMAND SIGNAL: every published review's key_ingredients are resolved
+// against the live `ingredients` catalogue (same alias-aware `search_ingredients` RPC
+// the frontend's src/lib/resolveIngredientSlug.ts uses). Anything unresolved is queued
+// into `ingredient_generation_requests` for the Ingredients Intelligence content
+// pipeline (see supabase/INGREDIENT_CONTENT_STATUS.md) to pick up on its next
+// scheduled run -- this function never generates ingredient content itself.
+// ---------------------------------------------------------------------------
+
+interface SearchIngredientRow {
+  id: string;
+  slug: string;
+  common_name: string | null;
+  inci_name: string | null;
+}
+
+async function isIngredientResolved(admin: SupabaseAdmin, rawName: string): Promise<boolean> {
+  const { data } = await admin.rpc("search_ingredients", { p_search: rawName, p_page: 1, p_per_page: 5 });
+  const rows = (data ?? []) as SearchIngredientRow[];
+  const lower = rawName.trim().toLowerCase();
+  return rows.some((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower);
+}
+
+async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: string[], reviewId: string) {
+  for (const rawName of keyIngredients) {
+    const normalized = rawName.trim().toLowerCase();
+    if (!normalized) continue;
+    try {
+      if (await isIngredientResolved(admin, rawName)) continue;
+      await admin.from("ingredient_generation_requests").upsert(
+        {
+          requested_name: rawName.trim(),
+          normalized_name: normalized,
+          source: "product_review_generated",
+          source_ref: reviewId,
+        },
+        { onConflict: "normalized_name", ignoreDuplicates: true },
+      );
+    } catch (err) {
+      // Demand-signal queuing is best-effort -- never fails the review publish itself.
+      console.error(`queueUnresolvedIngredients: failed for "${rawName}"`, err);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// ORCHESTRATOR: ties researcher (Firecrawl) -> analyst/writer (Gemini) -> memory +
+// publication (Supabase) together for one run. Invoked by Vercel Cron daily, or
+// manually with the same Authorization: Bearer $CRON_SECRET header.
+// ---------------------------------------------------------------------------
+
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `${name} is not configured for this Vercel project -- the product review pipeline cannot run until an admin adds it.`,
+    );
+  }
+  return value;
+}
+
+interface SiteRunOutcome {
+  site: string;
+  status: "published" | "skipped" | "error";
+  reason?: string;
+  reviewId?: string;
+}
+
+/** Publishes at most one review from a researched source page. Returns null (not an
+ *  error) when Gemini quota is exhausted or the model's output doesn't clear the bar
+ *  for publication -- the caller moves on to the next source rather than failing. */
+async function publishOneReview(
+  admin: SupabaseAdmin,
+  site: SourceSite,
+  page: FirecrawlPage,
+  geminiApiKey: string,
+  geminiModel: string,
+): Promise<{ reviewId: string } | null> {
+  if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) return null;
+  if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+    await sleep(6000);
+    if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) return null;
+  }
+
+  let fields: GeneratedReviewFields;
+  try {
+    fields = await generateReview(`${page.title}\n\n${page.markdown}`, geminiApiKey, geminiModel);
+    await recordApiUsage(admin, "gemini", site.url, true);
+  } catch (err) {
+    await recordApiUsage(admin, "gemini", site.url, false);
+    throw err;
+  }
+
+  if (!fields.product_name.trim() || !fields.brand.trim()) return null;
+
+  const baseId = slugify(`${fields.brand}-${fields.product_name}`) || slugify(fields.product_name) || "sa-skincare-review";
+  let id = baseId;
+  const { data: existingById } = await admin.from("ai_generated_product_reviews").select("id").eq("id", id).maybeSingle();
+  if (existingById) id = `${baseId}-${Date.now().toString(36).slice(-4)}`;
+
+  const retailers = [
+    {
+      retailer: site.retailerHint,
+      price_zar: fields.local_price_zar,
+      in_stock: true,
+      url: page.url,
+    },
+  ];
+
+  const { error: insertError } = await admin.from("ai_generated_product_reviews").insert({
+    id,
+    product_name: fields.product_name,
+    brand: fields.brand,
+    local_price_zar: fields.local_price_zar,
+    where_to_buy: site.retailerHint,
+    category: fields.category,
+    skin_type_match: fields.skin_type_match,
+    score_efficacy: fields.score_efficacy,
+    score_value: fields.score_value,
+    score_texture: fields.score_texture,
+    score_climate: fields.score_climate,
+    verdict: fields.verdict,
+    key_ingredients: fields.key_ingredients,
+    retailers,
+    origin: site.origin,
+    source_url: page.url,
+    source_type: site.sourceType,
+    is_sponsored: site.isSponsored,
+    generated_by: "gemini",
+    data_quality_status: "unverified",
+  });
+
+  if (insertError) throw new Error(`Insert failed for "${id}": ${insertError.message}`);
+
+  await queueUnresolvedIngredients(admin, fields.key_ingredients, id);
+
+  return { reviewId: id };
+}
+
+/** Bumps the current Spotlight edition/methodology version once the total published
+ *  review count (static catalogue baseline + this table) crosses the next multiple of
+ *  SPOTLIGHT_BUMP_INTERVAL since the current edition's own snapshot. Never touches
+ *  src/data/spotlight.ts's hand-written brandEditorial narrative -- purely mechanical. */
+async function maybeBumpSpotlight(admin: SupabaseAdmin): Promise<boolean> {
+  const { count } = await admin.from("ai_generated_product_reviews").select("id", { count: "exact", head: true });
+  const totalReviews = STATIC_REVIEW_BASELINE + (count ?? 0);
+
+  const { data: current } = await admin
+    .from("spotlight_editions")
+    .select("id, edition_label, methodology_version, review_count_at_snapshot")
+    .eq("is_current", true)
+    .maybeSingle();
+  if (!current) return false;
+
+  const snapshot = current.review_count_at_snapshot as number;
+  const nextThreshold = Math.floor(snapshot / SPOTLIGHT_BUMP_INTERVAL) * SPOTLIGHT_BUMP_INTERVAL + SPOTLIGHT_BUMP_INTERVAL;
+  if (totalReviews < nextThreshold) return false;
+
+  const versionMatch = /^(.*v)(\d+)\.(\d+)$/.exec(current.methodology_version as string);
+  const nextVersion = versionMatch ? `${versionMatch[1]}${versionMatch[2]}.${Number(versionMatch[3]) + 1}` : `${current.methodology_version} v2`;
+  const nextLabel = new Date().toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+
+  await admin.from("spotlight_editions").update({ is_current: false }).eq("id", current.id as string);
+  const { error: insertError } = await admin.from("spotlight_editions").insert({
+    edition_label: nextLabel,
+    methodology_version: nextVersion,
+    review_count_at_snapshot: totalReviews,
+    is_current: true,
+  });
+  if (insertError) throw new Error(`Spotlight bump insert failed: ${insertError.message}`);
+  return true;
+}
+
+export default async function handler(req: VercelReq, res: VercelRes) {
+  if (req.method && req.method !== "GET" && req.method !== "POST") {
+    res.status(405).json({ error: "Method not allowed" });
+    return;
+  }
+
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = req.headers.authorization;
+    const provided = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+    if (provided !== `Bearer ${cronSecret}`) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+  }
+
+  let geminiApiKey: string;
+  let firecrawlApiKey: string;
+  let serviceRoleKey: string;
+  try {
+    geminiApiKey = requireEnv("GEMINI_API_KEY");
+    firecrawlApiKey = requireEnv("FIRECRAWL_API_KEY");
+    serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  } catch (err) {
+    res.status(500).json({ configured: false, error: (err as Error).message });
+    return;
+  }
+
+  const geminiModel = process.env.GEMINI_MODEL || "gemini-3.6-flash";
+  const admin = createClient(SUPABASE_URL, serviceRoleKey, { auth: { persistSession: false } }) as SupabaseAdmin;
+
+  const results: SiteRunOutcome[] = [];
+  let published = 0;
+  let firecrawlCallsMade = 0;
+
+  // SOURCE_SITES is deliberately ordered 4 South-African sources before the 1 global/
+  // sponsored source -- for DAILY_REVIEW_CAP=3, trying sites in this order already
+  // satisfies the >=70% SA-brand editorial share target without needing a separate
+  // live-rebalancing mechanism; the global source is only reached once SA sources have
+  // no new, unpublished product to offer.
+  for (const site of SOURCE_SITES) {
+    if (published >= DAILY_REVIEW_CAP) {
+      results.push({ site: site.url, status: "skipped", reason: "Daily review cap reached" });
+      continue;
+    }
+
+    try {
+      const runBudgetRemaining = firecrawlCallsMade < MAX_FIRECRAWL_SOURCES_PER_RUN;
+      const research = await researchSource(admin, site, firecrawlApiKey, runBudgetRemaining);
+      if (research.madeRealCall) firecrawlCallsMade += 1;
+
+      if (research.skippedReason) {
+        results.push({ site: site.url, status: "skipped", reason: research.skippedReason });
+        continue;
+      }
+      if (research.pages.length === 0) {
+        results.push({ site: site.url, status: "skipped", reason: "No usable source pages found" });
+        continue;
+      }
+
+      let publishedThisSite = false;
+      for (const page of research.pages) {
+        if (published >= DAILY_REVIEW_CAP) break;
+
+        // Dedupe on source_url BEFORE spending a Gemini call.
+        const { data: existing } = await admin.from("ai_generated_product_reviews").select("id").eq("source_url", page.url).maybeSingle();
+        if (existing) continue;
+
+        const outcome = await publishOneReview(admin, site, page, geminiApiKey, geminiModel);
+        if (outcome) {
+          published += 1;
+          results.push({ site: page.url, status: "published", reviewId: outcome.reviewId });
+          publishedThisSite = true;
+          break; // one review per source site per run
+        }
+      }
+
+      if (!publishedThisSite) {
+        results.push({
+          site: site.url,
+          status: "skipped",
+          reason: "No new, unpublished product found (or Gemini quota exhausted)",
+        });
+      }
+    } catch (err) {
+      results.push({ site: site.url, status: "error", reason: (err as Error).message });
+    }
+  }
+
+  let spotlightBumped = false;
+  try {
+    spotlightBumped = await maybeBumpSpotlight(admin);
+  } catch (err) {
+    // A Spotlight edition bump is a nice-to-have -- never fail the whole run over it.
+    console.error("maybeBumpSpotlight failed", err);
+  }
+
+  res.status(200).json({
+    configured: true,
+    publishedCount: published,
+    firecrawlCallsMade,
+    spotlightBumped,
+    results,
+  });
 }
