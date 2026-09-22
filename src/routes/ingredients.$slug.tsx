@@ -323,6 +323,11 @@ function IngredientPage() {
         </section>
       )}
 
+      <section>
+        <h2>Local suppliers (Coming soon)</h2>
+        <p>We're building a directory of South African suppliers and manufacturers who stock this ingredient — check back soon.</p>
+      </section>
+
       {/* This route deliberately has no per-user session/hydration boundary
           (see the file header comment), so unlike the SPA page
           (IngredientDetail.tsx) this can't branch on membership tier --

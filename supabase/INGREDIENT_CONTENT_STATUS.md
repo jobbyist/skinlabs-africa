@@ -20,14 +20,14 @@ where the last one left off.
 
 | Metric | Value | As of |
 |---|---|---|
-| Total ingredients | 128 | 2026-09-22 |
-| Ingredients with `description` populated | 8 / 128 | 2026-09-22 |
-| Ingredients with `category` populated | 126 / 128 | 2026-09-21 (pre-existing) |
-| `ingredient_sources` rows | 18 | 2026-09-22 |
+| Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
+| Ingredients with `description` / `function_summary` populated | 55 / 140 | 2026-09-22 (after Track A batch 04) |
+| Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
+| `ingredient_sources` rows | 110 | 2026-09-22 (after Track A batch 04) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
-| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 | 2026-09-21 |
+| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 (12 processed, 111 remaining) | 2026-09-22 |
 | Products live (of 160 catalogued) | 160 | 2026-09-22 (Phase 5 complete — see `SEED_MIGRATION_STATUS.md`) |
 | `ingredient_generation_requests` rows (pending) | 1 | 2026-09-22 (see "Demand-driven queue" below) |
 
@@ -72,6 +72,45 @@ researched, not skipped out of laziness:
 | `aha-bha-complex` | Generic category-collective stub name from the original bulk seed, not a real singular INCI ingredient — no genuine literature search is possible for a vague "complex". |
 | `antioxidant-complex` | Same as above. |
 | `african-potato-extract` | Real named botanical (Hypoxis), but a targeted PubMed search (`Hypoxis African potato extract skin topical`) returned **zero** results for topical/dermatological use — Hypoxis literature is almost entirely about immune-modulation/prostate use, not skincare. Logged as genuine insufficient evidence, not fabricated. |
+| `botanical-actives` | Generic category-collective stub name, not a real singular INCI ingredient. |
+| `botanical-brighteners` | Same as above. |
+| `botanical-extracts` | Same as above. |
+| `botanical-oil-blend` | Same as above (a "blend" name, not one compound). |
+| `botanical-oils` | Same as above. |
+| `brightening-complex` | Same "Complex" pattern as the existing AHA/BHA and Antioxidant Complex entries. |
+| `broad-spectrum-uv-filters` | Generic category placeholder, not one filter compound. |
+| `chemical-uv-filters` | Same generic-category pattern as `broad-spectrum-uv-filters`. |
+| `uv-filters` | Same generic-category pattern. |
+| `emollient-complex` | Generic collective stub name, not a real singular ingredient. |
+| `emulsifiers` | Same — a formulation-function category, not one named ingredient. |
+| `enzyme-complex` | Same generic-collective pattern. |
+| `enzymes` | Same — the real specific enzymes it likely stood in for (Papain, Bromelain) are now their own catalogued rows (2026-09-22 Track B batch 01/02). |
+| `fruit-enzymes` | Same reasoning as `enzymes`. |
+| `micellar-complex` | Generic collective stub name. |
+| `mild-surfactant-base` | Same — a formulation-function descriptor, not one ingredient. |
+| `cream-cleansing-base` | Same. |
+| `ph-balanced-surfactants` | Same. |
+| `multi-active-complex` | Generic collective stub (also has no `category` value in the original seed, itself a signal it was never a real singular ingredient). |
+| `multi-oil-blend` | Same "blend" pattern as the already-skipped botanical oil blends. |
+| `multi-vitamin-complex` | Same generic-collective pattern. |
+| `vitamin-complex` | Same. |
+| `nmf-complex` | Generic collective stub — distinct from `natural-moisturizing-factors`, which is a real, well-documented dermatological concept and stays in the active research queue. |
+| `organic-botanicals` | Generic collective stub name. |
+| `organic-herbal-extracts` | Same. |
+| `plant-actives` | Same. |
+| `plant-extracts` | Same. |
+| `plant-oil-blend` | Same "blend" pattern. |
+| `soothing-botanicals` | Same generic-collective pattern. |
+| `salicylic-acid-derivative` | Non-specific "derivative" bucket — the real named BHA derivatives that exist (e.g. Zinc Salicylate, already catalogued separately) get their own rows; this generic stand-in has no single INCI identity to research. |
+| `cucumber-extract` | Real named botanical, but repeated targeted PubMed searches (cucumber/Cucumis sativus + skin + soothing/antioxidant/topical, several phrasings) returned zero directly relevant results — the closest hits were about unrelated ingredients (thermal spring water, general radiodermatitis botanicals). Logged as genuine insufficient evidence as of 2026-09-22, not fabricated. |
+| `kaolin-clay` | Real, common cosmetic ingredient, but targeted PubMed searches (kaolin + clay + skin/dermatology/cosmetic/mask, several phrasings) returned zero results — kaolin's dermatological literature is essentially absent from PubMed's indexed corpus. Logged as genuine insufficient evidence. |
+| `kalahari-melon-oil` | Real Southern African botanical (Citrullus lanatus / tsamma melon seed oil), but targeted PubMed searches (several phrasings incl. the Citrullus lanatus botanical name) returned zero results. Logged as genuine insufficient evidence — worth a Firecrawl/DermNet-style search in a future batch rather than PubMed alone, since this is a regional ingredient underrepresented in the indexed literature. |
+| `kalahari-melon-seed-oil` | Duplicate/near-duplicate catalogue row of `kalahari-melon-oil` above — same reasoning applies. |
+| `hemi-squalane` | Cosmetic-industry raw-material variant of squalane (a lighter, hydrogenated-and-fractionated squalane derivative); targeted PubMed searches returned zero results — this is a formulation-chemistry raw material with essentially no dedicated clinical literature. Logged as genuine insufficient evidence. |
+| `vitamin-c-derivative` | Same reasoning — real named vitamin C derivatives (L-Ascorbic Acid, Sodium Ascorbyl Phosphate, Magnesium Ascorbyl Phosphate, Ascorbyl Glucoside) are/will be catalogued individually. |
+| `encapsulated-retinoid` | A delivery-technology descriptor, not a named compound — "encapsulated" describes a formulation technique applicable to several different real retinoids already catalogued separately (Retinol, Retinaldehyde, Retinyl Palmitate). |
+| `electrospun-nanofibre` | Same — a delivery-technology descriptor, not a named cosmetic ingredient. |
+| `light` | **Data artifact, not a genuine skip decision**: this row's `inci_name` is literally the string "light" with `common_name = "Marula Oil"` — a fragment left over from a malformed "Marula Oil (light)" seed entry. Already `verification_status = 'deprecated'` (confirmed live, not set by this session) and excluded from every public listing query (`.neq('verification_status', 'deprecated')`), so no visitor-facing impact — listed here only so a future Track A batch doesn't waste a cycle investigating it. A real fix (merging into the `marula-oil` row or deleting outright) is a data-quality cleanup outside this batch's scope. |
 
 If a future batch's research turns up real evidence for any of these
 (e.g. a new African Potato Extract dermatology study), it's fine to
@@ -102,23 +141,64 @@ select count(*) from ingredient_aliases;
 ```sql
 select slug, inci_name from ingredients
 where description is null
-  and slug not in ('aha-bha-complex', 'antioxidant-complex', 'african-potato-extract') -- Track A skip list, see below
+  and verification_status != 'deprecated'
+  and slug not in (
+    'aha-bha-complex', 'antioxidant-complex', 'african-potato-extract',
+    'botanical-actives', 'botanical-brighteners', 'botanical-extracts',
+    'botanical-oil-blend', 'botanical-oils', 'brightening-complex',
+    'broad-spectrum-uv-filters', 'chemical-uv-filters', 'uv-filters',
+    'emollient-complex', 'emulsifiers', 'enzyme-complex', 'enzymes',
+    'fruit-enzymes', 'micellar-complex', 'mild-surfactant-base',
+    'cream-cleansing-base', 'ph-balanced-surfactants', 'multi-active-complex',
+    'multi-oil-blend', 'multi-vitamin-complex', 'vitamin-complex',
+    'nmf-complex', 'organic-botanicals', 'organic-herbal-extracts',
+    'plant-actives', 'plant-extracts', 'plant-oil-blend', 'soothing-botanicals',
+    'salicylic-acid-derivative', 'vitamin-c-derivative', 'encapsulated-retinoid',
+    'electrospun-nanofibre', 'light'
+  ) -- Track A skip list, see below
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
+-- NOTE: batch 03 (2026-09-22) already enriched 15 slugs out of alphabetical
+-- order (retinol, niacinamide, hyaluronic-acid, vitamin-c, vitamin-e,
+-- salicylic-acid, glycolic-acid, lactic-acid, mandelic-acid, ceramides,
+-- squalane, zinc-oxide, panthenol, glycerin, shea-butter) — they now have
+-- description IS NOT NULL and will naturally be excluded by this query's
+-- own `description is null` filter, no extra exclusion needed.
 ```
 
-Cursor: **8 processed** (batch 01, 2026-09-22, alphabetically through
-"Ascorbic Acid" — see batch log below for the full list and the 3-entry
-skip list). Next firing resumes from `inci_name > 'Ascorbic Acid'`. Once
-every one of the original 128 has `description IS NOT NULL` (or is on the
-permanent skip list), Track A is done and the 6A catch-up trigger should
-be disabled — all future firings run only Track B + the refresh rotation
-(6B).
+Cursor: **31 processed** (batches 01+02, alphabetical through "Centella
+Asiatica", plus batch 03 — 15 high-traffic ingredients cherry-picked
+out of alphabetical order: Retinol, Niacinamide, Hyaluronic Acid, Vitamin
+C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid,
+Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter — see
+batch log below). Batch 03 deliberately skipped ahead of the alphabetical
+cursor to prioritize the ingredients most likely to appear in product
+reviews/routines and drive real user/SEO value first (per the "as many as
+possible" open-ended bulk-populate request); the alphabetical sweep from
+`inci_name > 'Centella Asiatica'` still needs to happen for the remaining
+un-enriched stubs that batch 03 didn't cover — a future firing should
+resume alphabetically from there, skipping any slug batch 03 already
+processed (see the skip-list query below, which should also exclude the
+15 batch-03 slugs by name to avoid re-processing). Once every one of the
+original 128 has `description IS NOT NULL` (or is on the permanent skip
+list), Track A is done and the 6A catch-up trigger should be disabled —
+all future firings run only Track B + the refresh rotation (6B).
 
 **Track B — add new ingredients from the living candidate list.**
-`supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom,
-section by section. Cursor: **not started** (first unprocessed candidate
-is "Betaine" under Humectant). When the file's unprocessed (`[ ]`)
+`supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
+within each section, but **not** strictly one section at a time — a batch
+may pick a representative spread across several sections (real, well-
+documented ingredients were prioritized for research efficiency). Cursor:
+**12 / 123 processed** (batch 01, 2026-09-22 — all now `[x]` in the
+candidates file): Betaine, Sodium PCA, Trehalose, Urea (4/13 Humectant —
+next unprocessed: Propanediol), Malic Acid, Citric Acid, Gluconolactone
+(3/5 Exfoliant-AHA/PHA — next unprocessed: Tartaric Acid), Papain
+(1/3 Exfoliant-Enzyme — next unprocessed: Bromelain), Resveratrol, Alpha
+Lipoic Acid (2/17 Antioxidant — next unprocessed: Astaxanthin), Azelaic
+Acid (1/9 Brightening — next unprocessed: 4-Butylresorcinol), Allantoin
+(1/11 Soothing Botanical — next unprocessed: Bisabolol). A future firing
+should scan each section top-to-bottom for the first `[ ]` entry rather
+than assume a single linear cursor. When the file's unprocessed (`[ ]`)
 candidates run low (fewer than ~25 remaining), the firing that notices
 this appends a fresh batch of real, dedupe-checked candidates to that file
 *before* continuing — this is how Track B keeps growing past the current
@@ -143,6 +223,10 @@ limit :remaining_batch_budget;
 | 2026-09-21 | Schema/infra | — | `20260921200507_...`, `20260921200517_...` | `ingredient_sources` table + `data_source_type` enum values created and verified live. No content batches run yet. |
 | 2026-09-22 | Track A batch 01 | 8: Acetyl Glucosamine, Acetyl Hexapeptide-8, African Black Soap, Aloe Vera, Alpha Arbutin, Arbutin, Argan Oil, Ascorbic Acid | `20260922020000_ingredient_content_batch_01.sql` | Real PubMed + DermNet NZ research per ingredient (18 citations total, 2-3 per ingredient). All landed `evidence_level` moderate except African Black Soap (limited, per its own review's "much is anecdotal" caveat). 3 insufficient-evidence/non-specific entries skipped and logged (see skip list above): AHA/BHA Complex, Antioxidant Complex, African Potato Extract. |
 | 2026-09-22 | Phase 5 (product seed) | — | `20260922010200_..._chunk_09_products.sql` through `20260922011300_..._chunk_20_products.sql` (12 files) | Product seed chunks 09-20 applied, products 41-160 complete. 160/160 products and reviews now live, 290 `product_ingredients` rows total. See `SEED_MIGRATION_STATUS.md` for full detail — not an ingredients-content batch, logged here only because it completes the "Products live" row above. |
+| 2026-09-22 | Track A batch 02 | 8: Bakuchiol, Baobab Oil, Beeswax, Buchu Extract, Bulbine Frutescens, Caffeine, Calendula Oil, Centella Asiatica | `20260922080000_ingredient_content_batch_02.sql` | Real PubMed + peer-reviewed-literature research per ingredient (16 citations total, 2 per ingredient, incl. one DermNet NZ corroborating source for Calendula's irritancy profile). Evidence levels: moderate (Bakuchiol, Beeswax, Calendula Oil, Centella Asiatica — each backed by a real RCT/systematic review or a solid preclinical study), limited (Baobab Oil, Buchu Extract, Bulbine Frutescens, Caffeine — in vitro/mechanistic/traditional-use evidence only, no human efficacy RCT found). 7 generic-collective stub names encountered in this batch's alphabetical window were skip-listed without a research attempt (Botanical Actives/Brighteners/Extracts/Oil Blend/Oils, Brightening Complex, Broad-Spectrum UV Filters) — see skip list above. |
+| 2026-09-22 | Track B batch 01 | 12 NEW: Betaine, Sodium PCA, Trehalose, Urea, Malic Acid, Citric Acid, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Azelaic Acid, Allantoin | `20260922090000_ingredient_content_track_b_batch_01.sql` | First Track B batch — real identity + content created in one pass per ingredient (22 citations total: 2 each for 10 ingredients, 1 each for Urea and Citric Acid, whose available real literature was thinner). Evidence levels: strong (Azelaic Acid — a 21-RCT systematic review/meta-analysis), moderate (Urea, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Allantoin — each backed by a real RCT or split-face clinical study, several combined with other actives rather than tested standalone), limited (Betaine, Sodium PCA, Trehalose, Malic Acid, Citric Acid — in vitro/mechanistic/observational evidence only, no direct standalone-ingredient human efficacy RCT found). **This was a deliberately partial weekly batch** (12 of the 25+ the permanent pipeline targets per week) — full Phase 3 research at this depth for 25 ingredients in one sitting was judged too costly/risky for careful sourcing; the remainder of this week's target should be picked up by the next 6B firing or a follow-up session before Tuesday's next scheduled run, rather than padded with thinner research to hit the number. |
+| 2026-09-22 | Track A batch 03 (priority, out-of-order) | 15: Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid, Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter | `20260922100000_ingredient_content_batch_03.sql` | Per the user's explicit request to also use EWG Skin Deep and INCIDecoder (via Firecrawl) as sources alongside PubMed: added real, Firecrawl-verified `ingredient_database`-type citations from both sites for 6 of the highest-traffic ingredients (Retinol/INCIDecoder, Niacinamide/EWG, Hyaluronic Acid/INCIDecoder, Vitamin C/EWG, Salicylic Acid/EWG, Glycolic Acid/INCIDecoder) alongside 32 PubMed peer-reviewed-literature citations (2-3 per ingredient). Evidence levels: strong (Salicylic Acid — 2 real RCTs incl. a 54-subject double-blind head-to-head vs a prescription regimen), moderate (Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Glycolic Acid, Lactic Acid, Ceramides, Panthenol, Glycerin — each backed by at least one real RCT, several honestly framed as combination-formulation or precursor-blend evidence rather than standalone), limited (Vitamin E, Mandelic Acid, Squalane, Zinc Oxide, Shea Butter — real trials found but either in vitro/ex vivo/animal-model only, or always tested as part of a multi-ingredient blend with no standalone efficacy data). These 15 were prioritized out of the strict alphabetical Track A order because they are the highest-traffic, most product-review/routine-relevant ingredients on the platform. |
+| 2026-09-22 | Track A batch 04 | 12: Aloe Ferox, Cholesterol, Coconut Oil, CoQ10, Fatty Acids, Ferulic Acid, GHK-Cu, Green Tea Extract, Jojoba Oil, Ceramide, Ceramide NP, Ceramide-P | `20260922110000_ingredient_content_batch_04.sql` | 22 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Cholesterol, Coconut Oil, Fatty Acids, Ferulic Acid, Green Tea Extract, Ceramide, Ceramide NP — each backed by at least one real RCT or systematic review, several combination-formulation studies honestly framed as such), limited (Aloe Ferox, CoQ10, GHK-Cu, Jojoba Oil, Ceramide-P — real studies found but animal-model/in-vitro/review-only, or (for Ceramide-P) no species-specific standalone data, reusing class-level ceramide evidence with an explicit note). Ceramide/Ceramide NP/Ceramide-P are distinct catalogue rows from the already-profiled "Ceramides" (a synonym/collective row) — treated individually as real, named ceramide species per cosmetic-chemistry nomenclature, sharing some of the same real class-level RCT evidence where no species-specific study exists (always disclosed honestly in `function_summary`, never presented as species-specific data that doesn't exist). Four ingredients hit during this batch's research window returned zero PubMed results after repeated query attempts and were added to the Track A skip list as genuine insufficient-evidence cases: Cucumber Extract, Kaolin Clay, Kalahari Melon Oil, Kalahari Melon Seed Oil, Hemi-Squalane (5 total, all logged with search-attempt detail in the skip list above). |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't

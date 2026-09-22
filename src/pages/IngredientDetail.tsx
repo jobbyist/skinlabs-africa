@@ -299,6 +299,16 @@ const IngredientDetail = () => {
             )}
 
             <section>
+              <div className="flex items-center gap-2">
+                <h2 className="font-heading text-xl font-bold text-foreground">Local suppliers</h2>
+                <Badge variant="secondary">Coming soon</Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                We're building a directory of South African suppliers and manufacturers who stock this ingredient — check back soon.
+              </p>
+            </section>
+
+            <section>
               {can("routine.conflict_matcher") ? (
                 <Link
                   to="/dashboard?tab=routine"

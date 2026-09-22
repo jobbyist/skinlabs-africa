@@ -471,6 +471,42 @@ interface MarketplaceProductRow {
   brand: { name: string } | null;
 }
 
+interface SearchIngredientRow {
+  id: string;
+  slug: string;
+  common_name: string | null;
+  inci_name: string | null;
+}
+
+async function isIngredientResolved(admin: SupabaseAdmin, rawName: string): Promise<boolean> {
+  const { data } = await admin.rpc("search_ingredients", { p_search: rawName, p_page: 1, p_per_page: 5 });
+  const rows = (data ?? []) as SearchIngredientRow[];
+  const lower = rawName.trim().toLowerCase();
+  return rows.some((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower);
+}
+
+async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: string[], reviewId: string) {
+  for (const rawName of keyIngredients) {
+    const normalized = rawName.trim().toLowerCase();
+    if (!normalized) continue;
+    try {
+      if (await isIngredientResolved(admin, rawName)) continue;
+      await admin.from("ingredient_generation_requests").upsert(
+        {
+          requested_name: rawName.trim(),
+          normalized_name: normalized,
+          source: "product_review_generated",
+          source_ref: reviewId,
+        },
+        { onConflict: "normalized_name", ignoreDuplicates: true },
+      );
+    } catch (err) {
+      // Demand-signal queuing is best-effort -- never fails the review publish itself.
+      console.error(`queueUnresolvedIngredients: failed for "${rawName}"`, err);
+    }
+  }
+}
+
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
   const cronSecret = Deno.env.get("PRODUCT_REVIEW_CRON_SECRET");
   const providedSecret = req.headers.get("x-cron-secret");
@@ -748,6 +784,7 @@ Deno.serve(async (req) => {
               .update({ resolved: true, resolved_at: new Date().toISOString() })
               .eq("id", candidate.retryQueueId);
           }
+          await queueUnresolvedIngredients(admin, fields.key_ingredients, finalId);
         }
       } catch (err) {
         if (err instanceof GeminiFatalError) {
