@@ -149,6 +149,8 @@ const ReviewsGrid = ({
                 src={productImage.url}
                 alt={`${review.category} product photography — ${productImage.alt}`}
                 loading="lazy"
+                width={400}
+                height={160}
                 className="h-40 w-full object-cover"
               />
               {productImage.creditUrl !== "#" && (
@@ -199,6 +201,11 @@ const ReviewsGrid = ({
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                 <MapPin className="h-3 w-3" /> {review.where_to_buy}
               </span>
+              {review.is_sponsored && (
+                <span className="rounded-full bg-muted px-2.5 py-1 font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sponsored
+                </span>
+              )}
               {review.isNew && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
                   <Star className="h-3 w-3" /> New
@@ -230,7 +237,9 @@ const ReviewsGrid = ({
 
             <div className="mt-auto flex items-center justify-between">
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
+                <Link to={`/reviews/${review.id}`} aria-label={`Full breakdown: ${review.brand} ${review.product_name}`}>
+                  Full breakdown
+                </Link>
               </Button>
               <button
                 onClick={() => toggleLike(review.id)}

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialog from "@/components/AuthDialog";
+import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -35,6 +36,12 @@ const FloatingBottomNav = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
+  // PodcastPlayer renders its own fixed bar flush against bottom-0 whenever an
+  // episode is loaded (whether playing or paused) — at a higher z-index than
+  // this nav, so without this it visually covers/overlaps the floating pill.
+  // Shifting the pill up above the player's height (see PodcastPlayer.tsx's
+  // py-3/md:py-4 + h-14/md:h-16 artwork, ~80-96px tall) keeps both usable.
+  const { current: currentEpisode } = usePodcastPlayer();
 
   // Never hide the whole bar while auth is resolving — that caused a missing
   // bottom nav flash (and a stuck-empty bar if the session check hung). Show
@@ -47,7 +54,10 @@ const FloatingBottomNav = () => {
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4 pb-[max(0px,env(safe-area-inset-bottom))] sm:bottom-6"
+        className={cn(
+          "fixed inset-x-0 z-40 flex justify-center px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out",
+          currentEpisode ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6",
+        )}
       >
         <div
           className={cn(

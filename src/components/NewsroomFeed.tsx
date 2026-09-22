@@ -300,49 +300,59 @@ const NewsroomFeed = ({
                   viewport={{ once: true }}
                   transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
                   whileHover={{ y: -4 }}
-                  className="gradient-border-anim group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card md:max-w-none"
+                  className="gradient-border-anim group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card shadow-sm transition-shadow duration-300 hover:shadow-xl md:max-w-none"
                   itemScope
                   itemType="https://schema.org/NewsArticle"
                 >
                   <Link to={`/briefings/${article.slug}`} className="relative block aspect-[16/10] overflow-hidden">
                     <BriefingCover article={article} />
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0" aria-hidden="true" />
                     <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-background/90 px-3 py-1 text-[11px] font-semibold text-foreground backdrop-blur">
                       <MapPin className="h-3 w-3" /> {article.sa_context_tag}
                     </span>
                   </Link>
                   <div className="flex flex-1 flex-col gap-3 p-6">
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span itemProp="publisher">{article.source_name}</span>
+                      <span aria-hidden="true">·</span>
                       <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
+                      <span aria-hidden="true">·</span>
                       <time dateTime={article.publish_date} itemProp="datePublished">
                         {formatPublishDate(article.publish_date)}
                       </time>
                     </div>
-                    <h3 className="font-heading text-lg font-bold leading-snug text-foreground" itemProp="headline">
-                      <Link to={`/briefings/${article.slug}`}>{article.title}</Link>
+                    <h3 className="line-clamp-2 font-heading text-lg font-bold leading-snug text-foreground" itemProp="headline">
+                      <Link to={`/briefings/${article.slug}`} className="transition-colors group-hover:text-primary">
+                        {article.title}
+                      </Link>
                     </h3>
-                    <p className="text-sm text-muted-foreground" itemProp="description">{article.excerpt}</p>
+                    <p className="line-clamp-2 text-sm text-muted-foreground" itemProp="description">{article.excerpt}</p>
                     <ul className="space-y-1.5">
                       {article.key_takeaways.slice(0, 3).map((takeaway) => (
                         <li key={takeaway} className="flex gap-2 text-sm text-muted-foreground">
                           <span aria-hidden="true" className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                          {takeaway}
+                          <span className="line-clamp-1">{takeaway}</span>
                         </li>
                       ))}
                     </ul>
                     <div className="mt-auto flex items-center justify-between pt-4">
-                      <Link to={`/briefings/${article.slug}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                        Read the breakdown <ArrowUpRight className="h-4 w-4" />
+                      <Link
+                        to={`/briefings/${article.slug}`}
+                        aria-label={`Read the breakdown: ${article.title}`}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        Read the breakdown
+                        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                       </Link>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 hover:bg-accent">
+                        <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 transition-colors hover:bg-accent">
                           <Heart className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")} />
                         </button>
                         {user && (
                           <button
                             onClick={() => void handleSave(article)}
                             aria-label={savedIds.includes(article.id) ? "Unsave article" : "Save article"}
-                            className="rounded-full p-2 hover:bg-accent"
+                            className="rounded-full p-2 transition-colors hover:bg-accent"
                           >
                             <Bookmark
                               className={cn(

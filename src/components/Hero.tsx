@@ -2,6 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroVideoAsset from "@/assets/hero-video.mp4";
+// Reused as the <video poster> below: because the background clip is chosen
+// randomly client-side from 20 candidates (see heroVideos.ts), there's no
+// single "first frame" the browser's preload scanner can discover from the
+// raw HTML. A shared static poster gives it an immediate, real LCP paint
+// target instead of an empty background while the chosen clip streams in.
+import heroPosterImage from "@/assets/hero-skincare.jpg";
 import { useMembership } from "@/hooks/use-membership";
 import { remoteHeroVideos, pickRandom, type HeroVideo } from "@/data/heroVideos";
 
@@ -69,12 +75,13 @@ const Hero = () => {
           key={videoSrc}
           ref={videoRef}
           src={videoSrc}
+          poster={heroPosterImage}
           onError={handleVideoError}
           autoPlay
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />

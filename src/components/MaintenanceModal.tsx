@@ -214,8 +214,9 @@ const MaintenanceModal = () => {
                 variant="ghost"
                 size="icon"
                 onClick={handleDismiss}
+                aria-label="Dismiss"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
           </form>
