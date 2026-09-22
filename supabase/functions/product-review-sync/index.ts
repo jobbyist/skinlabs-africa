@@ -9,77 +9,92 @@
  *                  whatever lands in ai_generated_product_reviews -- see src/hooks/
  *                  use-generated-reviews.ts -- with zero pipeline-specific UI code)
  *
- * Replaces the old newsroom-sync (Daily Skinny briefing) cron slot: instead of a daily
- * news column, this generates up to DAILY_REVIEW_CAP grounded product reviews a day --
- * 70% South African brands, 30% global brands available in SA -- and publishes them
- * straight to /reviews via the ai_generated_product_reviews table (see supabase/
- * migrations/20260913020000_product_review_pipeline_core.sql).
+ * Migrated from api/product-review-sync.ts (Vercel Cron) to this Supabase Edge
+ * Function on 2026-09-22. The Vercel version required GEMINI_API_KEY/
+ * FIRECRAWL_API_KEY/SUPABASE_SERVICE_ROLE_KEY/CRON_SECRET as Vercel project
+ * environment variables, which are stored as Vercel's "sensitive" type --
+ * genuinely unreadable via any API (confirmed live, not just documented) even
+ * to the project owner, and Vercel Cron itself only be re-triggered on demand
+ * via the Vercel CLI's `vercel crons run`, which needs an authenticated CLI
+ * session this environment doesn't have. None of that applies here: this
+ * environment has full deploy/SQL/cron access to the real Supabase project
+ * (gnkpzijxuciiaamakgzm), so the pipeline can be inspected, redeployed and
+ * manually triggered from this session going forward without depending on a
+ * human's Vercel dashboard access.
  *
- * Runs on Vercel (not a Supabase edge function) because it needs GEMINI_API_KEY from
- * Vercel's own project environment variables, per an explicit product decision -- see
- * vercel.json's `crons` entry (09:00 SAST = 07:00 UTC daily).
+ * Auth accepts EITHER of:
+ *   - `x-cron-secret: <value>` checked against the `PRODUCT_REVIEW_CRON_SECRET`
+ *     Supabase Edge Function secret (`Deno.env.get(...)` -- never a literal
+ *     in source). The pg_cron job that calls this function (see
+ *     supabase/migrations/20260922_product_review_and_briefings_cron.sql)
+ *     pulls the same value from Supabase Vault at call time
+ *     (`vault.decrypted_secrets`), so the plaintext secret is never
+ *     committed to this repo in either the function source or the
+ *     migration file -- only referenced by name. A prior revision of this
+ *     file hardcoded the secret directly in source (flagged by an
+ *     automated security reviewer, 2026-09-22, and correctly so -- a
+ *     committed secret is a real leak risk regardless of how it's
+ *     justified); it has been rotated and this is the fix.
+ *     **Until a human runs `supabase secrets set
+ *     PRODUCT_REVIEW_CRON_SECRET=<value>` (retrieve the value yourself via
+ *     `select decrypted_secret from vault.decrypted_secrets where name =
+ *     'product_review_cron_secret'` in the Supabase SQL editor -- never
+ *     paste it into a commit, PR, or chat transcript), the cron-triggered
+ *     path 401s** -- same accepted gap as this project's existing
+ *     MARKETPLACE_CRON_SECRET-gated jobs (openhaus-fx-sync etc.). The admin
+ *     JWT path below still works for manual triggering in the meantime.
+ *   - A Supabase Auth JWT for a user holding the `admin` role (checked via
+ *     the existing `has_role` RPC) -- lets a signed-in admin trigger a run
+ *     from the browser/an authenticated script without needing the cron
+ *     secret at all. Matches the same dual-auth pattern already used by
+ *     supabase/functions/openhaus-price-sync/index.ts.
  *
- * Required Vercel project environment variables (none of these can be set from this
- * codebase -- an admin must add them in the Vercel dashboard before this pipeline can
- * run for real; until then every invocation fails fast with a clear "not configured"
- * error rather than silently doing nothing):
- *   - GEMINI_API_KEY          Google AI Studio / Gemini API key.
- *   - FIRECRAWL_API_KEY       Firecrawl API key (api.firecrawl.dev).
- *   - SUPABASE_SERVICE_ROLE_KEY   The Supabase project's service_role key (NOT the
- *     publishable key already used client-side -- this needs to bypass RLS to insert).
- *   - CRON_SECRET             Vercel's own convention: when set, Vercel signs every
- *     Cron invocation with `Authorization: Bearer $CRON_SECRET`, which this function
- *     checks. Also usable to trigger a manual/admin run with the same header.
- * Optional (quota knobs -- see "QUOTA MONITOR" below; defaults are deliberately
- * conservative placeholders, not a confirmed reading of either provider's actual free
- * tier for this account/model, since nothing in this environment can check that live):
- *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash". (gemini-2.0-flash was
- *     retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
- *     which named gemini-3.6-flash as the direct replacement.)
- *   - GEMINI_MODEL_FALLBACK_1   Defaults to "gemini-3.1-flash-lite" -- tried when
- *     GEMINI_MODEL is rate-limited, erroring, timing out or returning malformed
- *     output that a repair retry couldn't fix. See api/_lib/geminiFallback.ts for
- *     the exact per-error routing table (which errors fall back vs. retry vs. abort
- *     the whole run outright).
- *   - GEMINI_MODEL_FALLBACK_2   Defaults to "gemini-3.5-flash-lite" -- tried only if
- *     both GEMINI_MODEL and GEMINI_MODEL_FALLBACK_1 are exhausted for a candidate.
+ * Required Supabase Edge Function secrets (`supabase secrets set ...` --
+ * cannot be set from this codebase/session; every invocation fails fast with
+ * a clear "not configured" error rather than silently doing nothing until a
+ * human adds these):
+ *   - GEMINI_API_KEY_REVIEWS   Google AI Studio / Gemini API key for this
+ *     pipeline. Switched from the plain `GEMINI_API_KEY` name on
+ *     2026-09-22 after that secret returned a real 403 (auth error) on a
+ *     live run -- `GEMINI_API_KEY_REVIEWS` is a distinct, separately
+ *     managed key.
+ *   - FIRECRAWL_API_KEY        Firecrawl API key (api.firecrawl.dev).
+ *   - PRODUCT_REVIEW_CRON_SECRET  See auth section above.
+ * SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are reserved, auto-injected
+ * Supabase Edge Function env vars -- never require a manual secrets-set step.
+ *
+ * Optional (quota knobs -- see "QUOTA MONITOR" below; defaults are
+ * deliberately conservative placeholders, not a confirmed reading of either
+ * provider's actual free tier for this account/model):
+ *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash".
+ *   - GEMINI_MODEL_FALLBACK_1   Defaults to "gemini-3.1-flash-lite".
+ *   - GEMINI_MODEL_FALLBACK_2   Defaults to "gemini-3.5-flash-lite".
  *   - FIRECRAWL_DAILY_LIMIT     Defaults to 20 real Firecrawl calls/day.
  *   - GEMINI_DAILY_LIMIT        Defaults to 100 real Gemini calls/day.
  *   - GEMINI_PER_MINUTE_LIMIT   Defaults to 10 real Gemini calls/minute.
- *   - VITE_SUPABASE_URL         Reused if set (already present for the client build);
- *     falls back to the hardcoded production project URL otherwise.
  *
- * Manual backfill: POST with ?backfillDate=YYYY-MM-DD (still requires the same
- * Bearer CRON_SECRET auth) publishes up to DAILY_REVIEW_CAP reviews dated that day
- * instead of today, and checks/writes the cap against that date -- lets a human
- * retroactively fill a day the pipeline missed (e.g. while it was broken) without
- * touching today's own cap or already-published reviews.
+ * Manual backfill: POST with ?backfillDate=YYYY-MM-DD (still requires the
+ * same auth as every other invocation) publishes up to DAILY_REVIEW_CAP
+ * reviews dated that day instead of today.
  *
- * Every Gemini call attempt (across the full fallback chain, including retries and
- * repair attempts) is logged to pipeline_model_calls -- see the migration
- * gemini_model_fallback_logging_and_retry_queue.sql. A candidate whose entire
- * fallback chain is exhausted (all three models failed) is queued in
- * pipeline_retry_queue for a lazy retry on this pipeline's next invocation (see that
- * table's own comment for why this is a lazy queue and not a live 15-minute timer --
- * Vercel Hobby-tier cron doesn't support sub-daily schedules).
+ * Every Gemini call attempt is logged to pipeline_model_calls. A candidate
+ * whose entire fallback chain is exhausted is queued in pipeline_retry_queue
+ * for a lazy retry on this pipeline's next invocation.
  */
 
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  callGeminiWithFallback,
+  GeminiFatalError,
+  GeminiAllModelsExhaustedError,
+  type GeminiAttemptLog,
+} from "../_shared/pipelines/geminiFallback.ts";
+import { scanComplianceFlags } from "../_shared/pipelines/complianceTerms.ts";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback.js";
-import { scanComplianceFlags } from "./_lib/complianceTerms.js";
-
-interface VercelReq {
-  method?: string;
-  headers: Record<string, string | string[] | undefined>;
-  query: Record<string, string | string[] | undefined>;
-}
-interface VercelRes {
-  status: (code: number) => VercelRes;
-  json: (body: unknown) => void;
-}
-
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || "https://gnkpzijxuciiaamakgzm.supabase.co";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+};
 
 /** Hard daily publication cap -- SkinLabs' own editorial rate, independent of quota. */
 const DAILY_REVIEW_CAP = 3;
@@ -96,12 +111,10 @@ const STATIC_REVIEW_BASELINE = 160;
 // QUOTA MONITOR (Supabase as memory) -- every real Firecrawl/Gemini call is logged to
 // pipeline_api_usage, and checked against these thresholds *before* the next call, so
 // a free-tier limit is respected proactively rather than discovered as a mid-run error.
-// The exact numbers are conservative placeholders -- tune them via the env vars above
-// to whatever this account's actual Firecrawl/Google AI Studio plan allows.
 // ---------------------------------------------------------------------------
-const FIRECRAWL_DAILY_LIMIT = Number(process.env.FIRECRAWL_DAILY_LIMIT) || 20;
-const GEMINI_DAILY_LIMIT = Number(process.env.GEMINI_DAILY_LIMIT) || 100;
-const GEMINI_PER_MINUTE_LIMIT = Number(process.env.GEMINI_PER_MINUTE_LIMIT) || 10;
+const FIRECRAWL_DAILY_LIMIT = Number(Deno.env.get("FIRECRAWL_DAILY_LIMIT")) || 20;
+const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 100;
+const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
 
 /** How long a cached Firecrawl result is trusted before it's fetched fresh again. */
 const SOURCE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
@@ -177,8 +190,7 @@ const clampScore = (value: unknown): number => {
 };
 
 // ---------------------------------------------------------------------------
-// SUPABASE AS MEMORY: quota bookkeeping + research cache. Kept together since both are
-// "ask Supabase what it remembers before calling out to Firecrawl/Gemini again."
+// SUPABASE AS MEMORY: quota bookkeeping + research cache.
 // ---------------------------------------------------------------------------
 
 type SupabaseAdmin = SupabaseClient;
@@ -448,8 +460,6 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   return { pages, madeRealCall: true };
 }
 
-
-
 interface MarketplaceProductRow {
   slug: string;
   name: string;
@@ -461,37 +471,52 @@ interface MarketplaceProductRow {
   brand: { name: string } | null;
 }
 
-export default async function handler(req: VercelReq, res: VercelRes) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = String(req.headers.authorization ?? "");
-  const authorised = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`;
-  if (!authorised) {
-    res.status(401).json({ error: "Not authorised" });
-    return;
+async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
+  const cronSecret = Deno.env.get("PRODUCT_REVIEW_CRON_SECRET");
+  const providedSecret = req.headers.get("x-cron-secret");
+  if (cronSecret && providedSecret && providedSecret === cronSecret) return true;
+
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer /, "");
+  if (!token) return false;
+  const { data: userData } = await admin.auth.getUser(token);
+  if (!userData?.user) return false;
+  const { data: adminRole } = await admin.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
+  return Boolean(adminRole);
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin: SupabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+
+  if (!(await isAuthorised(req, admin))) {
+    return new Response(JSON.stringify({ error: "Not authorised" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const missing = [
-    !geminiKey && "GEMINI_API_KEY",
-    !firecrawlKey && "FIRECRAWL_API_KEY",
-    !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY",
-  ].filter(Boolean);
+  const geminiKey = Deno.env.get("GEMINI_API_KEY_REVIEWS");
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  const missing = [!geminiKey && "GEMINI_API_KEY_REVIEWS", !firecrawlKey && "FIRECRAWL_API_KEY"].filter(Boolean);
   if (missing.length > 0) {
-    res.status(500).json({ error: `Not configured: missing ${missing.join(", ")} in Vercel project environment variables` });
-    return;
+    return new Response(
+      JSON.stringify({ error: `Not configured: missing ${missing.join(", ")} as Supabase Edge Function secrets (supabase secrets set ...)` }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   const modelChain = [
-    process.env.GEMINI_MODEL || "gemini-3.6-flash",
-    process.env.GEMINI_MODEL_FALLBACK_1 || "gemini-3.1-flash-lite",
-    process.env.GEMINI_MODEL_FALLBACK_2 || "gemini-3.5-flash-lite",
+    Deno.env.get("GEMINI_MODEL") || "gemini-3.6-flash",
+    Deno.env.get("GEMINI_MODEL_FALLBACK_1") || "gemini-3.1-flash-lite",
+    Deno.env.get("GEMINI_MODEL_FALLBACK_2") || "gemini-3.5-flash-lite",
   ];
-  const { createClient } = await import("@supabase/supabase-js");
-  const admin: SupabaseAdmin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
 
-  const rawBackfillDate = String(req.query.backfillDate ?? "");
+  const url = new URL(req.url);
+  const rawBackfillDate = url.searchParams.get("backfillDate") ?? "";
   const backfillDate = /^\d{4}-\d{2}-\d{2}$/.test(rawBackfillDate) ? rawBackfillDate : null;
   const today = backfillDate ?? new Date().toISOString().slice(0, 10);
   const runId = crypto.randomUUID();
@@ -522,6 +547,9 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     }
   };
 
+  const jsonResponse = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   try {
     // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
     // Firecrawl/Gemini call is even considered. ----
@@ -530,14 +558,12 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       .select("id", { count: "exact", head: true })
       .eq("published_date", today);
     if ((publishedToday ?? 0) >= DAILY_REVIEW_CAP) {
-      res.status(200).json({ ok: true, created: 0, message: "Daily review cap already met" });
-      return;
+      return jsonResponse({ ok: true, created: 0, message: "Daily review cap already met" });
     }
     const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
 
     // ---- Lazy retry queue: process anything already due before pulling fresh
-    // candidates (see pipeline_retry_queue's own migration comment for why this is
-    // lazy-on-next-invocation rather than a live 15-minute timer). ----
+    // candidates. ----
     const { data: dueRetries } = await admin
       .from("pipeline_retry_queue")
       .select("id, candidate_payload, attempt_count")
@@ -729,7 +755,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           // identically, and blindly trying weaker models wouldn't fix a broken API
           // key or a bad prompt/schema. Stop the whole run and surface this loudly
           // rather than burning through the queue -- this needs a human to look at
-          // the Vercel/Google AI Studio config, not a retry.
+          // the Google AI Studio config, not a retry.
           errors.push(`ALERT (Gemini config, run stopped): ${err.message}`);
           break;
         }
@@ -810,8 +836,8 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
     }
 
-    res.status(200).json({ ok: true, created, target, modelUsage, backfillDate, errors });
+    return jsonResponse({ ok: true, created, target, modelUsage, backfillDate, errors });
   } catch (err) {
-    res.status(500).json({ error: String(err).slice(0, 500), created, errors });
+    return jsonResponse({ error: String(err).slice(0, 500), created, errors }, 500);
   }
-}
+});
