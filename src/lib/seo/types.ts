@@ -68,6 +68,39 @@ export interface ProductReviewJsonLdInput {
   paywallCssSelector?: string;
 }
 
+/** Input for enhancedProductReviewJsonLd() -- separates the editorial (0-10) Review
+ *  from a real community (0-5) AggregateRating, per Google's product-review
+ *  guidelines. See that function's own header comment in seo/jsonLd.ts. */
+export interface EnhancedProductReviewJsonLdInput {
+  canonicalUrl: string;
+  productName: string;
+  brand: string;
+  category: string;
+  description?: string;
+  /** Absolute image URL. Omit if no real image resolved -- never fabricate one. */
+  image?: string;
+  /** Real product_size from the pipeline (e.g. "50ml") -- omit if not stated. */
+  size?: string;
+  /** Real country_of_origin from the pipeline -- omit if not stated. */
+  countryOfOrigin?: string;
+  /** Same Math.min/max-of-empty-array caution as ProductReviewJsonLdInput.offers. */
+  offers?: { lowPrice: number; highPrice: number; offerCount: number };
+  /** overallScore() out of 10. */
+  editorialScore: number;
+  reviewBody: string;
+  reviewDatePublished?: string;
+  /** Both required together -- see enhancedProductReviewJsonLd()'s own guard, which
+   *  only emits aggregateRating when communityReviewCount > 0. */
+  communityRating?: number;
+  communityReviewCount?: number;
+}
+
+/** Input for faqJsonLd() -- only ever real, source-grounded question/answer pairs
+ *  (e.g. the product-review pipeline's generateSupplementalFields() output). */
+export interface FAQJsonLdInput {
+  faqs: { question: string; answer: string }[];
+}
+
 export interface IngredientJsonLdInput {
   canonicalUrl: string;
   /** Display name -- common_name || inci_name, same precedence as the page itself. */

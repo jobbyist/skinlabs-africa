@@ -1134,6 +1134,122 @@ feature appear operational.
     insert. If this file changes again via another external merge, check
     for exactly this pattern — `grep -n "queueUnresolvedIngredients"
     api/product-review-sync.ts` should never come back empty.
+  - **Deterministic fields + Google Rich Results structured-data fields +
+    Sponsored flagging (2026-09-22, third follow-up)** — three explicit
+    asks against the live pipeline and its 37 already-published reviews:
+    - **Deterministic fields** (`currency`, `date_published`, `skin_types`)
+      were already being set correctly by the orchestrator for every new
+      review — confirmed 0 rows missing any of the three across all 37
+      live rows. The only real gap was historical: a small number of
+      pre-existing rows had `skin_types` unset even though
+      `skin_type_match` (the column actually driving the UI's skin-type
+      filter chips) was populated — fixed with a one-time backfill UPDATE
+      (`skin_types = to_jsonb(skin_type_match)` where null/empty),
+      confirmed 0 missing after. No schema or pipeline-logic change was
+      needed for this part — the orchestrator was already correct going
+      forward.
+    - **Structured-data / Google Rich Results fields** — deliberately
+      reverses an earlier architectural call from the same day's second
+      follow-up (turn 2 of that session), which left `seo_title`,
+      `seo_description`, `key_ingredients_structured`,
+      `related_ingredients_slugs`, `primary_image`, `related_reviews`,
+      `related_knowledge_articles`, `community_rating`/
+      `community_rating_count` null on the reasoning that live
+      client-side computation avoided a second source of truth — the
+      user explicitly asked for these to be DB-persisted instead (needed
+      for the values to actually appear in server-rendered JSON-LD for
+      Rich Results, not just client-side React state). Implemented in
+      `supabase/functions/product-review-sync/index.ts`:
+      `computeSeoTitleDescription()` (exact mirror of
+      `src/lib/seo-config.ts`'s title/description formula — keep both in
+      sync if that formula changes), `resolveKeyIngredients()` (reuses
+      the same ingredient-matching path as `queueUnresolvedIngredients()`
+      — an unresolved ingredient gets `slug: null, resolved: false`
+      rather than a guessed slug), `computeRelatedReviews()` (real SQL,
+      same category, 3 most recent, excluding self),
+      `computeCommunityRating()` (real aggregate from `review_ratings`,
+      null with `count: 0` when no community ratings exist yet — never
+      fabricated), `resolvePrimaryImage()` (checks the pre-existing
+      `review_images` table first, falls back to a `PEXELS_API_KEY`
+      search and writes the result back if configured, else null), and
+      `computeRelatedKnowledgeArticles()` (keyword-overlap match against
+      a 54-entry index extracted from `src/data/faq.ts` — **86% coverage
+      only (54/63 real FAQ entries)**, a Python-regex extraction limit
+      documented as an accepted gap since schema.org has no checked
+      "related articles" property for Product/Review anyway). Both the
+      normal daily-generation path (new reviews get these fields at
+      publish time) and a new Gemini/Firecrawl-independent backfill
+      route (`?backfillStructuredData=true`, batch 15, selects
+      `seo_title IS NULL`) were added and deployed live (function
+      version 15). Ran the backfill to completion against all 37
+      existing rows (3 invocations, batches of 15/15/7, `updated: 37,
+      skipped: []` across all three) and spot-checked the results
+      directly against the live table:
+      - `seo_title`/`seo_description`/`key_ingredients_structured`:
+        **37/37 (100%)**.
+      - `related_ingredients_slugs`: 32/37 — the 5 gaps are genuine
+        (a review whose `key_ingredients` names don't all resolve to a
+        published `ingredients` row, e.g. "Cocoa Butter" on the Renew
+        Your Dew Ceramide Butter review), never a fabricated slug.
+      - `related_reviews`/`related_knowledge_articles`: 35/37 each —
+        the 2 gaps are reviews with no other same-category review yet /
+        no significant keyword overlap with the FAQ index.
+      - `community_rating`: 1/37 has a real value (the rest are
+        correctly `null` with `community_rating_count = 0`, since almost
+        no review has a real community rating yet — this is accurate,
+        not a bug).
+      - `primary_image`: **only 19/37** — confirmed this is because
+        `PEXELS_API_KEY` is not actually exercising the fallback path:
+        every populated row already had a pre-existing `review_images`
+        table row from an earlier process, and zero new `review_images`
+        rows were written by any of the three backfill invocations (
+        checked directly: `select count(*) from review_images where
+        created_at > now() - interval '30 minutes'` → 0). Either
+        `PEXELS_API_KEY` isn't set as a Supabase Edge Function secret for
+        this project, or it's set but failing silently (the function
+        swallows a failed Pexels call and returns null rather than
+        blocking the rest of the update) — **not yet distinguished, a
+        human needs to check the secret directly in the Supabase
+        dashboard** (no tool in this environment can read a secret's
+        configured-or-not state, only its Vault-stored counterparts).
+        The 18 rows without a primary image will pick one up
+        automatically the next time `?backfillStructuredData=true` runs
+        once the key is confirmed/fixed, since the route re-selects on
+        `seo_title IS NULL` — reset those 18 rows' `seo_title` to null
+        (or extend the route with an image-only mode) if a targeted
+        re-run is wanted without repeating the other fields' work.
+    - **Sponsored flagging** — every review sourced from OpenHaus
+      Marketplace (`source_type = 'openhaus_marketplace'`) now carries
+      `is_sponsored = true`, set going forward in the orchestrator's
+      insert and backfilled once for existing rows
+      (`UPDATE ... WHERE source_type = 'openhaus_marketplace' AND
+      is_sponsored = false`). Confirmed live: **34 sponsored** (31
+      OpenHaus + 3 pre-existing Timeless Skincare placements, which were
+      already disclosed sponsored placements per this section's own
+      opening paragraph) vs. **3 unsponsored** (Geve + 2 Faithful to
+      Nature rows — correctly excluded, since SkinLabs has no commercial
+      relationship with those sources). Rendered visibly, not just
+      stored: a "Sponsored" `Badge` + one-line disclosure paragraph near
+      the H1 on `src/pages/ProductReview.tsx` and its SSR twin
+      `src/routes/reviews.$slug.tsx`, and a "Sponsored" pill in the tag
+      row of `src/components/ReviewsGrid.tsx`'s card grid — so the
+      disclosure is present everywhere a review can be read, matching
+      standard sponsored-content disclosure practice (and this file's
+      own standing principle against ever misrepresenting a commercial
+      relationship).
+    - While wiring this in, fixed two unrelated latent bugs surfaced by
+      running the correct `tsc -p tsconfig.app.json` typecheck (not the
+      no-op `tsconfig.json`, see this repo's own established gotcha):
+      `EnhancedProductReviewJsonLdInput`/`FAQJsonLdInput` were imported
+      in `src/lib/seo/jsonLd.ts` but never defined in `src/lib/seo/
+      types.ts` (added); `reviews.$slug.tsx`'s own `productReviewTitle()`
+      call site was still on that function's pre-turn-1 two-argument
+      signature, silently producing a garbled SSR title (fixed to the
+      current three-argument call). Also fixed a real syntax-broken
+      duplicate block in `enhancedProductReviewJsonLd()` introduced by 3
+      remote commits (not authored by Claude) that landed on this branch
+      mid-session via a `git merge` — the duplication was removed while
+      keeping the remote commits' legitimate `worstRating: 1` addition.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,

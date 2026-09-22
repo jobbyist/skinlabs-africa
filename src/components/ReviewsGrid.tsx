@@ -199,6 +199,11 @@ const ReviewsGrid = ({
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                 <MapPin className="h-3 w-3" /> {review.where_to_buy}
               </span>
+              {review.is_sponsored && (
+                <span className="rounded-full bg-muted px-2.5 py-1 font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sponsored
+                </span>
+              )}
               {review.isNew && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
                   <Star className="h-3 w-3" /> New
