@@ -448,7 +448,50 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   return { pages, madeRealCall: true };
 }
 
+// ---------------------------------------------------------------------------
+// INGREDIENT DEMAND SIGNAL: every published review's key_ingredients are resolved
+// against the live `ingredients` catalogue (same alias-aware `search_ingredients` RPC
+// the frontend's src/lib/ingredientResolution.ts uses). Anything unresolved is queued
+// into `ingredient_generation_requests` for the Ingredients Intelligence content
+// pipeline (see supabase/INGREDIENT_CONTENT_STATUS.md) to pick up on its next
+// scheduled run -- this function never generates ingredient content itself.
+// ---------------------------------------------------------------------------
 
+interface SearchIngredientRow {
+  id: string;
+  slug: string;
+  common_name: string | null;
+  inci_name: string | null;
+}
+
+async function isIngredientResolved(admin: SupabaseAdmin, rawName: string): Promise<boolean> {
+  const { data } = await admin.rpc("search_ingredients", { p_search: rawName, p_page: 1, p_per_page: 5 });
+  const rows = (data ?? []) as SearchIngredientRow[];
+  const lower = rawName.trim().toLowerCase();
+  return rows.some((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower);
+}
+
+async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: string[], reviewId: string) {
+  for (const rawName of keyIngredients) {
+    const normalized = rawName.trim().toLowerCase();
+    if (!normalized) continue;
+    try {
+      if (await isIngredientResolved(admin, rawName)) continue;
+      await admin.from("ingredient_generation_requests").upsert(
+        {
+          requested_name: rawName.trim(),
+          normalized_name: normalized,
+          source: "product_review_generated",
+          source_ref: reviewId,
+        },
+        { onConflict: "normalized_name", ignoreDuplicates: true },
+      );
+    } catch (err) {
+      // Demand-signal queuing is best-effort -- never fails the review publish itself.
+      console.error(`queueUnresolvedIngredients: failed for "${rawName}"`, err);
+    }
+  }
+}
 
 interface MarketplaceProductRow {
   slug: string;
@@ -716,6 +759,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           seenUrls.add(candidate.sourceUrl);
           if (candidate.origin === "south_africa") runningSa += 1;
           else runningGlobal += 1;
+          await queueUnresolvedIngredients(admin, fields.key_ingredients, finalId);
           if (candidate.retryQueueId) {
             await admin
               .from("pipeline_retry_queue")

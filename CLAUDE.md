@@ -953,6 +953,22 @@ feature appear operational.
     every firing, and marks rows `researched`/`published`/`rejected` as it
     processes them — see `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Demand-
     driven queue" section for the live count and full detail.
+    **Re-wired after a same-day merge (2026-09-22, second follow-up)** — a
+    merge from `main` (PR #120 and others) brought in a substantially more
+    complete rewrite of this file's orchestrator (Gemini
+    model-fallback chain via `api/_lib/geminiFallback.ts`, a
+    `pipeline_retry_queue` for exhausted-fallback candidates, an OpenHaus
+    `marketplace_products` candidate pool, `qaProductReview()` gating,
+    `?backfillDate=` support) that fully superseded the simpler
+    orchestrator above — a genuine improvement, not a regression — but the
+    merge dropped the `queueUnresolvedIngredients()`/
+    `ingredient_generation_requests` wiring documented in this same bullet,
+    since `main`'s version never had it. Re-added the same queuing call
+    (best-effort, wrapped so it can never fail a review's publish) right
+    after the new orchestrator's successful `ai_generated_product_reviews`
+    insert. If this file changes again via another external merge, check
+    for exactly this pattern — `grep -n "queueUnresolvedIngredients"
+    api/product-review-sync.ts` should never come back empty.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,
