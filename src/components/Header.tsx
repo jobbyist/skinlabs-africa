@@ -50,7 +50,7 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/newskinlabs.png";
+import logo from "@/assets/skinlabs-logo-black.svg";
 
 type NavIcon = typeof Home;
 

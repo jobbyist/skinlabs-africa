@@ -9,7 +9,7 @@ import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews, overallScore } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
-import logo from "@/assets/newskinlabs.png";
+import logo from "@/assets/skinlabs-logo-black.svg";
 import Autoplay from "embla-carousel-autoplay";
 import { markEntryGateResolved } from "@/lib/entry-gate";
 import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
