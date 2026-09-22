@@ -1339,6 +1339,27 @@ feature appear operational.
       it live. Re-unify the two constants back to one number once
       `gemini-3.6-flash`'s rate limit clears for good (same condition
       already documented above for the flat-1000 floor).
+    - **`briefings_cron_secret` rotated at the user's explicit request
+      (2026-09-22, fourth follow-up)** — asked to "generate a
+      BRIEFINGS_CRON_SECRET". Generated a fresh 64-char hex value locally
+      (`openssl rand -hex 32`) and rotated the Vault secret to match via
+      `vault.update_secret(...)` (confirmed by reading it back), then gave
+      the plaintext value directly to the user in chat so they could run
+      `supabase secrets set BRIEFINGS_CRON_SECRET=<value>` themselves —
+      **a deliberate, one-time exception** to this file's own
+      "never pasted into a commit, PR or chat transcript" guidance for this
+      secret, made only because the user explicitly asked this session to
+      generate and hand over the value, and there is no other channel this
+      session has to deliver it. That guidance still stands for every other
+      case (an unprompted retrieval, a different secret, a future session
+      that hasn't been asked directly) — don't treat this exception as a
+      standing precedent. `product_review_cron_secret` was **not** touched
+      by this — it's a separate Vault entry and still needs its own
+      rotation if/when asked. Once a human actually runs the `supabase
+      secrets set` command, this specific gap (for `briefings-sync` only)
+      is closed; `product-review-sync` and the three `openhaus-*`
+      MARKETPLACE_CRON_SECRET-gated jobs remain open exactly as documented
+      elsewhere in this file.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
