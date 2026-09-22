@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.briefings-sync]
 verify_jwt = false
+
+[functions.shelf-showdown-sync]
+verify_jwt = false
