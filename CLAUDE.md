@@ -1298,9 +1298,87 @@ feature appear operational.
       `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` /
       `BRIEFINGS_CRON_SECRET=<value>`. This is the correct tradeoff — a
       real secret-management gap that needs one human step, not a security
-      hole that ships to get around it. The admin-JWT auth path on both
+      hole that ships to get around it. ~~The admin-JWT auth path on both
       functions is unaffected and still works immediately for manual
-      triggering in the meantime, exactly as it did before this fix.
+      triggering in the meantime, exactly as it did before this fix.~~
+      **Correction (2026-09-22, third follow-up, see below): this claim was
+      never actually verified and is false** — this environment has no
+      route to a valid admin@skinlabs.co.za session (no `ADMIN_PASSWORD`,
+      no `SUPABASE_SERVICE_ROLE_KEY`, and the project's JWT signing secret
+      isn't stored anywhere SQL-reachable, e.g. Vault). Until a human either
+      sets the two Edge Function secrets above or signs in as the admin
+      account and hands this session a token, **neither pipeline can be
+      manually triggered from this environment at all** — only pg_cron's
+      own scheduled firing (once the secrets are set) will actually run
+      them.
+    - **Split briefings QA word-count floor by model (2026-09-22, third
+      follow-up)** — asked to hold the primary model to a stricter bar than
+      the fallback models: `briefings-sync/index.ts`'s single
+      `MIN_BODY_WORD_COUNT = 1000` (see the "same-day follow-up" bullet
+      above for why it was lowered to 1000 in the first place) is now two
+      constants, `MIN_BODY_WORD_COUNT_PRIMARY_MODEL = 1500` and
+      `MIN_BODY_WORD_COUNT_FALLBACK_MODEL = 1000`. `qaBriefing()` takes the
+      threshold as a parameter now instead of reading the module constant
+      directly, and the call site picks which one to pass based on which
+      model actually produced the candidate: `modelUsed === modelChain[0]
+      ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_
+      MODEL` (`modelChain[0]` is `gemini-3.6-flash` by default, i.e. the
+      primary model). So a `gemini-3.6-flash` candidate is now held back to
+      the original 1500-word editorial bar, while a candidate that only
+      came from the `gemini-3.1-flash-lite`/`gemini-3.5-flash-lite`
+      fallbacks keeps the 1000-word floor that's already known to match
+      what those lighter models actually produce for this prompt. Deployed
+      live (`briefings-sync` version 6, confirmed `ACTIVE`) and pushed to
+      `claude/manual-briefings-job-trigger-fz0aef`. **Not live-verified**:
+      per the correction directly above, this session has no way to
+      trigger either pipeline right now, so this change is confirmed
+      correct by code review (diff re-read, `grep`-confirmed no stray
+      references to the old single constant) but not by an actual run —
+      the next real firing (human-triggered admin session, or once the
+      Vault secrets are set as Edge Function secrets) is what will confirm
+      it live. Re-unify the two constants back to one number once
+      `gemini-3.6-flash`'s rate limit clears for good (same condition
+      already documented above for the flat-1000 floor).
+    - **Both cron secrets rotated and set at the user's explicit request
+      (2026-09-22, fourth and fifth follow-up)** — asked to "generate a
+      BRIEFINGS_CRON_SECRET", then separately "generate a
+      PRODUCT_REVIEW_CRON_SECRET". For each: generated a fresh 64-char hex
+      value locally (`openssl rand -hex 32`), rotated the matching Vault
+      secret (`briefings_cron_secret` / `product_review_cron_secret`) via
+      `vault.update_secret(...)` (confirmed by reading it back), then gave
+      the plaintext value directly to the user in chat so they could run
+      `supabase secrets set BRIEFINGS_CRON_SECRET=<value>` /
+      `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` themselves
+      — **a deliberate, one-time-per-secret exception** to this file's own
+      "never pasted into a commit, PR or chat transcript" guidance, made
+      only because the user explicitly asked this session to generate and
+      hand over each value, and there is no other channel this session has
+      to deliver it. That guidance still stands for every other case (an
+      unprompted retrieval, a different secret, a future session that
+      hasn't been asked directly) — don't treat this exception as a
+      standing precedent. The user confirmed `BRIEFINGS_CRON_SECRET` was
+      actually set in Supabase after the first rotation, and also
+      confirmed `PRODUCT_REVIEW_CRON_SECRET` after the second — **both
+      gaps are now closed**. The three `openhaus-*`
+      MARKETPLACE_CRON_SECRET-gated jobs remain a separate, untouched gap,
+      documented elsewhere in this file.
+      **Confirmed live** with a manual trigger of each function right
+      after its secret was set: both returned a real `200` (not a `401`),
+      proving the auth path now works end to end for both pipelines. But
+      both responses were the equivalent of "cap already met" —
+      `briefings-sync`: `{"ok":true,"created":0,"message":"Daily
+      briefings cap already met"}` (the day's 2-3 briefings were already
+      published by an earlier run, 06:14-06:15 UTC, still under the old
+      flat 1000-word floor — see `news_articles` for "The Melasma
+      Playbook"/"Decoding Your Skin"/"The Skin You Are In", all created
+      before today's `briefings-sync` version-6 deploy); `product-review-
+      sync`: `{"ok":true,"created":0,"message":"Daily review cap already
+      met"}` (same story — 3 reviews already published earlier today).
+      **The model-dependent 1500/1000 word-count split in `briefings-
+      sync` is therefore still not live-verified** — the cap has to reset
+      (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
+      product reviews) or a human needs to trigger it after that reset
+      for a real test.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
