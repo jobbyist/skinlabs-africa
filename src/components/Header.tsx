@@ -45,6 +45,7 @@ import SiteSearch from "@/components/SiteSearch";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import PromoAnnouncementBar from "@/components/PromoAnnouncementBar";
+import WebStoriesBar from "@/components/WebStoriesBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
@@ -226,10 +227,17 @@ const Header = () => {
           pt-* class isn't needed: Header renders in place of <Header /> in each page's
           JSX, so this spacer's flow height applies right there, before <main>. */}
       {promoBarVisible && <div className="h-9" aria-hidden="true" />}
+      {/* Mobile-only Instagram-style story rail, stacked directly above the nav
+          header (below the promo bar when it's also showing). WebStoriesBar is
+          md:hidden itself; this flow spacer matches its h-24 and is md:hidden
+          too, so it contributes zero space at md: and up. */}
+      <WebStoriesBar top={promoBarVisible ? "top-9" : "top-0"} />
+      <div className="h-24 md:hidden" aria-hidden="true" />
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
-          promoBarVisible ? "top-9" : "top-0",
+          // Combined offset = promo bar (36px) + story rail (96px, mobile only via md:).
+          promoBarVisible ? "top-[132px] md:top-9" : "top-24 md:top-0",
         )}
       >
         <ScrollProgressBar />
