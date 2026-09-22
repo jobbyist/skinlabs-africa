@@ -4,6 +4,7 @@ import type { RoutineIngredient } from "../conflictMatcher";
 
 const ingredient = (overrides: Partial<RoutineIngredient> = {}): RoutineIngredient => ({
   ingredientId: "id-placeholder",
+  slug: null,
   inciName: "Placeholder",
   commonName: null,
   category: null,

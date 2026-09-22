@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AdvancedDermatologyReport } from "@/lib/assessment/types";
 import { logRoutineHandoffClicked } from "@/lib/assessment/client";
+import { useResolvedIngredientSlugs } from "@/lib/resolveIngredientSlug";
 
 interface ReportViewProps {
   report: AdvancedDermatologyReport;
@@ -22,7 +23,12 @@ const CONFIDENCE_COPY: Record<AdvancedDermatologyReport["confidence"], string> =
  *  wall of text. Safety guidance always renders first and un-collapsed when
  *  it applies, since that's the one section that shouldn't require a click
  *  to see. */
-const ReportView = ({ report, sessionId }: ReportViewProps) => (
+const ReportView = ({ report, sessionId }: ReportViewProps) => {
+  const { data: resolvedIngredientSlugs } = useResolvedIngredientSlugs(
+    report.ingredientGuidance.map((g) => g.ingredientOrCategory),
+  );
+
+  return (
   <div className="max-w-2xl mx-auto space-y-6">
     <div className="space-y-2">
       <Badge variant="secondary" className="gradient-bg-soft">
@@ -119,12 +125,23 @@ const ReportView = ({ report, sessionId }: ReportViewProps) => (
       <AccordionItem value="ingredients">
         <AccordionTrigger>Ingredient Strategy</AccordionTrigger>
         <AccordionContent className="space-y-3">
-          {report.ingredientGuidance.map((g) => (
-            <div key={g.ingredientOrCategory}>
-              <p className="text-sm font-medium">{g.ingredientOrCategory}</p>
-              <p className="text-sm text-muted-foreground">{g.guidance}</p>
-            </div>
-          ))}
+          {report.ingredientGuidance.map((g) => {
+            const resolved = resolvedIngredientSlugs?.get(g.ingredientOrCategory);
+            return (
+              <div key={g.ingredientOrCategory}>
+                <p className="text-sm font-medium">
+                  {resolved ? (
+                    <Link to={`/ingredients/${resolved.slug}`} className="underline underline-offset-2 hover:no-underline">
+                      {g.ingredientOrCategory}
+                    </Link>
+                  ) : (
+                    g.ingredientOrCategory
+                  )}
+                </p>
+                <p className="text-sm text-muted-foreground">{g.guidance}</p>
+              </div>
+            );
+          })}
         </AccordionContent>
       </AccordionItem>
 
@@ -189,6 +206,7 @@ const ReportView = ({ report, sessionId }: ReportViewProps) => (
       This report is AI-generated cosmetic skincare guidance and does not replace a diagnosis from a doctor or dermatologist.
     </p>
   </div>
-);
+  );
+};
 
 export default ReportView;

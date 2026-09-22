@@ -9,6 +9,9 @@ import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { useIngredientDetail, type IngredientInteractionLink } from "@/hooks/use-ingredient-detail";
+import { useEntitlements } from "@/hooks/use-entitlements";
+import { useAllergyFlags } from "@/hooks/use-allergy-flags";
+import AllergyCautionNote from "@/components/AllergyCautionNote";
 import { ingredientCategoryLabel } from "@/lib/ingredientCategories";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -23,9 +26,23 @@ const INTERACTION_META: Record<
   avoid_combining: { label: "Avoid combining", icon: AlertTriangle, className: "border-destructive/30 bg-destructive/5 text-destructive" },
 };
 
+function safeHostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
 const IngredientDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, refetch } = useIngredientDetail(slug);
+  const { can } = useEntitlements();
+  const allergyFlags = useAllergyFlags(
+    data?.ingredient
+      ? [{ id: data.ingredient.id, inciName: data.ingredient.inci_name, commonName: data.ingredient.common_name }]
+      : [],
+  );
 
   if (!slug) return <Navigate to="/ingredients" replace />;
 
@@ -80,17 +97,30 @@ const IngredientDetail = () => {
     );
   }
 
-  const { ingredient, concerns, interactions, products } = data;
+  const { ingredient, concerns, interactions, products, sources } = data;
   const name = ingredient.common_name || ingredient.inci_name;
   const canonical = `${SITE_URL}/ingredients/${ingredient.slug}`;
   const worksWith = interactions.filter((i) => i.interaction_type === "enhances" || i.interaction_type === "compatible");
   const useWithCaution = interactions.filter(
     (i) => i.interaction_type === "avoid_combining" || i.interaction_type === "requires_spacing" || i.interaction_type === "buffers",
   );
-  const allSources = interactions
-    .filter((i) => i.source_url)
-    .map((i) => ({ label: i.source_url as string, url: i.source_url as string }));
-  if (ingredient.source_url) allSources.unshift({ label: ingredient.source_url, url: ingredient.source_url });
+  // Prefer the real multi-citation ingredient_sources rows; only fall back to
+  // the legacy single source_url columns (on the ingredient itself and on
+  // interactions) for ingredients not yet processed by the content pipeline,
+  // so older/unprocessed pages don't regress to showing zero sources.
+  const allSources =
+    sources.length > 0
+      ? sources.map((s) => ({
+          label: s.source_title || s.publisher || safeHostname(s.source_url),
+          url: s.source_url,
+        }))
+      : (() => {
+          const legacy = interactions
+            .filter((i) => i.source_url)
+            .map((i) => ({ label: i.source_url as string, url: i.source_url as string }));
+          if (ingredient.source_url) legacy.unshift({ label: ingredient.source_url, url: ingredient.source_url });
+          return legacy;
+        })();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -143,6 +173,11 @@ const IngredientDetail = () => {
             {ingredient.common_name && ingredient.common_name !== ingredient.inci_name && (
               <p className="mt-1 italic text-muted-foreground">INCI: {ingredient.inci_name}</p>
             )}
+            {allergyFlags.has(ingredient.id) && (
+              <div className="mt-3">
+                <AllergyCautionNote matchedTerm={allergyFlags.get(ingredient.id) as string} />
+              </div>
+            )}
           </header>
 
           <div className="space-y-8">
@@ -153,7 +188,7 @@ const IngredientDetail = () => {
               </p>
             </section>
 
-            {ingredient.function_summary && ingredient.description && (
+            {ingredient.function_summary && (
               <section>
                 <h2 className="font-heading text-xl font-bold text-foreground">What does it do?</h2>
                 <p className="mt-2 text-muted-foreground">{ingredient.function_summary}</p>
@@ -182,11 +217,11 @@ const IngredientDetail = () => {
               </section>
             )}
 
-            {ingredient.typical_concentration_range && (
+            {(ingredient.typical_concentration_range || ingredient.formulation_notes) && (
               <section>
                 <h2 className="font-heading text-xl font-bold text-foreground">How to use</h2>
                 <p className="mt-2 text-muted-foreground">
-                  Typically formulated at {ingredient.typical_concentration_range}.
+                  {ingredient.typical_concentration_range && `Typically formulated at ${ingredient.typical_concentration_range}.`}
                   {ingredient.formulation_notes ? ` ${ingredient.formulation_notes}` : ""}
                 </p>
               </section>
@@ -262,6 +297,29 @@ const IngredientDetail = () => {
                 </div>
               </section>
             )}
+
+            <section>
+              {can("routine.conflict_matcher") ? (
+                <Link
+                  to="/dashboard?tab=routine"
+                  className="group flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary hover:border-primary/50"
+                >
+                  <span className="font-medium">Check your own routine for ingredient conflicts</span>
+                  <ArrowRight className="h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100" />
+                </Link>
+              ) : (
+                <Link
+                  to="/skynn-ai"
+                  className="group flex items-center justify-between rounded-xl border border-border p-4 text-sm hover:border-primary/40"
+                >
+                  <span>
+                    <span className="font-medium text-foreground">See how this fits your skin</span>
+                    <span className="text-muted-foreground"> — try SKYNN AI, free</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              )}
+            </section>
 
             <section>
               <h2 className="font-heading text-xl font-bold text-foreground">Sources</h2>

@@ -30,11 +30,21 @@ export interface IngredientProductLink {
   is_key_ingredient: boolean | null;
 }
 
+export interface IngredientSourceLink {
+  id: string;
+  source_url: string;
+  source_title: string | null;
+  publisher: string | null;
+  publication_date: string | null;
+  evidence_summary: string | null;
+}
+
 export interface IngredientDetail {
   ingredient: IngredientRow;
   concerns: IngredientConcernLink[];
   interactions: IngredientInteractionLink[];
   products: IngredientProductLink[];
+  sources: IngredientSourceLink[];
 }
 
 async function fetchIngredientDetail(slug: string): Promise<IngredientDetail | null> {
@@ -47,8 +57,12 @@ async function fetchIngredientDetail(slug: string): Promise<IngredientDetail | n
   if (ingredientError) throw ingredientError;
   if (!ingredient) return null;
 
-  const [{ data: concernRows, error: concernError }, { data: interactionRows, error: interactionError }, { data: productRows, error: productError }] =
-    await Promise.all([
+  const [
+    { data: concernRows, error: concernError },
+    { data: interactionRows, error: interactionError },
+    { data: productRows, error: productError },
+    { data: sourceRows, error: sourceError },
+  ] = await Promise.all([
       supabase
         .from("ingredient_concerns")
         .select("relationship, skin_concerns(name, slug)")
@@ -67,11 +81,17 @@ async function fetchIngredientDetail(slug: string): Promise<IngredientDetail | n
         .eq("ingredient_id", ingredient.id)
         .eq("product_versions.is_current", true)
         .limit(12),
+      supabase
+        .from("ingredient_sources")
+        .select("id, source_url, source_title, publisher, publication_date, evidence_summary")
+        .eq("ingredient_id", ingredient.id)
+        .order("publication_date", { ascending: false }),
     ]);
 
   if (concernError) throw concernError;
   if (interactionError) throw interactionError;
   if (productError) throw productError;
+  if (sourceError) throw sourceError;
 
   const concerns: IngredientConcernLink[] = (concernRows ?? [])
     .filter((r) => r.skin_concerns)
@@ -112,7 +132,9 @@ async function fetchIngredientDetail(slug: string): Promise<IngredientDetail | n
     })
     .filter((p): p is IngredientProductLink => p !== null);
 
-  return { ingredient, concerns, interactions, products };
+  const sources: IngredientSourceLink[] = sourceRows ?? [];
+
+  return { ingredient, concerns, interactions, products, sources };
 }
 
 /** Full ingredient detail: the row itself, its concern links, its interaction

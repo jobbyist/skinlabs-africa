@@ -759,12 +759,85 @@ feature appear operational.
   `get_routine_conflicts`) and `20260913081000_ingredients_intelligence_
   curated_seed.sql` (category backfill, real aliases, real
   ingredient_concerns mappings, ~18 real sourced ingredient_interactions
-  citing DermNet NZ / JAAD Pinnell et al. 2004 / dermnetnz.org). Ships
-  deliberately on the existing 128-ingredient catalogue — no Firecrawl
-  ingestion pipeline yet; growing past 128 is a scoped future fast-follow,
-  not a gap to "fix" reflexively. New interaction rows go through the same
-  admin Data Quality verification queue as everything else (extended in
-  `AdminDashboard.tsx`).
+  citing DermNet NZ / JAAD Pinnell et al. 2004 / dermnetnz.org). New
+  interaction rows go through the same admin Data Quality verification
+  queue as everything else (extended in `AdminDashboard.tsx`).
+  - **Content population + ongoing weekly growth pipeline (2026-09-22)** —
+    the 128-ingredient catalogue above shipped with every row a thin stub
+    (only slug/inci_name/common_name/source_type/verification_status
+    populated — `description`, `function_summary`,
+    `typical_concentration_range`, `evidence_level`, `irritancy_risk`,
+    `pregnancy_safe` were NULL for all 128). Two real bugs were found and
+    fixed while wiring up rich content: (1) both ingredient detail pages
+    (`src/pages/IngredientDetail.tsx` and its SSR twin
+    `src/routes/ingredients.$slug.tsx` — **these two files duplicate the
+    same four-query fan-out line-for-line and must be edited together**,
+    per that route's own header comment) had two silent-content-loss
+    display bugs — "What does it do?" required `function_summary` AND
+    `description` both set, and "How to use" ignored `formulation_notes`
+    entirely unless `typical_concentration_range` was also set; (2)
+    `formulation_notes` was referenced by both pages from the start but
+    the column never actually existed on `ingredients` — added via
+    `20260922003514_ingredients_formulation_notes_column.sql` rather than
+    removing the reference, since the content pipeline needs it. New
+    `ingredient_sources` table (migrations `20260921200507_...`/
+    `20260921200517_...`) gives real multi-citation support — every prior
+    fact table had only one flat `source_url` column, which can't hold the
+    2-4 real citations a rich profile needs; `IngredientDetail.tsx`/
+    `ingredients.$slug.tsx` now prefer `ingredient_sources` rows over the
+    legacy single `source_url` fallback.
+    Content is populated by real per-ingredient research (PubMed +
+    DermNet NZ via Firecrawl, never fabricated — see the worked example in
+    `supabase/migrations/20260922020000_ingredient_content_batch_01.sql`),
+    landing as `verification_status = 'partially_verified'` — **never**
+    `'verified'`, which stays human-only via the admin Data Quality queue.
+    A generic "Complex" stub name (not a real singular compound) or a real
+    ingredient with genuinely no relevant literature found gets logged to
+    a skip list rather than fabricated content — see
+    `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Track A skip list".
+    This is now a **permanent, unbounded** growth process, not a
+    one-time catch-up to a fixed number: two self-bound scheduled Routines
+    drive it — a temporary catch-up burst (`trig_013mJnTVKGVFgQUMbL98G8TV`,
+    ~every 2h, self-disables once the original 128 are enriched and the
+    long-pending product-catalogue seed — see `SEED_MIGRATION_STATUS.md`
+    — reaches 160/160) and a **permanent weekly pipeline**
+    (`trig_012CnJXfuEkZxbUMwdfTBQg2`, Tuesdays 06:00 SAST, no end date,
+    never self-disables) that adds 25+ new ingredients every week from the
+    living candidate list `supabase/INGREDIENT_EXPANSION_CANDIDATES.md`
+    (self-extending — a firing that runs low on unprocessed candidates
+    researches and appends more before continuing) plus a
+    `last_verified_at`-oldest-first refresh rotation over already-published
+    ingredients. Full resumable state, live-verified counts and the
+    append-only batch log live in `supabase/INGREDIENT_CONTENT_STATUS.md` —
+    read that file first before touching this system again, the same way
+    `SEED_MIGRATION_STATUS.md` already works for the product catalogue.
+  - **Platform-wide internal linking (2026-09-22)** — the Ingredients
+    layer was previously an island; six real integration points now link
+    into it, all gated on a **confident exact match only** (never a fuzzy
+    guess that could mislink) via the new shared resolver
+    `src/lib/resolveIngredientSlug.ts` (wraps the same alias-aware
+    `search_ingredients` RPC the checker's combobox already used) — an
+    unresolved free-text name simply stays plain, unlinked text:
+    Conflict Matcher flag cards now link each ingredient name to its
+    profile (`src/lib/conflictMatcher.ts` gained `slug` on
+    `RoutineIngredient`); ingredient detail pages gained a reverse-direction
+    CTA to `/dashboard?tab=routine` (Insider/VIP) or `/skynn-ai`
+    (everyone else — the SSR route gets one non-personalized CTA instead,
+    since it has no per-user session boundary by design); product review
+    `key_ingredients` pills, SKYNN AI Starter's `OpenHausShopLinks` widget,
+    and the still-feature-flagged-off Advanced Dermatology Report
+    (`ReportView.tsx` — linking here doesn't reactivate that feature, it
+    only fixes rendering for whenever a human eventually flips
+    `skynn_advanced_assessment_config.rollout_stage`) all resolve and link
+    their ingredient mentions the same way. Separately, `profiles.allergies`
+    (free text, existed since July, previously only fed a profile-
+    completeness score) is now cross-referenced via
+    `src/hooks/use-allergy-flags.ts` — a loose case-insensitive substring
+    match (these are informal entries like "nut oils", not curated INCI
+    names) that surfaces a non-blocking `AllergyCautionNote` ("worth
+    discussing with a dermatologist") on ingredient pages and in the
+    Conflict Matcher panel when a routine ingredient matches — advisory
+    only, a miss is deliberately safer than a false "all clear."
   - **Active Ingredient Conflict Matcher** — Glow Insider & VIP exclusive
     (`"routine.conflict_matcher"` in `LADDER_CAPABILITIES.insider`/`.vip`,
     `src/lib/entitlements.ts` — both the `FeatureKey` union entry AND the
@@ -813,6 +886,73 @@ feature appear operational.
   all merge in alongside the static `src/data/reviews.ts` catalogue via
   `src/hooks/use-generated-reviews.ts` — so a new day's reviews appear on
   `/reviews` with no code deploy.
+  - **Missing orchestrator bug, found and fixed (2026-09-22)** — this file
+    (`api/product-review-sync.ts`) defined every helper (constants, cache,
+    quota, `generateReview()`, `researchSource()`, etc.) but had **no
+    `export default` handler at all** — it ended immediately after
+    `researchSource()` closed, with nothing for Vercel Cron to actually
+    invoke. Confirmed via `grep -c "export default"` (zero matches) and
+    three prior "Restore product-review-sync" commits in git history
+    suggesting repeated truncation — the daily cron has most likely never
+    successfully run in this state. Added the missing orchestrator: env
+    fail-fast (`GEMINI_API_KEY`/`FIRECRAWL_API_KEY`/
+    `SUPABASE_SERVICE_ROLE_KEY`), `CRON_SECRET` bearer-token auth, dedup on
+    `source_url` **before** spending a Gemini call, Gemini/Firecrawl quota
+    gating per source, and a mechanical `spotlight_editions` bump every
+    `SPOTLIGHT_BUMP_INTERVAL` published reviews. `SOURCE_SITES`' existing
+    4-SA/1-global ordering is relied on (not a separate live-rebalancing
+    calculation) to satisfy the 70/30 editorial split for the 3-review
+    daily cap — simpler and less bug-prone than tracking a running ratio.
+    Still genuinely unverified end-to-end (same documented constraint as
+    the rest of this section: the required env vars can't be set from this
+    environment) — verification here was TypeScript correctness, logical
+    fidelity to the documented four-role architecture, and clean
+    `tsc`/`eslint`/`bun test` runs, not a real invocation.
+  - **Ingredient breakdown + demand-driven ingredient queue (2026-09-22)**
+    — `ProductReview.tsx`'s "Key ingredients" section previously only
+    linked ingredient names (the 8D work above); it never pulled real
+    ingredient content or handled an unpublished ingredient beyond a plain
+    unlinked pill, and the SSR route `src/routes/reviews.$slug.tsx` was
+    missed entirely (still rendered a bare `<ul>` of ingredient strings).
+    Both now render a real "Ingredient breakdown": a resolved, published
+    ingredient shows its actual `function_summary`/`description` excerpt
+    plus `EvidenceBadge`; an unresolved one shows an honest "detailed
+    profile coming soon" note — **never** generated on demand/
+    synchronously (a explicit user decision when this was scoped — see the
+    two `AskUserQuestion` answers this same day: "queue for the next
+    scheduled pipeline run", not live generation). The resolution +
+    ingredients-table fetch logic is shared (`src/lib/
+    ingredientResolution.ts` — extracted from `resolveIngredientSlug.ts`'s
+    matching logic so it works with any injected `SupabaseClient`, not just
+    the browser singleton — and `src/lib/ingredientBreakdown.ts` built on
+    top of it) so the exact same code runs client-side
+    (`src/hooks/use-ingredient-breakdown.ts`, browser client) and
+    server-side (the SSR route's loader, `createSupabaseServerClient()`) —
+    the SSR route resolves it in `fetchReview()` so crawlers see the real
+    breakdown in the initial HTML, not only after hydration.
+    New `public.ingredient_generation_requests` table (migration
+    `20260922010645_ingredient_generation_requests_queue.sql`, zero anon/
+    authenticated RLS policies — same lockdown pattern as
+    `assessment_prompt_versions` — service-role-only) is the queue: the
+    orchestrator fix above resolves every generated review's
+    `key_ingredients` against the live catalogue at publish time and
+    queues anything unresolved (`source = 'product_review_generated'`).
+    A one-time reconciliation pass did the same for the static
+    `src/data/reviews.ts` catalogue (`source = 'product_review_static'`):
+    of 133 unique `key_ingredients` strings, 132 already resolved; the one
+    exception, `"Vitamin C ~10%"`, was queued — it fails only because the
+    catalogue's own matching stub row is itself literally named
+    `"Vitamin C ~10%"` (a pre-existing data-quality artifact from the
+    original bulk seed) and the concentration-suffix-stripping resolver
+    leaves a dangling `"Vitamin C ~"` that matches neither that stub nor
+    the separate, correctly-named "Vitamin C" row — not fixed here since
+    it's a pre-existing catalogue-naming issue outside this batch's scope.
+    The permanent weekly Ingredients Intelligence Routine
+    (`trig_012CnJXfuEkZxbUMwdfTBQg2`, see below) now consults this queue
+    as a priority source ahead of `INGREDIENT_EXPANSION_CANDIDATES.md` on
+    every firing, and marks rows `researched`/`published`/`rejected` as it
+    processes them — see `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Demand-
+    driven queue" section for the live count and full detail.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,

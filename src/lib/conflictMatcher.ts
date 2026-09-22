@@ -20,6 +20,7 @@ type InteractionType = Database["public"]["Enums"]["ingredient_interaction_type"
 
 export interface RoutineIngredient {
   ingredientId: string;
+  slug: string | null;
   inciName: string;
   commonName: string | null;
   category: string | null;
@@ -60,7 +61,7 @@ async function resolveRoutineIngredients(routine: GroundedRoutine): Promise<Rout
   const { data, error } = await supabase
     .from("product_ingredients")
     .select(
-      "is_key_ingredient, product_versions!inner(is_current, products!inner(id, slug, name)), ingredients(id, inci_name, common_name, category)",
+      "is_key_ingredient, product_versions!inner(is_current, products!inner(id, slug, name)), ingredients(id, slug, inci_name, common_name, category)",
     )
     .eq("product_versions.is_current", true)
     .in("product_versions.products.slug", uniqueProductIds);
@@ -69,7 +70,7 @@ async function resolveRoutineIngredients(routine: GroundedRoutine): Promise<Rout
 
   const byIngredient = new Map<string, RoutineIngredient>();
   for (const row of data ?? []) {
-    const ingredient = row.ingredients as { id: string; inci_name: string; common_name: string | null; category: string | null } | null;
+    const ingredient = row.ingredients as { id: string; slug: string | null; inci_name: string; common_name: string | null; category: string | null } | null;
     const pv = row.product_versions as { products: { id: string; slug: string; name: string } | null } | null;
     const product = pv?.products;
     if (!ingredient || !product) continue;
@@ -86,6 +87,7 @@ async function resolveRoutineIngredients(routine: GroundedRoutine): Promise<Rout
     } else {
       byIngredient.set(ingredient.id, {
         ingredientId: ingredient.id,
+        slug: ingredient.slug,
         inciName: ingredient.inci_name,
         commonName: ingredient.common_name,
         category: ingredient.category,

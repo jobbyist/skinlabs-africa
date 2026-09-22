@@ -25,8 +25,10 @@ import {
 import { getBrandBanner } from '@/lib/brand-banners'
 import { getProductImage, type CategoryImage } from '@/data/productImages'
 import { findMarketplaceMatch, type MarketplaceMatch } from '@/lib/marketplaceCrossLink'
+import { fetchIngredientBreakdown, type IngredientBreakdownEntry } from '@/lib/ingredientBreakdown'
 import { ScoreBar } from '@/components/ScoreBar'
 import { SkinLabsPromiseBadge } from '@/components/SkinLabsPromiseBadge'
+import EvidenceBadge from '@/components/ingredients/EvidenceBadge'
 import RoutineBuilder from '@/components/RoutineBuilder'
 import RelatedKnowledgeHub from '@/components/RelatedKnowledgeHub'
 import AdSlot from '@/components/AdSlot'
@@ -102,6 +104,7 @@ interface ReviewPageData {
   review: ProductReview
   image: CategoryImage | null
   relatedReviews: ProductReview[]
+  ingredientBreakdown: IngredientBreakdownEntry[]
 }
 
 const fetchReview = createServerFn({ method: 'GET' })
@@ -149,7 +152,14 @@ const fetchReview = createServerFn({ method: 'GET' })
     const generatedRelated = (generatedRelatedRows ?? []).map(mapGeneratedRow)
     const relatedReviews = [...staticRelated, ...generatedRelated].slice(0, 3)
 
-    return { found: true, data: { review, image, relatedReviews } }
+    // Real ingredients-table data (description/function_summary/evidence_level) for
+    // every key ingredient that's actually published, resolved server-side so
+    // crawlers see the real breakdown in the initial HTML rather than only after
+    // client hydration -- same resolver/query src/hooks/use-ingredient-breakdown.ts
+    // uses client-side, just given the SSR Supabase client instead of the browser one.
+    const ingredientBreakdown = await fetchIngredientBreakdown(supabase, review.key_ingredients)
+
+    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown } }
   })
 
 export const Route = createFileRoute('/reviews/$slug')({
@@ -212,7 +222,7 @@ interface CommentRow {
 }
 
 function ReviewPage() {
-  const { review, image, relatedReviews } = Route.useLoaderData()
+  const { review, image, relatedReviews, ingredientBreakdown } = Route.useLoaderData()
   const score = overallScore(review)
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar)
 
@@ -412,10 +422,22 @@ function ReviewPage() {
           <div>
             <h2>The full breakdown</h2>
             <p>{fullReview ?? (isMember ? 'Loading the full verdict…' : review.verdict)}</p>
-            <h3>Key ingredients</h3>
+            <h3>Ingredient breakdown</h3>
             <ul>
-              {review.key_ingredients.map((ingredient) => (
-                <li key={ingredient}>{ingredient}</li>
+              {ingredientBreakdown.map((entry) => (
+                <li key={entry.name}>
+                  {entry.resolved ? (
+                    <Link to={`/ingredients/${entry.resolved.slug}`}>{entry.name}</Link>
+                  ) : (
+                    <span>{entry.name}</span>
+                  )}
+                  {entry.resolved && <EvidenceBadge level={entry.evidenceLevel} />}
+                  <p>
+                    {entry.functionSummary ??
+                      entry.description ??
+                      (entry.resolved ? 'Detailed profile in progress — check back soon.' : 'Detailed ingredient profile coming soon.')}
+                  </p>
+                </li>
               ))}
             </ul>
             <h3>Best suited to</h3>

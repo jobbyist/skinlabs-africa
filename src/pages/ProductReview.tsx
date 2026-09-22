@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
 import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
+import { useIngredientBreakdown } from "@/hooks/use-ingredient-breakdown";
+import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
 import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
@@ -54,6 +56,7 @@ const ProductReview = () => {
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
     [review, getReviewImage],
   );
+  const { data: ingredientBreakdown } = useIngredientBreakdown(review?.key_ingredients ?? []);
 
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -390,10 +393,31 @@ const ProductReview = () => {
                 <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown</h2>
                 <p className="text-sm leading-relaxed text-foreground">{fullReview ?? (isMember ? "Loading the full verdict…" : review.verdict)}</p>
                 <div>
-                  <h3 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {review.key_ingredients.map((ingredient) => (
-                      <span key={ingredient} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{ingredient}</span>
+                  <h3 className="mb-2 text-sm font-semibold text-foreground">Ingredient breakdown</h3>
+                  <div className="space-y-2">
+                    {(ingredientBreakdown ?? review.key_ingredients.map((name) => ({ name, resolved: null, description: null, functionSummary: null, evidenceLevel: null }))).map((entry) => (
+                      <div key={entry.name} className="rounded-xl border border-border bg-background p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {entry.resolved ? (
+                            <Link
+                              to={`/ingredients/${entry.resolved.slug}`}
+                              className="text-sm font-medium text-foreground underline underline-offset-2 hover:no-underline"
+                            >
+                              {entry.name}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-medium text-foreground">{entry.name}</span>
+                          )}
+                          {entry.resolved && <EvidenceBadge level={entry.evidenceLevel} />}
+                        </div>
+                        {entry.functionSummary || entry.description ? (
+                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{entry.functionSummary ?? entry.description}</p>
+                        ) : (
+                          <p className="mt-1 text-xs italic text-muted-foreground">
+                            {entry.resolved ? "Detailed profile in progress — check back soon." : "Detailed ingredient profile coming soon."}
+                          </p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </div>

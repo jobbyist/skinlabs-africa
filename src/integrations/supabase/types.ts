@@ -1323,6 +1323,7 @@ export type Database = {
           created_at: string
           description: string | null
           evidence_level: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes: string | null
           function_summary: string | null
           id: string
           inci_name: string
@@ -1345,6 +1346,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes?: string | null
           function_summary?: string | null
           id?: string
           inci_name: string
@@ -1367,6 +1369,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes?: string | null
           function_summary?: string | null
           id?: string
           inci_name?: string

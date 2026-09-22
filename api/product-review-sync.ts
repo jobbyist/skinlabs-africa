@@ -64,6 +64,7 @@
  * Vercel Hobby-tier cron doesn't support sub-daily schedules).
  */
 
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback.js";
 import { scanComplianceFlags } from "./_lib/complianceTerms.js";
@@ -446,6 +447,8 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   if (pages.length > 0) await setCachedSource(admin, cacheKey, pages);
   return { pages, madeRealCall: true };
 }
+
+
 
 interface MarketplaceProductRow {
   slug: string;
