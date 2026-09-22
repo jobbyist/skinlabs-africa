@@ -1363,6 +1363,18 @@ feature appear operational.
       — don't assume it's live until that's confirmed the same way. The
       three `openhaus-*` MARKETPLACE_CRON_SECRET-gated jobs remain a
       separate, untouched gap, documented elsewhere in this file.
+      **Confirmed live** with a manual `briefings-sync` trigger right
+      after the secret was set: got a real `200` (not a `401`), proving
+      the auth path now works end to end — but the response was
+      `{"ok":true,"created":0,"message":"Daily briefings cap already
+      met"}`, since the day's 2-3 briefings were already published by an
+      earlier run (06:14-06:15 UTC, still under the old flat 1000-word
+      floor — see `news_articles` for "The Melasma Playbook"/"Decoding
+      Your Skin"/"The Skin You Are In", all created before today's
+      `briefings-sync` version-6 deploy). **The model-dependent 1500/1000
+      word-count split itself is therefore still not live-verified** —
+      the cap has to reset (next real cron firing, 04:00 UTC) or a human
+      needs to trigger it after that reset for a real test.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
