@@ -1,3 +1,4 @@
+import type { ProductReview } from "@/data/reviews";
 /**
  * Central SEO metadata and reusable naming conventions for SkinLabs®.
  * Primary pattern: [Primary Keyword] + [Topic / Benefit / Location] | SkinLabs®
@@ -31,8 +32,110 @@ export const pageSeo: Record<string, PageSeo> = {
   announcements: { title: `SkinLabs® Announcements | Product & Platform Updates`, description: "Follow SkinLabs® announcements, new features, editorial launches, product updates and platform developments.", canonicalPath: "/announcements" },
 };
 
-export const productReviewTitle = (productName: string, keyAttribute = "Ingredients, Results & Rating") => `${productName} Review: ${keyAttribute} | ${BRAND}`;
-export const productReviewDescription = (productName: string, brand: string) => `Our independent review of ${productName} by ${brand} — ingredients, performance, value and suitability for South African skin and climate.`;
+/**
+ * Generate an SEO-optimized title for a product review page.
+ * Follows best practices: include brand, product, key benefit/feature, and site brand.
+ * Max ~60 chars to avoid truncation in SERPs.
+ * 
+ * Examples:
+ * - "CeraVe Moisturising Cream Review — Ceramide Barrier Repair | SkinLabs®"
+ * - "The Ordinary Niacinamide 10% + Zinc — Pore & Oil Control Review | SkinLabs®"
+ */
+export const productReviewTitle = (
+  productName: string,
+  brand: string,
+  keyAttribute?: string
+): string => {
+  // Try to be concise - target ~55 chars before brand suffix
+  const baseName = `${brand} ${productName}`;
+  
+  if (keyAttribute) {
+    // If we have a key attribute, use it
+    return `${baseName} — ${keyAttribute} Review | ${BRAND}`;
+  }
+  
+  // Default format
+  return `${baseName} Review | ${BRAND}`;
+};
+
+/**
+ * Generate an SEO-optimized description for a product review page.
+ * Should be 150-160 chars, include key information and create click incentive.
+ * 
+ * Template: Independent review of [Product] by [Brand] — [scores/verdict snippet], 
+ * [key ingredients], suitability for [skin types] and South African climate.
+ */
+export const productReviewDescription = (
+  productName: string,
+  brand: string,
+  options?: {
+    verdict?: string;
+    keyIngredients?: string[];
+    skinTypes?: string[];
+    score?: number;
+  }
+): string => {
+  const parts: string[] = [];
+  
+  // Start with the product
+  parts.push(`Independent review of ${productName} by ${brand}`);
+  
+  // Add score if available (makes it more compelling)
+  if (options?.score) {
+    parts.push(`(${options.score}/10)`);
+  }
+  
+  // Add key ingredients if available (max 2-3 to keep concise)
+  if (options?.keyIngredients && options.keyIngredients.length > 0) {
+    const topIngredients = options.keyIngredients.slice(0, 2).join(', ');
+    parts.push(`— ${topIngredients}`);
+  }
+  
+  // Add skin type suitability if available
+  if (options?.skinTypes && options.skinTypes.length > 0) {
+    const types = options.skinTypes.slice(0, 2).join(' & ');
+    parts.push(`for ${types} skin`);
+  }
+  
+  // Always end with SA context
+  parts.push('in South African climate.');
+  
+  const description = parts.join(' ');
+  
+  // Ensure we don't exceed 160 chars
+  return description.length > 160 
+    ? description.substring(0, 157) + '...' 
+    : description;
+};
+
+/**
+ * Generate a compelling intro paragraph for a product review page (SEO content).
+ * This goes at the top of the page, before the review structure.
+ * ~50-100 words, natural language, includes key terms.
+ */
+export const productReviewIntro = (
+  productName: string,
+  brand: string,
+  category: string,
+  options?: {
+    verdict?: string;
+    keyIngredients?: string[];
+    price?: number;
+  }
+): string => {
+  const parts: string[] = [];
+  
+  parts.push(`${brand} ${productName} is a ${category.toLowerCase()} that`);
+  
+  // Add verdict snippet if available
+  if (options?.verdict) {
+    const shortVerdict = options.verdict.substring(0, 100);
+    parts.push(shortVerdict);
+  }
+  
+  return parts.join(' ');
+};
+
 export const brandProfileTitle = (brandName: string) => `${brandName} | South African Skincare Brand | ${BRAND}`;
 export const articleTitle = (topic: string) => `${topic} | The Daily Skinny by ${BRAND}`;
 export const podcastEpisodeTitle = (topic: string) => `${topic} | The Skin Deep Series by ${BRAND}`;

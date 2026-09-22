@@ -5,7 +5,6 @@ import { ArrowLeft, Heart, Loader2, MapPin, Star } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
-import { ScoreBar } from "@/components/ScoreBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
@@ -17,6 +16,10 @@ import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
+import { QuickVerdict } from "@/components/product-review/QuickVerdict";
+import { AtAGlanceCard } from "@/components/product-review/AtAGlanceCard";
+import { productReviewTitle, productReviewDescription, SITE_URL } from "@/lib/seo-config";
+import { enhancedProductReviewJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonLd";
 import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
 import { useIngredientBreakdown } from "@/hooks/use-ingredient-breakdown";
 import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
@@ -203,52 +206,57 @@ const ProductReview = () => {
     .map((season) => seasonHubs[season])
     .find((hub) => hub.productEdit.picks.some((pick) => pick.reviewId === review.id));
   const score = overallScore(review);
-  const canonical = `https://skinlabs.co.za/reviews/${review.id}`;
+  const canonical = `${SITE_URL}/reviews/${review.id}`;
 
+  // Generate enhanced JSON-LD with proper separation of editorial (0-10) and community (0-5) ratings
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Product",
-        name: review.product_name,
-        brand: { "@type": "Brand", name: review.brand },
+      enhancedProductReviewJsonLd({
+        canonicalUrl: canonical,
+        productName: review.product_name,
+        brand: review.brand,
         category: review.category,
         ...(productImage ? { image: productImage.url } : {}),
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "ZAR",
-          lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
-          highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
-          offerCount: review.retailers.length,
-        },
-        review: {
-          "@type": "Review",
-          reviewRating: { "@type": "Rating", ratingValue: score, bestRating: 10 },
-          author: { "@type": "Organization", name: "SkinLabs" },
-          reviewBody: review.verdict,
-        },
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: score,
-          bestRating: 10,
-          reviewCount: Math.max(1, displayComments.length),
-        },
-      },
-      {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Reviews", item: "https://skinlabs.co.za/reviews" },
-          { "@type": "ListItem", position: 2, name: review.product_name, item: canonical },
-        ],
-      },
+        ...(review.retailers.length > 0
+          ? {
+              offers: {
+                lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
+                highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
+                offerCount: review.retailers.length,
+              },
+            }
+          : {}),
+        editorialScore: score,
+        reviewBody: review.verdict,
+        // Only include community rating if we have real member ratings (not seeded)
+        ...(avgRating && comments.length > 0
+          ? {
+              communityRating: avgRating,
+              communityReviewCount: comments.length,
+            }
+          : {}),
+      }),
+      breadcrumbJsonLd([
+        { name: "Reviews", url: `${SITE_URL}/reviews` },
+        { name: review.product_name, url: canonical },
+      ]),
     ],
   };
+
+  // Generate SEO-optimized title and description
+  const seoTitle = productReviewTitle(review.product_name, review.brand);
+  const seoDescription = productReviewDescription(review.product_name, review.brand, {
+    score,
+    keyIngredients: review.key_ingredients.slice(0, 2),
+    skinTypes: review.skin_type_match.slice(0, 2),
+  });
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={`${review.brand} ${review.product_name} Review — SA Score & Price`}
-        description={`${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`}
+        title={seoTitle}
+        description={seoDescription}
         canonical={canonical}
         ogType="article"
         {...(productImage ? { ogImage: productImage.url } : {})}
@@ -262,13 +270,7 @@ const ProductReview = () => {
           </Link>
 
           <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
-          <div className="mt-1 flex items-start justify-between gap-4">
-            <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
-            <div className="flex shrink-0 flex-col items-center rounded-2xl bg-primary px-4 py-2 text-primary-foreground">
-              <span className="font-heading text-2xl font-extrabold leading-none">{score}</span>
-              <span className="text-[10px] uppercase tracking-wide opacity-80">/ 10</span>
-            </div>
-          </div>
+          <h1 className="mt-1 font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
 
           {productImage && (
             <figure className="mt-6">
@@ -290,13 +292,27 @@ const ProductReview = () => {
             </figure>
           )}
 
-          <p className="mt-6 text-lg leading-relaxed text-foreground">{review.verdict}</p>
+          <div className="mt-6">
+            <QuickVerdict
+              verdict={review.verdict}
+              overallScore={score}
+              scoreBreakdown={{
+                efficacy: review.score_efficacy,
+                value: review.score_value,
+                texture: review.score_texture,
+                climate: review.score_climate,
+              }}
+            />
+          </div>
 
-          <div className="mt-6 grid gap-2.5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2">
-            <ScoreBar label="Efficacy" value={review.score_efficacy} />
-            <ScoreBar label="Value for money" value={review.score_value} />
-            <ScoreBar label="Texture" value={review.score_texture} />
-            <ScoreBar label="SA climate fit" value={review.score_climate} />
+          <div className="mt-6">
+            <AtAGlanceCard
+              brand={review.brand}
+              productName={review.product_name}
+              category={review.category}
+              priceZAR={Math.min(...review.retailers.map((r) => r.price_zar))}
+              whereAvailable={review.retailers.map((r) => r.retailer).join(", ")}
+            />
           </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
