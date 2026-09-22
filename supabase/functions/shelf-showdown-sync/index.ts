@@ -82,6 +82,13 @@ const corsHeaders = {
 
 /** Editorial target: 3-5 new Shelf Showdowns per week. */
 const WEEKLY_SHOWDOWN_CAP = 5;
+/** Hard cap on comparisons attempted per invocation -- a single run processing
+ *  the full weekly target (up to 5 real Gemini calls plus retries/repairs) can
+ *  exceed the edge function's compute budget (WORKER_RESOURCE_LIMIT, observed
+ *  live 2026-09-22 after 1 successful publish). Kept small so one run always
+ *  finishes cleanly; the weekly cron firing plus any manual re-trigger tops up
+ *  toward WEEKLY_SHOWDOWN_CAP across multiple invocations if needed. */
+const MAX_SHOWDOWNS_PER_RUN = 2;
 const MIN_BODY_WORD_COUNT = 350;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -491,7 +498,7 @@ Deno.serve(async (req) => {
     if ((publishedThisWeek ?? 0) >= WEEKLY_SHOWDOWN_CAP) {
       return jsonResponse({ ok: true, created: 0, message: "Weekly Shelf Showdown cap already met", weekStart: weekStart.toISOString() });
     }
-    const target = WEEKLY_SHOWDOWN_CAP - (publishedThisWeek ?? 0);
+    const target = Math.min(MAX_SHOWDOWNS_PER_RUN, WEEKLY_SHOWDOWN_CAP - (publishedThisWeek ?? 0));
 
     const { data: reviewRows } = await admin
       .from("ai_generated_product_reviews")
