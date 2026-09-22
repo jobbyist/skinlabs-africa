@@ -21,9 +21,9 @@ where the last one left off.
 | Metric | Value | As of |
 |---|---|---|
 | Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
-| Ingredients with `description` populated | 28 / 140 | 2026-09-22 |
+| Ingredients with `description` / `function_summary` populated | 43 / 140 | 2026-09-22 (after Track A batch 03) |
 | Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
-| `ingredient_sources` rows | 56 | 2026-09-22 |
+| `ingredient_sources` rows | 88 | 2026-09-22 (after Track A batch 03) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -153,15 +153,31 @@ where description is null
   ) -- Track A skip list, see below
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
+-- NOTE: batch 03 (2026-09-22) already enriched 15 slugs out of alphabetical
+-- order (retinol, niacinamide, hyaluronic-acid, vitamin-c, vitamin-e,
+-- salicylic-acid, glycolic-acid, lactic-acid, mandelic-acid, ceramides,
+-- squalane, zinc-oxide, panthenol, glycerin, shea-butter) — they now have
+-- description IS NOT NULL and will naturally be excluded by this query's
+-- own `description is null` filter, no extra exclusion needed.
 ```
 
-Cursor: **16 processed** (batch 01 + batch 02, 2026-09-22, alphabetically
-through "Centella Asiatica" — see batch log below for the full ingredient
-lists and the 10-entry skip list). Next firing resumes from `inci_name >
-'Centella Asiatica'`. Once every one of the original 128 has `description
-IS NOT NULL` (or is on the permanent skip list), Track A is done and the
-6A catch-up trigger should be disabled — all future firings run only
-Track B + the refresh rotation (6B).
+Cursor: **31 processed** (batches 01+02, alphabetical through "Centella
+Asiatica", plus batch 03 — 15 high-traffic ingredients cherry-picked
+out of alphabetical order: Retinol, Niacinamide, Hyaluronic Acid, Vitamin
+C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid,
+Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter — see
+batch log below). Batch 03 deliberately skipped ahead of the alphabetical
+cursor to prioritize the ingredients most likely to appear in product
+reviews/routines and drive real user/SEO value first (per the "as many as
+possible" open-ended bulk-populate request); the alphabetical sweep from
+`inci_name > 'Centella Asiatica'` still needs to happen for the remaining
+un-enriched stubs that batch 03 didn't cover — a future firing should
+resume alphabetically from there, skipping any slug batch 03 already
+processed (see the skip-list query below, which should also exclude the
+15 batch-03 slugs by name to avoid re-processing). Once every one of the
+original 128 has `description IS NOT NULL` (or is on the permanent skip
+list), Track A is done and the 6A catch-up trigger should be disabled —
+all future firings run only Track B + the refresh rotation (6B).
 
 **Track B — add new ingredients from the living candidate list.**
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
@@ -204,6 +220,7 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Phase 5 (product seed) | — | `20260922010200_..._chunk_09_products.sql` through `20260922011300_..._chunk_20_products.sql` (12 files) | Product seed chunks 09-20 applied, products 41-160 complete. 160/160 products and reviews now live, 290 `product_ingredients` rows total. See `SEED_MIGRATION_STATUS.md` for full detail — not an ingredients-content batch, logged here only because it completes the "Products live" row above. |
 | 2026-09-22 | Track A batch 02 | 8: Bakuchiol, Baobab Oil, Beeswax, Buchu Extract, Bulbine Frutescens, Caffeine, Calendula Oil, Centella Asiatica | `20260922080000_ingredient_content_batch_02.sql` | Real PubMed + peer-reviewed-literature research per ingredient (16 citations total, 2 per ingredient, incl. one DermNet NZ corroborating source for Calendula's irritancy profile). Evidence levels: moderate (Bakuchiol, Beeswax, Calendula Oil, Centella Asiatica — each backed by a real RCT/systematic review or a solid preclinical study), limited (Baobab Oil, Buchu Extract, Bulbine Frutescens, Caffeine — in vitro/mechanistic/traditional-use evidence only, no human efficacy RCT found). 7 generic-collective stub names encountered in this batch's alphabetical window were skip-listed without a research attempt (Botanical Actives/Brighteners/Extracts/Oil Blend/Oils, Brightening Complex, Broad-Spectrum UV Filters) — see skip list above. |
 | 2026-09-22 | Track B batch 01 | 12 NEW: Betaine, Sodium PCA, Trehalose, Urea, Malic Acid, Citric Acid, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Azelaic Acid, Allantoin | `20260922090000_ingredient_content_track_b_batch_01.sql` | First Track B batch — real identity + content created in one pass per ingredient (22 citations total: 2 each for 10 ingredients, 1 each for Urea and Citric Acid, whose available real literature was thinner). Evidence levels: strong (Azelaic Acid — a 21-RCT systematic review/meta-analysis), moderate (Urea, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Allantoin — each backed by a real RCT or split-face clinical study, several combined with other actives rather than tested standalone), limited (Betaine, Sodium PCA, Trehalose, Malic Acid, Citric Acid — in vitro/mechanistic/observational evidence only, no direct standalone-ingredient human efficacy RCT found). **This was a deliberately partial weekly batch** (12 of the 25+ the permanent pipeline targets per week) — full Phase 3 research at this depth for 25 ingredients in one sitting was judged too costly/risky for careful sourcing; the remainder of this week's target should be picked up by the next 6B firing or a follow-up session before Tuesday's next scheduled run, rather than padded with thinner research to hit the number. |
+| 2026-09-22 | Track A batch 03 (priority, out-of-order) | 15: Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid, Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter | `20260922100000_ingredient_content_batch_03.sql` | Per the user's explicit request to also use EWG Skin Deep and INCIDecoder (via Firecrawl) as sources alongside PubMed: added real, Firecrawl-verified `ingredient_database`-type citations from both sites for 6 of the highest-traffic ingredients (Retinol/INCIDecoder, Niacinamide/EWG, Hyaluronic Acid/INCIDecoder, Vitamin C/EWG, Salicylic Acid/EWG, Glycolic Acid/INCIDecoder) alongside 32 PubMed peer-reviewed-literature citations (2-3 per ingredient). Evidence levels: strong (Salicylic Acid — 2 real RCTs incl. a 54-subject double-blind head-to-head vs a prescription regimen), moderate (Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Glycolic Acid, Lactic Acid, Ceramides, Panthenol, Glycerin — each backed by at least one real RCT, several honestly framed as combination-formulation or precursor-blend evidence rather than standalone), limited (Vitamin E, Mandelic Acid, Squalane, Zinc Oxide, Shea Butter — real trials found but either in vitro/ex vivo/animal-model only, or always tested as part of a multi-ingredient blend with no standalone efficacy data). These 15 were prioritized out of the strict alphabetical Track A order because they are the highest-traffic, most product-review/routine-relevant ingredients on the platform. |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
