@@ -21,9 +21,9 @@ where the last one left off.
 | Metric | Value | As of |
 |---|---|---|
 | Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
-| Ingredients with `description` / `function_summary` populated | 87 / 140 | 2026-09-22 (after Track A batch 07) |
+| Ingredients with `description` / `function_summary` populated | 98 / 140 | 2026-09-22 (after Track A batch 08 — **Track A complete**) |
 | Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
-| `ingredient_sources` rows | 159 | 2026-09-22 (after Track A batch 07) |
+| `ingredient_sources` rows | 173 | 2026-09-22 (after Track A batch 08) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -166,23 +166,25 @@ limit :batch_size; -- 10-12 for the 6A catch-up burst
 -- own `description is null` filter, no extra exclusion needed.
 ```
 
-Cursor: **75 processed** (batches 01+02, alphabetical through "Centella
-Asiatica"; batch 03 — 15 high-traffic ingredients cherry-picked out of
-alphabetical order; batch 04 — 12 ingredients continuing past "Centella
-Asiatica" alphabetically (Aloe Ferox through Jojoba Oil, plus the
-Ceramide/Ceramide NP/Ceramide-P synonym rows); batch 05 — 11 more
-continuing alphabetically (Coco-Glucoside through Marula Seed Oil); batch
-06 — 11 more continuing alphabetically (Moringa Oil through Prebiotics);
-batch 07 — 10 more continuing alphabetically (Probiotic Ferment through
-Sodium Ascorbyl Phosphate) — see batch log below for full ingredient
-lists). The alphabetical sweep is now past "Sodium Ascorbyl Phosphate" —
-a future firing should resume from `inci_name > 'Sodium Ascorbyl
-Phosphate'` (skipping any slug already processed or skip-listed, per the
-resumable query below, which the `description is null` filter already
-handles automatically). Once every one of the original 128 has
-`description IS NOT NULL` (or is on the permanent skip list), Track A is
-done and the 6A catch-up trigger should be disabled — all future firings
-run only Track B + the refresh rotation (6B).
+**TRACK A IS COMPLETE as of 2026-09-22 (batch 08).** Live-verified: the
+resumable query below returns **0** remaining real ingredients needing
+enrichment. Cursor history: batches 01+02 (alphabetical through "Centella
+Asiatica"), batch 03 (15 high-traffic ingredients cherry-picked out of
+alphabetical order), batch 04 (12 ingredients continuing past "Centella
+Asiatica" alphabetically — Aloe Ferox through Jojoba Oil, plus the
+Ceramide/Ceramide NP/Ceramide-P synonym rows), batch 05 (11 more —
+Coco-Glucoside through Marula Seed Oil), batch 06 (11 more — Moringa Oil
+through Prebiotics), batch 07 (10 more — Probiotic Ferment through Sodium
+Ascorbyl Phosphate), batch 08 (11 more — Sodium Hyaluronate through Zinc
+Salicylate, plus the `vitamin-c-10` data-artifact fix) — see batch log
+below for full ingredient lists and citations. **The 6A catch-up burst
+trigger (`trig_013mJnTVKGVFgQUMbL98G8TV`) has been disabled** (not
+deleted — run history preserved) per its own documented shutdown
+procedure, since products were already 160/160 and ingredients needing
+enrichment is now 0. All future ingredient-content work runs only through
+Track B (new candidates) + the refresh rotation, both handled by the
+separate, still-active permanent weekly pipeline
+(`trig_012CnJXfuEkZxbUMwdfTBQg2`, Tuesdays 06:00 SAST, no end date).
 
 **Track B — add new ingredients from the living candidate list.**
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
@@ -230,6 +232,7 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Track A batch 05 (6A catch-up firing) | 11: Coco-Glucoside, Hyaluronic Acid Crosspolymer, Iron Oxides, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Licorice Root Extract, Liposomal Ceramide NP, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil | `20260922120000_ingredient_content_batch_05.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Coco-Glucoside, Hyaluronic Acid Crosspolymer, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil — each backed by at least one real RCT or systematic review), limited (Iron Oxides, Licorice Root Extract, Liposomal Ceramide NP — real evidence found but review-only/in-vitro/formulation-study-only, no standalone human efficacy RCT). Coco-Glucoside's citation is notably a safety/allergen-risk study rather than an efficacy study, honestly framed in both `function_summary` and `irritancy_risk` rather than presented as pure benefit. Marula Oil and Marula Seed Oil (two catalogue rows for the same Sclerocarya birrea plant) share the same real South African clinical safety/efficacy citation. Triggered by the 6A catch-up burst Routine's scheduled firing (this session's branch had just been merged via PR #126 immediately before this firing — the branch was reset to `main`'s tip per the merged-PR workflow before this batch was processed, see git history). Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
 | 2026-09-22 | Track A batch 06 (6A catch-up firing) | 11: Moringa Oil, Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Oat Bran Extract, Olive Oil, Paraffinum Liquidum, Peptides, Photolyase Enzymes, Polyglutamic Acid, Pomegranate Extract, Prebiotics | `20260922130000_ingredient_content_batch_06.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Olive Oil, Peptides, Pomegranate Extract — each backed by a real RCT/cohort study or a strong review), limited (Moringa Oil, Oat Bran Extract, Paraffinum Liquidum, Photolyase Enzymes, Polyglutamic Acid, Prebiotics — real evidence found but combination-formulation, closely-related-ingredient (e.g. colloidal oat for Oat Bran Extract, petrolatum for Paraffinum Liquidum), preclinical, or review-only). Two ingredients (Oat Bran Extract and Paraffinum Liquidum) share citations with closely related but not identical INCI ingredients already/also being profiled — always disclosed explicitly in `function_summary`, never presented as ingredient-specific data that doesn't exist. Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
 | 2026-09-22 | Track A batch 07 (manual 6A continuation, user-directed) | 10: Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rice Ferment Filtrate, Rooibos Extract, Rosehip Oil, Rosewater, Sage Extract, Sodium Ascorbyl Phosphate | `20260922140000_ingredient_content_batch_07.sql` | 15 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rosehip Oil, Sage Extract, Sodium Ascorbyl Phosphate — each backed by a real RCT or systematic review), limited (Rice Ferment Filtrate, Rooibos Extract, Rosewater — real evidence found but ex vivo/preclinical, formulation-chemistry-only, or animal-model only). Pycnogenol's evidence is explicitly framed as oral supplementation, not topical use — honestly disclosed rather than implied as a topical benefit. Rosewater reuses Rosa damascena rose-oil animal-model evidence (same source plant, different preparation) with an explicit "direct human clinical efficacy data for rosewater itself is limited" caveat. User asked to keep firing the 6A batch process manually in-session until all remaining real Track A ingredients are populated — 15 real ingredients remained after this batch (Sodium Hyaluronate through Zinc Salicylate, alphabetically, plus the `vitamin-c-10` naming-artifact row). |
+| 2026-09-22 | Track A batch 08 (final manual 6A continuation — **Track A complete**) | 11: Sodium Hyaluronate, Succinic Acid, Tranexamic Acid, Tremella Extract, Turmeric Extract, Vitamin A, Vitamin C (10%) [renamed from the `vitamin-c-10` naming artifact], Zinc, Zinc Gluconate, Zinc PCA, Zinc Salicylate | `20260922150000_ingredient_content_batch_08.sql` | 15 PubMed peer-reviewed-literature citations (1-2 per ingredient, several reusing already-established real citations from earlier batches for the same underlying compound family — e.g. Vitamin A reuses the Retinol batch's tretinoin-precursor RCT, Sodium Hyaluronate reuses the HA-molecular-weight RCT). Evidence levels: strong (Tranexamic Acid — a 99-patient RCT matching gold-standard hydroquinone for melasma), moderate (Sodium Hyaluronate, Succinic Acid, Vitamin A, Zinc, Zinc Gluconate, Zinc PCA — each backed by a real RCT, cohort study or systematic review), limited (Tremella Extract, Turmeric Extract, Zinc Salicylate — real evidence found but preclinical/in-vitro, an off-target trial (knee pain, not skin), or component-level-only evidence with no compound-specific study). Zinc Salicylate honestly discloses no dedicated clinical study of the combined salt exists, citing each component's (Zinc, Salicylic Acid) separately-established real evidence instead of implying compound-specific data. **Also fixes the long-documented `vitamin-c-10` data-quality artifact**: renamed `inci_name` from the malformed "Vitamin C ~10%" to "Vitamin C (10%)", gave it a real profile, and marked the corresponding `ingredient_generation_requests` row (id `d8528c00-54a4-4512-9341-4063e244eb48`, for `avon-anew-vitc-serum`) `status='published'` with `resolved_ingredient_id` set — confirmed live via a follow-up query, the demand-queue no longer has any pending rows sourced from the static review catalogue. **This batch brings the live remaining-real-ingredients count to 0** — confirmed via the exact resumable skip-list query in this file. The 6A catch-up burst trigger was disabled immediately after (see the Track A completion note above the resumable-query block). Final live totals: 98/140 ingredients with `description`/`function_summary` populated, 173 `ingredient_sources` rows. |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
