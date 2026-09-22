@@ -21,9 +21,9 @@ where the last one left off.
 | Metric | Value | As of |
 |---|---|---|
 | Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
-| Ingredients with `description` / `function_summary` populated | 77 / 140 | 2026-09-22 (after Track A batch 06) |
+| Ingredients with `description` / `function_summary` populated | 87 / 140 | 2026-09-22 (after Track A batch 07) |
 | Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
-| `ingredient_sources` rows | 144 | 2026-09-22 (after Track A batch 06) |
+| `ingredient_sources` rows | 159 | 2026-09-22 (after Track A batch 07) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -166,21 +166,23 @@ limit :batch_size; -- 10-12 for the 6A catch-up burst
 -- own `description is null` filter, no extra exclusion needed.
 ```
 
-Cursor: **65 processed** (batches 01+02, alphabetical through "Centella
+Cursor: **75 processed** (batches 01+02, alphabetical through "Centella
 Asiatica"; batch 03 — 15 high-traffic ingredients cherry-picked out of
 alphabetical order; batch 04 — 12 ingredients continuing past "Centella
 Asiatica" alphabetically (Aloe Ferox through Jojoba Oil, plus the
 Ceramide/Ceramide NP/Ceramide-P synonym rows); batch 05 — 11 more
 continuing alphabetically (Coco-Glucoside through Marula Seed Oil); batch
-06 — 11 more continuing alphabetically (Moringa Oil through Prebiotics) —
-see batch log below for full ingredient lists). The alphabetical sweep is
-now past "Prebiotics" — a future firing should resume from
-`inci_name > 'Prebiotics'` (skipping any slug already processed or
-skip-listed, per the resumable query below, which the `description is
-null` filter already handles automatically). Once every one of the
-original 128 has `description IS NOT NULL` (or is on the permanent skip
-list), Track A is done and the 6A catch-up trigger should be disabled —
-all future firings run only Track B + the refresh rotation (6B).
+06 — 11 more continuing alphabetically (Moringa Oil through Prebiotics);
+batch 07 — 10 more continuing alphabetically (Probiotic Ferment through
+Sodium Ascorbyl Phosphate) — see batch log below for full ingredient
+lists). The alphabetical sweep is now past "Sodium Ascorbyl Phosphate" —
+a future firing should resume from `inci_name > 'Sodium Ascorbyl
+Phosphate'` (skipping any slug already processed or skip-listed, per the
+resumable query below, which the `description is null` filter already
+handles automatically). Once every one of the original 128 has
+`description IS NOT NULL` (or is on the permanent skip list), Track A is
+done and the 6A catch-up trigger should be disabled — all future firings
+run only Track B + the refresh rotation (6B).
 
 **Track B — add new ingredients from the living candidate list.**
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
@@ -227,6 +229,7 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Track A batch 04 | 12: Aloe Ferox, Cholesterol, Coconut Oil, CoQ10, Fatty Acids, Ferulic Acid, GHK-Cu, Green Tea Extract, Jojoba Oil, Ceramide, Ceramide NP, Ceramide-P | `20260922110000_ingredient_content_batch_04.sql` | 22 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Cholesterol, Coconut Oil, Fatty Acids, Ferulic Acid, Green Tea Extract, Ceramide, Ceramide NP — each backed by at least one real RCT or systematic review, several combination-formulation studies honestly framed as such), limited (Aloe Ferox, CoQ10, GHK-Cu, Jojoba Oil, Ceramide-P — real studies found but animal-model/in-vitro/review-only, or (for Ceramide-P) no species-specific standalone data, reusing class-level ceramide evidence with an explicit note). Ceramide/Ceramide NP/Ceramide-P are distinct catalogue rows from the already-profiled "Ceramides" (a synonym/collective row) — treated individually as real, named ceramide species per cosmetic-chemistry nomenclature, sharing some of the same real class-level RCT evidence where no species-specific study exists (always disclosed honestly in `function_summary`, never presented as species-specific data that doesn't exist). Four ingredients hit during this batch's research window returned zero PubMed results after repeated query attempts and were added to the Track A skip list as genuine insufficient-evidence cases: Cucumber Extract, Kaolin Clay, Kalahari Melon Oil, Kalahari Melon Seed Oil, Hemi-Squalane (5 total, all logged with search-attempt detail in the skip list above). |
 | 2026-09-22 | Track A batch 05 (6A catch-up firing) | 11: Coco-Glucoside, Hyaluronic Acid Crosspolymer, Iron Oxides, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Licorice Root Extract, Liposomal Ceramide NP, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil | `20260922120000_ingredient_content_batch_05.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Coco-Glucoside, Hyaluronic Acid Crosspolymer, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil — each backed by at least one real RCT or systematic review), limited (Iron Oxides, Licorice Root Extract, Liposomal Ceramide NP — real evidence found but review-only/in-vitro/formulation-study-only, no standalone human efficacy RCT). Coco-Glucoside's citation is notably a safety/allergen-risk study rather than an efficacy study, honestly framed in both `function_summary` and `irritancy_risk` rather than presented as pure benefit. Marula Oil and Marula Seed Oil (two catalogue rows for the same Sclerocarya birrea plant) share the same real South African clinical safety/efficacy citation. Triggered by the 6A catch-up burst Routine's scheduled firing (this session's branch had just been merged via PR #126 immediately before this firing — the branch was reset to `main`'s tip per the merged-PR workflow before this batch was processed, see git history). Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
 | 2026-09-22 | Track A batch 06 (6A catch-up firing) | 11: Moringa Oil, Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Oat Bran Extract, Olive Oil, Paraffinum Liquidum, Peptides, Photolyase Enzymes, Polyglutamic Acid, Pomegranate Extract, Prebiotics | `20260922130000_ingredient_content_batch_06.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Olive Oil, Peptides, Pomegranate Extract — each backed by a real RCT/cohort study or a strong review), limited (Moringa Oil, Oat Bran Extract, Paraffinum Liquidum, Photolyase Enzymes, Polyglutamic Acid, Prebiotics — real evidence found but combination-formulation, closely-related-ingredient (e.g. colloidal oat for Oat Bran Extract, petrolatum for Paraffinum Liquidum), preclinical, or review-only). Two ingredients (Oat Bran Extract and Paraffinum Liquidum) share citations with closely related but not identical INCI ingredients already/also being profiled — always disclosed explicitly in `function_summary`, never presented as ingredient-specific data that doesn't exist. Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
+| 2026-09-22 | Track A batch 07 (manual 6A continuation, user-directed) | 10: Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rice Ferment Filtrate, Rooibos Extract, Rosehip Oil, Rosewater, Sage Extract, Sodium Ascorbyl Phosphate | `20260922140000_ingredient_content_batch_07.sql` | 15 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rosehip Oil, Sage Extract, Sodium Ascorbyl Phosphate — each backed by a real RCT or systematic review), limited (Rice Ferment Filtrate, Rooibos Extract, Rosewater — real evidence found but ex vivo/preclinical, formulation-chemistry-only, or animal-model only). Pycnogenol's evidence is explicitly framed as oral supplementation, not topical use — honestly disclosed rather than implied as a topical benefit. Rosewater reuses Rosa damascena rose-oil animal-model evidence (same source plant, different preparation) with an explicit "direct human clinical efficacy data for rosewater itself is limited" caveat. User asked to keep firing the 6A batch process manually in-session until all remaining real Track A ingredients are populated — 15 real ingredients remained after this batch (Sodium Hyaluronate through Zinc Salicylate, alphabetically, plus the `vitamin-c-10` naming-artifact row). |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
