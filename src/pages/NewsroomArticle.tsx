@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { ArrowLeft, Bookmark, Clock, ExternalLink, Eye, Heart, Loader2, MapPin, Share2 } from "lucide-react";
+import { ArrowLeft, Bookmark, Clock, ExternalLink, Heart, Loader2, MapPin, Share2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,14 @@ import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import BriefingBody from "@/components/briefings/BriefingBody";
+import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getLikedBriefingIds, recordBriefingView, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { extractEditorialDisclaimer } from "@/lib/editorialDisclaimer";
 
 interface InlineImage {
   url: string;
@@ -36,9 +38,9 @@ const NewsroomArticle = () => {
   const { isMember, loading: membershipLoading } = useMembership();
 
   const [body, setBody] = useState<string | null>(null);
+  const [disclaimer, setDisclaimer] = useState<string | null>(null);
   const [inlineImages, setInlineImages] = useState<InlineImage[]>([]);
   const [bodyLoading, setBodyLoading] = useState(false);
-  const [views, setViews] = useState<number | null>(null);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -52,12 +54,17 @@ const NewsroomArticle = () => {
       if (error) {
         console.error("get_article_body failed:", error);
         setBody(null);
+        setDisclaimer(null);
         setBodyLoading(false);
         return;
       }
       const row = Array.isArray(data) ? data[0] : data;
       const typed = row as { body_markdown?: string; inline_images?: unknown } | null;
-      setBody(typed?.body_markdown ?? null);
+      const { body: cleanedBody, disclaimer: extractedDisclaimer } = extractEditorialDisclaimer(
+        typed?.body_markdown ?? "",
+      );
+      setBody(typed?.body_markdown ? cleanedBody : null);
+      setDisclaimer(extractedDisclaimer);
       setInlineImages(Array.isArray(typed?.inline_images) ? (typed!.inline_images as InlineImage[]) : []);
       setBodyLoading(false);
     })();
@@ -65,11 +72,6 @@ const NewsroomArticle = () => {
       cancelled = true;
     };
   }, [slug]);
-
-  useEffect(() => {
-    if (!article?.id) return;
-    setViews(recordBriefingView(article.id, article.view_count));
-  }, [article?.id, article?.view_count]);
 
   useEffect(() => {
     if (!article?.id) return;
@@ -203,12 +205,11 @@ const NewsroomArticle = () => {
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span>{new Date(article.publish_date).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
-              <span className="inline-flex items-center gap-1"><Eye className="h-3 w-3" /> {(views ?? article.view_count).toLocaleString()} views</span>
             </div>
 
             {article.cover_image_url && (
               <figure className="mt-8">
-                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} onError={(event) => { if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER; }} className="w-full rounded-3xl object-cover" />
+                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} onError={(event) => { if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER; }} className="w-full rounded-3xl object-cover shadow-lg" />
                 {article.cover_credit_name && (
                   <figcaption className="mt-2 text-xs text-muted-foreground">
                     Photo by{" "}
@@ -224,7 +225,7 @@ const NewsroomArticle = () => {
             <p className="mt-8 text-lg leading-relaxed text-foreground">{article.excerpt}</p>
 
             {article.key_takeaways.length > 0 && (
-              <div className="mt-8 rounded-3xl border border-border bg-card p-6">
+              <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-sm">
                 <h2 className="mb-3 font-heading text-2xl font-bold tracking-tight text-foreground">Key takeaways</h2>
                 <ul className="space-y-2">
                   {article.key_takeaways.map((t) => (
@@ -340,6 +341,12 @@ const NewsroomArticle = () => {
             <div className="mt-8">
               <AdSlotAutorelaxed placement="briefing-footer" compact />
             </div>
+
+            {disclaimer && (
+              <div className="mt-8">
+                <EditorialDisclaimer text={disclaimer} />
+              </div>
+            )}
 
           </article>
         </main>

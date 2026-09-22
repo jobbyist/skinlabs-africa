@@ -19,6 +19,89 @@ feature appear operational.
 
 ## Major systems
 
+- **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
+  four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
+  the real production page for that route — `src/routes/briefings.$slug.tsx`
+  is a separate SSR route that doesn't render body content, see its own
+  header comment) and site-wide content discoverability:
+  - **Editorial disclaimer, fixed and extracted** — the per-article
+    "Editorial disclaimer: ..." sentence the briefings pipeline embeds in
+    `body_markdown` (see `content/daily-skinny/*.md` for real examples) was
+    rendering inline wherever it happened to land in the body, or — worse,
+    when it fell inside the "## FAQ" section — being silently dropped
+    entirely by `BriefingBody.tsx`'s FAQ-item parser (`parseFaqItems()`'s
+    `if (/^editorial disclaimer/i.test(block)) continue;`). New
+    `src/lib/editorialDisclaimer.ts`'s `extractEditorialDisclaimer()` pulls
+    it out of the body markdown before `BriefingBody` ever sees it;
+    `NewsroomArticle.tsx` renders it once, consistently, via new
+    `src/components/briefings/EditorialDisclaimer.tsx` at the very end of
+    the article — matching the existing disclaimer treatment already used
+    on Spotlight/ComparisonArticle pages (ShieldCheck icon, muted card).
+  - **View count removed** — the `Eye`-icon "N views" display is gone from
+    the article header. It was backed by `src/lib/briefing-engagement.ts`'s
+    `recordBriefingView()`, a browser-localStorage-only counter (DB
+    `view_count` + a local increment, never written back to the DB) with no
+    other reader — removed along with its now-dead storage key/type. The
+    DB `view_count` column itself is untouched and still powers
+    `NewsroomFeed.tsx`'s "Most viewed" sort on the listing/card grid, which
+    was intentionally left alone (out of scope — only the article page's
+    own display was asked to change).
+  - **Sitemap.xml is now live-SSR'd, not just build-time** — the daily
+    briefings/product-review pipelines publish via Supabase pg_cron (see
+    the product-review pipeline section below), not a Vercel build, so the
+    old build-time-only `scripts/generate-sitemap.ts` (baked into
+    `public/sitemap.xml` at deploy time) could sit stale for however long
+    until the next code push. New `src/routes/sitemap[.]xml.ts` (a
+    TanStack Start SSR route — `[.]` is the router's documented escape for
+    a literal dot in a file-based route filename, confirmed by both a real
+    local build and by invoking the built Nitro handler directly against
+    the live Supabase project) queries `news_articles_public`/
+    `ai_generated_product_reviews`/`marketplace_products`/
+    `marketplace_brands`/`ingredients` live on every request, so a briefing
+    or review published minutes ago is already in the sitemap. Both the SSR
+    route and the build-time fallback now import their static route list
+    from one shared `src/lib/sitemap/staticRoutes.ts` (previously
+    duplicated) so they can't drift. `scripts/assemble-vercel-output.ts`
+    gained a new `SSR_EXACT_ROUTES_PRE_FILESYSTEM` mechanism (existing
+    `SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM`/`_POST_FILESYSTEM` only cover
+    `/prefix/:slug`-shaped routes — `/sitemap.xml` has no slug segment) so
+    `^/sitemap\.xml$` routes to the SSR function ahead of the filesystem
+    phase, exactly like `/briefings/`'s and `/reviews/`'s own pre-filesystem
+    routing. `scripts/generate-sitemap.ts`'s static-file output remains as
+    the fallback for a degraded (`ssrAvailable: false`) deployment or a
+    local `vite build` preview without Nitro — see that script's own
+    updated header comment. **Verified locally, not yet on real
+    infrastructure**: `npx vite build` + `NITRO_PRESET=vercel npx vite
+    build --config vite.tanstack-start.config.ts` +
+    `scripts/assemble-vercel-output.ts` all ran clean, `config.json`'s
+    generated routing was inspected directly, and the built Nitro handler
+    was invoked in-process with a real `/sitemap.xml` request — it
+    returned a real `200`, correct `application/xml` content-type, and a
+    valid, well-formed sitemap containing genuine live rows from the real
+    Supabase project (recent `ai_generated_product_reviews`, confirmed by
+    their real recent `published_date` values). Not yet confirmed on an
+    actual Vercel deployment.
+  - **Briefing article cards enhanced** — `NewsroomFeed.tsx`'s card grid
+    (used on `/briefings` and the homepage teaser) gained `line-clamp-2` on
+    the title/excerpt and `line-clamp-1` per key-takeaway (previously
+    unclamped text could make cards in the same row uneven heights), a
+    subtle bottom-to-top gradient scrim on the cover image, a hover
+    shadow/title-color transition, and a small arrow micro-interaction on
+    the "Read the breakdown" CTA. The article page itself (
+    `NewsroomArticle.tsx`) picked up matching shadow treatment on the cover
+    image and key-takeaways card. Deliberately did not add a new
+    `.gradient-text`/`.gradient-border-anim` moment to every card — this
+    file's own standing note elsewhere warns against more than one such
+    accent per screen, and a 3-per-row card grid would blow well past that.
+  - **Podcast mini-player no longer overlaps the floating bottom nav** —
+    `PodcastPlayer.tsx`'s mini-player bar is `fixed bottom-0` at `z-[60]`
+    whenever an episode is loaded (playing or paused), directly covering
+    `FloatingBottomNav.tsx`'s pill (`z-40`, previously fixed at
+    `bottom-4`/`sm:bottom-6` regardless). `FloatingBottomNav` now reads
+    `usePodcastPlayer()`'s `current` and shifts itself up to
+    `bottom-24`/`sm:bottom-28` (with a `transition-[bottom]` for a smooth
+    slide) whenever an episode is loaded, clearing the mini-player's actual
+    rendered height (~80-96px depending on breakpoint) with room to spare.
 - **Entitlements** — `src/lib/entitlements.ts` is the single source of
   truth for plan tiers (Glow Explorer/Lite/Insider/VIP, founding member,
   professional). Use `isPaidSubscriptionStatus()` — `subscription_status`

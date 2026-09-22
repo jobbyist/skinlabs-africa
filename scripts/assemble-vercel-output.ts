@@ -94,6 +94,16 @@ const vercelJsonPath = resolve(root, "vercel.json");
 const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/"];
 const SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM = ["/ingredients/", "/spotlight/"];
 
+/**
+ * Exact-path (non-prefix) SSR routes, spliced pre-filesystem like the
+ * content-type prefixes above so the live response always wins over the
+ * stale static file scripts/generate-sitemap.ts still bakes into dist/ as a
+ * fallback (see that script's own comment). "/sitemap.xml" has no slug
+ * segment, so it can't reuse SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM's
+ * `${prefix}([^/]+)$` pattern -- it needs its own literal-match route.
+ */
+const SSR_EXACT_ROUTES_PRE_FILESYSTEM = ["/sitemap.xml"];
+
 function assertExists(path: string, what: string) {
   if (!existsSync(path)) {
     throw new Error(
@@ -183,7 +193,14 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
   }
   const toSsrRoutes = (prefixes: string[]): BoapiRoute[] =>
     ssrAvailable ? prefixes.map((prefix): BoapiRoute => ({ src: `^${prefix}([^/]+)$`, dest: "/__server" })) : [];
-  const preFilesystemSsrRoutes = toSsrRoutes(SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM);
+  const toExactSsrRoutes = (paths: string[]): BoapiRoute[] =>
+    ssrAvailable
+      ? paths.map((path): BoapiRoute => ({ src: `^${path.replace(/\./g, "\\.")}$`, dest: "/__server" }))
+      : [];
+  const preFilesystemSsrRoutes = [
+    ...toSsrRoutes(SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM),
+    ...toExactSsrRoutes(SSR_EXACT_ROUTES_PRE_FILESYSTEM),
+  ];
   const postFilesystemSsrRoutes = toSsrRoutes(SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM);
 
   // Final catch-all, placed AFTER the filesystem phase (and the
