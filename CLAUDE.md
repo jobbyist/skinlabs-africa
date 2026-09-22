@@ -1198,26 +1198,33 @@ feature appear operational.
         correctly `null` with `community_rating_count = 0`, since almost
         no review has a real community rating yet — this is accurate,
         not a bug).
-      - `primary_image`: **only 19/37** — confirmed this is because
-        `PEXELS_API_KEY` is not actually exercising the fallback path:
-        every populated row already had a pre-existing `review_images`
-        table row from an earlier process, and zero new `review_images`
-        rows were written by any of the three backfill invocations (
-        checked directly: `select count(*) from review_images where
-        created_at > now() - interval '30 minutes'` → 0). Either
-        `PEXELS_API_KEY` isn't set as a Supabase Edge Function secret for
-        this project, or it's set but failing silently (the function
-        swallows a failed Pexels call and returns null rather than
-        blocking the rest of the update) — **not yet distinguished, a
-        human needs to check the secret directly in the Supabase
-        dashboard** (no tool in this environment can read a secret's
-        configured-or-not state, only its Vault-stored counterparts).
-        The 18 rows without a primary image will pick one up
-        automatically the next time `?backfillStructuredData=true` runs
-        once the key is confirmed/fixed, since the route re-selects on
-        `seo_title IS NULL` — reset those 18 rows' `seo_title` to null
-        (or extend the route with an image-only mode) if a targeted
-        re-run is wanted without repeating the other fields' work.
+      - `primary_image`: **only 19/37** — every populated row already
+        had a pre-existing `review_images` table row from an earlier
+        process; the fallback Pexels path had never fired for any of the
+        remaining 18 (zero new `review_images` rows written by any of the
+        three initial backfill invocations).
+        **Root cause pinned down (2026-09-22, fourth follow-up)** —
+        added a dedicated `?backfillPrimaryImage=true` route
+        (`runPrimaryImageBackfillPass()`, selects on `primary_image IS
+        NULL` rather than `seo_title IS NULL` so it can re-target these
+        18 rows specifically without recomputing every other structured-
+        data field) plus a non-secret-leaking `?pexelsDiagnostic=true`
+        route (does one real Pexels search with the configured key and
+        reports `configured`/`fetchStatus`/`fetchOk`/`resultCount` — never
+        the key itself) once told the key had since been set. Result: the
+        backfill route processed all 18 and updated 0; the diagnostic
+        route then confirmed exactly why — **`PEXELS_API_KEY` IS present
+        as a Supabase Edge Function secret (`configured: true`), but
+        Pexels itself rejects it: `fetchStatus: 401`, `errorFromPexels:
+        "Unauthorized"`**. So this is not a missing-secret gap or a code
+        bug — the configured key value itself is invalid, expired, or
+        malformed. **A human needs to generate a fresh key at
+        pexels.com/api and reset the `PEXELS_API_KEY` Supabase Edge
+        Function secret to it** — no tool in this environment can obtain
+        or validate a real Pexels API key. Once fixed, re-run
+        `?backfillPrimaryImage=true` (batch 25, so one call covers all 18
+        remaining rows) to pick up the images — no code change needed.
+        Both new routes are permanent, idempotent, and safe to re-invoke.
     - **Sponsored flagging** — every review sourced from OpenHaus
       Marketplace (`source_type = 'openhaus_marketplace'`) now carries
       `is_sponsored = true`, set going forward in the orchestrator's
