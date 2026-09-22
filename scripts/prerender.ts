@@ -147,8 +147,23 @@ async function main() {
   const baseUrl = `http://127.0.0.1:${PORT}`;
   const chromium = (await import("@sparticuz/chromium")).default;
   const puppeteer = (await import("puppeteer-core")).default;
+  // chromium.executablePath() unpacks a bundled brotli-compressed binary to
+  // /tmp on first call -- this await used to sit directly inside the
+  // puppeteer.launch(...) argument list, meaning it fully resolved *before*
+  // withTimeout() was even invoked below. A hang there (stalled extraction,
+  // disk I/O throttling on the build machine, a stuck child process) was
+  // therefore covered by neither BROWSER_LAUNCH_TIMEOUT_MS nor the global
+  // watchdog (which itself isn't armed until after `browser` exists) --
+  // exactly the "no warning, no progress, no exit" symptom this had been
+  // attributed to a lower-level frozen container. Give it its own explicit
+  // timeout so a hang here fails loudly instead of blocking the build.
+  const executablePath = await withTimeout(
+    chromium.executablePath(),
+    BROWSER_LAUNCH_TIMEOUT_MS,
+    "chromium.executablePath()",
+  );
   const browser = await withTimeout(
-    puppeteer.launch({ args: chromium.args, executablePath: await chromium.executablePath(), headless: true }),
+    puppeteer.launch({ args: chromium.args, executablePath, headless: true }),
     BROWSER_LAUNCH_TIMEOUT_MS,
     "browser launch",
   );
