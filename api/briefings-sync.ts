@@ -51,8 +51,8 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback";
-import { scanComplianceFlags } from "./_lib/complianceTerms";
+import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback.js";
+import { scanComplianceFlags } from "./_lib/complianceTerms.js";
 
 interface VercelReq {
   method?: string;
