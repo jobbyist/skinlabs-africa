@@ -171,11 +171,18 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
   // Editorial review (always present)
   productData.review = {
     "@type": "Review",
+  productData.review = {
+    "@type": "Review",
     reviewRating: {
       "@type": "Rating",
       ratingValue: input.editorialScore,
       bestRating: 10,
+      worstRating: 1,
     },
+    author: { "@type": "Organization", name: BRAND },
+    reviewBody: input.reviewBody,
+    ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
+  };
     author: { "@type": "Organization", name: BRAND },
     reviewBody: input.reviewBody,
     ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
