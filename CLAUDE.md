@@ -725,12 +725,85 @@ feature appear operational.
   `get_routine_conflicts`) and `20260913081000_ingredients_intelligence_
   curated_seed.sql` (category backfill, real aliases, real
   ingredient_concerns mappings, ~18 real sourced ingredient_interactions
-  citing DermNet NZ / JAAD Pinnell et al. 2004 / dermnetnz.org). Ships
-  deliberately on the existing 128-ingredient catalogue — no Firecrawl
-  ingestion pipeline yet; growing past 128 is a scoped future fast-follow,
-  not a gap to "fix" reflexively. New interaction rows go through the same
-  admin Data Quality verification queue as everything else (extended in
-  `AdminDashboard.tsx`).
+  citing DermNet NZ / JAAD Pinnell et al. 2004 / dermnetnz.org). New
+  interaction rows go through the same admin Data Quality verification
+  queue as everything else (extended in `AdminDashboard.tsx`).
+  - **Content population + ongoing weekly growth pipeline (2026-09-22)** —
+    the 128-ingredient catalogue above shipped with every row a thin stub
+    (only slug/inci_name/common_name/source_type/verification_status
+    populated — `description`, `function_summary`,
+    `typical_concentration_range`, `evidence_level`, `irritancy_risk`,
+    `pregnancy_safe` were NULL for all 128). Two real bugs were found and
+    fixed while wiring up rich content: (1) both ingredient detail pages
+    (`src/pages/IngredientDetail.tsx` and its SSR twin
+    `src/routes/ingredients.$slug.tsx` — **these two files duplicate the
+    same four-query fan-out line-for-line and must be edited together**,
+    per that route's own header comment) had two silent-content-loss
+    display bugs — "What does it do?" required `function_summary` AND
+    `description` both set, and "How to use" ignored `formulation_notes`
+    entirely unless `typical_concentration_range` was also set; (2)
+    `formulation_notes` was referenced by both pages from the start but
+    the column never actually existed on `ingredients` — added via
+    `20260922003514_ingredients_formulation_notes_column.sql` rather than
+    removing the reference, since the content pipeline needs it. New
+    `ingredient_sources` table (migrations `20260921200507_...`/
+    `20260921200517_...`) gives real multi-citation support — every prior
+    fact table had only one flat `source_url` column, which can't hold the
+    2-4 real citations a rich profile needs; `IngredientDetail.tsx`/
+    `ingredients.$slug.tsx` now prefer `ingredient_sources` rows over the
+    legacy single `source_url` fallback.
+    Content is populated by real per-ingredient research (PubMed +
+    DermNet NZ via Firecrawl, never fabricated — see the worked example in
+    `supabase/migrations/20260922020000_ingredient_content_batch_01.sql`),
+    landing as `verification_status = 'partially_verified'` — **never**
+    `'verified'`, which stays human-only via the admin Data Quality queue.
+    A generic "Complex" stub name (not a real singular compound) or a real
+    ingredient with genuinely no relevant literature found gets logged to
+    a skip list rather than fabricated content — see
+    `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Track A skip list".
+    This is now a **permanent, unbounded** growth process, not a
+    one-time catch-up to a fixed number: two self-bound scheduled Routines
+    drive it — a temporary catch-up burst (`trig_013mJnTVKGVFgQUMbL98G8TV`,
+    ~every 2h, self-disables once the original 128 are enriched and the
+    long-pending product-catalogue seed — see `SEED_MIGRATION_STATUS.md`
+    — reaches 160/160) and a **permanent weekly pipeline**
+    (`trig_012CnJXfuEkZxbUMwdfTBQg2`, Tuesdays 06:00 SAST, no end date,
+    never self-disables) that adds 25+ new ingredients every week from the
+    living candidate list `supabase/INGREDIENT_EXPANSION_CANDIDATES.md`
+    (self-extending — a firing that runs low on unprocessed candidates
+    researches and appends more before continuing) plus a
+    `last_verified_at`-oldest-first refresh rotation over already-published
+    ingredients. Full resumable state, live-verified counts and the
+    append-only batch log live in `supabase/INGREDIENT_CONTENT_STATUS.md` —
+    read that file first before touching this system again, the same way
+    `SEED_MIGRATION_STATUS.md` already works for the product catalogue.
+  - **Platform-wide internal linking (2026-09-22)** — the Ingredients
+    layer was previously an island; six real integration points now link
+    into it, all gated on a **confident exact match only** (never a fuzzy
+    guess that could mislink) via the new shared resolver
+    `src/lib/resolveIngredientSlug.ts` (wraps the same alias-aware
+    `search_ingredients` RPC the checker's combobox already used) — an
+    unresolved free-text name simply stays plain, unlinked text:
+    Conflict Matcher flag cards now link each ingredient name to its
+    profile (`src/lib/conflictMatcher.ts` gained `slug` on
+    `RoutineIngredient`); ingredient detail pages gained a reverse-direction
+    CTA to `/dashboard?tab=routine` (Insider/VIP) or `/skynn-ai`
+    (everyone else — the SSR route gets one non-personalized CTA instead,
+    since it has no per-user session boundary by design); product review
+    `key_ingredients` pills, SKYNN AI Starter's `OpenHausShopLinks` widget,
+    and the still-feature-flagged-off Advanced Dermatology Report
+    (`ReportView.tsx` — linking here doesn't reactivate that feature, it
+    only fixes rendering for whenever a human eventually flips
+    `skynn_advanced_assessment_config.rollout_stage`) all resolve and link
+    their ingredient mentions the same way. Separately, `profiles.allergies`
+    (free text, existed since July, previously only fed a profile-
+    completeness score) is now cross-referenced via
+    `src/hooks/use-allergy-flags.ts` — a loose case-insensitive substring
+    match (these are informal entries like "nut oils", not curated INCI
+    names) that surfaces a non-blocking `AllergyCautionNote` ("worth
+    discussing with a dermatologist") on ingredient pages and in the
+    Conflict Matcher panel when a routine ingredient matches — advisory
+    only, a miss is deliberately safer than a false "all clear."
   - **Active Ingredient Conflict Matcher** — Glow Insider & VIP exclusive
     (`"routine.conflict_matcher"` in `LADDER_CAPABILITIES.insider`/`.vip`,
     `src/lib/entitlements.ts` — both the `FeatureKey` union entry AND the
