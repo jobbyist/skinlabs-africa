@@ -78,7 +78,34 @@ researched, not skipped out of laziness:
 | `botanical-oil-blend` | Same as above (a "blend" name, not one compound). |
 | `botanical-oils` | Same as above. |
 | `brightening-complex` | Same "Complex" pattern as the existing AHA/BHA and Antioxidant Complex entries. |
-| `broad-spectrum-uv-filters` | Generic category placeholder, not one filter compound (distinct from the still-unresolved `chemical-uv-filters`/`uv-filters` rows, which remain unprocessed, not skip-listed, pending a future batch). |
+| `broad-spectrum-uv-filters` | Generic category placeholder, not one filter compound. |
+| `chemical-uv-filters` | Same generic-category pattern as `broad-spectrum-uv-filters`. |
+| `uv-filters` | Same generic-category pattern. |
+| `emollient-complex` | Generic collective stub name, not a real singular ingredient. |
+| `emulsifiers` | Same — a formulation-function category, not one named ingredient. |
+| `enzyme-complex` | Same generic-collective pattern. |
+| `enzymes` | Same — the real specific enzymes it likely stood in for (Papain, Bromelain) are now their own catalogued rows (2026-09-22 Track B batch 01/02). |
+| `fruit-enzymes` | Same reasoning as `enzymes`. |
+| `micellar-complex` | Generic collective stub name. |
+| `mild-surfactant-base` | Same — a formulation-function descriptor, not one ingredient. |
+| `cream-cleansing-base` | Same. |
+| `ph-balanced-surfactants` | Same. |
+| `multi-active-complex` | Generic collective stub (also has no `category` value in the original seed, itself a signal it was never a real singular ingredient). |
+| `multi-oil-blend` | Same "blend" pattern as the already-skipped botanical oil blends. |
+| `multi-vitamin-complex` | Same generic-collective pattern. |
+| `vitamin-complex` | Same. |
+| `nmf-complex` | Generic collective stub — distinct from `natural-moisturizing-factors`, which is a real, well-documented dermatological concept and stays in the active research queue. |
+| `organic-botanicals` | Generic collective stub name. |
+| `organic-herbal-extracts` | Same. |
+| `plant-actives` | Same. |
+| `plant-extracts` | Same. |
+| `plant-oil-blend` | Same "blend" pattern. |
+| `soothing-botanicals` | Same generic-collective pattern. |
+| `salicylic-acid-derivative` | Non-specific "derivative" bucket — the real named BHA derivatives that exist (e.g. Zinc Salicylate, already catalogued separately) get their own rows; this generic stand-in has no single INCI identity to research. |
+| `vitamin-c-derivative` | Same reasoning — real named vitamin C derivatives (L-Ascorbic Acid, Sodium Ascorbyl Phosphate, Magnesium Ascorbyl Phosphate, Ascorbyl Glucoside) are/will be catalogued individually. |
+| `encapsulated-retinoid` | A delivery-technology descriptor, not a named compound — "encapsulated" describes a formulation technique applicable to several different real retinoids already catalogued separately (Retinol, Retinaldehyde, Retinyl Palmitate). |
+| `electrospun-nanofibre` | Same — a delivery-technology descriptor, not a named cosmetic ingredient. |
+| `light` | **Data artifact, not a genuine skip decision**: this row's `inci_name` is literally the string "light" with `common_name = "Marula Oil"` — a fragment left over from a malformed "Marula Oil (light)" seed entry. Already `verification_status = 'deprecated'` (confirmed live, not set by this session) and excluded from every public listing query (`.neq('verification_status', 'deprecated')`), so no visitor-facing impact — listed here only so a future Track A batch doesn't waste a cycle investigating it. A real fix (merging into the `marula-oil` row or deleting outright) is a data-quality cleanup outside this batch's scope. |
 
 If a future batch's research turns up real evidence for any of these
 (e.g. a new African Potato Extract dermatology study), it's fine to
@@ -109,11 +136,20 @@ select count(*) from ingredient_aliases;
 ```sql
 select slug, inci_name from ingredients
 where description is null
+  and verification_status != 'deprecated'
   and slug not in (
     'aha-bha-complex', 'antioxidant-complex', 'african-potato-extract',
     'botanical-actives', 'botanical-brighteners', 'botanical-extracts',
     'botanical-oil-blend', 'botanical-oils', 'brightening-complex',
-    'broad-spectrum-uv-filters'
+    'broad-spectrum-uv-filters', 'chemical-uv-filters', 'uv-filters',
+    'emollient-complex', 'emulsifiers', 'enzyme-complex', 'enzymes',
+    'fruit-enzymes', 'micellar-complex', 'mild-surfactant-base',
+    'cream-cleansing-base', 'ph-balanced-surfactants', 'multi-active-complex',
+    'multi-oil-blend', 'multi-vitamin-complex', 'vitamin-complex',
+    'nmf-complex', 'organic-botanicals', 'organic-herbal-extracts',
+    'plant-actives', 'plant-extracts', 'plant-oil-blend', 'soothing-botanicals',
+    'salicylic-acid-derivative', 'vitamin-c-derivative', 'encapsulated-retinoid',
+    'electrospun-nanofibre', 'light'
   ) -- Track A skip list, see below
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
