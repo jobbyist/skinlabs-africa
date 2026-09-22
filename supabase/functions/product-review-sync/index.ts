@@ -45,8 +45,12 @@
  * cannot be set from this codebase/session; every invocation fails fast with
  * a clear "not configured" error rather than silently doing nothing until a
  * human adds these):
- *   - GEMINI_API_KEY       Google AI Studio / Gemini API key.
- *   - FIRECRAWL_API_KEY    Firecrawl API key (api.firecrawl.dev).
+ *   - GEMINI_API_KEY_REVIEWS   Google AI Studio / Gemini API key for this
+ *     pipeline. Switched from the plain `GEMINI_API_KEY` name on
+ *     2026-09-22 after that secret returned a real 403 (auth error) on a
+ *     live run -- `GEMINI_API_KEY_REVIEWS` is a distinct, separately
+ *     managed key.
+ *   - FIRECRAWL_API_KEY        Firecrawl API key (api.firecrawl.dev).
  * SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are reserved, auto-injected
  * Supabase Edge Function env vars -- never require a manual secrets-set step.
  *
@@ -490,9 +494,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  const geminiKey = Deno.env.get("GEMINI_API_KEY");
+  const geminiKey = Deno.env.get("GEMINI_API_KEY_REVIEWS");
   const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-  const missing = [!geminiKey && "GEMINI_API_KEY", !firecrawlKey && "FIRECRAWL_API_KEY"].filter(Boolean);
+  const missing = [!geminiKey && "GEMINI_API_KEY_REVIEWS", !firecrawlKey && "FIRECRAWL_API_KEY"].filter(Boolean);
   if (missing.length > 0) {
     return new Response(
       JSON.stringify({ error: `Not configured: missing ${missing.join(", ")} as Supabase Edge Function secrets (supabase secrets set ...)` }),

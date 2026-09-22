@@ -76,8 +76,12 @@ const corsHeaders = {
 const DAILY_BRIEFINGS_CAP = 3;
 /** Per-run cap on real Firecrawl network calls; cache hits cost nothing. */
 const MAX_FIRECRAWL_CALLS_PER_RUN = 5;
-/** Minimum body word count -- shorter output won't be published. */
-const MIN_BODY_WORD_COUNT = 1800;
+/** Minimum body word count -- shorter output won't be published. Lowered
+ *  from 1800 to 1500 on 2026-09-22 after a live run showed gemini-3.6-flash
+ *  rate-limited/overloaded on every attempt, falling back to
+ *  gemini-3.1-flash-lite, which reliably produces ~1200-1600 words for this
+ *  prompt -- 1800 rejected every fallback-model candidate outright. */
+const MIN_BODY_WORD_COUNT = 1500;
 /** News cache TTL: 1 day (fresher than the 3-day product-page cache). */
 const SOURCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
