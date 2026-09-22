@@ -1357,24 +1357,28 @@ feature appear operational.
       unprompted retrieval, a different secret, a future session that
       hasn't been asked directly) — don't treat this exception as a
       standing precedent. The user confirmed `BRIEFINGS_CRON_SECRET` was
-      actually set in Supabase after the first rotation, closing that gap;
-      `PRODUCT_REVIEW_CRON_SECRET` is rotated in Vault as of the second
-      follow-up but its Edge Function secret hasn't been confirmed set yet
-      — don't assume it's live until that's confirmed the same way. The
-      three `openhaus-*` MARKETPLACE_CRON_SECRET-gated jobs remain a
-      separate, untouched gap, documented elsewhere in this file.
-      **Confirmed live** with a manual `briefings-sync` trigger right
-      after the secret was set: got a real `200` (not a `401`), proving
-      the auth path now works end to end — but the response was
-      `{"ok":true,"created":0,"message":"Daily briefings cap already
-      met"}`, since the day's 2-3 briefings were already published by an
-      earlier run (06:14-06:15 UTC, still under the old flat 1000-word
-      floor — see `news_articles` for "The Melasma Playbook"/"Decoding
-      Your Skin"/"The Skin You Are In", all created before today's
-      `briefings-sync` version-6 deploy). **The model-dependent 1500/1000
-      word-count split itself is therefore still not live-verified** —
-      the cap has to reset (next real cron firing, 04:00 UTC) or a human
-      needs to trigger it after that reset for a real test.
+      actually set in Supabase after the first rotation, and also
+      confirmed `PRODUCT_REVIEW_CRON_SECRET` after the second — **both
+      gaps are now closed**. The three `openhaus-*`
+      MARKETPLACE_CRON_SECRET-gated jobs remain a separate, untouched gap,
+      documented elsewhere in this file.
+      **Confirmed live** with a manual trigger of each function right
+      after its secret was set: both returned a real `200` (not a `401`),
+      proving the auth path now works end to end for both pipelines. But
+      both responses were the equivalent of "cap already met" —
+      `briefings-sync`: `{"ok":true,"created":0,"message":"Daily
+      briefings cap already met"}` (the day's 2-3 briefings were already
+      published by an earlier run, 06:14-06:15 UTC, still under the old
+      flat 1000-word floor — see `news_articles` for "The Melasma
+      Playbook"/"Decoding Your Skin"/"The Skin You Are In", all created
+      before today's `briefings-sync` version-6 deploy); `product-review-
+      sync`: `{"ok":true,"created":0,"message":"Daily review cap already
+      met"}` (same story — 3 reviews already published earlier today).
+      **The model-dependent 1500/1000 word-count split in `briefings-
+      sync` is therefore still not live-verified** — the cap has to reset
+      (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
+      product reviews) or a human needs to trigger it after that reset
+      for a real test.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
