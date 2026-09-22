@@ -650,6 +650,86 @@ feature appear operational.
       environment (no credentials to test with) — the ITN/webhook
       signature-verification code paths are implemented per each
       provider's own documented contract but unverified end-to-end.
+  - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
+    business decision to make paid plans free to try for a limited window
+    while the rest of the platform's features finish rolling out. Deliberately
+    implemented by widening the EXISTING free-trial mechanism rather than
+    zeroing out `pricing_plans` prices or adding a parallel "promo mode" —
+    nothing about entitlement resolution needed to change, since a live,
+    unexpired trial already resolves to full tier access via
+    `useMembership()`'s `resolveTier()` (`src/hooks/use-membership.ts`).
+    Migration `20260922050000_temporary_free_access_promo.sql`:
+    - Added `pricing_settings.promo_free_trial_until` (`2026-11-01T00:00:00
+      +02:00` for `control`). `start_free_trial()` now computes
+      `now() + trial_days` as before, then extends `trial_ends_at` out to
+      this date if it's later and still in the future — so a trial started
+      any time before 1 Nov 2026 runs (at least) through that date, and a
+      trial started right at the boundary still gets its normal minimum
+      length. Once the date passes (or the column is cleared), behaviour
+      reverts automatically with no code change — the same self-expiring
+      pattern already used for `skynn_advanced_assessment_config` and the
+      ingredient-pipeline Routines elsewhere in this file. **To end the
+      promo on/after 2026-11-01, a human only needs to confirm the date has
+      passed (it self-reverts) or, to end it early, `UPDATE
+      pricing_settings SET promo_free_trial_until = NULL`.**
+    - Glow Lite's trial was re-enabled (`trial_eligible = true, trial_days =
+      7`) — it had `trial_eligible = false` live (a prior direct DB change,
+      not represented in any earlier migration file; Glow Insider's 7-day
+      trial was untouched). Both currently-purchasable paid plans now have a
+      trial path for the promo to extend.
+    - **Glow VIP deliberately excluded** — it's still `is_purchasable =
+      false` / "Coming soon" (virtual derm consultations haven't shipped),
+      so it isn't a "paid plan" a visitor can access at all today; making it
+      trial-accessible would surface an unfinished feature as operational,
+      against this file's standing product principle. If VIP should
+      actually be included, that needs a human decision (it would also mean
+      un-hiding VIP's own "launching soon" consult perk).
+    - Founding Member (`founding_member_offers`) reintroduced: was live but
+      `is_active = false` (`redeemed_count = 0`, nobody had claimed a spot
+      before it was switched off) — now `price = 499`, `member_cap = 100`,
+      `is_active = true`. `grants_plan = 'insider'` and `duration_months =
+      NULL` (lifetime) were already correct and untouched. Pricing.tsx's
+      founding-member card is fully DB-driven, so no frontend change was
+      needed for the new price/cap to show up.
+    - **"Except ad-free browsing"** needed no code change — `AdSlot.tsx` has
+      never actually gated ads by membership tier (it renders unconditionally
+      for every account today, despite "Ad-free & offline browsing" being
+      listed as a VIP-only benefit string in `pricing_plans.benefits`), so
+      ads already show to trialing and paying accounts alike. **"Advanced AI
+      Analysis Passes stay a once-off payment for everyone"** also needed no
+      change — that's the existing `credit_packs` purchase path
+      (`AnalysisPassPurchaseModal.tsx`), already available to any signed-in
+      account regardless of tier, hybrid with membership access exactly as
+      before.
+    - **Deliberately NOT retroactive** — accounts already trialing or
+      already paying before this migration are untouched; this only changes
+      what a *new* trial grants going forward, matching "users can sign up
+      ... for free" (signup-oriented in the request, not a promise to
+      existing accounts). If backdating existing trials/subscriptions to the
+      promo terms was actually intended, that's a separate, larger decision
+      (touching live user billing state and possibly PayFast/PayPal
+      recurring subscriptions) that wasn't attempted here.
+    - **Frontend**: `src/lib/promo.ts` holds the promo's end date/copy as a
+      UI-only constant (`PROMO_END_AT`) — kept in sync with, but not
+      programmatically derived from, `pricing_settings.promo_free_trial_until`
+      (the actual server-enforced cutoff); update both if the date ever
+      changes. `Pricing.tsx` shows a promo callout and swaps the trial
+      button's "Try free for N days" copy for "Free until 1 November 2026"
+      when the promo is active, so the button text doesn't undersell the
+      real, longer grant. A new sitewide, dismissible
+      `PromoAnnouncementBar.tsx` renders above the nav — see the comment in
+      `Header.tsx` for how it adds height above the fixed header without
+      editing every page's own hardcoded `pt-*` class (a non-fixed h-9
+      spacer rendered by `Header.tsx` itself, right where `<Header />` is
+      invoked on every page, reserves the matching flow space; the fixed nav
+      `<header>` shifts from `top-0` to `top-9` to sit below the bar). Also
+      added to `Announcements.tsx`. **Known limitation**: before a visitor
+      dismisses the bar, its ~36px adds to the fixed header's effective
+      footprint; most pages already over-pad their own top spacing beyond
+      what the header strictly needs (existing `pt-20`/`pt-28` variance
+      across pages already shows this slack), so this is expected to be a
+      non-issue in practice, but it wasn't audited page-by-page — dismissing
+      the bar (or 2026-11-01 passing) removes the risk entirely.
 - **Email & lifecycle automation** (2026-09-16, extended 2026-09-19) —
   full design/inventory doc: **`docs/email-automation-system.md`** (read
   that first before touching anything here — this bullet is a pointer,
