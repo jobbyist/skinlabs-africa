@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { AlertTriangle, Clock, Sparkles, CheckCircle2, Snowflake, ShieldAlert } from "lucide-react";
 import FeatureGate from "@/components/FeatureGate";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,18 @@ const FLAG_META: Record<ConflictFlag["interactionType"], { label: string; icon: 
   buffers: { label: "Helps buffer irritation", icon: CheckCircle2, className: "border-blue-500/30 bg-blue-500/5 text-blue-600 dark:text-blue-400" },
 };
 
+/** Renders an ingredient's display name, linked to its /ingredients/:slug
+ *  profile when a real slug is available (never a guessed/broken link). */
+const IngredientName = ({ ingredient }: { ingredient: ConflictFlag["ingredientA"] }) => {
+  const name = ingredient.commonName || ingredient.inciName;
+  if (!ingredient.slug) return <>{name}</>;
+  return (
+    <Link to={`/ingredients/${ingredient.slug}`} className="underline underline-offset-2 hover:no-underline">
+      {name}
+    </Link>
+  );
+};
+
 const FlagCard = ({ flag }: { flag: ConflictFlag }) => {
   const meta = FLAG_META[flag.interactionType];
   const Icon = meta.icon;
@@ -25,7 +38,7 @@ const FlagCard = ({ flag }: { flag: ConflictFlag }) => {
     <div className={`rounded-xl border p-3.5 text-xs ${meta.className}`}>
       <div className="flex items-center gap-1.5 font-semibold">
         <Icon className="h-3.5 w-3.5" />
-        {nameA} + {nameB} — {meta.label}
+        <IngredientName ingredient={flag.ingredientA} /> + <IngredientName ingredient={flag.ingredientB} /> — {meta.label}
       </div>
       <p className="mt-1 opacity-80">
         {nameA} ({productsA}) · {nameB} ({productsB})

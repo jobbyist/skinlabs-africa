@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          detail: Json
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          detail?: Json
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       advanced_assessment_events: {
         Row: {
           created_at: string
@@ -384,6 +411,33 @@ export type Database = {
           source_url?: string
           verdict?: string
           where_to_buy?: string
+        }
+        Relationships: []
+      }
+      analytics_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          path: string | null
+          payload: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          path?: string | null
+          payload?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          path?: string | null
+          payload?: Json
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1269,6 +1323,7 @@ export type Database = {
           created_at: string
           description: string | null
           evidence_level: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes: string | null
           function_summary: string | null
           id: string
           inci_name: string
@@ -1291,6 +1346,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes?: string | null
           function_summary?: string | null
           id?: string
           inci_name: string
@@ -1313,6 +1369,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           evidence_level?: Database["public"]["Enums"]["evidence_level"] | null
+          formulation_notes?: string | null
           function_summary?: string | null
           id?: string
           inci_name?: string
@@ -4171,6 +4228,37 @@ export type Database = {
       }
     }
     Functions: {
+      admin_override_entitlement: {
+        Args: {
+          _reason: string
+          _subscription_status: string
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
+      admin_search_profiles: {
+        Args: { _page?: number; _page_size?: number; _query?: string }
+        Returns: {
+          account_status: string
+          created_at: string
+          email: string
+          founding_member: boolean
+          full_name: string
+          id: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          subscription_status: string
+          total_count: number
+          user_id: string
+        }[]
+      }
+      admin_set_user_role: {
+        Args: {
+          _grant: boolean
+          _role: Database["public"]["Enums"]["app_role"]
+          _target_user_id: string
+        }
+        Returns: undefined
+      }
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_email_job: {
         Args: { p_job_id: string; p_reason: string }
