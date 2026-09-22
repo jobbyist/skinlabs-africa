@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { PodcastEpisode } from "@/data/podcast";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 const LIKES_KEY = "skinlabs-podcast-likes";
 const EXTRA_PLAYS_KEY = "skinlabs-podcast-extra-plays";
@@ -73,6 +74,7 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
       } catch {
         // non-blocking if table/policy unavailable
       }
+      trackConversionEvent("podcast_played", { episode_slug: episode.slug });
     },
     [user],
   );
@@ -108,6 +110,7 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
       } catch {
         // non-blocking
       }
+      if (!currently) trackConversionEvent("podcast_liked", { episode_slug: episode.slug });
     },
     [user, likedByMe],
   );
@@ -129,6 +132,7 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
     } catch {
       // non-blocking if table/policy unavailable
     }
+    trackConversionEvent("podcast_shared", { episode_slug: episode.slug });
   }, [user]);
 
   return {

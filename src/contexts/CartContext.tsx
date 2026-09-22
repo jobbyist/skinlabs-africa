@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 export interface CartItem {
   productId: string;
@@ -127,6 +128,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             { onConflict: "user_id,product_id" },
           );
       }
+      trackConversionEvent("marketplace_add_to_cart", { productId, quantity });
     },
     [user],
   );

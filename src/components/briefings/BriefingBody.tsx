@@ -33,62 +33,131 @@ function parseFaqItems(faqMarkdown: string): { question: string; answer: string 
   return items;
 }
 
+export const editorialMarkdownComponents = {
+  h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2
+      className="mt-10 mb-4 font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl"
+      {...props}
+    >
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3
+      className="mt-8 mb-3 font-heading text-xl font-bold tracking-tight text-foreground md:text-2xl"
+      {...props}
+    >
+      {children}
+    </h3>
+  ),
+  h4: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h4 className="mt-6 mb-2 font-heading text-lg font-semibold text-foreground" {...props}>
+      {children}
+    </h4>
+  ),
+  p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className="my-4 text-base leading-relaxed text-muted-foreground" {...props}>
+      {children}
+    </p>
+  ),
+  ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul className="my-4 list-disc space-y-2 pl-5 text-base text-muted-foreground marker:text-primary" {...props}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children, ...props }: React.HTMLAttributes<HTMLOListElement>) => (
+    <ol className="my-4 list-decimal space-y-2 pl-5 text-base text-muted-foreground marker:text-foreground" {...props}>
+      {children}
+    </ol>
+  ),
+  li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+    <li className="leading-relaxed pl-1" {...props}>
+      {children}
+    </li>
+  ),
+  strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <strong className="font-semibold text-foreground" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <em className="italic text-muted-foreground" {...props}>
+      {children}
+    </em>
+  ),
+  a: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a
+      href={href}
+      className="font-medium text-primary underline underline-offset-2 hover:text-foreground"
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+  blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
+    <blockquote
+      className="my-6 border-l-4 border-primary/40 bg-secondary/40 py-3 pl-4 pr-3 text-base italic leading-relaxed text-muted-foreground rounded-r-xl"
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
+  table: ({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="not-prose my-8 w-full overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
+      <table className="w-full min-w-[28rem] border-collapse text-left text-sm" {...props}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className="bg-muted/60 text-foreground" {...props}>
+      {children}
+    </thead>
+  ),
+  tbody: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <tbody className="divide-y divide-border" {...props}>
+      {children}
+    </tbody>
+  ),
+  tr: ({ children, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className="transition-colors hover:bg-muted/30" {...props}>
+      {children}
+    </tr>
+  ),
+  th: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <th className="px-4 py-3 font-heading text-xs font-semibold uppercase tracking-wide text-foreground" {...props}>
+      {children}
+    </th>
+  ),
+  td: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <td className="px-4 py-3 align-top text-muted-foreground" {...props}>
+      {children}
+    </td>
+  ),
+  hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
+    <hr className="my-10 border-border" {...props} />
+  ),
+};
+
+interface BriefingBodyProps {
+  body: string;
+  /** When false, skip mid-body ad markers (Shelf Showdowns). Default true. */
+  insertAds?: boolean;
+}
+
 /**
  * Split body into segments around <!-- ad:mid-N --> markers.
  * FAQ sections render as an accordion; all ## / ### become styled H2/H3.
+ * GFM tables render as responsive comparison tables.
  */
-function BriefingBody({ body }: { body: string }) {
-  const parts = body.split(/<!--\s*ad:mid-\d+\s*-->/i);
-
-  const markdownComponents = {
-    h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-      <h2
-        className="mt-10 mb-4 font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl"
-        {...props}
-      >
-        {children}
-      </h2>
-    ),
-    h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-      <h3
-        className="mt-8 mb-3 font-heading text-xl font-bold tracking-tight text-foreground md:text-2xl"
-        {...props}
-      >
-        {children}
-      </h3>
-    ),
-    h4: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-      <h4 className="mt-6 mb-2 font-heading text-lg font-semibold text-foreground" {...props}>
-        {children}
-      </h4>
-    ),
-    p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-      <p className="my-4 text-base leading-relaxed text-muted-foreground" {...props}>
-        {children}
-      </p>
-    ),
-    ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
-      <ul className="my-4 list-disc space-y-2 pl-5 text-muted-foreground" {...props}>
-        {children}
-      </ul>
-    ),
-    ol: ({ children, ...props }: React.HTMLAttributes<HTMLOListElement>) => (
-      <ol className="my-4 list-decimal space-y-2 pl-5 text-muted-foreground" {...props}>
-        {children}
-      </ol>
-    ),
-    strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
-      <strong className="font-semibold text-foreground" {...props}>
-        {children}
-      </strong>
-    ),
-  };
+function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
+  const parts = insertAds ? body.split(/<!--\s*ad:mid-\d+\s*-->/i) : [body];
 
   const renderMarkdownSegment = (segment: string, key: string | number) => {
     const faqMatch = segment.match(/(^|\n)##\s+FAQ\s*\n([\s\S]*?)(?=\n##\s+|$)/i);
     if (!faqMatch) {
       return (
-        <ReactMarkdown key={key} remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        <ReactMarkdown key={key} remarkPlugins={[remarkGfm]} components={editorialMarkdownComponents}>
           {segment}
         </ReactMarkdown>
       );
@@ -103,7 +172,7 @@ function BriefingBody({ body }: { body: string }) {
     return (
       <div key={key}>
         {before.trim() ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={editorialMarkdownComponents}>
             {before}
           </ReactMarkdown>
         ) : null}
@@ -113,7 +182,7 @@ function BriefingBody({ body }: { body: string }) {
             id="faq-heading"
             className="mb-4 font-heading text-2xl font-bold tracking-tight text-foreground md:text-3xl"
           >
-            FAQ
+            Frequently asked questions
           </h2>
           {faqItems.length > 0 ? (
             <Accordion type="multiple" className="rounded-2xl border border-border bg-card px-4">
@@ -129,14 +198,14 @@ function BriefingBody({ body }: { body: string }) {
               ))}
             </Accordion>
           ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={editorialMarkdownComponents}>
               {faqFull}
             </ReactMarkdown>
           )}
         </section>
 
         {after.trim() ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={editorialMarkdownComponents}>
             {after}
           </ReactMarkdown>
         ) : null}
@@ -149,7 +218,7 @@ function BriefingBody({ body }: { body: string }) {
       {parts.map((segment, i) => (
         <div key={i}>
           {segment.trim() ? renderMarkdownSegment(segment, i) : null}
-          {i < parts.length - 1 && (
+          {insertAds && i < parts.length - 1 && (
             <div className="not-prose my-8">
               {i % 2 === 0 ? (
                 <AdSlot placement={`briefing-mid-${i + 1}`} />

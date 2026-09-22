@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import FeatureGate from "@/components/FeatureGate";
 import { practitioners } from "@/data/practitioners";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 const Consultations = () => {
   return (
@@ -94,7 +95,10 @@ const Consultations = () => {
                     </div>
 
                     <Button className="mt-6 w-full gap-2" asChild>
-                      <a href={`/contact?practitioner=${practitioner.id}`}>
+                      <a
+                        href={`/contact?practitioner=${practitioner.id}`}
+                        onClick={() => trackConversionEvent("consultation_booking_requested", { practitioner_id: practitioner.id })}
+                      >
                         <Video className="h-4 w-4" /> Request a booking
                       </a>
                     </Button>

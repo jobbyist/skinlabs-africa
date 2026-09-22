@@ -36,14 +36,38 @@
  *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash". (gemini-2.0-flash was
  *     retired by Google -- confirmed live via a 404 from the real API on 2026-09-13,
  *     which named gemini-3.6-flash as the direct replacement.)
+ *   - GEMINI_MODEL_FALLBACK_1   Defaults to "gemini-3.1-flash-lite" -- tried when
+ *     GEMINI_MODEL is rate-limited, erroring, timing out or returning malformed
+ *     output that a repair retry couldn't fix. See api/_lib/geminiFallback.ts for
+ *     the exact per-error routing table (which errors fall back vs. retry vs. abort
+ *     the whole run outright).
+ *   - GEMINI_MODEL_FALLBACK_2   Defaults to "gemini-3.5-flash-lite" -- tried only if
+ *     both GEMINI_MODEL and GEMINI_MODEL_FALLBACK_1 are exhausted for a candidate.
  *   - FIRECRAWL_DAILY_LIMIT     Defaults to 20 real Firecrawl calls/day.
  *   - GEMINI_DAILY_LIMIT        Defaults to 100 real Gemini calls/day.
  *   - GEMINI_PER_MINUTE_LIMIT   Defaults to 10 real Gemini calls/minute.
  *   - VITE_SUPABASE_URL         Reused if set (already present for the client build);
  *     falls back to the hardcoded production project URL otherwise.
+ *
+ * Manual backfill: POST with ?backfillDate=YYYY-MM-DD (still requires the same
+ * Bearer CRON_SECRET auth) publishes up to DAILY_REVIEW_CAP reviews dated that day
+ * instead of today, and checks/writes the cap against that date -- lets a human
+ * retroactively fill a day the pipeline missed (e.g. while it was broken) without
+ * touching today's own cap or already-published reviews.
+ *
+ * Every Gemini call attempt (across the full fallback chain, including retries and
+ * repair attempts) is logged to pipeline_model_calls -- see the migration
+ * gemini_model_fallback_logging_and_retry_queue.sql. A candidate whose entire
+ * fallback chain is exhausted (all three models failed) is queued in
+ * pipeline_retry_queue for a lazy retry on this pipeline's next invocation (see that
+ * table's own comment for why this is a lazy queue and not a live 15-minute timer --
+ * Vercel Hobby-tier cron doesn't support sub-daily schedules).
  */
 
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { callGeminiWithFallback, GeminiFatalError, GeminiAllModelsExhaustedError, type GeminiAttemptLog } from "./_lib/geminiFallback.js";
+import { scanComplianceFlags } from "./_lib/complianceTerms.js";
 
 interface VercelReq {
   method?: string;
@@ -276,43 +300,12 @@ local_price_zar: the ZAR price from the source. If the source gives a different
 currency, convert at a reasonable approximate rate and note nothing extra -- just the number.
 category: pick the single best fit from the provided enum.`;
 
-class GeminiError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-  }
-}
-
-interface GeminiApiResponse {
-  candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-}
-
-async function generateReview(sourceText: string, apiKey: string, model: string): Promise<GeneratedReviewFields> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: REVIEW_INSTRUCTIONS }] },
-      contents: [{ parts: [{ text: sourceText.slice(0, 14000) }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: REVIEW_SCHEMA,
-        temperature: 0.4,
-      },
-    }),
-  });
-
-  const payload = (await res.json().catch(() => null)) as GeminiApiResponse | null;
-  if (!res.ok) {
-    throw new GeminiError(res.status, `Gemini ${res.status}: ${JSON.stringify(payload)?.slice(0, 300)}`);
-  }
-
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string") throw new Error("Gemini returned no usable content");
-
+/** Parses + validates a raw Gemini response into GeneratedReviewFields, throwing on
+ *  anything unparseable so the shared fallback module's malformed_output/repair path
+ *  kicks in -- never silently coerces bad JSON into a "best effort" object. */
+function parseReviewResponse(text: string): GeneratedReviewFields {
   const parsed = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
   return {
     product_name: String(parsed.product_name ?? "").slice(0, 120),
     brand: String(parsed.brand ?? "").slice(0, 80),
@@ -326,6 +319,35 @@ async function generateReview(sourceText: string, apiKey: string, model: string)
     verdict: String(parsed.verdict ?? "").slice(0, 500),
     key_ingredients: Array.isArray(parsed.key_ingredients) ? parsed.key_ingredients.slice(0, 6) : [],
   };
+}
+
+/** QA gate: runs after generation, before insert. A candidate that fails QA is
+ *  skipped (never published) rather than failing the whole run -- matches the
+ *  Firecrawl/Gemini pattern of "one bad candidate doesn't sink the run." */
+function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!fields.product_name || fields.product_name.trim().length < 2) reasons.push("missing/too-short product_name");
+  if (!fields.brand || fields.brand.trim().length < 2) reasons.push("missing/too-short brand");
+  if (!(fields.local_price_zar > 0)) reasons.push("non-positive local_price_zar");
+  if (!(KNOWN_CATEGORIES as readonly string[]).includes(fields.category)) reasons.push("category outside known enum");
+  if (!fields.verdict || fields.verdict.trim().length < 20) reasons.push("verdict too short to be a real review");
+  if (fields.key_ingredients.length === 0) reasons.push("no key_ingredients returned");
+  for (const [label, score] of [
+    ["score_efficacy", fields.score_efficacy],
+    ["score_value", fields.score_value],
+    ["score_texture", fields.score_texture],
+    ["score_climate", fields.score_climate],
+  ] as const) {
+    if (!(score >= 0 && score <= 10)) reasons.push(`${label} out of 0-10 range`);
+  }
+  // Never let an unverifiable superlative or named-condition treatment claim through --
+  // the source material never supports these, so their presence means the model
+  // fabricated language beyond what it was grounded in.
+  if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fields.verdict)) {
+    reasons.push("verdict contains an unverifiable superlative/clinical claim");
+  }
+  for (const flag of scanComplianceFlags(fields.verdict)) reasons.push(flag);
+  return { passed: reasons.length === 0, reasons };
 }
 
 // ---------------------------------------------------------------------------
@@ -426,281 +448,370 @@ async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: st
   return { pages, madeRealCall: true };
 }
 
-// ---------------------------------------------------------------------------
-// INGREDIENT DEMAND SIGNAL: every published review's key_ingredients are resolved
-// against the live `ingredients` catalogue (same alias-aware `search_ingredients` RPC
-// the frontend's src/lib/resolveIngredientSlug.ts uses). Anything unresolved is queued
-// into `ingredient_generation_requests` for the Ingredients Intelligence content
-// pipeline (see supabase/INGREDIENT_CONTENT_STATUS.md) to pick up on its next
-// scheduled run -- this function never generates ingredient content itself.
-// ---------------------------------------------------------------------------
 
-interface SearchIngredientRow {
-  id: string;
+
+interface MarketplaceProductRow {
   slug: string;
-  common_name: string | null;
-  inci_name: string | null;
-}
-
-async function isIngredientResolved(admin: SupabaseAdmin, rawName: string): Promise<boolean> {
-  const { data } = await admin.rpc("search_ingredients", { p_search: rawName, p_page: 1, p_per_page: 5 });
-  const rows = (data ?? []) as SearchIngredientRow[];
-  const lower = rawName.trim().toLowerCase();
-  return rows.some((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower);
-}
-
-async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: string[], reviewId: string) {
-  for (const rawName of keyIngredients) {
-    const normalized = rawName.trim().toLowerCase();
-    if (!normalized) continue;
-    try {
-      if (await isIngredientResolved(admin, rawName)) continue;
-      await admin.from("ingredient_generation_requests").upsert(
-        {
-          requested_name: rawName.trim(),
-          normalized_name: normalized,
-          source: "product_review_generated",
-          source_ref: reviewId,
-        },
-        { onConflict: "normalized_name", ignoreDuplicates: true },
-      );
-    } catch (err) {
-      // Demand-signal queuing is best-effort -- never fails the review publish itself.
-      console.error(`queueUnresolvedIngredients: failed for "${rawName}"`, err);
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// ORCHESTRATOR: ties researcher (Firecrawl) -> analyst/writer (Gemini) -> memory +
-// publication (Supabase) together for one run. Invoked by Vercel Cron daily, or
-// manually with the same Authorization: Bearer $CRON_SECRET header.
-// ---------------------------------------------------------------------------
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `${name} is not configured for this Vercel project -- the product review pipeline cannot run until an admin adds it.`,
-    );
-  }
-  return value;
-}
-
-interface SiteRunOutcome {
-  site: string;
-  status: "published" | "skipped" | "error";
-  reason?: string;
-  reviewId?: string;
-}
-
-/** Publishes at most one review from a researched source page. Returns null (not an
- *  error) when Gemini quota is exhausted or the model's output doesn't clear the bar
- *  for publication -- the caller moves on to the next source rather than failing. */
-async function publishOneReview(
-  admin: SupabaseAdmin,
-  site: SourceSite,
-  page: FirecrawlPage,
-  geminiApiKey: string,
-  geminiModel: string,
-): Promise<{ reviewId: string } | null> {
-  if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) return null;
-  if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
-    await sleep(6000);
-    if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) return null;
-  }
-
-  let fields: GeneratedReviewFields;
-  try {
-    fields = await generateReview(`${page.title}\n\n${page.markdown}`, geminiApiKey, geminiModel);
-    await recordApiUsage(admin, "gemini", site.url, true);
-  } catch (err) {
-    await recordApiUsage(admin, "gemini", site.url, false);
-    throw err;
-  }
-
-  if (!fields.product_name.trim() || !fields.brand.trim()) return null;
-
-  const baseId = slugify(`${fields.brand}-${fields.product_name}`) || slugify(fields.product_name) || "sa-skincare-review";
-  let id = baseId;
-  const { data: existingById } = await admin.from("ai_generated_product_reviews").select("id").eq("id", id).maybeSingle();
-  if (existingById) id = `${baseId}-${Date.now().toString(36).slice(-4)}`;
-
-  const retailers = [
-    {
-      retailer: site.retailerHint,
-      price_zar: fields.local_price_zar,
-      in_stock: true,
-      url: page.url,
-    },
-  ];
-
-  const { error: insertError } = await admin.from("ai_generated_product_reviews").insert({
-    id,
-    product_name: fields.product_name,
-    brand: fields.brand,
-    local_price_zar: fields.local_price_zar,
-    where_to_buy: site.retailerHint,
-    category: fields.category,
-    skin_type_match: fields.skin_type_match,
-    score_efficacy: fields.score_efficacy,
-    score_value: fields.score_value,
-    score_texture: fields.score_texture,
-    score_climate: fields.score_climate,
-    verdict: fields.verdict,
-    key_ingredients: fields.key_ingredients,
-    retailers,
-    origin: site.origin,
-    source_url: page.url,
-    source_type: site.sourceType,
-    is_sponsored: site.isSponsored,
-    generated_by: "gemini",
-    data_quality_status: "unverified",
-  });
-
-  if (insertError) throw new Error(`Insert failed for "${id}": ${insertError.message}`);
-
-  await queueUnresolvedIngredients(admin, fields.key_ingredients, id);
-
-  return { reviewId: id };
-}
-
-/** Bumps the current Spotlight edition/methodology version once the total published
- *  review count (static catalogue baseline + this table) crosses the next multiple of
- *  SPOTLIGHT_BUMP_INTERVAL since the current edition's own snapshot. Never touches
- *  src/data/spotlight.ts's hand-written brandEditorial narrative -- purely mechanical. */
-async function maybeBumpSpotlight(admin: SupabaseAdmin): Promise<boolean> {
-  const { count } = await admin.from("ai_generated_product_reviews").select("id", { count: "exact", head: true });
-  const totalReviews = STATIC_REVIEW_BASELINE + (count ?? 0);
-
-  const { data: current } = await admin
-    .from("spotlight_editions")
-    .select("id, edition_label, methodology_version, review_count_at_snapshot")
-    .eq("is_current", true)
-    .maybeSingle();
-  if (!current) return false;
-
-  const snapshot = current.review_count_at_snapshot as number;
-  const nextThreshold = Math.floor(snapshot / SPOTLIGHT_BUMP_INTERVAL) * SPOTLIGHT_BUMP_INTERVAL + SPOTLIGHT_BUMP_INTERVAL;
-  if (totalReviews < nextThreshold) return false;
-
-  const versionMatch = /^(.*v)(\d+)\.(\d+)$/.exec(current.methodology_version as string);
-  const nextVersion = versionMatch ? `${versionMatch[1]}${versionMatch[2]}.${Number(versionMatch[3]) + 1}` : `${current.methodology_version} v2`;
-  const nextLabel = new Date().toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
-
-  await admin.from("spotlight_editions").update({ is_current: false }).eq("id", current.id as string);
-  const { error: insertError } = await admin.from("spotlight_editions").insert({
-    edition_label: nextLabel,
-    methodology_version: nextVersion,
-    review_count_at_snapshot: totalReviews,
-    is_current: true,
-  });
-  if (insertError) throw new Error(`Spotlight bump insert failed: ${insertError.message}`);
-  return true;
+  name: string;
+  description: string;
+  marked_up_price_zar: number;
+  category: string;
+  key_actives: string[] | null;
+  concern: string[] | null;
+  brand: { name: string } | null;
 }
 
 export default async function handler(req: VercelReq, res: VercelRes) {
-  if (req.method && req.method !== "GET" && req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
+  const cronSecret = process.env.CRON_SECRET;
+  const authHeader = String(req.headers.authorization ?? "");
+  const authorised = Boolean(cronSecret) && authHeader === `Bearer ${cronSecret}`;
+  if (!authorised) {
+    res.status(401).json({ error: "Not authorised" });
     return;
   }
 
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = req.headers.authorization;
-    const provided = Array.isArray(authHeader) ? authHeader[0] : authHeader;
-    if (provided !== `Bearer ${cronSecret}`) {
-      res.status(401).json({ error: "Unauthorized" });
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const missing = [
+    !geminiKey && "GEMINI_API_KEY",
+    !firecrawlKey && "FIRECRAWL_API_KEY",
+    !serviceRoleKey && "SUPABASE_SERVICE_ROLE_KEY",
+  ].filter(Boolean);
+  if (missing.length > 0) {
+    res.status(500).json({ error: `Not configured: missing ${missing.join(", ")} in Vercel project environment variables` });
+    return;
+  }
+
+  const modelChain = [
+    process.env.GEMINI_MODEL || "gemini-3.6-flash",
+    process.env.GEMINI_MODEL_FALLBACK_1 || "gemini-3.1-flash-lite",
+    process.env.GEMINI_MODEL_FALLBACK_2 || "gemini-3.5-flash-lite",
+  ];
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin: SupabaseAdmin = createClient(SUPABASE_URL, serviceRoleKey as string, { auth: { persistSession: false } });
+
+  const rawBackfillDate = String(req.query.backfillDate ?? "");
+  const backfillDate = /^\d{4}-\d{2}-\d{2}$/.test(rawBackfillDate) ? rawBackfillDate : null;
+  const today = backfillDate ?? new Date().toISOString().slice(0, 10);
+  const runId = crypto.randomUUID();
+  const errors: string[] = [];
+  const modelUsage: Record<string, number> = {};
+  let created = 0;
+
+  /** Persists every Gemini attempt for this pipeline run: a detailed per-model log
+   *  (pipeline_model_calls) plus the existing aggregate quota counter (pipeline_api_usage,
+   *  provider "gemini") so withinDailyQuota/withinPerMinuteQuota keep counting every real
+   *  call across the whole fallback chain, not just the first attempt per candidate. */
+  const logModelAttempt = (candidateKey: string) => async (log: GeminiAttemptLog) => {
+    await recordApiUsage(admin, "gemini", candidateKey, log.outcome === "success");
+    try {
+      await admin.from("pipeline_model_calls").insert({
+        pipeline: "product-review-sync",
+        run_id: runId,
+        candidate_key: candidateKey,
+        model: log.model,
+        attempt_number: log.attemptNumber,
+        outcome: log.outcome,
+        http_status: log.httpStatus ?? null,
+        message: log.message ?? null,
+        duration_ms: log.durationMs,
+      });
+    } catch {
+      // Model-usage logging must never break the run itself.
+    }
+  };
+
+  try {
+    // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
+    // Firecrawl/Gemini call is even considered. ----
+    const { count: publishedToday } = await admin
+      .from("ai_generated_product_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("published_date", today);
+    if ((publishedToday ?? 0) >= DAILY_REVIEW_CAP) {
+      res.status(200).json({ ok: true, created: 0, message: "Daily review cap already met" });
       return;
     }
-  }
+    const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
 
-  let geminiApiKey: string;
-  let firecrawlApiKey: string;
-  let serviceRoleKey: string;
-  try {
-    geminiApiKey = requireEnv("GEMINI_API_KEY");
-    firecrawlApiKey = requireEnv("FIRECRAWL_API_KEY");
-    serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
-  } catch (err) {
-    res.status(500).json({ configured: false, error: (err as Error).message });
-    return;
-  }
+    // ---- Lazy retry queue: process anything already due before pulling fresh
+    // candidates (see pipeline_retry_queue's own migration comment for why this is
+    // lazy-on-next-invocation rather than a live 15-minute timer). ----
+    const { data: dueRetries } = await admin
+      .from("pipeline_retry_queue")
+      .select("id, candidate_payload, attempt_count")
+      .eq("pipeline", "product-review-sync")
+      .eq("resolved", false)
+      .lte("retry_after", new Date().toISOString())
+      .limit(target * 2);
 
-  const geminiModel = process.env.GEMINI_MODEL || "gemini-3.6-flash";
-  const admin = createClient(SUPABASE_URL, serviceRoleKey, { auth: { persistSession: false } }) as SupabaseAdmin;
+    const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("source_url, origin");
+    const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
+    const saCount = (existingRows ?? []).filter((r: { origin: string }) => r.origin === "south_africa").length;
+    const globalCount = (existingRows ?? []).length - saCount;
 
-  const results: SiteRunOutcome[] = [];
-  let published = 0;
-  let firecrawlCallsMade = 0;
+    // ---- Candidate pool A: real OpenHaus marketplace products (already-verified data,
+    // no Firecrawl/scraping needed -- Gemini only writes the verdict/scores against
+    // real fields). ----
+    const { data: marketplaceRows } = await admin
+      .from("marketplace_products")
+      .select("slug, name, description, marked_up_price_zar, category, key_actives, concern, brand:marketplace_brands(name)")
+      .eq("in_stock", true)
+      .limit(40);
 
-  // SOURCE_SITES is deliberately ordered 4 South-African sources before the 1 global/
-  // sponsored source -- for DAILY_REVIEW_CAP=3, trying sites in this order already
-  // satisfies the >=70% SA-brand editorial share target without needing a separate
-  // live-rebalancing mechanism; the global source is only reached once SA sources have
-  // no new, unpublished product to offer.
-  for (const site of SOURCE_SITES) {
-    if (published >= DAILY_REVIEW_CAP) {
-      results.push({ site: site.url, status: "skipped", reason: "Daily review cap reached" });
-      continue;
+    const marketplaceCandidates = ((marketplaceRows ?? []) as unknown as MarketplaceProductRow[]).filter(
+      (p) => !seenUrls.has(`https://skinlabs.co.za/marketplace/product/${p.slug}`),
+    );
+
+    // ---- Candidate pool B: Firecrawl-researched real product pages from the named
+    // sites, subject to the research cache and the per-run/daily quota. ----
+    const firecrawlCandidates: Array<{ site: SourceSite; page: FirecrawlPage }> = [];
+    let firecrawlCallsThisRun = 0;
+    for (const site of SOURCE_SITES) {
+      if (firecrawlCandidates.length >= target * 2) break;
+      try {
+        const result = await researchSource(admin, site, firecrawlKey as string, firecrawlCallsThisRun < MAX_FIRECRAWL_SOURCES_PER_RUN);
+        if (result.madeRealCall) firecrawlCallsThisRun += 1;
+        if (result.skippedReason) errors.push(`Firecrawl skipped ${site.url}: ${result.skippedReason}`);
+        for (const page of result.pages) {
+          if (seenUrls.has(page.url)) continue;
+          firecrawlCandidates.push({ site, page });
+        }
+      } catch (err) {
+        errors.push(`Firecrawl ${site.url}: ${String(err).slice(0, 200)}`);
+      }
+      await sleep(500);
     }
 
-    try {
-      const runBudgetRemaining = firecrawlCallsMade < MAX_FIRECRAWL_SOURCES_PER_RUN;
-      const research = await researchSource(admin, site, firecrawlApiKey, runBudgetRemaining);
-      if (research.madeRealCall) firecrawlCallsMade += 1;
+    let runningSa = saCount;
+    let runningGlobal = globalCount;
+    const wantsSa = () => runningSa / Math.max(1, runningSa + runningGlobal) < SA_SHARE_TARGET;
 
-      if (research.skippedReason) {
-        results.push({ site: site.url, status: "skipped", reason: research.skippedReason });
-        continue;
+    // Interleave: prefer whichever origin the running 70/30 split is short on.
+    interface QueueItem {
+      text: string;
+      origin: Origin;
+      sourceUrl: string;
+      sourceType: SourceType;
+      isSponsored: boolean;
+      retailerHint: Retailer | null;
+      /** Set only for a candidate pulled back out of pipeline_retry_queue. */
+      retryQueueId?: number;
+      retryAttemptCount?: number;
+    }
+    const queue: QueueItem[] = [];
+
+    for (const row of dueRetries ?? []) {
+      const payload = row.candidate_payload as Omit<QueueItem, "retryQueueId" | "retryAttemptCount"> | null;
+      if (!payload?.sourceUrl || seenUrls.has(payload.sourceUrl)) continue; // already published since queuing
+      queue.push({ ...payload, retryQueueId: row.id, retryAttemptCount: row.attempt_count });
+    }
+
+    for (const p of marketplaceCandidates) {
+      queue.push({
+        text: `Product: ${p.name}\nBrand: ${p.brand?.name ?? "Unknown"}\nCategory: ${p.category}\nPrice: R${p.marked_up_price_zar}\nDescription: ${p.description}\nKey actives: ${(p.key_actives ?? []).join(", ")}\nConcerns addressed: ${(p.concern ?? []).join(", ")}`,
+        origin: "south_africa",
+        sourceUrl: `https://skinlabs.co.za/marketplace/product/${p.slug}`,
+        sourceType: "openhaus_marketplace",
+        isSponsored: false,
+        retailerHint: null,
+      });
+    }
+    for (const { site, page } of firecrawlCandidates) {
+      queue.push({
+        text: `Source page title: ${page.title}\nSource URL: ${page.url}\n\n${page.markdown}`,
+        origin: site.origin,
+        sourceUrl: page.url,
+        sourceType: site.sourceType,
+        isSponsored: site.isSponsored,
+        retailerHint: site.retailerHint,
+      });
+    }
+
+    // Sort the queue so candidates matching whatever origin the running split needs
+    // next are tried first, without ever fully excluding the other origin.
+    queue.sort((a, b) => {
+      const aWanted = wantsSa() ? a.origin === "south_africa" : a.origin === "global_available_in_sa";
+      const bWanted = wantsSa() ? b.origin === "south_africa" : b.origin === "global_available_in_sa";
+      return Number(bWanted) - Number(aWanted);
+    });
+
+    for (const candidate of queue) {
+      if (created >= target) break;
+
+      // ---- Quota monitor (Gemini side): a daily/per-minute limit hit here means every
+      // remaining candidate would fail identically, so stop the run cleanly instead of
+      // burning through the rest of the queue. ----
+      if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
+        errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping run`);
+        break;
       }
-      if (research.pages.length === 0) {
-        results.push({ site: site.url, status: "skipped", reason: "No usable source pages found" });
-        continue;
-      }
-
-      let publishedThisSite = false;
-      for (const page of research.pages) {
-        if (published >= DAILY_REVIEW_CAP) break;
-
-        // Dedupe on source_url BEFORE spending a Gemini call.
-        const { data: existing } = await admin.from("ai_generated_product_reviews").select("id").eq("source_url", page.url).maybeSingle();
-        if (existing) continue;
-
-        const outcome = await publishOneReview(admin, site, page, geminiApiKey, geminiModel);
-        if (outcome) {
-          published += 1;
-          results.push({ site: page.url, status: "published", reviewId: outcome.reviewId });
-          publishedThisSite = true;
-          break; // one review per source site per run
+      if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+        await sleep(15000);
+        if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+          errors.push(`Gemini per-minute quota (${GEMINI_PER_MINUTE_LIMIT}) reached -- stopping run`);
+          break;
         }
       }
 
-      if (!publishedThisSite) {
-        results.push({
-          site: site.url,
-          status: "skipped",
-          reason: "No new, unpublished product found (or Gemini quota exhausted)",
+      try {
+        const { data: fields, modelUsed } = await callGeminiWithFallback({
+          apiKey: geminiKey as string,
+          models: modelChain,
+          systemInstruction: REVIEW_INSTRUCTIONS,
+          userContent: candidate.text,
+          responseSchema: REVIEW_SCHEMA,
+          temperature: 0.4,
+          parse: parseReviewResponse,
+          onAttempt: logModelAttempt(candidate.sourceUrl),
         });
+        modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
+
+        if (!fields.product_name || !fields.brand) continue;
+
+        const qa = qaProductReview(fields);
+        if (!qa.passed) {
+          errors.push(`QA rejected ${candidate.sourceUrl}: ${qa.reasons.join("; ")}`);
+          continue;
+        }
+
+        const slug = slugify(`${fields.brand}-${fields.product_name}`);
+        const id = `${slug || Date.now()}`;
+        const { data: idTaken } = await admin.from("ai_generated_product_reviews").select("id").eq("id", id).maybeSingle();
+        const finalId = idTaken ? `${id}-${Math.floor(Math.random() * 9000 + 1000)}` : id;
+
+        const retailers = candidate.retailerHint
+          ? [{ retailer: candidate.retailerHint, price_zar: fields.local_price_zar, in_stock: true, url: candidate.sourceUrl }]
+          : [];
+
+        const { error } = await admin.from("ai_generated_product_reviews").insert({
+          id: finalId,
+          product_name: fields.product_name,
+          brand: fields.brand,
+          local_price_zar: fields.local_price_zar,
+          where_to_buy:
+            candidate.sourceType === "openhaus_marketplace" ? "OpenHaus Marketplace" : candidate.retailerHint ?? "Brand Direct",
+          category: fields.category,
+          skin_type_match: fields.skin_type_match,
+          score_efficacy: fields.score_efficacy,
+          score_value: fields.score_value,
+          score_texture: fields.score_texture,
+          score_climate: fields.score_climate,
+          verdict: fields.verdict,
+          key_ingredients: fields.key_ingredients,
+          retailers,
+          origin: candidate.origin,
+          source_url: candidate.sourceUrl,
+          source_type: candidate.sourceType,
+          is_sponsored: candidate.isSponsored,
+          generated_by: modelUsed,
+          published_date: today,
+        });
+
+        if (error) {
+          errors.push(`${candidate.sourceUrl}: ${error.message}`);
+        } else {
+          created += 1;
+          seenUrls.add(candidate.sourceUrl);
+          if (candidate.origin === "south_africa") runningSa += 1;
+          else runningGlobal += 1;
+          if (candidate.retryQueueId) {
+            await admin
+              .from("pipeline_retry_queue")
+              .update({ resolved: true, resolved_at: new Date().toISOString() })
+              .eq("id", candidate.retryQueueId);
+          }
+        }
+      } catch (err) {
+        if (err instanceof GeminiFatalError) {
+          // Auth or invalid-request failure: every remaining candidate would fail
+          // identically, and blindly trying weaker models wouldn't fix a broken API
+          // key or a bad prompt/schema. Stop the whole run and surface this loudly
+          // rather than burning through the queue -- this needs a human to look at
+          // the Vercel/Google AI Studio config, not a retry.
+          errors.push(`ALERT (Gemini config, run stopped): ${err.message}`);
+          break;
+        }
+        if (err instanceof GeminiAllModelsExhaustedError) {
+          errors.push(
+            `All ${modelChain.length} Gemini models exhausted for ${candidate.sourceUrl} -- queued for retry: ` +
+              err.attempts.map((a) => `${a.model}#${a.attemptNumber}=${a.outcome}`).join(", "),
+          );
+          try {
+            if (candidate.retryQueueId) {
+              const nextAttempt = (candidate.retryAttemptCount ?? 1) + 1;
+              if (nextAttempt > 5) {
+                // Cap retries so a persistently-failing candidate doesn't loop forever --
+                // left unresolved for manual review rather than retried indefinitely.
+                errors.push(`${candidate.sourceUrl} exceeded max retry attempts (5) -- left unresolved for manual review`);
+              } else {
+                await admin
+                  .from("pipeline_retry_queue")
+                  .update({ attempt_count: nextAttempt, retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString() })
+                  .eq("id", candidate.retryQueueId);
+              }
+            } else {
+              await admin.from("pipeline_retry_queue").insert({
+                pipeline: "product-review-sync",
+                candidate_payload: {
+                  text: candidate.text,
+                  origin: candidate.origin,
+                  sourceUrl: candidate.sourceUrl,
+                  sourceType: candidate.sourceType,
+                  isSponsored: candidate.isSponsored,
+                  retailerHint: candidate.retailerHint,
+                },
+                reason: err.message.slice(0, 300),
+                retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+              });
+            }
+          } catch (queueErr) {
+            errors.push(`Failed to queue ${candidate.sourceUrl} for retry: ${String(queueErr).slice(0, 200)}`);
+          }
+        } else {
+          errors.push(String(err).slice(0, 300));
+        }
+      }
+      await sleep(1200);
+    }
+
+    // ---- Spotlight edition auto-bump every SPOTLIGHT_BUMP_INTERVAL published reviews ----
+    try {
+      const { count: totalGenerated } = await admin.from("ai_generated_product_reviews").select("id", { count: "exact", head: true });
+      const totalReviews = STATIC_REVIEW_BASELINE + (totalGenerated ?? 0);
+
+      const { data: currentEdition } = await admin
+        .from("spotlight_editions")
+        .select("id, review_count_at_snapshot, methodology_version")
+        .eq("is_current", true)
+        .maybeSingle();
+
+      if (currentEdition) {
+        const lastMilestone = Math.floor(currentEdition.review_count_at_snapshot / SPOTLIGHT_BUMP_INTERVAL);
+        const currentMilestone = Math.floor(totalReviews / SPOTLIGHT_BUMP_INTERVAL);
+        if (currentMilestone > lastMilestone) {
+          const versionMatch = /v(\d+)\.(\d+)/.exec(currentEdition.methodology_version);
+          const nextVersion = versionMatch
+            ? `Spotlight Methodology v${versionMatch[1]}.${Number(versionMatch[2]) + 1}`
+            : currentEdition.methodology_version;
+          const nextLabel = new Date().toLocaleDateString("en-ZA", { month: "long", year: "numeric" });
+
+          await admin.from("spotlight_editions").update({ is_current: false }).eq("id", currentEdition.id);
+          await admin.from("spotlight_editions").insert({
+            edition_label: nextLabel,
+            methodology_version: nextVersion,
+            review_count_at_snapshot: totalReviews,
+            is_current: true,
+          });
+        }
       }
     } catch (err) {
-      results.push({ site: site.url, status: "error", reason: (err as Error).message });
+      errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
     }
-  }
 
-  let spotlightBumped = false;
-  try {
-    spotlightBumped = await maybeBumpSpotlight(admin);
+    res.status(200).json({ ok: true, created, target, modelUsage, backfillDate, errors });
   } catch (err) {
-    // A Spotlight edition bump is a nice-to-have -- never fail the whole run over it.
-    console.error("maybeBumpSpotlight failed", err);
+    res.status(500).json({ error: String(err).slice(0, 500), created, errors });
   }
-
-  res.status(200).json({
-    configured: true,
-    publishedCount: published,
-    firecrawlCallsMade,
-    spotlightBumped,
-    results,
-  });
 }

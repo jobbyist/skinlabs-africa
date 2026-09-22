@@ -221,7 +221,7 @@ export default function MarketplaceRestrictedAccess({ onUnlocked }: Props) {
             <div className="rounded-2xl border border-white/15 bg-white/5 p-6 shadow-2xl backdrop-blur-xl">
               <h2 className="text-lg font-semibold text-white">Team / partner unlock</h2>
               <p className="mt-1 text-sm text-stone-400">
-                Enter the credentials configured in Vercel to browse the live marketplace preview.
+                Enter the login credentials provided by the SkinLabs® support team to browse the live marketplace preview.
               </p>
               <form onSubmit={handleUnlock} className="mt-5 space-y-4">
                 <div className="space-y-2">
