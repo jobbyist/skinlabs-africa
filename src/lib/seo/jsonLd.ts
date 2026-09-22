@@ -144,7 +144,7 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
  * - Never use editorial score as if it's aggregate customer rating
  */
 export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdInput) {
-  const productData: any = {
+  const productData: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${input.canonicalUrl}#product`,
