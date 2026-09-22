@@ -80,16 +80,21 @@ const corsHeaders = {
 const DAILY_BRIEFINGS_CAP = 3;
 /** Per-run cap on real Firecrawl network calls; cache hits cost nothing. */
 const MAX_FIRECRAWL_CALLS_PER_RUN = 5;
-/** Minimum body word count -- shorter output won't be published. Lowered
- *  1800 -> 1500 -> 1000 on 2026-09-22: two full live runs at 1500 (16
- *  Gemini calls total) still rejected every candidate (996-1421 words) --
- *  gemini-3.6-flash stayed rate-limited/overloaded throughout, and its
- *  fallback gemini-3.1-flash-lite consistently writes in the 1000-1400
- *  word range for this prompt regardless of retry. 1000 matches what the
- *  fallback model actually produces; raise it back once gemini-3.6-flash's
- *  rate limit clears and full-length output from the primary model is
- *  confirmed live again. */
-const MIN_BODY_WORD_COUNT = 1000;
+/** Minimum body word count -- shorter output won't be published. Split
+ *  per-model on 2026-09-22 after live data showed the two tiers behave
+ *  differently: the primary model (modelChain[0], gemini-3.6-flash by
+ *  default) is capable of genuine full-length output and is held to the
+ *  higher bar; the fallback models (gemini-3.1-flash-lite,
+ *  gemini-3.5-flash-lite) reliably produce shorter output for this prompt
+ *  no matter how many times they're retried (two full live runs at a flat
+ *  1500 floor rejected every fallback-model candidate outright -- see
+ *  CLAUDE.md's dated bullet) and are held to a lower floor instead, so a
+ *  fallback run still publishes rather than going empty every day
+ *  gemini-3.6-flash is rate-limited. Re-unify these back to one number
+ *  once gemini-3.6-flash's rate limit clears and it's confirmed reliably
+ *  winning the fallback race again. */
+const MIN_BODY_WORD_COUNT_PRIMARY_MODEL = 1500;
+const MIN_BODY_WORD_COUNT_FALLBACK_MODEL = 1000;
 /** News cache TTL: 1 day (fresher than the 3-day product-page cache). */
 const SOURCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -507,10 +512,12 @@ function parseBriefingResponse(text: string): GeneratedBriefing {
 }
 
 /** Editorial/factual QA gate: runs after generation, before insert. A briefing
- *  that fails QA is skipped (never published) rather than failing the whole run. */
-function qaBriefing(briefing: GeneratedBriefing, wordCount: number): { passed: boolean; reasons: string[] } {
+ *  that fails QA is skipped (never published) rather than failing the whole run.
+ *  minWordCount is model-dependent -- see MIN_BODY_WORD_COUNT_PRIMARY_MODEL/
+ *  MIN_BODY_WORD_COUNT_FALLBACK_MODEL's own comment for why. */
+function qaBriefing(briefing: GeneratedBriefing, wordCount: number, minWordCount: number): { passed: boolean; reasons: string[] } {
   const reasons: string[] = [];
-  if (wordCount < MIN_BODY_WORD_COUNT) reasons.push(`body word count ${wordCount} below minimum ${MIN_BODY_WORD_COUNT}`);
+  if (wordCount < minWordCount) reasons.push(`body word count ${wordCount} below minimum ${minWordCount}`);
   if (!briefing.title || briefing.title.trim().length < 10) reasons.push("missing/too-short title");
   if (!briefing.excerpt || briefing.excerpt.trim().length < 10) reasons.push("missing/too-short excerpt");
   if (briefing.key_takeaways.length === 0) reasons.push("no key_takeaways returned");
@@ -811,7 +818,8 @@ Deno.serve(async (req) => {
 
         // ---- Editorial/factual QA gate -- reject incomplete or non-compliant output ----
         const wc = countWords(briefing.body_markdown);
-        const qa = qaBriefing(briefing, wc);
+        const minWordCount = modelUsed === modelChain[0] ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_MODEL;
+        const qa = qaBriefing(briefing, wc, minWordCount);
         if (!qa.passed) {
           errors.push(`QA rejected ${channel.id}: ${qa.reasons.join("; ")}`);
           continue;
