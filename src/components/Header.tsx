@@ -44,8 +44,10 @@ import AuthDialog from "@/components/AuthDialog";
 import SiteSearch from "@/components/SiteSearch";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import PromoAnnouncementBar from "@/components/PromoAnnouncementBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
+import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/newskinlabs.png";
@@ -204,6 +206,7 @@ const Header = () => {
   const [exploreOpen, setExploreOpen] = useState(true);
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
+  const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -217,7 +220,18 @@ const Header = () => {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md">
+      {promoBarVisible && <PromoAnnouncementBar onDismiss={dismissPromoBar} />}
+      {/* Non-fixed flow spacer matching the promo bar's h-9 — this is what actually
+          pushes every page's <main> down by the bar's height. Editing each page's own
+          pt-* class isn't needed: Header renders in place of <Header /> in each page's
+          JSX, so this spacer's flow height applies right there, before <main>. */}
+      {promoBarVisible && <div className="h-9" aria-hidden="true" />}
+      <header
+        className={cn(
+          "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
+          promoBarVisible ? "top-9" : "top-0",
+        )}
+      >
         <ScrollProgressBar />
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
           {/* Logo */}
