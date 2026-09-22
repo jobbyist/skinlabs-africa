@@ -1179,6 +1179,48 @@ feature appear operational.
       correctly skips a flagged candidate rather than publishing it), not
       a bug, though worth noting if these two channels chronically
       under-produce publishable output over time.
+    - **Hardcoded cron secrets fixed (2026-09-22, same day, second
+      follow-up)** — the initial migration above's literal-constant secret
+      design (a fresh hex string baked directly into both edge functions'
+      source and the migration file) was flagged by an automated security
+      reviewer (`amazon-q-developer[bot]`) as exactly the vulnerability it
+      is: a secret checked into git is exposed to anyone with repo access,
+      forever, in history, regardless of later rotation — a real finding,
+      unlike that same reviewer's stale-training-data model-ID "fixes"
+      documented elsewhere in this file. Fixed properly using **Supabase
+      Vault** (confirmed available on this project — `vault` schema
+      exists, `vault.create_secret`/`vault.decrypted_secrets` work): two
+      fresh secrets (`product_review_cron_secret`, `briefings_cron_secret`)
+      were generated entirely server-side via `encode(gen_random_bytes(32),
+      'hex')` inside `vault.create_secret(...)` — the plaintext value was
+      never returned to or seen by this session, and never appears in any
+      committed file. The two pg_cron jobs (`cron.schedule`, same job
+      names — upserts in place) now look the secret up live at each firing
+      via `(select decrypted_secret from vault.decrypted_secrets where
+      name = '...')` in the `net.http_post` headers, instead of a literal.
+      Both edge functions were rewritten to check `Deno.env.get
+      ('PRODUCT_REVIEW_CRON_SECRET')` / `Deno.env.get('BRIEFINGS_CRON_
+      SECRET')` — real Supabase Edge Function secrets, a *different* store
+      from Vault — with the hardcoded constants deleted entirely. The
+      migration file committed to this repo (`supabase/migrations/
+      20260922050000_product_review_and_briefings_cron.sql`) was rewritten
+      to match — it now contains zero plaintext secret material, only the
+      Vault lookup by name. The two original leaked hex strings were
+      confirmed fully revoked by a live curl against both functions (401
+      with the old values). **This reintroduces the exact
+      MARKETPLACE_CRON_SECRET-style gap** this feature was originally built
+      to route around: since no tool in this environment can run `supabase
+      secrets set`, the cron-triggered path 401s until a human does —
+      retrieve each value by running `select decrypted_secret from
+      vault.decrypted_secrets where name = 'product_review_cron_secret'`
+      (or `'briefings_cron_secret'`) directly in the Supabase SQL editor
+      (never pasted into a commit, PR or chat transcript) and run
+      `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` /
+      `BRIEFINGS_CRON_SECRET=<value>`. This is the correct tradeoff — a
+      real secret-management gap that needs one human step, not a security
+      hole that ships to get around it. The admin-JWT auth path on both
+      functions is unaffected and still works immediately for manual
+      triggering in the meantime, exactly as it did before this fix.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded

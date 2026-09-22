@@ -17,13 +17,21 @@
  * has full deploy/SQL/cron access to this Supabase project).
  *
  * Auth accepts EITHER of:
- *   - `x-cron-secret: <BRIEFINGS_CRON_SECRET>` -- the literal constant
- *     below, embedded directly in both this file and the pg_cron job's
- *     net.http_post call (see supabase/migrations/
- *     20260922_product_review_and_briefings_cron.sql). Deliberately NOT a
- *     Deno.env.get(...) project secret -- see product-review-sync's header
- *     comment for why (avoids the exact "secret never got set" trap this
- *     project's MARKETPLACE_CRON_SECRET-gated jobs are already stuck in).
+ *   - `x-cron-secret: <value>` checked against the `BRIEFINGS_CRON_SECRET`
+ *     Supabase Edge Function secret (`Deno.env.get(...)` -- never a literal
+ *     in source). The pg_cron job that calls this function (see
+ *     supabase/migrations/20260922_product_review_and_briefings_cron.sql)
+ *     pulls the same value from Supabase Vault at call time
+ *     (`vault.decrypted_secrets`), so the plaintext secret is never
+ *     committed to this repo in either the function source or the
+ *     migration file -- only referenced by name. A prior revision of this
+ *     file hardcoded the secret directly in source (flagged by an
+ *     automated security reviewer, 2026-09-22, and correctly so); it has
+ *     been rotated -- see product-review-sync/index.ts's header comment
+ *     for the full reasoning and the exact command to retrieve the new
+ *     value and set it as a secret. Until that's done, the cron-triggered
+ *     path 401s (same accepted gap as MARKETPLACE_CRON_SECRET-gated jobs
+ *     elsewhere in this project); the admin JWT path below still works.
  *   - A Supabase Auth JWT for a user holding the `admin` role (checked via
  *     the existing `has_role` RPC).
  *
@@ -33,6 +41,7 @@
  *   GEMINI_API_KEY_BRIEFINGS          Google AI Studio key for this pipeline.
  *   FIRECRAWL_API_KEY_BRIEFINGS       Firecrawl key for this pipeline.
  *   PEXELS_API_KEY_BRIEFINGS          Pexels API key (https://www.pexels.com/api/).
+ *   BRIEFINGS_CRON_SECRET             See auth section above.
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are reserved, auto-injected
  * Supabase Edge Function env vars.
  *
@@ -61,11 +70,6 @@ import {
   type GeminiAttemptLog,
 } from "../_shared/pipelines/geminiFallback.ts";
 import { scanComplianceFlags } from "../_shared/pipelines/complianceTerms.ts";
-
-/** Shared secret this pg_cron's net.http_post call sends as x-cron-secret.
- *  See product-review-sync/index.ts's header comment for why it's a
- *  literal constant rather than a Deno.env.get(...) project secret. */
-const BRIEFINGS_CRON_SECRET = "2fb2b03abc802b16cee0e8e3c4893de40a66a233a9cc5bf637d035f4d825926c";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -606,8 +610,9 @@ function buildJsonLd(args: {
 // ---------------------------------------------------------------------------
 
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
+  const cronSecret = Deno.env.get("BRIEFINGS_CRON_SECRET");
   const providedSecret = req.headers.get("x-cron-secret");
-  if (providedSecret && providedSecret === BRIEFINGS_CRON_SECRET) return true;
+  if (cronSecret && providedSecret && providedSecret === cronSecret) return true;
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer /, "");
