@@ -62,7 +62,7 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
                   alt=""
                   loading="lazy"
                   onError={(event) => {
-                    if (event.currentTarget.src !== window.location.origin + PLACEHOLDER_COVER) {
+                    if (event.currentTarget.src !== PLACEHOLDER_COVER && !event.currentTarget.src.endsWith(PLACEHOLDER_COVER)) {
                       event.currentTarget.src = PLACEHOLDER_COVER;
                     }
                   }}
