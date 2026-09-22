@@ -19,7 +19,9 @@ import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
 import { QuickVerdict } from "@/components/product-review/QuickVerdict";
 import { AtAGlanceCard } from "@/components/product-review/AtAGlanceCard";
 import { productReviewTitle, productReviewDescription, SITE_URL } from "@/lib/seo-config";
-import { enhancedProductReviewJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonLd";
+import { enhancedProductReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/jsonLd";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
 import { useIngredientBreakdown } from "@/hooks/use-ingredient-breakdown";
 import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
@@ -228,7 +230,11 @@ const ProductReview = () => {
             }
           : {}),
         editorialScore: score,
-        reviewBody: review.verdict,
+        // Prefer the pipeline's expanded review_body (grounded second Gemini call, see
+        // supabase/functions/product-review-sync/index.ts's generateSupplementalFields())
+        // when the pipeline has populated it -- falls back to the short verdict for the
+        // static catalogue and for any AI review not yet backfilled.
+        reviewBody: review.review_body ?? review.verdict,
         // Only include community rating if we have real member ratings (not seeded)
         ...(avgRating && comments.length > 0
           ? {
@@ -241,6 +247,7 @@ const ProductReview = () => {
         { name: "Reviews", url: `${SITE_URL}/reviews` },
         { name: review.product_name, url: canonical },
       ]),
+      ...(review.faq && review.faq.length > 0 ? [faqJsonLd({ faqs: review.faq })] : []),
     ],
   };
 
@@ -271,6 +278,7 @@ const ProductReview = () => {
 
           <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
           <h1 className="mt-1 font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
+          {review.seo_intro && <p className="mt-3 text-base leading-relaxed text-muted-foreground">{review.seo_intro}</p>}
 
           {productImage && (
             <figure className="mt-6">
@@ -312,8 +320,65 @@ const ProductReview = () => {
               category={review.category}
               priceZAR={Math.min(...review.retailers.map((r) => r.price_zar))}
               whereAvailable={review.retailers.map((r) => r.retailer).join(", ")}
+              size={review.product_size ?? undefined}
+              countryOfOrigin={review.country_of_origin ?? undefined}
+              amPmUsage={review.am_pm_usage ?? undefined}
             />
           </div>
+
+          {(review.review_body || (review.skin_concerns && review.skin_concerns.length > 0) || (review.benefits && review.benefits.length > 0) || (review.cautions && review.cautions.length > 0)) && (
+            <div className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6">
+              <h2 className="font-heading text-lg font-bold text-foreground">Editorial deep dive</h2>
+              {review.review_body && <p className="text-sm leading-relaxed text-foreground">{review.review_body}</p>}
+
+              {review.skin_concerns && review.skin_concerns.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {review.skin_concerns.map((concern) => (
+                    <Badge key={concern} variant="secondary">{concern}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {((review.benefits && review.benefits.length > 0) || (review.cautions && review.cautions.length > 0)) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {review.benefits && review.benefits.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-foreground">Benefits</h3>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        {review.benefits.map((benefit) => (
+                          <li key={benefit}>• {benefit}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {review.cautions && review.cautions.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-foreground">Cautions</h3>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        {review.cautions.map((caution) => (
+                          <li key={caution}>• {caution}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {review.faq && review.faq.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Frequently asked questions</h2>
+              <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-4">
+                {review.faq.map((item, index) => (
+                  <AccordionItem key={item.question} value={`faq-${index}`}>
+                    <AccordionTrigger className="text-left text-sm font-medium">{item.question}</AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground">{item.answer}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-1">

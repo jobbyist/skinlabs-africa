@@ -13,7 +13,7 @@ async function fetchGeneratedReviews(): Promise<ProductReview[]> {
   const { data, error } = await supabase
     .from("ai_generated_product_reviews")
     .select(
-      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date",
+      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, product_size, product_format, country_of_origin, am_pm_usage, skin_concerns, benefits, cautions, faq",
     )
     .order("published_date", { ascending: false });
 
@@ -37,6 +37,16 @@ async function fetchGeneratedReviews(): Promise<ProductReview[]> {
     key_ingredients: row.key_ingredients ?? [],
     retailers: (row.retailers as unknown as RetailerListing[] | null) ?? [],
     isNew: new Date(row.published_date).getTime() >= cutoff,
+    seo_intro: row.seo_intro,
+    review_body: row.review_body,
+    product_size: row.product_size,
+    product_format: row.product_format,
+    country_of_origin: row.country_of_origin,
+    am_pm_usage: row.am_pm_usage,
+    skin_concerns: (row.skin_concerns as unknown as string[] | null) ?? [],
+    benefits: (row.benefits as unknown as string[] | null) ?? [],
+    cautions: (row.cautions as unknown as string[] | null) ?? [],
+    faq: (row.faq as unknown as { question: string; answer: string }[] | null) ?? [],
   }));
 }
 

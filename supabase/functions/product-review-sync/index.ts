@@ -10,76 +10,39 @@
  *                  use-generated-reviews.ts -- with zero pipeline-specific UI code)
  *
  * Migrated from api/product-review-sync.ts (Vercel Cron) to this Supabase Edge
- * Function on 2026-09-22. The Vercel version required GEMINI_API_KEY/
- * FIRECRAWL_API_KEY/SUPABASE_SERVICE_ROLE_KEY/CRON_SECRET as Vercel project
- * environment variables, which are stored as Vercel's "sensitive" type --
- * genuinely unreadable via any API (confirmed live, not just documented) even
- * to the project owner, and Vercel Cron itself only be re-triggered on demand
- * via the Vercel CLI's `vercel crons run`, which needs an authenticated CLI
- * session this environment doesn't have. None of that applies here: this
- * environment has full deploy/SQL/cron access to the real Supabase project
- * (gnkpzijxuciiaamakgzm), so the pipeline can be inspected, redeployed and
- * manually triggered from this session going forward without depending on a
- * human's Vercel dashboard access.
+ * Function on 2026-09-22.
  *
  * Auth accepts EITHER of:
  *   - `x-cron-secret: <value>` checked against the `PRODUCT_REVIEW_CRON_SECRET`
- *     Supabase Edge Function secret (`Deno.env.get(...)` -- never a literal
- *     in source). The pg_cron job that calls this function (see
- *     supabase/migrations/20260922_product_review_and_briefings_cron.sql)
- *     pulls the same value from Supabase Vault at call time
- *     (`vault.decrypted_secrets`), so the plaintext secret is never
- *     committed to this repo in either the function source or the
- *     migration file -- only referenced by name. A prior revision of this
- *     file hardcoded the secret directly in source (flagged by an
- *     automated security reviewer, 2026-09-22, and correctly so -- a
- *     committed secret is a real leak risk regardless of how it's
- *     justified); it has been rotated and this is the fix.
- *     **Until a human runs `supabase secrets set
- *     PRODUCT_REVIEW_CRON_SECRET=<value>` (retrieve the value yourself via
- *     `select decrypted_secret from vault.decrypted_secrets where name =
- *     'product_review_cron_secret'` in the Supabase SQL editor -- never
- *     paste it into a commit, PR, or chat transcript), the cron-triggered
- *     path 401s** -- same accepted gap as this project's existing
- *     MARKETPLACE_CRON_SECRET-gated jobs (openhaus-fx-sync etc.). The admin
- *     JWT path below still works for manual triggering in the meantime.
- *   - A Supabase Auth JWT for a user holding the `admin` role (checked via
- *     the existing `has_role` RPC) -- lets a signed-in admin trigger a run
- *     from the browser/an authenticated script without needing the cron
- *     secret at all. Matches the same dual-auth pattern already used by
- *     supabase/functions/openhaus-price-sync/index.ts.
+ *     Supabase Edge Function secret.
+ *   - A Supabase Auth JWT for a user holding the `admin` role.
  *
- * Required Supabase Edge Function secrets (`supabase secrets set ...` --
- * cannot be set from this codebase/session; every invocation fails fast with
- * a clear "not configured" error rather than silently doing nothing until a
- * human adds these):
- *   - GEMINI_API_KEY_REVIEWS   Google AI Studio / Gemini API key for this
- *     pipeline. Switched from the plain `GEMINI_API_KEY` name on
- *     2026-09-22 after that secret returned a real 403 (auth error) on a
- *     live run -- `GEMINI_API_KEY_REVIEWS` is a distinct, separately
- *     managed key.
- *   - FIRECRAWL_API_KEY        Firecrawl API key (api.firecrawl.dev).
- *   - PRODUCT_REVIEW_CRON_SECRET  See auth section above.
- * SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are reserved, auto-injected
- * Supabase Edge Function env vars -- never require a manual secrets-set step.
+ * Required Supabase Edge Function secrets: GEMINI_API_KEY_REVIEWS, FIRECRAWL_API_KEY,
+ * PRODUCT_REVIEW_CRON_SECRET. SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are reserved.
  *
- * Optional (quota knobs -- see "QUOTA MONITOR" below; defaults are
- * deliberately conservative placeholders, not a confirmed reading of either
- * provider's actual free tier for this account/model):
- *   - GEMINI_MODEL              Defaults to "gemini-3.6-flash".
- *   - GEMINI_MODEL_FALLBACK_1   Defaults to "gemini-3.1-flash-lite".
- *   - GEMINI_MODEL_FALLBACK_2   Defaults to "gemini-3.5-flash-lite".
- *   - FIRECRAWL_DAILY_LIMIT     Defaults to 20 real Firecrawl calls/day.
- *   - GEMINI_DAILY_LIMIT        Defaults to 100 real Gemini calls/day.
- *   - GEMINI_PER_MINUTE_LIMIT   Defaults to 10 real Gemini calls/minute.
+ * Manual backfill (new reviews): POST with ?backfillDate=YYYY-MM-DD publishes up to
+ * DAILY_REVIEW_CAP reviews dated that day instead of today.
  *
- * Manual backfill: POST with ?backfillDate=YYYY-MM-DD (still requires the
- * same auth as every other invocation) publishes up to DAILY_REVIEW_CAP
- * reviews dated that day instead of today.
+ * SEO/structured supplemental fields (2026-09-22 follow-up -- see
+ * supabase/migrations/20260922120000_add_seo_review_schema_fields.sql): every newly
+ * published review now also gets a second, best-effort Gemini call
+ * (generateSupplementalFields(), SUPPLEMENT_SCHEMA/SUPPLEMENT_INSTRUCTIONS) grounded
+ * in the exact same source text, filling seo_intro/review_body/product_size/
+ * product_format/country_of_origin/am_pm_usage/skin_concerns/benefits/cautions/faq.
+ * It can never fail or block a review's publish -- that already committed by the time
+ * this runs. A handful of the migration's columns (seo_title, seo_description,
+ * key_ingredients_structured, related_ingredients_slugs, primary_image,
+ * gallery_images, related_reviews, related_knowledge_articles, community_rating,
+ * community_rating_count) are deliberately never written here -- see
+ * generateSupplementalFields()'s own header comment for why (each already has a live,
+ * more-accurate equivalent in the frontend).
  *
- * Every Gemini call attempt is logged to pipeline_model_calls. A candidate
- * whose entire fallback chain is exhausted is queued in pipeline_retry_queue
- * for a lazy retry on this pipeline's next invocation.
+ * Manual backfill (existing reviews): POST/GET with ?backfillMissingFields=true (same
+ * auth) processes up to BACKFILL_BATCH_SIZE rows published before this feature shipped
+ * -- see runBackfillPass(). Independent of the daily review cap since it only UPDATEs
+ * already-published rows. Re-invoke repeatedly to work through the full backlog; each
+ * call picks up wherever the previous one left off (selection is `seo_intro IS NULL`,
+ * oldest published_date first).
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -96,27 +59,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-/** Hard daily publication cap -- SkinLabs' own editorial rate, independent of quota. */
 const DAILY_REVIEW_CAP = 3;
-/** Hard cap on real Firecrawl network calls per run (cache hits don't count). */
 const MAX_FIRECRAWL_SOURCES_PER_RUN = 5;
-/** Target 70% South African brands / 30% global-available-in-SA per the editorial brief. */
 const SA_SHARE_TARGET = 0.7;
-/** Bump the Spotlight edition/methodology version every N published reviews. */
 const SPOTLIGHT_BUMP_INTERVAL = 25;
-/** Count of reviews already in src/data/reviews.ts at the time this pipeline shipped. */
 const STATIC_REVIEW_BASELINE = 160;
+const BACKFILL_BATCH_SIZE = 6;
+const MAX_FIRECRAWL_BACKFILL_PER_RUN = 3;
 
-// ---------------------------------------------------------------------------
-// QUOTA MONITOR (Supabase as memory) -- every real Firecrawl/Gemini call is logged to
-// pipeline_api_usage, and checked against these thresholds *before* the next call, so
-// a free-tier limit is respected proactively rather than discovered as a mid-run error.
-// ---------------------------------------------------------------------------
 const FIRECRAWL_DAILY_LIMIT = Number(Deno.env.get("FIRECRAWL_DAILY_LIMIT")) || 20;
 const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 100;
 const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
 
-/** How long a cached Firecrawl result is trusted before it's fetched fresh again. */
 const SOURCE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 const KNOWN_RETAILERS = [
@@ -135,9 +89,6 @@ const KNOWN_RETAILERS = [
 ] as const;
 type Retailer = (typeof KNOWN_RETAILERS)[number];
 
-/** Must exactly match the category taxonomy already used across src/data/reviews.ts --
- *  ReviewsGrid's category filter dropdown is derived from that static set, so a
- *  category outside it would still render but wouldn't be selectable by name. */
 const KNOWN_CATEGORIES = ["Moisturiser", "Serum", "Cleanser", "Sunscreen", "Exfoliant", "Eye Cream", "Body", "Mist"] as const;
 
 type SourceType = "faithful_to_nature" | "brand_direct" | "sponsored" | "openhaus_marketplace";
@@ -151,9 +102,6 @@ interface SourceSite {
   retailerHint: Retailer;
 }
 
-/** Primary + secondary source sites named in the editorial brief. Firecrawl is asked
- *  to find individual product pages within each rather than review the listing page
- *  itself. */
 const SOURCE_SITES: SourceSite[] = [
   {
     url: "https://www.faithful-to-nature.co.za/body-beauty/facial-skincare",
@@ -188,10 +136,6 @@ const clampScore = (value: unknown): number => {
   if (!Number.isFinite(n)) return 6;
   return Math.min(10, Math.max(0, Math.round(n * 10) / 10));
 };
-
-// ---------------------------------------------------------------------------
-// SUPABASE AS MEMORY: quota bookkeeping + research cache.
-// ---------------------------------------------------------------------------
 
 type SupabaseAdmin = SupabaseClient;
 
@@ -244,11 +188,6 @@ async function setCachedSource(admin: SupabaseAdmin, cacheKey: string, payload: 
     // Caching is an optimisation, never a requirement for the run to succeed.
   }
 }
-
-// ---------------------------------------------------------------------------
-// GEMINI: analyst + writer. Takes source text/data and returns a scored, grounded
-// verdict -- never asked to invent a product, price or claim beyond what it's given.
-// ---------------------------------------------------------------------------
 
 interface GeneratedReviewFields {
   product_name: string;
@@ -312,9 +251,6 @@ local_price_zar: the ZAR price from the source. If the source gives a different
 currency, convert at a reasonable approximate rate and note nothing extra -- just the number.
 category: pick the single best fit from the provided enum.`;
 
-/** Parses + validates a raw Gemini response into GeneratedReviewFields, throwing on
- *  anything unparseable so the shared fallback module's malformed_output/repair path
- *  kicks in -- never silently coerces bad JSON into a "best effort" object. */
 function parseReviewResponse(text: string): GeneratedReviewFields {
   const parsed = JSON.parse(text);
   if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
@@ -333,9 +269,6 @@ function parseReviewResponse(text: string): GeneratedReviewFields {
   };
 }
 
-/** QA gate: runs after generation, before insert. A candidate that fails QA is
- *  skipped (never published) rather than failing the whole run -- matches the
- *  Firecrawl/Gemini pattern of "one bad candidate doesn't sink the run." */
 function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reasons: string[] } {
   const reasons: string[] = [];
   if (!fields.product_name || fields.product_name.trim().length < 2) reasons.push("missing/too-short product_name");
@@ -352,9 +285,6 @@ function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reas
   ] as const) {
     if (!(score >= 0 && score <= 10)) reasons.push(`${label} out of 0-10 range`);
   }
-  // Never let an unverifiable superlative or named-condition treatment claim through --
-  // the source material never supports these, so their presence means the model
-  // fabricated language beyond what it was grounded in.
   if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fields.verdict)) {
     reasons.push("verdict contains an unverifiable superlative/clinical claim");
   }
@@ -362,10 +292,145 @@ function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reas
   return { passed: reasons.length === 0, reasons };
 }
 
-// ---------------------------------------------------------------------------
-// FIRECRAWL: researcher. Finds and fetches real product pages -- every call here is
-// gated by the research cache and the quota monitor before it reaches the network.
-// ---------------------------------------------------------------------------
+interface SupplementalFields {
+  seo_intro: string;
+  review_body: string;
+  product_size: string | null;
+  product_format: string | null;
+  country_of_origin: string | null;
+  am_pm_usage: string | null;
+  skin_concerns: string[];
+  benefits: string[];
+  cautions: string[];
+  faq: { question: string; answer: string }[];
+}
+
+const SUPPLEMENT_SCHEMA = {
+  type: "object",
+  properties: {
+    seo_intro: { type: "string" },
+    review_body: { type: "string" },
+    product_size: { type: "string", nullable: true },
+    product_format: { type: "string", nullable: true },
+    country_of_origin: { type: "string", nullable: true },
+    am_pm_usage: { type: "string", nullable: true },
+    skin_concerns: { type: "array", items: { type: "string" } },
+    benefits: { type: "array", items: { type: "string" } },
+    cautions: { type: "array", items: { type: "string" } },
+    faq: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { question: { type: "string" }, answer: { type: "string" } },
+        required: ["question", "answer"],
+      },
+    },
+  },
+  required: ["seo_intro", "review_body", "skin_concerns", "benefits", "cautions", "faq"],
+} as const;
+
+const SUPPLEMENT_INSTRUCTIONS = `You are extending an already-published SkinLabs South Africa product review with
+additional structured content for SEO and shopper reference. The core verdict and
+scores are already finalised and given to you below for context -- never contradict
+them, and never invent a fact (size, origin, usage timing, benefit, caution) that is
+not stated in the supplied source material.
+
+seo_intro: one or two plain sentences (roughly 30-60 words) introducing the product by
+name and brand, suitable as a page lede. No markdown, no exclamation marks, no emoji,
+no superlatives the source doesn't support.
+review_body: a 120-220 word expanded write-up consistent with the given verdict -- more
+detail on texture, performance and value, still grounded strictly in the source. Must
+never contradict the verdict.
+product_size / product_format / country_of_origin: only if explicitly stated in the
+source (e.g. "50ml", "pump bottle", "made in South Africa") -- null if not stated.
+Never guess a physical fact.
+am_pm_usage: a short, real usage-cadence note taken strictly from the source's own
+instructions (e.g. "AM and PM", "PM only, 2-3x weekly") -- null if the source gives no
+timing at all.
+skin_concerns: real concerns the source says this product addresses (0-6 short items).
+benefits: real claimed benefits stated in the source (0-6 short phrases).
+cautions: real cautions/warnings actually stated in the source only -- pregnancy/
+breastfeeding notes, patch-test advice, ingredient-interaction warnings, sensitivity
+notes. Empty array if the source states none -- never invent one to seem thorough.
+faq: 0-4 genuine question/answer pairs a shopper would realistically ask, answered only
+from the source and the given verdict/ingredients. Never phrase an answer as a
+diagnosis or treatment claim.`;
+
+function parseSupplementalResponse(text: string): SupplementalFields {
+  const parsed = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
+  const str = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+  const arr = (v: unknown, max: number, itemMax = 120) =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim().length > 0).slice(0, max).map((x) => x.slice(0, itemMax)) : [];
+  const faqRaw = Array.isArray(parsed.faq) ? parsed.faq : [];
+  return {
+    seo_intro: str(parsed.seo_intro, 300) ?? "",
+    review_body: str(parsed.review_body, 2000) ?? "",
+    product_size: str(parsed.product_size, 60),
+    product_format: str(parsed.product_format, 60),
+    country_of_origin: str(parsed.country_of_origin, 60),
+    am_pm_usage: str(parsed.am_pm_usage, 80),
+    skin_concerns: arr(parsed.skin_concerns, 6, 60),
+    benefits: arr(parsed.benefits, 6, 100),
+    cautions: arr(parsed.cautions, 4, 150),
+    faq: faqRaw
+      .filter((f: unknown): f is { question?: unknown; answer?: unknown } => typeof f === "object" && f !== null)
+      .slice(0, 4)
+      .map((f) => ({ question: String(f.question ?? "").slice(0, 150), answer: String(f.answer ?? "").slice(0, 400) }))
+      .filter((f) => f.question.length > 5 && f.answer.length > 5),
+  };
+}
+
+function qaSupplementalFields(fields: SupplementalFields): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!fields.seo_intro || fields.seo_intro.trim().length < 15) reasons.push("seo_intro missing/too short");
+  if (!fields.review_body || fields.review_body.trim().length < 60) reasons.push("review_body missing/too short");
+  const combinedProse = `${fields.seo_intro} ${fields.review_body} ${fields.faq.map((f) => f.answer).join(" ")}`;
+  if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(combinedProse)) {
+    reasons.push("supplemental content contains an unverifiable superlative/clinical claim");
+  }
+  for (const flag of scanComplianceFlags(fields.seo_intro)) reasons.push(`seo_intro: ${flag}`);
+  for (const flag of scanComplianceFlags(fields.review_body)) reasons.push(`review_body: ${flag}`);
+  for (const item of fields.faq) {
+    for (const flag of scanComplianceFlags(item.answer)) reasons.push(`faq answer: ${flag}`);
+  }
+  return { passed: reasons.length === 0, reasons };
+}
+
+async function generateSupplementalFields(args: {
+  geminiKey: string;
+  modelChain: string[];
+  sourceText: string;
+  context: { productName: string; brand: string; category: string; verdict: string; keyIngredients: string[] };
+  onAttempt: (log: GeminiAttemptLog) => void | Promise<void>;
+}): Promise<{ fields: SupplementalFields; modelUsed: string; rejectionReasons?: string[] } | { error: string }> {
+  const contextBlock = `Product: ${args.context.productName}
+Brand: ${args.context.brand}
+Category: ${args.context.category}
+Already-published verdict (do not contradict): ${args.context.verdict}
+Key ingredients: ${args.context.keyIngredients.join(", ")}
+
+Source material:
+${args.sourceText}`;
+
+  try {
+    const { data, modelUsed } = await callGeminiWithFallback({
+      apiKey: args.geminiKey,
+      models: args.modelChain,
+      systemInstruction: SUPPLEMENT_INSTRUCTIONS,
+      userContent: contextBlock,
+      responseSchema: SUPPLEMENT_SCHEMA,
+      temperature: 0.4,
+      parse: parseSupplementalResponse,
+      onAttempt: args.onAttempt,
+    });
+    const qa = qaSupplementalFields(data);
+    if (!qa.passed) return { fields: data, modelUsed, rejectionReasons: qa.reasons };
+    return { fields: data, modelUsed };
+  } catch (err) {
+    return { error: String(err).slice(0, 200) };
+  }
+}
 
 interface FirecrawlPage {
   url: string;
@@ -424,8 +489,6 @@ async function firecrawlSearchProductPages(site: SourceSite, apiKey: string, lim
     .map((r) => ({ url: r.url as string, title: r.title ?? r.url!, markdown: r.markdown!.slice(0, 14000) }));
 }
 
-/** Cache key for a source site -- a stable URL for scrape targets, a query-shaped key
- *  for search targets (there's no single fixed page to key off for those). */
 const cacheKeyFor = (site: SourceSite): string =>
   site.sourceType === "faithful_to_nature" ? `scrape:${site.url}` : `search:${new URL(site.url).hostname.replace(/^www\./, "")}`;
 
@@ -435,9 +498,6 @@ interface ResearchResult {
   skippedReason?: string;
 }
 
-/** The research step for one source site: cache first, then quota, then network.
- *  Only a genuine network call counts against the per-run Firecrawl budget or the
- *  daily/per-minute quota -- a cache hit is free on both. */
 async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: string, runBudgetRemaining: boolean): Promise<ResearchResult> {
   const cacheKey = cacheKeyFor(site);
   const cached = await getCachedSource(admin, cacheKey);
@@ -501,10 +561,155 @@ async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: 
         { onConflict: "normalized_name", ignoreDuplicates: true },
       );
     } catch (err) {
-      // Demand-signal queuing is best-effort -- never fails the review publish itself.
       console.error(`queueUnresolvedIngredients: failed for "${rawName}"`, err);
     }
   }
+}
+
+interface BackfillRow {
+  id: string;
+  product_name: string;
+  brand: string;
+  category: string;
+  verdict: string;
+  key_ingredients: string[];
+  skin_type_match: string[];
+  source_url: string;
+  source_type: SourceType;
+  published_date: string;
+}
+
+async function reconstructSourceText(
+  admin: SupabaseAdmin,
+  row: BackfillRow,
+  firecrawlKey: string,
+  firecrawlBudget: { remaining: number },
+): Promise<{ text: string } | { reason: string }> {
+  if (row.source_type === "openhaus_marketplace") {
+    const slug = row.source_url.replace(/^https:\/\/skinlabs\.co\.za\/marketplace\/product\//, "");
+    const { data } = await admin
+      .from("marketplace_products")
+      .select("name, description, how_to_use, size, key_actives, concern, brand:marketplace_brands(name, origin)")
+      .eq("slug", slug)
+      .maybeSingle();
+    const product = data as unknown as {
+      name: string;
+      description: string | null;
+      how_to_use: string | null;
+      size: string | null;
+      key_actives: string[] | null;
+      concern: string[] | null;
+      brand: { name: string; origin: string | null } | null;
+    } | null;
+    if (!product) return { reason: `no live marketplace_products row for slug "${slug}"` };
+    return {
+      text: `Product: ${product.name}
+Brand: ${product.brand?.name ?? row.brand}
+Brand origin: ${product.brand?.origin ?? "unknown"}
+Size: ${product.size ?? "not stated"}
+Description: ${product.description ?? "not stated"}
+How to use: ${product.how_to_use ?? "not stated"}
+Key actives: ${(product.key_actives ?? []).join(", ")}
+Concerns addressed: ${(product.concern ?? []).join(", ")}`,
+    };
+  }
+
+  if (firecrawlBudget.remaining <= 0) return { reason: "MAX_FIRECRAWL_BACKFILL_PER_RUN exhausted for this invocation" };
+  if (!(await withinDailyQuota(admin, "firecrawl", FIRECRAWL_DAILY_LIMIT))) return { reason: "Firecrawl daily quota reached" };
+  firecrawlBudget.remaining -= 1;
+  const page = await firecrawlScrape(row.source_url, firecrawlKey);
+  await recordApiUsage(admin, "firecrawl", row.source_url, Boolean(page));
+  if (!page) return { reason: `Firecrawl re-scrape of ${row.source_url} returned nothing` };
+  return { text: `Source page title: ${page.title}\nSource URL: ${page.url}\n\n${page.markdown}` };
+}
+
+async function runBackfillPass(args: {
+  admin: SupabaseAdmin;
+  geminiKey: string;
+  firecrawlKey: string;
+  modelChain: string[];
+  logModelAttempt: (candidateKey: string) => (log: GeminiAttemptLog) => Promise<void>;
+}): Promise<{ processed: number; updated: number; skipped: Array<{ id: string; reason: string }> }> {
+  const { admin, geminiKey, firecrawlKey, modelChain, logModelAttempt } = args;
+  const { data: rows } = await admin
+    .from("ai_generated_product_reviews")
+    .select("id, product_name, brand, category, verdict, key_ingredients, skin_type_match, source_url, source_type, published_date")
+    .is("seo_intro", null)
+    .order("published_date", { ascending: true })
+    .limit(BACKFILL_BATCH_SIZE);
+
+  const skipped: Array<{ id: string; reason: string }> = [];
+  let updated = 0;
+  const firecrawlBudget = { remaining: MAX_FIRECRAWL_BACKFILL_PER_RUN };
+
+  for (const row of (rows ?? []) as BackfillRow[]) {
+    if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
+      skipped.push({ id: row.id, reason: "Gemini daily quota reached -- stopping backfill pass" });
+      break;
+    }
+    if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+      await sleep(15000);
+      if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+        skipped.push({ id: row.id, reason: "Gemini per-minute quota reached -- stopping backfill pass" });
+        break;
+      }
+    }
+
+    const source = await reconstructSourceText(admin, row, firecrawlKey, firecrawlBudget);
+    if ("reason" in source) {
+      skipped.push({ id: row.id, reason: source.reason });
+      continue;
+    }
+
+    const supplemental = await generateSupplementalFields({
+      geminiKey,
+      modelChain,
+      sourceText: source.text,
+      context: {
+        productName: row.product_name,
+        brand: row.brand,
+        category: row.category,
+        verdict: row.verdict,
+        keyIngredients: row.key_ingredients,
+      },
+      onAttempt: logModelAttempt(`backfill:${row.id}`),
+    });
+
+    if ("error" in supplemental) {
+      skipped.push({ id: row.id, reason: supplemental.error });
+      continue;
+    }
+    if (supplemental.rejectionReasons) {
+      skipped.push({ id: row.id, reason: `QA rejected: ${supplemental.rejectionReasons.join("; ")}` });
+      continue;
+    }
+
+    const { error } = await admin
+      .from("ai_generated_product_reviews")
+      .update({
+        seo_intro: supplemental.fields.seo_intro,
+        review_body: supplemental.fields.review_body,
+        product_size: supplemental.fields.product_size,
+        product_format: supplemental.fields.product_format,
+        country_of_origin: supplemental.fields.country_of_origin,
+        am_pm_usage: supplemental.fields.am_pm_usage,
+        skin_concerns: supplemental.fields.skin_concerns,
+        benefits: supplemental.fields.benefits,
+        cautions: supplemental.fields.cautions,
+        faq: supplemental.fields.faq,
+        currency: "ZAR",
+        date_published: new Date(`${row.published_date}T00:00:00Z`).toISOString(),
+        skin_types: row.skin_type_match,
+      })
+      .eq("id", row.id);
+
+    if (error) skipped.push({ id: row.id, reason: `update failed: ${error.message}` });
+    else updated += 1;
+
+    await sleep(1200);
+  }
+
+  return { processed: (rows ?? []).length, updated, skipped };
 }
 
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
@@ -560,10 +765,6 @@ Deno.serve(async (req) => {
   const modelUsage: Record<string, number> = {};
   let created = 0;
 
-  /** Persists every Gemini attempt for this pipeline run: a detailed per-model log
-   *  (pipeline_model_calls) plus the existing aggregate quota counter (pipeline_api_usage,
-   *  provider "gemini") so withinDailyQuota/withinPerMinuteQuota keep counting every real
-   *  call across the whole fallback chain, not just the first attempt per candidate. */
   const logModelAttempt = (candidateKey: string) => async (log: GeminiAttemptLog) => {
     await recordApiUsage(admin, "gemini", candidateKey, log.outcome === "success");
     try {
@@ -586,9 +787,22 @@ Deno.serve(async (req) => {
   const jsonResponse = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+  if (url.searchParams.get("backfillMissingFields") === "true") {
+    try {
+      const result = await runBackfillPass({
+        admin,
+        geminiKey: geminiKey as string,
+        firecrawlKey: firecrawlKey as string,
+        modelChain,
+        logModelAttempt,
+      });
+      return jsonResponse({ ok: true, mode: "backfillMissingFields", ...result });
+    } catch (err) {
+      return jsonResponse({ ok: false, mode: "backfillMissingFields", error: String(err).slice(0, 500) }, 500);
+    }
+  }
+
   try {
-    // ---- Supabase as orchestrator: the daily editorial cap comes first, before any
-    // Firecrawl/Gemini call is even considered. ----
     const { count: publishedToday } = await admin
       .from("ai_generated_product_reviews")
       .select("id", { count: "exact", head: true })
@@ -598,8 +812,6 @@ Deno.serve(async (req) => {
     }
     const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
 
-    // ---- Lazy retry queue: process anything already due before pulling fresh
-    // candidates. ----
     const { data: dueRetries } = await admin
       .from("pipeline_retry_queue")
       .select("id, candidate_payload, attempt_count")
@@ -613,9 +825,6 @@ Deno.serve(async (req) => {
     const saCount = (existingRows ?? []).filter((r: { origin: string }) => r.origin === "south_africa").length;
     const globalCount = (existingRows ?? []).length - saCount;
 
-    // ---- Candidate pool A: real OpenHaus marketplace products (already-verified data,
-    // no Firecrawl/scraping needed -- Gemini only writes the verdict/scores against
-    // real fields). ----
     const { data: marketplaceRows } = await admin
       .from("marketplace_products")
       .select("slug, name, description, marked_up_price_zar, category, key_actives, concern, brand:marketplace_brands(name)")
@@ -626,8 +835,6 @@ Deno.serve(async (req) => {
       (p) => !seenUrls.has(`https://skinlabs.co.za/marketplace/product/${p.slug}`),
     );
 
-    // ---- Candidate pool B: Firecrawl-researched real product pages from the named
-    // sites, subject to the research cache and the per-run/daily quota. ----
     const firecrawlCandidates: Array<{ site: SourceSite; page: FirecrawlPage }> = [];
     let firecrawlCallsThisRun = 0;
     for (const site of SOURCE_SITES) {
@@ -650,7 +857,6 @@ Deno.serve(async (req) => {
     let runningGlobal = globalCount;
     const wantsSa = () => runningSa / Math.max(1, runningSa + runningGlobal) < SA_SHARE_TARGET;
 
-    // Interleave: prefer whichever origin the running 70/30 split is short on.
     interface QueueItem {
       text: string;
       origin: Origin;
@@ -658,7 +864,6 @@ Deno.serve(async (req) => {
       sourceType: SourceType;
       isSponsored: boolean;
       retailerHint: Retailer | null;
-      /** Set only for a candidate pulled back out of pipeline_retry_queue. */
       retryQueueId?: number;
       retryAttemptCount?: number;
     }
@@ -666,7 +871,7 @@ Deno.serve(async (req) => {
 
     for (const row of dueRetries ?? []) {
       const payload = row.candidate_payload as Omit<QueueItem, "retryQueueId" | "retryAttemptCount"> | null;
-      if (!payload?.sourceUrl || seenUrls.has(payload.sourceUrl)) continue; // already published since queuing
+      if (!payload?.sourceUrl || seenUrls.has(payload.sourceUrl)) continue;
       queue.push({ ...payload, retryQueueId: row.id, retryAttemptCount: row.attempt_count });
     }
 
@@ -691,8 +896,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Sort the queue so candidates matching whatever origin the running split needs
-    // next are tried first, without ever fully excluding the other origin.
     queue.sort((a, b) => {
       const aWanted = wantsSa() ? a.origin === "south_africa" : a.origin === "global_available_in_sa";
       const bWanted = wantsSa() ? b.origin === "south_africa" : b.origin === "global_available_in_sa";
@@ -702,9 +905,6 @@ Deno.serve(async (req) => {
     for (const candidate of queue) {
       if (created >= target) break;
 
-      // ---- Quota monitor (Gemini side): a daily/per-minute limit hit here means every
-      // remaining candidate would fail identically, so stop the run cleanly instead of
-      // burning through the rest of the queue. ----
       if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
         errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping run`);
         break;
@@ -769,6 +969,9 @@ Deno.serve(async (req) => {
           is_sponsored: candidate.isSponsored,
           generated_by: modelUsed,
           published_date: today,
+          currency: "ZAR",
+          date_published: new Date(`${today}T00:00:00Z`).toISOString(),
+          skin_types: fields.skin_type_match,
         });
 
         if (error) {
@@ -785,14 +988,45 @@ Deno.serve(async (req) => {
               .eq("id", candidate.retryQueueId);
           }
           await queueUnresolvedIngredients(admin, fields.key_ingredients, finalId);
+
+          const supplemental = await generateSupplementalFields({
+            geminiKey: geminiKey as string,
+            modelChain,
+            sourceText: candidate.text,
+            context: {
+              productName: fields.product_name,
+              brand: fields.brand,
+              category: fields.category,
+              verdict: fields.verdict,
+              keyIngredients: fields.key_ingredients,
+            },
+            onAttempt: logModelAttempt(`${candidate.sourceUrl}#supplemental`),
+          });
+          if ("error" in supplemental) {
+            errors.push(`Supplemental fields for ${finalId}: ${supplemental.error}`);
+          } else if (supplemental.rejectionReasons) {
+            errors.push(`Supplemental fields QA-rejected for ${finalId}: ${supplemental.rejectionReasons.join("; ")}`);
+          } else {
+            const { error: updateError } = await admin
+              .from("ai_generated_product_reviews")
+              .update({
+                seo_intro: supplemental.fields.seo_intro,
+                review_body: supplemental.fields.review_body,
+                product_size: supplemental.fields.product_size,
+                product_format: supplemental.fields.product_format,
+                country_of_origin: supplemental.fields.country_of_origin,
+                am_pm_usage: supplemental.fields.am_pm_usage,
+                skin_concerns: supplemental.fields.skin_concerns,
+                benefits: supplemental.fields.benefits,
+                cautions: supplemental.fields.cautions,
+                faq: supplemental.fields.faq,
+              })
+              .eq("id", finalId);
+            if (updateError) errors.push(`Supplemental fields update failed for ${finalId}: ${updateError.message}`);
+          }
         }
       } catch (err) {
         if (err instanceof GeminiFatalError) {
-          // Auth or invalid-request failure: every remaining candidate would fail
-          // identically, and blindly trying weaker models wouldn't fix a broken API
-          // key or a bad prompt/schema. Stop the whole run and surface this loudly
-          // rather than burning through the queue -- this needs a human to look at
-          // the Google AI Studio config, not a retry.
           errors.push(`ALERT (Gemini config, run stopped): ${err.message}`);
           break;
         }
@@ -805,8 +1039,6 @@ Deno.serve(async (req) => {
             if (candidate.retryQueueId) {
               const nextAttempt = (candidate.retryAttemptCount ?? 1) + 1;
               if (nextAttempt > 5) {
-                // Cap retries so a persistently-failing candidate doesn't loop forever --
-                // left unresolved for manual review rather than retried indefinitely.
                 errors.push(`${candidate.sourceUrl} exceeded max retry attempts (5) -- left unresolved for manual review`);
               } else {
                 await admin
@@ -839,7 +1071,6 @@ Deno.serve(async (req) => {
       await sleep(1200);
     }
 
-    // ---- Spotlight edition auto-bump every SPOTLIGHT_BUMP_INTERVAL published reviews ----
     try {
       const { count: totalGenerated } = await admin.from("ai_generated_product_reviews").select("id", { count: "exact", head: true });
       const totalReviews = STATIC_REVIEW_BASELINE + (totalGenerated ?? 0);

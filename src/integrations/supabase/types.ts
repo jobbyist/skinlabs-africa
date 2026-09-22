@@ -341,72 +341,150 @@ export type Database = {
       }
       ai_generated_product_reviews: {
         Row: {
+          am_pm_usage: string | null
+          benefits: Json | null
           brand: string
           category: string
+          cautions: Json | null
+          comparison_products: Json | null
+          community_rating: number | null
+          community_rating_count: number | null
+          country_of_origin: string | null
           created_at: string
+          currency: string | null
           data_quality_status: string
+          date_modified: string | null
+          date_published: string | null
+          faq: Json | null
+          gallery_images: Json | null
           generated_by: string
           id: string
           is_sponsored: boolean
           key_ingredients: string[]
+          key_ingredients_structured: Json | null
           local_price_zar: number
           origin: string
+          primary_image: string | null
+          product_format: string | null
           product_name: string
+          product_size: string | null
           published_date: string
+          related_ingredients_slugs: Json | null
+          related_knowledge_articles: Json | null
+          related_reviews: Json | null
           retailers: Json
+          review_body: string | null
+          review_methodology: string | null
           score_climate: number
           score_efficacy: number
           score_texture: number
           score_value: number
+          seo_description: string | null
+          seo_intro: string | null
+          seo_title: string | null
+          skin_concerns: Json | null
           skin_type_match: string[]
+          skin_types: Json | null
           source_type: string
           source_url: string
           verdict: string
           where_to_buy: string
         }
         Insert: {
+          am_pm_usage?: string | null
+          benefits?: Json | null
           brand: string
           category: string
+          cautions?: Json | null
+          comparison_products?: Json | null
+          community_rating?: number | null
+          community_rating_count?: number | null
+          country_of_origin?: string | null
           created_at?: string
+          currency?: string | null
           data_quality_status?: string
+          date_modified?: string | null
+          date_published?: string | null
+          faq?: Json | null
+          gallery_images?: Json | null
           generated_by?: string
           id: string
           is_sponsored?: boolean
           key_ingredients?: string[]
+          key_ingredients_structured?: Json | null
           local_price_zar: number
           origin: string
+          primary_image?: string | null
+          product_format?: string | null
           product_name: string
+          product_size?: string | null
           published_date?: string
+          related_ingredients_slugs?: Json | null
+          related_knowledge_articles?: Json | null
+          related_reviews?: Json | null
           retailers?: Json
+          review_body?: string | null
+          review_methodology?: string | null
           score_climate: number
           score_efficacy: number
           score_texture: number
           score_value: number
+          seo_description?: string | null
+          seo_intro?: string | null
+          seo_title?: string | null
+          skin_concerns?: Json | null
           skin_type_match?: string[]
+          skin_types?: Json | null
           source_type: string
           source_url: string
           verdict: string
           where_to_buy: string
         }
         Update: {
+          am_pm_usage?: string | null
+          benefits?: Json | null
           brand?: string
           category?: string
+          cautions?: Json | null
+          comparison_products?: Json | null
+          community_rating?: number | null
+          community_rating_count?: number | null
+          country_of_origin?: string | null
           created_at?: string
+          currency?: string | null
           data_quality_status?: string
+          date_modified?: string | null
+          date_published?: string | null
+          faq?: Json | null
+          gallery_images?: Json | null
           generated_by?: string
           id?: string
           is_sponsored?: boolean
           key_ingredients?: string[]
+          key_ingredients_structured?: Json | null
           local_price_zar?: number
           origin?: string
+          primary_image?: string | null
+          product_format?: string | null
           product_name?: string
+          product_size?: string | null
           published_date?: string
+          related_ingredients_slugs?: Json | null
+          related_knowledge_articles?: Json | null
+          related_reviews?: Json | null
           retailers?: Json
+          review_body?: string | null
+          review_methodology?: string | null
           score_climate?: number
           score_efficacy?: number
           score_texture?: number
           score_value?: number
+          seo_description?: string | null
+          seo_intro?: string | null
+          seo_title?: string | null
+          skin_concerns?: Json | null
           skin_type_match?: string[]
+          skin_types?: Json | null
           source_type?: string
           source_url?: string
           verdict?: string

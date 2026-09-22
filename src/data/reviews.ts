@@ -14,6 +14,21 @@ export interface ProductReview {
   key_ingredients: string[];
   retailers: RetailerListing[];
   isNew?: boolean;
+  /** SEO/structured fields from supabase/migrations/20260922120000_add_seo_review_schema_fields.sql
+   *  -- populated by the product-review-sync pipeline's second, best-effort Gemini call
+   *  (generateSupplementalFields()) for AI-generated reviews only. Always undefined for
+   *  the static catalogue below and for any AI review the pipeline hasn't backfilled yet
+   *  -- every consumer must render these as optional, gradually-populated content. */
+  seo_intro?: string | null;
+  review_body?: string | null;
+  product_size?: string | null;
+  product_format?: string | null;
+  country_of_origin?: string | null;
+  am_pm_usage?: string | null;
+  skin_concerns?: string[];
+  benefits?: string[];
+  cautions?: string[];
+  faq?: { question: string; answer: string }[];
 }
 
 export interface SeededComment {
