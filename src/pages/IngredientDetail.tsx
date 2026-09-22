@@ -10,6 +10,8 @@ import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer"
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { useIngredientDetail, type IngredientInteractionLink } from "@/hooks/use-ingredient-detail";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { useAllergyFlags } from "@/hooks/use-allergy-flags";
+import AllergyCautionNote from "@/components/AllergyCautionNote";
 import { ingredientCategoryLabel } from "@/lib/ingredientCategories";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -36,6 +38,11 @@ const IngredientDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, refetch } = useIngredientDetail(slug);
   const { can } = useEntitlements();
+  const allergyFlags = useAllergyFlags(
+    data?.ingredient
+      ? [{ id: data.ingredient.id, inciName: data.ingredient.inci_name, commonName: data.ingredient.common_name }]
+      : [],
+  );
 
   if (!slug) return <Navigate to="/ingredients" replace />;
 
@@ -165,6 +172,11 @@ const IngredientDetail = () => {
             <h1 className="mt-3 font-heading text-3xl font-bold text-foreground md:text-4xl">{name}</h1>
             {ingredient.common_name && ingredient.common_name !== ingredient.inci_name && (
               <p className="mt-1 italic text-muted-foreground">INCI: {ingredient.inci_name}</p>
+            )}
+            {allergyFlags.has(ingredient.id) && (
+              <div className="mt-3">
+                <AllergyCautionNote matchedTerm={allergyFlags.get(ingredient.id) as string} />
+              </div>
             )}
           </header>
 

@@ -4,8 +4,10 @@ import FeatureGate from "@/components/FeatureGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConflictMatcher } from "@/hooks/use-conflict-matcher";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { useAllergyFlags } from "@/hooks/use-allergy-flags";
+import AllergyCautionNote from "@/components/AllergyCautionNote";
 import type { GroundedRoutine } from "@/lib/skynnProductMatch";
-import type { ConflictFlag } from "@/lib/conflictMatcher";
+import type { ConflictFlag, RoutineIngredient } from "@/lib/conflictMatcher";
 
 const FLAG_META: Record<ConflictFlag["interactionType"], { label: string; icon: typeof AlertTriangle; className: string }> = {
   avoid_combining: { label: "Avoid combining", icon: AlertTriangle, className: "border-destructive/30 bg-destructive/5 text-destructive" },
@@ -52,6 +54,9 @@ const FlagCard = ({ flag }: { flag: ConflictFlag }) => {
 const PanelBody = ({ routine }: { routine: GroundedRoutine }) => {
   const { can, loading: entitlementsLoading } = useEntitlements();
   const { data, isLoading, isError } = useConflictMatcher(routine, can("routine.conflict_matcher"));
+  const allergyFlags = useAllergyFlags(
+    (data?.routineIngredients ?? []).map((i: RoutineIngredient) => ({ id: i.ingredientId, inciName: i.inciName, commonName: i.commonName })),
+  );
 
   if (entitlementsLoading || isLoading) {
     return (
@@ -104,6 +109,25 @@ const PanelBody = ({ routine }: { routine: GroundedRoutine }) => {
         <p className="text-xs text-muted-foreground">
           No verified conflicts or synergies found for this routine's active ingredients yet.
         </p>
+      )}
+
+      {allergyFlags.size > 0 && (
+        <div>
+          <p className="mb-1.5 flex items-center gap-1 text-xs font-semibold text-foreground">
+            <ShieldAlert className="h-3.5 w-3.5" /> Allergy notes
+          </p>
+          <div className="space-y-2">
+            {data.routineIngredients
+              .filter((i) => allergyFlags.has(i.ingredientId))
+              .map((i) => (
+                <AllergyCautionNote
+                  key={i.ingredientId}
+                  matchedTerm={allergyFlags.get(i.ingredientId) as string}
+                  ingredientName={i.commonName || i.inciName}
+                />
+              ))}
+          </div>
+        </div>
       )}
 
       {seasonalTips.length > 0 && (
