@@ -21,9 +21,9 @@ where the last one left off.
 | Metric | Value | As of |
 |---|---|---|
 | Total ingredients | 128 | 2026-09-22 |
-| Ingredients with `description` populated | 8 / 128 | 2026-09-22 |
+| Ingredients with `description` populated | 16 / 128 | 2026-09-22 |
 | Ingredients with `category` populated | 126 / 128 | 2026-09-21 (pre-existing) |
-| `ingredient_sources` rows | 18 | 2026-09-22 |
+| `ingredient_sources` rows | 34 | 2026-09-22 |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -72,6 +72,13 @@ researched, not skipped out of laziness:
 | `aha-bha-complex` | Generic category-collective stub name from the original bulk seed, not a real singular INCI ingredient — no genuine literature search is possible for a vague "complex". |
 | `antioxidant-complex` | Same as above. |
 | `african-potato-extract` | Real named botanical (Hypoxis), but a targeted PubMed search (`Hypoxis African potato extract skin topical`) returned **zero** results for topical/dermatological use — Hypoxis literature is almost entirely about immune-modulation/prostate use, not skincare. Logged as genuine insufficient evidence, not fabricated. |
+| `botanical-actives` | Generic category-collective stub name, not a real singular INCI ingredient. |
+| `botanical-brighteners` | Same as above. |
+| `botanical-extracts` | Same as above. |
+| `botanical-oil-blend` | Same as above (a "blend" name, not one compound). |
+| `botanical-oils` | Same as above. |
+| `brightening-complex` | Same "Complex" pattern as the existing AHA/BHA and Antioxidant Complex entries. |
+| `broad-spectrum-uv-filters` | Generic category placeholder, not one filter compound (distinct from the still-unresolved `chemical-uv-filters`/`uv-filters` rows, which remain unprocessed, not skip-listed, pending a future batch). |
 
 If a future batch's research turns up real evidence for any of these
 (e.g. a new African Potato Extract dermatology study), it's fine to
@@ -102,18 +109,23 @@ select count(*) from ingredient_aliases;
 ```sql
 select slug, inci_name from ingredients
 where description is null
-  and slug not in ('aha-bha-complex', 'antioxidant-complex', 'african-potato-extract') -- Track A skip list, see below
+  and slug not in (
+    'aha-bha-complex', 'antioxidant-complex', 'african-potato-extract',
+    'botanical-actives', 'botanical-brighteners', 'botanical-extracts',
+    'botanical-oil-blend', 'botanical-oils', 'brightening-complex',
+    'broad-spectrum-uv-filters'
+  ) -- Track A skip list, see below
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
 ```
 
-Cursor: **8 processed** (batch 01, 2026-09-22, alphabetically through
-"Ascorbic Acid" — see batch log below for the full list and the 3-entry
-skip list). Next firing resumes from `inci_name > 'Ascorbic Acid'`. Once
-every one of the original 128 has `description IS NOT NULL` (or is on the
-permanent skip list), Track A is done and the 6A catch-up trigger should
-be disabled — all future firings run only Track B + the refresh rotation
-(6B).
+Cursor: **16 processed** (batch 01 + batch 02, 2026-09-22, alphabetically
+through "Centella Asiatica" — see batch log below for the full ingredient
+lists and the 10-entry skip list). Next firing resumes from `inci_name >
+'Centella Asiatica'`. Once every one of the original 128 has `description
+IS NOT NULL` (or is on the permanent skip list), Track A is done and the
+6A catch-up trigger should be disabled — all future firings run only
+Track B + the refresh rotation (6B).
 
 **Track B — add new ingredients from the living candidate list.**
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom,
@@ -143,6 +155,7 @@ limit :remaining_batch_budget;
 | 2026-09-21 | Schema/infra | — | `20260921200507_...`, `20260921200517_...` | `ingredient_sources` table + `data_source_type` enum values created and verified live. No content batches run yet. |
 | 2026-09-22 | Track A batch 01 | 8: Acetyl Glucosamine, Acetyl Hexapeptide-8, African Black Soap, Aloe Vera, Alpha Arbutin, Arbutin, Argan Oil, Ascorbic Acid | `20260922020000_ingredient_content_batch_01.sql` | Real PubMed + DermNet NZ research per ingredient (18 citations total, 2-3 per ingredient). All landed `evidence_level` moderate except African Black Soap (limited, per its own review's "much is anecdotal" caveat). 3 insufficient-evidence/non-specific entries skipped and logged (see skip list above): AHA/BHA Complex, Antioxidant Complex, African Potato Extract. |
 | 2026-09-22 | Phase 5 (product seed) | — | `20260922010200_..._chunk_09_products.sql` through `20260922011300_..._chunk_20_products.sql` (12 files) | Product seed chunks 09-20 applied, products 41-160 complete. 160/160 products and reviews now live, 290 `product_ingredients` rows total. See `SEED_MIGRATION_STATUS.md` for full detail — not an ingredients-content batch, logged here only because it completes the "Products live" row above. |
+| 2026-09-22 | Track A batch 02 | 8: Bakuchiol, Baobab Oil, Beeswax, Buchu Extract, Bulbine Frutescens, Caffeine, Calendula Oil, Centella Asiatica | `20260922080000_ingredient_content_batch_02.sql` | Real PubMed + peer-reviewed-literature research per ingredient (16 citations total, 2 per ingredient, incl. one DermNet NZ corroborating source for Calendula's irritancy profile). Evidence levels: moderate (Bakuchiol, Beeswax, Calendula Oil, Centella Asiatica — each backed by a real RCT/systematic review or a solid preclinical study), limited (Baobab Oil, Buchu Extract, Bulbine Frutescens, Caffeine — in vitro/mechanistic/traditional-use evidence only, no human efficacy RCT found). 7 generic-collective stub names encountered in this batch's alphabetical window were skip-listed without a research attempt (Botanical Actives/Brighteners/Extracts/Oil Blend/Oils, Brightening Complex, Broad-Spectrum UV Filters) — see skip list above. |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
