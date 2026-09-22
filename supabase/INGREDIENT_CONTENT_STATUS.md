@@ -21,9 +21,9 @@ where the last one left off.
 | Metric | Value | As of |
 |---|---|---|
 | Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
-| Ingredients with `description` / `function_summary` populated | 55 / 140 | 2026-09-22 (after Track A batch 04) |
+| Ingredients with `description` / `function_summary` populated | 66 / 140 | 2026-09-22 (after Track A batch 05) |
 | Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
-| `ingredient_sources` rows | 110 | 2026-09-22 (after Track A batch 04) |
+| `ingredient_sources` rows | 124 | 2026-09-22 (after Track A batch 05) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -166,20 +166,17 @@ limit :batch_size; -- 10-12 for the 6A catch-up burst
 -- own `description is null` filter, no extra exclusion needed.
 ```
 
-Cursor: **31 processed** (batches 01+02, alphabetical through "Centella
-Asiatica", plus batch 03 — 15 high-traffic ingredients cherry-picked
-out of alphabetical order: Retinol, Niacinamide, Hyaluronic Acid, Vitamin
-C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid,
-Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter — see
-batch log below). Batch 03 deliberately skipped ahead of the alphabetical
-cursor to prioritize the ingredients most likely to appear in product
-reviews/routines and drive real user/SEO value first (per the "as many as
-possible" open-ended bulk-populate request); the alphabetical sweep from
-`inci_name > 'Centella Asiatica'` still needs to happen for the remaining
-un-enriched stubs that batch 03 didn't cover — a future firing should
-resume alphabetically from there, skipping any slug batch 03 already
-processed (see the skip-list query below, which should also exclude the
-15 batch-03 slugs by name to avoid re-processing). Once every one of the
+Cursor: **54 processed** (batches 01+02, alphabetical through "Centella
+Asiatica"; batch 03 — 15 high-traffic ingredients cherry-picked out of
+alphabetical order; batch 04 — 12 ingredients continuing past "Centella
+Asiatica" alphabetically (Aloe Ferox through Jojoba Oil, plus the
+Ceramide/Ceramide NP/Ceramide-P synonym rows); batch 05 — 11 more
+continuing alphabetically (Coco-Glucoside through Marula Seed Oil) — see
+batch log below for full ingredient lists). The alphabetical sweep is now
+past "Marula Seed Oil" — a future firing should resume from
+`inci_name > 'Marula Seed Oil'` (skipping any slug already processed or
+skip-listed, per the resumable query below, which the `description is
+null` filter already handles automatically). Once every one of the
 original 128 has `description IS NOT NULL` (or is on the permanent skip
 list), Track A is done and the 6A catch-up trigger should be disabled —
 all future firings run only Track B + the refresh rotation (6B).
@@ -227,6 +224,7 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Track B batch 01 | 12 NEW: Betaine, Sodium PCA, Trehalose, Urea, Malic Acid, Citric Acid, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Azelaic Acid, Allantoin | `20260922090000_ingredient_content_track_b_batch_01.sql` | First Track B batch — real identity + content created in one pass per ingredient (22 citations total: 2 each for 10 ingredients, 1 each for Urea and Citric Acid, whose available real literature was thinner). Evidence levels: strong (Azelaic Acid — a 21-RCT systematic review/meta-analysis), moderate (Urea, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Allantoin — each backed by a real RCT or split-face clinical study, several combined with other actives rather than tested standalone), limited (Betaine, Sodium PCA, Trehalose, Malic Acid, Citric Acid — in vitro/mechanistic/observational evidence only, no direct standalone-ingredient human efficacy RCT found). **This was a deliberately partial weekly batch** (12 of the 25+ the permanent pipeline targets per week) — full Phase 3 research at this depth for 25 ingredients in one sitting was judged too costly/risky for careful sourcing; the remainder of this week's target should be picked up by the next 6B firing or a follow-up session before Tuesday's next scheduled run, rather than padded with thinner research to hit the number. |
 | 2026-09-22 | Track A batch 03 (priority, out-of-order) | 15: Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Vitamin E, Salicylic Acid, Glycolic Acid, Lactic Acid, Mandelic Acid, Ceramides, Squalane, Zinc Oxide, Panthenol, Glycerin, Shea Butter | `20260922100000_ingredient_content_batch_03.sql` | Per the user's explicit request to also use EWG Skin Deep and INCIDecoder (via Firecrawl) as sources alongside PubMed: added real, Firecrawl-verified `ingredient_database`-type citations from both sites for 6 of the highest-traffic ingredients (Retinol/INCIDecoder, Niacinamide/EWG, Hyaluronic Acid/INCIDecoder, Vitamin C/EWG, Salicylic Acid/EWG, Glycolic Acid/INCIDecoder) alongside 32 PubMed peer-reviewed-literature citations (2-3 per ingredient). Evidence levels: strong (Salicylic Acid — 2 real RCTs incl. a 54-subject double-blind head-to-head vs a prescription regimen), moderate (Retinol, Niacinamide, Hyaluronic Acid, Vitamin C, Glycolic Acid, Lactic Acid, Ceramides, Panthenol, Glycerin — each backed by at least one real RCT, several honestly framed as combination-formulation or precursor-blend evidence rather than standalone), limited (Vitamin E, Mandelic Acid, Squalane, Zinc Oxide, Shea Butter — real trials found but either in vitro/ex vivo/animal-model only, or always tested as part of a multi-ingredient blend with no standalone efficacy data). These 15 were prioritized out of the strict alphabetical Track A order because they are the highest-traffic, most product-review/routine-relevant ingredients on the platform. |
 | 2026-09-22 | Track A batch 04 | 12: Aloe Ferox, Cholesterol, Coconut Oil, CoQ10, Fatty Acids, Ferulic Acid, GHK-Cu, Green Tea Extract, Jojoba Oil, Ceramide, Ceramide NP, Ceramide-P | `20260922110000_ingredient_content_batch_04.sql` | 22 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Cholesterol, Coconut Oil, Fatty Acids, Ferulic Acid, Green Tea Extract, Ceramide, Ceramide NP — each backed by at least one real RCT or systematic review, several combination-formulation studies honestly framed as such), limited (Aloe Ferox, CoQ10, GHK-Cu, Jojoba Oil, Ceramide-P — real studies found but animal-model/in-vitro/review-only, or (for Ceramide-P) no species-specific standalone data, reusing class-level ceramide evidence with an explicit note). Ceramide/Ceramide NP/Ceramide-P are distinct catalogue rows from the already-profiled "Ceramides" (a synonym/collective row) — treated individually as real, named ceramide species per cosmetic-chemistry nomenclature, sharing some of the same real class-level RCT evidence where no species-specific study exists (always disclosed honestly in `function_summary`, never presented as species-specific data that doesn't exist). Four ingredients hit during this batch's research window returned zero PubMed results after repeated query attempts and were added to the Track A skip list as genuine insufficient-evidence cases: Cucumber Extract, Kaolin Clay, Kalahari Melon Oil, Kalahari Melon Seed Oil, Hemi-Squalane (5 total, all logged with search-attempt detail in the skip list above). |
+| 2026-09-22 | Track A batch 05 (6A catch-up firing) | 11: Coco-Glucoside, Hyaluronic Acid Crosspolymer, Iron Oxides, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Licorice Root Extract, Liposomal Ceramide NP, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil | `20260922120000_ingredient_content_batch_05.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Coco-Glucoside, Hyaluronic Acid Crosspolymer, Kojic Acid, L-Ascorbic Acid, Lavender Essential Oil, Live Lactobacillus Cultures, Marula Oil, Marula Seed Oil — each backed by at least one real RCT or systematic review), limited (Iron Oxides, Licorice Root Extract, Liposomal Ceramide NP — real evidence found but review-only/in-vitro/formulation-study-only, no standalone human efficacy RCT). Coco-Glucoside's citation is notably a safety/allergen-risk study rather than an efficacy study, honestly framed in both `function_summary` and `irritancy_risk` rather than presented as pure benefit. Marula Oil and Marula Seed Oil (two catalogue rows for the same Sclerocarya birrea plant) share the same real South African clinical safety/efficacy citation. Triggered by the 6A catch-up burst Routine's scheduled firing (this session's branch had just been merged via PR #126 immediately before this firing — the branch was reset to `main`'s tip per the merged-PR workflow before this batch was processed, see git history). Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
