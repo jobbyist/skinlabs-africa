@@ -27,15 +27,21 @@ do not resume against the old ref.
 | `20260907120001_skincare_intelligence_products.sql` (products, variants, versions, ingredients, fit, claims, scores, climate fit) | ✅ Applied |
 | `20260907120002_skincare_intelligence_commerce_reviews.sql` (retailer listings, price history, reviews) | ✅ Applied |
 | `20260907120003_skincare_intelligence_indexes_functions.sql` (indexes, `current_product_prices` view, `search_products()`) | ✅ Applied |
-| `20260907120004_skincare_intelligence_seed.sql` (160 products / 50 brands / 128 ingredients, real data from `src/data/reviews.ts`) | 🔶 Partially applied — see below |
+| `20260907120004_skincare_intelligence_seed.sql` (160 products / 50 brands / 128 ingredients, real data from `src/data/reviews.ts`) | ✅ Applied — all 160 products/reviews live |
 
 **Live counts, verified via `mcp__Supabase__execute_sql` against
-`gnkpzijxuciiaamakgzm` (not assumed):** 128/128 ingredients, 50/50 brands,
-8/8 categories, 8/8 skin_types, 7/7 skin_concerns, 12/12 retailers all fully
-seeded (chunk 00 of the split below). **40/160 products/reviews live**
-(chunks 01–05 of the 21-chunk split applied and verified — one product per
-review, so review count always matches product count), 81 `product_ingredients`
-rows. Chunks 06–20 (products 41–160) have not been attempted yet.
+`gnkpzijxuciiaamakgzm` (not assumed), as of 2026-09-22:** 128/128 ingredients,
+50/50 brands, 8/8 categories, 8/8 skin_types, 7/7 skin_concerns, 12/12
+retailers all fully seeded (chunk 00). **160/160 products/reviews live**
+(all 21 chunks — chunk 00 lookups + chunks 01–20 products — applied and
+verified chunk-by-chunk via a product-count check after every
+`apply_migration` call), 290 `product_ingredients` rows. The seed migration
+is fully applied; `get_advisors` (security + performance) was re-run after
+the final chunk and found no new findings attributable to this seed data —
+only pre-existing, schema-level findings (unindexed FKs, RLS
+`auth.<fn>()` re-evaluation pattern, unused indexes, multiple permissive
+policies) that predate this seed and apply to the products/reviews tables
+generically, not specifically to the newly added rows.
 
 One transcription slip happened while manually re-applying chunk 01 in this
 session (a dropped `retailer_products` INSERT caused a price to be misattributed
