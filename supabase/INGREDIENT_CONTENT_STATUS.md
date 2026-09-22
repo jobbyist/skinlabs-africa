@@ -20,15 +20,33 @@ where the last one left off.
 
 | Metric | Value | As of |
 |---|---|---|
-| Total ingredients | 128 | 2026-09-21 |
-| Ingredients with `description` populated | 0 | 2026-09-21 |
+| Total ingredients | 128 | 2026-09-22 |
+| Ingredients with `description` populated | 8 / 128 | 2026-09-22 |
 | Ingredients with `category` populated | 126 / 128 | 2026-09-21 (pre-existing) |
-| `ingredient_sources` rows | 0 | 2026-09-21 (table just created) |
+| `ingredient_sources` rows | 18 | 2026-09-22 |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
 | Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 | 2026-09-21 |
-| Products live (of 160 catalogued) | 40 | 2026-09-21 (Phase 5, see `SEED_MIGRATION_STATUS.md`) |
+| Products live (of 160 catalogued) | 64+ | 2026-09-22 (Phase 5 in progress, see `SEED_MIGRATION_STATUS.md` for the current figure) |
+
+## Track A skip list (non-specific stubs / insufficient evidence)
+
+These `description IS NULL` rows are **intentionally not enriched** and must
+be excluded from every future Track A resume query (`AND slug NOT IN
+(...)`) so they don't get re-visited every batch — they were genuinely
+researched, not skipped out of laziness:
+
+| Slug | Why skipped |
+|---|---|
+| `aha-bha-complex` | Generic category-collective stub name from the original bulk seed, not a real singular INCI ingredient — no genuine literature search is possible for a vague "complex". |
+| `antioxidant-complex` | Same as above. |
+| `african-potato-extract` | Real named botanical (Hypoxis), but a targeted PubMed search (`Hypoxis African potato extract skin topical`) returned **zero** results for topical/dermatological use — Hypoxis literature is almost entirely about immune-modulation/prostate use, not skincare. Logged as genuine insufficient evidence, not fabricated. |
+
+If a future batch's research turns up real evidence for any of these
+(e.g. a new African Potato Extract dermatology study), it's fine to
+enrich and remove from this list then — this list reflects evidence
+available as of 2026-09-22, not a permanent verdict.
 
 Re-run this block's queries after every batch and update the numbers —
 don't trust a migration applying without error as proof the data landed;
@@ -54,14 +72,18 @@ select count(*) from ingredient_aliases;
 ```sql
 select slug, inci_name from ingredients
 where description is null
+  and slug not in ('aha-bha-complex', 'antioxidant-complex', 'african-potato-extract') -- Track A skip list, see below
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
 ```
 
-Cursor: **not started** (first firing should start from the beginning of
-the alphabet). Once every one of the original 128 has `description IS NOT
-NULL`, Track A is done and the 6A catch-up trigger should be disabled —
-all future firings run only Track B + the refresh rotation (6B).
+Cursor: **8 processed** (batch 01, 2026-09-22, alphabetically through
+"Ascorbic Acid" — see batch log below for the full list and the 3-entry
+skip list). Next firing resumes from `inci_name > 'Ascorbic Acid'`. Once
+every one of the original 128 has `description IS NOT NULL` (or is on the
+permanent skip list), Track A is done and the 6A catch-up trigger should
+be disabled — all future firings run only Track B + the refresh rotation
+(6B).
 
 **Track B — add new ingredients from the living candidate list.**
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom,
@@ -89,6 +111,7 @@ limit :remaining_batch_budget;
 | Date | Track(s) worked | Ingredients processed | Migration file | Notes |
 |---|---|---|---|---|
 | 2026-09-21 | Schema/infra | — | `20260921200507_...`, `20260921200517_...` | `ingredient_sources` table + `data_source_type` enum values created and verified live. No content batches run yet. |
+| 2026-09-22 | Track A batch 01 | 8: Acetyl Glucosamine, Acetyl Hexapeptide-8, African Black Soap, Aloe Vera, Alpha Arbutin, Arbutin, Argan Oil, Ascorbic Acid | `20260922020000_ingredient_content_batch_01.sql` | Real PubMed + DermNet NZ research per ingredient (18 citations total, 2-3 per ingredient). All landed `evidence_level` moderate except African Black Soap (limited, per its own review's "much is anecdotal" caveat). 3 insufficient-evidence/non-specific entries skipped and logged (see skip list above): AHA/BHA Complex, Antioxidant Complex, African Potato Extract. |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
@@ -120,11 +143,19 @@ re-attempt a real, already-checked dead end without new information.)*
 
 ## Schedule
 
-- **6A catch-up burst** (temporary, self-terminating): every ~2 hours,
-  process a Track A batch (10-12 ingredients) plus continue Phase 5's
-  pending product-seed chunks. Disable this trigger once Track A shows
-  128/128 with `description IS NOT NULL` and the product seed is complete
-  (160/160 products).
-- **6B permanent weekly pipeline** (ongoing, no end date): every Tuesday
-  06:00 SAST (`0 4 * * 2` UTC), add 25+ new ingredients from Track B, then
-  spend remaining batch budget on the refresh rotation. Runs indefinitely.
+- **6A catch-up burst** (temporary, self-terminating) — Routine id
+  `trig_013mJnTVKGVFgQUMbL98G8TV`, created 2026-09-22, self-bound to this
+  session (`session_01UoZa6wSq3bAupHbSdoBYnh`), cron `56 */2 * * *`
+  (anchored to creation minute — fires roughly every 2 hours). Processes a
+  Track A batch (10-12 ingredients) plus continues Phase 5's pending
+  product-seed chunks each firing. Self-disables (via `update_trigger
+  enabled: false` — never deleted, keeps run history) once Track A shows
+  128/128 `description IS NOT NULL` (or fully skip-listed) and the product
+  seed is complete (160/160 products).
+- **6B permanent weekly pipeline** (ongoing, no end date) — Routine id
+  `trig_012CnJXfuEkZxbUMwdfTBQg2`, created 2026-09-22, self-bound to this
+  session, cron `0 4 * * 2` (Tuesdays 06:00 SAST = 04:00 UTC). Adds 25+ new
+  ingredients from Track B each firing (appending fresh candidates to
+  `INGREDIENT_EXPANSION_CANDIDATES.md` first if it's running low), then
+  spends remaining batch budget on the refresh rotation. Runs indefinitely
+  — never self-disables; only a human should ever disable this one.
