@@ -45,3 +45,9 @@ verify_jwt = false
 
 [functions.quote-ss-beauty-submit]
 verify_jwt = false
+
+[functions.product-review-sync]
+verify_jwt = false
+
+[functions.briefings-sync]
+verify_jwt = false
