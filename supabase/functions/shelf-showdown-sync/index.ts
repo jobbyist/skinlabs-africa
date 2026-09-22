@@ -323,9 +323,18 @@ function qaComparison(fields: GeneratedComparisonFields): { passed: boolean; rea
 // SUPABASE AS MEMORY: quota + pair selection.
 // ---------------------------------------------------------------------------
 
+/** A dedicated provider value (matching briefings-sync's own 'briefings-gemini'
+ *  precedent) -- NOT the plain 'gemini' string product-review-sync's own quota
+ *  check reads, which would otherwise silently count this pipeline's calls
+ *  (a separate GOOGLE_API_KEY_COMPARE key) against product-review-sync's
+ *  GEMINI_API_KEY_REVIEWS daily cap. Found live 2026-09-22: this pipeline's
+ *  first real run had already consumed 17 of product-review-sync's 100/day
+ *  budget before this was caught. */
+const GEMINI_PROVIDER = "shelf-showdown-gemini";
+
 async function recordApiUsage(admin: SupabaseAdmin, success: boolean) {
   try {
-    await admin.from("pipeline_api_usage").insert({ provider: "gemini", purpose: "shelf-showdown-sync", success });
+    await admin.from("pipeline_api_usage").insert({ provider: GEMINI_PROVIDER, purpose: "shelf-showdown-sync", success });
   } catch {
     // Quota logging must never fail the run itself.
   }
@@ -337,8 +346,7 @@ async function withinDailyQuota(admin: SupabaseAdmin, limit: number): Promise<bo
   const { count } = await admin
     .from("pipeline_api_usage")
     .select("id", { count: "exact", head: true })
-    .eq("provider", "gemini")
-    .eq("purpose", "shelf-showdown-sync")
+    .eq("provider", GEMINI_PROVIDER)
     .gte("called_at", sinceUtcMidnight.toISOString());
   return (count ?? 0) < limit;
 }
@@ -348,8 +356,7 @@ async function withinPerMinuteQuota(admin: SupabaseAdmin, limit: number): Promis
   const { count } = await admin
     .from("pipeline_api_usage")
     .select("id", { count: "exact", head: true })
-    .eq("provider", "gemini")
-    .eq("purpose", "shelf-showdown-sync")
+    .eq("provider", GEMINI_PROVIDER)
     .gte("called_at", oneMinuteAgo);
   return (count ?? 0) < limit;
 }

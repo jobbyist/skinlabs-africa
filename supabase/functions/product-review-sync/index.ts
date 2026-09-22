@@ -113,7 +113,16 @@ const STATIC_REVIEW_BASELINE = 160;
 // a free-tier limit is respected proactively rather than discovered as a mid-run error.
 // ---------------------------------------------------------------------------
 const FIRECRAWL_DAILY_LIMIT = Number(Deno.env.get("FIRECRAWL_DAILY_LIMIT")) || 20;
-const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 100;
+/** Raised from the original 100 placeholder on 2026-09-22: the one-off
+ *  full_review backfill across ~190 pre-existing reviews (roughly 2-3 Gemini
+ *  attempts each once retries are counted) genuinely needs several hundred
+ *  real calls to finish, on top of normal daily publishing -- 100 was a
+ *  conservative guess, not a confirmed reading of GEMINI_API_KEY_REVIEWS'
+ *  actual plan, and today's own legitimate usage (101 calls from a normal
+ *  publishing run plus backfill testing) already exceeded it before the
+ *  backfill did any real work. Lower this back down once the backfill is
+ *  complete if steady-state daily usage doesn't need this much headroom. */
+const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 600;
 const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
 
 /** How long a cached Firecrawl result is trusted before it's fetched fresh again. */
@@ -547,7 +556,10 @@ formulation (the ingredient deep-dive), who it genuinely suits by skin type and 
 doesn't (grounded in the given skin_type_match), real-world texture/performance
 implied by the given scores, and an honest value take consistent with the given
 score_value. Match SkinLabs' voice: confident, plain-spoken, willing to name a real
-limitation. Never fabricate scarcity, ratings, or "clinically proven" language.`;
+limitation. Never fabricate scarcity, ratings, or "clinically proven" language.
+
+IMPORTANT: your full_review string must be AT LEAST 90 words. A short answer will be
+rejected and wastes this call -- always write the complete 90-180 word paragraph.`;
 
 function parseFullReviewResponse(text: string): { full_review: string } {
   const parsed = JSON.parse(text);
@@ -610,11 +622,18 @@ async function runBackfillFullReviews(
 
   const runId = crypto.randomUUID();
   const errors: string[] = [];
+  // Per-candidate diagnostic detail (QA verdict, word count, model, write error) --
+  // added 2026-09-22 after discovering 28 earlier backfill candidates showed
+  // success=true in pipeline_api_usage but produced zero review_details rows, with
+  // no surviving record of *why* (the errors array alone doesn't say whether a
+  // given candidate was QA-rejected vs. a write failure). This makes that always
+  // visible in the response going forward instead of only in the errors strings.
+  const attemptDetails: Array<{ id: string; qaPassed: boolean; qaReasons?: string[]; wordCount?: number; modelUsed?: string; writeError?: string }> = [];
   const modelUsage: Record<string, number> = {};
   let backfilled = 0;
   let skipped = 0;
 
-  const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 100;
+  const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 600;
   const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
 
   for (const candidate of candidates) {
@@ -670,17 +689,21 @@ async function runBackfillFullReviews(
       });
       modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
 
+      const wc = fields.full_review.trim().split(/\s+/).filter(Boolean).length;
       const qa = qaFullReview(fields.full_review);
       if (!qa.passed) {
         errors.push(`QA rejected ${candidate.id}: ${qa.reasons.join("; ")}`);
+        attemptDetails.push({ id: candidate.id, qaPassed: false, qaReasons: qa.reasons, wordCount: wc, modelUsed });
         continue;
       }
 
       const { error } = await admin.from("review_details").upsert({ review_id: candidate.id, full_review: fields.full_review });
       if (error) {
         errors.push(`${candidate.id}: ${error.message}`);
+        attemptDetails.push({ id: candidate.id, qaPassed: true, wordCount: wc, modelUsed, writeError: error.message });
       } else {
         backfilled += 1;
+        attemptDetails.push({ id: candidate.id, qaPassed: true, wordCount: wc, modelUsed });
       }
     } catch (err) {
       if (err instanceof GeminiFatalError) {
@@ -699,7 +722,7 @@ async function runBackfillFullReviews(
     await sleep(1200);
   }
 
-  return jsonResponse({ ok: true, mode, backfilled, skipped, attempted: candidates.length, modelUsage, errors });
+  return jsonResponse({ ok: true, mode, backfilled, skipped, attempted: candidates.length, modelUsage, errors, attemptDetails });
 }
 
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
