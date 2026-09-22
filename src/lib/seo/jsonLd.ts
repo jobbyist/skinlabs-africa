@@ -144,7 +144,7 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
  * - Never use editorial score as if it's aggregate customer rating
  */
 export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdInput) {
-  const productData: any = {
+  const productData: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${input.canonicalUrl}#product`,
@@ -171,11 +171,18 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
   // Editorial review (always present)
   productData.review = {
     "@type": "Review",
+  productData.review = {
+    "@type": "Review",
     reviewRating: {
       "@type": "Rating",
       ratingValue: input.editorialScore,
       bestRating: 10,
+      worstRating: 1,
     },
+    author: { "@type": "Organization", name: BRAND },
+    reviewBody: input.reviewBody,
+    ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
+  };
     author: { "@type": "Organization", name: BRAND },
     reviewBody: input.reviewBody,
     ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
@@ -187,6 +194,7 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
       "@type": "AggregateRating",
       ratingValue: input.communityRating,
       bestRating: 5, // Community uses 5-star scale
+      worstRating: 1,
       reviewCount: input.communityReviewCount,
     };
   }
