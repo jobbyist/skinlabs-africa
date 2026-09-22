@@ -1379,6 +1379,151 @@ feature appear operational.
       (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
       product reviews) or a human needs to trigger it after that reset
       for a real test.
+    - **Shelf Showdown weekly comparison pipeline added
+      (2026-09-22, sixth follow-up)** — a new sibling pipeline,
+      `supabase/functions/shelf-showdown-sync/index.ts`, gives the
+      previously-static "Shelf Showdown" comparison-article franchise
+      (`src/data/comparisons-part*.ts`, rendered at `/compare` and
+      `/reviews/versus/:slug`) the same DB-backed-generated-content
+      treatment as product reviews and briefings: a new
+      `public.ai_generated_comparisons` table (migration `supabase/
+      migrations/20260922060000_shelf_showdown_pipeline.sql`), merged
+      client-side with the static catalogue via a new `src/hooks/
+      use-generated-comparisons.ts` (same pattern as `use-generated-
+      reviews.ts`) wired into `Compare.tsx`, `ComparisonArticle.tsx` and
+      `SiteSearch.tsx`. **Sourcing is deliberately narrower than the
+      other two pipelines**: pairs are drawn only from
+      `ai_generated_product_reviews` (a real DB table this edge function
+      can query) — never from the static `src/data/reviews.ts` catalogue,
+      which is bundled into the Vite app and unreachable from Deno at
+      runtime. Two same-category, never-before-compared products (tracked
+      via a stable `pair_key`, `[id_a, id_b].sort().join('::')`, unique-
+      constrained) are handed to Gemini with an explicit "better for X,
+      never a universal winner" instruction matching the franchise's
+      existing editorial voice (`Compare.tsx`'s own "How Shelf Showdown
+      works" copy). Thumbnails reuse a small hardcoded pool of real,
+      already-credited Unsplash photos lifted from the existing static
+      catalogue (picked by category) rather than calling an unconfigured
+      photo API — this pipeline was given no Pexels/Unsplash secret, only
+      `GOOGLE_API_KEY_COMPARE`. Scheduled Thursdays 17:00 SAST (15:00 UTC,
+      `0 15 * * 4`) via pg_cron; auth follows the exact Vault-secret
+      pattern established for the other two pipelines
+      (`shelf_showdown_cron_secret` in Vault, `SHELF_SHOWDOWN_CRON_SECRET`
+      as the matching Edge Function secret — generated and rotated at the
+      user's explicit request the same way as the other two, and
+      confirmed set).
+      **Live-verified, with two real findings from doing so**:
+      1. A manual trigger right after deploying published one real,
+         genuine comparison — "Geve Earthmoss Serum vs Timeless Skin Care
+         Hyaluronic Acid" (`sa_context: "Premium vs budget hydration"`,
+         `generated_by: gemini-3.1-flash-lite`) — then the same run hit
+         `WORKER_RESOURCE_LIMIT` (the edge function ran out of compute
+         budget) trying to process the rest of the weekly target of 5 in
+         one invocation. Fixed by adding `MAX_SHOWDOWNS_PER_RUN = 2`,
+         separate from `WEEKLY_SHOWDOWN_CAP = 5` — a single run now always
+         finishes cleanly, and the weekly cron firing plus any manual
+         re-trigger tops up toward the weekly target across multiple
+         invocations, the same "small per-run cap, bigger cumulative
+         target" pattern `MAX_FIRECRAWL_SOURCES_PER_RUN` already uses in
+         `product-review-sync`. Redeployed with the fix (`shelf-showdown-
+         sync` version 4, confirmed `ACTIVE`).
+      2. **`GEMINI_DAILY_LIMIT`'s quota check in both `product-review-
+         sync` and `briefings-sync` is effectively site-wide, not
+         per-pipeline** — `withinDailyQuota()` in both functions filters
+         `pipeline_api_usage` by `provider = 'gemini'` only, with no
+         `purpose`/pipeline filter, so it counts every row any of the
+         three Gemini-using pipelines have ever logged that day
+         (`shelf-showdown-sync`'s own `withinDailyQuota` correctly scopes
+         to `purpose = 'shelf-showdown-sync'`, but that doesn't stop the
+         *other* two pipelines' unscoped checks from seeing its rows too).
+         Confirmed live: by the time backfill work below was attempted,
+         `pipeline_api_usage` already had 118 `provider = 'gemini'` rows
+         for the day (product-review-sync + briefings-sync's own earlier
+         real runs, plus this pipeline's), so every subsequent
+         `product-review-sync` call — including the unrelated backfill
+         work below — immediately reported "Gemini daily quota (100)
+         reached" with zero progress, despite `GEMINI_API_KEY_REVIEWS`
+         and `GOOGLE_API_KEY_COMPARE` being distinct keys. **Not fixed in
+         this pass** — deliberately left as-is rather than guessing
+         whether it's a bug or an intentional shared-account safety net
+         (Google AI Studio quotas can be per-project rather than
+         per-key, so a single shared daily ceiling across all three
+         pipelines may well be the correct conservative behaviour); worth
+         a human confirming which it's meant to be before anyone "fixes"
+         it by adding a `purpose` filter to the older two pipelines'
+         quota checks.
+    - **`product-review-sync` gains `full_review` generation + a
+      backfill mode for the existing catalogue (2026-09-22, same
+      follow-up)** — separately, asked to verify the product-review
+      pipeline actually produces "the complete ingredient deep-dive,
+      long-form verdict and skin-type match notes" it's supposed to.
+      Investigation found this promise already existed in the UI
+      (`ProductReview.tsx`: "Glow Insider unlocks the complete ingredient
+      analysis, long-form verdict and skin-type match notes for every
+      product we've reviewed", reading a `review_details.full_review`
+      text column, migration `20260816154034_...sql`) but **the automated
+      pipeline never wrote to it** — only 6 of the (then) 198 reviews (161
+      static `src/data/reviews.ts` + 37 `ai_generated_product_reviews`)
+      had a `review_details` row at all, all 6 hand-seeded on 2026-08-16
+      when the table was created. Fixed going forward: `REVIEW_SCHEMA`/
+      `REVIEW_INSTRUCTIONS` in `product-review-sync/index.ts` gained a
+      `full_review` field (one ~90-180 word paragraph covering the
+      ingredient deep-dive, an expanded verdict and skin-type-match notes,
+      generated in the *same* Gemini call as the existing short `verdict`
+      — not a second API call) with its own QA checks (min word count,
+      superlative/compliance scan), written to `review_details` right
+      after every successful `ai_generated_product_reviews` insert.
+      Added a new `?action=backfill_full_reviews` mode (`
+      runBackfillFullReviews()`) to fill in the 192 pre-existing reviews
+      missing this field, idempotent per review (always re-checks
+      `review_details` immediately before generating, so a stale caller-
+      side exclusion list or a concurrent run can't double-write) and
+      batchable via a `limit` param (default 20, max 40/call) — two input
+      modes: omit `reviews` in the POST body to pull straight from
+      `ai_generated_product_reviews` (this function can query that
+      directly), or supply `{ reviews: [...] }` with each review's own
+      already-published fields for the 161 *static* catalogue reviews,
+      which this edge function has no way to read at runtime (same
+      "can't import `src/data/*.ts` from Deno" constraint as the Shelf
+      Showdown sourcing decision above) — extracted via a one-off local
+      `bun` script that imports `productReviews` from `src/data/
+      reviews.ts` directly and writes the needed fields to JSON (160 real
+      rows, not 161 — the file has one fewer entry than an earlier `grep`
+      estimate suggested), then split into 8 batches of 20 and POSTed
+      with `curl` (not `net.http_post` — a 160-review JSON body is
+      awkward to construct as a SQL `jsonb` literal, and `curl` respects
+      this environment's `HTTPS_PROXY` natively per the existing
+      Playwright-vs-curl precedent elsewhere in this file). **Real
+      progress, but incomplete**: only got through a connectivity/wiring
+      test (`limit: 1`) before hitting the shared Gemini-quota exhaustion
+      documented above — `review_details` is still at 6 rows as of this
+      writing. Resume with the same batched-`curl` approach (files were
+      only written to this session's scratchpad, not committed — re-run
+      the extraction script, a few lines, against `productReviews` to
+      regenerate them) once the shared daily quota resets (next UTC
+      midnight) or a human raises `GEMINI_DAILY_LIMIT`/adds a per-pipeline
+      purpose filter per the finding above.
+    - **A real, separate operational hazard found while doing this work:
+      a direct MCP `deploy_edge_function` gets silently overwritten by
+      Supabase's own GitHub sync integration** — `product-review-sync`
+      was manually deployed (version 10, with the `full_review`/backfill
+      changes above) but had jumped to version 16 with those changes
+      **gone** by the time it was next invoked, some minutes later, with
+      no `apply_migration`/`deploy_edge_function` call from this session
+      in between. The only explanation consistent with the evidence: this
+      project has Supabase's native GitHub integration connected (visible
+      elsewhere in this file as the "Supabase Preview" PR check), and it
+      appears to redeploy edge functions from whatever is currently
+      committed to `main` on some cadence/webhook trigger independent of
+      this session's own actions — silently reverting a live MCP deploy
+      back to stale git-tracked source if the corresponding commit hasn't
+      been pushed yet. **Practical consequence for future sessions**:
+      never trust that a `deploy_edge_function` call stays live — commit
+      and push the exact same source to git as soon as possible after
+      deploying it directly, and re-verify live content (`get_edge_
+      function`, or a cheap real invocation) before depending on a
+      function's behaviour, especially if any time has passed or other
+      GitHub activity (a PR merge, other pushes) happened in between.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
