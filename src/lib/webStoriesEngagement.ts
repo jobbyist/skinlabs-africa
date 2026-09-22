@@ -6,7 +6,12 @@ const read = <T>(key: string, fallback: T): T => {
   if (!canUseStorage()) return fallback;
   try {
     const value = window.localStorage.getItem(key);
-    return value ? (JSON.parse(value) as T) : fallback;
+    if (!value) return fallback;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return fallback;
+    }
   } catch {
     return fallback;
   }
