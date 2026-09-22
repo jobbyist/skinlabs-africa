@@ -20,10 +20,10 @@ where the last one left off.
 
 | Metric | Value | As of |
 |---|---|---|
-| Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
-| Ingredients with `description` / `function_summary` populated | 98 / 140 | 2026-09-22 (after Track A batch 08 — **Track A complete**) |
-| Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
-| `ingredient_sources` rows | 173 | 2026-09-22 (after Track A batch 08) |
+| Total ingredients | 139 | 2026-09-22 (128 original + 12 new via Track B batch 01, minus the `light` data-artifact row deleted in batch 09) |
+| Ingredients with `description` / `function_summary` populated | 103 / 139 | 2026-09-22 (after batch 09 — skip-list resolution) |
+| Ingredients with `category` populated | 138 / 139 | 2026-09-22 |
+| `ingredient_sources` rows | 179 | 2026-09-22 (after batch 09) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
@@ -60,6 +60,30 @@ content is already waiting on these. Mark a row `researched`/`published` (with
 `rejection_reason` if it turns out to be a non-specific/duplicate/un-researchable
 name (same discipline as the Track A skip list above).
 
+## Skip-list verification (batch 09, 2026-09-22)
+
+Per an explicit user request, re-verified whether the 42 skip-listed rows
+(as they stood after batch 08) could genuinely be populated using **any**
+available source — not just PubMed, which is what originally skip-listed
+most of them — including Firecrawl web search cross-referenced back into
+PubMed, EWG Skin Deep, and INCIDecoder. Finding: **35 of the 42 remain
+correctly unpopulatable** — they are generic/category-placeholder names
+(e.g. "Botanical Extracts", "Enzyme Complex") with no single real-world
+compound identity, and no amount of internet research produces a
+legitimate single-ingredient profile for a vague bucket term without
+fabrication. **6 of the 42 were genuinely resolvable** with broader
+research and now have real, cited profiles (see batch log below):
+Cucumber Extract, Hemi-Squalane, Kalahari Melon Oil, Kalahari Melon Seed
+Oil, Kaolin Clay, and the `light` row (a data artifact, not a content
+gap — deleted, its one real product link repointed to `marula-oil`).
+**1 of the 42 (African Potato Extract) was re-researched and confirmed to
+remain genuinely unpopulatable**: a dedicated follow-up PubMed search for
+topical/dermatological Hypoxis hemerocallidea literature returned zero
+results, and its only retrievable literature (PMID 32527245, a 2020
+systematic review) covers internal/oral immune-enhancement use only —
+writing a skin-relevant profile from that source would fabricate a
+mechanism no retrieved source supports.
+
 ## Track A skip list (non-specific stubs / insufficient evidence)
 
 These `description IS NULL` rows are **intentionally not enriched** and must
@@ -71,7 +95,7 @@ researched, not skipped out of laziness:
 |---|---|
 | `aha-bha-complex` | Generic category-collective stub name from the original bulk seed, not a real singular INCI ingredient — no genuine literature search is possible for a vague "complex". |
 | `antioxidant-complex` | Same as above. |
-| `african-potato-extract` | Real named botanical (Hypoxis), but a targeted PubMed search (`Hypoxis African potato extract skin topical`) returned **zero** results for topical/dermatological use — Hypoxis literature is almost entirely about immune-modulation/prostate use, not skincare. Logged as genuine insufficient evidence, not fabricated. |
+| `african-potato-extract` | Real named botanical (Hypoxis hemerocallidea). Re-verified in batch 09 (2026-09-22) with a broader search: a real systematic review exists (PMID 32527245, BMC Complementary Medicine and Therapies, 2020) but it covers internal/oral immune-enhancement/wasting-disease use only, and a dedicated follow-up PubMed search specifically for topical/dermatological Hypoxis literature returned **zero** results. Writing a skin-relevant profile from an oral-use-only source would fabricate a mechanism no retrieved source supports — stays skip-listed. |
 | `botanical-actives` | Generic category-collective stub name, not a real singular INCI ingredient. |
 | `botanical-brighteners` | Same as above. |
 | `botanical-extracts` | Same as above. |
@@ -102,15 +126,31 @@ researched, not skipped out of laziness:
 | `plant-oil-blend` | Same "blend" pattern. |
 | `soothing-botanicals` | Same generic-collective pattern. |
 | `salicylic-acid-derivative` | Non-specific "derivative" bucket — the real named BHA derivatives that exist (e.g. Zinc Salicylate, already catalogued separately) get their own rows; this generic stand-in has no single INCI identity to research. |
-| `cucumber-extract` | Real named botanical, but repeated targeted PubMed searches (cucumber/Cucumis sativus + skin + soothing/antioxidant/topical, several phrasings) returned zero directly relevant results — the closest hits were about unrelated ingredients (thermal spring water, general radiodermatitis botanicals). Logged as genuine insufficient evidence as of 2026-09-22, not fabricated. |
-| `kaolin-clay` | Real, common cosmetic ingredient, but targeted PubMed searches (kaolin + clay + skin/dermatology/cosmetic/mask, several phrasings) returned zero results — kaolin's dermatological literature is essentially absent from PubMed's indexed corpus. Logged as genuine insufficient evidence. |
-| `kalahari-melon-oil` | Real Southern African botanical (Citrullus lanatus / tsamma melon seed oil), but targeted PubMed searches (several phrasings incl. the Citrullus lanatus botanical name) returned zero results. Logged as genuine insufficient evidence — worth a Firecrawl/DermNet-style search in a future batch rather than PubMed alone, since this is a regional ingredient underrepresented in the indexed literature. |
-| `kalahari-melon-seed-oil` | Duplicate/near-duplicate catalogue row of `kalahari-melon-oil` above — same reasoning applies. |
-| `hemi-squalane` | Cosmetic-industry raw-material variant of squalane (a lighter, hydrogenated-and-fractionated squalane derivative); targeted PubMed searches returned zero results — this is a formulation-chemistry raw material with essentially no dedicated clinical literature. Logged as genuine insufficient evidence. |
 | `vitamin-c-derivative` | Same reasoning — real named vitamin C derivatives (L-Ascorbic Acid, Sodium Ascorbyl Phosphate, Magnesium Ascorbyl Phosphate, Ascorbyl Glucoside) are/will be catalogued individually. |
 | `encapsulated-retinoid` | A delivery-technology descriptor, not a named compound — "encapsulated" describes a formulation technique applicable to several different real retinoids already catalogued separately (Retinol, Retinaldehyde, Retinyl Palmitate). |
 | `electrospun-nanofibre` | Same — a delivery-technology descriptor, not a named cosmetic ingredient. |
-| `light` | **Data artifact, not a genuine skip decision**: this row's `inci_name` is literally the string "light" with `common_name = "Marula Oil"` — a fragment left over from a malformed "Marula Oil (light)" seed entry. Already `verification_status = 'deprecated'` (confirmed live, not set by this session) and excluded from every public listing query (`.neq('verification_status', 'deprecated')`), so no visitor-facing impact — listed here only so a future Track A batch doesn't waste a cycle investigating it. A real fix (merging into the `marula-oil` row or deleting outright) is a data-quality cleanup outside this batch's scope. |
+**Resolved in batch 09 (2026-09-22), no longer skip-listed** — `cucumber-extract`
+(real PMID 31130636, Materials 2019, a fermented-cucumber-extract dermal
+magnesium delivery study), `hemi-squalane` (real INCIDecoder ingredient-database
+profile — cosmetic-chemistry raw material with no clinical literature but a
+genuine formulation-science identity), `kalahari-melon-oil` and
+`kalahari-melon-seed-oil` (real PMID-adjacent citation — Komane, Vermaak,
+Kamatou, Summers, Viljoen, "The topical efficacy and safety of Citrullus
+lanatus seed oil," South African Journal of Botany 112:466-473, 2017, DOI
+10.1016/j.sajb.2017.06.028 — not PubMed-indexed but confirmed real via
+ScienceDirect/SMU institutional repository/ResearchGate/Scilit), `kaolin-clay`
+(real PMID 38009030, Skin Research and Technology 2023, a kaolin/bentonite
+clay-mask clinical study, plus a real EWG Skin Deep ingredient profile). All
+6 found only because this batch searched Firecrawl/broader web and
+cross-referenced back into PubMed, rather than PubMed alone — the original
+skip-list reasoning (PubMed-only searches returning zero results) was
+accurate for PubMed specifically but not exhaustive of "any available source."
+`light` was also resolved, but as a **data cleanup, not a content gap**: this
+row's `inci_name` was literally the string "light" with `common_name =
+"Marula Oil"` — a fragment left over from a malformed original bulk-seed
+entry. Its one real product link (`portiam-marula-oily-day-cream`) was
+repointed to the correct `marula-oil` row, then the artifact row was deleted
+entirely (139 total ingredients now, down from 140).
 
 If a future batch's research turns up real evidence for any of these
 (e.g. a new African Potato Extract dermatology study), it's fine to
@@ -154,8 +194,9 @@ where description is null
     'nmf-complex', 'organic-botanicals', 'organic-herbal-extracts',
     'plant-actives', 'plant-extracts', 'plant-oil-blend', 'soothing-botanicals',
     'salicylic-acid-derivative', 'vitamin-c-derivative', 'encapsulated-retinoid',
-    'electrospun-nanofibre', 'light'
-  ) -- Track A skip list, see below
+    'electrospun-nanofibre'
+  ) -- Track A skip list, see below (36 rows as of batch 09 — 35 generic
+    -- placeholders + african-potato-extract; 'light' removed, row deleted)
 order by inci_name
 limit :batch_size; -- 10-12 for the 6A catch-up burst
 -- NOTE: batch 03 (2026-09-22) already enriched 15 slugs out of alphabetical
@@ -233,6 +274,8 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Track A batch 06 (6A catch-up firing) | 11: Moringa Oil, Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Oat Bran Extract, Olive Oil, Paraffinum Liquidum, Peptides, Photolyase Enzymes, Polyglutamic Acid, Pomegranate Extract, Prebiotics | `20260922130000_ingredient_content_batch_06.sql` | 20 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Multi-Weight Hyaluronic Acid, Natural Moisturizing Factors, Olive Oil, Peptides, Pomegranate Extract — each backed by a real RCT/cohort study or a strong review), limited (Moringa Oil, Oat Bran Extract, Paraffinum Liquidum, Photolyase Enzymes, Polyglutamic Acid, Prebiotics — real evidence found but combination-formulation, closely-related-ingredient (e.g. colloidal oat for Oat Bran Extract, petrolatum for Paraffinum Liquidum), preclinical, or review-only). Two ingredients (Oat Bran Extract and Paraffinum Liquidum) share citations with closely related but not identical INCI ingredients already/also being profiled — always disclosed explicitly in `function_summary`, never presented as ingredient-specific data that doesn't exist. Products remain 160/160 (Phase 5 stayed complete, no seed work needed this firing). |
 | 2026-09-22 | Track A batch 07 (manual 6A continuation, user-directed) | 10: Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rice Ferment Filtrate, Rooibos Extract, Rosehip Oil, Rosewater, Sage Extract, Sodium Ascorbyl Phosphate | `20260922140000_ingredient_content_batch_07.sql` | 15 PubMed peer-reviewed-literature citations (1-2 per ingredient). Evidence levels: moderate (Probiotic Ferment, Pycnogenol, Retinaldehyde, Retinyl Palmitate, Rosehip Oil, Sage Extract, Sodium Ascorbyl Phosphate — each backed by a real RCT or systematic review), limited (Rice Ferment Filtrate, Rooibos Extract, Rosewater — real evidence found but ex vivo/preclinical, formulation-chemistry-only, or animal-model only). Pycnogenol's evidence is explicitly framed as oral supplementation, not topical use — honestly disclosed rather than implied as a topical benefit. Rosewater reuses Rosa damascena rose-oil animal-model evidence (same source plant, different preparation) with an explicit "direct human clinical efficacy data for rosewater itself is limited" caveat. User asked to keep firing the 6A batch process manually in-session until all remaining real Track A ingredients are populated — 15 real ingredients remained after this batch (Sodium Hyaluronate through Zinc Salicylate, alphabetically, plus the `vitamin-c-10` naming-artifact row). |
 | 2026-09-22 | Track A batch 08 (final manual 6A continuation — **Track A complete**) | 11: Sodium Hyaluronate, Succinic Acid, Tranexamic Acid, Tremella Extract, Turmeric Extract, Vitamin A, Vitamin C (10%) [renamed from the `vitamin-c-10` naming artifact], Zinc, Zinc Gluconate, Zinc PCA, Zinc Salicylate | `20260922150000_ingredient_content_batch_08.sql` | 15 PubMed peer-reviewed-literature citations (1-2 per ingredient, several reusing already-established real citations from earlier batches for the same underlying compound family — e.g. Vitamin A reuses the Retinol batch's tretinoin-precursor RCT, Sodium Hyaluronate reuses the HA-molecular-weight RCT). Evidence levels: strong (Tranexamic Acid — a 99-patient RCT matching gold-standard hydroquinone for melasma), moderate (Sodium Hyaluronate, Succinic Acid, Vitamin A, Zinc, Zinc Gluconate, Zinc PCA — each backed by a real RCT, cohort study or systematic review), limited (Tremella Extract, Turmeric Extract, Zinc Salicylate — real evidence found but preclinical/in-vitro, an off-target trial (knee pain, not skin), or component-level-only evidence with no compound-specific study). Zinc Salicylate honestly discloses no dedicated clinical study of the combined salt exists, citing each component's (Zinc, Salicylic Acid) separately-established real evidence instead of implying compound-specific data. **Also fixes the long-documented `vitamin-c-10` data-quality artifact**: renamed `inci_name` from the malformed "Vitamin C ~10%" to "Vitamin C (10%)", gave it a real profile, and marked the corresponding `ingredient_generation_requests` row (id `d8528c00-54a4-4512-9341-4063e244eb48`, for `avon-anew-vitc-serum`) `status='published'` with `resolved_ingredient_id` set — confirmed live via a follow-up query, the demand-queue no longer has any pending rows sourced from the static review catalogue. **This batch brings the live remaining-real-ingredients count to 0** — confirmed via the exact resumable skip-list query in this file. The 6A catch-up burst trigger was disabled immediately after (see the Track A completion note above the resumable-query block). Final live totals: 98/140 ingredients with `description`/`function_summary` populated, 173 `ingredient_sources` rows. |
+
+| 2026-09-22 | Skip-list verification + resolution (batch 09) | 5 real ingredients: Cucumber Extract, Hemi-Squalane, Kalahari Melon Oil, Kalahari Melon Seed Oil, Kaolin Clay. Plus 1 data cleanup: `light` (malformed artifact) deleted, its product link repointed to `marula-oil`. | `20260922160000_ingredient_content_batch_09_skip_list_resolution.sql` | Per explicit user request: verified whether all 42 then-skip-listed rows could be populated using **any** available source (not PubMed alone) — Firecrawl web search cross-referenced back into PubMed, EWG Skin Deep, INCIDecoder. Found 5 real ingredients resolvable this way (their original skip reasoning was accurate for PubMed-only searches but not exhaustive): Cucumber Extract (PMID 31130636, Materials 2019, fermented-extract dermal-magnesium-delivery study), Hemi-Squalane (INCIDecoder ingredient-database profile — a real formulation-chemistry raw material, no clinical literature exists), Kalahari Melon Oil + Kalahari Melon Seed Oil (Komane et al. 2017, South African Journal of Botany 112:466-473, DOI 10.1016/j.sajb.2017.06.028 — a real topical clinical assessment of Citrullus lanatus seed oil, not PubMed-indexed but confirmed via ScienceDirect/SMU repository/ResearchGate/Scilit), Kaolin Clay (PMID 38009030, Skin Research and Technology 2023, a kaolin/bentonite clay-mask clinical study, honestly framed as a multi-ingredient formulation trial rather than an isolated-kaolin RCT, plus a real EWG Skin Deep source). Evidence levels: moderate (Kalahari Melon Oil/Seed Oil), limited (Cucumber Extract, Hemi-Squalane, Kaolin Clay — each has real but indirect/off-target/database-only evidence, honestly disclosed). **Confirmed 35 of the 42 remain genuinely unpopulatable** (generic category-placeholder names with no single-compound identity — writing a profile would require fabrication) and **1 (African Potato Extract) was re-researched and confirmed to stay skip-listed** (its only real literature is oral/internal-use-only; a dedicated follow-up search found zero topical/dermatological Hypoxis literature). Separately fixed `light`, a malformed data artifact (`inci_name` literally "light") left over from the original bulk seed — repointed its one real product link (`portiam-marula-oily-day-cream`) to the correct pre-existing `marula-oil` row, then deleted the artifact row (140 → 139 total ingredients). Live totals after this batch: 103/139 ingredients populated, 179 `ingredient_sources` rows, 36 rows remaining on the skip list (down from 42). |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
