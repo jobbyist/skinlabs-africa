@@ -65,6 +65,12 @@ const CATEGORY_QUERIES: Record<string, string[]> = {
 
 const FALLBACK_QUERIES = ["skincare product", "cosmetics bottle", "beauty products"];
 
+/** Strips whitespace/newlines a secret may have picked up from how it was set
+ *  (e.g. `supabase secrets set` splitting a pasted multi-line value) --
+ *  fetch's Headers implementation throws "Invalid header value" on a raw
+ *  newline, which is never legitimately part of an API key. */
+const sanitizeKey = (key: string): string => key.replace(/\s+/g, "");
+
 interface Photo {
   /** Prefixed with its source ("pexels:123"/"unsplash:abc") so IDs from the
    *  two providers can never collide in the review_images.photo_id column. */
@@ -82,7 +88,7 @@ async function searchPexels(query: string, page: number, key: string): Promise<P
   url.searchParams.set("page", String(page));
   url.searchParams.set("orientation", "landscape");
 
-  const res = await fetch(url.toString(), { headers: { Authorization: key } });
+  const res = await fetch(url.toString(), { headers: { Authorization: sanitizeKey(key) } });
   if (!res.ok) {
     console.error(`Pexels ${res.status}: ${(await res.text()).slice(0, 200)}`);
     return [];
@@ -116,7 +122,7 @@ async function searchUnsplash(query: string, page: number, key: string): Promise
   url.searchParams.set("content_filter", "high");
 
   const res = await fetch(url.toString(), {
-    headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+    headers: { Authorization: `Client-ID ${sanitizeKey(key)}`, "Accept-Version": "v1" },
   });
   if (!res.ok) {
     console.error(`Unsplash ${res.status}: ${(await res.text()).slice(0, 200)}`);

@@ -23,12 +23,26 @@
  *   - VERCEL_PROJECT_ID    Defaults to prj_QiDafIkNxgVHBnDuepg4EvxNsH8J.
  *   - VERCEL_TEAM_ID       Defaults to team_SsKFiB8H2aVoVKQAchiFleRR.
  *
+ * topEvents deliberately does NOT call Vercel's `/events/aggregate` endpoint:
+ * confirmed live against this exact project that it 402s ("Accessing
+ * Analytics custom events requires an Enterprise or Pro plan"), while
+ * `/visits/*` works fine on this plan. Conversion events are instead read
+ * from the analytics_events table (supabase/migrations/20260921120000_
+ * analytics_events_core.sql) via a service-role client -- the same data
+ * trackConversionEvent() already dual-writes there, so this doesn't depend
+ * on a Vercel plan upgrade. Requires the SUPABASE_SERVICE_ROLE_KEY/
+ * VITE_SUPABASE_URL secrets already configured for other server functions
+ * in this project (see api/product-review-sync.ts).
+ * Pageviews/visitors/top-pages and the events panel are independently
+ * fault-tolerant -- one failing doesn't take down the other.
+ *
  * GET /api/admin-analytics?days=7|30|90 (default 30)
  * Response: { ok: true, since, until, totals: { pageviews, visitors },
  *   daily: [{ day, pageviews }], topPages: [{ path, pageviews }],
  *   topEvents: [{ eventName, count }] }
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createClient } from "@supabase/supabase-js";
 
 type VercelReq = {
   method?: string;
@@ -86,7 +100,6 @@ interface CountResponse {
 interface AggregateRow {
   day?: string;
   requestPath?: string;
-  eventName?: string;
   count?: number;
   pageviews?: number;
   visitors?: number;
@@ -104,6 +117,39 @@ async function vercelGet<T>(path: string, params: Record<string, string>, token:
     throw new Error(`Vercel API ${path} ${res.status}: ${body.slice(0, 300)}`);
   }
   return (await res.json()) as T;
+}
+
+/** Reads conversion-event counts from analytics_events (see this file's
+ *  header comment for why this doesn't call Vercel's events API). Returns
+ *  [] on any failure -- an events-panel outage should never take down the
+ *  pageview/visitor data this function also serves. */
+async function readTopEvents(since: string, until: string): Promise<{ eventName: string; count: number }[]> {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return [];
+
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data, error } = await supabase
+      .from("analytics_events")
+      .select("event_name")
+      .gte("created_at", since)
+      .lte("created_at", until)
+      .limit(10000);
+    if (error || !data) return [];
+
+    const counts = new Map<string, number>();
+    for (const row of data as { event_name: string }[]) {
+      counts.set(row.event_name, (counts.get(row.event_name) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([eventName, count]) => ({ eventName, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+  } catch (err) {
+    console.error("readTopEvents failed:", err);
+    return [];
+  }
 }
 
 export default async function handler(req: VercelReq, res: VercelRes) {
@@ -137,13 +183,17 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
   const base = { projectId, teamId, since: since.toISOString(), until: until.toISOString() };
 
+  // Core pageview/visitor data must all succeed together (they're one
+  // coherent picture) -- but topEvents is read independently below and must
+  // never take this down, since it depends on a different backend
+  // (Supabase, not Vercel) with its own failure modes.
   try {
-    const [totals, daily, topPages, topEvents] = await Promise.all([
+    const [totals, daily, topPages] = await Promise.all([
       vercelGet<CountResponse>("/visits/count", { projectId, teamId }, token),
       vercelGet<AggregateResponse>("/visits/aggregate", { ...base, by: "day" }, token),
       vercelGet<AggregateResponse>("/visits/aggregate", { ...base, by: "requestPath", limit: "10" }, token),
-      vercelGet<AggregateResponse>("/events/aggregate", { ...base, by: "eventName", limit: "20" }, token),
     ]);
+    const topEvents = await readTopEvents(base.since, base.until);
 
     res.status(200).json({
       ok: true,
@@ -157,9 +207,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       topPages: (topPages.data ?? [])
         .map((row) => ({ path: row.requestPath ?? "(unknown)", pageviews: row.pageviews ?? row.count ?? 0 }))
         .sort((a, b) => b.pageviews - a.pageviews),
-      topEvents: (topEvents.data ?? [])
-        .map((row) => ({ eventName: row.eventName ?? "(unknown)", count: row.count ?? 0 }))
-        .sort((a, b) => b.count - a.count),
+      topEvents,
     });
   } catch (err) {
     console.error("admin-analytics failed:", err);
