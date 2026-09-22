@@ -635,9 +635,19 @@ async function runBackfillFullReviews(
 
   const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 600;
   const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
+  // Hard cap on real Gemini attempts per invocation -- added 2026-09-22 after this
+  // mode hit WORKER_RESOURCE_LIMIT repeatedly (even at `limit: 3`, the edge
+  // function's compute budget ran out after 1-2 real attempts). Same "small
+  // per-run cap, bigger cumulative target across repeated calls" pattern already
+  // used by shelf-showdown-sync's MAX_SHOWDOWNS_PER_RUN -- the caller's `limit`
+  // still bounds how many candidates are considered, this bounds how many are
+  // actually attempted in one invocation so a single call always finishes cleanly.
+  const MAX_BACKFILL_ATTEMPTS_PER_RUN = 2;
+  let attemptsThisRun = 0;
 
   for (const candidate of candidates) {
     if (!candidate?.id) continue;
+    if (attemptsThisRun >= MAX_BACKFILL_ATTEMPTS_PER_RUN) break;
 
     // Re-check right before generating -- idempotent even if the caller's own
     // exclusion list (or a concurrent run) is stale by the time this candidate is reached.
@@ -646,6 +656,7 @@ async function runBackfillFullReviews(
       skipped += 1;
       continue;
     }
+    attemptsThisRun += 1;
 
     if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
       errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping backfill batch`);
