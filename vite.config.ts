@@ -20,19 +20,25 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: `assets/[name]-[hash].js`,
         chunkFileNames: `assets/[name]-[hash].js`,
         assetFileNames: `assets/[name]-[hash].[ext]`,
-        // Every route is already React.lazy()-loaded (see src/App.tsx), so the
-        // per-route chunk Rollup creates for each is the natural split. These
-        // three libraries are heavy and imported from multiple, otherwise
-        // unrelated routes (charts across admin/dashboard/assessment pages,
-        // PDF export across billing/account/formulator, date formatting
-        // everywhere) -- without an explicit vendor chunk each of those route
-        // chunks would carry its own duplicate copy instead of sharing one
-        // long-term-cacheable bundle.
-        manualChunks: {
-          "vendor-charts": ["recharts"],
-          "vendor-pdf": ["jspdf"],
-          "vendor-date": ["date-fns"],
-        },
+        // Every route is already React.lazy()-loaded (see src/App.tsx). A
+        // named "vendor-charts"/"vendor-pdf" manualChunks entry previously
+        // lived here to share recharts/jspdf across their several lazy
+        // consumers (admin/dashboard/formulator) under one fixed,
+        // long-term-cacheable filename -- but a real build measurement
+        // showed Vite unconditionally emits <link rel="modulepreload"> for
+        // *named* manualChunks vendor chunks in the root index.html,
+        // regardless of whether anything on the current route actually
+        // needs them. Confirmed directly: after lazy-loading the homepage's
+        // AIFormulator widget (src/pages/Index.tsx) so recharts/jspdf are no
+        // longer in ANY route's eager import graph, dist/index.html was
+        // still preloading both vendor chunks (~246KB gzip) on literally
+        // every page load. Removing the manualChunks entries fixes this --
+        // Rollup's automatic chunking still creates one shared chunk for a
+        // module reachable from multiple dynamic-import consumers, it's
+        // just not statically named/preloaded, so it only loads when a
+        // route that actually uses it is visited. The tradeoff (a
+        // content-hashed rather than fixed vendor filename) is moot anyway
+        // since every chunk filename here already busts on each build.
       },
     },
     // Ensure clean builds

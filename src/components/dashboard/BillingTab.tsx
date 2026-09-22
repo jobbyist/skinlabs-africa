@@ -216,9 +216,9 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                           gateway: tx.gateway,
                         })
                       }
-                      aria-label="Download invoice"
+                      aria-label={`Download invoice: ${tx.description} (ref ${tx.reference})`}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>

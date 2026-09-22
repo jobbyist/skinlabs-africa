@@ -3,14 +3,16 @@ const cover = {
   ep1: "/podcast/ep1-weird-skincare.jpg",
   ep2: "/podcast/ep2-skincare-fails.jpg",
   // Swapped per editorial request: ep4's cover art now runs on ep3, and vice versa.
-  ep3: "/podcast/ep4-ingredient-drama.png",
-  ep4: "/podcast/ep3-glass-skin.png",
-  ep5: "/podcast/ep5-spf-is-not-optional.png",
-  ep6: "/podcast/ep6-dark-spots-hyperpigmentation.png",
-  ep7: "/podcast/ep7-retinoid-rabbit-hole.png",
-  ep8: "/podcast/ep8-skin-barrier.png",
-  ep9: "/podcast/ep9-melanin-rich-skin.png",
-  ep10: "/podcast/ep10-skincare-or-marketing.png",
+  // (ep3-ep10 re-encoded PNG -> WebP: same filenames, ~93% smaller, no visible
+  // quality loss — see scripts/compress-images.ts's header comment.)
+  ep3: "/podcast/ep4-ingredient-drama.webp",
+  ep4: "/podcast/ep3-glass-skin.webp",
+  ep5: "/podcast/ep5-spf-is-not-optional.webp",
+  ep6: "/podcast/ep6-dark-spots-hyperpigmentation.webp",
+  ep7: "/podcast/ep7-retinoid-rabbit-hole.webp",
+  ep8: "/podcast/ep8-skin-barrier.webp",
+  ep9: "/podcast/ep9-melanin-rich-skin.webp",
+  ep10: "/podcast/ep10-skincare-or-marketing.webp",
   soon: "/podcast/ep-coming-soon.jpg",
 } as const;
 

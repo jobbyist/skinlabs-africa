@@ -149,6 +149,8 @@ const ReviewsGrid = ({
                 src={productImage.url}
                 alt={`${review.category} product photography — ${productImage.alt}`}
                 loading="lazy"
+                width={400}
+                height={160}
                 className="h-40 w-full object-cover"
               />
               {productImage.creditUrl !== "#" && (
@@ -235,7 +237,9 @@ const ReviewsGrid = ({
 
             <div className="mt-auto flex items-center justify-between">
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
+                <Link to={`/reviews/${review.id}`} aria-label={`Full breakdown: ${review.brand} ${review.product_name}`}>
+                  Full breakdown
+                </Link>
               </Button>
               <button
                 onClick={() => toggleLike(review.id)}
