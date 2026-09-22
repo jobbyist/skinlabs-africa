@@ -707,21 +707,55 @@ async function computeCommunityRating(
   return { rating: Math.round(avg * 10) / 10, count: ratings.length };
 }
 
-/** Real image only -- checks review_images (the same table src/hooks/
- *  use-review-images.ts reads client-side) first; if this review has none yet and a
- *  PEXELS_API_KEY Supabase secret is configured, does one real Pexels search and
- *  writes the result INTO review_images (not just the primary_image cache column) so
- *  the existing client-side image-resolution chain picks it up too, rather than
- *  creating a second, divergent image source. Returns null (never fabricates a URL)
- *  if neither source has anything -- most AI-generated reviews will stay null here
- *  until a human sets PEXELS_API_KEY, a known, documented gap (see this file's own
- *  header comment). */
+/** Real, SkinLabs-uploaded brand banner assets (public/brandbanners/*.PNG) for
+ *  commercial partner brands whose reviews carry is_sponsored -- a real brand banner
+ *  is a more accurate, more honest cover image for a disclosed sponsored placement
+ *  than a generic Pexels/Unsplash stock photo (which for several rows was already a
+ *  visibly mismatched stock shot -- a USB drive, a spice tray -- for a skincare
+ *  review). Keys are the exact `brand` column values on ai_generated_product_reviews;
+ *  add an entry here only once a matching PNG actually exists in that directory. */
+const SPONSORED_BRAND_BANNERS: Record<string, string> = {
+  Esse: "esse.PNG",
+  Lelive: "lelive.PNG",
+  "SKOON.": "skoon.PNG",
+  "Standard Beauty": "standard.PNG",
+  "Timeless Skin Care": "timeless.PNG",
+};
+
+/** Real image only. For a sponsored review of a brand with a real banner asset in
+ *  SPONSORED_BRAND_BANNERS, always uses that (see its own doc comment for why --
+ *  takes priority over an existing review_images row too, so a stale generic stock
+ *  photo already written before a brand's banner was mapped gets corrected on the
+ *  next backfill pass rather than staying stuck). Otherwise checks review_images (the
+ *  same table src/hooks/use-review-images.ts reads client-side) first; if this review
+ *  has none yet and a PEXELS_API_KEY Supabase secret is configured, does one real
+ *  Pexels search and writes the result INTO review_images (not just the primary_image
+ *  cache column) so the existing client-side image-resolution chain picks it up too,
+ *  rather than creating a second, divergent image source. Returns null (never
+ *  fabricates a URL) if nothing applies. */
 async function resolvePrimaryImage(
   admin: SupabaseAdmin,
   reviewId: string,
   category: string,
   brand: string,
+  isSponsored: boolean,
 ): Promise<string | null> {
+  const bannerFile = isSponsored ? SPONSORED_BRAND_BANNERS[brand] : undefined;
+  if (bannerFile) {
+    const bannerUrl = `https://skinlabs.co.za/brandbanners/${bannerFile}`;
+    await admin.from("review_images").upsert(
+      {
+        review_id: reviewId,
+        image_url: bannerUrl,
+        alt: `${brand} brand banner`,
+        credit_name: brand,
+        credit_url: "https://skinlabs.co.za/marketplace",
+      },
+      { onConflict: "review_id" },
+    );
+    return bannerUrl;
+  }
+
   const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).maybeSingle();
   if (existing?.image_url) return existing.image_url;
 
@@ -870,6 +904,7 @@ interface BackfillRow {
   score_value: number;
   score_texture: number;
   score_climate: number;
+  is_sponsored: boolean;
 }
 
 async function reconstructSourceText(
@@ -927,7 +962,7 @@ async function runBackfillPass(args: {
   const { data: rows } = await admin
     .from("ai_generated_product_reviews")
     .select(
-      "id, product_name, brand, category, verdict, key_ingredients, skin_type_match, source_url, source_type, published_date, score_efficacy, score_value, score_texture, score_climate",
+      "id, product_name, brand, category, verdict, key_ingredients, skin_type_match, source_url, source_type, published_date, score_efficacy, score_value, score_texture, score_climate, is_sponsored",
     )
     .is("seo_intro", null)
     .order("published_date", { ascending: true })
@@ -996,7 +1031,7 @@ async function runBackfillPass(args: {
     );
     const related_reviews = await computeRelatedReviews(admin, row.category, row.id);
     const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, row.id);
-    const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+    const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand, row.is_sponsored);
     const related_knowledge_articles = computeRelatedKnowledgeArticles([...row.key_ingredients, row.category, row.brand]);
 
     const { error } = await admin
@@ -1054,7 +1089,7 @@ async function runStructuredDataBackfillPass(admin: SupabaseAdmin): Promise<{
   const { data: rows } = await admin
     .from("ai_generated_product_reviews")
     .select(
-      "id, product_name, brand, category, key_ingredients, score_efficacy, score_value, score_texture, score_climate, skin_type_match",
+      "id, product_name, brand, category, key_ingredients, score_efficacy, score_value, score_texture, score_climate, skin_type_match, is_sponsored",
     )
     .is("seo_title", null)
     .order("published_date", { ascending: true })
@@ -1074,6 +1109,7 @@ async function runStructuredDataBackfillPass(admin: SupabaseAdmin): Promise<{
     score_texture: number;
     score_climate: number;
     skin_type_match: string[];
+    is_sponsored: boolean;
   }[]) {
     try {
       const { title: seo_title, description: seo_description } = computeSeoTitleDescription({
@@ -1089,7 +1125,7 @@ async function runStructuredDataBackfillPass(admin: SupabaseAdmin): Promise<{
       );
       const related_reviews = await computeRelatedReviews(admin, row.category, row.id);
       const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, row.id);
-      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand, row.is_sponsored);
       const related_knowledge_articles = computeRelatedKnowledgeArticles([...row.key_ingredients, row.category, row.brand]);
 
       const { error } = await admin
@@ -1133,7 +1169,7 @@ async function runPrimaryImageBackfillPass(admin: SupabaseAdmin): Promise<{
 }> {
   const { data: rows } = await admin
     .from("ai_generated_product_reviews")
-    .select("id, category, brand")
+    .select("id, category, brand, is_sponsored")
     .is("primary_image", null)
     .order("published_date", { ascending: true })
     .limit(25);
@@ -1141,9 +1177,9 @@ async function runPrimaryImageBackfillPass(admin: SupabaseAdmin): Promise<{
   const skipped: Array<{ id: string; reason: string }> = [];
   let updated = 0;
 
-  for (const row of (rows ?? []) as { id: string; category: string; brand: string }[]) {
+  for (const row of (rows ?? []) as { id: string; category: string; brand: string; is_sponsored: boolean }[]) {
     try {
-      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand, row.is_sponsored);
       if (!primary_image) {
         skipped.push({ id: row.id, reason: "no review_images row and no Pexels result (PEXELS_API_KEY unset, invalid, or no match)" });
         continue;
@@ -1548,7 +1584,7 @@ Deno.serve(async (req) => {
             );
             const related_reviews = await computeRelatedReviews(admin, fields.category, finalId);
             const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, finalId);
-            const primary_image = await resolvePrimaryImage(admin, finalId, fields.category, fields.brand);
+            const primary_image = await resolvePrimaryImage(admin, finalId, fields.category, fields.brand, candidate.isSponsored);
             const related_knowledge_articles = computeRelatedKnowledgeArticles([
               ...fields.key_ingredients,
               fields.category,
