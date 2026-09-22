@@ -9,6 +9,7 @@ import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { useIngredientDetail, type IngredientInteractionLink } from "@/hooks/use-ingredient-detail";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { ingredientCategoryLabel } from "@/lib/ingredientCategories";
 import { SITE_URL } from "@/lib/seo-config";
 
@@ -34,6 +35,7 @@ function safeHostname(url: string): string {
 const IngredientDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError, refetch } = useIngredientDetail(slug);
+  const { can } = useEntitlements();
 
   if (!slug) return <Navigate to="/ingredients" replace />;
 
@@ -283,6 +285,29 @@ const IngredientDetail = () => {
                 </div>
               </section>
             )}
+
+            <section>
+              {can("routine.conflict_matcher") ? (
+                <Link
+                  to="/dashboard?tab=routine"
+                  className="group flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm text-primary hover:border-primary/50"
+                >
+                  <span className="font-medium">Check your own routine for ingredient conflicts</span>
+                  <ArrowRight className="h-4 w-4 opacity-70 transition-opacity group-hover:opacity-100" />
+                </Link>
+              ) : (
+                <Link
+                  to="/skynn-ai"
+                  className="group flex items-center justify-between rounded-xl border border-border p-4 text-sm hover:border-primary/40"
+                >
+                  <span>
+                    <span className="font-medium text-foreground">See how this fits your skin</span>
+                    <span className="text-muted-foreground"> — try SKYNN AI, free</span>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              )}
+            </section>
 
             <section>
               <h2 className="font-heading text-xl font-bold text-foreground">Sources</h2>

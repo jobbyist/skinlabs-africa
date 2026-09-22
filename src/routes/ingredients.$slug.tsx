@@ -323,6 +323,14 @@ function IngredientPage() {
         </section>
       )}
 
+      {/* This route deliberately has no per-user session/hydration boundary
+          (see the file header comment), so unlike the SPA page
+          (IngredientDetail.tsx) this can't branch on membership tier --
+          render one CTA that works for every visitor instead. */}
+      <section>
+        <a href="/skynn-ai">See how this fits your skin — try SKYNN AI, free</a>
+      </section>
+
       <section>
         <h2>Sources</h2>
         {allSources.length > 0 ? (
