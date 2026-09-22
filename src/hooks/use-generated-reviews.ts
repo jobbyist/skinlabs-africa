@@ -13,7 +13,7 @@ async function fetchGeneratedReviews(): Promise<ProductReview[]> {
   const { data, error } = await supabase
     .from("ai_generated_product_reviews")
     .select(
-      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, product_size, product_format, country_of_origin, am_pm_usage, skin_concerns, benefits, cautions, faq",
+      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, product_size, product_format, country_of_origin, am_pm_usage, skin_concerns, benefits, cautions, faq, seo_title, seo_description, key_ingredients_structured, related_ingredients_slugs, primary_image, related_reviews, related_knowledge_articles, community_rating, community_rating_count, is_sponsored",
     )
     .order("published_date", { ascending: false });
 
@@ -47,6 +47,17 @@ async function fetchGeneratedReviews(): Promise<ProductReview[]> {
     benefits: (row.benefits as unknown as string[] | null) ?? [],
     cautions: (row.cautions as unknown as string[] | null) ?? [],
     faq: (row.faq as unknown as { question: string; answer: string }[] | null) ?? [],
+    seo_title: row.seo_title,
+    seo_description: row.seo_description,
+    key_ingredients_structured:
+      (row.key_ingredients_structured as unknown as { name: string; slug: string | null; resolved: boolean }[] | null) ?? [],
+    related_ingredients_slugs: (row.related_ingredients_slugs as unknown as string[] | null) ?? [],
+    primary_image: row.primary_image,
+    related_reviews: (row.related_reviews as unknown as { id: string; product_name: string; brand: string }[] | null) ?? [],
+    related_knowledge_articles: (row.related_knowledge_articles as unknown as { title: string; url: string }[] | null) ?? [],
+    community_rating: row.community_rating !== null && row.community_rating !== undefined ? Number(row.community_rating) : null,
+    community_rating_count: row.community_rating_count ?? 0,
+    is_sponsored: row.is_sponsored ?? false,
   }));
 }
 

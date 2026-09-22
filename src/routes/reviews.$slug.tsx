@@ -79,7 +79,7 @@ import { Textarea } from '@/components/ui/textarea'
 // routes and the SPA.
 
 const BASIC_COLUMNS =
-  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq'
+  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored'
 
 function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
   const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000
@@ -102,6 +102,9 @@ function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
     seo_intro: row.seo_intro as string | null,
     review_body: row.review_body as string | null,
     faq: (row.faq as unknown as { question: string; answer: string }[] | null) ?? [],
+    seo_title: row.seo_title as string | null,
+    seo_description: row.seo_description as string | null,
+    is_sponsored: (row.is_sponsored as boolean | null) ?? false,
   }
 }
 
@@ -179,8 +182,13 @@ export const Route = createFileRoute('/reviews/$slug')({
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
     const memberStats = getMemberRatingStats(review)
-    const title = productReviewTitle(review.product_name, review.brand)
-    const description = `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
+    // Prefer the pipeline's stored seo_title/seo_description (same formula, computed
+    // server-side at publish/backfill time) so this SSR route's initial HTML matches
+    // what ProductReview.tsx renders after hydration.
+    const title = review.seo_title ?? productReviewTitle(review.product_name, review.brand)
+    const description =
+      review.seo_description ??
+      `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
 
     const product = productReviewJsonLd({
       canonicalUrl: canonicalUrl(path),
@@ -358,6 +366,11 @@ function ReviewPage() {
         <h1>
           {review.product_name} <span>{score} / 10</span>
         </h1>
+        {review.is_sponsored && (
+          <p>
+            <em>Sponsored — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.</em>
+          </p>
+        )}
         {review.seo_intro && <p>{review.seo_intro}</p>}
 
         {image && (

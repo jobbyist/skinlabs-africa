@@ -251,13 +251,20 @@ const ProductReview = () => {
     ],
   };
 
-  // Generate SEO-optimized title and description
-  const seoTitle = productReviewTitle(review.product_name, review.brand);
-  const seoDescription = productReviewDescription(review.product_name, review.brand, {
-    score,
-    keyIngredients: review.key_ingredients.slice(0, 2),
-    skinTypes: review.skin_type_match.slice(0, 2),
-  });
+  // Prefer the pipeline's stored seo_title/seo_description (the identical formula,
+  // computed server-side at publish/backfill time -- see
+  // supabase/functions/product-review-sync/index.ts's computeSeoTitleDescription())
+  // so a crawler reading the row directly (or the SSR route) sees the same title/
+  // description without needing this client computation. Falls back to computing it
+  // here for the static catalogue and for any AI review not yet backfilled.
+  const seoTitle = review.seo_title ?? productReviewTitle(review.product_name, review.brand);
+  const seoDescription =
+    review.seo_description ??
+    productReviewDescription(review.product_name, review.brand, {
+      score,
+      keyIngredients: review.key_ingredients.slice(0, 2),
+      skinTypes: review.skin_type_match.slice(0, 2),
+    });
 
   return (
     <div className="min-h-screen bg-background">
@@ -276,8 +283,18 @@ const ProductReview = () => {
             <ArrowLeft className="h-4 w-4" /> All reviews
           </Link>
 
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
+            {review.is_sponsored && (
+              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Sponsored</Badge>
+            )}
+          </div>
           <h1 className="mt-1 font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
+          {review.is_sponsored && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              This review discloses a sponsored placement — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.
+            </p>
+          )}
           {review.seo_intro && <p className="mt-3 text-base leading-relaxed text-muted-foreground">{review.seo_intro}</p>}
 
           {productImage && (

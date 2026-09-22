@@ -43,6 +43,45 @@
  * already-published rows. Re-invoke repeatedly to work through the full backlog; each
  * call picks up wherever the previous one left off (selection is `seo_intro IS NULL`,
  * oldest published_date first).
+ *
+ * Structured-data / Rich-Results fields (2026-09-22, second follow-up): seo_title,
+ * seo_description, key_ingredients_structured, related_ingredients_slugs,
+ * primary_image, related_reviews, community_rating/community_rating_count and
+ * related_knowledge_articles are now also populated for every new review and every
+ * backfilled row -- previously deliberately left null (see generateSupplementalFields
+ * ()'s header comment for the original reasoning: each already had a live,
+ * more-accurate client-side equivalent). Superseded per an explicit product decision
+ * to optimise for Google Rich Results/structured-data validation, which needs these
+ * present in the row Google actually reads, not only computed after client hydration.
+ * Every one of the seven is real: computeSeoTitleDescription() is a deterministic
+ * mirror of src/lib/seo-config.ts (kept in sync manually -- update both if that file's
+ * formula changes), resolveKeyIngredients()/computeRelatedReviews()/
+ * computeCommunityRating() are live RPC/SQL reads, resolvePrimaryImage() only ever
+ * uses a real review_images row or a real Pexels search result (writing the latter
+ * back into review_images too, so the client's own useReviewImages() picks up the
+ * same real image rather than diverging), and computeRelatedKnowledgeArticles()
+ * matches against KNOWLEDGE_HUB_INDEX, a generated slug/question/category/tags-only
+ * snapshot of src/data/faq.ts's real entries (see that const's own comment for the
+ * regeneration note). primary_image stays null for a review with neither a
+ * review_images row nor a configured PEXELS_API_KEY secret -- a documented gap, not a
+ * silent failure -- and community_rating/community_rating_count are a snapshot
+ * refreshed at each publish/backfill pass, not a live subscription.
+ *
+ * OpenHaus marketplace reviews are now sponsored (2026-09-22, same follow-up):
+ * candidate.isSponsored for the openhaus_marketplace pool flipped from false to true
+ * -- SkinLabs marks up and profits from OpenHaus sales (see src/lib/marketplace/
+ * pricing.ts), so a review sourced from it carries the same disclosable commercial
+ * interest as the existing Timeless placements. Applies going forward automatically;
+ * the 31 already-published openhaus_marketplace rows needed a one-time direct SQL
+ * UPDATE (is_sponsored wasn't part of either backfill pass's own column set).
+ *
+ * Manual backfill (structured-data only): POST/GET with ?backfillStructuredData=true
+ * (same auth) processes up to 15 rows missing seo_title -- see
+ * runStructuredDataBackfillPass(). No Gemini/Firecrawl call at all, so independent of
+ * both the daily review cap and the Gemini/Firecrawl quota; safe to re-invoke back to
+ * back. Exists because ?backfillMissingFields=true's own selection (`seo_intro IS
+ * NULL`) never re-visits a row it already finished, so a row backfilled before the
+ * structured-data fields existed would otherwise never get them.
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -538,11 +577,15 @@ interface SearchIngredientRow {
   inci_name: string | null;
 }
 
-async function isIngredientResolved(admin: SupabaseAdmin, rawName: string): Promise<boolean> {
+/** Same alias-aware `search_ingredients` RPC the Ingredient Checker's combobox and
+ *  src/lib/ingredientResolution.ts use client-side -- only ever a confident, exact
+ *  (case-insensitive) common_name/inci_name match, never a fuzzy top-result guess,
+ *  since a wrong link is worse than no link. Returns null on no match. */
+async function matchIngredient(admin: SupabaseAdmin, rawName: string): Promise<SearchIngredientRow | null> {
   const { data } = await admin.rpc("search_ingredients", { p_search: rawName, p_page: 1, p_per_page: 5 });
   const rows = (data ?? []) as SearchIngredientRow[];
   const lower = rawName.trim().toLowerCase();
-  return rows.some((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower);
+  return rows.find((row) => row.common_name?.toLowerCase() === lower || row.inci_name?.toLowerCase() === lower) ?? null;
 }
 
 async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: string[], reviewId: string) {
@@ -550,7 +593,7 @@ async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: 
     const normalized = rawName.trim().toLowerCase();
     if (!normalized) continue;
     try {
-      if (await isIngredientResolved(admin, rawName)) continue;
+      if (await matchIngredient(admin, rawName)) continue;
       await admin.from("ingredient_generation_requests").upsert(
         {
           requested_name: rawName.trim(),
@@ -566,6 +609,245 @@ async function queueUnresolvedIngredients(admin: SupabaseAdmin, keyIngredients: 
   }
 }
 
+/** key_ingredients_structured / related_ingredients_slugs -- see
+ *  supabase/migrations/20260922120000_add_seo_review_schema_fields.sql. Real,
+ *  resolved-or-not-linked-at-all data only, via the same resolver as
+ *  src/lib/ingredientResolution.ts, never a fabricated slug or description. */
+async function resolveKeyIngredients(
+  admin: SupabaseAdmin,
+  keyIngredients: string[],
+): Promise<{ structured: { name: string; slug: string | null; resolved: boolean }[]; slugs: string[] }> {
+  const structured: { name: string; slug: string | null; resolved: boolean }[] = [];
+  const slugs: string[] = [];
+  for (const name of keyIngredients) {
+    const match = await matchIngredient(admin, name);
+    structured.push({ name, slug: match?.slug ?? null, resolved: Boolean(match) });
+    if (match) slugs.push(match.slug);
+  }
+  return { structured, slugs };
+}
+
+// ---------------------------------------------------------------------------
+// STRUCTURED-DATA / RICH-RESULTS fields (2026-09-22 follow-up). These four helpers
+// populate seo_title, seo_description, key_ingredients_structured/
+// related_ingredients_slugs (resolveKeyIngredients above), primary_image,
+// related_reviews, related_knowledge_articles and community_rating/
+// community_rating_count directly in the DB at publish/backfill time, so a crawler
+// (or anything reading ai_generated_product_reviews outside the live app) sees real
+// structured data without needing client-side JS to compute it. Each one is either a
+// pure deterministic mirror of an existing frontend formula (kept in sync manually,
+// same "duplicate into the edge function, note it" precedent already used for
+// marketplace pricing.ts) or a real, live SQL read -- never a Gemini guess.
+// ---------------------------------------------------------------------------
+
+const SEO_BRAND = "SkinLabs®";
+
+/** Mirrors src/lib/seo-config.ts's productReviewTitle()/productReviewDescription()
+ *  EXACTLY -- if those change, update this too. Deliberately not Gemini-generated:
+ *  a deterministic formula over already-known real fields has zero fabrication risk
+ *  and guarantees every review gets a correctly-formatted title/description, not
+ *  just the ones a model happens to phrase well. */
+function computeSeoTitleDescription(args: {
+  productName: string;
+  brand: string;
+  score: number;
+  keyIngredients: string[];
+  skinTypes: string[];
+}): { title: string; description: string } {
+  const title = `${args.brand} ${args.productName} Review | ${SEO_BRAND}`;
+
+  const parts: string[] = [`Independent review of ${args.productName} by ${args.brand}`];
+  if (args.score) parts.push(`(${args.score}/10)`);
+  if (args.keyIngredients.length > 0) parts.push(`— ${args.keyIngredients.slice(0, 2).join(", ")}`);
+  if (args.skinTypes.length > 0) parts.push(`for ${args.skinTypes.slice(0, 2).join(" & ")} skin`);
+  parts.push("in South African climate.");
+  const joined = parts.join(" ");
+  const description = joined.length > 160 ? `${joined.slice(0, 157)}...` : joined;
+
+  return { title, description };
+}
+
+/** Real, live rows only -- other published reviews sharing this one's category,
+ *  most recent first. Mirrors the same relatedReviews computation ProductReview.tsx
+ *  already does client-side (a live category filter), cached here for SSR/
+ *  structured-data availability -- kept fresh by re-running at every backfill pass. */
+async function computeRelatedReviews(
+  admin: SupabaseAdmin,
+  category: string,
+  excludeId: string,
+): Promise<{ id: string; product_name: string; brand: string }[]> {
+  const { data } = await admin
+    .from("ai_generated_product_reviews")
+    .select("id, product_name, brand")
+    .eq("category", category)
+    .neq("id", excludeId)
+    .order("published_date", { ascending: false })
+    .limit(3);
+  return (data ?? []) as { id: string; product_name: string; brand: string }[];
+}
+
+/** Real aggregate from review_ratings -- the same table ProductReview.tsx's own
+ *  avgRating/comments state reads client-side. A cached snapshot, refreshed at
+ *  publish/backfill time; genuinely 0/null (not fabricated) until a member rates. */
+async function computeCommunityRating(
+  admin: SupabaseAdmin,
+  reviewId: string,
+): Promise<{ rating: number | null; count: number }> {
+  const { data } = await admin.from("review_ratings").select("rating").eq("review_id", reviewId);
+  const ratings = (data ?? []) as { rating: number }[];
+  if (ratings.length === 0) return { rating: null, count: 0 };
+  const avg = ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
+  return { rating: Math.round(avg * 10) / 10, count: ratings.length };
+}
+
+/** Real image only -- checks review_images (the same table src/hooks/
+ *  use-review-images.ts reads client-side) first; if this review has none yet and a
+ *  PEXELS_API_KEY Supabase secret is configured, does one real Pexels search and
+ *  writes the result INTO review_images (not just the primary_image cache column) so
+ *  the existing client-side image-resolution chain picks it up too, rather than
+ *  creating a second, divergent image source. Returns null (never fabricates a URL)
+ *  if neither source has anything -- most AI-generated reviews will stay null here
+ *  until a human sets PEXELS_API_KEY, a known, documented gap (see this file's own
+ *  header comment). */
+async function resolvePrimaryImage(
+  admin: SupabaseAdmin,
+  reviewId: string,
+  category: string,
+  brand: string,
+): Promise<string | null> {
+  const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).maybeSingle();
+  if (existing?.image_url) return existing.image_url;
+
+  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+  if (!pexelsKey) return null;
+
+  try {
+    const query = `${brand} ${category} skincare product bottle`;
+    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
+      headers: { Authorization: pexelsKey },
+    });
+    if (!res.ok) return null;
+    const payload = (await res.json().catch(() => null)) as {
+      photos?: { src?: { large?: string; original?: string }; alt?: string; photographer?: string; photographer_url?: string }[];
+    } | null;
+    const photo = payload?.photos?.[0];
+    const url = photo?.src?.large || photo?.src?.original;
+    if (!url) return null;
+
+    await admin.from("review_images").upsert(
+      {
+        review_id: reviewId,
+        image_url: url,
+        alt: photo?.alt || `${category} product photography`,
+        credit_name: photo?.photographer || "Pexels Contributor",
+        credit_url: photo?.photographer_url || "https://www.pexels.com",
+      },
+      { onConflict: "review_id" },
+    );
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+/** Slim {slug, question, category, tags} extract of src/data/faq.ts's faqEntries
+ *  (question/category/tags only -- the fields significantWords()/relatedKnowledge
+ *  HubEntries() in src/lib/content-graph.ts actually match on; answer/evidence/
+ *  relatedQuestions/relatedPages are dropped since nothing here needs them). The
+ *  full file can't be imported into this Deno function (it pulls in src/data/
+ *  plans.ts and isn't published as its own module), so this is a generated, manually
+ *  kept-in-sync snapshot -- same duplication precedent as pricing.ts elsewhere in
+ *  this codebase. Regenerate by re-extracting slug/question/category/tags from every
+ *  entry in src/data/faq.ts if that file's entries change meaningfully. */
+const KNOWLEDGE_HUB_INDEX_DATA: { slug: string; question: string; category: string; tags: string[] }[] = [
+  { slug: "what-is-skinlabs", question: "What is SkinLabs?", category: "about", tags: ["skinlabs", "platform", "overview"] },
+  { slug: "is-skinlabs-only-for-south-africa", question: "Is SkinLabs only for South African users?", category: "about", tags: ["south africa", "eligibility"] },
+  { slug: "how-does-the-ai-formulator-work", question: "How does SKYNN AI work?", category: "about", tags: ["ai formulator", "skynn ai", "quiz", "how it works"] },
+  { slug: "is-skinlabs-free-to-use", question: "Is SkinLabs free to use?", category: "about", tags: ["free", "pricing", "membership"] },
+  { slug: "does-skinlabs-sell-products", question: "Do you sell skincare products?", category: "about", tags: ["retailer", "independence", "commercial relationships"] },
+  { slug: "what-skin-types-do-you-cater-to", question: "What skin types do you cater to?", category: "skin-basics", tags: ["skin type", "oily", "dry", "combination", "sensitive"] },
+  { slug: "how-do-i-know-my-skin-type", question: "How do I know my skin type?", category: "skin-basics", tags: ["skin type", "self assessment"] },
+  { slug: "what-causes-dry-skin-in-gauteng", question: "What causes dry skin in Gauteng?", category: "skin-basics", tags: ["gauteng", "dry skin", "altitude", "TEWL"] },
+  { slug: "what-is-niacinamide-and-what-does-it-do", question: "What is niacinamide and what does it do?", category: "ingredients", tags: ["niacinamide", "vitamin b3", "pores", "oil control", "pigmentation"] },
+  { slug: "are-retinoids-safe-for-all-skin-types", question: "Are retinoids safe for all skin types?", category: "ingredients", tags: ["retinoids", "retinol", "tretinoin", "adapalene", "anti-aging"] },
+  { slug: "whats-the-difference-between-ahas-and-bhas", question: "What's the difference between AHAs and BHAs?", category: "ingredients", tags: ["aha", "bha", "salicylic acid", "glycolic acid", "exfoliation"] },
+  { slug: "do-i-really-need-vitamin-c-serum", question: "Do I really need vitamin C serum?", category: "ingredients", tags: ["vitamin c", "l-ascorbic acid", "antioxidant", "brightening"] },
+  { slug: "what-are-ceramides", question: "What are ceramides?", category: "ingredients", tags: ["ceramides", "barrier", "moisture"] },
+  { slug: "is-hyaluronic-acid-good-for-dry-skin", question: "Is hyaluronic acid good for dry skin?", category: "ingredients", tags: ["hyaluronic acid", "humectant", "hydration"] },
+  { slug: "are-parabens-and-sulfates-bad", question: "Are parabens and sulfates bad?", category: "ingredients", tags: ["parabens", "sulfates", "preservatives", "clean beauty"] },
+  { slug: "whats-the-deal-with-snail-mucin", question: "What's the deal with snail mucin?", category: "ingredients", tags: ["snail mucin", "hydration", "soothing"] },
+  { slug: "can-you-help-with-acne-prone-skin", question: "Can you help with acne-prone skin?", category: "concerns", tags: ["acne", "breakouts", "salicylic acid", "benzoyl peroxide"] },
+  { slug: "i-have-hyperpigmentation-can-you-help", question: "I have hyperpigmentation. Can you help?", category: "concerns", tags: ["hyperpigmentation", "dark spots", "post-inflammatory", "melanin-rich skin"] },
+  { slug: "what-about-sensitive-or-reactive-skin", question: "What about sensitive or reactive skin?", category: "concerns", tags: ["sensitive skin", "reactive skin", "barrier", "fragrance-free"] },
+  { slug: "can-skinlabs-help-with-aging-skin-concerns", question: "Can SkinLabs help with aging skin concerns?", category: "concerns", tags: ["aging", "wrinkles", "retinoids", "peptides", "antioxidants"] },
+  { slug: "whats-a-basic-skincare-routine", question: "What's a basic skincare routine?", category: "routines", tags: ["basic routine", "cleanser", "moisturiser", "sunscreen"] },
+  { slug: "should-i-use-different-products-in-summer-vs-winter", question: "Should I use different products in summer vs. winter?", category: "routines", tags: ["seasonal", "summer", "winter", "moisturiser"] },
+  { slug: "in-what-order-should-i-apply-my-products", question: "In what order should I apply my products?", category: "routines", tags: ["order", "layering", "am pm routine"] },
+  { slug: "how-long-before-i-see-results", question: "How long before I see results?", category: "routines", tags: ["results", "timeline", "patience"] },
+  { slug: "can-i-use-retinol-and-vitamin-c-together", question: "Can I use retinol and vitamin C together?", category: "routines", tags: ["retinol", "vitamin c", "combining actives"] },
+  { slug: "whats-the-best-time-to-do-my-skincare-routine", question: "What's the best time to do my skincare routine?", category: "routines", tags: ["am routine", "pm routine", "timing"] },
+  { slug: "how-do-i-know-if-im-over-exfoliating", question: "How do I know if I'm over-exfoliating?", category: "routines", tags: ["over-exfoliating", "barrier damage", "purging"] },
+  { slug: "do-i-need-a-toner", question: "Do I need a toner?", category: "routines", tags: ["toner", "essence"] },
+  { slug: "do-i-need-sunscreen-in-south-africa", question: "Do I need sunscreen in South Africa?", category: "sun-protection", tags: ["sunscreen", "spf", "uv", "south africa"] },
+  { slug: "what-spf-should-i-use", question: "What SPF should I use?", category: "sun-protection", tags: ["spf", "reapplication", "sunscreen amount"] },
+  { slug: "chemical-vs-mineral-sunscreen-which-is-better", question: "Chemical vs. mineral sunscreen — which is better?", category: "sun-protection", tags: ["chemical sunscreen", "mineral sunscreen", "zinc oxide"] },
+  { slug: "do-i-need-sunscreen-indoors", question: "Do I need sunscreen indoors?", category: "sun-protection", tags: ["indoor sunscreen", "uva", "windows"] },
+  { slug: "can-i-use-makeup-with-spf-instead", question: "Can I use makeup with SPF instead?", category: "sun-protection", tags: ["makeup spf", "foundation"] },
+  { slug: "what-sunscreens-are-good-for-oily-skin", question: "What sunscreens are good for oily skin?", category: "sun-protection", tags: ["oily skin", "sunscreen", "mattifying"] },
+  { slug: "how-does-south-african-climate-affect-my-skincare-routine", question: "How does South African climate affect my skincare routine?", category: "south-africa", tags: ["climate", "humidity", "highveld", "coastal"] },
+  { slug: "what-skincare-ingredients-work-best-for-south-african-skin-tones", question: "What skincare ingredients work best for South African skin tones?", category: "south-africa", tags: ["melanin-rich skin", "skin tone", "hyperpigmentation"] },
+  { slug: "are-international-brands-sold-in-sa-authentic", question: "Are international brands sold in SA authentic?", category: "south-africa", tags: ["authenticity", "counterfeit", "retailers"] },
+  { slug: "can-i-use-overseas-skincare-tips-in-south-africa", question: "Can I use overseas skincare tips in South Africa?", category: "south-africa", tags: ["overseas advice", "tiktok", "social media skincare"] },
+  { slug: "whats-the-best-skincare-for-johannesburgs-climate", question: "What's the best skincare for Johannesburg's climate?", category: "south-africa", tags: ["johannesburg", "highveld", "altitude"] },
+  { slug: "are-there-dermatologists-i-can-consult-in-south-africa", question: "Are there dermatologists I can consult in South Africa?", category: "south-africa", tags: ["dermatologist", "consultation", "practitioner"] },
+  { slug: "what-south-african-skincare-brands-do-you-recommend", question: "What South African skincare brands do you recommend?", category: "products", tags: ["sa brands", "local skincare", "recommendations"] },
+  { slug: "where-can-i-buy-the-products-you-recommend", question: "Where can I buy the products you recommend?", category: "products", tags: ["retailers", "where to buy"] },
+  { slug: "are-drugstore-products-as-good-as-expensive-ones", question: "Are drugstore products as good as expensive ones?", category: "products", tags: ["affordable skincare", "value", "drugstore"] },
+  { slug: "whats-a-good-affordable-vitamin-c-serum-in-sa", question: "What's a good affordable vitamin C serum in SA?", category: "products", tags: ["vitamin c", "affordable", "budget"] },
+  { slug: "best-moisturizer-for-dry-skin-under-r200", question: "Best moisturizer for dry skin under R200?", category: "products", tags: ["moisturiser", "dry skin", "budget"] },
+  { slug: "where-can-i-find-the-ordinary-products-in-sa", question: "Where can I find The Ordinary products in SA?", category: "products", tags: ["the ordinary", "stock", "availability"] },
+  { slug: "how-much-do-recommended-products-typically-cost", question: "How much do recommended products typically cost?", category: "products", tags: ["budget", "cost", "pricing"] },
+  { slug: "what-payment-methods-do-sa-retailers-accept", question: "What payment methods do SA retailers accept?", category: "products", tags: ["payment", "retailers", "instalments"] },
+  { slug: "how-does-shipping-and-delivery-work", question: "How does shipping and delivery work for products you recommend?", category: "products", tags: ["shipping", "delivery"] },
+  { slug: "what-is-your-return-policy", question: "What's the return policy on skincare products?", category: "products", tags: ["returns", "refunds"] },
+  { slug: "what-if-i-have-an-allergic-reaction-to-a-product", question: "What if I have an allergic reaction to a product?", category: "products", tags: ["allergic reaction", "irritation", "safety"] },
+  { slug: "do-you-have-a-subscription-service", question: "Do you have a subscription service?", category: "membership", tags: ["subscription", "glow insider", "glow vip", "pricing"] },
+  { slug: "how-many-ai-skin-analyses-do-i-get", question: "How many AI skin analyses and consultations do I get per plan?", category: "membership", tags: ["ai quota", "glow insider", "glow vip", "consultations"] },
+  { slug: "are-there-any-hidden-costs", question: "Are there any hidden costs?", category: "membership", tags: ["hidden costs", "free trial", "pricing transparency"] },
+];
+
+const KNOWLEDGE_HUB_INDEX: { slug: string; question: string; category: string; tags: string[] }[] = KNOWLEDGE_HUB_INDEX_DATA;
+
+const SEARCH_STOPWORDS = new Set([
+  "the", "a", "an", "and", "or", "for", "of", "to", "in", "on", "with", "is", "are",
+  "how", "what", "does", "do", "can", "you", "your", "it", "this", "that",
+]);
+
+function significantWords(keywords: string[]): string[] {
+  const words = keywords
+    .flatMap((k) => k.toLowerCase().split(/[^a-z0-9]+/))
+    .filter((w) => w.length > 2 && !SEARCH_STOPWORDS.has(w));
+  return Array.from(new Set(words));
+}
+
+/** Mirrors src/lib/content-graph.ts's relatedKnowledgeHubEntries() matching logic
+ *  against the slim KNOWLEDGE_HUB_INDEX snapshot above. Real Knowledge Hub entries
+ *  only -- an empty result (no keyword overlap) returns []. */
+function computeRelatedKnowledgeArticles(keywords: string[], limit = 3): { title: string; url: string }[] {
+  const words = significantWords(keywords);
+  if (words.length === 0) return [];
+  const scored = KNOWLEDGE_HUB_INDEX.map((entry) => {
+    const haystack = `${entry.question} ${entry.tags.join(" ")} ${entry.category}`.toLowerCase();
+    const score = words.reduce((sum, w) => sum + (haystack.includes(w) ? 1 : 0), 0);
+    return { entry, score };
+  });
+  return scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((s) => ({ title: s.entry.question, url: `/knowledge-hub/${s.entry.slug}` }));
+}
+
 interface BackfillRow {
   id: string;
   product_name: string;
@@ -577,6 +859,10 @@ interface BackfillRow {
   source_url: string;
   source_type: SourceType;
   published_date: string;
+  score_efficacy: number;
+  score_value: number;
+  score_texture: number;
+  score_climate: number;
 }
 
 async function reconstructSourceText(
@@ -633,7 +919,9 @@ async function runBackfillPass(args: {
   const { admin, geminiKey, firecrawlKey, modelChain, logModelAttempt } = args;
   const { data: rows } = await admin
     .from("ai_generated_product_reviews")
-    .select("id, product_name, brand, category, verdict, key_ingredients, skin_type_match, source_url, source_type, published_date")
+    .select(
+      "id, product_name, brand, category, verdict, key_ingredients, skin_type_match, source_url, source_type, published_date, score_efficacy, score_value, score_texture, score_climate",
+    )
     .is("seo_intro", null)
     .order("published_date", { ascending: true })
     .limit(BACKFILL_BATCH_SIZE);
@@ -684,6 +972,26 @@ async function runBackfillPass(args: {
       continue;
     }
 
+    // Structured-data fields -- real (deterministic formula / live SQL/RPC reads),
+    // never Gemini output, computed regardless of the supplemental call's own
+    // success so a row isn't left without them just because Gemini's prose call
+    // had a bad day.
+    const { title: seo_title, description: seo_description } = computeSeoTitleDescription({
+      productName: row.product_name,
+      brand: row.brand,
+      score: Math.round(((row.score_efficacy + row.score_value + row.score_texture + row.score_climate) / 4) * 10) / 10,
+      keyIngredients: row.key_ingredients,
+      skinTypes: row.skin_type_match,
+    });
+    const { structured: key_ingredients_structured, slugs: related_ingredients_slugs } = await resolveKeyIngredients(
+      admin,
+      row.key_ingredients,
+    );
+    const related_reviews = await computeRelatedReviews(admin, row.category, row.id);
+    const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, row.id);
+    const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+    const related_knowledge_articles = computeRelatedKnowledgeArticles([...row.key_ingredients, row.category, row.brand]);
+
     const { error } = await admin
       .from("ai_generated_product_reviews")
       .update({
@@ -700,6 +1008,15 @@ async function runBackfillPass(args: {
         currency: "ZAR",
         date_published: new Date(`${row.published_date}T00:00:00Z`).toISOString(),
         skin_types: row.skin_type_match,
+        seo_title,
+        seo_description,
+        key_ingredients_structured,
+        related_ingredients_slugs,
+        related_reviews,
+        community_rating,
+        community_rating_count,
+        primary_image,
+        related_knowledge_articles,
       })
       .eq("id", row.id);
 
@@ -707,6 +1024,87 @@ async function runBackfillPass(args: {
     else updated += 1;
 
     await sleep(1200);
+  }
+
+  return { processed: (rows ?? []).length, updated, skipped };
+}
+
+/** Backfills ONLY the structured-data / Rich-Results fields (seo_title,
+ *  seo_description, key_ingredients_structured, related_ingredients_slugs,
+ *  primary_image, related_reviews, related_knowledge_articles, community_rating/
+ *  community_rating_count) -- no Gemini or Firecrawl call, so no quota to respect and
+ *  a much larger batch is safe. Exists as its own pass (separate from
+ *  runBackfillPass()) because selecting on `seo_title IS NULL` catches rows
+ *  runBackfillPass() already finished (its own selection is `seo_intro IS NULL`,
+ *  which a row keeps non-null forever once set) as well as rows still waiting on
+ *  Gemini quota -- both get their structured-data fields regardless of where they are
+ *  in the Gemini-dependent backfill. */
+async function runStructuredDataBackfillPass(admin: SupabaseAdmin): Promise<{
+  processed: number;
+  updated: number;
+  skipped: Array<{ id: string; reason: string }>;
+}> {
+  const { data: rows } = await admin
+    .from("ai_generated_product_reviews")
+    .select(
+      "id, product_name, brand, category, key_ingredients, score_efficacy, score_value, score_texture, score_climate, skin_type_match",
+    )
+    .is("seo_title", null)
+    .order("published_date", { ascending: true })
+    .limit(15);
+
+  const skipped: Array<{ id: string; reason: string }> = [];
+  let updated = 0;
+
+  for (const row of (rows ?? []) as {
+    id: string;
+    product_name: string;
+    brand: string;
+    category: string;
+    key_ingredients: string[];
+    score_efficacy: number;
+    score_value: number;
+    score_texture: number;
+    score_climate: number;
+    skin_type_match: string[];
+  }[]) {
+    try {
+      const { title: seo_title, description: seo_description } = computeSeoTitleDescription({
+        productName: row.product_name,
+        brand: row.brand,
+        score: Math.round(((row.score_efficacy + row.score_value + row.score_texture + row.score_climate) / 4) * 10) / 10,
+        keyIngredients: row.key_ingredients,
+        skinTypes: row.skin_type_match,
+      });
+      const { structured: key_ingredients_structured, slugs: related_ingredients_slugs } = await resolveKeyIngredients(
+        admin,
+        row.key_ingredients,
+      );
+      const related_reviews = await computeRelatedReviews(admin, row.category, row.id);
+      const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, row.id);
+      const primary_image = await resolvePrimaryImage(admin, row.id, row.category, row.brand);
+      const related_knowledge_articles = computeRelatedKnowledgeArticles([...row.key_ingredients, row.category, row.brand]);
+
+      const { error } = await admin
+        .from("ai_generated_product_reviews")
+        .update({
+          seo_title,
+          seo_description,
+          key_ingredients_structured,
+          related_ingredients_slugs,
+          related_reviews,
+          community_rating,
+          community_rating_count,
+          primary_image,
+          related_knowledge_articles,
+        })
+        .eq("id", row.id);
+
+      if (error) skipped.push({ id: row.id, reason: `update failed: ${error.message}` });
+      else updated += 1;
+    } catch (err) {
+      skipped.push({ id: row.id, reason: String(err).slice(0, 200) });
+    }
   }
 
   return { processed: (rows ?? []).length, updated, skipped };
@@ -802,6 +1200,18 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Structured-data-only backfill: no Gemini/Firecrawl call, so independent of both
+  // the daily review cap and the Gemini quota -- see runStructuredDataBackfillPass()'s
+  // own header comment for why this is a separate mode from ?backfillMissingFields.
+  if (url.searchParams.get("backfillStructuredData") === "true") {
+    try {
+      const result = await runStructuredDataBackfillPass(admin);
+      return jsonResponse({ ok: true, mode: "backfillStructuredData", ...result });
+    } catch (err) {
+      return jsonResponse({ ok: false, mode: "backfillStructuredData", error: String(err).slice(0, 500) }, 500);
+    }
+  }
+
   try {
     const { count: publishedToday } = await admin
       .from("ai_generated_product_reviews")
@@ -881,7 +1291,13 @@ Deno.serve(async (req) => {
         origin: "south_africa",
         sourceUrl: `https://skinlabs.co.za/marketplace/product/${p.slug}`,
         sourceType: "openhaus_marketplace",
-        isSponsored: false,
+        // OpenHaus is SkinLabs' own in-app marketplace (marked-up pricing, see
+        // src/lib/marketplace/pricing.ts) -- SkinLabs has a direct commercial
+        // interest in a reader buying via a review sourced from it, same as the
+        // existing disclosed Timeless placements. Flagged sponsored per the
+        // 2026-09-22 editorial decision to disclose this consistently everywhere,
+        // not just in the reviews that happen to mention it in prose.
+        isSponsored: true,
         retailerHint: null,
       });
     }
@@ -1023,6 +1439,49 @@ Deno.serve(async (req) => {
               })
               .eq("id", finalId);
             if (updateError) errors.push(`Supplemental fields update failed for ${finalId}: ${updateError.message}`);
+          }
+
+          // Structured-data / Rich-Results fields -- all real (deterministic formula
+          // or live SQL/RPC reads), never Gemini output. Best-effort: never fails the
+          // review's publish, which already committed above.
+          try {
+            const { title: seo_title, description: seo_description } = computeSeoTitleDescription({
+              productName: fields.product_name,
+              brand: fields.brand,
+              score: Math.round(((fields.score_efficacy + fields.score_value + fields.score_texture + fields.score_climate) / 4) * 10) / 10,
+              keyIngredients: fields.key_ingredients,
+              skinTypes: fields.skin_type_match,
+            });
+            const { structured: key_ingredients_structured, slugs: related_ingredients_slugs } = await resolveKeyIngredients(
+              admin,
+              fields.key_ingredients,
+            );
+            const related_reviews = await computeRelatedReviews(admin, fields.category, finalId);
+            const { rating: community_rating, count: community_rating_count } = await computeCommunityRating(admin, finalId);
+            const primary_image = await resolvePrimaryImage(admin, finalId, fields.category, fields.brand);
+            const related_knowledge_articles = computeRelatedKnowledgeArticles([
+              ...fields.key_ingredients,
+              fields.category,
+              fields.brand,
+            ]);
+
+            const { error: structuredError } = await admin
+              .from("ai_generated_product_reviews")
+              .update({
+                seo_title,
+                seo_description,
+                key_ingredients_structured,
+                related_ingredients_slugs,
+                related_reviews,
+                community_rating,
+                community_rating_count,
+                primary_image,
+                related_knowledge_articles,
+              })
+              .eq("id", finalId);
+            if (structuredError) errors.push(`Structured-data fields update failed for ${finalId}: ${structuredError.message}`);
+          } catch (structuredErr) {
+            errors.push(`Structured-data fields for ${finalId}: ${String(structuredErr).slice(0, 200)}`);
           }
         }
       } catch (err) {

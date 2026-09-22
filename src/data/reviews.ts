@@ -29,6 +29,24 @@ export interface ProductReview {
   benefits?: string[];
   cautions?: string[];
   faq?: { question: string; answer: string }[];
+  /** Structured-data / Rich-Results fields (2026-09-22 follow-up) -- same migration,
+   *  same "AI-generated reviews only, gradually populated" caveat as above. seo_title/
+   *  seo_description are a deterministic formula (never Gemini output); the rest are
+   *  live SQL/RPC snapshots refreshed at each publish/backfill pass -- see
+   *  supabase/functions/product-review-sync/index.ts's own header comment. */
+  seo_title?: string | null;
+  seo_description?: string | null;
+  key_ingredients_structured?: { name: string; slug: string | null; resolved: boolean }[];
+  related_ingredients_slugs?: string[];
+  primary_image?: string | null;
+  related_reviews?: { id: string; product_name: string; brand: string }[];
+  related_knowledge_articles?: { title: string; url: string }[];
+  community_rating?: number | null;
+  community_rating_count?: number;
+  /** true for every review sourced from OpenHaus (SkinLabs' own marked-up in-app
+   *  marketplace) as well as the existing disclosed Timeless placements -- see
+   *  supabase/functions/product-review-sync/index.ts's 2026-09-22 header note. */
+  is_sponsored?: boolean;
 }
 
 export interface SeededComment {
