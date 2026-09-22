@@ -10,6 +10,18 @@
 
 ---
 
+## Implementation status (2026-09-22, same-day follow-up)
+
+Items 1, 2, 3, 5, 6, 7, 9, 10 of the Top 10 (§16) were implemented as written, plus the P8 CLS fix and the extra low-risk cleanups (dead `vendor-date` manualChunk, vestigial `meta http-equiv Cache-Control` tags). **Item 4 (SSR the marketplace product/brand catalog) was withdrawn mid-implementation**: every `/marketplace/*` route turned out to be wrapped in `MarketplaceGate` (`src/components/marketplace/MarketplaceGate.tsx`), which requires a real login cookie (`MARKETPLACE_USERNAME`/`PASSWORD` via `/api/marketplace-auth`) before rendering anything beyond a "Checking marketplace access…" screen or a locked-access page — a fact this audit's original SEO research pass missed. SSR/prerendering it would only ever capture that locked screen, and doing so would run against the explicit "don't expose gated/private content" principle. Instead, `/marketplace/*` was **removed** from both sitemap generators (`src/routes/sitemap[.]xml.ts`, `scripts/generate-sitemap.ts`, `src/lib/sitemap/staticRoutes.ts`) and added to `public/robots.txt`'s `Disallow` list — the correct fix for a gated section is to stop advertising it to crawlers, not to make it crawlable.
+
+A real `npx vite build` after the fixes confirms the projected §2 bundle win landed: the shared JS floor paid by **every** route dropped from **478.80 KB main + 115.97 KB vendor-charts + 126.75 KB vendor-pdf = 721.52 KB gzip** to a single **~420 KB gzip main chunk with zero vendor-chart/PDF preloads** — a ~42% cut, achieved by lazy-loading the homepage's `AIFormulator` widget (item 2) and, discovered during verification, by removing the `vendor-charts`/`vendor-pdf` `manualChunks` entries entirely once they were shown to make Vite unconditionally `modulepreload` those chunks from `index.html` regardless of route (not something the original audit anticipated — documented in `vite.config.ts`'s own comment). `recharts`/`jspdf` still share one on-demand chunk across their several lazy consumers via Rollup's automatic chunking; they just aren't preloaded from the entry HTML anymore.
+
+Also converted the ~18 MB of brand-banner and podcast-cover PNGs to WebP (→ ~1.24 MB, no visible quality loss) as part of item 8's image-compression work, and in the process found and fixed a live, unrelated bug: `src/lib/brand-banners.ts` referenced `.jpg` paths that never existed on disk (the real files were uppercase `.PNG`) — a case-sensitive-filesystem 404 in production on every brand banner image, including ones fed into JSON-LD/OG tags via `getAbsoluteBrandBanner()`.
+
+See `AGENTIC_WEB_AUDIT.md` for the follow-up agentic/AI-crawlability audit performed after these fixes landed.
+
+---
+
 ## Executive summary
 
 The single biggest lever in this codebase is **not** image compression or font trimming — it's that two things happen on **every route, on every fresh session**, regardless of which page a visitor or an agent lands on:

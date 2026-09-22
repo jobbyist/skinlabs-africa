@@ -338,10 +338,11 @@ const NewsroomFeed = ({
                     <div className="mt-auto flex items-center justify-between pt-4">
                       <Link
                         to={`/briefings/${article.slug}`}
+                        aria-label={`Read the breakdown: ${article.title}`}
                         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                       >
                         Read the breakdown
-                        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                       </Link>
                       <div className="flex items-center gap-1">
                         <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 transition-colors hover:bg-accent">

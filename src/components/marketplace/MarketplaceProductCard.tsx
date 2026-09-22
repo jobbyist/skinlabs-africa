@@ -19,9 +19,16 @@ export function MarketplaceProductCard({
   const { currency, formatConverted } = useCurrency();
   const image = product.images[0];
 
+  // The wishlist and "add to bag" buttons used to live inside the card's
+  // outer <Link>, relying on event.preventDefault() to suppress navigation.
+  // That's invalid HTML (interactive elements nested inside an <a>), which
+  // browsers "fix" by hoisting them out of the anchor in the DOM/a11y tree —
+  // producing unpredictable tab order and an unreliable click target for
+  // assistive tech and agentic browsers. They're now real siblings of the
+  // Link instead, positioned via the same "relative" wrapper.
   return (
-    <Link to={`/marketplace/product/${product.slug}`} className="block">
-      <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200">
+    <div className="relative bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200">
+      <Link to={`/marketplace/product/${product.slug}`} className="block">
         <div className="relative bg-stone-50 h-40 flex items-center justify-center">
           {image ? (
             <img src={image.url} alt={image.alt ?? product.name} className="h-full w-full object-cover" loading="lazy" />
@@ -31,20 +38,9 @@ export function MarketplaceProductCard({
               <div className="w-12 h-2 bg-stone-200 rounded" />
             </div>
           )}
-          {onToggleSave && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                onToggleSave();
-              }}
-              className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white shadow-sm flex items-center justify-center hover:scale-110 transition-transform"
-            >
-              <Heart className={cn("h-3.5 w-3.5 transition-colors", saved ? "fill-red-400 text-red-400" : "text-stone-400")} />
-            </button>
-          )}
         </div>
 
-        <div className="p-3">
+        <div className="p-3 pb-0">
           <p className="text-[10px] text-stone-400 font-medium uppercase tracking-wide truncate">{product.brand.name}</p>
           <p className="font-semibold text-[12px] text-stone-900 leading-snug mt-0.5 line-clamp-2">{product.name}</p>
           {product.concern.length > 0 && (
@@ -54,18 +50,32 @@ export function MarketplaceProductCard({
           {currency !== "ZAR" && (
             <p className="text-[10px] text-stone-400">≈ {formatConverted(product.markedUpPriceZar)}</p>
           )}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              addItem(product.id);
-            }}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 bg-stone-900 text-white rounded-xl py-2 text-[11px] font-semibold hover:bg-stone-800 transition-colors"
-          >
-            <ShoppingBag className="h-3 w-3" />
-            Add to bag
-          </button>
         </div>
+      </Link>
+
+      {onToggleSave && (
+        <button
+          type="button"
+          onClick={onToggleSave}
+          aria-label={saved ? `Remove ${product.name} from saved items` : `Save ${product.name} to your wishlist`}
+          aria-pressed={!!saved}
+          className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white shadow-sm flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          <Heart className={cn("h-3.5 w-3.5 transition-colors", saved ? "fill-red-400 text-red-400" : "text-stone-400")} />
+        </button>
+      )}
+
+      <div className="px-3 pb-3 pt-2">
+        <button
+          type="button"
+          onClick={() => addItem(product.id)}
+          aria-label={`Add ${product.name} to bag`}
+          className="w-full flex items-center justify-center gap-1.5 bg-stone-900 text-white rounded-xl py-2 text-[11px] font-semibold hover:bg-stone-800 transition-colors"
+        >
+          <ShoppingBag className="h-3 w-3" aria-hidden="true" />
+          Add to bag
+        </button>
       </div>
-    </Link>
+    </div>
   );
 }

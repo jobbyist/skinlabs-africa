@@ -22,29 +22,35 @@ const Contact = () => {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [nextSubmitAllowedAt, setNextSubmitAllowedAt] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
   const isRateLimited = Date.now() < nextSubmitAllowedAt;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isRateLimited) {
-      toast.error("Please wait a few seconds before submitting again.");
+      const message = "Please wait a few seconds before submitting again.";
+      setFormError(message);
+      toast.error(message);
       return;
     }
     if (!form.first_name || !form.last_name || !form.email || !form.subject || !form.message) {
-      toast.error("Please fill in every field before sending.");
+      const message = "Please fill in every field before sending.";
+      setFormError(message);
+      toast.error(message);
       return;
     }
+    setFormError(null);
     setSubmitting(true);
     try {
       const { error } = await supabase.from("contact_submissions").insert(form);
       setNextSubmitAllowedAt(Date.now() + RESUBMIT_COOLDOWN_MS);
       if (error) {
         const isServerRateLimited = error.message?.includes("Too many messages");
-        toast.error(
-          isServerRateLimited
-            ? error.message
-            : "That didn't go through — please try again, or email support@skinlabs.co.za directly."
-        );
+        const message = isServerRateLimited
+          ? error.message
+          : "That didn't go through — please try again, or email support@skinlabs.co.za directly.";
+        setFormError(message);
+        toast.error(message);
         return;
       }
       setForm(initialForm);
@@ -135,10 +141,11 @@ const Contact = () => {
                     <form onSubmit={submit} className="space-y-6">
                       <div className="grid md:grid-cols-2 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">
+                          <label htmlFor="contact-first-name" className="block text-sm font-medium text-foreground mb-2">
                             First Name
                           </label>
                           <input
+                            id="contact-first-name"
                             type="text"
                             className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                             placeholder="John"
@@ -148,10 +155,11 @@ const Contact = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">
+                          <label htmlFor="contact-last-name" className="block text-sm font-medium text-foreground mb-2">
                             Last Name
                           </label>
                           <input
+                            id="contact-last-name"
                             type="text"
                             className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                             placeholder="Doe"
@@ -162,10 +170,11 @@ const Contact = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contact-email" className="block text-sm font-medium text-foreground mb-2">
                           Email
                         </label>
                         <input
+                          id="contact-email"
                           type="email"
                           className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                           placeholder="john@example.com"
@@ -175,10 +184,11 @@ const Contact = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contact-subject" className="block text-sm font-medium text-foreground mb-2">
                           Subject
                         </label>
                         <input
+                          id="contact-subject"
                           type="text"
                           className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
                           placeholder="How can we help?"
@@ -188,10 +198,11 @@ const Contact = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
+                        <label htmlFor="contact-message" className="block text-sm font-medium text-foreground mb-2">
                           Message
                         </label>
                         <textarea
+                          id="contact-message"
                           rows={6}
                           className="w-full px-4 py-3 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                           placeholder="Tell us more about your inquiry..."
@@ -200,8 +211,13 @@ const Contact = () => {
                           required
                         />
                       </div>
+                      {formError && (
+                        <p role="alert" className="text-sm font-medium text-destructive">
+                          {formError}
+                        </p>
+                      )}
                       <Button type="submit" className="w-full h-12" size="lg" disabled={submitting || isRateLimited}>
-                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                        {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
                         Send Message
                       </Button>
                     </form>
