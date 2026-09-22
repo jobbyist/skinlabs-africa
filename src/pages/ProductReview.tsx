@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
 import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
+import { useResolvedIngredientSlugs } from "@/lib/resolveIngredientSlug";
 import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
@@ -54,6 +55,7 @@ const ProductReview = () => {
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
     [review, getReviewImage],
   );
+  const { data: resolvedIngredientSlugs } = useResolvedIngredientSlugs(review?.key_ingredients ?? []);
 
   const [rating, setRating] = useState(0);
   const [liked, setLiked] = useState(false);
@@ -392,9 +394,20 @@ const ProductReview = () => {
                 <div>
                   <h3 className="mb-2 text-sm font-semibold text-foreground">Key ingredients</h3>
                   <div className="flex flex-wrap gap-2">
-                    {review.key_ingredients.map((ingredient) => (
-                      <span key={ingredient} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{ingredient}</span>
-                    ))}
+                    {review.key_ingredients.map((ingredient) => {
+                      const resolved = resolvedIngredientSlugs?.get(ingredient);
+                      return resolved ? (
+                        <Link
+                          key={ingredient}
+                          to={`/ingredients/${resolved.slug}`}
+                          className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                        >
+                          {ingredient}
+                        </Link>
+                      ) : (
+                        <span key={ingredient} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{ingredient}</span>
+                      );
+                    })}
                   </div>
                 </div>
                 <div>
