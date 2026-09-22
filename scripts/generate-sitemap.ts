@@ -2,60 +2,26 @@
  * Build-time sitemap generator. The sitemap is derived from canonical,
  * indexable routes plus every published/programmatic content record.
  * Supports dynamic Unsplash image URLs via environment configuration.
+ *
+ * This is now the FALLBACK path only: it writes the static public/sitemap.xml
+ * baked into each deployment's build output. The live production sitemap is
+ * served by src/routes/sitemap[.]xml.ts, a TanStack Start SSR route that
+ * queries Supabase on every request — so newly published briefings/reviews
+ * (which land via the daily Supabase-cron content pipelines, not a Vercel
+ * build) show up immediately rather than waiting for the next deploy. This
+ * script's output only matters if that SSR function is ever unavailable
+ * (see scripts/assemble-vercel-output.ts's ssrAvailable fallback) or for a
+ * local `vite build` preview without Nitro.
  */
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { STATIC_SITEMAP_ROUTES } from "../src/lib/sitemap/staticRoutes";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const SITE = "https://skinlabs.co.za";
-
-interface StaticRoute { path: string; changefreq: string; priority: string; }
-
-// Only canonical, indexable destinations belong in the sitemap. Redirects,
-// retired commerce routes, dashboards and 404 paths are deliberately excluded.
-const STATIC_ROUTES: StaticRoute[] = [
-  { path: "/", changefreq: "daily", priority: "1.0" },
-  { path: "/about", changefreq: "weekly", priority: "0.9" },
-  { path: "/pricing", changefreq: "weekly", priority: "0.9" },
-  { path: "/contact", changefreq: "monthly", priority: "0.6" },
-  { path: "/business", changefreq: "monthly", priority: "0.6" },
-  { path: "/partners", changefreq: "monthly", priority: "0.8" },
-  { path: "/brand-ambassadors", changefreq: "weekly", priority: "0.8" },
-  { path: "/skynn-ai", changefreq: "weekly", priority: "0.95" },
-  { path: "/briefings", changefreq: "daily", priority: "0.95" },
-  { path: "/reviews", changefreq: "weekly", priority: "0.95" },
-  { path: "/compare", changefreq: "weekly", priority: "0.9" },
-  { path: "/podcast", changefreq: "weekly", priority: "0.9" },
-  { path: "/spotlight", changefreq: "monthly", priority: "0.9" },
-  { path: "/spotlight/methodology", changefreq: "monthly", priority: "0.5" },
-  { path: "/spotlight/archive", changefreq: "monthly", priority: "0.4" },
-  { path: "/seasonals", changefreq: "weekly", priority: "0.9" },
-  { path: "/seasonals/spring", changefreq: "weekly", priority: "0.85" },
-  { path: "/seasonals/summer", changefreq: "monthly", priority: "0.7" },
-  { path: "/seasonals/autumn", changefreq: "monthly", priority: "0.7" },
-  { path: "/seasonals/winter", changefreq: "monthly", priority: "0.7" },
-  { path: "/consultations", changefreq: "monthly", priority: "0.8" },
-  { path: "/consult", changefreq: "weekly", priority: "0.85" },
-  { path: "/announcements", changefreq: "monthly", priority: "0.6" },
-  { path: "/knowledge-hub", changefreq: "weekly", priority: "0.9" },
-  { path: "/ingredients", changefreq: "weekly", priority: "0.85" },
-  { path: "/ingredients/checker", changefreq: "monthly", priority: "0.7" },
-  { path: "/marketplace", changefreq: "daily", priority: "0.9" },
-  { path: "/marketplace/brands", changefreq: "weekly", priority: "0.7" },
-  { path: "/marketplace/categories", changefreq: "weekly", priority: "0.7" },
-  { path: "/marketplace/shipping-returns", changefreq: "monthly", priority: "0.3" },
-  { path: "/marketplace/terms", changefreq: "yearly", priority: "0.2" },
-  { path: "/whitepapers", changefreq: "monthly", priority: "0.5" },
-  { path: "/editorial-policy", changefreq: "yearly", priority: "0.3" },
-  { path: "/community-guidelines", changefreq: "yearly", priority: "0.3" },
-  { path: "/refund-policy", changefreq: "yearly", priority: "0.2" },
-  { path: "/privacy-policy", changefreq: "yearly", priority: "0.2" },
-  { path: "/terms-of-service", changefreq: "yearly", priority: "0.2" },
-  { path: "/cookie-policy", changefreq: "yearly", priority: "0.2" },
-];
 
 const urlEntry = (loc: string, lastmod: string, changefreq: string, priority: string) =>
   `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
@@ -79,7 +45,7 @@ async function main() {
     urls.push(urlEntry(`${SITE}${clean}`, lastmod, changefreq, priority));
   };
 
-  for (const route of STATIC_ROUTES) add(route.path, route.changefreq, route.priority);
+  for (const route of STATIC_SITEMAP_ROUTES) add(route.path, route.changefreq, route.priority);
 
   const reviewsSource = readFileSync(resolve(root, "src/data/reviews.ts"), "utf-8");
   for (const id of extractQuoted(reviewsSource, "id")) add(`/reviews/${id}`, "monthly", "0.75");
