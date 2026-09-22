@@ -1524,6 +1524,65 @@ feature appear operational.
       function`, or a cheap real invocation) before depending on a
       function's behaviour, especially if any time has passed or other
       GitHub activity (a PR merge, other pushes) happened in between.
+    - **Backfill resumed 2026-09-22 (same day, continuation)** — user asked
+      to retry the backfill after updating `GEMINI_API_KEY_REVIEWS`. Fixed
+      the two interlocking bugs left open above first: applied migration
+      `20260922161359_widen_pipeline_check_constraints_and_retag_quota`
+      (widens `pipeline_model_calls_pipeline_check` to allow
+      `product-review-sync-backfill`/`shelf-showdown-sync`, widens
+      `pipeline_api_usage_provider_check` to allow `shelf-showdown-gemini`,
+      retags shelf-showdown-sync's 17 historical rows out of
+      product-review-sync's quota bucket), redeployed both
+      `product-review-sync` (now `GEMINI_DAILY_LIMIT` 600, plus a new
+      per-candidate `attemptDetails` array in the backfill response so a
+      QA rejection is distinguishable from a write failure going forward)
+      and `shelf-showdown-sync` (now records usage under the dedicated
+      `shelf-showdown-gemini` provider via its own `GEMINI_PROVIDER`
+      constant) with the CHECK-constraint fix live.
+      **New operational hazard found while redeploying, separate from the
+      GitHub-sync one above**: this session's `mcp__Supabase__
+      deploy_edge_function` tool reliably fails to bundle a `../` parent-
+      directory relative import (`Module not found`, tested repeatedly,
+      live, both with placeholder and real file content) but reliably
+      succeeds on a same-root `./` import. The actual repo source for all
+      three Gemini pipelines correctly uses `../_shared/pipelines/...`
+      (matching the real `supabase/functions/<name>/index.ts` +
+      `supabase/functions/_shared/...` directory layout, which is what a
+      real `supabase functions deploy` CLI run or Supabase's own GitHub
+      sync integration both need) — so this is purely a quirk of this
+      MCP tool's own bundler, not a real repo bug. **Practical
+      consequence**: a redeploy of any of these three functions through
+      this MCP tool needs its own local `./_shared/pipelines/...` copy of
+      the two shared files alongside `index.ts` in that one
+      `deploy_edge_function` call (with `index.ts`'s two import lines
+      changed to match, only for that call) — never commit that `./`
+      version to git, since the committed repo source must keep the
+      correct `../_shared/...` path for CLI/GitHub-sync deploys to work.
+      Confirmed both redeploys landed correctly via a live invocation
+      each (see below) before moving on.
+      **The actual blocker is still open, and is NOT what the user's key
+      update fixed**: a live `?action=backfill_full_reviews` test call
+      (`limit: 1`, generated mode) immediately returned `ALERT (Gemini
+      config, backfill stopped): Gemini authentication failed (HTTP 403)
+      on model gemini-3.6-flash` — confirmed in both the response body and
+      a real `pipeline_model_calls` row (`outcome: auth_error,
+      http_status: 403`), i.e. `GEMINI_API_KEY_REVIEWS` is still rejecting
+      requests as of this test, run immediately after the redeploy above.
+      This is a different failure mode than the "28 successful calls, zero
+      writes" mystery from earlier the same day (those showed
+      `success=true`, this shows an immediate auth failure on the very
+      first attempt) — the two are not necessarily the same root cause;
+      the earlier mystery's real explanation (QA rejection vs. a write
+      bug) is now unknown and moot until a working key is confirmed, since
+      the diagnostic `attemptDetails` array added above has not yet fired
+      on a real success to distinguish them. **`review_details` remained
+      at exactly 6 rows after this test — no progress on the backfill
+      itself was possible this session.** A human needs to re-check
+      `GEMINI_API_KEY_REVIEWS` directly in the Supabase dashboard (Edge
+      Functions → Secrets) — confirm the value actually saved, matches a
+      real, enabled Google AI Studio key with the Generative Language API
+      turned on for its project, and that no typo/whitespace was
+      introduced — before the backfill can be retried again.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
