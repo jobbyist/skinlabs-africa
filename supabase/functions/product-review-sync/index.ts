@@ -1272,6 +1272,36 @@ Deno.serve(async (req) => {
     }
   }
 
+  // Diagnostic only, never exposes the key itself -- distinguishes "PEXELS_API_KEY
+  // unset" from "set but Pexels rejected/errored" from "set and working but this
+  // exact query found nothing" so a real gap can be told apart from a false negative
+  // without guessing. Safe to leave in permanently; remove once resolvePrimaryImage()
+  // has real production evidence either way and this stops being needed.
+  if (url.searchParams.get("pexelsDiagnostic") === "true") {
+    const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+    if (!pexelsKey) {
+      return jsonResponse({ ok: true, mode: "pexelsDiagnostic", configured: false });
+    }
+    try {
+      const res = await fetch(
+        "https://api.pexels.com/v1/search?query=skincare+moisturiser+bottle&per_page=1&orientation=landscape",
+        { headers: { Authorization: pexelsKey } },
+      );
+      const body = (await res.json().catch(() => null)) as { photos?: unknown[]; error?: string; code?: number } | null;
+      return jsonResponse({
+        ok: true,
+        mode: "pexelsDiagnostic",
+        configured: true,
+        fetchStatus: res.status,
+        fetchOk: res.ok,
+        resultCount: Array.isArray(body?.photos) ? body.photos.length : null,
+        errorFromPexels: !res.ok ? (body?.error ?? body?.code ?? null) : null,
+      });
+    } catch (err) {
+      return jsonResponse({ ok: true, mode: "pexelsDiagnostic", configured: true, fetchThrew: String(err).slice(0, 300) });
+    }
+  }
+
   try {
     const { count: publishedToday } = await admin
       .from("ai_generated_product_reviews")
