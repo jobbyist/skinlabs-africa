@@ -25,6 +25,7 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getPendingPlanIntent, setPendingPlanIntent, clearPendingPlanIntent } from "@/lib/pendingPlan";
+import { isPromoActive, PROMO_END_DATE_LABEL } from "@/lib/promo";
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -242,6 +243,17 @@ const Pricing = () => {
               </p>
             </div>
 
+            {isPromoActive() && (
+              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-center text-sm text-foreground">
+                <span className="font-semibold">Limited time:</span> every paid plan below is free to try, no card
+                required, until {PROMO_END_DATE_LABEL} — all member benefits apply except ad-free browsing.{" "}
+                <span className="text-muted-foreground">
+                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Standard subscription
+                  billing starts {PROMO_END_DATE_LABEL}.
+                </span>
+              </div>
+            )}
+
             {configLoading && (
               <div className="flex justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -335,7 +347,7 @@ const Pricing = () => {
                               onClick={() => handleTrial(plan.plan_id as PlanId)}
                             >
                               <Gift className="h-4 w-4" />
-                              Try free for {plan.trial_days} days
+                              {isPromoActive() ? `Free until ${PROMO_END_DATE_LABEL}` : `Try free for ${plan.trial_days} days`}
                             </Button>
                           )}
                           <Button

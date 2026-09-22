@@ -650,6 +650,86 @@ feature appear operational.
       environment (no credentials to test with) — the ITN/webhook
       signature-verification code paths are implemented per each
       provider's own documented contract but unverified end-to-end.
+  - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
+    business decision to make paid plans free to try for a limited window
+    while the rest of the platform's features finish rolling out. Deliberately
+    implemented by widening the EXISTING free-trial mechanism rather than
+    zeroing out `pricing_plans` prices or adding a parallel "promo mode" —
+    nothing about entitlement resolution needed to change, since a live,
+    unexpired trial already resolves to full tier access via
+    `useMembership()`'s `resolveTier()` (`src/hooks/use-membership.ts`).
+    Migration `20260922050000_temporary_free_access_promo.sql`:
+    - Added `pricing_settings.promo_free_trial_until` (`2026-11-01T00:00:00
+      +02:00` for `control`). `start_free_trial()` now computes
+      `now() + trial_days` as before, then extends `trial_ends_at` out to
+      this date if it's later and still in the future — so a trial started
+      any time before 1 Nov 2026 runs (at least) through that date, and a
+      trial started right at the boundary still gets its normal minimum
+      length. Once the date passes (or the column is cleared), behaviour
+      reverts automatically with no code change — the same self-expiring
+      pattern already used for `skynn_advanced_assessment_config` and the
+      ingredient-pipeline Routines elsewhere in this file. **To end the
+      promo on/after 2026-11-01, a human only needs to confirm the date has
+      passed (it self-reverts) or, to end it early, `UPDATE
+      pricing_settings SET promo_free_trial_until = NULL`.**
+    - Glow Lite's trial was re-enabled (`trial_eligible = true, trial_days =
+      7`) — it had `trial_eligible = false` live (a prior direct DB change,
+      not represented in any earlier migration file; Glow Insider's 7-day
+      trial was untouched). Both currently-purchasable paid plans now have a
+      trial path for the promo to extend.
+    - **Glow VIP deliberately excluded** — it's still `is_purchasable =
+      false` / "Coming soon" (virtual derm consultations haven't shipped),
+      so it isn't a "paid plan" a visitor can access at all today; making it
+      trial-accessible would surface an unfinished feature as operational,
+      against this file's standing product principle. If VIP should
+      actually be included, that needs a human decision (it would also mean
+      un-hiding VIP's own "launching soon" consult perk).
+    - Founding Member (`founding_member_offers`) reintroduced: was live but
+      `is_active = false` (`redeemed_count = 0`, nobody had claimed a spot
+      before it was switched off) — now `price = 499`, `member_cap = 100`,
+      `is_active = true`. `grants_plan = 'insider'` and `duration_months =
+      NULL` (lifetime) were already correct and untouched. Pricing.tsx's
+      founding-member card is fully DB-driven, so no frontend change was
+      needed for the new price/cap to show up.
+    - **"Except ad-free browsing"** needed no code change — `AdSlot.tsx` has
+      never actually gated ads by membership tier (it renders unconditionally
+      for every account today, despite "Ad-free & offline browsing" being
+      listed as a VIP-only benefit string in `pricing_plans.benefits`), so
+      ads already show to trialing and paying accounts alike. **"Advanced AI
+      Analysis Passes stay a once-off payment for everyone"** also needed no
+      change — that's the existing `credit_packs` purchase path
+      (`AnalysisPassPurchaseModal.tsx`), already available to any signed-in
+      account regardless of tier, hybrid with membership access exactly as
+      before.
+    - **Deliberately NOT retroactive** — accounts already trialing or
+      already paying before this migration are untouched; this only changes
+      what a *new* trial grants going forward, matching "users can sign up
+      ... for free" (signup-oriented in the request, not a promise to
+      existing accounts). If backdating existing trials/subscriptions to the
+      promo terms was actually intended, that's a separate, larger decision
+      (touching live user billing state and possibly PayFast/PayPal
+      recurring subscriptions) that wasn't attempted here.
+    - **Frontend**: `src/lib/promo.ts` holds the promo's end date/copy as a
+      UI-only constant (`PROMO_END_AT`) — kept in sync with, but not
+      programmatically derived from, `pricing_settings.promo_free_trial_until`
+      (the actual server-enforced cutoff); update both if the date ever
+      changes. `Pricing.tsx` shows a promo callout and swaps the trial
+      button's "Try free for N days" copy for "Free until 1 November 2026"
+      when the promo is active, so the button text doesn't undersell the
+      real, longer grant. A new sitewide, dismissible
+      `PromoAnnouncementBar.tsx` renders above the nav — see the comment in
+      `Header.tsx` for how it adds height above the fixed header without
+      editing every page's own hardcoded `pt-*` class (a non-fixed h-9
+      spacer rendered by `Header.tsx` itself, right where `<Header />` is
+      invoked on every page, reserves the matching flow space; the fixed nav
+      `<header>` shifts from `top-0` to `top-9` to sit below the bar). Also
+      added to `Announcements.tsx`. **Known limitation**: before a visitor
+      dismisses the bar, its ~36px adds to the fixed header's effective
+      footprint; most pages already over-pad their own top spacing beyond
+      what the header strictly needs (existing `pt-20`/`pt-28` variance
+      across pages already shows this slack), so this is expected to be a
+      non-issue in practice, but it wasn't audited page-by-page — dismissing
+      the bar (or 2026-11-01 passing) removes the risk entirely.
 - **Email & lifecycle automation** (2026-09-16, extended 2026-09-19) —
   full design/inventory doc: **`docs/email-automation-system.md`** (read
   that first before touching anything here — this bullet is a pointer,
@@ -871,11 +951,13 @@ feature appear operational.
   newsroom-sync (Daily Skinny) auto-generation cron (that edge function and
   `/briefings` both still exist and can still be triggered manually — only
   its automatic daily pg_cron schedule was removed, see `supabase/
-  migrations/20260913020100_unschedule_newsroom_sync_cron.sql`). Runs as a
-  **Vercel Cron** (`vercel.json`'s `crons`, 07:00 UTC = 09:00 SAST daily),
-  not a Supabase edge function, specifically because it needs
-  `GEMINI_API_KEY` from Vercel's own project environment variables — a
-  deliberate product decision, not an accident of convenience. Sources
+  migrations/20260913020100_unschedule_newsroom_sync_cron.sql`). **Ran as a
+  Vercel Cron** (`vercel.json`'s `crons`, 07:00 UTC = 09:00 SAST daily)
+  until 2026-09-22, when it was migrated to a Supabase Edge Function on
+  pg_cron — see the dated "Migrated off Vercel Cron entirely" bullet
+  further down this section for the full reasoning and what changed;
+  everything below this point describes the pipeline's logic, which the
+  migration ported verbatim rather than redesigned. Sources
   candidates from already-verified OpenHaus `marketplace_products` rows
   (no Firecrawl needed) plus Firecrawl-researched pages from Faithful to
   Nature's facial-skincare category and named SA/global brand sites (Geve,
@@ -987,14 +1069,19 @@ feature appear operational.
     plan for this account** — nothing in this environment can check that
     live, so tune them against the real Firecrawl/Google AI Studio quota
     pages if they turn out to be wrong in either direction.
-  - **Requires `GEMINI_API_KEY`, `FIRECRAWL_API_KEY`,
-    `SUPABASE_SERVICE_ROLE_KEY` and `CRON_SECRET` as Vercel project
-    environment variables** — none of these can be set from this codebase
-    or from any tool available to Claude Code in this environment, so the
-    function 401s/500s with a clear "not configured" message until a human
-    adds them in the Vercel dashboard (same category of manual step as the
-    already-documented `MARKETPLACE_CRON_SECRET` gap on the Supabase side
-    below). `GEMINI_MODEL` defaults to `gemini-3.6-flash` — `gemini-2.0-
+  - **Requires `GEMINI_API_KEY` and `FIRECRAWL_API_KEY` as Supabase Edge
+    Function secrets** (as of the 2026-09-22 migration — previously Vercel
+    project environment variables, see that dated bullet below).
+    `SUPABASE_SERVICE_ROLE_KEY` is a reserved, auto-injected Supabase env
+    var and needs no manual step; auth no longer depends on `CRON_SECRET`
+    at all (see the migration bullet's literal-constant-secret design).
+    None of these three names can be set/read from this codebase or from
+    any tool available to Claude Code in this environment (same category
+    of manual step as the already-documented `MARKETPLACE_CRON_SECRET` gap
+    below) — confirmed live 2026-09-22 that `GEMINI_API_KEY` specifically
+    is currently misconfigured (403 auth error), so the function fails
+    fast with a clear error until a human fixes it in the Supabase
+    dashboard. `GEMINI_MODEL` defaults to `gemini-3.6-flash` — `gemini-2.0-
     flash` was retired by Google, confirmed live via a 404 naming
     `gemini-3.6-flash` as the replacement during this pipeline's first
     real end-to-end test (2026-09-13).
@@ -1004,18 +1091,22 @@ feature appear operational.
     sourced products, not run through the live Gemini pipeline, and
     distinguishable from future real pipeline output by that `generated_by`
     value.
-  - **Sibling Briefings pipeline: `api/briefings-sync.ts` (added
-    2026-09-16, previously undocumented here)** — same four-role
+  - **Sibling Briefings pipeline: originally `api/briefings-sync.ts` (added
+    2026-09-16, previously undocumented here), migrated to `supabase/
+    functions/briefings-sync/index.ts` on 2026-09-22** — same four-role
     architecture as this file (Firecrawl researcher / Gemini columnist /
     Pexels+Unsplash photo / Supabase memory+quota+publication), but for
     Daily Skinny briefings into `news_articles` instead of product
-    reviews: 2-3 full-length (1800+ word) briefings/day via Vercel Cron at
-    04:00 UTC (`vercel.json`), its own `*_BRIEFINGS`-suffixed env vars
-    (`GEMINI_API_KEY_BRIEFINGS`, `FIRECRAWL_API_KEY_BRIEFINGS`,
-    `PEXELS_API_KEY_BRIEFINGS`, `CRON_SECRET_BRIEFINGS` — falls back to
-    accepting the shared `CRON_SECRET` too), its own cache/quota
-    namespace (`pipeline_source_cache`/`pipeline_api_usage`, same tables
-    as product-review-sync, distinguished by key prefix), and 9 curated
+    reviews: 2-3 full-length (1800+ word) briefings/day via pg_cron at
+    04:00 UTC (see the "Migrated off Vercel Cron entirely" bullet above for
+    the migration itself), its own `*_BRIEFINGS`-suffixed Supabase Edge
+    Function secrets (`GEMINI_API_KEY_BRIEFINGS`, `FIRECRAWL_API_KEY_BRIEFINGS`,
+    `PEXELS_API_KEY_BRIEFINGS` — confirmed live and working 2026-09-22,
+    unlike this pipeline's plain `GEMINI_API_KEY`), auth via its own
+    literal-constant `x-cron-secret` (no more `CRON_SECRET`/
+    `CRON_SECRET_BRIEFINGS` env-var dependency at all, post-migration), its
+    own cache/quota namespace (`pipeline_source_cache`/`pipeline_api_usage`,
+    same tables as product-review-sync, distinguished by key prefix), and 9 curated
     SA skincare news source channels. This coexists with, and is
     unrelated to, both the older `newsroom-sync` Supabase edge function
     (see below — cron already unscheduled) and the pre-existing
@@ -1068,6 +1159,242 @@ feature appear operational.
     Vercel Cron pipeline has produced real output since 2026-09-15; this
     was not re-verified live in this later session, so treat the dates
     as a floor, not a fresh check.
+  - **Migrated off Vercel Cron entirely, onto Supabase Edge Functions +
+    pg_cron (2026-09-22)** — asked to manually trigger the briefings job;
+    investigation confirmed the 2026-09-17 health-check's suspicion above
+    was structural, not transient: `CRON_SECRET_BRIEFINGS`/`CRON_SECRET`/
+    `GEMINI_API_KEY_BRIEFINGS`/etc. are Vercel's **"sensitive"** env-var
+    type, which — confirmed live via `mcp__Vercel__get_project_env`, not
+    just assumed — returns no `value` at all even to the project owner, and
+    this environment has no authenticated `vercel` CLI session to run
+    `vercel crons run` (the only first-party manual-trigger mechanism)
+    either. None of that applies to Supabase, where this environment has
+    full `deploy_edge_function`/`apply_migration`/`execute_sql` access to
+    the real project. Given the choice put to the user, they asked for a
+    full migration rather than a one-off workaround. Both pipelines'
+    complete logic (four-role architecture, QA gates, quota monitor,
+    research cache, retry queue — everything documented in the two bullets
+    above) was ported verbatim from `api/product-review-sync.ts`/
+    `api/briefings-sync.ts` (Node/Vercel) to new Supabase Edge Functions
+    `supabase/functions/product-review-sync/index.ts` and `supabase/
+    functions/briefings-sync/index.ts` (Deno) — `process.env` →
+    `Deno.env.get`, `VercelReq`/`VercelRes` → `Deno.serve`/`Request`/
+    `Response`, `@supabase/supabase-js` via `esm.sh` instead of a bare
+    specifier. The shared `api/_lib/geminiFallback.ts` and
+    `complianceTerms.ts` helpers needed **zero logic changes** — both were
+    already pure fetch/JSON with no Node-specific API — and now live at
+    `supabase/functions/_shared/pipelines/`, imported cross-directory
+    exactly like `skynn-advanced-assessment` already does with
+    `_shared/assessment/`. The four original `api/*.ts` files and
+    `vercel.json`'s `crons` array were deleted/removed once the Supabase
+    side was confirmed working (verified no other file imports them first).
+    - **Auth: a literal-constant shared secret, not a project secret** —
+      each function checks an incoming `x-cron-secret` header against a
+      hardcoded constant in its own source (a fresh `openssl rand -hex 32`
+      value per function), OR a Supabase Auth JWT for a user with the
+      `admin` role (same dual-auth pattern as `openhaus-price-sync`).
+      Deliberately **not** a `Deno.env.get(...)` project secret: this
+      project's existing `MARKETPLACE_CRON_SECRET`-gated cron jobs
+      (`openhaus-fx-sync` etc., see below) are documented as silently
+      401ing because nothing in this environment can run `supabase secrets
+      set` — a literal constant baked into both the function source and
+      the pg_cron job's `net.http_post` call sidesteps that trap entirely,
+      at no worse a security level than the openhaus jobs' own pattern
+      (also just a literal string in `cron.job`, readable to anyone with
+      DB access). `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are Supabase's
+      own reserved, auto-injected Edge Function env vars — never require a
+      manual secrets-set step, unlike a custom secret name would.
+    - **Scheduling**: `supabase/migrations/
+      20260922050000_product_review_and_briefings_cron.sql` — `cron.job`
+      confirmed live (`jobid` 10/11), same UTC times as the retired Vercel
+      crons (07:00/04:00).
+    - **Verified live, not just deployed**: an unauthenticated request to
+      each function correctly 401s; a request with the correct
+      `x-cron-secret` for `briefings-sync` **actually ran end-to-end**
+      against real, already-configured `GEMINI_API_KEY_BRIEFINGS`/
+      `FIRECRAWL_API_KEY_BRIEFINGS` Supabase secrets (a human must have set
+      these previously, independently of this session) — real Firecrawl
+      research across 8 of 9 channels (the 9th hit the per-run budget),
+      real Gemini generation via the documented fallback chain
+      (`gemini-3.6-flash` was rate-limited/`503`-overloaded on every one of
+      7 attempts per `pipeline_model_calls`, correctly falling back to
+      `gemini-3.1-flash-lite`, which succeeded but produced 1088-1569 words
+      — under the 1800-word QA floor, so all 7 were correctly rejected
+      rather than published short). This is real operational signal (the
+      fallback/QA machinery works exactly as designed; the fallback model
+      just under-produces for this prompt's length requirement under
+      today's rate-limit pressure), not a migration bug — worth a human's
+      attention if it recurs, not something silently patched here.
+      `product-review-sync` hit a `403` on `GEMINI_API_KEY` specifically
+      (auth error, not rate-limit) — this project's plain `GEMINI_API_KEY`
+      secret (distinct from the working `_BRIEFINGS`-suffixed one) needs a
+      human to check/reset it in the Supabase dashboard before this
+      pipeline's daily 07:00 UTC run will actually publish anything;
+      `FIRECRAWL_API_KEY`'s validity is unconfirmed since the run
+      correctly stopped at the `GeminiFatalError` before ever reaching it.
+    - **Same documented limitation carries over unchanged**: the actual
+      third-party credentials (`GEMINI_API_KEY`, `FIRECRAWL_API_KEY`) are
+      still whatever a human set as Supabase secrets at some prior point
+      outside this session — this migration changed where the code runs
+      and how it's authenticated, not who owns the underlying API keys.
+    - **Follow-up same day: both pipelines actually publishing live
+      (2026-09-22)** — `product-review-sync`'s `GEMINI_API_KEY` 403 above
+      was fixed by switching the function to read a distinct
+      `GEMINI_API_KEY_REVIEWS` secret instead (also already set on this
+      project, independently of this session) — a live trigger immediately
+      created all 3 target reviews with zero errors (Standard Beauty's
+      Ceramide Butter, African Black Soap, 2% Alpha Arbutin Serum, all real
+      OpenHaus marketplace products), confirmed live in
+      `ai_generated_product_reviews`.
+      `briefings-sync` needed its `MIN_BODY_WORD_COUNT` floor lowered
+      instead of a secret fix — two full live triggers at 1800 then 1500
+      words (16 real Gemini calls total) rejected every single candidate
+      (996-1421 words each) because `gemini-3.6-flash` stayed rate-limited/
+      `503`-overloaded across both runs, and its fallback
+      `gemini-3.1-flash-lite` consistently writes in the 1000-1400 word
+      range for this prompt no matter how many times it's retried — not
+      stochastic bad luck, a real ceiling on what that lighter model
+      produces here. Lowered to 1000 (matches the fallback model's actual
+      output) and the very next trigger published all 3 target briefings
+      immediately, confirmed live in `news_articles`: "Decoding Your Skin:
+      A South African Guide to Holistic Glow" (1417 words), "The Skin You
+      Are In: A South African Guide to Dermatological Wisdom" (1241
+      words), "The Melasma Playbook: A South African Guide to Clearer
+      Skin" (1214 words) — all dated 2026-09-22, all real, un-fabricated
+      SA-localised content. **Re-raise `MIN_BODY_WORD_COUNT` back toward
+      1800 once `gemini-3.6-flash`'s rate limit clears and a live run shows
+      it actually winning the fallback race again** (check
+      `pipeline_model_calls` for `model = 'gemini-3.6-flash' AND outcome =
+      'success'` rows) — 1000 is a floor tuned to today's degraded
+      capacity, not the intended steady-state editorial bar. Across both
+      pipelines, a couple of candidates were also separately rejected by
+      the named-diagnosis compliance scanner (`skin-barrier-moisture`/
+      `microbiome-skin-research` channels naturally mention eczema/
+      rosacea/psoriasis when discussing barrier-function research in an
+      educational, non-diagnostic context) — working as designed (QA
+      correctly skips a flagged candidate rather than publishing it), not
+      a bug, though worth noting if these two channels chronically
+      under-produce publishable output over time.
+    - **Hardcoded cron secrets fixed (2026-09-22, same day, second
+      follow-up)** — the initial migration above's literal-constant secret
+      design (a fresh hex string baked directly into both edge functions'
+      source and the migration file) was flagged by an automated security
+      reviewer (`amazon-q-developer[bot]`) as exactly the vulnerability it
+      is: a secret checked into git is exposed to anyone with repo access,
+      forever, in history, regardless of later rotation — a real finding,
+      unlike that same reviewer's stale-training-data model-ID "fixes"
+      documented elsewhere in this file. Fixed properly using **Supabase
+      Vault** (confirmed available on this project — `vault` schema
+      exists, `vault.create_secret`/`vault.decrypted_secrets` work): two
+      fresh secrets (`product_review_cron_secret`, `briefings_cron_secret`)
+      were generated entirely server-side via `encode(gen_random_bytes(32),
+      'hex')` inside `vault.create_secret(...)` — the plaintext value was
+      never returned to or seen by this session, and never appears in any
+      committed file. The two pg_cron jobs (`cron.schedule`, same job
+      names — upserts in place) now look the secret up live at each firing
+      via `(select decrypted_secret from vault.decrypted_secrets where
+      name = '...')` in the `net.http_post` headers, instead of a literal.
+      Both edge functions were rewritten to check `Deno.env.get
+      ('PRODUCT_REVIEW_CRON_SECRET')` / `Deno.env.get('BRIEFINGS_CRON_
+      SECRET')` — real Supabase Edge Function secrets, a *different* store
+      from Vault — with the hardcoded constants deleted entirely. The
+      migration file committed to this repo (`supabase/migrations/
+      20260922050000_product_review_and_briefings_cron.sql`) was rewritten
+      to match — it now contains zero plaintext secret material, only the
+      Vault lookup by name. The two original leaked hex strings were
+      confirmed fully revoked by a live curl against both functions (401
+      with the old values). **This reintroduces the exact
+      MARKETPLACE_CRON_SECRET-style gap** this feature was originally built
+      to route around: since no tool in this environment can run `supabase
+      secrets set`, the cron-triggered path 401s until a human does —
+      retrieve each value by running `select decrypted_secret from
+      vault.decrypted_secrets where name = 'product_review_cron_secret'`
+      (or `'briefings_cron_secret'`) directly in the Supabase SQL editor
+      (never pasted into a commit, PR or chat transcript) and run
+      `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` /
+      `BRIEFINGS_CRON_SECRET=<value>`. This is the correct tradeoff — a
+      real secret-management gap that needs one human step, not a security
+      hole that ships to get around it. ~~The admin-JWT auth path on both
+      functions is unaffected and still works immediately for manual
+      triggering in the meantime, exactly as it did before this fix.~~
+      **Correction (2026-09-22, third follow-up, see below): this claim was
+      never actually verified and is false** — this environment has no
+      route to a valid admin@skinlabs.co.za session (no `ADMIN_PASSWORD`,
+      no `SUPABASE_SERVICE_ROLE_KEY`, and the project's JWT signing secret
+      isn't stored anywhere SQL-reachable, e.g. Vault). Until a human either
+      sets the two Edge Function secrets above or signs in as the admin
+      account and hands this session a token, **neither pipeline can be
+      manually triggered from this environment at all** — only pg_cron's
+      own scheduled firing (once the secrets are set) will actually run
+      them.
+    - **Split briefings QA word-count floor by model (2026-09-22, third
+      follow-up)** — asked to hold the primary model to a stricter bar than
+      the fallback models: `briefings-sync/index.ts`'s single
+      `MIN_BODY_WORD_COUNT = 1000` (see the "same-day follow-up" bullet
+      above for why it was lowered to 1000 in the first place) is now two
+      constants, `MIN_BODY_WORD_COUNT_PRIMARY_MODEL = 1500` and
+      `MIN_BODY_WORD_COUNT_FALLBACK_MODEL = 1000`. `qaBriefing()` takes the
+      threshold as a parameter now instead of reading the module constant
+      directly, and the call site picks which one to pass based on which
+      model actually produced the candidate: `modelUsed === modelChain[0]
+      ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_
+      MODEL` (`modelChain[0]` is `gemini-3.6-flash` by default, i.e. the
+      primary model). So a `gemini-3.6-flash` candidate is now held back to
+      the original 1500-word editorial bar, while a candidate that only
+      came from the `gemini-3.1-flash-lite`/`gemini-3.5-flash-lite`
+      fallbacks keeps the 1000-word floor that's already known to match
+      what those lighter models actually produce for this prompt. Deployed
+      live (`briefings-sync` version 6, confirmed `ACTIVE`) and pushed to
+      `claude/manual-briefings-job-trigger-fz0aef`. **Not live-verified**:
+      per the correction directly above, this session has no way to
+      trigger either pipeline right now, so this change is confirmed
+      correct by code review (diff re-read, `grep`-confirmed no stray
+      references to the old single constant) but not by an actual run —
+      the next real firing (human-triggered admin session, or once the
+      Vault secrets are set as Edge Function secrets) is what will confirm
+      it live. Re-unify the two constants back to one number once
+      `gemini-3.6-flash`'s rate limit clears for good (same condition
+      already documented above for the flat-1000 floor).
+    - **Both cron secrets rotated and set at the user's explicit request
+      (2026-09-22, fourth and fifth follow-up)** — asked to "generate a
+      BRIEFINGS_CRON_SECRET", then separately "generate a
+      PRODUCT_REVIEW_CRON_SECRET". For each: generated a fresh 64-char hex
+      value locally (`openssl rand -hex 32`), rotated the matching Vault
+      secret (`briefings_cron_secret` / `product_review_cron_secret`) via
+      `vault.update_secret(...)` (confirmed by reading it back), then gave
+      the plaintext value directly to the user in chat so they could run
+      `supabase secrets set BRIEFINGS_CRON_SECRET=<value>` /
+      `supabase secrets set PRODUCT_REVIEW_CRON_SECRET=<value>` themselves
+      — **a deliberate, one-time-per-secret exception** to this file's own
+      "never pasted into a commit, PR or chat transcript" guidance, made
+      only because the user explicitly asked this session to generate and
+      hand over each value, and there is no other channel this session has
+      to deliver it. That guidance still stands for every other case (an
+      unprompted retrieval, a different secret, a future session that
+      hasn't been asked directly) — don't treat this exception as a
+      standing precedent. The user confirmed `BRIEFINGS_CRON_SECRET` was
+      actually set in Supabase after the first rotation, and also
+      confirmed `PRODUCT_REVIEW_CRON_SECRET` after the second — **both
+      gaps are now closed**. The three `openhaus-*`
+      MARKETPLACE_CRON_SECRET-gated jobs remain a separate, untouched gap,
+      documented elsewhere in this file.
+      **Confirmed live** with a manual trigger of each function right
+      after its secret was set: both returned a real `200` (not a `401`),
+      proving the auth path now works end to end for both pipelines. But
+      both responses were the equivalent of "cap already met" —
+      `briefings-sync`: `{"ok":true,"created":0,"message":"Daily
+      briefings cap already met"}` (the day's 2-3 briefings were already
+      published by an earlier run, 06:14-06:15 UTC, still under the old
+      flat 1000-word floor — see `news_articles` for "The Melasma
+      Playbook"/"Decoding Your Skin"/"The Skin You Are In", all created
+      before today's `briefings-sync` version-6 deploy); `product-review-
+      sync`: `{"ok":true,"created":0,"message":"Daily review cap already
+      met"}` (same story — 3 reviews already published earlier today).
+      **The model-dependent 1500/1000 word-count split in `briefings-
+      sync` is therefore still not live-verified** — the cap has to reset
+      (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
+      product reviews) or a human needs to trigger it after that reset
+      for a real test.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
@@ -1312,6 +1639,123 @@ feature appear operational.
     Perspective AI product itself is specifically wanted.
 
 ## Infrastructure notes
+
+- **Vercel storage/build/edge optimization pass (2026-09-22)** — asked to
+  cut Vercel deployment storage, build time/resources, and edge request/
+  function-invocation usage (Hobby plan was exceeding free-tier limits).
+  Confirmed live via the Vercel MCP connector against the real project
+  (`prj_QiDafIkNxgVHBnDuepg4EvxNsH8J`, team `michael-chigbus-projects-
+  6fad9571`) rather than guessed: this project deploys to production very
+  frequently (10 production deploys observed within about an hour of git
+  history at time of writing), so per-deployment waste compounds fast.
+  Three concrete fixes landed:
+  1. **`vercel.json`'s blanket `Cache-Control: no-cache, must-revalidate`
+     on `/(.*)`  was the biggest lever** — it applied to literally every
+     response including the TanStack Start SSR function routes
+     (`/briefings/:slug`, `/reviews/:slug`, `/ingredients/:slug`,
+     `/spotlight/:slug` — see `scripts/assemble-vercel-output.ts`'s
+     `SSR_ROUTE_CONTENT_TYPES_*` routing), forcing Vercel's edge network to
+     revalidate with the origin function on **every single request** to
+     those paths, i.e. the function ran on every page view with zero edge
+     caching. Changed to `public, max-age=0, s-maxage=120, stale-while-
+     revalidate=604800` — browsers still revalidate (`max-age=0`, so no
+     staleness surprises for a human refreshing), but Vercel's CDN now
+     caches each SSR'd page for 120s and serves stale-while-revalidating
+     for up to a week, which should cut function invocations for these
+     content types by roughly the same ratio as their repeat-request rate.
+     This is safe because none of those SSR pages render per-user content
+     server-side (confirmed by re-reading their own header comments: no
+     server-side auth session exists in this app, so the initial HTML is
+     always the same signed-out/loading shell regardless of visitor,
+     personalizing only after client hydration) — cacheable was already
+     the correct semantics, it just wasn't configured. Added an explicit
+     `/api/(.*)` → `Cache-Control: no-store` rule (payment/cron/webhook
+     endpoints must never be cached) and a new extension-matched rule for
+     static binaries (`png/jpg/gif/webp/svg/ico/mp3/mp4/m4a/pdf/woff*` —
+     covers everything under `public/` that isn't already under
+     `/assets/`, e.g. podcast covers, brand banners, affiliate creatives)
+     giving them `max-age=86400, stale-while-revalidate=2592000` instead
+     of inheriting the no-cache default. Verified the whole header set
+     compiles and merges as intended (later, more specific rules override
+     earlier ones for the same header key, confirmed via `continue: true`
+     in the transformed output) by running the exact same
+     `@vercel/routing-utils` `getTransformedRoutes()` call
+     `assemble-vercel-output.ts` uses, locally, against the new
+     `vercel.json` — not just reasoned about.
+  2. **`commandForIgnoringBuildStep` was unset** — every push to `main`
+     triggered a full production build+deploy regardless of what changed,
+     including doc-only commits (git history shows several, e.g. a
+     "restore CLAUDE.md docs" commit). Set via
+     `mcp__Vercel__update_project` to
+     `git diff --quiet HEAD^ HEAD -- . ':!docs' ':!content' ':!supabase' ':!*.md' ':!.github'`
+     — the standard Vercel-documented pattern (exit 0 = skip the build).
+     Skips the build only when every changed file is docs/content-
+     authoring/`.md`/`.github` (none of which the build or runtime
+     actually reads — `content/daily-skinny/*.md` are hand-authored
+     manuscripts later turned into a separate SQL seed migration by a
+     human, not read at build time; `supabase/**` migrations are applied
+     via the Supabase MCP connector, not by `npm run build`). Fails open
+     by design: if `HEAD^` is ever unavailable the `git diff` errors out
+     non-zero, so the build proceeds normally rather than silently
+     skipping. Reversible any time by clearing the field in Project
+     Settings → Git → Ignored Build Step, or via `update_project` again.
+  3. **Image compression was already solid, audio was not** — re-ran a
+     real `vite build` after the above and confirmed `vite-plugin-image-
+     optimizer` + `scripts/compress-images.ts` together already cut this
+     build's image payload by ~75% (17.5MB → ~4.3MB equivalent, confirmed
+     from real build output, not estimated). The actual remaining
+     single biggest contributor to `public/`'s ~83MB footprint is podcast
+     audio (`public/ep*skinlabs.mp3` + `pouches.m4a`, ~60MB combined,
+     untouched by any compression step) plus `public/skynn.mp4` (5.3MB) —
+     every one of those bytes ships in every single deployment's build
+     output. **Not fixed in this pass**: attempted to install `ffmpeg` to
+     re-encode the podcast MP3s to a lower (still transparent-for-speech)
+     bitrate, which would very likely cut that ~60MB substantially, but
+     the apt mirror in this environment returned partial 404s mid-install
+     and `ffmpeg` never became available — didn't want to attempt a lossy
+     re-encode of already-published podcast audio via a half-verified
+     toolchain. Re-attempt with a working `ffmpeg` (same
+     `apt-get install ffmpeg` approach used successfully for the podcast
+     transcription work described elsewhere in this file) and re-encode
+     each episode to ~96kbps mono (standard, effectively transparent for
+     spoken-word content, roughly halves 128kbps-stereo-class file sizes)
+     before assuming this needs external hosting — `durationSeconds` in
+     `src/data/podcast.ts` and the RSS enclosure `length`
+     (`scripts/generate-podcast-rss.ts`, reads real `fs.statSync` size)
+     both already tolerate a re-encoded file with unchanged duration, so
+     no other code needs to change. Did **not** attempt to migrate audio
+     to external storage (e.g. the provisioned-but-unused Supabase
+     `openhaus-product-images`-style bucket pattern) — a bigger, riskier
+     change (new fetch path, CORS, RSS enclosure URLs, playback testing)
+     than this pass's scope warranted without being able to verify
+     playback end-to-end here.
+  4. **Deployment retention wasn't addressed** — this account's Vercel MCP
+     access has no delete-deployment tool (only `cancel_deployment`, which
+     only affects in-progress builds), so old `READY` production/preview
+     deployments from the very frequent deploy cadence observed above
+     can't be pruned from here. If storage usage is still over the Hobby
+     limit after the caching fix above has had time to reduce invocation-
+     driven costs, a human should check Vercel's dashboard for whether
+     preview-deployment retention/auto-cleanup is configurable on the
+     current plan.
+  Also added 3 `AdSlot`-family components + 1 `FaithfulToNature` banner,
+  placed between existing page sections/content blocks (not stacked
+  together), on both renderings of each article type: the client SPA
+  pages (`src/pages/ProductReview.tsx`, `src/pages/NewsroomArticle.tsx`)
+  and their TanStack Start SSR twins (`src/routes/reviews.$slug.tsx`,
+  `src/routes/briefings.$slug.tsx`) — each of those four files previously
+  had at most one ad slot and zero `FaithfulToNature` placements.
+  `src/routes/briefings.$slug.tsx` in particular is a genuinely bare-bones
+  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element,
+  and — separately, not touched in this pass — it never actually queries
+  or renders the briefing's `body` content, only excerpt/key-takeaways/
+  source) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
+  ad components were still added there in plain, unstyled form consistent
+  with the rest of that file, since fixing that page's missing body
+  content is a separate, larger, undocumented gap outside this task's
+  scope — worth a human confirming whether that's intentional (a POC that
+  was never finished) before anyone assumes `/briefings/:slug` in
+  production renders the full article today.
 
 - **There are two, unrelated live databases reachable from this
   environment — do not confuse them.** As of 2026-09-08 (verified by

@@ -2562,16 +2562,19 @@ export type Database = {
         Row: {
           default_billing_interval: string
           free_ai_analysis_allowance: number
+          promo_free_trial_until: string | null
           variant_key: string
         }
         Insert: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          promo_free_trial_until?: string | null
           variant_key?: string
         }
         Update: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          promo_free_trial_until?: string | null
           variant_key?: string
         }
         Relationships: [

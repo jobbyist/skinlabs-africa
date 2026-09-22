@@ -1,8 +1,9 @@
 /**
- * Shared Gemini model-fallback chain for the Vercel-cron pipelines
- * (product-review-sync.ts, briefings-sync.ts). A file under api/_lib/ --
- * Vercel's file-system router ignores any `_`-prefixed path under api/, so
- * this is never itself treated as an endpoint.
+ * Shared Gemini model-fallback chain for the Supabase-cron content pipelines
+ * (product-review-sync, briefings-sync). Ported verbatim from the former
+ * api/_lib/geminiFallback.ts (Vercel Node runtime) -- this module only ever
+ * used fetch/AbortController/JSON, never process.env or any Node-specific
+ * API, so it runs unmodified under Deno.
  *
  * PRIMARY   gemini-3.6-flash
  *   |  transient failure / quota pressure / timeout

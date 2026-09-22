@@ -32,6 +32,8 @@ import EvidenceBadge from '@/components/ingredients/EvidenceBadge'
 import RoutineBuilder from '@/components/RoutineBuilder'
 import RelatedKnowledgeHub from '@/components/RelatedKnowledgeHub'
 import AdSlot from '@/components/AdSlot'
+import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
+import FaithfulToNature from '@/components/FaithfulToNature'
 import GatedOverlay from '@/components/GatedOverlay'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -376,6 +378,8 @@ function ReviewPage() {
 
         <SkinLabsPromiseBadge />
 
+        <AdSlot placement="product-review-top" compact />
+
         <div>
           <button type="button" aria-pressed={liked} onClick={() => persist(rating, !liked)}>
             {liked ? '♥' : '♡'} {likeCount + (liked ? 1 : 0)} likes
@@ -407,6 +411,8 @@ function ReviewPage() {
         {marketplaceMatch && (
           <Link to={`/marketplace/product/${marketplaceMatch.slug}`}>Sponsored — Also available on OpenHaus</Link>
         )}
+
+        <FaithfulToNature placement="product-review-shop" />
 
         <RoutineBuilder anchor={review} isVip={isVip} />
 
@@ -453,6 +459,8 @@ function ReviewPage() {
             </Button>
           </div>
         )}
+
+        <AdSlotAutorelaxed placement="product-review-discussion" compact />
 
         <div>
           <h2>Member discussion</h2>
