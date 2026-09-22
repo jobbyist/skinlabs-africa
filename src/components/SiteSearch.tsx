@@ -14,6 +14,7 @@ import { faqEntries } from "@/data/faq";
 import { searchablePages } from "@/lib/search-index";
 import { scoreProductReview, scoreTextItem } from "@/lib/search-engine";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface SiteSearchProps {
   open: boolean;
@@ -63,6 +64,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
   }, [open]);
 
   const go = (href: string) => {
+    if (hasQuery) trackConversionEvent("site_search_result_clicked", { query: query.trim().slice(0, 100), href });
     onOpenChange(false);
     navigate(href);
   };

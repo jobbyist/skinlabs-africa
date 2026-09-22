@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 export interface RoutineStep {
   id: string;
@@ -176,6 +177,7 @@ export const useRoutine = () => {
       toast.error("Could not update your routine — please try again.");
       return;
     }
+    if (!isDone) trackConversionEvent("routine_checkin_completed", { slot });
     void load();
   };
 

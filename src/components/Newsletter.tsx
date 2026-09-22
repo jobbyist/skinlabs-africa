@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ const Newsletter = () => {
         }
       } else {
         toast.success("You're on the early access list! We'll notify you when consultations launch.");
+        trackConversionEvent("newsletter_subscribed");
       }
       setEmail("");
     } catch (err) {

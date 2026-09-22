@@ -37,9 +37,14 @@
  * fault-tolerant -- one failing doesn't take down the other.
  *
  * GET /api/admin-analytics?days=7|30|90 (default 30)
- * Response: { ok: true, since, until, totals: { pageviews, visitors },
- *   daily: [{ day, pageviews }], topPages: [{ path, pageviews }],
- *   topEvents: [{ eventName, count }] }
+ * Response: { ok: true, since, until,
+ *   vercel: { totals: { pageviews, visitors }, daily: [{ day, pageviews }],
+ *             topPages: [{ path, pageviews }] },
+ *   supabase: { totalEvents, uniqueUsers, eventsDaily: [{ day, count }],
+ *               topEvents: [{ eventName, count }] } }
+ * The top-level vercel/supabase split is deliberate -- the Analytics tab
+ * labels every chart with which of these two independent sources it came
+ * from, so nothing on the page is ambiguous about its provenance.
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
@@ -119,36 +124,61 @@ async function vercelGet<T>(path: string, params: Record<string, string>, token:
   return (await res.json()) as T;
 }
 
-/** Reads conversion-event counts from analytics_events (see this file's
- *  header comment for why this doesn't call Vercel's events API). Returns
- *  [] on any failure -- an events-panel outage should never take down the
+interface SupabaseAnalytics {
+  totalEvents: number;
+  uniqueUsers: number;
+  eventsDaily: { day: string; count: number }[];
+  topEvents: { eventName: string; count: number }[];
+}
+
+const EMPTY_SUPABASE_ANALYTICS: SupabaseAnalytics = { totalEvents: 0, uniqueUsers: 0, eventsDaily: [], topEvents: [] };
+
+/** Reads SkinLabs' own conversion-event data from analytics_events (see this
+ *  file's header comment for why this doesn't call Vercel's events API,
+ *  which 402s on this project's plan). Returns an empty-but-valid shape on
+ *  any failure -- an events-panel outage should never take down the
  *  pageview/visitor data this function also serves. */
-async function readTopEvents(since: string, until: string): Promise<{ eventName: string; count: number }[]> {
+async function readSupabaseAnalytics(since: string, until: string): Promise<SupabaseAnalytics> {
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) return [];
+  if (!supabaseUrl || !serviceRoleKey) return EMPTY_SUPABASE_ANALYTICS;
 
   try {
     const supabase = createClient(supabaseUrl, serviceRoleKey);
     const { data, error } = await supabase
       .from("analytics_events")
-      .select("event_name")
+      .select("event_name, created_at, user_id")
       .gte("created_at", since)
       .lte("created_at", until)
       .limit(10000);
-    if (error || !data) return [];
+    if (error || !data) return EMPTY_SUPABASE_ANALYTICS;
 
-    const counts = new Map<string, number>();
-    for (const row of data as { event_name: string }[]) {
-      counts.set(row.event_name, (counts.get(row.event_name) ?? 0) + 1);
+    const rows = data as { event_name: string; created_at: string; user_id: string | null }[];
+    const eventCounts = new Map<string, number>();
+    const dailyCounts = new Map<string, number>();
+    const users = new Set<string>();
+
+    for (const row of rows) {
+      eventCounts.set(row.event_name, (eventCounts.get(row.event_name) ?? 0) + 1);
+      const day = row.created_at.slice(0, 10); // UTC calendar day, matches Vercel's own day bucketing
+      dailyCounts.set(day, (dailyCounts.get(day) ?? 0) + 1);
+      if (row.user_id) users.add(row.user_id);
     }
-    return Array.from(counts.entries())
-      .map(([eventName, count]) => ({ eventName, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
+
+    return {
+      totalEvents: rows.length,
+      uniqueUsers: users.size,
+      eventsDaily: Array.from(dailyCounts.entries())
+        .map(([day, count]) => ({ day, count }))
+        .sort((a, b) => a.day.localeCompare(b.day)),
+      topEvents: Array.from(eventCounts.entries())
+        .map(([eventName, count]) => ({ eventName, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 20),
+    };
   } catch (err) {
-    console.error("readTopEvents failed:", err);
-    return [];
+    console.error("readSupabaseAnalytics failed:", err);
+    return EMPTY_SUPABASE_ANALYTICS;
   }
 }
 
@@ -183,31 +213,33 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
   const base = { projectId, teamId, since: since.toISOString(), until: until.toISOString() };
 
-  // Core pageview/visitor data must all succeed together (they're one
-  // coherent picture) -- but topEvents is read independently below and must
-  // never take this down, since it depends on a different backend
-  // (Supabase, not Vercel) with its own failure modes.
+  // Core pageview/visitor data (Vercel) must all succeed together (they're
+  // one coherent picture) -- but the Supabase-sourced analytics are read
+  // independently and must never take this down, since they depend on a
+  // different backend with its own failure modes, and vice versa.
   try {
     const [totals, daily, topPages] = await Promise.all([
       vercelGet<CountResponse>("/visits/count", { projectId, teamId }, token),
       vercelGet<AggregateResponse>("/visits/aggregate", { ...base, by: "day" }, token),
       vercelGet<AggregateResponse>("/visits/aggregate", { ...base, by: "requestPath", limit: "10" }, token),
     ]);
-    const topEvents = await readTopEvents(base.since, base.until);
+    const supabaseAnalytics = await readSupabaseAnalytics(base.since, base.until);
 
     res.status(200).json({
       ok: true,
       since: base.since,
       until: base.until,
-      totals: {
-        pageviews: totals.data?.pageviews ?? 0,
-        visitors: totals.data?.visitors ?? 0,
+      vercel: {
+        totals: {
+          pageviews: totals.data?.pageviews ?? 0,
+          visitors: totals.data?.visitors ?? 0,
+        },
+        daily: (daily.data ?? []).map((row) => ({ day: row.day ?? "", pageviews: row.pageviews ?? row.count ?? 0 })),
+        topPages: (topPages.data ?? [])
+          .map((row) => ({ path: row.requestPath ?? "(unknown)", pageviews: row.pageviews ?? row.count ?? 0 }))
+          .sort((a, b) => b.pageviews - a.pageviews),
       },
-      daily: (daily.data ?? []).map((row) => ({ day: row.day ?? "", pageviews: row.pageviews ?? row.count ?? 0 })),
-      topPages: (topPages.data ?? [])
-        .map((row) => ({ path: row.requestPath ?? "(unknown)", pageviews: row.pageviews ?? row.count ?? 0 }))
-        .sort((a, b) => b.pageviews - a.pageviews),
-      topEvents,
+      supabase: supabaseAnalytics,
     });
   } catch (err) {
     console.error("admin-analytics failed:", err);

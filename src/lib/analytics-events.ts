@@ -90,7 +90,18 @@ export type ConversionEvent =
   | "marketplace_add_to_cart"
   | "podcast_played"
   | "podcast_liked"
-  | "podcast_shared";
+  | "podcast_shared"
+  // Broader site-wide gap-fill (2026-09-22) — key actions across the app
+  // that had no analytics instrumentation at all before this pass.
+  | "newsletter_subscribed"
+  | "brand_request_submitted"
+  | "partner_enquiry_submitted"
+  | "ingredient_checker_checked"
+  | "consultation_booking_requested"
+  | "site_search_result_clicked"
+  | "account_deactivated"
+  | "account_deletion_requested"
+  | "routine_checkin_completed";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
