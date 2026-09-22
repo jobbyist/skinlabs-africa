@@ -154,10 +154,13 @@ const AdminDashboard = () => {
   const fetchAllData = async () => {
     setLoading(true);
     const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
-      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }),
-      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }),
-      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
-      supabase.from("preorders").select("*").order("created_at", { ascending: false }),
+      // Bounded like the Data Quality queue below -- these are queues an admin
+      // works through in recency order, not a full-table export, so a limit
+      // keeps this page load bounded as each table grows.
+      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }).limit(200),
+      supabase.from("preorders").select("*").order("created_at", { ascending: false }).limit(200),
       // Count-only (head: true fetches zero rows) — the full user directory now
       // lives behind admin_search_profiles via the Users tab, never a bare
       // `profiles.select("*")` dump into the browser.
