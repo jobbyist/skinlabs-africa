@@ -20,14 +20,14 @@ where the last one left off.
 
 | Metric | Value | As of |
 |---|---|---|
-| Total ingredients | 128 | 2026-09-22 |
-| Ingredients with `description` populated | 16 / 128 | 2026-09-22 |
-| Ingredients with `category` populated | 126 / 128 | 2026-09-21 (pre-existing) |
-| `ingredient_sources` rows | 34 | 2026-09-22 |
+| Total ingredients | 140 | 2026-09-22 (128 original + 12 new via Track B batch 01) |
+| Ingredients with `description` populated | 28 / 140 | 2026-09-22 |
+| Ingredients with `category` populated | 138 / 140 | 2026-09-22 |
+| `ingredient_sources` rows | 56 | 2026-09-22 |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
-| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 | 2026-09-21 |
+| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 (12 processed, 111 remaining) | 2026-09-22 |
 | Products live (of 160 catalogued) | 160 | 2026-09-22 (Phase 5 complete — see `SEED_MIGRATION_STATUS.md`) |
 | `ingredient_generation_requests` rows (pending) | 1 | 2026-09-22 (see "Demand-driven queue" below) |
 
@@ -128,9 +128,20 @@ IS NOT NULL` (or is on the permanent skip list), Track A is done and the
 Track B + the refresh rotation (6B).
 
 **Track B — add new ingredients from the living candidate list.**
-`supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom,
-section by section. Cursor: **not started** (first unprocessed candidate
-is "Betaine" under Humectant). When the file's unprocessed (`[ ]`)
+`supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
+within each section, but **not** strictly one section at a time — a batch
+may pick a representative spread across several sections (real, well-
+documented ingredients were prioritized for research efficiency). Cursor:
+**12 / 123 processed** (batch 01, 2026-09-22 — all now `[x]` in the
+candidates file): Betaine, Sodium PCA, Trehalose, Urea (4/13 Humectant —
+next unprocessed: Propanediol), Malic Acid, Citric Acid, Gluconolactone
+(3/5 Exfoliant-AHA/PHA — next unprocessed: Tartaric Acid), Papain
+(1/3 Exfoliant-Enzyme — next unprocessed: Bromelain), Resveratrol, Alpha
+Lipoic Acid (2/17 Antioxidant — next unprocessed: Astaxanthin), Azelaic
+Acid (1/9 Brightening — next unprocessed: 4-Butylresorcinol), Allantoin
+(1/11 Soothing Botanical — next unprocessed: Bisabolol). A future firing
+should scan each section top-to-bottom for the first `[ ]` entry rather
+than assume a single linear cursor. When the file's unprocessed (`[ ]`)
 candidates run low (fewer than ~25 remaining), the firing that notices
 this appends a fresh batch of real, dedupe-checked candidates to that file
 *before* continuing — this is how Track B keeps growing past the current
@@ -156,6 +167,7 @@ limit :remaining_batch_budget;
 | 2026-09-22 | Track A batch 01 | 8: Acetyl Glucosamine, Acetyl Hexapeptide-8, African Black Soap, Aloe Vera, Alpha Arbutin, Arbutin, Argan Oil, Ascorbic Acid | `20260922020000_ingredient_content_batch_01.sql` | Real PubMed + DermNet NZ research per ingredient (18 citations total, 2-3 per ingredient). All landed `evidence_level` moderate except African Black Soap (limited, per its own review's "much is anecdotal" caveat). 3 insufficient-evidence/non-specific entries skipped and logged (see skip list above): AHA/BHA Complex, Antioxidant Complex, African Potato Extract. |
 | 2026-09-22 | Phase 5 (product seed) | — | `20260922010200_..._chunk_09_products.sql` through `20260922011300_..._chunk_20_products.sql` (12 files) | Product seed chunks 09-20 applied, products 41-160 complete. 160/160 products and reviews now live, 290 `product_ingredients` rows total. See `SEED_MIGRATION_STATUS.md` for full detail — not an ingredients-content batch, logged here only because it completes the "Products live" row above. |
 | 2026-09-22 | Track A batch 02 | 8: Bakuchiol, Baobab Oil, Beeswax, Buchu Extract, Bulbine Frutescens, Caffeine, Calendula Oil, Centella Asiatica | `20260922080000_ingredient_content_batch_02.sql` | Real PubMed + peer-reviewed-literature research per ingredient (16 citations total, 2 per ingredient, incl. one DermNet NZ corroborating source for Calendula's irritancy profile). Evidence levels: moderate (Bakuchiol, Beeswax, Calendula Oil, Centella Asiatica — each backed by a real RCT/systematic review or a solid preclinical study), limited (Baobab Oil, Buchu Extract, Bulbine Frutescens, Caffeine — in vitro/mechanistic/traditional-use evidence only, no human efficacy RCT found). 7 generic-collective stub names encountered in this batch's alphabetical window were skip-listed without a research attempt (Botanical Actives/Brighteners/Extracts/Oil Blend/Oils, Brightening Complex, Broad-Spectrum UV Filters) — see skip list above. |
+| 2026-09-22 | Track B batch 01 | 12 NEW: Betaine, Sodium PCA, Trehalose, Urea, Malic Acid, Citric Acid, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Azelaic Acid, Allantoin | `20260922090000_ingredient_content_track_b_batch_01.sql` | First Track B batch — real identity + content created in one pass per ingredient (22 citations total: 2 each for 10 ingredients, 1 each for Urea and Citric Acid, whose available real literature was thinner). Evidence levels: strong (Azelaic Acid — a 21-RCT systematic review/meta-analysis), moderate (Urea, Gluconolactone, Papain, Resveratrol, Alpha Lipoic Acid, Allantoin — each backed by a real RCT or split-face clinical study, several combined with other actives rather than tested standalone), limited (Betaine, Sodium PCA, Trehalose, Malic Acid, Citric Acid — in vitro/mechanistic/observational evidence only, no direct standalone-ingredient human efficacy RCT found). **This was a deliberately partial weekly batch** (12 of the 25+ the permanent pipeline targets per week) — full Phase 3 research at this depth for 25 ingredients in one sitting was judged too costly/risky for careful sourcing; the remainder of this week's target should be picked up by the next 6B firing or a follow-up session before Tuesday's next scheduled run, rather than padded with thinner research to hit the number. |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't

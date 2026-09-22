@@ -38,14 +38,14 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Humectant
 
-- [ ] Betaine — Betaine — humectant — osmolyte/water-binding compound, often beet-derived, compatible with skin's natural moisturizing factors
-- [ ] Sodium PCA — Sodium PCA — humectant — a natural moisturizing factor component, strong water-binding capacity
-- [ ] Trehalose — Trehalose — humectant — disaccharide with documented water-retention and stress-protectant properties for skin cells
+- [x] Betaine — Betaine — humectant — osmolyte/water-binding compound, often beet-derived, compatible with skin's natural moisturizing factors
+- [x] Sodium PCA — Sodium PCA — humectant — a natural moisturizing factor component, strong water-binding capacity
+- [x] Trehalose — Trehalose — humectant — disaccharide with documented water-retention and stress-protectant properties for skin cells
 - [ ] Propanediol — Propanediol — humectant — 1,3-propanediol, plant-derived humectant/solvent increasingly used in place of propylene glycol
 - [ ] Inulin — Inulin — humectant — plant-derived polysaccharide (often chicory root) with film-forming/humectant properties
 - [ ] Xylitylglucoside — Xylitylglucoside — humectant — part of the "aquaxyl" moisturizing complex family, supports skin hydration
 - [ ] Glycereth-26 — Glycereth-26 — humectant — polyethylene glycol ether of glycerin, humectant/emulsifier
-- [ ] Urea — Urea — humectant — natural moisturizing factor component, also mild keratolytic at higher concentrations
+- [x] Urea — Urea — humectant — natural moisturizing factor component, also mild keratolytic at higher concentrations
 - [ ] Sodium Lactate — Sodium Lactate — humectant — natural moisturizing factor component, pH-adjusting humectant
 - [ ] Saccharide Isomerate — Saccharide Isomerate — humectant — plant-sugar-derived humectant studied for sustained hydration
 - [ ] Mel Extract (Honey) — Mel — humectant — long-used natural humectant with documented moisture-retention properties
@@ -54,10 +54,10 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Exfoliant — AHA / PHA
 
-- [ ] Malic Acid — Malic Acid — exfoliant-aha — fruit-derived AHA, often used alongside glycolic/lactic acid in blends
+- [x] Malic Acid — Malic Acid — exfoliant-aha — fruit-derived AHA, often used alongside glycolic/lactic acid in blends
 - [ ] Tartaric Acid — Tartaric Acid — exfoliant-aha — grape-derived AHA
-- [ ] Citric Acid — Citric Acid — exfoliant-aha — commonly used as both a pH adjuster and mild AHA exfoliant
-- [ ] Gluconolactone — Gluconolactone — exfoliant-aha — polyhydroxy acid (PHA), gentler exfoliation profile than classic AHAs, also humectant
+- [x] Citric Acid — Citric Acid — exfoliant-aha — commonly used as both a pH adjuster and mild AHA exfoliant
+- [x] Gluconolactone — Gluconolactone — exfoliant-aha — polyhydroxy acid (PHA), gentler exfoliation profile than classic AHAs, also humectant
 - [ ] Lactobionic Acid — Lactobionic Acid — exfoliant-aha — polyhydroxy acid (PHA) with antioxidant and humectant properties
 
 ## Exfoliant — BHA
@@ -66,15 +66,15 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Exfoliant — Enzyme
 
-- [ ] Papain — Papain — exfoliant-enzyme — proteolytic enzyme from papaya, used for enzymatic exfoliation
+- [x] Papain — Papain — exfoliant-enzyme — proteolytic enzyme from papaya, used for enzymatic exfoliation
 - [ ] Bromelain — Bromelain — exfoliant-enzyme — proteolytic enzyme from pineapple, used for enzymatic exfoliation
 - [ ] Pumpkin Enzyme — Cucurbita Pepo (Pumpkin) Fruit Ferment Extract — exfoliant-enzyme — fruit-enzyme exfoliant, popular in gentle at-home peels
 
 ## Antioxidant
 
-- [ ] Resveratrol — Resveratrol — antioxidant — polyphenol antioxidant, often paired with ferulic acid/vitamin E in serums
+- [x] Resveratrol — Resveratrol — antioxidant — polyphenol antioxidant, often paired with ferulic acid/vitamin E in serums
 - [ ] Astaxanthin — Astaxanthin — antioxidant — carotenoid antioxidant derived from algae
-- [ ] Alpha Lipoic Acid — Thioctic Acid — antioxidant — both water- and fat-soluble antioxidant
+- [x] Alpha Lipoic Acid — Thioctic Acid — antioxidant — both water- and fat-soluble antioxidant
 - [ ] Idebenone — Idebenone — antioxidant — synthetic antioxidant related to CoQ10
 - [ ] Ergothioneine — Ergothioneine — antioxidant — amino-acid-derived antioxidant, naturally occurring in fungi
 - [ ] Glutathione — Glutathione — antioxidant — tripeptide antioxidant, also marketed for skin brightening
@@ -133,7 +133,7 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Brightening
 
-- [ ] Azelaic Acid — Azelaic Acid — brightening — dicarboxylic acid, dual brightening/anti-inflammatory/anti-acne evidence base
+- [x] Azelaic Acid — Azelaic Acid — brightening — dicarboxylic acid, dual brightening/anti-inflammatory/anti-acne evidence base
 - [ ] 4-Butylresorcinol — 4-Butylresorcinol — brightening — tyrosinase-inhibiting brightening agent
 - [ ] Phenylethyl Resorcinol — Phenylethyl Resorcinol — brightening — tyrosinase-inhibiting brightening agent (marketed as "Symwhite")
 - [ ] Mulberry Extract — Morus Alba Root Extract — brightening — botanical tyrosinase inhibitor
@@ -152,7 +152,7 @@ already represented, and matter for the Ingredient Combination Checker
 ## Soothing Botanical
 
 - [ ] Bisabolol — Alpha-Bisabolol — soothing-botanical — chamomile-derived anti-inflammatory/soothing compound
-- [ ] Allantoin — Allantoin — soothing-botanical — soothing, skin-conditioning agent with long clinical usage history
+- [x] Allantoin — Allantoin — soothing-botanical — soothing, skin-conditioning agent with long clinical usage history
 - [ ] Colloidal Oatmeal — Avena Sativa (Oat) Kernel Flour — soothing-botanical — FDA-recognized skin-protectant, distinct from the existing "oat bran extract" row
 - [ ] Madecassoside — Madecassoside — soothing-botanical — Centella asiatica-derived triterpene, soothing/barrier-repair evidence
 - [ ] Beta-Glucan — Beta-Glucan (Oat or Yeast-derived) — soothing-botanical — soothing, barrier-supportive polysaccharide
@@ -215,4 +215,9 @@ already represented, and matter for the Ingredient Combination Checker
 
 ---
 
-**Running total added from this list**: 0 / 123 processed (see `INGREDIENT_CONTENT_STATUS.md` for the live cursor). This first batch of 123 real candidates comfortably covers the 122-ingredient expansion milestone and will be supplemented by further append rounds (same research/dedupe discipline) as weekly firings consume it, continuing indefinitely thereafter.
+**Running total added from this list**: 12 / 123 processed (2026-09-22, Track B
+batch 01 — see `INGREDIENT_CONTENT_STATUS.md` for the live cursor and full batch
+log). This first batch of 123 real candidates comfortably covers the
+122-ingredient expansion milestone and will be supplemented by further append
+rounds (same research/dedupe discipline) as weekly firings consume it,
+continuing indefinitely thereafter.
