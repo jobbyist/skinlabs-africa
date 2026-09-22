@@ -77,11 +77,15 @@ const DAILY_BRIEFINGS_CAP = 3;
 /** Per-run cap on real Firecrawl network calls; cache hits cost nothing. */
 const MAX_FIRECRAWL_CALLS_PER_RUN = 5;
 /** Minimum body word count -- shorter output won't be published. Lowered
- *  from 1800 to 1500 on 2026-09-22 after a live run showed gemini-3.6-flash
- *  rate-limited/overloaded on every attempt, falling back to
- *  gemini-3.1-flash-lite, which reliably produces ~1200-1600 words for this
- *  prompt -- 1800 rejected every fallback-model candidate outright. */
-const MIN_BODY_WORD_COUNT = 1500;
+ *  1800 -> 1500 -> 1000 on 2026-09-22: two full live runs at 1500 (16
+ *  Gemini calls total) still rejected every candidate (996-1421 words) --
+ *  gemini-3.6-flash stayed rate-limited/overloaded throughout, and its
+ *  fallback gemini-3.1-flash-lite consistently writes in the 1000-1400
+ *  word range for this prompt regardless of retry. 1000 matches what the
+ *  fallback model actually produces; raise it back once gemini-3.6-flash's
+ *  rate limit clears and full-length output from the primary model is
+ *  confirmed live again. */
+const MIN_BODY_WORD_COUNT = 1000;
 /** News cache TTL: 1 day (fresher than the 3-day product-page cache). */
 const SOURCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
