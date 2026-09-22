@@ -12,6 +12,9 @@ import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import BriefingBody from "@/components/briefings/BriefingBody";
+import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
+import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getLikedBriefingIds, recordBriefingView, toggleLikedBriefing } from "@/lib/briefing-engagement";
@@ -234,7 +237,15 @@ const NewsroomArticle = () => {
               </div>
             )}
 
+            <div className="my-8">
+              <AdSlot placement="briefing-top" compact />
+            </div>
+
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
+
+            <div className="my-8">
+              <FaithfulToNature placement="briefing-shop" />
+            </div>
 
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (
@@ -290,6 +301,10 @@ const NewsroomArticle = () => {
               )}
             </div>
 
+            <div className="my-8">
+              <AdSlot placement="briefing-bottom" compact />
+            </div>
+
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
@@ -320,6 +335,10 @@ const NewsroomArticle = () => {
                   </a>
                 </Button>
               )}
+            </div>
+
+            <div className="mt-8">
+              <AdSlotAutorelaxed placement="briefing-footer" compact />
             </div>
 
           </article>

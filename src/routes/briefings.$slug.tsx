@@ -6,6 +6,9 @@ import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { articleTitle } from '@/lib/seo-config'
+import AdSlot from '@/components/AdSlot'
+import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
+import FaithfulToNature from '@/components/FaithfulToNature'
 
 // Production SSR route for /briefings/:slug (Briefings is the first content
 // type migrated to TanStack Start -- see
@@ -146,12 +149,18 @@ function BriefingPage() {
         )}
       </p>
       <p>{a.excerpt}</p>
+
+      <AdSlot placement="briefing-top" compact />
+
       <h2>Key takeaways</h2>
       <ul>
         {a.key_takeaways.map((k, i) => (
           <li key={i}>{k}</li>
         ))}
       </ul>
+
+      <FaithfulToNature placement="briefing-shop" />
+
       <p>
         Source: {a.source_name} (<a href={a.source_url}>{a.source_url}</a>)
       </p>
@@ -163,6 +172,10 @@ function BriefingPage() {
           </small>
         </p>
       )}
+
+      <AdSlot placement="briefing-bottom" compact />
+
+      <AdSlotAutorelaxed placement="briefing-footer" compact />
     </main>
   )
 }
