@@ -1,13 +1,22 @@
 /**
- * Assigns a unique, credited Unsplash photo to every product review.
+ * Assigns a unique, credited cover photo to every product review.
  *
  * The review catalogue lives in the front-end bundle, so the caller posts the
- * list of { id, category } pairs. For each category we page through Unsplash
- * search results (a handful of query variants) until we have enough distinct
- * photos to give every review in that category its own image, then upsert the
- * result into public.review_images.
+ * list of { id, category } pairs (see scripts/backfill-review-images.ts). For
+ * each category we page through search results -- Pexels first (higher
+ * default resolution, 200 req/hour free tier), Unsplash as fallback -- until
+ * we have enough distinct photos to give every review in that category its
+ * own image, then upsert the result into public.review_images.
  *
  * Auth: admin JWT, or the x-cron-secret shared with the newsroom job.
+ *
+ * Required secret (cannot be set from this codebase -- a human must add it
+ * via `supabase secrets set PEXELS_API_KEY=...`, same documented-gap pattern
+ * as MARKETPLACE_CRON_SECRET/GEMINI_API_KEY elsewhere in this project):
+ *   PEXELS_API_KEY   Pexels API key (https://www.pexels.com/api/).
+ * UNSPLASH_ACCESS_KEY (already required by this function before this change)
+ * is kept as the fallback when Pexels has no key configured or returns
+ * nothing for a given query.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -56,7 +65,15 @@ const CATEGORY_QUERIES: Record<string, string[]> = {
 
 const FALLBACK_QUERIES = ["skincare product", "cosmetics bottle", "beauty products"];
 
+/** Strips whitespace/newlines a secret may have picked up from how it was set
+ *  (e.g. `supabase secrets set` splitting a pasted multi-line value) --
+ *  fetch's Headers implementation throws "Invalid header value" on a raw
+ *  newline, which is never legitimately part of an API key. */
+const sanitizeKey = (key: string): string => key.replace(/\s+/g, "");
+
 interface Photo {
+  /** Prefixed with its source ("pexels:123"/"unsplash:abc") so IDs from the
+   *  two providers can never collide in the review_images.photo_id column. */
   id: string;
   url: string;
   alt: string;
@@ -64,7 +81,39 @@ interface Photo {
   creditUrl: string;
 }
 
-async function search(query: string, page: number, key: string): Promise<Photo[]> {
+async function searchPexels(query: string, page: number, key: string): Promise<Photo[]> {
+  const url = new URL("https://api.pexels.com/v1/search");
+  url.searchParams.set("query", query);
+  url.searchParams.set("per_page", "30");
+  url.searchParams.set("page", String(page));
+  url.searchParams.set("orientation", "landscape");
+
+  const res = await fetch(url.toString(), { headers: { Authorization: sanitizeKey(key) } });
+  if (!res.ok) {
+    console.error(`Pexels ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    return [];
+  }
+  const data = await res.json();
+  interface Row {
+    id?: number;
+    alt?: string | null;
+    photographer?: string;
+    photographer_url?: string;
+    src?: { large2x?: string; large?: string; original?: string };
+  }
+  const rows: Row[] = Array.isArray(data?.photos) ? data.photos : [];
+  return rows
+    .filter((r) => r?.id != null && (r.src?.large2x || r.src?.large || r.src?.original))
+    .map((r) => ({
+      id: `pexels:${r.id}`,
+      url: r.src!.large2x || r.src!.large || r.src!.original!,
+      alt: (r.alt || query).slice(0, 200),
+      creditName: r.photographer ?? "Pexels Contributor",
+      creditUrl: `${r.photographer_url ?? "https://www.pexels.com"}${UTM}`,
+    }));
+}
+
+async function searchUnsplash(query: string, page: number, key: string): Promise<Photo[]> {
   const url = new URL("https://api.unsplash.com/search/photos");
   url.searchParams.set("query", query);
   url.searchParams.set("per_page", "30");
@@ -73,7 +122,7 @@ async function search(query: string, page: number, key: string): Promise<Photo[]
   url.searchParams.set("content_filter", "high");
 
   const res = await fetch(url.toString(), {
-    headers: { Authorization: `Client-ID ${key}`, "Accept-Version": "v1" },
+    headers: { Authorization: `Client-ID ${sanitizeKey(key)}`, "Accept-Version": "v1" },
   });
   if (!res.ok) {
     console.error(`Unsplash ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -91,7 +140,7 @@ async function search(query: string, page: number, key: string): Promise<Photo[]
   return rows
     .filter((r) => r?.id && (r.urls?.raw || r.urls?.regular))
     .map((r) => ({
-      id: r.id!,
+      id: `unsplash:${r.id}`,
       url: r.urls!.raw ? `${r.urls!.raw}&${UNSPLASH_PARAMS}` : r.urls!.regular!,
       alt: (r.alt_description || r.description || query).slice(0, 200),
       creditName: r.user?.name ?? "Unsplash",
@@ -137,8 +186,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const key = Deno.env.get("UNSPLASH_ACCESS_KEY");
-    if (!key) throw new Error("UNSPLASH_ACCESS_KEY is not configured");
+    const pexelsKey = Deno.env.get("PEXELS_API_KEY");
+    const unsplashKey = Deno.env.get("UNSPLASH_ACCESS_KEY");
+    if (!pexelsKey && !unsplashKey) {
+      throw new Error("Neither PEXELS_API_KEY nor UNSPLASH_ACCESS_KEY is configured");
+    }
 
     const body = await req.json().catch(() => ({}));
     // Accept either reviews: [{ id, category }] or the compact grouped: { category: [id, ...] }.
@@ -181,8 +233,18 @@ Deno.serve(async (req) => {
       outer: for (const query of queries) {
         for (let page = 1; page <= 3; page++) {
           if (pool.length >= ids.length) break outer;
-          apiCalls += 1;
-          const photos = await search(query, page, key);
+
+          let photos: Photo[] = [];
+          if (pexelsKey) {
+            apiCalls += 1;
+            photos = await searchPexels(query, page, pexelsKey);
+          }
+          if (photos.length === 0 && unsplashKey) {
+            apiCalls += 1;
+            await new Promise((r) => setTimeout(r, 150));
+            photos = await searchUnsplash(query, page, unsplashKey);
+          }
+
           for (const p of photos) {
             if (usedPhotoIds.has(p.id)) continue;
             usedPhotoIds.add(p.id);

@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { downloadAccountDataPdf } from "@/lib/generateAccountDataPdf";
 import { toast } from "sonner";
 import OpenHausWishlistCard from "@/components/dashboard/OpenHausWishlistCard";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 const AccountTab = () => {
   const { user, signOut } = useAuth();
@@ -87,6 +88,7 @@ const AccountTab = () => {
       if (error) throw error;
       setDeactivateOpen(false);
       toast.success("Your account is deactivated. Sign in any time to reactivate it.");
+      trackConversionEvent("account_deactivated");
       await signOut();
       navigate("/");
     } catch (err) {
@@ -108,6 +110,7 @@ const AccountTab = () => {
         throw error ?? new Error("Deletion did not complete");
       }
       toast.success("Your account has been permanently deleted.");
+      trackConversionEvent("account_deletion_requested");
       await signOut();
       navigate("/");
     } catch (err) {

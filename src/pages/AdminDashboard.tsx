@@ -10,12 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck, LogOut } from "lucide-react";
+import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart, Star, ShieldCheck, LogOut, BarChart3 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { isPaidSubscriptionStatus } from "@/lib/entitlements";
+import { PAID_SUBSCRIPTION_STATUSES } from "@/lib/entitlements";
 import { useAdminGate } from "@/hooks/use-admin-gate";
 import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
+import AnalyticsTab from "@/components/admin/AnalyticsTab";
+import UsersTab from "@/components/admin/UsersTab";
 
 type Submission = {
   id: string;
@@ -60,15 +62,6 @@ type Preorder = {
   status: string;
   payment_id: string | null;
   created_at: string;
-};
-
-type PremiumProfile = {
-  id: string;
-  user_id: string;
-  email: string | null;
-  full_name: string | null;
-  subscription_status: string | null;
-  subscription_started_at: string | null;
 };
 
 // Skincare intelligence database — data quality queue (see supabase/SCHEMA.md).
@@ -127,7 +120,7 @@ const AdminDashboard = () => {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
-  const [profiles, setProfiles] = useState<PremiumProfile[]>([]);
+  const [premiumMemberCount, setPremiumMemberCount] = useState(0);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [filter, setFilter] = useState("all");
 
@@ -160,12 +153,18 @@ const AdminDashboard = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [subRes, waitRes, newsRes, preRes, profRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
-      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }),
-      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }),
-      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }),
-      supabase.from("preorders").select("*").order("created_at", { ascending: false }),
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+    const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
+      // Bounded like the Data Quality queue below -- these are queues an admin
+      // works through in recency order, not a full-table export, so a limit
+      // keeps this page load bounded as each table grows.
+      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }).limit(200),
+      supabase.from("preorders").select("*").order("created_at", { ascending: false }).limit(200),
+      // Count-only (head: true fetches zero rows) — the full user directory now
+      // lives behind admin_search_profiles via the Users tab, never a bare
+      // `profiles.select("*")` dump into the browser.
+      supabase.from("profiles").select("id", { count: "exact", head: true }).in("subscription_status", PAID_SUBSCRIPTION_STATUSES as unknown as string[]),
       supabase.from("brands").select("id,name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("ingredients").select("id,inci_name,common_name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("products").select("id,name,slug,brand_id,verification_status,is_discontinued,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
@@ -177,7 +176,7 @@ const AdminDashboard = () => {
     setWaitlist((waitRes.data as WaitlistEntry[]) || []);
     setSubscribers((newsRes.data as Subscriber[]) || []);
     setPreorders((preRes.data as Preorder[]) || []);
-    setProfiles((profRes.data as PremiumProfile[]) || []);
+    setPremiumMemberCount(premiumCountRes.count ?? 0);
     setIntelBrands((brandsQCRes.data as IntelBrand[]) || []);
     setIntelIngredients((ingredientsQCRes.data as IntelIngredient[]) || []);
     setIntelProducts((productsQCRes.data as IntelProduct[]) || []);
@@ -298,11 +297,6 @@ const AdminDashboard = () => {
     );
   }
 
-  // subscription_status is written as "insider"/"vip" (see payfast-payment/paypal-payment), never
-  // literally "premium" — this used to always read zero. isPaidSubscriptionStatus()
-  // is the shared source of truth for "counts as a paying member" (src/lib/entitlements.ts).
-  const premiumProfiles = profiles.filter((p) => isPaidSubscriptionStatus(p.subscription_status));
-
   return (
     <>
       <Helmet>
@@ -331,7 +325,7 @@ const AdminDashboard = () => {
                 { label: "Waitlist", value: waitlist.length, icon: Users, color: "text-primary" },
                 { label: "Newsletter", value: subscribers.length, icon: Mail, color: "text-primary" },
                 { label: "Pre-Orders", value: preorders.length, icon: ShoppingCart, color: "text-primary" },
-                { label: "Premium Members", value: premiumProfiles.length, icon: Star, color: "text-primary" },
+                { label: "Premium Members", value: premiumMemberCount, icon: Star, color: "text-primary" },
               ].map((s) => (
                 <Card key={s.label}>
                   <CardContent className="p-4 flex items-center gap-3">
@@ -352,8 +346,9 @@ const AdminDashboard = () => {
                 <TabsTrigger value="waitlist">Waitlist ({waitlist.length})</TabsTrigger>
                 <TabsTrigger value="newsletter">Newsletter ({subscribers.length})</TabsTrigger>
                 <TabsTrigger value="preorders">Pre-Orders ({preorders.length})</TabsTrigger>
-                <TabsTrigger value="members">Members ({premiumProfiles.length})</TabsTrigger>
+                <TabsTrigger value="users">Users</TabsTrigger>
                 <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length + intelInteractions.length})</TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -454,26 +449,12 @@ const AdminDashboard = () => {
                 )}
               </TabsContent>
 
-              {/* Members Tab */}
-              <TabsContent value="members">
-                {premiumProfiles.length === 0 ? (
-                  <Card><CardContent className="p-8 text-center text-muted-foreground"><Star className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No premium members yet</p></CardContent></Card>
-                ) : (
-                  <div className="space-y-3">
-                    {premiumProfiles.map((p) => (
-                      <Card key={p.id}>
-                        <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-                          <div className="space-y-1">
-                            <span className="font-medium text-card-foreground">{p.full_name || p.email || "Unknown"}</span>
-                            <p className="text-sm text-muted-foreground">{p.email}</p>
-                            {p.subscription_started_at && <p className="text-xs text-muted-foreground">Since {new Date(p.subscription_started_at).toLocaleDateString()}</p>}
-                          </div>
-                          <Badge variant="default">Premium</Badge>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+              {/* Users Tab — search/paginated directory, role management, entitlement
+                  overrides. See src/components/admin/UsersTab.tsx and the
+                  admin_search_profiles/admin_set_user_role/admin_override_entitlement
+                  RPCs (supabase/migrations/20260921130000_admin_user_management.sql). */}
+              <TabsContent value="users">
+                <UsersTab />
               </TabsContent>
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
@@ -588,6 +569,11 @@ const AdminDashboard = () => {
                     )}
                   </section>
                 </div>
+              </TabsContent>
+
+              {/* Analytics Tab — live Vercel Web Analytics, see api/admin-analytics.ts */}
+              <TabsContent value="analytics">
+                <AnalyticsTab />
               </TabsContent>
             </Tabs>
           </div>

@@ -1,13 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 export type CompatibilityResult = Database["public"]["Functions"]["get_ingredient_interaction"]["Returns"][number];
 
 async function fetchCompatibility(idA: string, idB: string): Promise<CompatibilityResult | null> {
   const { data, error } = await supabase.rpc("get_ingredient_interaction", { a: idA, b: idB });
   if (error) throw error;
-  return data?.[0] ?? null;
+  const result = data?.[0] ?? null;
+  // Fires once per real, cached-by-react-query check (not per keystroke) --
+  // the interaction_type is genuinely useful ("how often do people hit a
+  // conflict?"), never fabricated when no verified row exists.
+  trackConversionEvent("ingredient_checker_checked", {
+    found: Boolean(result),
+    interaction_type: result?.interaction_type ?? "none",
+  });
+  return result;
 }
 
 /** DB-driven compatibility lookup for two ingredients via the ordered-pair
