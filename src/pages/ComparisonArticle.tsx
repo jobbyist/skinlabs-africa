@@ -6,6 +6,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
+import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { canReadComparison, recordComparisonRead } from "@/lib/access-quotas";
 import GatedOverlay from "@/components/GatedOverlay";
@@ -30,7 +31,8 @@ const ComparisonArticle = () => {
   // free/Explorer accounts) is still tracked via canReadComparison/access-quotas.
   const { can } = useEntitlements();
   const isMember = can("comparisons.unlimited");
-  const article = getComparison(slug ?? "");
+  const { data: generatedComparisons } = useGeneratedComparisons();
+  const article = getComparison(slug ?? "") ?? generatedComparisons?.find((c) => c.slug === slug);
   const locked = Boolean(article) && !isMember && !canReadComparison(slug ?? "");
 
   useEffect(() => {

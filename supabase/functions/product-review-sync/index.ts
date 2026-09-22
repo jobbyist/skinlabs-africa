@@ -262,6 +262,7 @@ interface GeneratedReviewFields {
   score_climate: number;
   verdict: string;
   key_ingredients: string[];
+  full_review: string;
 }
 
 const REVIEW_SCHEMA = {
@@ -278,6 +279,7 @@ const REVIEW_SCHEMA = {
     score_climate: { type: "number" },
     verdict: { type: "string" },
     key_ingredients: { type: "array", items: { type: "string" } },
+    full_review: { type: "string" },
   },
   required: [
     "product_name",
@@ -291,6 +293,7 @@ const REVIEW_SCHEMA = {
     "score_climate",
     "verdict",
     "key_ingredients",
+    "full_review",
   ],
 } as const;
 
@@ -310,7 +313,15 @@ verdict: one or two sentences, no markdown, no exclamation marks, no emoji.
 key_ingredients: the real actives/ingredients named in the source, 2-6 items.
 local_price_zar: the ZAR price from the source. If the source gives a different
 currency, convert at a reasonable approximate rate and note nothing extra -- just the number.
-category: pick the single best fit from the provided enum.`;
+category: pick the single best fit from the provided enum.
+full_review: a single, longer paragraph (roughly 90-180 words, plain prose, no markdown,
+no headings) for members -- this is SkinLabs' members-only "complete ingredient
+analysis, long-form verdict and skin-type match notes" for this product. Expand on
+(never contradict) the short verdict above: name what the key ingredients actually do
+in this formulation, who it genuinely suits by skin type (grounded in skin_type_match)
+and who it doesn't, real-world texture/performance in South African conditions, and an
+honest value take. Ground it strictly in the source material and the fields you are
+already returning -- never introduce a new fact, price or claim not already present.`;
 
 /** Parses + validates a raw Gemini response into GeneratedReviewFields, throwing on
  *  anything unparseable so the shared fallback module's malformed_output/repair path
@@ -330,6 +341,7 @@ function parseReviewResponse(text: string): GeneratedReviewFields {
     score_climate: clampScore(parsed.score_climate),
     verdict: String(parsed.verdict ?? "").slice(0, 500),
     key_ingredients: Array.isArray(parsed.key_ingredients) ? parsed.key_ingredients.slice(0, 6) : [],
+    full_review: String(parsed.full_review ?? "").slice(0, 2000),
   };
 }
 
@@ -344,6 +356,7 @@ function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reas
   if (!(KNOWN_CATEGORIES as readonly string[]).includes(fields.category)) reasons.push("category outside known enum");
   if (!fields.verdict || fields.verdict.trim().length < 20) reasons.push("verdict too short to be a real review");
   if (fields.key_ingredients.length === 0) reasons.push("no key_ingredients returned");
+  if (!fields.full_review || fields.full_review.trim().split(/\s+/).length < 60) reasons.push("full_review too short (under 60 words)");
   for (const [label, score] of [
     ["score_efficacy", fields.score_efficacy],
     ["score_value", fields.score_value],
@@ -358,7 +371,11 @@ function qaProductReview(fields: GeneratedReviewFields): { passed: boolean; reas
   if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fields.verdict)) {
     reasons.push("verdict contains an unverifiable superlative/clinical claim");
   }
+  if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fields.full_review)) {
+    reasons.push("full_review contains an unverifiable superlative/clinical claim");
+  }
   for (const flag of scanComplianceFlags(fields.verdict)) reasons.push(flag);
+  for (const flag of scanComplianceFlags(fields.full_review)) reasons.push(`full_review_${flag}`);
   return { passed: reasons.length === 0, reasons };
 }
 
@@ -471,6 +488,220 @@ interface MarketplaceProductRow {
   brand: { name: string } | null;
 }
 
+// ---------------------------------------------------------------------------
+// BACKFILL: fills review_details.full_review for reviews published before
+// full_review was added to the main generation flow above -- 192 of the 198
+// reviews live at the time this was added (161 static src/data/reviews.ts +
+// 37 ai_generated_product_reviews) had no row at all, leaving Glow Insider's
+// "complete ingredient analysis, long-form verdict and skin-type match
+// notes" promise (ProductReview.tsx) unmet for nearly the whole catalogue.
+//
+// Two input modes, both idempotent (a review that already has a
+// review_details row is always skipped, never re-generated):
+//   - Static catalogue: POST { reviews: [{ id, product_name, brand,
+//     category, verdict, key_ingredients, skin_type_match, score_efficacy,
+//     score_value, score_texture, score_climate }, ...] } -- this edge
+//     function has no way to read src/data/reviews.ts at runtime (it's
+//     bundled into the Vite app, not a DB table), so the caller supplies
+//     each review's own already-published, real fields as grounding.
+//   - Generated catalogue: omit `reviews` (or pass an empty array) to pull
+//     up to `limit` rows directly from ai_generated_product_reviews that
+//     don't have a review_details row yet -- no extra input needed since
+//     this pipeline already owns that data.
+// `limit` (default 20, max 40 per call) keeps each invocation inside a
+// single edge function timeout and lets the catalogue be worked through in
+// batches rather than one giant run.
+// ---------------------------------------------------------------------------
+
+interface BackfillReviewInput {
+  id: string;
+  product_name: string;
+  brand: string;
+  category: string;
+  verdict: string;
+  key_ingredients: string[];
+  skin_type_match: string[];
+  score_efficacy: number;
+  score_value: number;
+  score_texture: number;
+  score_climate: number;
+}
+
+const FULL_REVIEW_SCHEMA = {
+  type: "object",
+  properties: { full_review: { type: "string" } },
+  required: ["full_review"],
+} as const;
+
+const FULL_REVIEW_INSTRUCTIONS = `You are a SkinLabs South Africa product review editor writing the members-only
+"complete ingredient analysis, long-form verdict and skin-type match notes" for a
+product SkinLabs has already reviewed and scored. You are given that product's real,
+already-published name/brand/category/scores/verdict/key ingredients/skin-type match --
+ground your answer STRICTLY in those fields. Never invent a new fact, ingredient, price
+or claim not already present in what you're given, and never contradict the existing
+verdict or scores.
+
+Write ONE paragraph, roughly 90-180 words, plain prose, no markdown, no headings, no
+exclamation marks, no emoji. Cover: what the key ingredients actually do in this kind of
+formulation (the ingredient deep-dive), who it genuinely suits by skin type and who it
+doesn't (grounded in the given skin_type_match), real-world texture/performance
+implied by the given scores, and an honest value take consistent with the given
+score_value. Match SkinLabs' voice: confident, plain-spoken, willing to name a real
+limitation. Never fabricate scarcity, ratings, or "clinically proven" language.`;
+
+function parseFullReviewResponse(text: string): { full_review: string } {
+  const parsed = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) throw new Error("Gemini response was not a JSON object");
+  const full_review = String(parsed.full_review ?? "").slice(0, 2000);
+  return { full_review };
+}
+
+function qaFullReview(fullReview: string): { passed: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  if (!fullReview || fullReview.trim().split(/\s+/).length < 60) reasons.push("full_review too short (under 60 words)");
+  if (/\bclinically proven\b|\bdermatologist recommended\b|\bguaranteed results\b/i.test(fullReview)) {
+    reasons.push("full_review contains an unverifiable superlative/clinical claim");
+  }
+  for (const flag of scanComplianceFlags(fullReview)) reasons.push(flag);
+  return { passed: reasons.length === 0, reasons };
+}
+
+function reviewInputToGroundingText(r: BackfillReviewInput): string {
+  return `Product: ${r.product_name}
+Brand: ${r.brand}
+Category: ${r.category}
+Scores (0-10): efficacy ${r.score_efficacy}, value ${r.score_value}, texture ${r.score_texture}, SA-climate performance ${r.score_climate}
+Key ingredients: ${(r.key_ingredients ?? []).join(", ") || "not specified"}
+Skin type match: ${(r.skin_type_match ?? []).join(", ") || "not specified"}
+Existing SkinLabs verdict: ${r.verdict}`;
+}
+
+async function runBackfillFullReviews(
+  req: Request,
+  admin: SupabaseAdmin,
+  geminiKey: string,
+  modelChain: string[],
+): Promise<Response> {
+  const jsonResponse = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  let body: { reviews?: BackfillReviewInput[]; limit?: number } = {};
+  try {
+    body = req.method === "POST" ? await req.json() : {};
+  } catch {
+    // No/invalid JSON body is fine -- falls through to the generated-catalogue mode below.
+  }
+  const limit = Math.min(40, Math.max(1, Number(body.limit) || 20));
+
+  let candidates: BackfillReviewInput[];
+  let mode: "static" | "generated";
+  if (Array.isArray(body.reviews) && body.reviews.length > 0) {
+    mode = "static";
+    candidates = body.reviews.slice(0, limit);
+  } else {
+    mode = "generated";
+    const { data: doneRows } = await admin.from("review_details").select("review_id");
+    const done = new Set((doneRows ?? []).map((r: { review_id: string }) => r.review_id));
+    const { data: genRows } = await admin
+      .from("ai_generated_product_reviews")
+      .select("id, product_name, brand, category, verdict, key_ingredients, skin_type_match, score_efficacy, score_value, score_texture, score_climate");
+    candidates = ((genRows ?? []) as BackfillReviewInput[]).filter((r) => !done.has(r.id)).slice(0, limit);
+  }
+
+  const runId = crypto.randomUUID();
+  const errors: string[] = [];
+  const modelUsage: Record<string, number> = {};
+  let backfilled = 0;
+  let skipped = 0;
+
+  const GEMINI_DAILY_LIMIT = Number(Deno.env.get("GEMINI_DAILY_LIMIT")) || 100;
+  const GEMINI_PER_MINUTE_LIMIT = Number(Deno.env.get("GEMINI_PER_MINUTE_LIMIT")) || 10;
+
+  for (const candidate of candidates) {
+    if (!candidate?.id) continue;
+
+    // Re-check right before generating -- idempotent even if the caller's own
+    // exclusion list (or a concurrent run) is stale by the time this candidate is reached.
+    const { data: already } = await admin.from("review_details").select("review_id").eq("review_id", candidate.id).maybeSingle();
+    if (already) {
+      skipped += 1;
+      continue;
+    }
+
+    if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
+      errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping backfill batch`);
+      break;
+    }
+    if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+      await sleep(15000);
+      if (!(await withinPerMinuteQuota(admin, "gemini", GEMINI_PER_MINUTE_LIMIT))) {
+        errors.push(`Gemini per-minute quota (${GEMINI_PER_MINUTE_LIMIT}) reached -- stopping backfill batch`);
+        break;
+      }
+    }
+
+    try {
+      const { data: fields, modelUsed } = await callGeminiWithFallback({
+        apiKey: geminiKey,
+        models: modelChain,
+        systemInstruction: FULL_REVIEW_INSTRUCTIONS,
+        userContent: reviewInputToGroundingText(candidate),
+        responseSchema: FULL_REVIEW_SCHEMA,
+        temperature: 0.4,
+        parse: parseFullReviewResponse,
+        onAttempt: async (log: GeminiAttemptLog) => {
+          await recordApiUsage(admin, "gemini", `backfill:${candidate.id}`, log.outcome === "success");
+          try {
+            await admin.from("pipeline_model_calls").insert({
+              pipeline: "product-review-sync-backfill",
+              run_id: runId,
+              candidate_key: candidate.id,
+              model: log.model,
+              attempt_number: log.attemptNumber,
+              outcome: log.outcome,
+              http_status: log.httpStatus ?? null,
+              message: log.message ?? null,
+              duration_ms: log.durationMs,
+            });
+          } catch {
+            // Model-usage logging must never break the run itself.
+          }
+        },
+      });
+      modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
+
+      const qa = qaFullReview(fields.full_review);
+      if (!qa.passed) {
+        errors.push(`QA rejected ${candidate.id}: ${qa.reasons.join("; ")}`);
+        continue;
+      }
+
+      const { error } = await admin.from("review_details").upsert({ review_id: candidate.id, full_review: fields.full_review });
+      if (error) {
+        errors.push(`${candidate.id}: ${error.message}`);
+      } else {
+        backfilled += 1;
+      }
+    } catch (err) {
+      if (err instanceof GeminiFatalError) {
+        errors.push(`ALERT (Gemini config, backfill stopped): ${err.message}`);
+        break;
+      }
+      if (err instanceof GeminiAllModelsExhaustedError) {
+        errors.push(
+          `All ${modelChain.length} Gemini models exhausted for ${candidate.id}: ` +
+            err.attempts.map((a) => `${a.model}#${a.attemptNumber}=${a.outcome}`).join(", "),
+        );
+      } else {
+        errors.push(String(err).slice(0, 300));
+      }
+    }
+    await sleep(1200);
+  }
+
+  return jsonResponse({ ok: true, mode, backfilled, skipped, attempted: candidates.length, modelUsage, errors });
+}
+
 async function isAuthorised(req: Request, admin: SupabaseAdmin): Promise<boolean> {
   const cronSecret = Deno.env.get("PRODUCT_REVIEW_CRON_SECRET");
   const providedSecret = req.headers.get("x-cron-secret");
@@ -500,11 +731,9 @@ Deno.serve(async (req) => {
   }
 
   const geminiKey = Deno.env.get("GEMINI_API_KEY_REVIEWS");
-  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-  const missing = [!geminiKey && "GEMINI_API_KEY_REVIEWS", !firecrawlKey && "FIRECRAWL_API_KEY"].filter(Boolean);
-  if (missing.length > 0) {
+  if (!geminiKey) {
     return new Response(
-      JSON.stringify({ error: `Not configured: missing ${missing.join(", ")} as Supabase Edge Function secrets (supabase secrets set ...)` }),
+      JSON.stringify({ error: "Not configured: missing GEMINI_API_KEY_REVIEWS as a Supabase Edge Function secret (supabase secrets set ...)" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
@@ -516,6 +745,19 @@ Deno.serve(async (req) => {
   ];
 
   const url = new URL(req.url);
+
+  if (url.searchParams.get("action") === "backfill_full_reviews") {
+    return runBackfillFullReviews(req, admin, geminiKey, modelChain);
+  }
+
+  const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!firecrawlKey) {
+    return new Response(
+      JSON.stringify({ error: "Not configured: missing FIRECRAWL_API_KEY as a Supabase Edge Function secret (supabase secrets set ...)" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const rawBackfillDate = url.searchParams.get("backfillDate") ?? "";
   const backfillDate = /^\d{4}-\d{2}-\d{2}$/.test(rawBackfillDate) ? rawBackfillDate : null;
   const today = backfillDate ?? new Date().toISOString().slice(0, 10);
@@ -742,6 +984,14 @@ Deno.serve(async (req) => {
           seenUrls.add(candidate.sourceUrl);
           if (candidate.origin === "south_africa") runningSa += 1;
           else runningGlobal += 1;
+          // Members-only long-form write-up (ingredient deep-dive + expanded verdict +
+          // skin-type-match notes), generated in the same Gemini call as the short
+          // verdict above -- see the REVIEW_INSTRUCTIONS full_review section.
+          try {
+            await admin.from("review_details").upsert({ review_id: finalId, full_review: fields.full_review });
+          } catch (detailErr) {
+            errors.push(`review_details upsert failed for ${finalId}: ${String(detailErr).slice(0, 200)}`);
+          }
           if (candidate.retryQueueId) {
             await admin
               .from("pipeline_retry_queue")

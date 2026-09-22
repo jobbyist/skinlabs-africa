@@ -5,6 +5,7 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { useMarketplaceProducts } from "@/hooks/use-marketplace-products";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
+import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
@@ -43,6 +44,11 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
     [generatedReviews],
   );
+  const { data: generatedComparisons } = useGeneratedComparisons();
+  const allComparisonArticles = useMemo(
+    () => (generatedComparisons?.length ? [...generatedComparisons, ...comparisonArticles] : comparisonArticles),
+    [generatedComparisons],
+  );
   const [rawQuery, setRawQuery] = useState("");
   const query = useDebouncedValue(rawQuery, 120);
   const hasQuery = query.trim().length > 0;
@@ -73,7 +79,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
   // concern-aware relevance engine so a query like "best products for hyperpigmentation"
   // or "products that contain hyaluronic acid" ranks results instead of just filtering them.
   const ranked = useMemo(() => {
-    const comparisons: RankedResult[] = comparisonArticles.map((a) => {
+    const comparisons: RankedResult[] = allComparisonArticles.map((a) => {
       const match = scoreTextItem(query, a.title, a.saContext, a.productsCompared.flatMap((p) => [p.brand, p.name]));
       return { key: `cmp-${a.slug}`, score: match.score, reasons: match.reasons, icon: Swords, title: a.title, subtitle: "Shelf Showdown", href: `/reviews/versus/${a.slug}` };
     });
@@ -154,7 +160,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     });
 
     return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace };
-  }, [query, briefings, marketplaceProducts, allReviews]);
+  }, [query, briefings, marketplaceProducts, allReviews, allComparisonArticles]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
   const forDisplay = (list: RankedResult[], fallback: RankedResult[]) => (hasQuery ? matched(list).slice(0, GROUP_CAP) : fallback);

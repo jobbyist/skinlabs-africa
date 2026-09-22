@@ -9,14 +9,19 @@ import AffiliateBanner from "@/components/AffiliateBanner";
 import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
+import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
 
 const SHOWDOWN_PAGE_SIZE = 5;
 
 const Compare = () => {
+  const { data: generatedComparisons } = useGeneratedComparisons();
+  const allComparisonArticles = generatedComparisons?.length
+    ? [...generatedComparisons, ...comparisonArticles]
+    : comparisonArticles;
   const comingSoonExtras = featuredEditorials.filter(
-    (e) => e.comingSoon && !comparisonArticles.some((c) => c.slug === e.slug),
+    (e) => e.comingSoon && !allComparisonArticles.some((c) => c.slug === e.slug),
   );
-  const allShowdowns = [...comparisonArticles, ...comingSoonExtras];
+  const allShowdowns = [...allComparisonArticles, ...comingSoonExtras];
   const [page, setPage] = usePageParam("page");
   const totalPages = Math.max(1, Math.ceil(allShowdowns.length / SHOWDOWN_PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
