@@ -852,6 +852,73 @@ feature appear operational.
   all merge in alongside the static `src/data/reviews.ts` catalogue via
   `src/hooks/use-generated-reviews.ts` — so a new day's reviews appear on
   `/reviews` with no code deploy.
+  - **Missing orchestrator bug, found and fixed (2026-09-22)** — this file
+    (`api/product-review-sync.ts`) defined every helper (constants, cache,
+    quota, `generateReview()`, `researchSource()`, etc.) but had **no
+    `export default` handler at all** — it ended immediately after
+    `researchSource()` closed, with nothing for Vercel Cron to actually
+    invoke. Confirmed via `grep -c "export default"` (zero matches) and
+    three prior "Restore product-review-sync" commits in git history
+    suggesting repeated truncation — the daily cron has most likely never
+    successfully run in this state. Added the missing orchestrator: env
+    fail-fast (`GEMINI_API_KEY`/`FIRECRAWL_API_KEY`/
+    `SUPABASE_SERVICE_ROLE_KEY`), `CRON_SECRET` bearer-token auth, dedup on
+    `source_url` **before** spending a Gemini call, Gemini/Firecrawl quota
+    gating per source, and a mechanical `spotlight_editions` bump every
+    `SPOTLIGHT_BUMP_INTERVAL` published reviews. `SOURCE_SITES`' existing
+    4-SA/1-global ordering is relied on (not a separate live-rebalancing
+    calculation) to satisfy the 70/30 editorial split for the 3-review
+    daily cap — simpler and less bug-prone than tracking a running ratio.
+    Still genuinely unverified end-to-end (same documented constraint as
+    the rest of this section: the required env vars can't be set from this
+    environment) — verification here was TypeScript correctness, logical
+    fidelity to the documented four-role architecture, and clean
+    `tsc`/`eslint`/`bun test` runs, not a real invocation.
+  - **Ingredient breakdown + demand-driven ingredient queue (2026-09-22)**
+    — `ProductReview.tsx`'s "Key ingredients" section previously only
+    linked ingredient names (the 8D work above); it never pulled real
+    ingredient content or handled an unpublished ingredient beyond a plain
+    unlinked pill, and the SSR route `src/routes/reviews.$slug.tsx` was
+    missed entirely (still rendered a bare `<ul>` of ingredient strings).
+    Both now render a real "Ingredient breakdown": a resolved, published
+    ingredient shows its actual `function_summary`/`description` excerpt
+    plus `EvidenceBadge`; an unresolved one shows an honest "detailed
+    profile coming soon" note — **never** generated on demand/
+    synchronously (a explicit user decision when this was scoped — see the
+    two `AskUserQuestion` answers this same day: "queue for the next
+    scheduled pipeline run", not live generation). The resolution +
+    ingredients-table fetch logic is shared (`src/lib/
+    ingredientResolution.ts` — extracted from `resolveIngredientSlug.ts`'s
+    matching logic so it works with any injected `SupabaseClient`, not just
+    the browser singleton — and `src/lib/ingredientBreakdown.ts` built on
+    top of it) so the exact same code runs client-side
+    (`src/hooks/use-ingredient-breakdown.ts`, browser client) and
+    server-side (the SSR route's loader, `createSupabaseServerClient()`) —
+    the SSR route resolves it in `fetchReview()` so crawlers see the real
+    breakdown in the initial HTML, not only after hydration.
+    New `public.ingredient_generation_requests` table (migration
+    `20260922010645_ingredient_generation_requests_queue.sql`, zero anon/
+    authenticated RLS policies — same lockdown pattern as
+    `assessment_prompt_versions` — service-role-only) is the queue: the
+    orchestrator fix above resolves every generated review's
+    `key_ingredients` against the live catalogue at publish time and
+    queues anything unresolved (`source = 'product_review_generated'`).
+    A one-time reconciliation pass did the same for the static
+    `src/data/reviews.ts` catalogue (`source = 'product_review_static'`):
+    of 133 unique `key_ingredients` strings, 132 already resolved; the one
+    exception, `"Vitamin C ~10%"`, was queued — it fails only because the
+    catalogue's own matching stub row is itself literally named
+    `"Vitamin C ~10%"` (a pre-existing data-quality artifact from the
+    original bulk seed) and the concentration-suffix-stripping resolver
+    leaves a dangling `"Vitamin C ~"` that matches neither that stub nor
+    the separate, correctly-named "Vitamin C" row — not fixed here since
+    it's a pre-existing catalogue-naming issue outside this batch's scope.
+    The permanent weekly Ingredients Intelligence Routine
+    (`trig_012CnJXfuEkZxbUMwdfTBQg2`, see below) now consults this queue
+    as a priority source ahead of `INGREDIENT_EXPANSION_CANDIDATES.md` on
+    every firing, and marks rows `researched`/`published`/`rejected` as it
+    processes them — see `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Demand-
+    driven queue" section for the live count and full detail.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,
