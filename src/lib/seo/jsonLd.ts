@@ -187,6 +187,7 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
       "@type": "AggregateRating",
       ratingValue: input.communityRating,
       bestRating: 5, // Community uses 5-star scale
+      worstRating: 1,
       reviewCount: input.communityReviewCount,
     };
   }
