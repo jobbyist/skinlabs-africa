@@ -1297,6 +1297,123 @@ feature appear operational.
 
 ## Infrastructure notes
 
+- **Vercel storage/build/edge optimization pass (2026-09-22)** — asked to
+  cut Vercel deployment storage, build time/resources, and edge request/
+  function-invocation usage (Hobby plan was exceeding free-tier limits).
+  Confirmed live via the Vercel MCP connector against the real project
+  (`prj_QiDafIkNxgVHBnDuepg4EvxNsH8J`, team `michael-chigbus-projects-
+  6fad9571`) rather than guessed: this project deploys to production very
+  frequently (10 production deploys observed within about an hour of git
+  history at time of writing), so per-deployment waste compounds fast.
+  Three concrete fixes landed:
+  1. **`vercel.json`'s blanket `Cache-Control: no-cache, must-revalidate`
+     on `/(.*)`  was the biggest lever** — it applied to literally every
+     response including the TanStack Start SSR function routes
+     (`/briefings/:slug`, `/reviews/:slug`, `/ingredients/:slug`,
+     `/spotlight/:slug` — see `scripts/assemble-vercel-output.ts`'s
+     `SSR_ROUTE_CONTENT_TYPES_*` routing), forcing Vercel's edge network to
+     revalidate with the origin function on **every single request** to
+     those paths, i.e. the function ran on every page view with zero edge
+     caching. Changed to `public, max-age=0, s-maxage=120, stale-while-
+     revalidate=604800` — browsers still revalidate (`max-age=0`, so no
+     staleness surprises for a human refreshing), but Vercel's CDN now
+     caches each SSR'd page for 120s and serves stale-while-revalidating
+     for up to a week, which should cut function invocations for these
+     content types by roughly the same ratio as their repeat-request rate.
+     This is safe because none of those SSR pages render per-user content
+     server-side (confirmed by re-reading their own header comments: no
+     server-side auth session exists in this app, so the initial HTML is
+     always the same signed-out/loading shell regardless of visitor,
+     personalizing only after client hydration) — cacheable was already
+     the correct semantics, it just wasn't configured. Added an explicit
+     `/api/(.*)` → `Cache-Control: no-store` rule (payment/cron/webhook
+     endpoints must never be cached) and a new extension-matched rule for
+     static binaries (`png/jpg/gif/webp/svg/ico/mp3/mp4/m4a/pdf/woff*` —
+     covers everything under `public/` that isn't already under
+     `/assets/`, e.g. podcast covers, brand banners, affiliate creatives)
+     giving them `max-age=86400, stale-while-revalidate=2592000` instead
+     of inheriting the no-cache default. Verified the whole header set
+     compiles and merges as intended (later, more specific rules override
+     earlier ones for the same header key, confirmed via `continue: true`
+     in the transformed output) by running the exact same
+     `@vercel/routing-utils` `getTransformedRoutes()` call
+     `assemble-vercel-output.ts` uses, locally, against the new
+     `vercel.json` — not just reasoned about.
+  2. **`commandForIgnoringBuildStep` was unset** — every push to `main`
+     triggered a full production build+deploy regardless of what changed,
+     including doc-only commits (git history shows several, e.g. a
+     "restore CLAUDE.md docs" commit). Set via
+     `mcp__Vercel__update_project` to
+     `git diff --quiet HEAD^ HEAD -- . ':!docs' ':!content' ':!supabase' ':!*.md' ':!.github'`
+     — the standard Vercel-documented pattern (exit 0 = skip the build).
+     Skips the build only when every changed file is docs/content-
+     authoring/`.md`/`.github` (none of which the build or runtime
+     actually reads — `content/daily-skinny/*.md` are hand-authored
+     manuscripts later turned into a separate SQL seed migration by a
+     human, not read at build time; `supabase/**` migrations are applied
+     via the Supabase MCP connector, not by `npm run build`). Fails open
+     by design: if `HEAD^` is ever unavailable the `git diff` errors out
+     non-zero, so the build proceeds normally rather than silently
+     skipping. Reversible any time by clearing the field in Project
+     Settings → Git → Ignored Build Step, or via `update_project` again.
+  3. **Image compression was already solid, audio was not** — re-ran a
+     real `vite build` after the above and confirmed `vite-plugin-image-
+     optimizer` + `scripts/compress-images.ts` together already cut this
+     build's image payload by ~75% (17.5MB → ~4.3MB equivalent, confirmed
+     from real build output, not estimated). The actual remaining
+     single biggest contributor to `public/`'s ~83MB footprint is podcast
+     audio (`public/ep*skinlabs.mp3` + `pouches.m4a`, ~60MB combined,
+     untouched by any compression step) plus `public/skynn.mp4` (5.3MB) —
+     every one of those bytes ships in every single deployment's build
+     output. **Not fixed in this pass**: attempted to install `ffmpeg` to
+     re-encode the podcast MP3s to a lower (still transparent-for-speech)
+     bitrate, which would very likely cut that ~60MB substantially, but
+     the apt mirror in this environment returned partial 404s mid-install
+     and `ffmpeg` never became available — didn't want to attempt a lossy
+     re-encode of already-published podcast audio via a half-verified
+     toolchain. Re-attempt with a working `ffmpeg` (same
+     `apt-get install ffmpeg` approach used successfully for the podcast
+     transcription work described elsewhere in this file) and re-encode
+     each episode to ~96kbps mono (standard, effectively transparent for
+     spoken-word content, roughly halves 128kbps-stereo-class file sizes)
+     before assuming this needs external hosting — `durationSeconds` in
+     `src/data/podcast.ts` and the RSS enclosure `length`
+     (`scripts/generate-podcast-rss.ts`, reads real `fs.statSync` size)
+     both already tolerate a re-encoded file with unchanged duration, so
+     no other code needs to change. Did **not** attempt to migrate audio
+     to external storage (e.g. the provisioned-but-unused Supabase
+     `openhaus-product-images`-style bucket pattern) — a bigger, riskier
+     change (new fetch path, CORS, RSS enclosure URLs, playback testing)
+     than this pass's scope warranted without being able to verify
+     playback end-to-end here.
+  4. **Deployment retention wasn't addressed** — this account's Vercel MCP
+     access has no delete-deployment tool (only `cancel_deployment`, which
+     only affects in-progress builds), so old `READY` production/preview
+     deployments from the very frequent deploy cadence observed above
+     can't be pruned from here. If storage usage is still over the Hobby
+     limit after the caching fix above has had time to reduce invocation-
+     driven costs, a human should check Vercel's dashboard for whether
+     preview-deployment retention/auto-cleanup is configurable on the
+     current plan.
+  Also added 3 `AdSlot`-family components + 1 `FaithfulToNature` banner,
+  placed between existing page sections/content blocks (not stacked
+  together), on both renderings of each article type: the client SPA
+  pages (`src/pages/ProductReview.tsx`, `src/pages/NewsroomArticle.tsx`)
+  and their TanStack Start SSR twins (`src/routes/reviews.$slug.tsx`,
+  `src/routes/briefings.$slug.tsx`) — each of those four files previously
+  had at most one ad slot and zero `FaithfulToNature` placements.
+  `src/routes/briefings.$slug.tsx` in particular is a genuinely bare-bones
+  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element,
+  and — separately, not touched in this pass — it never actually queries
+  or renders the briefing's `body` content, only excerpt/key-takeaways/
+  source) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
+  ad components were still added there in plain, unstyled form consistent
+  with the rest of that file, since fixing that page's missing body
+  content is a separate, larger, undocumented gap outside this task's
+  scope — worth a human confirming whether that's intentional (a POC that
+  was never finished) before anyone assumes `/briefings/:slug` in
+  production renders the full article today.
+
 - **There are two, unrelated live databases reachable from this
   environment — do not confuse them.** As of 2026-09-08 (verified by
   cross-checking a write against the real production REST API, not

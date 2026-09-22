@@ -11,6 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
+import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -314,6 +316,10 @@ const ProductReview = () => {
 
           <SkinLabsPromiseBadge className="mt-6" />
 
+          <div className="my-8">
+            <AdSlot placement="product-review-top" compact />
+          </div>
+
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
             <div className="overflow-hidden rounded-2xl border border-border">
@@ -353,6 +359,10 @@ const ProductReview = () => {
               <span className="text-xs text-muted-foreground">Shop now →</span>
             </Link>
           )}
+
+          <div className="my-8">
+            <FaithfulToNature placement="product-review-shop" />
+          </div>
 
           <RoutineBuilder anchor={review} isVip={isVip} />
 
@@ -440,6 +450,10 @@ const ProductReview = () => {
               </Button>
             </div>
           )}
+
+          <div className="my-8">
+            <AdSlotAutorelaxed placement="product-review-discussion" compact />
+          </div>
 
           <div className="mt-10 space-y-3">
             <h2 className="font-heading text-lg font-bold text-foreground">Member discussion</h2>
