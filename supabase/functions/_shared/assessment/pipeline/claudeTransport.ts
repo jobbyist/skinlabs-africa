@@ -55,10 +55,12 @@ async function readError(res: Response, label: string): Promise<never> {
   // A rejected key is an operator problem, not a member's: surfaced as
   // not_configured so the worker keeps the job queued (no retry burned, no
   // refund-and-fail) until the secret is fixed.
-  if (res.status === 401 || res.status === 403) {
-    throw new AssessmentProviderError(`${label} rejected the API key (${res.status}).`, "not_configured");
-  }
   const detail = await res.text().catch(() => "");
+  if (res.status === 401 || res.status === 403) {
+    // The provider's own reason (bad key, no credits, model not enabled…) —
+    // provider error bodies never echo the key back.
+    throw new AssessmentProviderError(`${label} rejected the request (${res.status}): ${detail.slice(0, 300)}`, "not_configured");
+  }
   throw new AssessmentProviderError(`${label} error ${res.status}: ${detail.slice(0, 300)}`, "upstream_error");
 }
 
