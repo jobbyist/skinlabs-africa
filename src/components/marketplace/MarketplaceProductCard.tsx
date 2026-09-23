@@ -27,7 +27,7 @@ export function MarketplaceProductCard({
   // assistive tech and agentic browsers. They're now real siblings of the
   // Link instead, positioned via the same "relative" wrapper.
   return (
-    <div className="relative bg-white rounded-2xl overflow-hidden border border-stone-100 hover:border-stone-200 hover:shadow-md transition-all duration-200">
+    <div className="relative bg-white rounded-2xl overflow-hidden border border-stone-100 card-interactive hover:border-stone-200">
       <Link to={`/marketplace/product/${product.slug}`} className="block">
         <div className="relative bg-stone-50 h-40 flex items-center justify-center">
           {image ? (

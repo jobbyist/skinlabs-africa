@@ -315,6 +315,20 @@ feature appear operational.
     transitions, accordions and skeleton pulse (spinners are kept because
     they communicate state). No dependency was added, and none of the
     existing `framer-motion` usages were changed.
+    **Second pass, same day**: SKYNN AI step content in `AIFormulator.tsx`
+    is wrapped in one `key={step}` div with a short `animate-in` fade + rise
+    (200ms, or 300ms for the results reveal); stepper/progress/footer sit
+    outside it so they don't re-animate. The analysis state fades between
+    loading/exhausted/error, carries `role="status"`, and its processing
+    halo uses `.gradient-bg-soft`. Clickable cards share one
+    `.card-interactive` utility (`src/index.css`: 2px lift + `--shadow-md`,
+    200ms ease-out, `@media (hover: hover)` only) instead of 4 different
+    `hover:shadow-*` sizes; static informational cards (Features,
+    PartnerBenefits, About, SpotlightMethodology) lost their hover shadow
+    since it implied a click that doesn't exist. Two exceptions: cards whose
+    transform framer-motion owns (inline style beats CSS — `NewsroomFeed`,
+    `AffiliateAdSlot`) keep framer but match the same values, and `Hero.tsx`'s
+    stat cards were left as a prior deliberate choice.
   - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
     snapshot reference of the whole visual design system (brand logo
     usage, color tokens in both modes, the brand gradient and everywhere

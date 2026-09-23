@@ -75,7 +75,7 @@ const PodcastSection = ({
             return (
               <article
                 key={episode.id}
-                className={`group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm transition-all hover:shadow-lg ${
+                className={`group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm card-interactive ${
                   isCurrent ? "border-foreground/30" : "border-border"
                 }`}
               >
