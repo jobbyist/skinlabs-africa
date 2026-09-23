@@ -12,9 +12,9 @@ const IngredientCard = ({ ingredient }: { ingredient: IngredientSummary }) => (
   >
     <div className="flex items-start justify-between gap-3">
       <div>
-        <h3 className="font-heading text-lg font-bold text-foreground">
+        <h2 className="font-heading text-lg font-bold text-foreground">
           {ingredient.common_name || ingredient.inci_name}
-        </h3>
+        </h2>
         {ingredient.common_name && ingredient.common_name !== ingredient.inci_name && (
           <p className="text-xs italic text-muted-foreground">{ingredient.inci_name}</p>
         )}

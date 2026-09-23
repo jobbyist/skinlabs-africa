@@ -79,6 +79,7 @@ const NewsroomFeed = ({
   );
   const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
   const HeadingTag = paginate ? "h1" : "h2";
+  const CardHeadingTag = paginate ? "h2" : "h3";
   const shouldReduceMotion = useReducedMotion();
   const [likedIds, setLikedIds] = useState<string[]>(getLikedBriefingIds);
   const [savedIds, setSavedIds] = useState<string[]>([]);
@@ -322,11 +323,11 @@ const NewsroomFeed = ({
                         {formatPublishDate(article.publish_date)}
                       </time>
                     </div>
-                    <h3 className="line-clamp-2 font-heading text-lg font-bold leading-snug text-foreground" itemProp="headline">
+                    <CardHeadingTag className="line-clamp-2 font-heading text-lg font-bold leading-snug text-foreground" itemProp="headline">
                       <Link to={`/briefings/${article.slug}`} className="transition-colors group-hover:text-primary">
                         {article.title}
                       </Link>
-                    </h3>
+                    </CardHeadingTag>
                     <p className="line-clamp-2 text-sm text-muted-foreground" itemProp="description">{article.excerpt}</p>
                     <ul className="space-y-1.5">
                       {article.key_takeaways.slice(0, 3).map((takeaway) => (

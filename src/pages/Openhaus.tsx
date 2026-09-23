@@ -148,7 +148,8 @@ const Openhaus = () => {
                   </p>
                 </div>
 
-                <div className="mb-12 rounded-3xl overflow-hidden border border-border shadow-md">
+                {/* openhaus.png has a transparent background — keep it on white in both themes. */}
+                <div className="mb-12 rounded-3xl overflow-hidden border border-border bg-white shadow-md">
                   <img
                     src={openhausImage}
                     alt="OPENHAUS by Skinlabs - Multivendor Marketplace"
