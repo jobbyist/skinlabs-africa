@@ -91,7 +91,7 @@ const vercelJsonPath = resolve(root, "vercel.json");
  *   route, defeating the point of migrating them) -- see prerender.ts's
  *   own comment on this same requirement.
  */
-const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/"];
+const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/", "/web-stories/"];
 const SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM = ["/ingredients/", "/spotlight/"];
 
 /**

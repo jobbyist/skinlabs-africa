@@ -19,6 +19,47 @@ feature appear operational.
 
 ## Major systems
 
+- **Deploy-skew resilience, ad placement system, Web Stories (2026-09-23)**
+  - **Page hangs / broken-after-tab-switch, root causes and fixes** — this
+    project redeploys many times a day and ~60 routes are lazy chunks. A tab
+    on an old build requesting a replaced chunk used to fall through to the
+    SSR catch-all (`/__server`), which cold-started and returned index.html,
+    so the import hung/failed with no error boundary. Now:
+    `scripts/assemble-vercel-output.ts` 404s missing `/assets/*` before the
+    catch-all; every route uses `lazyWithRetry()` (`src/lib/chunkRecovery.ts`,
+    one guarded reload per 30s) — **use it instead of `React.lazy` for any
+    new lazy import**; `main.tsx` handles `vite:preloadError` the same way;
+    `AppErrorBoundary` wraps the app and the routes (resets on navigation);
+    `use-deployment-skew-guard.ts` detects a newer deploy on tab return and
+    hard-loads the next navigation; `BrowserRouter` uses
+    `v7_startTransition`. For tab-return breakage: `src/lib/domResilience.ts`
+    (facebook/react#11538 patch — third-party DOM mutation from AdSense auto
+    ads / auto-translate no longer crashes React) and React Query defaults
+    (staleTime 5 min, `refetchOnWindowFocus: false`). Verified against a real
+    production build by deleting a chunk mid-session.
+  - **Ad placement** — every ad/sponsored unit renders inside
+    `src/components/ads/AdFrame.tsx` (owns vertical spacing, the
+    Advertisement/Sponsored label, disclosure); AdSense units use
+    `useAdSenseUnit` which collapses unfilled/blocked slots. Call sites must
+    NOT add their own vertical margin/padding around ads. Rules: one unit per
+    break, never two adjacent, nothing under a hero or above a page title,
+    no ads before article bodies, content on both sides.
+    `AffiliateBanner` is just an AdSlot alias (it was always the same
+    AdSense slot). If AdSense "Auto ads" is on in the dashboard it bypasses
+    all of this — recommended off.
+  - **Web Stories** — `web_stories` / `web_story_pages` / `web_story_events`
+    tables + public `web-stories` bucket (migration
+    `20260923090000_web_stories.sql`; admin-only writes, public reads of
+    published in-window stories, anonymous insert-only events). Shared model
+    in `src/lib/webStories/stories.ts` (`arrangeRail()` spaces sponsored
+    stories at slots 3/7/11 unless `rail_position` is set — unit tested);
+    briefings top up the rail in-app only. `WebStoriesBar` opens the lazy
+    `StoryViewer`. `/web-stories/:slug` serves validated AMP (amp-story +
+    amp-story-auto-ads + amp-analytics beaconing back to the same route's
+    POST) for authored stories with ≥2 pages; promotional ones are `noindex`
+    and excluded from the sitemap. Generated Supabase types were hand-extended
+    for these three tables. No admin UI yet — stories are inserted directly.
+
 - **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
   four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
   the real production page for that route — `src/routes/briefings.$slug.tsx`

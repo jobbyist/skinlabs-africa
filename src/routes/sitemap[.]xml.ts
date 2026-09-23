@@ -6,6 +6,8 @@ import { comparisonArticles } from "@/data/comparisons";
 import { spotlightRanking } from "@/data/spotlight";
 import { publishedPodcastEpisodes } from "@/data/podcast";
 import { faqEntries } from "@/data/faq";
+import { isAmpEligible } from "@/lib/webStories/amp";
+import { storyFromRow, WEB_STORY_SELECT, type WebStoryRow } from "@/lib/webStories/stories";
 
 const SITE = "https://skinlabs.co.za";
 
@@ -55,10 +57,11 @@ async function buildSitemapXml(): Promise<string> {
     // crawler/agent following these URLs would only ever reach a locked
     // screen. See the STATIC_SITEMAP_ROUTES removal note in
     // src/lib/sitemap/staticRoutes.ts for the full reasoning.
-    const [briefings, ingredientRows, generatedReviews] = await Promise.all([
+    const [briefings, ingredientRows, generatedReviews, webStories] = await Promise.all([
       supabase.from("news_articles_public").select("slug, publish_date").order("publish_date", { ascending: false }),
       supabase.from("ingredients").select("slug").neq("verification_status", "deprecated"),
       supabase.from("ai_generated_product_reviews").select("id, published_date"),
+      supabase.from("web_stories").select(WEB_STORY_SELECT),
     ]);
 
     for (const article of briefings.data ?? []) {
@@ -68,6 +71,14 @@ async function buildSitemapXml(): Promise<string> {
     }
     for (const ingredient of ingredientRows.data ?? []) {
       if (typeof ingredient.slug === "string") add(`/ingredients/${ingredient.slug}`, "monthly", "0.6");
+    }
+    // Only stories that actually have an AMP page; promotional ones are ads
+    // (rendered noindex) so they're kept out of the sitemap too.
+    for (const row of (webStories.data ?? []) as unknown as WebStoryRow[]) {
+      const story = storyFromRow(row);
+      if (story.kind !== "promotional" && isAmpEligible(story)) {
+        add(`/web-stories/${story.slug}`, "weekly", "0.7", story.publishAt.slice(0, 10));
+      }
     }
     for (const review of generatedReviews.data ?? []) {
       if (typeof review.id === "string") {
