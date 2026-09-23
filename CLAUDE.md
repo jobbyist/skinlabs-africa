@@ -591,6 +591,15 @@ feature appear operational.
         report. The real multi-model run (prompt quality, QA pass rate,
         latency per stage) has not been observed yet. Check it on the first
         real submission.
+        **Update (same day):** you set `AI_GATEWAY_API_KEY` and a second
+        synthetic run reached the gateway. The key authenticates, but
+        Vercel AI Gateway returned 403 `no_providers_available`: "Free tier
+        users do not have access to this model. Upgrade to paid credits."
+        The Vercel team needs paid AI Gateway credits (Vercel dashboard →
+        AI → top up) before Claude models can be called. The job stayed
+        queued as `blocked_not_configured` as designed, the test data was
+        deleted, and rollout_stage is still `disabled`. 401/403 errors now
+        log the provider's reason (the body never contains the key).
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
