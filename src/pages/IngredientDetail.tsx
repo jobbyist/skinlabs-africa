@@ -14,6 +14,7 @@ import { useAllergyFlags } from "@/hooks/use-allergy-flags";
 import AllergyCautionNote from "@/components/AllergyCautionNote";
 import { ingredientCategoryLabel } from "@/lib/ingredientCategories";
 import { SITE_URL } from "@/lib/seo-config";
+import { ingredientJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonLd";
 
 const INTERACTION_META: Record<
   IngredientInteractionLink["interaction_type"],
@@ -122,19 +123,24 @@ const IngredientDetail = () => {
           return legacy;
         })();
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    name: `${name} — Benefits, Uses & Skin Compatibility`,
-    url: canonical,
-    breadcrumb: {
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Ingredients", item: `${SITE_URL}/ingredients` },
-        { "@type": "ListItem", position: 2, name, item: canonical },
-      ],
-    },
-  };
+  // Uses the same shared builders as the SSR twin (src/routes/ingredients.$slug.tsx)
+  // rather than a bespoke inline object — this page and that route previously
+  // emitted different JSON-LD @types (WebPage here, DefinedTerm there) for the
+  // exact same URL depending on how it was reached (client hydration vs a raw
+  // HTTP fetch), which is exactly the drift this file's own header comment on
+  // the SSR twin warns must not happen.
+  const jsonLd = [
+    ingredientJsonLd({
+      canonicalUrl: canonical,
+      name,
+      category: ingredientCategoryLabel(ingredient.category),
+      description: `Learn about ${name}: what it does, who it benefits, and the evidence supporting its use in skincare — part of the SkinLabs® ingredients intelligence layer.`,
+    }),
+    breadcrumbJsonLd([
+      { name: "Ingredients", url: `${SITE_URL}/ingredients` },
+      { name, url: canonical },
+    ]),
+  ];
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,7 +153,7 @@ const IngredientDetail = () => {
       <Header />
       <main className="pt-20 pb-24">
         <div className="container mx-auto max-w-3xl px-4">
-          <nav className="mb-6 text-sm text-muted-foreground">
+          <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">
             <Link to="/ingredients" className="hover:text-foreground">
               Ingredients
             </Link>{" "}
