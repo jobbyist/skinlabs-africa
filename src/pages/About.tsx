@@ -338,7 +338,7 @@ const About = () => {
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Platform Features</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     {keyFeatures.map((feature, index) => (
-                      <div key={index} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                      <div key={index} className="bg-card border border-border rounded-2xl p-6">
                         <div className="flex items-start gap-4 mb-4">
                           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
                             {feature.icon}

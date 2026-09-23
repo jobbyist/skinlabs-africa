@@ -14,6 +14,11 @@ const tabs = [
   { label: "Compare", href: "/compare", icon: ArrowLeftRight, match: (p: string) => p.startsWith("/compare") },
 ];
 
+// Shared by every tab: immediate press feedback (nav should feel faster than
+// content) and a visible keyboard focus ring, which the pill previously lacked.
+const NAV_ITEM =
+  "group relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-2 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
+
 /**
  * Routes that render their own primary bottom bar (Openhaus marketplace's
  * sticky nav/cart bar, the Brand Ambassador page's sticky Apply CTA). This
@@ -74,12 +79,12 @@ const FloatingBottomNav = () => {
                 aria-label={tab.label}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-2 text-[10px] font-medium transition-colors sm:px-4",
+                  NAV_ITEM,
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {active && <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />}
-                <tab.icon className={cn("relative h-5 w-5 transition-transform", active && "scale-110")} />
+                <tab.icon className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", active && "scale-110")} />
                 <span className="relative leading-none">{tab.label}</span>
               </Link>
             );
@@ -91,14 +96,14 @@ const FloatingBottomNav = () => {
               aria-label="Profile"
               aria-current={accountActive ? "page" : undefined}
               className={cn(
-                "group relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-2 text-[10px] font-medium transition-colors sm:px-4",
+                NAV_ITEM,
                 accountActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {accountActive && (
                 <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />
               )}
-              <User className={cn("relative h-5 w-5 transition-transform", accountActive && "scale-110")} />
+              <User className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", accountActive && "scale-110")} />
               <span className="relative leading-none">Profile</span>
             </Link>
           ) : (
@@ -106,7 +111,7 @@ const FloatingBottomNav = () => {
               type="button"
               onClick={() => setAuthOpen(true)}
               aria-label="Sign in"
-              className="group relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground sm:px-4"
+              className={cn(NAV_ITEM, "text-muted-foreground hover:text-foreground")}
             >
               <LogIn className="relative h-5 w-5" />
               <span className="relative leading-none">Sign In</span>

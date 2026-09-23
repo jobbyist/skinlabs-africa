@@ -868,6 +868,17 @@ const AIFormulator = () => {
                 <StepperHeader phase={stepPhase(step)} />
               )}
 
+              {/* Keyed per step so each step's content fades/rises in, marking what
+                  changed; the results reveal gets a slightly longer, larger
+                  entrance. Stepper/progress/footer sit outside so they don't
+                  re-animate. Reduced motion collapses animate-in globally. */}
+              <div
+                key={step}
+                className={cn(
+                  "animate-in fade-in-0 ease-out",
+                  step === STEP_RESULTS ? "slide-in-from-bottom-2 duration-300" : "slide-in-from-bottom-1 duration-200",
+                )}
+              >
               {step === STEP_INTRO && (
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
@@ -1196,10 +1207,15 @@ const AIFormulator = () => {
               )}
 
               {step === STEP_ANALYSIS && (
-                <div className="text-center py-12">
+                <div
+                  key={isLoading ? "loading" : allowanceExhausted ? "exhausted" : "error"}
+                  className="text-center py-12 animate-in fade-in-0 duration-200 ease-out"
+                  role={isLoading ? "status" : undefined}
+                  aria-live="polite"
+                >
                   {isLoading ? (
                     <>
-                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <div className="w-20 h-20 gradient-bg-soft rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
                       <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h2>
@@ -1526,6 +1542,8 @@ const AIFormulator = () => {
                   </div>
                 </div>
               )}
+
+              </div>
 
               {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">

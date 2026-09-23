@@ -301,8 +301,8 @@ const NewsroomFeed = ({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.35, delay: (index % 3) * 0.06 }}
-                  whileHover={shouldReduceMotion ? undefined : { y: -4 }}
-                  className="group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow duration-300 hover:shadow-xl md:max-w-none"
+                  whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                  className="gradient-border-anim group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card shadow-sm transition-shadow duration-200 hover:shadow-md md:max-w-none"
                   itemScope
                   itemType="https://schema.org/NewsArticle"
                 >

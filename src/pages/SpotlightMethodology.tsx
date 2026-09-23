@@ -214,7 +214,7 @@ const SpotlightMethodology = () => {
 
             <div className="space-y-4">
               {/* v1.1.2 - Upcoming */}
-              <div className="bg-card border-2 border-primary rounded-2xl p-6 hover:shadow-lg transition-shadow">
+              <div className="bg-card border-2 border-primary rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <TrendingUp className="h-6 w-6 text-primary" />
@@ -239,7 +239,7 @@ const SpotlightMethodology = () => {
               </div>
 
               {/* v1.1 - Current */}
-              <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+              <div className="bg-card border border-border rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <FileText className="h-6 w-6 text-primary" />
@@ -265,7 +265,7 @@ const SpotlightMethodology = () => {
               </div>
 
               {/* v1.0 - Initial */}
-              <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+              <div className="bg-card border border-border rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                     <FileText className="h-6 w-6 text-muted-foreground" />

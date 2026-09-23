@@ -26,7 +26,7 @@ const PartnerBenefits = () => {
               whileInView={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.4, delay: (index % 3) * 0.08 }}
-              className="group rounded-2xl border border-border bg-card p-6 transition-shadow hover:shadow-md"
+              className="group rounded-2xl border border-border bg-card p-6"
             >
               <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                 <benefit.icon className="h-5 w-5" aria-hidden="true" />
