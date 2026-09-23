@@ -271,6 +271,28 @@ All colors MUST be HSL.
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+
+  /* Accordions collapse instantly (duration, not animation: none, so
+     Radix still receives animationend and hides the content correctly). */
+  .animate-accordion-down,
+  .animate-accordion-up {
+    animation-duration: 0.01ms !important;
+  }
+
+  /* Skeletons stay visible as quiet muted blocks — just stop pulsing.
+     Spinners (animate-spin) are intentionally kept: they communicate state. */
+  .animate-pulse {
+    animation: none;
+  }
+
+  /* Hover/press/state transitions become instant state changes. The end
+     state is still applied, so no information is lost. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {

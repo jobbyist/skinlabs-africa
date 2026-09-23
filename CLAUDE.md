@@ -300,6 +300,21 @@ feature appear operational.
     solve here (that trick targets SSR/hydration mismatches, not a
     pre-JS static snapshot). Not worth solving further unless it's
     actually reported as a visible problem.
+  - **Motion system + `/motion` skill (2026-09-23)** — the project's motion
+    principles live in `.claude/skills/motion/SKILL.md` (invoke with
+    `/motion`); read it before any animation/transition work. First pass
+    applied at the shared-primitive level, not per usage: `ui/button.tsx`
+    now gives every Button a 150ms ease-out transition (colour, shadow and
+    transform, so existing `hover:scale-*` overrides now ease instead of
+    snapping) plus `active:scale-[0.98]` press feedback (`link` variant opts
+    out via `active:scale-100`); `ui/sheet.tsx` entrance shortened from 500ms
+    to 300ms ease-out, and exit to 200ms ease-in; `FloatingBottomNav.tsx`
+    tabs share a `NAV_ITEM` class with `active:scale-95` press feedback and a
+    `focus-visible` ring (they had none). The global
+    `prefers-reduced-motion` block in `src/index.css` now also collapses all
+    transitions, accordions and skeleton pulse (spinners are kept because
+    they communicate state). No dependency was added, and none of the
+    existing `framer-motion` usages were changed.
   - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
     snapshot reference of the whole visual design system (brand logo
     usage, color tokens in both modes, the brand gradient and everywhere
