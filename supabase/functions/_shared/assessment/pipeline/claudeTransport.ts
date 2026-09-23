@@ -146,15 +146,33 @@ async function callGateway(apiKey: string, model: string, args: StructuredCallAr
   };
 }
 
+/**
+ * API keys are printable ASCII. A secret pasted with a smart quote, a
+ * zero-width space or a trailing newline makes fetch() reject the header
+ * ("not a valid ByteString") before any request is sent — observed live on
+ * 2026-09-23 with this project's ANTHROPIC_API_KEY. Strip anything outside
+ * printable ASCII and say so (length only, never the value) so the secret
+ * can be corrected at source.
+ */
+function readKey(name: string): string | undefined {
+  const raw = Deno.env.get(name);
+  if (!raw) return undefined;
+  const clean = raw.replace(/[^\x21-\x7E]/g, "");
+  if (clean.length !== raw.length) {
+    console.warn(`claudeTransport: ${name} contained ${raw.length - clean.length} non-printable/non-ASCII character(s); stripped. Please re-save the secret.`);
+  }
+  return clean || undefined;
+}
+
 export function transportConfigured(): boolean {
-  return Boolean(Deno.env.get("AI_GATEWAY_API_KEY") || Deno.env.get("ANTHROPIC_API_KEY"));
+  return Boolean(readKey("AI_GATEWAY_API_KEY") || readKey("ANTHROPIC_API_KEY"));
 }
 
 export async function callClaudeStructured(args: StructuredCallArgs): Promise<StructuredCallResult> {
   const model = resolveModelForTask(args.task);
-  const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
+  const gatewayKey = readKey("AI_GATEWAY_API_KEY");
   if (gatewayKey) return callGateway(gatewayKey, model, args);
-  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const anthropicKey = readKey("ANTHROPIC_API_KEY");
   if (anthropicKey) return callAnthropic(anthropicKey, model, args);
   throw new AssessmentProviderError("Neither AI_GATEWAY_API_KEY nor ANTHROPIC_API_KEY is configured.", "not_configured");
 }
