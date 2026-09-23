@@ -300,6 +300,35 @@ feature appear operational.
     solve here (that trick targets SSR/hydration mismatches, not a
     pre-JS static snapshot). Not worth solving further unless it's
     actually reported as a visible problem.
+  - **Motion system + `/motion` skill (2026-09-23)** — the project's motion
+    principles live in `.claude/skills/motion/SKILL.md` (invoke with
+    `/motion`); read it before any animation/transition work. First pass
+    applied at the shared-primitive level, not per usage: `ui/button.tsx`
+    now gives every Button a 150ms ease-out transition (colour, shadow and
+    transform, so existing `hover:scale-*` overrides now ease instead of
+    snapping) plus `active:scale-[0.98]` press feedback (`link` variant opts
+    out via `active:scale-100`); `ui/sheet.tsx` entrance shortened from 500ms
+    to 300ms ease-out, and exit to 200ms ease-in; `FloatingBottomNav.tsx`
+    tabs share a `NAV_ITEM` class with `active:scale-95` press feedback and a
+    `focus-visible` ring (they had none). The global
+    `prefers-reduced-motion` block in `src/index.css` now also collapses all
+    transitions, accordions and skeleton pulse (spinners are kept because
+    they communicate state). No dependency was added, and none of the
+    existing `framer-motion` usages were changed.
+    **Second pass, same day**: SKYNN AI step content in `AIFormulator.tsx`
+    is wrapped in one `key={step}` div with a short `animate-in` fade + rise
+    (200ms, or 300ms for the results reveal); stepper/progress/footer sit
+    outside it so they don't re-animate. The analysis state fades between
+    loading/exhausted/error, carries `role="status"`, and its processing
+    halo uses `.gradient-bg-soft`. Clickable cards share one
+    `.card-interactive` utility (`src/index.css`: 2px lift + `--shadow-md`,
+    200ms ease-out, `@media (hover: hover)` only) instead of 4 different
+    `hover:shadow-*` sizes; static informational cards (Features,
+    PartnerBenefits, About, SpotlightMethodology) lost their hover shadow
+    since it implied a click that doesn't exist. Two exceptions: cards whose
+    transform framer-motion owns (inline style beats CSS — `NewsroomFeed`,
+    `AffiliateAdSlot`) keep framer but match the same values, and `Hero.tsx`'s
+    stat cards were left as a prior deliberate choice.
   - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
     snapshot reference of the whole visual design system (brand logo
     usage, color tokens in both modes, the brand gradient and everywhere
