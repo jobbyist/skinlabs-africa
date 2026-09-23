@@ -52,6 +52,12 @@ function isHaiku(model: string): boolean {
 
 async function readError(res: Response, label: string): Promise<never> {
   if (res.status === 429) throw new AssessmentProviderError(`${label} is rate-limited.`, "rate_limited");
+  // A rejected key is an operator problem, not a member's: surfaced as
+  // not_configured so the worker keeps the job queued (no retry burned, no
+  // refund-and-fail) until the secret is fixed.
+  if (res.status === 401 || res.status === 403) {
+    throw new AssessmentProviderError(`${label} rejected the API key (${res.status}).`, "not_configured");
+  }
   const detail = await res.text().catch(() => "");
   throw new AssessmentProviderError(`${label} error ${res.status}: ${detail.slice(0, 300)}`, "upstream_error");
 }

@@ -506,6 +506,91 @@ feature appear operational.
       product-catalogue search for the `product_list` question type
       (currently name-only entries); true async/background generation;
       end-to-end QA with a real (non-placeholder) prompt.
+    - **SKYNN AI v2 — Advanced AI Dermatology Report framework live
+      (2026-09-23)** — implements the "SKYNN AI v2 – Dermatologist-Approved,
+      POPIA- and SAHPRA-Aligned Skin Assessment Framework" master reference
+      on top of the engine above (most of the "deferred" list directly above
+      is now done). SkinLabs confirmed the framework's prompts are
+      dermatologist-approved; the sign-off RECORD (name, HPCSA no., date) was
+      not supplied, so it sits at `pending_details` and **SQL refuses to
+      release any report until an admin records it** (admin dashboard →
+      SKYNN Reviews). User decisions: access = anyone holding an Analysis
+      Pass (rollout_stage `pass_holders_review`; membership alone doesn't
+      qualify; one pass per submission; refunded on failure or rejection);
+      **every report is held for manual admin review before the member can
+      read it**; questions are SkinLabs-authored (no DLQI — licensed — and no
+      Baumann BSTI items — proprietary; outputs are labelled "Baumann-style"
+      and "not the DLQI"); generation is async.
+      - **Pipeline** (`supabase/functions/_shared/assessment/pipeline/run.ts`,
+        pure + bun-tested with a mocked model): consent gate → deterministic
+        scores (`../scoring/`: Baumann-style 4-axis, GAGS/IGA-style, Glogau-
+        style, mMASI-style tracker, QoL bands, MST tier/groups 1-3/4-6/7-10)
+        → Haiku intake → Haiku safety (final triage = stricter of model and
+        the deterministic floor `computeDeterministicTriage()` in
+        `safety.ts`) → Sonnet fairness (MST always the member's own answer)
+        → Sonnet reasoner (only PubMed-verified evidence codes; unknown codes
+        stripped) → Sonnet writer → deterministic regulatory term scan
+        (`scanRegulatoryFlags`) → Opus QA, one redline rewrite, then reject.
+        Every stage is persisted so a run resumes after a timeout. User data
+        only ever reaches a model inside `<user_data-{SALT}>` tags (random
+        per session, PII-scrubbed, tag-forging neutralised —
+        `pipeline/userData.ts`). Structured output is a single tool with
+        `tool_choice: auto` (forced only on Haiku) because forced tool use
+        doesn't combine with Opus 5's default adaptive thinking.
+      - **Prompts** — six role prompts transcribed verbatim from the PDF's
+        §5 A–F into `assessment_prompt_versions` (prompt set `skynn-v2.0.0`,
+        new `prompt_set`/`role` columns; md5 of each verified against the
+        source after seeding). Still service-role only.
+      - **Worker** — `supabase/functions/skynn-advanced-worker` runs from
+        pg_cron every minute (only when a pending report exists), responds
+        202 and processes in `EdgeRuntime.waitUntil`. Auth: `x-cron-secret`
+        verified IN THE DATABASE against Vault `skynn_worker_cron_secret` via
+        `verify_skynn_worker_secret()` using the auto-injected service-role
+        key — so, unlike the briefings/openhaus crons, **no `supabase secrets
+        set` step is needed**. Also accepts the service-role bearer (the
+        post-submit kick) or an admin JWT.
+      - **Schema** — `20260923100000_skynn_v2_framework.sql` (+`…100100_seed`,
+        `…100200_retire_v1_completion`): `assessment_prompt_signoffs`,
+        `advanced_assessment_audit_log` (append-only, no content), review
+        columns + resumable `pipeline_state` + lease on reports, column-level
+        SELECT grants so owners see status only; content comes from
+        `get_my_advanced_assessment_report()` once approved. Admin RPCs:
+        `admin_list_/admin_get_/admin_review_advanced_assessment`,
+        `admin_get_prompt_signoffs`, `admin_record_prompt_signoff`. The v1
+        `complete_advanced_assessment_session()` is revoked from
+        service_role so a stale v1 deploy can't bypass review.
+      - **Evidence** — 16 efficacy citations (C1–C16) + 8 methodology refs
+        (M1–M8) in `advanced_assessment_evidence`, every PMID/DOI resolved
+        live via the PubMed MCP; `verified` = bibliographically verified.
+      - **Emails** — `advanced_report_ready`, `advanced_report_not_released`
+        (SKYNN) and `admin_skynn_review_needed` (ADMIN, no member details);
+        failures reuse `analysis_failed`.
+      - **Deploy mechanism used** — edge functions were deployed via the MCP
+        tool as a one-line entrypoint that imports the committed source from
+        `raw.githubusercontent.com/jobbyist/skinlabs-africa/<commit-sha>/…`
+        (repo is public; pinned sha = immutable, and avoids the MCP bundler's
+        `../` import bug). The seed migration was applied the same way via
+        `pg_net` + an md5 guard. A later GitHub-sync deploy from `main`
+        replaces these with the same source once the branch is merged.
+      - **Live E2E (2026-09-23) and the one blocker left**: a synthetic,
+        fully-answered 2026.2 session on the admin account was run through
+        the deployed worker via the real pg_cron job. Everything up to the
+        first model call worked (cron fired, Vault auth, claim/lease,
+        deterministic scores persisted, audit rows). The model calls did
+        not: `AI_GATEWAY_API_KEY` is not set as a Supabase Edge Function
+        secret, and `ANTHROPIC_API_KEY` contained a stray non-ASCII
+        character and, once stripped, was rejected by Anthropic (401 "API
+        key is invalid"). The test data was deleted. A rejected or missing
+        key now leaves jobs queued as `blocked_not_configured` without using
+        up retries. **So rollout_stage was left at `disabled`**; no member
+        can submit yet. To go live: (1) set a valid `ANTHROPIC_API_KEY` (or
+        `AI_GATEWAY_API_KEY`) Edge Function secret; (2) `UPDATE
+        skynn_advanced_assessment_config SET rollout_stage =
+        'pass_holders_review' WHERE id;`; (3) record the dermatologist
+        sign-off in the admin SKYNN Reviews tab before approving the first
+        report. The real multi-model run (prompt quality, QA pass rate,
+        latency per stage) has not been observed yet. Check it on the first
+        real submission.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a

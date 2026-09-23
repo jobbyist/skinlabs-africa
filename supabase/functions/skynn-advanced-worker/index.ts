@@ -243,10 +243,16 @@ Deno.serve(async (req) => {
         const code = err instanceof AssessmentProviderError || err instanceof PipelineStageError ? err.code : "internal";
         console.error(`skynn-advanced-worker: job ${job.report_id} errored (${code}):`, err);
         if (code === "not_configured") {
-          // Operator problem (prompt set missing): keep the job for later.
+          // Operator problem (prompt set missing, AI key missing/rejected):
+          // keep the job queued and give back the attempt the claim took, so
+          // a config outage can't exhaust retries and fail members' jobs.
+          const { data: current } = await admin
+            .from("advanced_assessment_reports").select("pipeline_state, attempts").eq("id", job.report_id).single();
           await admin.rpc("save_advanced_assessment_pipeline_state", {
-            p_report_id: job.report_id, p_state: job.pipeline_state ?? {}, p_stage: "blocked_not_configured", p_release: true,
+            p_report_id: job.report_id, p_state: current?.pipeline_state ?? job.pipeline_state ?? {}, p_stage: "blocked_not_configured", p_release: true,
           });
+          await admin.from("advanced_assessment_reports")
+            .update({ attempts: Math.max(0, (current?.attempts ?? 1) - 1) }).eq("id", job.report_id);
         } else {
           // Transient (rate limit, upstream 5xx, malformed output): release
           // the lease so the next tick retries from the last saved stage.
