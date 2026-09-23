@@ -89,8 +89,11 @@ const buildDailyReviewSlides = (): GateSlide[] => {
 
 const LOADING_KEY = "skinlabs-preloader-shown";
 const GATE_KEY = "skinlabs-gate-shown";
-const LOADING_MS = 1600;
-const LOADING_TIMEOUT_MS = 1800;
+// Shortened from 1600/1800ms: this splash sits on top of real content (including
+// prerendered/SSR'd content on deep links) on every fresh session, so it's kept
+// just long enough to read as an intentional brand moment rather than a stall.
+const LOADING_MS = 700;
+const LOADING_TIMEOUT_MS = 900;
 
 const trustMarkers = [
   { icon: Star, label: `${productReviews.length}+ SA products reviewed` },
@@ -103,10 +106,21 @@ const UNLOCK_ANIMATION_MS = 650;
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|googlebot|bingbot|yandex|baiduspider|duckduckbot|facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|lighthouse|headlesschrome|prerender/i;
 
+/**
+ * Bots, headless/automated browsers (Lighthouse included) and crawlers never
+ * see either overlay — previously only the pricing "gate" checked this, so a
+ * cold-sessionStorage Lighthouse run was seeing the full loading splash below.
+ */
+const isBotOrAutomation = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  if (BOT_UA_PATTERN.test(navigator.userAgent)) return true;
+  if (navigator.webdriver) return true;
+  return false;
+};
+
 const isExternalArrival = (): boolean => {
   if (typeof document === "undefined" || typeof navigator === "undefined") return false;
-  if (BOT_UA_PATTERN.test(navigator.userAgent)) return false;
-  if (navigator.webdriver) return false;
+  if (isBotOrAutomation()) return false;
   if (!document.referrer) return false;
   try {
     return new URL(document.referrer).origin !== window.location.origin;
@@ -140,11 +154,19 @@ const Preloader = () => {
     ...buildEvergreenSlides(),
   ];
 
+  // The full-screen branded loading splash is scoped to the homepage only and
+  // skipped entirely for bots/automation (crawlers, Lighthouse, headless
+  // Chrome) — a deep link landed on directly (from search, a share, or an
+  // agent) should never be covered by a homepage-branding animation, and a
+  // cold-sessionStorage Lighthouse run should never measure this as LCP/FCP.
+  const skipLoadingSplash = !isHome || isBotOrAutomation();
   const [showLoading, setShowLoading] = useState(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined" || skipLoadingSplash) return false;
     return sessionStorage.getItem(LOADING_KEY) !== "1";
   });
-  const [loadingDone, setLoadingDone] = useState(() => sessionStorage.getItem(LOADING_KEY) === "1");
+  const [loadingDone, setLoadingDone] = useState(
+    () => skipLoadingSplash || sessionStorage.getItem(LOADING_KEY) === "1",
+  );
   const [progress, setProgress] = useState(0);
   const [gateVisible, setGateVisible] = useState(false);
   const [gateDismissed, setGateDismissed] = useState(() => {

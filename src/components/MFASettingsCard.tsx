@@ -141,8 +141,13 @@ const MFASettingsCard = () => {
                     <Label className="text-xs">Or enter this code manually:</Label>
                     <div className="flex gap-2">
                       <Input value={secret} readOnly className="font-mono text-xs" />
-                      <Button variant="outline" size="icon" onClick={handleCopySecret}>
-                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopySecret}
+                        aria-label={copied ? "Secret copied" : "Copy secret to clipboard"}
+                      >
+                        {copied ? <Check className="h-4 w-4" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
                       </Button>
                     </div>
                   </div>

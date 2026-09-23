@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { useMembership } from '@/hooks/use-membership'
 import { buildHeadTags } from '@/lib/seo/head'
-import { productReviewJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
+import { productReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/jsonLd'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl, absoluteUrl } from '@/lib/seo/canonical'
 import { productReviewTitle } from '@/lib/seo-config'
@@ -79,7 +79,7 @@ import { Textarea } from '@/components/ui/textarea'
 // routes and the SPA.
 
 const BASIC_COLUMNS =
-  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date'
+  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored'
 
 function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
   const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000
@@ -99,6 +99,12 @@ function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
     key_ingredients: (row.key_ingredients as string[] | null) ?? [],
     retailers: (row.retailers as unknown as RetailerListing[] | null) ?? [],
     isNew: new Date(row.published_date as string).getTime() >= cutoff,
+    seo_intro: row.seo_intro as string | null,
+    review_body: row.review_body as string | null,
+    faq: (row.faq as unknown as { question: string; answer: string }[] | null) ?? [],
+    seo_title: row.seo_title as string | null,
+    seo_description: row.seo_description as string | null,
+    is_sponsored: (row.is_sponsored as boolean | null) ?? false,
   }
 }
 
@@ -176,8 +182,13 @@ export const Route = createFileRoute('/reviews/$slug')({
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
     const memberStats = getMemberRatingStats(review)
-    const title = productReviewTitle(`${review.brand} ${review.product_name}`, 'SA Score & Price')
-    const description = `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
+    // Prefer the pipeline's stored seo_title/seo_description (same formula, computed
+    // server-side at publish/backfill time) so this SSR route's initial HTML matches
+    // what ProductReview.tsx renders after hydration.
+    const title = review.seo_title ?? productReviewTitle(review.product_name, review.brand)
+    const description =
+      review.seo_description ??
+      `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
 
     const product = productReviewJsonLd({
       canonicalUrl: canonicalUrl(path),
@@ -195,16 +206,20 @@ export const Route = createFileRoute('/reviews/$slug')({
           : undefined,
       memberRating: { average: memberStats.average, count: memberStats.count },
       ratingValue: score,
-      reviewBody: review.verdict,
+      // Prefer the pipeline's expanded review_body (see
+      // supabase/functions/product-review-sync/index.ts's generateSupplementalFields())
+      // when populated -- falls back to the short verdict otherwise.
+      reviewBody: review.review_body ?? review.verdict,
       reviewCount: 1,
     })
     const breadcrumb = breadcrumbJsonLd(
       siteBreadcrumbTrail([{ name: 'Reviews', path: '/reviews' }, { name: review.product_name, path }]),
     )
+    const faq = review.faq && review.faq.length > 0 ? [faqJsonLd({ faqs: review.faq })] : []
 
     return buildHeadTags(
       { title, description, canonicalPath: path, ogType: 'article', ogImage: image?.url },
-      [product, breadcrumb],
+      [product, breadcrumb, ...faq],
     )
   },
   component: ReviewPage,
@@ -351,6 +366,12 @@ function ReviewPage() {
         <h1>
           {review.product_name} <span>{score} / 10</span>
         </h1>
+        {review.is_sponsored && (
+          <p>
+            <em>Sponsored — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.</em>
+          </p>
+        )}
+        {review.seo_intro && <p>{review.seo_intro}</p>}
 
         {image && (
           <figure>
@@ -368,6 +389,18 @@ function ReviewPage() {
         )}
 
         <p>{review.verdict}</p>
+        {review.review_body && <p>{review.review_body}</p>}
+        {review.faq && review.faq.length > 0 && (
+          <section aria-labelledby="faq-heading">
+            <h2 id="faq-heading">Frequently asked questions</h2>
+            {review.faq.map((item) => (
+              <div key={item.question}>
+                <h3>{item.question}</h3>
+                <p>{item.answer}</p>
+              </div>
+            ))}
+          </section>
+        )}
 
         <div>
           <ScoreBar label="Efficacy" value={review.score_efficacy} />

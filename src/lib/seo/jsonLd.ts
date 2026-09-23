@@ -2,6 +2,8 @@ import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
 import type {
   ArticleJsonLdInput,
   BreadcrumbItem,
+  EnhancedProductReviewJsonLdInput,
+  FAQJsonLdInput,
   IngredientJsonLdInput,
   ProductReviewJsonLdInput,
   SpotlightBrandJsonLdInput,
@@ -123,6 +125,90 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
   return {
     "@context": "https://schema.org",
     "@graph": [product, webPage],
+  };
+}
+
+/**
+ * Enhanced Product Review JSON-LD following Schema.org and Google guidelines.
+ *
+ * Key improvements:
+ * 1. Separates editorial Review from community AggregateRating
+ * 2. Editorial review uses Organization author (SkinLabs)
+ * 3. AggregateRating only included when community ratings exist
+ * 4. Editorial score is 0-10, community is 0-5 (different scales clearly marked)
+ * 5. Never fabricates data - all fields from real database content
+ * 
+ * Per Google's product review guidelines:
+ * - Review must be from the reviewing organization (SkinLabs)
+ * - AggregateRating should reflect actual customer/community ratings
+ * - Never use editorial score as if it's aggregate customer rating
+ */
+export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdInput) {
+  const productData: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${input.canonicalUrl}#product`,
+    name: input.productName,
+    brand: { "@type": "Brand", name: input.brand },
+    category: input.category,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.size ? { size: input.size } : {}),
+    ...(input.countryOfOrigin ? { countryOfOrigin: input.countryOfOrigin } : {}),
+  };
+
+  // Add offers if available
+  if (input.offers) {
+    productData.offers = {
+      "@type": "AggregateOffer",
+      priceCurrency: "ZAR",
+      lowPrice: input.offers.lowPrice,
+      highPrice: input.offers.highPrice,
+      offerCount: input.offers.offerCount,
+    };
+  }
+
+  // Editorial review (always present)
+  productData.review = {
+    "@type": "Review",
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: input.editorialScore,
+      bestRating: 10,
+      worstRating: 1,
+    },
+    author: { "@type": "Organization", name: BRAND },
+    reviewBody: input.reviewBody,
+    ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
+  };
+
+  // Community rating (only if it exists)
+  if (input.communityRating !== undefined && input.communityReviewCount !== undefined && input.communityReviewCount > 0) {
+    productData.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: input.communityRating,
+      bestRating: 5, // Community uses 5-star scale
+      worstRating: 1,
+      reviewCount: input.communityReviewCount,
+    };
+  }
+
+  return productData;
+}
+
+/**
+ * FAQ JSON-LD for a product review page.
+ * Only include this when genuine product-specific FAQs exist.
+ */
+export function faqJsonLd(input: FAQJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: input.faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
   };
 }
 

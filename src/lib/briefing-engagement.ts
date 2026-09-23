@@ -1,7 +1,4 @@
 const LIKED_BRIEFINGS_KEY = "skinlabs-liked-briefings";
-const BRIEFING_VIEWS_KEY = "skinlabs-briefing-views";
-
-type StoredViews = Record<string, number>;
 
 const canUseStorage = () => typeof window !== "undefined";
 
@@ -33,12 +30,4 @@ export const toggleLikedBriefing = (articleId: string) => {
     : [...likedIds, articleId];
   write(LIKED_BRIEFINGS_KEY, next);
   return next;
-};
-
-/** Records one browser-local view. Local storage has no expiry, so views survive reloads and sign-in changes. */
-export const recordBriefingView = (articleId: string, baseline: number) => {
-  const views = read<StoredViews>(BRIEFING_VIEWS_KEY, {});
-  const next = (views[articleId] ?? 0) + 1;
-  write(BRIEFING_VIEWS_KEY, { ...views, [articleId]: next });
-  return baseline + next;
 };

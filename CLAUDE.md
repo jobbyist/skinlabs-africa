@@ -19,6 +19,89 @@ feature appear operational.
 
 ## Major systems
 
+- **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
+  four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
+  the real production page for that route — `src/routes/briefings.$slug.tsx`
+  is a separate SSR route that doesn't render body content, see its own
+  header comment) and site-wide content discoverability:
+  - **Editorial disclaimer, fixed and extracted** — the per-article
+    "Editorial disclaimer: ..." sentence the briefings pipeline embeds in
+    `body_markdown` (see `content/daily-skinny/*.md` for real examples) was
+    rendering inline wherever it happened to land in the body, or — worse,
+    when it fell inside the "## FAQ" section — being silently dropped
+    entirely by `BriefingBody.tsx`'s FAQ-item parser (`parseFaqItems()`'s
+    `if (/^editorial disclaimer/i.test(block)) continue;`). New
+    `src/lib/editorialDisclaimer.ts`'s `extractEditorialDisclaimer()` pulls
+    it out of the body markdown before `BriefingBody` ever sees it;
+    `NewsroomArticle.tsx` renders it once, consistently, via new
+    `src/components/briefings/EditorialDisclaimer.tsx` at the very end of
+    the article — matching the existing disclaimer treatment already used
+    on Spotlight/ComparisonArticle pages (ShieldCheck icon, muted card).
+  - **View count removed** — the `Eye`-icon "N views" display is gone from
+    the article header. It was backed by `src/lib/briefing-engagement.ts`'s
+    `recordBriefingView()`, a browser-localStorage-only counter (DB
+    `view_count` + a local increment, never written back to the DB) with no
+    other reader — removed along with its now-dead storage key/type. The
+    DB `view_count` column itself is untouched and still powers
+    `NewsroomFeed.tsx`'s "Most viewed" sort on the listing/card grid, which
+    was intentionally left alone (out of scope — only the article page's
+    own display was asked to change).
+  - **Sitemap.xml is now live-SSR'd, not just build-time** — the daily
+    briefings/product-review pipelines publish via Supabase pg_cron (see
+    the product-review pipeline section below), not a Vercel build, so the
+    old build-time-only `scripts/generate-sitemap.ts` (baked into
+    `public/sitemap.xml` at deploy time) could sit stale for however long
+    until the next code push. New `src/routes/sitemap[.]xml.ts` (a
+    TanStack Start SSR route — `[.]` is the router's documented escape for
+    a literal dot in a file-based route filename, confirmed by both a real
+    local build and by invoking the built Nitro handler directly against
+    the live Supabase project) queries `news_articles_public`/
+    `ai_generated_product_reviews`/`marketplace_products`/
+    `marketplace_brands`/`ingredients` live on every request, so a briefing
+    or review published minutes ago is already in the sitemap. Both the SSR
+    route and the build-time fallback now import their static route list
+    from one shared `src/lib/sitemap/staticRoutes.ts` (previously
+    duplicated) so they can't drift. `scripts/assemble-vercel-output.ts`
+    gained a new `SSR_EXACT_ROUTES_PRE_FILESYSTEM` mechanism (existing
+    `SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM`/`_POST_FILESYSTEM` only cover
+    `/prefix/:slug`-shaped routes — `/sitemap.xml` has no slug segment) so
+    `^/sitemap\.xml$` routes to the SSR function ahead of the filesystem
+    phase, exactly like `/briefings/`'s and `/reviews/`'s own pre-filesystem
+    routing. `scripts/generate-sitemap.ts`'s static-file output remains as
+    the fallback for a degraded (`ssrAvailable: false`) deployment or a
+    local `vite build` preview without Nitro — see that script's own
+    updated header comment. **Verified locally, not yet on real
+    infrastructure**: `npx vite build` + `NITRO_PRESET=vercel npx vite
+    build --config vite.tanstack-start.config.ts` +
+    `scripts/assemble-vercel-output.ts` all ran clean, `config.json`'s
+    generated routing was inspected directly, and the built Nitro handler
+    was invoked in-process with a real `/sitemap.xml` request — it
+    returned a real `200`, correct `application/xml` content-type, and a
+    valid, well-formed sitemap containing genuine live rows from the real
+    Supabase project (recent `ai_generated_product_reviews`, confirmed by
+    their real recent `published_date` values). Not yet confirmed on an
+    actual Vercel deployment.
+  - **Briefing article cards enhanced** — `NewsroomFeed.tsx`'s card grid
+    (used on `/briefings` and the homepage teaser) gained `line-clamp-2` on
+    the title/excerpt and `line-clamp-1` per key-takeaway (previously
+    unclamped text could make cards in the same row uneven heights), a
+    subtle bottom-to-top gradient scrim on the cover image, a hover
+    shadow/title-color transition, and a small arrow micro-interaction on
+    the "Read the breakdown" CTA. The article page itself (
+    `NewsroomArticle.tsx`) picked up matching shadow treatment on the cover
+    image and key-takeaways card. Deliberately did not add a new
+    `.gradient-text`/`.gradient-border-anim` moment to every card — this
+    file's own standing note elsewhere warns against more than one such
+    accent per screen, and a 3-per-row card grid would blow well past that.
+  - **Podcast mini-player no longer overlaps the floating bottom nav** —
+    `PodcastPlayer.tsx`'s mini-player bar is `fixed bottom-0` at `z-[60]`
+    whenever an episode is loaded (playing or paused), directly covering
+    `FloatingBottomNav.tsx`'s pill (`z-40`, previously fixed at
+    `bottom-4`/`sm:bottom-6` regardless). `FloatingBottomNav` now reads
+    `usePodcastPlayer()`'s `current` and shifts itself up to
+    `bottom-24`/`sm:bottom-28` (with a `transition-[bottom]` for a smooth
+    slide) whenever an episode is loaded, clearing the mini-player's actual
+    rendered height (~80-96px depending on breakpoint) with room to spare.
 - **Entitlements** — `src/lib/entitlements.ts` is the single source of
   truth for plan tiers (Glow Explorer/Lite/Insider/VIP, founding member,
   professional). Use `isPaidSubscriptionStatus()` — `subscription_status`
@@ -1035,6 +1118,145 @@ feature appear operational.
     every firing, and marks rows `researched`/`published`/`rejected` as it
     processes them — see `supabase/INGREDIENT_CONTENT_STATUS.md`'s "Demand-
     driven queue" section for the live count and full detail.
+    **Re-wired after a same-day merge (2026-09-22, second follow-up)** — a
+    merge from `main` (PR #120 and others) brought in a substantially more
+    complete rewrite of this file's orchestrator (Gemini
+    model-fallback chain via `api/_lib/geminiFallback.ts`, a
+    `pipeline_retry_queue` for exhausted-fallback candidates, an OpenHaus
+    `marketplace_products` candidate pool, `qaProductReview()` gating,
+    `?backfillDate=` support) that fully superseded the simpler
+    orchestrator above — a genuine improvement, not a regression — but the
+    merge dropped the `queueUnresolvedIngredients()`/
+    `ingredient_generation_requests` wiring documented in this same bullet,
+    since `main`'s version never had it. Re-added the same queuing call
+    (best-effort, wrapped so it can never fail a review's publish) right
+    after the new orchestrator's successful `ai_generated_product_reviews`
+    insert. If this file changes again via another external merge, check
+    for exactly this pattern — `grep -n "queueUnresolvedIngredients"
+    api/product-review-sync.ts` should never come back empty.
+  - **Deterministic fields + Google Rich Results structured-data fields +
+    Sponsored flagging (2026-09-22, third follow-up)** — three explicit
+    asks against the live pipeline and its 37 already-published reviews:
+    - **Deterministic fields** (`currency`, `date_published`, `skin_types`)
+      were already being set correctly by the orchestrator for every new
+      review — confirmed 0 rows missing any of the three across all 37
+      live rows. The only real gap was historical: a small number of
+      pre-existing rows had `skin_types` unset even though
+      `skin_type_match` (the column actually driving the UI's skin-type
+      filter chips) was populated — fixed with a one-time backfill UPDATE
+      (`skin_types = to_jsonb(skin_type_match)` where null/empty),
+      confirmed 0 missing after. No schema or pipeline-logic change was
+      needed for this part — the orchestrator was already correct going
+      forward.
+    - **Structured-data / Google Rich Results fields** — deliberately
+      reverses an earlier architectural call from the same day's second
+      follow-up (turn 2 of that session), which left `seo_title`,
+      `seo_description`, `key_ingredients_structured`,
+      `related_ingredients_slugs`, `primary_image`, `related_reviews`,
+      `related_knowledge_articles`, `community_rating`/
+      `community_rating_count` null on the reasoning that live
+      client-side computation avoided a second source of truth — the
+      user explicitly asked for these to be DB-persisted instead (needed
+      for the values to actually appear in server-rendered JSON-LD for
+      Rich Results, not just client-side React state). Implemented in
+      `supabase/functions/product-review-sync/index.ts`:
+      `computeSeoTitleDescription()` (exact mirror of
+      `src/lib/seo-config.ts`'s title/description formula — keep both in
+      sync if that formula changes), `resolveKeyIngredients()` (reuses
+      the same ingredient-matching path as `queueUnresolvedIngredients()`
+      — an unresolved ingredient gets `slug: null, resolved: false`
+      rather than a guessed slug), `computeRelatedReviews()` (real SQL,
+      same category, 3 most recent, excluding self),
+      `computeCommunityRating()` (real aggregate from `review_ratings`,
+      null with `count: 0` when no community ratings exist yet — never
+      fabricated), `resolvePrimaryImage()` (checks the pre-existing
+      `review_images` table first, falls back to a `PEXELS_API_KEY`
+      search and writes the result back if configured, else null), and
+      `computeRelatedKnowledgeArticles()` (keyword-overlap match against
+      a 54-entry index extracted from `src/data/faq.ts` — **86% coverage
+      only (54/63 real FAQ entries)**, a Python-regex extraction limit
+      documented as an accepted gap since schema.org has no checked
+      "related articles" property for Product/Review anyway). Both the
+      normal daily-generation path (new reviews get these fields at
+      publish time) and a new Gemini/Firecrawl-independent backfill
+      route (`?backfillStructuredData=true`, batch 15, selects
+      `seo_title IS NULL`) were added and deployed live (function
+      version 15). Ran the backfill to completion against all 37
+      existing rows (3 invocations, batches of 15/15/7, `updated: 37,
+      skipped: []` across all three) and spot-checked the results
+      directly against the live table:
+      - `seo_title`/`seo_description`/`key_ingredients_structured`:
+        **37/37 (100%)**.
+      - `related_ingredients_slugs`: 32/37 — the 5 gaps are genuine
+        (a review whose `key_ingredients` names don't all resolve to a
+        published `ingredients` row, e.g. "Cocoa Butter" on the Renew
+        Your Dew Ceramide Butter review), never a fabricated slug.
+      - `related_reviews`/`related_knowledge_articles`: 35/37 each —
+        the 2 gaps are reviews with no other same-category review yet /
+        no significant keyword overlap with the FAQ index.
+      - `community_rating`: 1/37 has a real value (the rest are
+        correctly `null` with `community_rating_count = 0`, since almost
+        no review has a real community rating yet — this is accurate,
+        not a bug).
+      - `primary_image`: **only 19/37** — every populated row already
+        had a pre-existing `review_images` table row from an earlier
+        process; the fallback Pexels path had never fired for any of the
+        remaining 18 (zero new `review_images` rows written by any of the
+        three initial backfill invocations).
+        **Root cause pinned down (2026-09-22, fourth follow-up)** —
+        added a dedicated `?backfillPrimaryImage=true` route
+        (`runPrimaryImageBackfillPass()`, selects on `primary_image IS
+        NULL` rather than `seo_title IS NULL` so it can re-target these
+        18 rows specifically without recomputing every other structured-
+        data field) plus a non-secret-leaking `?pexelsDiagnostic=true`
+        route (does one real Pexels search with the configured key and
+        reports `configured`/`fetchStatus`/`fetchOk`/`resultCount` — never
+        the key itself) once told the key had since been set. Result: the
+        backfill route processed all 18 and updated 0; the diagnostic
+        route then confirmed exactly why — **`PEXELS_API_KEY` IS present
+        as a Supabase Edge Function secret (`configured: true`), but
+        Pexels itself rejects it: `fetchStatus: 401`, `errorFromPexels:
+        "Unauthorized"`**. So this is not a missing-secret gap or a code
+        bug — the configured key value itself is invalid, expired, or
+        malformed. **A human needs to generate a fresh key at
+        pexels.com/api and reset the `PEXELS_API_KEY` Supabase Edge
+        Function secret to it** — no tool in this environment can obtain
+        or validate a real Pexels API key. Once fixed, re-run
+        `?backfillPrimaryImage=true` (batch 25, so one call covers all 18
+        remaining rows) to pick up the images — no code change needed.
+        Both new routes are permanent, idempotent, and safe to re-invoke.
+    - **Sponsored flagging** — every review sourced from OpenHaus
+      Marketplace (`source_type = 'openhaus_marketplace'`) now carries
+      `is_sponsored = true`, set going forward in the orchestrator's
+      insert and backfilled once for existing rows
+      (`UPDATE ... WHERE source_type = 'openhaus_marketplace' AND
+      is_sponsored = false`). Confirmed live: **34 sponsored** (31
+      OpenHaus + 3 pre-existing Timeless Skincare placements, which were
+      already disclosed sponsored placements per this section's own
+      opening paragraph) vs. **3 unsponsored** (Geve + 2 Faithful to
+      Nature rows — correctly excluded, since SkinLabs has no commercial
+      relationship with those sources). Rendered visibly, not just
+      stored: a "Sponsored" `Badge` + one-line disclosure paragraph near
+      the H1 on `src/pages/ProductReview.tsx` and its SSR twin
+      `src/routes/reviews.$slug.tsx`, and a "Sponsored" pill in the tag
+      row of `src/components/ReviewsGrid.tsx`'s card grid — so the
+      disclosure is present everywhere a review can be read, matching
+      standard sponsored-content disclosure practice (and this file's
+      own standing principle against ever misrepresenting a commercial
+      relationship).
+    - While wiring this in, fixed two unrelated latent bugs surfaced by
+      running the correct `tsc -p tsconfig.app.json` typecheck (not the
+      no-op `tsconfig.json`, see this repo's own established gotcha):
+      `EnhancedProductReviewJsonLdInput`/`FAQJsonLdInput` were imported
+      in `src/lib/seo/jsonLd.ts` but never defined in `src/lib/seo/
+      types.ts` (added); `reviews.$slug.tsx`'s own `productReviewTitle()`
+      call site was still on that function's pre-turn-1 two-argument
+      signature, silently producing a garbled SSR title (fixed to the
+      current three-argument call). Also fixed a real syntax-broken
+      duplicate block in `enhancedProductReviewJsonLd()` introduced by 3
+      remote commits (not authored by Claude) that landed on this branch
+      mid-session via a `git merge` — the duplication was removed while
+      keeping the remote commits' legitimate `worstRating: 1` addition.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,

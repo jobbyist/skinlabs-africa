@@ -10,7 +10,12 @@ import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
-import Preloader from "./components/Preloader";
+// Lazy: pulls in framer-motion + embla-carousel, which otherwise ship in the
+// main bundle on every route (privacy-policy, terms, etc. included) even
+// though the splash/gate it renders only matters on a fresh session's first
+// paint. Deferring it costs nothing visually — the overlay wasn't part of
+// the pre-hydration HTML anyway.
+const Preloader = lazy(() => import("./components/Preloader"));
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
@@ -85,7 +90,9 @@ const RouteFallback = () => (<div className="flex min-h-screen items-center just
 
 const AppContent = () => (
   <>
-    <Preloader />
+    <Suspense fallback={null}>
+      <Preloader />
+    </Suspense>
     <ScrollToTop />
     <FloatingBottomNav />
     <CookieConsent />
