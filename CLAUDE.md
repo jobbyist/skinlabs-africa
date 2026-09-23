@@ -1601,6 +1601,59 @@ feature appear operational.
       (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
       product reviews) or a human needs to trigger it after that reset
       for a real test.
+    - **Stale-deploy incident: two parallel sessions redeploying the same
+      shared edge function file (2026-09-23)** — a scheduled routine woke
+      this session to resume the SEO/structured-data backfill (9 rows left
+      from the day before). The very first `?backfillMissingFields=true`
+      call returned a response shaped like the *daily-generation* handler
+      (`created`/`target`/`modelUsage`/`backfillDate`), not the backfill
+      handler's own shape (`mode`/`processed`/`updated`/`skipped`) — a
+      signal the deployed code didn't match what this session expected.
+      Fetching the live source directly via `mcp__Supabase__get_edge_function`
+      confirmed it: the deployed function was **version 31**, a completely
+      different, older snapshot with none of that day's structured-data
+      fields, `SPONSORED_BRAND_BANNERS`, or the `backfillMissingFields`/
+      `backfillStructuredData`/`backfillPrimaryImage`/`pexelsDiagnostic`
+      routes — instead it had a `runBackfillFullReviews()`/`review_details`
+      full-review-backfill feature this session had never seen. Root cause:
+      a **second, parallel Claude Code session** (working on
+      `claude/manual-briefings-job-trigger-fz0aef`, the briefings-sync/
+      Shelf-Showdown/full_review-backfill work documented elsewhere in this
+      section) had been developing its own independent changes to this same
+      shared `product-review-sync/index.ts` file, and deployed straight
+      from its own branch state — which hadn't yet incorporated this
+      session's PR #133 merge — rather than from `main` after merging.
+      That branch's own PR (#130) was merged into `main` shortly after via
+      a real, correct three-way merge (`git diff` confirmed `main`'s
+      resulting file is a clean, complete superset of both sessions' work,
+      only two trivial line replacements, nothing lost) — so **the git
+      history was never actually broken**, only the live Supabase deployment
+      briefly lagged behind it. Fixed by fast-forwarding this session's
+      local `main` to `origin/main` and redeploying verbatim from there
+      (version 31 → 32), confirmed live via both an unauthenticated-401
+      check and grepping the live source for `SPONSORED_BRAND_BANNERS`/
+      `runBackfillFullReviews` (both present). **Real, if minor, fallout**:
+      before the mismatch was caught, two `?backfillMissingFields=true`
+      calls against the stale v31 code went through its (also legitimate,
+      real) daily-generation path instead and published 2 genuine OpenHaus
+      reviews (`standard-beauty-moisture-bomb`, `standard-beauty-2-
+      salicylic-acid-toner`) using the OLD insert shape — missing
+      `is_sponsored=true` (old code hardcoded `isSponsored: false` for the
+      marketplace candidate pool, since the "flip openhaus_marketplace to
+      sponsored" logic was this session's own addition), and missing every
+      structured-data field. Both were real, ungrounded-in-nothing product
+      reviews (not fabricated data, just incompletely enriched) — fixed
+      with a direct one-time SQL UPDATE (`is_sponsored = true`,
+      `skin_types` backfilled from `skin_type_match`, brand banner
+      `primary_image`/`review_images` set directly since the brand -
+      Standard Beauty - was already known) plus a `?backfillStructuredData
+      =true` call once the correct code was live. **Lesson for future
+      sessions**: when multiple sessions may be touching this same shared
+      edge function file, a response shape that doesn't match what the
+      current source on disk would produce is a strong, fast signal to
+      check `mcp__Supabase__get_edge_function` directly before assuming the
+      deploy tooling is broken or retrying blindly — don't trust that the
+      last version number you personally deployed is still what's live.
     - **Shelf Showdown weekly comparison pipeline added
       (2026-09-22, sixth follow-up)** — a new sibling pipeline,
       `supabase/functions/shelf-showdown-sync/index.ts`, gives the
