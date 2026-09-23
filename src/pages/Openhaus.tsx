@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import openhausImage from "/openhaus.png";
 import AdSlot from "@/components/AdSlot";
+import { trialLength } from "@/lib/promo";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -23,6 +24,21 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+const WAITLIST_FIELDS: {
+  name: keyof FormData;
+  label: string;
+  placeholder: string;
+  autoComplete: string;
+  type?: string;
+}[] = [
+  { name: "firstName", label: "First Name", placeholder: "John", autoComplete: "given-name" },
+  { name: "lastName", label: "Last Name", placeholder: "Doe", autoComplete: "family-name" },
+  { name: "email", label: "Email Address", placeholder: "john@example.com", autoComplete: "email", type: "email" },
+  { name: "phone", label: "Phone Number", placeholder: "+27 12 345 6789", autoComplete: "tel", type: "tel" },
+  { name: "city", label: "City/Town", placeholder: "Johannesburg", autoComplete: "address-level2" },
+  { name: "country", label: "Country", placeholder: "South Africa", autoComplete: "country-name" },
+];
 
 const Openhaus = () => {
   const { toast } = useToast();
@@ -121,9 +137,18 @@ const Openhaus = () => {
           <section className="py-12 md:py-20">
             <div className="container mx-auto px-4">
               <div className="max-w-6xl mx-auto">
-                <h1 className="sr-only">Marketplace by Openhaus — Coming Soon</h1>
+                <div className="mx-auto mb-8 max-w-2xl text-center">
+                  <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Coming soon</p>
+                  <h1 className="font-heading text-3xl font-bold leading-tight text-foreground md:text-5xl">
+                    Marketplace by Openhaus
+                  </h1>
+                  <p className="mt-3 text-muted-foreground">
+                    SkinLabs&apos; multivendor skincare marketplace — join the early bird list for launch samples,
+                    giveaways and discounts.
+                  </p>
+                </div>
 
-                <div className="mb-12 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="mb-12 rounded-3xl overflow-hidden border border-border shadow-md">
                   <img
                     src={openhausImage}
                     alt="OPENHAUS by Skinlabs - Multivendor Marketplace"
@@ -140,7 +165,7 @@ const Openhaus = () => {
                     Launching 1 December 2026
                   </h2>
                   <p className="text-muted-foreground mb-6">Countdown to Marketplace by Openhaus</p>
-                  <div className="flex justify-center gap-4 md:gap-8">
+                  <div className="flex justify-center gap-2 sm:gap-4 md:gap-8">
                     {[
                       { label: "Days", value: timeLeft.days },
                       { label: "Hours", value: timeLeft.hours },
@@ -149,9 +174,9 @@ const Openhaus = () => {
                     ].map((item) => (
                       <div
                         key={item.label}
-                        className="bg-card border border-border rounded-2xl p-4 md:p-6 min-w-[80px] md:min-w-[120px] shadow-lg"
+                        className="bg-card border border-border rounded-2xl p-3 sm:p-4 md:p-6 min-w-[72px] sm:min-w-[80px] md:min-w-[120px] shadow-sm"
                       >
-                        <div className="text-3xl md:text-5xl font-bold text-primary">
+                        <div className="font-heading text-3xl md:text-5xl font-bold tabular-nums text-primary">
                           {String(item.value).padStart(2, "0")}
                         </div>
                         <div className="text-sm md:text-base text-muted-foreground mt-2">{item.label}</div>
@@ -160,7 +185,7 @@ const Openhaus = () => {
                   </div>
                 </div>
 
-                <div className="max-w-3xl mx-auto bg-card border border-border rounded-3xl p-8 md:p-12 shadow-xl">
+                <div className="max-w-3xl mx-auto bg-card border border-border rounded-3xl p-6 sm:p-8 md:p-12 shadow-sm">
                   <div className="text-center mb-8">
                     <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-4">
                       Join the early bird waiting list for launch samples, giveaways and discounts
@@ -168,43 +193,37 @@ const Openhaus = () => {
                     <p className="text-sm text-muted-foreground">
                       Paid SkinLabs members are added automatically — no opt-in needed.{" "}
                       <a href="/pricing" className="text-primary hover:underline font-medium">
-                        Or become a Glow Insider member for R99 a month
+                        Or try Glow Insider free {trialLength()}
                       </a>
                     </p>
                   </div>
 
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" placeholder="John" {...register("firstName")} className={errors.firstName ? "border-destructive" : ""} />
-                        {errors.firstName && <p className="text-sm text-destructive">{errors.firstName.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" {...register("lastName")} className={errors.lastName ? "border-destructive" : ""} />
-                        {errors.lastName && <p className="text-sm text-destructive">{errors.lastName.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
-                        <Input id="email" type="email" placeholder="john@example.com" {...register("email")} className={errors.email ? "border-destructive" : ""} />
-                        {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input id="phone" type="tel" placeholder="+27 12 345 6789" {...register("phone")} className={errors.phone ? "border-destructive" : ""} />
-                        {errors.phone && <p className="text-sm text-destructive">{errors.phone.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City/Town</Label>
-                        <Input id="city" placeholder="Johannesburg" {...register("city")} className={errors.city ? "border-destructive" : ""} />
-                        {errors.city && <p className="text-sm text-destructive">{errors.city.message}</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="country">Country</Label>
-                        <Input id="country" placeholder="South Africa" {...register("country")} className={errors.country ? "border-destructive" : ""} />
-                        {errors.country && <p className="text-sm text-destructive">{errors.country.message}</p>}
-                      </div>
+                      {WAITLIST_FIELDS.map((field) => {
+                        const error = errors[field.name]?.message;
+                        const errorId = `${field.name}-error`;
+                        return (
+                          <div key={field.name} className="space-y-2">
+                            <Label htmlFor={field.name}>{field.label}</Label>
+                            <Input
+                              id={field.name}
+                              type={field.type ?? "text"}
+                              autoComplete={field.autoComplete}
+                              placeholder={field.placeholder}
+                              aria-invalid={error ? true : undefined}
+                              aria-describedby={error ? errorId : undefined}
+                              {...register(field.name)}
+                              className={error ? "border-destructive" : ""}
+                            />
+                            {error && (
+                              <p id={errorId} className="text-sm text-destructive">
+                                {error}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <Button type="submit" size="lg" className="w-full text-lg" disabled={isSubmitting}>

@@ -17,6 +17,7 @@ import { AUTH_FLAGS } from "@/lib/auth-flags";
 import { getPendingPlanIntent, withPendingPlanParams, type PendingPlanIntent } from "@/lib/pendingPlan";
 import { getPlan } from "@/data/plans";
 import { cn } from "@/lib/utils";
+import { trialNoun } from "@/lib/promo";
 
 interface AuthDialogProps {
   open: boolean;
@@ -52,7 +53,7 @@ const PlanContextBanner = ({ intent }: { intent: PendingPlanIntent }) => {
       </div>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">
-          {plan.name} {isTrial ? `· ${plan.trialDays}-day free trial` : ""}
+          {plan.name} {isTrial ? `· ${trialNoun(plan.trialDays)}` : ""}
         </p>
         <p className="text-xs text-muted-foreground">
           {isTrial

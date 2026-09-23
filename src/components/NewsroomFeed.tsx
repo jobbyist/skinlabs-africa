@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, X,
 } from "lucide-react";
@@ -46,7 +46,7 @@ const BriefingCover = ({ article }: { article: NewsArticleSummary }) => {
       onError={(event) => {
         if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER;
       }}
-      className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${loading && !article.cover_image_url ? "opacity-70" : ""}`}
+      className={`h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-105 ${loading && !article.cover_image_url ? "opacity-70" : ""}`}
     />
   );
 };
@@ -79,6 +79,7 @@ const NewsroomFeed = ({
   );
   const totalPages = paginate ? Math.max(1, Math.ceil(totalCount / NEWSROOM_PAGE_SIZE)) : 1;
   const HeadingTag = paginate ? "h1" : "h2";
+  const shouldReduceMotion = useReducedMotion();
   const [likedIds, setLikedIds] = useState<string[]>(getLikedBriefingIds);
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
@@ -240,7 +241,7 @@ const NewsroomFeed = ({
                     id="briefing-sort"
                     value={sort}
                     onChange={(e) => setSort(e.target.value as SortOption)}
-                    className="h-10 appearance-none rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground"
+                    className="h-10 appearance-none rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Sort briefings"
                   >
                     <option value="newest">Newest first</option>
@@ -258,7 +259,7 @@ const NewsroomFeed = ({
                       setRegionFilter(e.target.value);
                       if (paginate) setPage(1);
                     }}
-                    className="h-10 max-w-[200px] appearance-none rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground"
+                    className="h-10 max-w-[200px] appearance-none rounded-md border border-input bg-background pl-8 pr-8 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     aria-label="Filter by SA context"
                   >
                     <option value="all">All SA contexts</option>
@@ -295,12 +296,12 @@ const NewsroomFeed = ({
             {articles.map((article, index) => (
               <Fragment key={article.id}>
                 <motion.article
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: (index % 3) * 0.06 }}
-                  whileHover={{ y: -4 }}
-                  className="gradient-border-anim group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-transparent bg-card shadow-sm transition-shadow duration-300 hover:shadow-xl md:max-w-none"
+                  transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.35, delay: (index % 3) * 0.06 }}
+                  whileHover={shouldReduceMotion ? undefined : { y: -4 }}
+                  className="group mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition-shadow duration-300 hover:shadow-xl md:max-w-none"
                   itemScope
                   itemType="https://schema.org/NewsArticle"
                 >
@@ -345,14 +346,22 @@ const NewsroomFeed = ({
                         <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" aria-hidden="true" />
                       </Link>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleLike(article)} aria-label="Like article" className="rounded-full p-2 transition-colors hover:bg-accent">
+                        <button
+                          type="button"
+                          onClick={() => handleLike(article)}
+                          aria-label="Like article"
+                          aria-pressed={likedIds.includes(article.id)}
+                          className="rounded-full p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
                           <Heart className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")} />
                         </button>
                         {user && (
                           <button
+                            type="button"
                             onClick={() => void handleSave(article)}
                             aria-label={savedIds.includes(article.id) ? "Unsave article" : "Save article"}
-                            className="rounded-full p-2 transition-colors hover:bg-accent"
+                            aria-pressed={savedIds.includes(article.id)}
+                            className="rounded-full p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           >
                             <Bookmark
                               className={cn(

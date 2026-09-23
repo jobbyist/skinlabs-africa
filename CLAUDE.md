@@ -19,6 +19,43 @@ feature appear operational.
 
 ## Major systems
 
+- **Site-wide `/polish` pass + promo-aware trial copy (2026-09-23)** — ran the
+  repo's own `.claude/skills/polish/SKILL.md` over Home, /briefings,
+  /skynn-ai, /seasonals, /ingredients, /shop, /spotlight, /compare, /pricing
+  and /knowledge-hub. Standing decisions from the user that came out of it:
+  - **/pricing paid plans have the free trial as their ONLY CTA** — the
+    direct-subscribe button was removed from plan cards at the user's explicit
+    request. Explorer keeps its own free sign-up CTA; a paid plan that can't be
+    trialled shows a disabled status ("Your current plan" / "Coming soon" /
+    "Free trial already used"). Consequence to be aware of: `/pricing` no
+    longer offers a direct paid checkout for plans, so an account that has
+    already used its trial can't subscribe from there (`BillingTab.tsx` still
+    says "resubscribe any time from the pricing page", and
+    `SubscriptionPaywallModal.tsx` still has its own subscribe button). The
+    `pendingPlan` "subscribe" intent path in `Pricing.tsx` was left intact.
+  - **All trial wording goes through `src/lib/promo.ts`** (`trialCtaLabel()`,
+    `trialNoun()`, `trialLength()`, `withPromoTrialCopy()` for DB/static plan
+    copy) — during the promo it reads "free until 1 November 2026", and it
+    switches back to the standard "7-day free trial" wording automatically once
+    `PROMO_END_AT` passes. Don't hardcode "7-day"/"7 days" trial copy anywhere
+    new; use these helpers. Covers Hero, Pricing, About, FAQ (`faq.ts`), Terms,
+    Refund Policy, ProductReview + its SSR twin, AuthDialog, TrialWelcomeModal,
+    SubscriptionPaywallModal, FormulatorTab and /shop.
+  - **Home hero stats ("3.7K+ Community Members", "4.75/5 Member Rating") are
+    confirmed authentic by the user** — not fabricated social proof.
+  - **SKYNN AI claims (user-confirmed)**: the Advanced AI Dermatology Report is
+    dermatologist reviewed; the free Starter Analysis is based on verified,
+    dermatologist-grounded research. The Starter intro chip therefore reads
+    "Dermatologist-grounded research", not "Dermatologist reviewed".
+  - **Current season is derived from the date** (`getCurrentSeason()` in
+    `src/data/seasonals.ts`, SA southern-hemisphere months, SAST) instead of a
+    hardcoded `"spring"` on `/seasonals` and the homepage teaser.
+  - Briefing cards no longer carry `.gradient-border-anim` (one gradient accent
+    per screen). Page-level cards stay `rounded-3xl` (the established majority);
+    the shared `ui/card.tsx` primitive stays `rounded-2xl`.
+  - framer-motion entrance animations on /pricing and the briefing grid now
+    check `useReducedMotion()` — the CSS `prefers-reduced-motion` block in
+    `index.css` can't stop JS-driven animations.
 - **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
   four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
   the real production page for that route — `src/routes/briefings.$slug.tsx`

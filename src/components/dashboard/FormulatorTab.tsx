@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { supabase } from "@/integrations/supabase/client";
+import { trialNoun } from "@/lib/promo";
 
 interface FormulatorTabProps {
   /** Switches the dashboard to the Profile tab so the member can fill the gaps. */
@@ -79,7 +80,7 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
           </CardTitle>
           <CardDescription>
             The full AI skin profile — selfie analysis, AM/PM routine, actives schedule and PDF export — is
-            included with Glow Insider and Glow VIP. Start the 7-day Insider trial free, no card needed.
+            included with Glow Insider and Glow VIP. Start the Insider {trialNoun()}, no card needed.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">

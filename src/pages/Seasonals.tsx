@@ -5,21 +5,19 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/AdSlot";
-import { allSeasons, seasonHubs } from "@/data/seasonals";
+import { allSeasons, getCurrentSeason, seasonHubs, seasonTransitionPhrase, type Season } from "@/data/seasonals";
 
-const CURRENT_SEASON = "spring" as const;
-
-const threeCards = [
+const buildThreeCards = (season: Season) => [
   {
-    title: "The Spring Reset",
-    description: "A practical routine guide for the transition into spring.",
-    href: "/seasonals/spring",
+    title: seasonHubs[season].h1,
+    description: `A practical routine guide for ${seasonTransitionPhrase(season)}.`,
+    href: `/seasonals/${season}`,
     icon: Sparkles,
   },
   {
     title: "What Your Skin Needs",
     description: "Current guides and advice for the season you're actually living in.",
-    href: "/seasonals/spring#the-edit",
+    href: `/seasonals/${season}#the-edit`,
     icon: BookOpen,
   },
   {
@@ -31,6 +29,8 @@ const threeCards = [
 ];
 
 const Seasonals = () => {
+  const CURRENT_SEASON = getCurrentSeason();
+  const threeCards = buildThreeCards(CURRENT_SEASON);
   const canonical = "https://skinlabs.co.za/seasonals";
   const jsonLd = {
     "@context": "https://schema.org",
@@ -84,7 +84,7 @@ const Seasonals = () => {
               <Link
                 key={card.title}
                 to={card.href}
-                className="group flex flex-col rounded-3xl border border-border bg-card p-6 transition-colors hover:border-primary"
+                className="group flex flex-col rounded-3xl border border-border bg-card p-6 transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent text-accent-foreground">
                   <card.icon className="h-5 w-5" />
@@ -92,7 +92,7 @@ const Seasonals = () => {
                 <h2 className="mt-4 font-heading text-lg font-bold text-foreground">{card.title}</h2>
                 <p className="mt-1.5 flex-1 text-sm text-muted-foreground">{card.description}</p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                  Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  Explore <ArrowRight className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5" aria-hidden="true" />
                 </span>
               </Link>
             ))}
@@ -145,12 +145,12 @@ const Seasonals = () => {
                 <Link
                   key={season}
                   to={`/seasonals/${season}`}
-                  className={`group flex flex-col overflow-hidden rounded-3xl border bg-card transition-colors hover:border-primary ${isCurrent ? "border-primary" : "border-border"}`}
+                  className={`group flex flex-col overflow-hidden rounded-3xl border bg-card transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${isCurrent ? "border-primary" : "border-border"}`}
                 >
                   <div className="relative">
                     <img src={hub.heroImage.url} alt={hub.heroImage.alt} loading="lazy" className="h-32 w-full object-cover" />
                     {isCurrent && (
-                      <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground">
+                      <span className="absolute left-3 top-3 rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold uppercase tracking-normal text-primary-foreground">
                         Current season
                       </span>
                     )}
@@ -160,7 +160,7 @@ const Seasonals = () => {
                     <h3 className="mt-1 font-heading text-base font-bold text-foreground">{hub.h1}</h3>
                     <p className="mt-2 flex-1 text-sm text-muted-foreground">{hub.tagline}</p>
                     <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                      Explore <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      Explore <ArrowRight className="h-3.5 w-3.5 transition-transform motion-safe:group-hover:translate-x-0.5" aria-hidden="true" />
                     </span>
                   </div>
                 </Link>

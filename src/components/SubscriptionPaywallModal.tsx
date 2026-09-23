@@ -9,6 +9,7 @@ import { startFreeTrial } from "@/lib/trial";
 import { getPlan } from "@/data/plans";
 import { toast } from "sonner";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
+import { trialNoun } from "@/lib/promo";
 
 const insiderPlan = getPlan("insider")!;
 
@@ -65,7 +66,7 @@ const SubscriptionPaywallModal = ({
       toast.error(error.message);
       return;
     }
-    toast.success("Your 7-day free trial is active — enjoy your full report!");
+    toast.success(`Your ${trialNoun()} is active — enjoy your full report!`);
     onPaymentSuccess?.();
     onOpenChange(false);
   };
@@ -161,7 +162,7 @@ const SubscriptionPaywallModal = ({
             ) : (
               <Gift className="h-4 w-4" />
             )}
-            Start my 7-day free trial
+            Start my {trialNoun()}
           </Button>
           <Button
             size="lg"

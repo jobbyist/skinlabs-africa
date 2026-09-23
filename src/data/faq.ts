@@ -14,6 +14,7 @@
  *  - Claims use conservative verbs ("may help", "can support") rather than
  *    guarantees, and higher-risk topics carry an explicit safety boundary.
  */
+import { STANDARD_TRIAL_DAYS, trialNoun } from "@/lib/promo";
 import { getPlan, MONEY_BACK_GUARANTEE_DAYS, PODCAST_FREE_MONTHLY, COMPARE_FREE_MONTHLY, type MembershipPlan } from "./plans";
 
 export type FAQCategoryId =
@@ -169,7 +170,7 @@ const membershipSummaryAnswer =
   `Yes — three tiers. ${explorer.name} is free forever: ${explorerAiLine.toLowerCase()}, ${explorerBriefingLine.toLowerCase()}, ` +
   `limited product review access, ${PODCAST_FREE_MONTHLY} free podcast episode a month and ${COMPARE_FREE_MONTHLY} free comparison articles a month. ` +
   `${insider.name} (R${insider.priceMonthly}/month or R${insider.priceAnnual}/year) unlocks a custom AI routine, ${insiderAiLine.toLowerCase()}, ` +
-  `the full podcast library, unlimited product reviews and full Spotlight brand profiles — it starts with a 7-day free trial, no card required, ` +
+  `the full podcast library, unlimited product reviews and full Spotlight brand profiles — it starts with a ${trialNoun(insider.trialDays ?? STANDARD_TRIAL_DAYS)}, no card required, ` +
   `and carries a ${insiderMoneyBack}-day money-back guarantee once you subscribe. ${vip.name} (R${vip.priceMonthly}/month) adds everything in ${insider.name} ` +
   `plus ${vipConsultLine.toLowerCase()} and priority booking with SA practitioners.`;
 
@@ -1097,7 +1098,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "are-there-any-hidden-costs",
     question: "Are there any hidden costs?",
     answer:
-      "None from us — Glow Explorer is free to use, permanently, with no card required. Glow Insider's 7-day trial also needs no card upfront. Once you do subscribe to a paid plan, the price shown at checkout is what you pay — no surprise add-ons. When you're buying a physical product from a retailer we've linked to, just watch for that retailer's own shipping costs and check whether their displayed price already includes VAT (it usually does).",
+      `None from us — Glow Explorer is free to use, permanently, with no card required. Glow Insider's ${trialNoun()} also needs no card upfront. Once you do subscribe to a paid plan, the price shown at checkout is what you pay — no surprise add-ons. When you're buying a physical product from a retailer we've linked to, just watch for that retailer's own shipping costs and check whether their displayed price already includes VAT (it usually does).`,
     category: "membership",
     tags: ["hidden costs", "free trial", "pricing transparency"],
     relatedQuestions: ["membership-subscription-service"],
