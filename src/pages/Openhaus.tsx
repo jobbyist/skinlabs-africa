@@ -131,9 +131,7 @@ const Openhaus = () => {
                   />
                 </div>
 
-                <div className="mb-8">
-                  <AdSlot placement="shop-mid" compact />
-                </div>
+                <AdSlot placement="shop-mid" compact />
 
                 <div className="mb-12 text-center">
                   <h2 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-2">

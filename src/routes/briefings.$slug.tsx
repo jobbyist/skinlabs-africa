@@ -6,7 +6,6 @@ import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { articleTitle } from '@/lib/seo-config'
-import AdSlot from '@/components/AdSlot'
 import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
 
@@ -150,8 +149,6 @@ function BriefingPage() {
       </p>
       <p>{a.excerpt}</p>
 
-      <AdSlot placement="briefing-top" compact />
-
       <h2>Key takeaways</h2>
       <ul>
         {a.key_takeaways.map((k, i) => (
@@ -172,8 +169,6 @@ function BriefingPage() {
           </small>
         </p>
       )}
-
-      <AdSlot placement="briefing-bottom" compact />
 
       <AdSlotAutorelaxed placement="briefing-footer" compact />
     </main>

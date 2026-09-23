@@ -110,10 +110,6 @@ const Spotlight = () => {
           </p>
         </section>
 
-        <div className="container mx-auto px-4 mt-6">
-          <AdSlot placement="spotlight-top" compact />
-        </div>
-
         {/* Top 3 */}
         <section className="container mx-auto mt-12 px-4">
           <h2 className="mb-1 text-center font-heading text-2xl font-bold text-foreground">Top 3 brands this week</h2>
@@ -130,6 +126,10 @@ const Spotlight = () => {
             ))}
           </div>
         </section>
+
+        <div className="container mx-auto px-4">
+          <AdSlot placement="spotlight-mid" compact />
+        </div>
 
         {/* Full ranking */}
         <section className="container mx-auto mt-14 px-4">

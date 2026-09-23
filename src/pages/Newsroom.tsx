@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsroomFeed from "@/components/NewsroomFeed";
 import AffiliateBanner from "@/components/AffiliateBanner";
-import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
 import { pageSeo, SITE_URL } from "@/lib/seo-config";
 
@@ -80,7 +79,6 @@ const Newsroom = () => {
               </ol>
             </nav>
 
-            <AdSlot placement="briefings-top" compact />
             <NewsroomFeed paginate />
 
             {page === 1 && (

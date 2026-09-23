@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewsGrid from "@/components/ReviewsGrid";
 import AffiliateBanner from "@/components/AffiliateBanner";
-import AdSlot from "@/components/AdSlot";
 
 const Reviews = () => {
   const { page } = useParams<{ page?: string }>();
@@ -40,9 +39,6 @@ const Reviews = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20 pb-24">
-          <div className="container mx-auto px-4 mb-4">
-            <AdSlot placement="reviews-top" compact />
-          </div>
           <ReviewsGrid paginate />
 
           <div className="container mx-auto px-4 mt-14">
@@ -80,7 +76,7 @@ const Reviews = () => {
             </section>
           </div>
 
-          <div className="container mx-auto px-4 mt-8">
+          <div className="container mx-auto px-4">
             <AffiliateBanner placement="reviews-bottom" />
           </div>
         </main>

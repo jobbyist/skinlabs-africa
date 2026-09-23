@@ -6,7 +6,6 @@ import Footer from "@/components/Footer";
 import { comparisonArticles } from "@/data/comparisons";
 import { featuredEditorials } from "@/data/editorials";
 import AffiliateBanner from "@/components/AffiliateBanner";
-import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
@@ -61,9 +60,6 @@ const Compare = () => {
         <Header />
         <main className="pt-20 pb-20">
           <section className="container mx-auto px-4">
-            <div className="mb-4">
-              <AdSlot placement="compare-top" compact />
-            </div>
             <div className="mb-8 max-w-2xl">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Shelf Showdown</p>
               <h1 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-5xl">
@@ -167,7 +163,7 @@ const Compare = () => {
             </div>
           </section>
         </main>
-        <div className="container mx-auto px-4 pb-8">
+        <div className="container mx-auto px-4">
           <AffiliateBanner placement="compare-bottom" />
         </div>
         <Footer />

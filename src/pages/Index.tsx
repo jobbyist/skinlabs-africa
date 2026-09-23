@@ -1,4 +1,5 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
@@ -12,12 +13,11 @@ import SpotlightTeaser from "@/components/SpotlightTeaser";
 // force ~360KB gzip of chart/PDF code to be modulepreloaded on every route
 // sitewide, including static legal pages. The real /skynn-ai route already
 // dynamically imports this same module, so the fetched chunk is shared.
-const AIFormulator = lazy(() => import("@/components/AIFormulator"));
+const AIFormulator = lazyWithRetry(() => import("@/components/AIFormulator"));
 import BrandAmbassadorTeaser from "@/components/BrandAmbassadorTeaser";
 import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
-import AffiliateBanner from "@/components/AffiliateBanner";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
@@ -81,32 +81,22 @@ const Index = () => {
         <main>
           <Hero />
 
-          {/* Faithful to Nature affiliate banner directly below hero */}
-          <div className="container mx-auto px-4 py-8">
-            <FaithfulToNature placement="home-below-hero" />
-          </div>
-
+          {/* Ad breaks: one unit per break, each separated by at least one full
+              content section, none under the hero or after the SKYNN AI section. */}
           <NewsroomFeed limit={3} showExploreLink />
-          <div className="container mx-auto px-4 py-6">
+          <div className="container mx-auto px-4">
             <AdSlot placement="home-after-newsroom" compact />
           </div>
 
           <SeasonalsTeaser />
-          <div className="container mx-auto px-4 py-6">
-            <AdSlot placement="home-after-seasonals" compact />
-          </div>
           <SectionDivider />
 
           <Editorials />
-          <div className="container mx-auto px-4 py-6">
-            <AdSlot placement="home-after-editorials" compact />
+          <div className="container mx-auto px-4">
+            <FaithfulToNature placement="home-after-editorials" />
           </div>
-          <SectionDivider />
 
           <SpotlightTeaser />
-          <div className="container mx-auto px-4 py-8">
-            <AffiliateBanner placement="home-mid-2" />
-          </div>
           <SectionDivider />
 
           <Suspense
@@ -121,17 +111,13 @@ const Index = () => {
           >
             <AIFormulator />
           </Suspense>
-          <div className="container mx-auto px-4 py-6">
-            <AdSlot placement="home-after-aiformulator" compact />
-          </div>
           <SectionDivider />
 
           {/* Show 3 published podcast episodes */}
           <PodcastSection limit={3} />
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4">
             <AdSlot placement="home-after-podcast" />
           </div>
-          <SectionDivider />
 
           {/* Brand Ambassador Programme 2026 announcement (replaces The Short Version / Features) */}
           <BrandAmbassadorTeaser />
