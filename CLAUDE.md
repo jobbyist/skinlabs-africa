@@ -1860,6 +1860,23 @@ feature appear operational.
       committed changes to `product-review-sync/index.ts` — not
       backfill-only scaffolding — so a future one-off content-gap fix on
       this pipeline inherits the same safety margin and visibility.
+      **Route naming split, live vs. git, discovered while merging**: this
+      branch had already been merged into `main` via PR #125 and had
+      substantial further work land on it since (SEO/structured-data
+      fields, a `backfillMissingFields`/`backfillStructuredData`/
+      primary_image-only backfill trio, a Pexels diagnostic route) —
+      including a rename of this bullet's own route from
+      `?action=backfill_full_reviews` to `?backfillFullReviews=true`.
+      Every live call documented in this bullet used the **old**
+      `?action=backfill_full_reviews` name against the version this
+      session deployed directly via MCP (which still worked and is what's
+      live as of this writing) — the git-committed source now on this
+      branch uses the **new** `?backfillFullReviews=true` name instead. If
+      a future GitHub-sync redeploy (or anyone else) overwrites the live
+      function from this committed source, `?action=backfill_full_reviews`
+      will stop working and `?backfillFullReviews=true` is the current
+      name to use instead — check `runBackfillFullReviews`'s call site in
+      the live source before assuming either name.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
