@@ -21,7 +21,8 @@ import AffiliateBanner from "@/components/AffiliateBanner";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
-import { pageSeo, SITE_URL, BRAND } from "@/lib/seo-config";
+import { useTheme } from "next-themes";
+import { pageSeo, SITE_URL, BRAND, buildOrganizationJsonLd } from "@/lib/seo-config";
 
 const SectionDivider = () => (
   <div className="container mx-auto px-4" aria-hidden="true">
@@ -31,27 +32,8 @@ const SectionDivider = () => (
 
 const Index = () => {
   const seo = pageSeo.home;
-  const orgLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: BRAND,
-    url: SITE_URL,
-    logo: `${SITE_URL}/pwa-512.png`,
-    description: seo.description,
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: "+27680200749",
-      contactType: "customer service",
-      areaServed: "ZA",
-    },
-    sameAs: [
-      "https://instagram.com/skinlabsza",
-      "https://facebook.com/skinlabs.co.za",
-      "https://tiktok.com/@skinlabsza",
-      "https://wa.me/27680200749",
-      "https://whatsapp.com/channel/0029VbEAGud7oQhZSPGNPg3J",
-    ],
-  };
+  const { resolvedTheme } = useTheme();
+  const orgLd = buildOrganizationJsonLd(resolvedTheme);
 
   const webSiteLd = {
     "@context": "https://schema.org",

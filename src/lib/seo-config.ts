@@ -7,7 +7,61 @@ export const BRAND = "SkinLabs®";
 export const SITE_URL = "https://skinlabs.co.za";
 export const DEFAULT_OG = `${SITE_URL}/og-image.png`;
 
+/**
+ * Theme-appropriate Organization logos for structured data. logosvg.png/
+ * logosvgwhite.png are real wordmark exports (public/logosvg.svg /
+ * public/logosvgwhite.svg rasterized) — light-mode dark wordmark and
+ * dark-mode light wordmark respectively, matching the same light/dark
+ * asset pair already used visually elsewhere (e.g. AuthDialog.tsx's
+ * skinlabs-logo-black.svg/skinlabs-logo-white.svg).
+ */
+export const ORG_LOGO_LIGHT = `${SITE_URL}/logosvg.png`;
+export const ORG_LOGO_DARK = `${SITE_URL}/logosvgwhite.png`;
+
+/**
+ * Real, verified-live social profile URLs — kept in exactly one place so
+ * Organization JSON-LD (schema.org sameAs) never drifts from what
+ * Footer.tsx actually renders as clickable links. Previously three
+ * independent declarations (Index.tsx, About.tsx, Partners.tsx) had each
+ * gone stale differently: missing X entirely, or pointing at a WhatsApp
+ * channel ID that didn't match the one actually linked in the footer.
+ */
+export const ORG_SAME_AS = [
+  "https://instagram.com/skinlabsza",
+  "https://facebook.com/skinlabs.co.za",
+  "https://x.com/skinlabsza",
+  "https://tiktok.com/@skinlabsza",
+  "https://whatsapp.com/channel/0029Vb6AAeX7YSdws80fii1m",
+] as const;
+
 export type PageSeo = { title: string; description: string; keywords?: string; canonicalPath?: string; ogType?: string; };
+
+/**
+ * The single Organization JSON-LD builder for the whole site. Every page
+ * that identifies SkinLabs as an entity (home, about, partners, ...)
+ * should call this rather than hand-rolling its own — that's what
+ * previously let three pages drift to three different sameAs/logo values
+ * for the same real-world organization. `theme` should come from
+ * `useTheme().resolvedTheme` so the logo matches what's actually on
+ * screen; defaults to the light-mode logo for any caller that can't
+ * resolve a theme (e.g. a server-rendered route with no theme context).
+ */
+export function buildOrganizationJsonLd(theme?: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: BRAND,
+    url: SITE_URL,
+    logo: theme === "dark" ? ORG_LOGO_DARK : ORG_LOGO_LIGHT,
+    sameAs: [...ORG_SAME_AS],
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: "+27680200749",
+      contactType: "customer service",
+      areaServed: "ZA",
+    },
+  };
+}
 
 export const pageSeo: Record<string, PageSeo> = {
   home: { title: `Skincare Intelligence for South Africa | ${BRAND}`, description: "Skincare, without the nonsense. Evidence-graded product reviews, daily skin science briefings and AI-personalised routines, built for South African skin — no affiliate deals, no gifted samples.", keywords: "skincare South Africa, SA product reviews, AI skincare routine, skin science, SkinLabs", canonicalPath: "/" },

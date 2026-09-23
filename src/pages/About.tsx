@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
   Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen,
   Microscope, Beaker, Brain, Leaf, Recycle, Package, Check, Crown, Sun, ShoppingBag,
@@ -11,9 +12,12 @@ import { Button } from "@/components/ui/button";
 import { membershipPlans } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { cn } from "@/lib/utils";
+import { buildOrganizationJsonLd } from "@/lib/seo-config";
 
 const About = () => {
   const location = useLocation();
+  const { resolvedTheme } = useTheme();
+  const organizationLd = buildOrganizationJsonLd(resolvedTheme);
 
   useEffect(() => {
     if (!location.hash) return;
@@ -225,13 +229,7 @@ const About = () => {
           "name": "About SkinLabs",
           "url": "https://skinlabs.co.za/about",
           "description": "Independent skin science platform built for South Africa with daily briefings, product reviews, our research methodology, sustainability commitments, AI routines, and membership plans.",
-          "mainEntity": {
-            "@type": "Organization",
-            "name": "SkinLabs",
-            "url": "https://skinlabs.co.za",
-            "foundingDate": "2023",
-            "description": "Content and community-first skincare platform for South Africa"
-          }
+          "mainEntity": { ...organizationLd, foundingDate: "2023" },
         })}</script>
       </Helmet>
 

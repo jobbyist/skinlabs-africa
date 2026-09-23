@@ -13,7 +13,12 @@ export default defineConfig(({ mode }) => ({
   base: "/",
   build: {
     outDir: "dist",
-    sourcemap: mode === "production" ? false : true,
+    // Was false in production, which is why live chunks like index-*.js and
+    // AIFormulator-*.js shipped with no accompanying .map file — every stack
+    // trace/error report from real production traffic was unmappable back to
+    // source. This is a public content site (no obfuscated proprietary logic
+    // worth hiding), so the standard tradeoff favors shipping real maps.
+    sourcemap: true,
     rollupOptions: {
       output: {
         // Generate unique filenames to bust cache on every build

@@ -50,7 +50,10 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/newskinlabs.png";
+// Served from public/ (not a Vite-bundled src/assets import) — real light/
+// dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
+// than a CSS filter on one file, so the actual PNG that's "live" for each
+// theme is directly verifiable from a network request, not a filter effect.
 
 type NavIcon = typeof Home;
 
@@ -236,7 +239,20 @@ const Header = () => {
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2" onClick={closeMenu}>
-            <img src={logo} alt="SkinLabs" className="h-8 w-auto md:h-9 dark:brightness-0 dark:invert" />
+            <img
+              src="/logosvg.png"
+              alt="SkinLabs"
+              width={804}
+              height={261}
+              className="h-8 w-auto md:h-9 dark:hidden"
+            />
+            <img
+              src="/logosvgwhite.png"
+              alt="SkinLabs"
+              width={804}
+              height={261}
+              className="hidden h-8 w-auto md:h-9 dark:block"
+            />
           </Link>
 
           {/* Desktop Menu button (replaces individual primary links) */}
