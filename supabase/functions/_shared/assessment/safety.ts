@@ -45,6 +45,43 @@ const RED_FLAG_URGENCY: Record<string, { urgency: SafetyUrgency; reason: string 
     urgency: "urgent",
     reason: "A severe, unexplained skin reaction is worth having assessed by a doctor promptly.",
   },
+  // --- SKYNN AI v2 (2026.2 question library) red flags, framework §5B ---
+  mole_abcde_features: {
+    urgency: "urgent",
+    reason: "A mole or spot with an uneven shape, ragged edge, several colours, or larger than a pencil eraser should be examined by a doctor or dermatologist promptly.",
+  },
+  new_dark_line_on_nail: {
+    urgency: "urgent",
+    reason: "A new dark line or band on a nail should be examined by a doctor or dermatologist promptly — changes like this are easy to overlook on deeper skin tones.",
+  },
+  spot_on_palm_or_sole: {
+    urgency: "urgent",
+    reason: "A new or changing dark spot on the palm of your hand or sole of your foot should be examined by a doctor or dermatologist promptly — changes like this are easy to overlook on deeper skin tones.",
+  },
+  bleeding_spot_or_mole: {
+    urgency: "urgent",
+    reason: "A spot or mole that bleeds without an obvious injury should be examined by a doctor promptly.",
+  },
+  spreading_redness_or_pus: {
+    urgency: "urgent",
+    reason: "Spreading redness, pus or rapidly worsening pain should be assessed by a doctor promptly.",
+  },
+  fever_with_skin_symptoms: {
+    urgency: "urgent",
+    reason: "Skin symptoms together with a fever should be assessed by a doctor promptly.",
+  },
+  deep_painful_cystic_breakouts: {
+    urgency: "prompt",
+    reason: "Deep, painful breakouts that leave lumps or scars are best managed with a doctor or dermatologist, who can offer treatments a cosmetic routine can't.",
+  },
+  widespread_rash_or_blistering: {
+    urgency: "urgent",
+    reason: "A widespread rash or blistering should be assessed by a doctor promptly.",
+  },
+  swelling_hives_or_breathing: {
+    urgency: "urgent",
+    reason: "Swelling of the lips or eyes, hives, or any difficulty breathing can be a serious allergic reaction — seek urgent medical care.",
+  },
 };
 
 const URGENCY_RANK: Record<SafetyUrgency, number> = { routine: 0, prompt: 1, urgent: 2 };
@@ -86,4 +123,72 @@ export function computeSafetyScreen(redFlags: string[] | null | undefined): Safe
     reasons,
     userMessage: USER_MESSAGE[urgency],
   };
+}
+
+// ---------------------------------------------------------------------------
+// SKYNN AI v2 deterministic triage floor (framework §5B/§11).
+//
+// The Haiku safety screener classifies the intake too, but the final triage
+// is ALWAYS the stricter of the model's answer and this floor — so a model
+// miss can never downgrade a red flag the respondent actually reported.
+// Categories mirror the framework's five red-flag groups; categories 1-4
+// force "escalate", category 5 (distress) forces at least "caution".
+// ---------------------------------------------------------------------------
+
+export type Triage = "clear" | "caution" | "escalate";
+export type RedFlagCategory =
+  | "suspected_malignancy"
+  | "possible_infection"
+  | "pregnancy_breastfeeding"
+  | "severe_systemic"
+  | "distress";
+
+const FLAG_CATEGORY: Record<string, RedFlagCategory> = {
+  rapidly_changing_mole: "suspected_malignancy",
+  mole_abcde_features: "suspected_malignancy",
+  new_dark_line_on_nail: "suspected_malignancy",
+  spot_on_palm_or_sole: "suspected_malignancy",
+  bleeding_spot_or_mole: "suspected_malignancy",
+  non_healing_sore_or_wound: "suspected_malignancy",
+  spreading_redness_or_pus: "possible_infection",
+  painful_swelling_or_signs_of_infection: "possible_infection",
+  fever_with_skin_symptoms: "possible_infection",
+  deep_painful_cystic_breakouts: "severe_systemic",
+  widespread_rash_or_blistering: "severe_systemic",
+  swelling_hives_or_breathing: "severe_systemic",
+  severe_unexplained_reaction: "severe_systemic",
+  sudden_severe_hair_loss: "severe_systemic",
+};
+
+const TRIAGE_RANK: Record<Triage, number> = { clear: 0, caution: 1, escalate: 2 };
+
+export function stricterTriage(a: Triage, b: Triage): Triage {
+  return TRIAGE_RANK[a] >= TRIAGE_RANK[b] ? a : b;
+}
+
+export interface DeterministicTriage {
+  triage: Triage;
+  categories: RedFlagCategory[];
+}
+
+export function computeDeterministicTriage(
+  responses: Record<string, unknown>,
+  opts: { nodularAcneReported?: boolean } = {},
+): DeterministicTriage {
+  const categories = new Set<RedFlagCategory>();
+  const flags = Array.isArray(responses["safety_red_flags"]) ? (responses["safety_red_flags"] as unknown[]) : [];
+  for (const f of flags) {
+    if (typeof f === "string" && FLAG_CATEGORY[f]) categories.add(FLAG_CATEGORY[f]);
+  }
+  if (opts.nodularAcneReported) categories.add("severe_systemic");
+
+  const pregnancy = responses["pregnancy_status"];
+  if (pregnancy === "pregnant" || pregnancy === "breastfeeding") categories.add("pregnancy_breastfeeding");
+
+  const distress = responses["skin_distress"];
+  if (distress === "sometimes" || distress === "often") categories.add("distress");
+
+  const escalating = [...categories].some((c) => c !== "distress");
+  const triage: Triage = escalating ? "escalate" : categories.has("distress") ? "caution" : "clear";
+  return { triage, categories: [...categories] };
 }
