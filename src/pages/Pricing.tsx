@@ -231,7 +231,7 @@ const Pricing = () => {
 
       <div className="min-h-screen bg-background">
         <Header />
-        <main className="pt-20 pb-24">
+        <main className="pt-28 pb-24">
           <div className="container mx-auto px-4">
             <div className="mx-auto mb-10 max-w-2xl text-center">
               <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Membership</p>
@@ -296,7 +296,8 @@ const Pricing = () => {
                   {plans.map((plan, index) => {
                     const price = planPrice(plan, interval);
                     const isPaidPlan = plan.plan_id !== "explorer";
-                    const isCurrentPlan = tier === plan.plan_id;
+                    // Signed-out visitors resolve to the free tier but have no plan of their own yet.
+                    const isCurrentPlan = Boolean(user) && tier === plan.plan_id;
                     const trialAvailable =
                       isPaidPlan && plan.trial_eligible && plan.trial_days > 0 && !trialUsed && !isCurrentPlan;
                     const savings = isPaidPlan && interval === "annual" ? annualSavingsLabel(plan) : null;
