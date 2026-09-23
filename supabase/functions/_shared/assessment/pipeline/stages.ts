@@ -13,7 +13,7 @@
  * contracts — the tool each model must call — never clinical methodology.
  */
 import type { JsonSchema } from "./jsonSchema.ts";
-import type { AssessmentTask } from "../modelConfig.ts";
+import type { AssessmentTask } from "../types.ts";
 
 export type StageRole = "intake" | "safety" | "fairness" | "reasoner" | "writer" | "qa";
 export const STAGE_ORDER: StageRole[] = ["intake", "safety", "fairness", "reasoner", "writer", "qa"];
@@ -190,7 +190,7 @@ export const STAGES: Record<StageRole, StageSpec> = {
   },
   reasoner: {
     role: "reasoner", task: "assessment_reasoning", toolName: "submit_skin_report",
-    toolDescription: "Submit the SkinReport JSON.", schema: REASONER_SCHEMA, maxTokens: 16000,
+    toolDescription: "Submit the SkinReport JSON. severity_scores are attached by SkinLabs from its deterministic scoring, and the report-level citations[] list is assembled from the citation codes you put on each routine step, active and lifestyle item.", schema: REASONER_SCHEMA, maxTokens: 16000,
   },
   writer: {
     role: "writer", task: "report_writing", toolName: "submit_rendered_report",

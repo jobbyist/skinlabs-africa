@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { useAdvancedAssessmentAccess } from "@/hooks/use-advanced-assessment";
 
 interface AdvancedAssessmentCardProps {
   /** Insider/VIP — the same "isMember" semantics used by AIFormulator.tsx (useMembership().isMember). */
-  isMember: boolean;
-  balance: number | null;
-  loading: boolean;
+  isMember?: boolean;
+  balance?: number | null;
+  loading?: boolean;
 }
 
 /**
@@ -23,11 +24,23 @@ interface AdvancedAssessmentCardProps {
  * reads — no second fetch) and membership state; the report itself still runs
  * through the existing SKYNN AI flow at /skynn-ai (or the dashboard's own
  * "Skin Analysis (SKYNN AI)" tab), never a duplicate product surface.
+ *
+ * SKYNN AI v2 (2026-09-23): when the v2 engine is live (rollout stage
+ * 'pass_holders_review'), eligibility and pass balance come from the
+ * server-side get_advanced_assessment_access() check and the CTA goes to
+ * the human-reviewed report at /skynn-ai/advanced. The props are only a
+ * fallback for when the v2 engine is switched off.
  */
-const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessmentCardProps) => {
+const AdvancedAssessmentCard = ({ isMember: isMemberProp = false, balance: balanceProp = null, loading: loadingProp = false }: AdvancedAssessmentCardProps) => {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const { access, loading: accessLoading } = useAdvancedAssessmentAccess();
+  const v2Live = !!access && access.rolloutStage !== "disabled";
+  const isMember = v2Live ? false : isMemberProp;
+  const balance = v2Live ? access.passesAvailable : balanceProp;
+  const loading = loadingProp || accessLoading;
   const hasPasses = (balance ?? 0) > 0;
-  const eligible = isMember || hasPasses;
+  const eligible = v2Live ? access.eligible : isMember || hasPasses;
+  const startHref = v2Live ? "/skynn-ai/advanced" : "/skynn-ai";
   const viewedRef = useRef(false);
 
   useEffect(() => {
@@ -67,12 +80,13 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
             {eligible
               ? "Go deeper than your Starter Analysis with a comprehensive AI dermatology report built to understand your skin profile in greater detail."
               : "Unlock a deeper understanding of your skin with SKYNN AI — a more comprehensive AI dermatology report than the free Starter Analysis."}
+            {v2Live && " Every report is checked by the SkinLabs team before it's released."}
           </p>
           {isMember ? (
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Included with your membership</Badge>
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
-                <Link to="/skynn-ai">
+                <Link to={startHref}>
                   <Sparkles className="h-3.5 w-3.5" />
                   Start My Dermatology Report
                 </Link>
@@ -82,7 +96,7 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{balance} Analysis Pass{balance === 1 ? "" : "es"} available</Badge>
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
-                <Link to="/skynn-ai">
+                <Link to={startHref}>
                   <Sparkles className="h-3.5 w-3.5" />
                   Start My Dermatology Report
                 </Link>
@@ -93,6 +107,11 @@ const AdvancedAssessmentCard = ({ isMember, balance, loading }: AdvancedAssessme
               <Lock className="h-3.5 w-3.5" />
               Explore access
             </Button>
+          )}
+          {v2Live && (
+            <Link to="/skynn-ai/advanced" className="block text-xs text-muted-foreground underline underline-offset-2">
+              View my Advanced reports
+            </Link>
           )}
         </CardContent>
       </Card>

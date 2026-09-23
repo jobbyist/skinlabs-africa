@@ -36,7 +36,7 @@ function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-// deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- deno-lint-ignore no-explicit-any
 type Admin = any;
 
 async function authorised(req: Request, admin: Admin, supabaseUrl: string, anonKey: string): Promise<boolean> {

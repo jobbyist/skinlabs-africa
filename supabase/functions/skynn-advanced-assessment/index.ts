@@ -205,7 +205,7 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
           body: "{}",
         }).catch((err) => console.warn("skynn-advanced-assessment: worker kick failed", err));
-        // deno-lint-ignore no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deno-lint-ignore no-explicit-any
         const runtime = (globalThis as any).EdgeRuntime;
         if (runtime?.waitUntil) runtime.waitUntil(kick);
 

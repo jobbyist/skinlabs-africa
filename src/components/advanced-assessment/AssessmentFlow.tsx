@@ -44,7 +44,11 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
     [currentSection, responses],
   );
   const requiredUnanswered = applicableQuestions.filter((q) => q.required && !isAnswered(q, responses));
-  const canAdvance = requiredUnanswered.length === 0;
+  // POPIA: SKYNN AI can't process special personal information without
+  // explicit consent, so a "decline" answer stops the flow here — before
+  // any Analysis Pass could be spent (the submit RPC enforces this too).
+  const consentDeclined = applicableQuestions.some((q) => q.id.startsWith("popia_") && responses[q.id] === "decline");
+  const canAdvance = requiredUnanswered.length === 0 && !consentDeclined;
 
   if (!currentSection) return null;
 
@@ -105,6 +109,13 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
           </div>
         ))}
       </div>
+
+      {consentDeclined && (
+        <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          We can only create an Advanced AI Dermatology Report with your consent. You can change your answer above, or
+          leave now — no Analysis Pass has been used.
+        </p>
+      )}
 
       <div className="flex items-center justify-between mt-10">
         <Button

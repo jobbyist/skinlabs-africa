@@ -12,7 +12,7 @@
  */
 
 export type AssessmentAccessType = "analysis_pass" | "membership" | "none";
-export type AssessmentRolloutStage = "disabled" | "internal" | "beta" | "public";
+export type AssessmentRolloutStage = "disabled" | "internal" | "beta" | "pass_holders_review" | "public";
 
 export interface AdvancedAssessmentAccess {
   eligible: boolean;
@@ -104,62 +104,125 @@ export interface EvidenceReference {
 
 export type ReportConfidence = "high" | "moderate" | "limited";
 export type ReportGenerationStatus = "pending" | "completed" | "failed";
+export type ReportReviewStatus = "awaiting_review" | "approved" | "rejected";
+export type Triage = "clear" | "caution" | "escalate";
 
-export interface AdvancedDermatologyReport {
-  summary: string;
-  skinProfile: { skinType: string; keyTraits: string[] };
-  observations: string[];
-  primaryConcerns: Array<{ concern: string; priority: number; rationale: string }>;
-  secondaryConcerns: string[];
-  contributingFactors: Array<{ factor: string; explanation: string }>;
-  routineAssessment: { strengths: string[]; gaps: string[] };
-  recommendations: Array<{ area: string; recommendation: string; rationale: string }>;
-  ingredientGuidance: Array<{ ingredientOrCategory: string; guidance: string }>;
-  routineStrategy: { amFocus: string; pmFocus: string; notes: string };
-  lifestyleContext: string[];
-  whatToAvoid: string[];
-  safetyFlags: SafetyScreenResult;
-  evidence: EvidenceReference[];
-  confidence: ReportConfidence;
-  uncertainties: string[];
+// ---------------------------------------------------------------------------
+// SKYNN AI v2 report (2026-09-23). Mirrors FinalReportV2 in
+// supabase/functions/_shared/assessment/pipeline/run.ts and the scoring
+// result types in supabase/functions/_shared/assessment/scoring/ — keep in
+// sync with those if either changes (separate build targets, see above).
+// ---------------------------------------------------------------------------
+
+export interface CitedSource {
+  code: string;
+  title: string;
+  publisher: string | null;
+  year: number | null;
+  url: string | null;
+  pmid: string | null;
+  doi: string | null;
+  source_type: string;
 }
 
+export interface AdvancedReportScores {
+  version: string;
+  baumannStyle: {
+    code: string | null;
+    axes: Record<string, { score: number; max: number; answered: number; letter: string; label: string }>;
+    label: string;
+  };
+  acne: {
+    present: boolean;
+    gagsStyleTotal: number | null;
+    gagsStyleBand: string | null;
+    igaStyleGrade: number | null;
+    igaStyleLabel: string | null;
+    label: string;
+  };
+  glogauStyle: { type: string | null; label: string | null };
+  melasmaTracker: { present: boolean; mmasiStyleScore: number | null; max: number; label: string };
+  qolImpact: { score: number | null; band: string | null; label: string };
+  mst: { tier: number | null; group: string | null; skinOfColourPriority: boolean; ironOxideSpfIndicated: boolean };
+}
+
+export interface ReportRoutineStep {
+  step: string;
+  product_type: string;
+  guidance: string;
+  citations: string[];
+}
+
+export interface AdvancedDermatologyReportV2 {
+  schemaVersion: 2;
+  engineVersion: string;
+  summary: string;
+  skinProfile: { headline: string; keyTraits: string[]; baumannStyleType: string | null };
+  scores: AdvancedReportScores;
+  triage: { level: Triage; categories: string[]; message: string | null };
+  fairness: { mst_tier: number | null; tone_confidence: string; soc_priority_conditions: string[]; photoprotection_note: string };
+  routineAm: ReportRoutineStep[];
+  routinePm: ReportRoutineStep[];
+  targetedActives: Array<{ active: string; for: string; how_to_introduce: string; citations: string[]; tone_confidence: string }>;
+  lifestyle: Array<{ advice: string; citations: string[] }>;
+  whatToAvoid: string[];
+  disclaimers: string[];
+  confidence: ReportConfidence;
+  uncertainties: string[];
+  evidence: CitedSource[];
+  methodology: CitedSource[];
+  markdown: string;
+  emailSummary: string;
+}
+
+/** What get_my_advanced_assessment_report() returns — content fields are
+ *  null until an admin has approved the report. */
 export interface AdvancedAssessmentReportRow {
   id: string;
   session_id: string;
+  created_at: string;
+  generated_at: string | null;
   generation_status: ReportGenerationStatus;
+  review_status: ReportReviewStatus | null;
+  released_at: string | null;
   error_message: string | null;
-  report: AdvancedDermatologyReport | null;
+  triage: Triage | null;
   confidence: ReportConfidence | null;
-  model: string | null;
-  prompt_version: string | null;
+  report: AdvancedDermatologyReportV2 | null;
+  rendered_markdown: string | null;
   engine_version: string | null;
+  prompt_version: string | null;
+}
+
+export interface AdvancedAssessmentReportSummary {
+  id: string;
+  session_id: string;
+  generation_status: ReportGenerationStatus;
+  review_status: ReportReviewStatus | null;
+  released_at: string | null;
   generated_at: string | null;
   created_at: string;
 }
 
 /**
- * Smart Routines integration contract (section 35) — the shape a completed
- * Advanced Assessment report would hand off to populate/enrich the existing
- * Smart Routines feature (src/hooks/use-routine.ts). Defined now as the
- * agreed contract; no Smart Routines write path consumes it yet (would be a
- * second routine engine otherwise — out of scope for this foundation, see
- * CLAUDE.md).
+ * Smart Routines integration contract (section 35) — the shape an approved
+ * Advanced report would hand off to the Smart Routines feature
+ * (src/hooks/use-routine.ts). Contract only; no write path consumes it yet.
  */
 export interface AdvancedRoutineContext {
-  skinProfile: AdvancedDermatologyReport["skinProfile"];
-  concerns: AdvancedDermatologyReport["primaryConcerns"];
+  baumannStyleType: string | null;
+  routineAm: ReportRoutineStep[];
+  routinePm: ReportRoutineStep[];
   ingredientPreferences: string[];
   ingredientAvoidances: string[];
-  routineRecommendations: AdvancedDermatologyReport["recommendations"];
 }
 
-export function buildRoutineHandoffContext(report: AdvancedDermatologyReport): AdvancedRoutineContext {
+export function buildRoutineHandoffContext(report: AdvancedDermatologyReportV2): AdvancedRoutineContext {
   return {
-    skinProfile: report.skinProfile,
-    concerns: report.primaryConcerns,
-    ingredientPreferences: report.ingredientGuidance.map((g) => g.ingredientOrCategory),
+    baumannStyleType: report.skinProfile.baumannStyleType,
+    routineAm: report.routineAm,
+    routinePm: report.routinePm,
+    ingredientPreferences: report.targetedActives.map((a) => a.active),
     ingredientAvoidances: report.whatToAvoid,
-    routineRecommendations: report.recommendations,
   };
 }

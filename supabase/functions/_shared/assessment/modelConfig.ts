@@ -25,24 +25,10 @@
  * single default constant.
  */
 
-export type AssessmentTask =
-  | "report_generation"
-  | "complex_reasoning"
-  | "evidence_synthesis"
-  | "safety_review"
-  | "report_regeneration"
-  | "routine_transformation"
-  | "classification"
-  | "chat"
-  // SKYNN AI v2 multi-model pipeline (2026-09-23, framework §4): Haiku for
-  // high-volume intake/safety triage, Sonnet for reasoning and writing,
-  // Opus as the final compliance/QA gate.
-  | "intake_normalisation"
-  | "safety_triage"
-  | "fairness_calibration"
-  | "assessment_reasoning"
-  | "report_writing"
-  | "qa_review";
+// The task union lives in types.ts (no Deno globals) so Bun-tested modules
+// can import it; re-exported here for existing callers.
+import type { AssessmentTask } from "./types.ts";
+export type { AssessmentTask };
 
 const TASK_MODELS: Record<AssessmentTask, string> = {
   report_generation: "claude-opus-5",
