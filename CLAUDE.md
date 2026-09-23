@@ -50,9 +50,16 @@ feature appear operational.
   - **Current season is derived from the date** (`getCurrentSeason()` in
     `src/data/seasonals.ts`, SA southern-hemisphere months, SAST) instead of a
     hardcoded `"spring"` on `/seasonals` and the homepage teaser.
-  - Briefing cards no longer carry `.gradient-border-anim` (one gradient accent
-    per screen). Page-level cards stay `rounded-3xl` (the established majority);
-    the shared `ui/card.tsx` primitive stays `rounded-2xl`.
+  - Briefing cards (`NewsroomFeed.tsx`) carry `.gradient-border-anim` on every
+    card — briefly removed during this pass, then **reapplied at the user's
+    explicit request (2026-09-23)**, so treat it as a deliberate exception to
+    the "one gradient accent per screen" guidance, not drift. Each card's
+    action row is Like / Save / Share: Save is visible to everyone (signed-out
+    visitors get the `AuthDialog` in place, since saves are account-bound in
+    `news_article_engagement`); Share uses the Web Share API with a
+    copy-link fallback, same pattern as `NewsroomArticle.tsx`. Page-level cards
+    stay `rounded-3xl` (the established majority); the shared `ui/card.tsx`
+    primitive stays `rounded-2xl`.
   - framer-motion entrance animations on /pricing and the briefing grid now
     check `useReducedMotion()` — the CSS `prefers-reduced-motion` block in
     `index.css` can't stop JS-driven animations.

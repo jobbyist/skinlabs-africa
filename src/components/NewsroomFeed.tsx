@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, X,
+  ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, Share2, X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useUnsplashImage } from "@/hooks/use-unsplash-image";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import AuthDialog from "@/components/AuthDialog";
 
 const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
 
@@ -83,6 +84,7 @@ const NewsroomFeed = ({
   const shouldReduceMotion = useReducedMotion();
   const [likedIds, setLikedIds] = useState<string[]>(getLikedBriefingIds);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -163,7 +165,8 @@ const NewsroomFeed = ({
 
   const handleSave = async (article: NewsArticleSummary) => {
     if (!user) {
-      toast.message("Sign in to save briefings.");
+      // Saving is tied to an account; open sign-in in place rather than a dead-end toast.
+      setAuthOpen(true);
       return;
     }
     const isSaved = savedIds.includes(article.id);
@@ -192,6 +195,28 @@ const NewsroomFeed = ({
         isSaved ? [...prev, article.id] : prev.filter((id) => id !== article.id),
       );
       toast.error("Failed to save. Please try again.");
+    }
+  };
+
+  const handleShare = async (article: NewsArticleSummary) => {
+    const shareData = {
+      title: article.title,
+      text: article.excerpt,
+      url: `${window.location.origin}/briefings/${article.slug}`,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(shareData.url);
+      toast.success("Briefing link copied");
+    } catch {
+      toast.error("Could not copy the briefing link");
     }
   };
 
@@ -356,22 +381,28 @@ const NewsroomFeed = ({
                         >
                           <Heart className={cn("h-4 w-4", likedIds.includes(article.id) && "fill-primary text-primary")} />
                         </button>
-                        {user && (
-                          <button
-                            type="button"
-                            onClick={() => void handleSave(article)}
-                            aria-label={savedIds.includes(article.id) ? "Unsave article" : "Save article"}
-                            aria-pressed={savedIds.includes(article.id)}
-                            className="rounded-full p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <Bookmark
-                              className={cn(
-                                "h-4 w-4",
-                                savedIds.includes(article.id) && "fill-primary text-primary",
-                              )}
-                            />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => void handleSave(article)}
+                          aria-label={savedIds.includes(article.id) ? "Remove from saved briefings" : "Save briefing"}
+                          aria-pressed={user ? savedIds.includes(article.id) : undefined}
+                          className="rounded-full p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Bookmark
+                            className={cn(
+                              "h-4 w-4",
+                              savedIds.includes(article.id) && "fill-primary text-primary",
+                            )}
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleShare(article)}
+                          aria-label={`Share briefing: ${article.title}`}
+                          className="rounded-full p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -394,6 +425,7 @@ const NewsroomFeed = ({
           <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} className="mt-10" />
         )}
       </div>
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
     </section>
   );
 };
