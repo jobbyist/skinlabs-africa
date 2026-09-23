@@ -16,6 +16,7 @@
  * Function secret is needed), OR a signed-in admin's JWT for manual runs.
  * verify_jwt is off in config.toml because pg_cron sends no JWT.
  *
+ * Runs in the background (EdgeRuntime.waitUntil) after a 202 response.
  * Wall clock: the pipeline stops starting new stages after TIME_BUDGET_MS
  * and releases its lease; the next tick resumes from the last saved stage.
  */
@@ -29,7 +30,9 @@ import { generateSalt } from "../_shared/assessment/pipeline/userData.ts";
 import { deriveTopicsV2, selectEvidenceV2, type EvidenceEntry } from "../_shared/assessment/pipeline/evidenceV2.ts";
 import { callClaudeStructured, transportConfigured } from "../_shared/assessment/pipeline/claudeTransport.ts";
 
-const TIME_BUDGET_MS = 100_000;
+// Conservative so a stage started near the budget still finishes inside the
+// edge runtime's wall-clock limit; unfinished work resumes next tick.
+const TIME_BUDGET_MS = 60_000;
 const MAX_JOBS_PER_RUN = 1;
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -230,27 +233,42 @@ Deno.serve(async (req) => {
   const { data: jobs, error: claimError } = await admin.rpc("claim_advanced_assessment_jobs", { p_limit: MAX_JOBS_PER_RUN, p_worker: workerId });
   if (claimError) return json(500, { error: "claim failed" });
 
-  const results: Array<Record<string, unknown>> = [];
-  for (const job of jobs ?? []) {
-    try {
-      results.push(await processJob(admin, job));
-    } catch (err) {
-      const code = err instanceof AssessmentProviderError || err instanceof PipelineStageError ? err.code : "internal";
-      console.error(`skynn-advanced-worker: job ${job.report_id} errored (${code}):`, err);
-      if (code === "not_configured") {
-        // Operator problem (prompt set missing): keep the job for later.
-        await admin.rpc("save_advanced_assessment_pipeline_state", {
-          p_report_id: job.report_id, p_state: job.pipeline_state ?? {}, p_stage: "blocked_not_configured", p_release: true,
-        });
-      } else {
-        // Transient (rate limit, upstream 5xx, malformed output): release the
-        // lease so the next tick retries from the last saved stage. The claim
-        // RPC fails + refunds the job after 6 attempts.
-        await admin.from("advanced_assessment_reports").update({ locked_at: null, locked_by: null }).eq("id", job.report_id);
+  const claimed = (jobs ?? []) as Array<{ report_id: string; session_id: string; user_id: string; pipeline_state: PipelineState | null }>;
+  const work = (async () => {
+    const results: Array<Record<string, unknown>> = [];
+    for (const job of claimed) {
+      try {
+        results.push(await processJob(admin, job));
+      } catch (err) {
+        const code = err instanceof AssessmentProviderError || err instanceof PipelineStageError ? err.code : "internal";
+        console.error(`skynn-advanced-worker: job ${job.report_id} errored (${code}):`, err);
+        if (code === "not_configured") {
+          // Operator problem (prompt set missing): keep the job for later.
+          await admin.rpc("save_advanced_assessment_pipeline_state", {
+            p_report_id: job.report_id, p_state: job.pipeline_state ?? {}, p_stage: "blocked_not_configured", p_release: true,
+          });
+        } else {
+          // Transient (rate limit, upstream 5xx, malformed output): release
+          // the lease so the next tick retries from the last saved stage.
+          // The claim RPC fails + refunds the job after 6 attempts.
+          await admin.from("advanced_assessment_reports").update({ locked_at: null, locked_by: null }).eq("id", job.report_id);
+        }
+        results.push({ reportId: job.report_id, status: "error", code });
       }
-      results.push({ reportId: job.report_id, status: "error", code });
     }
-  }
+    console.log(`skynn-advanced-worker ${workerId}: ${JSON.stringify(results)}`);
+    return results;
+  })();
 
+  // Respond immediately and finish in the background: pg_cron's pg_net call
+  // uses a short timeout, and a pipeline run can take a couple of minutes.
+  // EdgeRuntime.waitUntil keeps the isolate alive until `work` settles.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deno-lint-ignore no-explicit-any
+  const runtime = (globalThis as any).EdgeRuntime;
+  if (runtime?.waitUntil && claimed.length > 0) {
+    runtime.waitUntil(work);
+    return json(202, { ok: true, worker: workerId, claimed: claimed.map((j) => j.report_id) });
+  }
+  const results = await work;
   return json(200, { ok: true, worker: workerId, processed: results.length, results });
 });
