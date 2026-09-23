@@ -1583,6 +1583,61 @@ feature appear operational.
       real, enabled Google AI Studio key with the Generative Language API
       turned on for its project, and that no typo/whitespace was
       introduced — before the backfill can be retried again.
+    - **Backfill completed 2026-09-22/23 (same continuation, finished)** —
+      user confirmed the key was updated; a retest showed it now works.
+      Two more real bugs were found and fixed before the backfill could
+      actually run to completion:
+      1. **`runBackfillFullReviews()` itself hit `WORKER_RESOURCE_LIMIT`**
+         (the edge function's compute budget), even at `limit: 3` — the
+         `limit` param only bounds how many candidates are *considered*,
+         not how many real Gemini calls happen per invocation. Fixed with
+         `MAX_BACKFILL_ATTEMPTS_PER_RUN = 2`, the same "small per-run cap,
+         bigger cumulative target across repeated calls" pattern already
+         used by shelf-showdown-sync's `MAX_SHOWDOWNS_PER_RUN` — a single
+         invocation now always finishes cleanly, and the caller (a bash
+         loop re-POSTing the same idempotent request) tops up progress
+         across many calls.
+      2. **Supabase's GitHub-sync integration reverted the live function
+         to a stale, pre-backfill version mid-session** — exactly the
+         hazard documented two bullets above, caught live when a
+         backfill call silently fell through to the main daily-publish
+         flow instead (`"Daily review cap already met"` instead of a
+         backfill response). Confirmed via `get_edge_function` (zero
+         occurrences of `backfill_full_reviews` in the live source,
+         version freshly bumped with no corresponding deploy from this
+         session) and fixed by redeploying immediately before resuming.
+         **Practical lesson reinforced**: after any GitHub push/merge
+         activity, or after any gap in activity on a function you're
+         actively driving, re-verify live content before the next call
+         rather than assuming a prior deploy is still in effect.
+      With both fixed, the backfill ran to completion via a bash loop
+      re-POSTing each of the 8 prepared static-catalogue batch files
+      (`batch-00.json` through `batch-07.json`, ~10-13 iterations each at
+      2 real Gemini attempts/call) plus the generated-catalogue mode
+      (omit `reviews`, ~19 iterations) until each source reported
+      `skipped` equal to its full size. **Final live-verified state**:
+      `review_details` went from 6 rows to 203 — all 39
+      `ai_generated_product_reviews` rows and 158 of 160 static
+      `src/data/reviews.ts` rows now have a real `full_review`. The
+      remaining 2 static reviews (`sb-renew-dew-ceramide-butter`,
+      `lamelle-serra-restore-cream`) are **permanently, correctly**
+      rejected by `qaFullReview()`'s compliance scanner every single
+      attempt (`named_diagnosis:eczema`) — both are genuine barrier-
+      repair/ceramide products whose own `skin_type_match`/verdict
+      grounding text legitimately mentions eczema-prone skin, which
+      `scanComplianceFlags()` correctly treats as a named-diagnosis
+      violation regardless of how many times it's regenerated (working
+      as designed, not a bug to route around — see this file's
+      `FORBIDDEN_DIAGNOSIS_TERMS` precedent elsewhere). Leave these two
+      without a `full_review` unless a human decides to hand-write one
+      that discusses the same skin concern without the flagged term, or
+      changes the compliance policy for genuinely educational ingredient
+      context (a larger, separate decision).
+      The `MAX_BACKFILL_ATTEMPTS_PER_RUN` cap and the diagnostic
+      `attemptDetails` array added during this fix are both permanent,
+      committed changes to `product-review-sync/index.ts` — not
+      backfill-only scaffolding — so a future one-off content-gap fix on
+      this pipeline inherits the same safety margin and visibility.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded
