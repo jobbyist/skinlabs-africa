@@ -1046,3 +1046,104 @@ Typical checks:
 npm run lint
 npx tsc --noEmit
 ```
+
+If the project exposes tests:
+
+```bash
+npm test
+```
+
+or the project's existing test command.
+
+Do not invent new validation infrastructure.
+
+If a command does not exist, do not manufacture it.
+
+---
+
+# 30. FINAL REPORT
+
+When complete, report:
+
+## Polished
+
+List the files/components changed.
+
+## Improvements
+
+Summarize the meaningful UX/UI improvements.
+
+## Motion
+
+List any animation changes.
+
+## Responsive
+
+List any mobile/tablet/desktop fixes.
+
+## Accessibility
+
+List accessibility improvements.
+
+## Verification
+
+Report:
+
+- lint
+- typecheck
+- tests
+
+## Not Changed
+
+Explicitly state any areas intentionally left untouched because they are
+outside the scope of visual polish.
+
+Keep the final report concise.
+
+---
+
+# 31. IMPORTANT FAILURE MODE
+
+If the page already looks good:
+
+DO NOT invent work.
+
+A successful `/polish` run may legitimately result in:
+
+> "No significant visual changes recommended."
+
+The goal is quality, not change volume.
+
+Never modify the interface merely to demonstrate that the skill ran.
+
+---
+
+# 32. DEFINITION OF DONE
+
+The polish pass is complete when:
+
+- the hierarchy is immediately understandable
+- the primary action is obvious
+- spacing feels intentional
+- typography feels consistent
+- components follow SkinLabs patterns
+- light and dark modes both work
+- mobile feels intentionally designed
+- interaction states feel complete
+- motion feels purposeful
+- reduced motion is respected
+- accessibility has been considered
+- the interface does not feel over-designed
+- no existing business behavior has been changed
+- validation passes
+- the result feels unmistakably like SkinLabs®
+
+The standard is:
+
+Refined, not redesigned.
+
+Intentional, not ornamental.
+
+Premium, not excessive.
+
+SkinLabs®, not generic SaaS.
