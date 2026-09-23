@@ -20,6 +20,14 @@
  * defense in depth, not the only thing standing between a client and a bad
  * write.)
  *
+ * SKYNN AI v2 (2026-09-23): generation is no longer synchronous. `submit`
+ * only runs the atomic submit RPC (consent gate + pass consumption) and
+ * returns `pending`; the skynn-advanced-worker function runs the
+ * multi-model pipeline in the background and HOLDS the finished report for
+ * human review. Report content is only ever returned through
+ * get_my_advanced_assessment_report(), which withholds it until an admin
+ * has approved the report.
+ *
  * verify_jwt is off (supabase/config.toml) and auth is checked manually
  * below, same as supabase/functions/skincare-ai/index.ts, so this function
  * can return a clean 401 JSON body instead of the platform's default.
@@ -27,14 +35,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-import { AssessmentProviderError, type AssessmentGenerationInput } from "../_shared/assessment/types.ts";
+import { AssessmentProviderError } from "../_shared/assessment/types.ts";
 import { computeSafetyScreen } from "../_shared/assessment/safety.ts";
-import { buildSanitizedProfile } from "../_shared/assessment/sanitize.ts";
-import { normalizeAssessment, extractRoutineContext, deriveEvidenceTopics, type DefinitionSection } from "../_shared/assessment/normalize.ts";
-import { selectEvidenceForTopics, validateCitedEvidence, type EvidenceRow } from "../_shared/assessment/evidence.ts";
-import { loadActivePrompt } from "../_shared/assessment/promptRegistry.ts";
-import { ClaudeAssessmentProvider } from "../_shared/assessment/claudeProvider.ts";
-import { scanComplianceFlags, extractReportText } from "../_shared/assessment/compliance.ts";
 import { mapPostgrestError, mapProviderErrorCode } from "../_shared/assessment/errors.ts";
 
 const corsHeaders = {
@@ -70,11 +72,8 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    // Service-role — only for reading the proprietary prompt/evidence and
-    // for the completion/failure RPCs that run after a request-scoped RPC
-    // transaction has already committed (see the migration's comments on
-    // fail_advanced_assessment_session / complete_advanced_assessment_session).
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    // The service-role key is only used to authenticate the best-effort
+    // worker kick in `submit` — every data access here is user-scoped.
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
@@ -142,7 +141,7 @@ serve(async (req) => {
 
         const { data: report } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, generation_status, error_message, generated_at")
+          .select("id, generation_status, review_status, error_message, generated_at")
           .eq("session_id", sessionId)
           .maybeSingle();
 
@@ -198,28 +197,19 @@ serve(async (req) => {
         const reportId = (submission as { report_id: string | null }).report_id;
         if (!reportId) return json(500, { error: "Could not start report generation." });
 
-        const { data: reportRow } = await supabaseAuth
-          .from("advanced_assessment_reports")
-          .select("generation_status")
-          .eq("id", reportId)
-          .single();
+        // Best-effort nudge so the worker starts now rather than on the next
+        // pg_cron minute. Never awaited into the response and never fatal:
+        // the cron job is the guaranteed path.
+        const kick = fetch(`${supabaseUrl}/functions/v1/skynn-advanced-worker`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
+          body: "{}",
+        }).catch((err) => console.warn("skynn-advanced-assessment: worker kick failed", err));
+        // deno-lint-ignore no-explicit-any
+        const runtime = (globalThis as any).EdgeRuntime;
+        if (runtime?.waitUntil) runtime.waitUntil(kick);
 
-        // Idempotent: only ever generate for a report still 'pending'. A
-        // retried submit (network replay, double-click) for an
-        // already-completed/failed report just returns its current state.
-        if (reportRow?.generation_status !== "pending") {
-          return json(200, { sessionId, reportId, status: reportRow?.generation_status ?? "unknown" });
-        }
-
-        await generateReport({ supabaseAuth, supabaseAdmin, userId, sessionId, safetyScreen });
-
-        const { data: finalReport } = await supabaseAuth
-          .from("advanced_assessment_reports")
-          .select("generation_status, error_message")
-          .eq("id", reportId)
-          .single();
-
-        return json(200, { sessionId, reportId, status: finalReport?.generation_status ?? "unknown", errorMessage: finalReport?.error_message ?? null });
+        return json(200, { sessionId, reportId, status: "pending", reviewStatus: null, errorMessage: null });
       }
 
       case "status": {
@@ -228,24 +218,27 @@ serve(async (req) => {
         const { data: session } = await supabaseAuth.from("advanced_assessment_sessions").select("status").eq("id", sessionId).single();
         const { data: report } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, generation_status, error_message")
+          .select("id, generation_status, review_status, error_message")
           .eq("session_id", sessionId)
           .maybeSingle();
         return json(200, { sessionStatus: session?.status ?? null, report: report ?? null });
       }
 
       case "get_report": {
-        const reportId = body?.reportId as string | undefined;
-        const sessionId = body?.sessionId as string | undefined;
-        let query = supabaseAuth.from("advanced_assessment_reports").select("*");
-        query = reportId ? query.eq("id", reportId) : query.eq("session_id", sessionId ?? "");
-        const { data: report, error } = await query.single();
+        const reportId = (body?.reportId ?? null) as string | null;
+        const sessionId = (body?.sessionId ?? null) as string | null;
+        if (!reportId && !sessionId) return json(400, { error: "reportId or sessionId is required" });
+        // Content is withheld server-side until an admin approves the report.
+        const { data: report, error } = await supabaseAuth.rpc("get_my_advanced_assessment_report", {
+          p_report_id: reportId,
+          p_session_id: sessionId,
+        });
         if (error || !report) return json(404, { error: "That report could not be found." });
 
-        if (report.generation_status === "completed") {
+        if ((report as { review_status?: string }).review_status === "approved") {
           await supabaseAuth.from("advanced_assessment_events").insert({
             user_id: userId,
-            session_id: report.session_id,
+            session_id: (report as { session_id: string }).session_id,
             event_type: "report_viewed",
             metadata: {},
           });
@@ -256,7 +249,7 @@ serve(async (req) => {
       case "list_reports": {
         const { data: reports, error } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, session_id, generation_status, generated_at, confidence, created_at")
+          .select("id, session_id, generation_status, review_status, released_at, generated_at, created_at")
           .order("created_at", { ascending: false });
         if (error) return json(500, { error: "Could not load your reports." });
         return json(200, { reports: reports ?? [] });
@@ -289,123 +282,3 @@ serve(async (req) => {
     return json(500, { error: "Something went wrong. Please try again.", code: "internal_error", detail: Deno.env.get("SKYNN_DEBUG") === "1" ? message : undefined });
   }
 });
-
-/**
- * Runs generation for a 'pending' report and persists the outcome. Kept
- * synchronous within the request (see section 21's "document the
- * limitation" fallback in the engine brief — this platform has no
- * background worker/queue infra to hand this off to). Structured so a
- * future move to an async worker only needs to call this same function from
- * a different trigger (e.g. a cron/webhook sweep over generation_status =
- * 'pending' reports) rather than a rewrite.
- */
-async function generateReport(args: {
-  // deno-lint-ignore no-explicit-any
-  supabaseAuth: any;
-  // deno-lint-ignore no-explicit-any
-  supabaseAdmin: any;
-  userId: string;
-  sessionId: string;
-  safetyScreen: ReturnType<typeof computeSafetyScreen>;
-}): Promise<void> {
-  const { supabaseAuth, supabaseAdmin, userId, sessionId, safetyScreen } = args;
-
-  try {
-    await supabaseAdmin.rpc("mark_advanced_assessment_processing", { p_session_id: sessionId });
-    await supabaseAuth.from("advanced_assessment_events").insert({ user_id: userId, session_id: sessionId, event_type: "generation_started", metadata: {} });
-
-    const { data: session, error: sessionError } = await supabaseAuth
-      .from("advanced_assessment_sessions")
-      .select("responses, assessment_version, assessment_definition_id")
-      .eq("id", sessionId)
-      .single();
-    if (sessionError || !session) throw new AssessmentProviderError("Session disappeared during generation.", "upstream_error");
-
-    const { data: definition, error: defError } = await supabaseAuth
-      .from("assessment_definitions")
-      .select("sections")
-      .eq("id", session.assessment_definition_id)
-      .single();
-    if (defError || !definition) throw new AssessmentProviderError("Assessment definition unavailable.", "not_configured");
-
-    const { data: profile } = await supabaseAuth
-      .from("profiles")
-      .select("date_of_birth, city, province, subscription_status")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const membershipTierRaw = (profile?.subscription_status ?? "").toLowerCase();
-    const membershipTier: "explorer" | "glow_lite" | "insider" | "vip" =
-      membershipTierRaw === "vip" ? "vip" : ["insider", "active", "premium"].includes(membershipTierRaw) ? "insider" : membershipTierRaw === "glow_lite" ? "glow_lite" : "explorer";
-
-    const sanitizedProfile = buildSanitizedProfile({
-      dateOfBirth: profile?.date_of_birth ?? null,
-      city: profile?.city ?? null,
-      province: profile?.province ?? null,
-      membershipTier,
-    });
-
-    const responses = (session.responses ?? {}) as Record<string, unknown>;
-    const normalized = normalizeAssessment(definition.sections as DefinitionSection[], responses, session.assessment_version);
-    const routineContext = extractRoutineContext(responses);
-    const topics = deriveEvidenceTopics(responses);
-
-    const { data: evidenceRows } = await supabaseAdmin
-      .from("advanced_assessment_evidence")
-      .select("id, title, publisher, source_type, url, publication_date, topic_tags")
-      .eq("verification_status", "verified");
-    const allowedEvidence = selectEvidenceForTopics((evidenceRows ?? []) as EvidenceRow[], topics);
-
-    const promptOverride = Deno.env.get("SKYNN_SYSTEM_PROMPT_VERSION") || null;
-    const activePrompt = await loadActivePrompt(supabaseAdmin, promptOverride);
-
-    const provider = new ClaudeAssessmentProvider(activePrompt.systemPrompt, activePrompt.version);
-    const input: AssessmentGenerationInput = {
-      assessmentVersion: session.assessment_version,
-      userProfile: sanitizedProfile,
-      assessment: normalized,
-      safetyContext: { screen: safetyScreen },
-      evidence: allowedEvidence,
-      routineContext,
-    };
-
-    const result = await provider.generateReport(input);
-
-    const { valid: citedEvidence, fabricatedIds } = validateCitedEvidence(result.report.evidence ?? [], allowedEvidence);
-    if (fabricatedIds.length > 0) {
-      console.warn("skynn-advanced-assessment: model cited unknown evidence ids, stripped:", fabricatedIds);
-    }
-
-    const finalReport = {
-      ...result.report,
-      safetyFlags: safetyScreen, // always the deterministic screen, never the model's own
-      evidence: citedEvidence, // always the server's own records, never fabricated
-    };
-
-    const complianceFlags = scanComplianceFlags(extractReportText(finalReport));
-    if (complianceFlags.length > 0) {
-      console.warn("skynn-advanced-assessment: compliance flags on generated report:", complianceFlags);
-    }
-
-    await supabaseAdmin.rpc("complete_advanced_assessment_session", {
-      p_session_id: sessionId,
-      p_report: finalReport,
-      p_confidence: finalReport.confidence,
-      p_safety_flags: safetyScreen,
-      p_model: result.metadata.model,
-      p_prompt_version: result.metadata.promptVersion,
-      p_engine_version: result.metadata.engineVersion,
-      p_evidence_version: "2026.1",
-    });
-    await supabaseAuth.from("advanced_assessment_events").insert({
-      user_id: userId,
-      session_id: sessionId,
-      event_type: "generation_completed",
-      metadata: { confidence: finalReport.confidence, complianceFlagCount: complianceFlags.length },
-    });
-  } catch (error) {
-    const message = error instanceof AssessmentProviderError ? error.message : "We couldn't generate your report this time.";
-    console.error("skynn-advanced-assessment generation failed:", error);
-    await supabaseAdmin.rpc("fail_advanced_assessment_session", { p_session_id: sessionId, p_error_message: message });
-  }
-}

@@ -11,6 +11,7 @@ describe("email template registry", () => {
       "membership_activated", "membership_upgraded", "membership_cancelled",
       "payment_succeeded", "payment_failed",
       "analysis_completed", "analysis_failed",
+      "advanced_report_ready", "advanced_report_not_released", "admin_skynn_review_needed",
       "form_confirmation_contact", "admin_form_notification_contact",
       "form_confirmation_partner", "admin_form_notification_partner",
       "form_confirmation_spotlight_brand", "admin_form_notification_spotlight_brand",
