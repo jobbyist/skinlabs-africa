@@ -37,6 +37,7 @@ import FaithfulToNature from '@/components/FaithfulToNature'
 import GatedOverlay from '@/components/GatedOverlay'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { trialNoun } from '@/lib/promo'
 
 // Production SSR route for /reviews/:slug -- the second content type
 // migrated to TanStack Start after Briefings (see
@@ -488,7 +489,7 @@ function ReviewPage() {
           <div>
             <p>Get every full breakdown, ingredient deep-dive included.</p>
             <Button asChild>
-              <Link to="/pricing">Start my 7-day free trial</Link>
+              <Link to="/pricing">Start my {trialNoun()}</Link>
             </Button>
           </div>
         )}

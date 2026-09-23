@@ -275,9 +275,11 @@ const KnowledgeHub = () => {
                 {/* Category filter chips */}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
+                    type="button"
                     onClick={() => setActiveCategory(null)}
+                    aria-pressed={activeCategory === null}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                       activeCategory === null ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
                     )}
                   >
@@ -286,9 +288,11 @@ const KnowledgeHub = () => {
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat.id}
+                      type="button"
                       onClick={() => setActiveCategory((prev) => (prev === cat.id ? null : cat.id))}
+                      aria-pressed={activeCategory === cat.id}
                       className={cn(
-                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         activeCategory === cat.id ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -308,7 +312,7 @@ const KnowledgeHub = () => {
                         <button
                           key={entry.id}
                           onClick={() => openEntry(entry)}
-                          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-4 text-left text-sm font-medium text-foreground hover:border-primary/40"
+                          className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card p-4 text-left text-sm font-medium text-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         >
                           {entry.question}
                           <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
@@ -328,7 +332,7 @@ const KnowledgeHub = () => {
                           <button
                             key={cat.id}
                             onClick={() => setActiveCategory(cat.id)}
-                            className="flex flex-col items-start gap-2 rounded-2xl border border-border bg-card p-5 text-left hover:border-primary/40"
+                            className="flex flex-col items-start gap-2 rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                           >
                             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                               <Icon className="h-5 w-5" />
@@ -357,7 +361,7 @@ const KnowledgeHub = () => {
                       <div key={category.id} id={category.id}>
                         <div className="mb-6 flex items-center gap-2">
                           <Icon className="h-5 w-5 text-primary" />
-                          <h2 className="text-2xl font-bold text-foreground">{category.title}</h2>
+                          <h2 className="font-heading text-2xl font-bold text-foreground">{category.title}</h2>
                         </div>
                         <Accordion type="multiple" value={openValues} onValueChange={setOpenValues} className="space-y-3">
                           {entries.map((entry) => (
@@ -380,7 +384,7 @@ const KnowledgeHub = () => {
                                       copyLink(entry);
                                     }}
                                     aria-label="Copy link to this question"
-                                    className="mt-4 shrink-0 text-muted-foreground hover:text-primary"
+                                    className="mt-2 -mr-2 shrink-0 rounded-full p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                                   >
                                     <Link2 className="h-4 w-4" />
                                   </button>

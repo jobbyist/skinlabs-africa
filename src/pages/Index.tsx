@@ -77,19 +77,16 @@ const Index = () => {
           <div className="container mx-auto px-4 py-6">
             <AdSlot placement="home-after-seasonals" compact />
           </div>
-          <SectionDivider />
 
           <Editorials />
           <div className="container mx-auto px-4 py-6">
             <AdSlot placement="home-after-editorials" compact />
           </div>
-          <SectionDivider />
 
           <SpotlightTeaser />
           <div className="container mx-auto px-4 py-8">
             <AffiliateBanner placement="home-mid-2" />
           </div>
-          <SectionDivider />
 
           <Suspense
             fallback={
@@ -106,14 +103,12 @@ const Index = () => {
           <div className="container mx-auto px-4 py-6">
             <AdSlot placement="home-after-aiformulator" compact />
           </div>
-          <SectionDivider />
 
           {/* Show 3 published podcast episodes */}
           <PodcastSection limit={3} />
           <div className="container mx-auto px-4 py-8">
             <AdSlot placement="home-after-podcast" />
           </div>
-          <SectionDivider />
 
           {/* Brand Ambassador Programme 2026 announcement (replaces The Short Version / Features) */}
           <BrandAmbassadorTeaser />
