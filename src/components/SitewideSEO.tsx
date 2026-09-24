@@ -62,7 +62,7 @@ const SitewideSEO = () => {
       if (review) {
         const image = getImage(review.id, review.category);
         const score = overallScore(review);
-        return { title: productReviewTitle(review.product_name), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url, jsonLd: {
+        return { title: productReviewTitle(review.product_name, review.brand), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url, jsonLd: {
           "@context": "https://schema.org", "@type": "Product", name: review.product_name,
           ...(image?.url ? { image: [absolute(image.url)] } : {}), brand: { "@type": "Brand", name: review.brand }, category: review.category,
           aggregateRating: { "@type": "AggregateRating", ratingValue: score, bestRating: 10, reviewCount: 1 },

@@ -20,10 +20,10 @@ interface SearchResult {
 
 async function fetchIngredients(filters: IngredientFilters, page: number): Promise<SearchResult> {
   const { data, error } = await supabase.rpc("search_ingredients", {
-    p_search: filters.search || null,
-    p_category: filters.category || null,
-    p_concern_slug: filters.concernSlug || null,
-    p_evidence: filters.evidence || null,
+    p_search: filters.search || undefined,
+    p_category: filters.category || undefined,
+    p_concern_slug: filters.concernSlug || undefined,
+    p_evidence: filters.evidence || undefined,
     p_page: page,
     p_per_page: PER_PAGE,
   });

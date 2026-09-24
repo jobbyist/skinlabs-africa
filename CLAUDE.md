@@ -57,8 +57,8 @@ feature appear operational.
     `StoryViewer`. `/web-stories/:slug` serves validated AMP (amp-story +
     amp-story-auto-ads + amp-analytics beaconing back to the same route's
     POST) for authored stories with ≥2 pages; promotional ones are `noindex`
-    and excluded from the sitemap. Generated Supabase types were hand-extended
-    for these three tables. No admin UI yet — stories are inserted directly.
+    and excluded from the sitemap. No admin UI yet — stories are inserted
+    directly.
     **Rail content (2026-09-24)**, in order (`use-web-stories.ts`): authored
     DB stories → the 3 newest briefings → curated stories. Product review
     stories were in the rail briefly and were **removed at the user's request
@@ -78,6 +78,17 @@ feature appear operational.
     `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
     literal in-page `<amp-ad>` inside a story page is rejected by the AMP
     validator, so it must never be added there.
+  - **Typecheck is clean — keep it that way (2026-09-24)** — `npx tsc -p
+    tsconfig.app.json --noEmit` now exits 0 (was 35 errors). Two standing
+    changes: `tsconfig.app.json` sets **`strictNullChecks: true`** (TanStack
+    Router requires it; everything else stays `strict: false`), and
+    `src/integrations/supabase/types.ts` is **regenerated from the live DB**
+    (`mcp__Supabase__generate_typescript_types`), not hand-edited — regenerate
+    after any migration instead of hand-extending it. Real bugs this surfaced
+    and fixed: the dashboard rendered `<AdvancedAssessmentCard />` with no
+    props (every member was shown as a non-member with 0 passes);
+    `SitewideSEO` built review titles without the brand. When an RPC arg is
+    optional (`DEFAULT NULL`), pass `undefined`, not `null`.
   - **Overlay z-index tiers (2026-09-24, header menu bug)** — the mobile
     menu Sheet opened *under* its own dark overlay (panel z-50, overlay
     z-[65]): the `/motion` pass rewrote `sheetVariants` from a pre-fix copy

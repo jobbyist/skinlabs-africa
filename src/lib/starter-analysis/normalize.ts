@@ -172,7 +172,6 @@ const deriveGoals = (
   else if (secondaryConcerns.length >= 2) secondaryGoal = "address_multiple_concerns";
   else if ((answers["q13"] ?? 2) <= 1) secondaryGoal = "improve_consistency";
 
-  if (secondaryGoal === primaryGoal) secondaryGoal = null;
   return { primaryGoal, secondaryGoal };
 };
 

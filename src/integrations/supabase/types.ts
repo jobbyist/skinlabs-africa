@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      advanced_assessment_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_type: string
+          at: string
+          id: number
+          meta: Json
+          report_id: string | null
+          session_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_type: string
+          at?: string
+          id?: never
+          meta?: Json
+          report_id?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_type?: string
+          at?: string
+          id?: never
+          meta?: Json
+          report_id?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_assessment_audit_log_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_assessment_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advanced_assessment_audit_log_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       advanced_assessment_events: {
         Row: {
           created_at: string
@@ -78,44 +126,59 @@ export type Database = {
       }
       advanced_assessment_evidence: {
         Row: {
+          citation_code: string | null
           created_at: string
+          doi: string | null
           evidence_version: string
           id: string
+          pmid: string | null
           publication_date: string | null
+          publication_year: number | null
           publisher: string | null
           source_type: string
           summary: string
           title: string
           topic_tags: string[]
           url: string | null
+          verification_note: string | null
           verification_status: string
           verified_by: string | null
         }
         Insert: {
+          citation_code?: string | null
           created_at?: string
+          doi?: string | null
           evidence_version: string
           id?: string
+          pmid?: string | null
           publication_date?: string | null
+          publication_year?: number | null
           publisher?: string | null
           source_type: string
           summary: string
           title: string
           topic_tags?: string[]
           url?: string | null
+          verification_note?: string | null
           verification_status?: string
           verified_by?: string | null
         }
         Update: {
+          citation_code?: string | null
           created_at?: string
+          doi?: string | null
           evidence_version?: string
           id?: string
+          pmid?: string | null
           publication_date?: string | null
+          publication_year?: number | null
           publisher?: string | null
           source_type?: string
           summary?: string
           title?: string
           topic_tags?: string[]
           url?: string | null
+          verification_note?: string | null
           verification_status?: string
           verified_by?: string | null
         }
@@ -123,51 +186,105 @@ export type Database = {
       }
       advanced_assessment_reports: {
         Row: {
+          attempts: number
           confidence: string | null
           created_at: string
+          email_summary: string | null
           engine_version: string | null
           error_message: string | null
           evidence_version: string | null
           generated_at: string | null
           generation_status: string
           id: string
+          locked_at: string | null
+          locked_by: string | null
           model: string | null
+          models: Json | null
+          mst_tier: number | null
+          pipeline_stage: string | null
+          pipeline_state: Json | null
+          prompt_set: string | null
           prompt_version: string | null
+          qa_result: Json | null
+          released_at: string | null
+          rendered_markdown: string | null
           report: Json | null
+          review_notes: string | null
+          review_status: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           safety_flags: Json | null
+          scores: Json | null
           session_id: string
+          triage: string | null
           user_id: string
         }
         Insert: {
+          attempts?: number
           confidence?: string | null
           created_at?: string
+          email_summary?: string | null
           engine_version?: string | null
           error_message?: string | null
           evidence_version?: string | null
           generated_at?: string | null
           generation_status?: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           model?: string | null
+          models?: Json | null
+          mst_tier?: number | null
+          pipeline_stage?: string | null
+          pipeline_state?: Json | null
+          prompt_set?: string | null
           prompt_version?: string | null
+          qa_result?: Json | null
+          released_at?: string | null
+          rendered_markdown?: string | null
           report?: Json | null
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           safety_flags?: Json | null
+          scores?: Json | null
           session_id: string
+          triage?: string | null
           user_id: string
         }
         Update: {
+          attempts?: number
           confidence?: string | null
           created_at?: string
+          email_summary?: string | null
           engine_version?: string | null
           error_message?: string | null
           evidence_version?: string | null
           generated_at?: string | null
           generation_status?: string
           id?: string
+          locked_at?: string | null
+          locked_by?: string | null
           model?: string | null
+          models?: Json | null
+          mst_tier?: number | null
+          pipeline_stage?: string | null
+          pipeline_state?: Json | null
+          prompt_set?: string | null
           prompt_version?: string | null
+          qa_result?: Json | null
+          released_at?: string | null
+          rendered_markdown?: string | null
           report?: Json | null
+          review_notes?: string | null
+          review_status?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           safety_flags?: Json | null
+          scores?: Json | null
           session_id?: string
+          triage?: string | null
           user_id?: string
         }
         Relationships: [
@@ -339,6 +456,81 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_generated_comparisons: {
+        Row: {
+          body_markdown: string
+          created_at: string
+          dek: string
+          faqs: Json
+          generated_by: string
+          id: string
+          key_takeaways: string[]
+          modified_date: string
+          pair_key: string
+          products_compared: Json
+          publish_date: string
+          reading_time: string
+          sa_context: string
+          seo_description: string
+          seo_title: string
+          source_review_ids: string[]
+          thumbnail_alt: string
+          thumbnail_credit_name: string
+          thumbnail_credit_url: string
+          thumbnail_url: string
+          title: string
+          verdicts: Json
+        }
+        Insert: {
+          body_markdown: string
+          created_at?: string
+          dek: string
+          faqs?: Json
+          generated_by: string
+          id: string
+          key_takeaways?: string[]
+          modified_date: string
+          pair_key: string
+          products_compared: Json
+          publish_date: string
+          reading_time?: string
+          sa_context: string
+          seo_description: string
+          seo_title: string
+          source_review_ids: string[]
+          thumbnail_alt: string
+          thumbnail_credit_name?: string
+          thumbnail_credit_url?: string
+          thumbnail_url: string
+          title: string
+          verdicts?: Json
+        }
+        Update: {
+          body_markdown?: string
+          created_at?: string
+          dek?: string
+          faqs?: Json
+          generated_by?: string
+          id?: string
+          key_takeaways?: string[]
+          modified_date?: string
+          pair_key?: string
+          products_compared?: Json
+          publish_date?: string
+          reading_time?: string
+          sa_context?: string
+          seo_description?: string
+          seo_title?: string
+          source_review_ids?: string[]
+          thumbnail_alt?: string
+          thumbnail_credit_name?: string
+          thumbnail_credit_url?: string
+          thumbnail_url?: string
+          title?: string
+          verdicts?: Json
+        }
+        Relationships: []
+      }
       ai_generated_product_reviews: {
         Row: {
           am_pm_usage: string | null
@@ -346,9 +538,9 @@ export type Database = {
           brand: string
           category: string
           cautions: Json | null
-          comparison_products: Json | null
           community_rating: number | null
           community_rating_count: number | null
+          comparison_products: Json | null
           country_of_origin: string | null
           created_at: string
           currency: string | null
@@ -396,9 +588,9 @@ export type Database = {
           brand: string
           category: string
           cautions?: Json | null
-          comparison_products?: Json | null
           community_rating?: number | null
           community_rating_count?: number | null
+          comparison_products?: Json | null
           country_of_origin?: string | null
           created_at?: string
           currency?: string | null
@@ -446,9 +638,9 @@ export type Database = {
           brand?: string
           category?: string
           cautions?: Json | null
-          comparison_products?: Json | null
           community_rating?: number | null
           community_rating_count?: number | null
+          comparison_products?: Json | null
           country_of_origin?: string | null
           created_at?: string
           currency?: string | null
@@ -558,13 +750,64 @@ export type Database = {
         }
         Relationships: []
       }
+      assessment_prompt_signoffs: {
+        Row: {
+          approved_on: string | null
+          created_at: string
+          definition_version: string
+          dermatologist_name: string | null
+          hpcsa_number: string | null
+          notes: string | null
+          prompt_set: string
+          recorded_at: string | null
+          recorded_by: string | null
+          status: string
+        }
+        Insert: {
+          approved_on?: string | null
+          created_at?: string
+          definition_version: string
+          dermatologist_name?: string | null
+          hpcsa_number?: string | null
+          notes?: string | null
+          prompt_set: string
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+        }
+        Update: {
+          approved_on?: string | null
+          created_at?: string
+          definition_version?: string
+          dermatologist_name?: string | null
+          hpcsa_number?: string | null
+          notes?: string | null
+          prompt_set?: string
+          recorded_at?: string | null
+          recorded_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_prompt_signoffs_definition_version_fkey"
+            columns: ["definition_version"]
+            isOneToOne: false
+            referencedRelation: "assessment_definitions"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
       assessment_prompt_versions: {
         Row: {
           created_at: string
           id: string
           is_placeholder: boolean
           model_default: string | null
+          model_task: string | null
           notes: string | null
+          prompt_set: string | null
+          role: string | null
+          source_reference: string | null
           status: string
           system_prompt: string | null
           version: string
@@ -574,7 +817,11 @@ export type Database = {
           id?: string
           is_placeholder?: boolean
           model_default?: string | null
+          model_task?: string | null
           notes?: string | null
+          prompt_set?: string | null
+          role?: string | null
+          source_reference?: string | null
           status?: string
           system_prompt?: string | null
           version: string
@@ -584,7 +831,11 @@ export type Database = {
           id?: string
           is_placeholder?: boolean
           model_default?: string | null
+          model_task?: string | null
           notes?: string | null
+          prompt_set?: string | null
+          role?: string | null
+          source_reference?: string | null
           status?: string
           system_prompt?: string | null
           version?: string
@@ -1280,6 +1531,53 @@ export type Database = {
           },
         ]
       }
+      ingredient_generation_requests: {
+        Row: {
+          id: string
+          normalized_name: string
+          rejection_reason: string | null
+          requested_at: string
+          requested_name: string
+          resolved_at: string | null
+          resolved_ingredient_id: string | null
+          source: string
+          source_ref: string | null
+          status: Database["public"]["Enums"]["ingredient_generation_request_status"]
+        }
+        Insert: {
+          id?: string
+          normalized_name: string
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_name: string
+          resolved_at?: string | null
+          resolved_ingredient_id?: string | null
+          source: string
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["ingredient_generation_request_status"]
+        }
+        Update: {
+          id?: string
+          normalized_name?: string
+          rejection_reason?: string | null
+          requested_at?: string
+          requested_name?: string
+          resolved_at?: string | null
+          resolved_ingredient_id?: string | null
+          source?: string
+          source_ref?: string | null
+          status?: Database["public"]["Enums"]["ingredient_generation_request_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_generation_requests_resolved_ingredient_id_fkey"
+            columns: ["resolved_ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_interactions: {
         Row: {
           confidence: Database["public"]["Enums"]["confidence_level"] | null
@@ -1627,6 +1925,35 @@ export type Database = {
           },
         ]
       }
+      marketplace_product_rating_stats: {
+        Row: {
+          avg_rating: number
+          product_id: string
+          rating_count: number
+          updated_at: string
+        }
+        Insert: {
+          avg_rating: number
+          product_id: string
+          rating_count: number
+          updated_at?: string
+        }
+        Update: {
+          avg_rating?: number
+          product_id?: string
+          rating_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_rating_stats_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_product_ratings: {
         Row: {
           product_id: string
@@ -1712,10 +2039,12 @@ export type Database = {
           marked_up_price_zar: number
           name: string
           original_price_zar: number
+          price_checked_at: string | null
           size: string | null
           skin_tone_claims: string[]
           slug: string
           source_last_synced_at: string | null
+          source_regular_price_zar: number | null
           source_url: string
           updated_at: string
           values: string[]
@@ -1734,10 +2063,12 @@ export type Database = {
           marked_up_price_zar: number
           name: string
           original_price_zar: number
+          price_checked_at?: string | null
           size?: string | null
           skin_tone_claims?: string[]
           slug: string
           source_last_synced_at?: string | null
+          source_regular_price_zar?: number | null
           source_url: string
           updated_at?: string
           values?: string[]
@@ -1756,10 +2087,12 @@ export type Database = {
           marked_up_price_zar?: number
           name?: string
           original_price_zar?: number
+          price_checked_at?: string | null
           size?: string | null
           skin_tone_claims?: string[]
           slug?: string
           source_last_synced_at?: string | null
+          source_regular_price_zar?: number | null
           source_url?: string
           updated_at?: string
           values?: string[]
@@ -2640,18 +2973,21 @@ export type Database = {
         Row: {
           default_billing_interval: string
           free_ai_analysis_allowance: number
+          free_analysis_window_days: number
           promo_free_trial_until: string | null
           variant_key: string
         }
         Insert: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          free_analysis_window_days?: number
           promo_free_trial_until?: string | null
           variant_key?: string
         }
         Update: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          free_analysis_window_days?: number
           promo_free_trial_until?: string | null
           variant_key?: string
         }
@@ -3260,6 +3596,7 @@ export type Database = {
           gender: string | null
           id: string
           is_professional: boolean
+          last_free_analysis_at: string | null
           marketing_consent: boolean
           marketing_consent_at: string | null
           marketing_unsubscribe_token: string
@@ -3281,6 +3618,7 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          weather_city_key: string | null
         }
         Insert: {
           account_status?: string
@@ -3305,6 +3643,7 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          last_free_analysis_at?: string | null
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           marketing_unsubscribe_token?: string
@@ -3326,6 +3665,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          weather_city_key?: string | null
         }
         Update: {
           account_status?: string
@@ -3350,6 +3690,7 @@ export type Database = {
           gender?: string | null
           id?: string
           is_professional?: boolean
+          last_free_analysis_at?: string | null
           marketing_consent?: boolean
           marketing_consent_at?: string | null
           marketing_unsubscribe_token?: string
@@ -3371,6 +3712,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          weather_city_key?: string | null
         }
         Relationships: []
       }
@@ -3922,6 +4264,27 @@ export type Database = {
         }
         Relationships: []
       }
+      skin_weather_cache: {
+        Row: {
+          city_key: string
+          fetched_at: string
+          payload: Json
+          provider: string
+        }
+        Insert: {
+          city_key: string
+          fetched_at?: string
+          payload: Json
+          provider: string
+        }
+        Update: {
+          city_key?: string
+          fetched_at?: string
+          payload?: Json
+          provider?: string
+        }
+        Relationships: []
+      }
       skincare_recommendations: {
         Row: {
           age_range: string | null
@@ -4000,6 +4363,7 @@ export type Database = {
       skynn_advanced_assessment_config: {
         Row: {
           active_definition_version: string
+          active_prompt_set: string | null
           active_prompt_version: string
           id: boolean
           rollout_stage: string
@@ -4007,6 +4371,7 @@ export type Database = {
         }
         Insert: {
           active_definition_version: string
+          active_prompt_set?: string | null
           active_prompt_version: string
           id?: boolean
           rollout_stage?: string
@@ -4014,6 +4379,7 @@ export type Database = {
         }
         Update: {
           active_definition_version?: string
+          active_prompt_set?: string | null
           active_prompt_version?: string
           id?: boolean
           rollout_stage?: string
@@ -4234,6 +4600,33 @@ export type Database = {
         }
         Relationships: []
       }
+      web_story_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          page_index: number | null
+          story_key: string
+          surface: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          page_index?: number | null
+          story_key: string
+          surface?: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          page_index?: number | null
+          story_key?: string
+          surface?: string
+        }
+        Relationships: []
+      }
       web_story_pages: {
         Row: {
           body: string | null
@@ -4284,33 +4677,6 @@ export type Database = {
           },
         ]
       }
-      web_story_events: {
-        Row: {
-          created_at: string
-          event: string
-          id: string
-          page_index: number | null
-          story_key: string
-          surface: string
-        }
-        Insert: {
-          created_at?: string
-          event: string
-          id?: string
-          page_index?: number | null
-          story_key: string
-          surface?: string
-        }
-        Update: {
-          created_at?: string
-          event?: string
-          id?: string
-          page_index?: number | null
-          story_key?: string
-          surface?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       current_product_prices: {
@@ -4347,11 +4713,21 @@ export type Database = {
           product_id: string | null
           rating_count: number | null
         }
+        Insert: {
+          avg_rating?: number | null
+          product_id?: string | null
+          rating_count?: number | null
+        }
+        Update: {
+          avg_rating?: number | null
+          product_id?: string | null
+          rating_count?: number | null
+        }
         Relationships: [
           {
-            foreignKeyName: "marketplace_product_user_ratings_product_id_fkey"
+            foreignKeyName: "marketplace_product_rating_stats_product_id_fkey"
             columns: ["product_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "marketplace_products"
             referencedColumns: ["id"]
           },
@@ -4443,6 +4819,40 @@ export type Database = {
       }
     }
     Functions: {
+      admin_get_advanced_assessment_review: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
+      admin_get_prompt_signoffs: {
+        Args: never
+        Returns: {
+          approved_on: string
+          definition_version: string
+          dermatologist_name: string
+          hpcsa_number: string
+          is_active: boolean
+          prompt_set: string
+          recorded_at: string
+          status: string
+        }[]
+      }
+      admin_list_advanced_assessment_reviews: {
+        Args: { p_status?: string }
+        Returns: {
+          confidence: string
+          created_at: string
+          generated_at: string
+          mst_tier: number
+          prompt_set: string
+          qa_attempts: number
+          regulatory_flags: Json
+          report_id: string
+          review_status: string
+          reviewed_at: string
+          session_id: string
+          triage: string
+        }[]
+      }
       admin_override_entitlement: {
         Args: {
           _reason: string
@@ -4450,6 +4860,20 @@ export type Database = {
           _target_user_id: string
         }
         Returns: undefined
+      }
+      admin_record_prompt_signoff: {
+        Args: {
+          p_approved_on: string
+          p_dermatologist_name: string
+          p_hpcsa_number: string
+          p_notes?: string
+          p_prompt_set: string
+        }
+        Returns: undefined
+      }
+      admin_review_advanced_assessment: {
+        Args: { p_decision: string; p_notes?: string; p_report_id: string }
+        Returns: Json
       }
       admin_search_profiles: {
         Args: { _page?: number; _page_size?: number; _query?: string }
@@ -4480,6 +4904,16 @@ export type Database = {
         Returns: boolean
       }
       cancel_subscription: { Args: never; Returns: boolean }
+      claim_advanced_assessment_jobs: {
+        Args: { p_limit: number; p_worker: string }
+        Returns: {
+          attempts: number
+          pipeline_state: Json
+          report_id: string
+          session_id: string
+          user_id: string
+        }[]
+      }
       claim_founding_member_slot: {
         Args: { p_offer_id: string }
         Returns: boolean
@@ -4525,6 +4959,24 @@ export type Database = {
           remaining_free: number
           source: string
         }[]
+      }
+      complete_advanced_assessment_for_review: {
+        Args: {
+          p_confidence: string
+          p_email_summary: string
+          p_engine_version: string
+          p_evidence_version: string
+          p_markdown: string
+          p_models: Json
+          p_mst_tier: number
+          p_prompt_set: string
+          p_qa_result: Json
+          p_report: Json
+          p_report_id: string
+          p_scores: Json
+          p_triage: string
+        }
+        Returns: undefined
       }
       complete_advanced_assessment_session: {
         Args: {
@@ -4624,6 +5076,7 @@ export type Database = {
         Args: { p_error: string; p_job_id: string; p_processing_token: string }
         Returns: boolean
       }
+      formulator_tier: { Args: { _user_id: string }; Returns: string }
       get_advanced_assessment_access: {
         Args: never
         Returns: {
@@ -4641,6 +5094,19 @@ export type Database = {
           inline_images: Json
         }[]
       }
+      get_formulator_allowance: {
+        Args: { p_variant_key?: string }
+        Returns: {
+          free_remaining: number
+          last_analysis_at: string
+          last_free_analysis_at: string
+          next_unlock_at: string
+          pass_balance: number
+          tier: string
+          unlimited: boolean
+          window_days: number
+        }[]
+      }
       get_ingredient_interaction: {
         Args: { a: string; b: string }
         Returns: {
@@ -4652,6 +5118,10 @@ export type Database = {
           source_url: string
           usage_guidance: string
         }[]
+      }
+      get_my_advanced_assessment_report: {
+        Args: { p_report_id?: string; p_session_id?: string }
+        Returns: Json
       }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
       get_routine_conflicts: {
@@ -4698,6 +5168,17 @@ export type Database = {
       is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      log_advanced_assessment_audit: {
+        Args: {
+          p_action: string
+          p_actor_id: string
+          p_actor_type: string
+          p_meta?: Json
+          p_report_id: string
+          p_session_id: string
+        }
+        Returns: undefined
+      }
       mark_advanced_assessment_processing: {
         Args: { p_session_id: string }
         Returns: undefined
@@ -4709,6 +5190,15 @@ export type Database = {
       }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      save_advanced_assessment_pipeline_state: {
+        Args: {
+          p_release?: boolean
+          p_report_id: string
+          p_stage: string
+          p_state: Json
+        }
+        Returns: undefined
+      }
       save_advanced_assessment_progress: {
         Args: {
           p_current_section_id: string
@@ -4746,6 +5236,26 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_starter_analysis: {
+        Args: {
+          p_analysis_completeness?: number
+          p_client_analysis_id: string
+          p_concerns: string[]
+          p_contact_name?: string
+          p_contact_whatsapp?: string
+          p_mst_tone?: number
+          p_photo_storage_path?: string
+          p_recommendation: string
+          p_result_payload: Json
+          p_skin_type: string
+          p_variant_key?: string
+        }
+        Returns: {
+          next_unlock_at: string
+          recommendation_id: string
+          source: string
+        }[]
       }
       search_ingredients: {
         Args: {
@@ -4836,10 +5346,13 @@ export type Database = {
       }
       subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
       unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
+      verify_skynn_worker_secret: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
-      web_story_kind: "editorial" | "briefing" | "review" | "comparison" | "video" | "promotional"
       claim_type: "marketing" | "clinical" | "regulatory"
       confidence_level: "low" | "medium" | "high"
       data_quality_status:
@@ -4866,6 +5379,11 @@ export type Database = {
         | "inci_variant"
         | "synonym"
       ingredient_concern_relationship: "treats" | "may_worsen" | "preventive"
+      ingredient_generation_request_status:
+        | "pending"
+        | "researched"
+        | "published"
+        | "rejected"
       ingredient_interaction_type:
         | "avoid_combining"
         | "enhances"
@@ -4874,6 +5392,13 @@ export type Database = {
         | "compatible"
       irritancy_risk: "low" | "moderate" | "high"
       skin_fit_rating: "excellent" | "good" | "caution" | "avoid"
+      web_story_kind:
+        | "editorial"
+        | "briefing"
+        | "review"
+        | "comparison"
+        | "video"
+        | "promotional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5002,7 +5527,6 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
-      web_story_kind: ["editorial", "briefing", "review", "comparison", "video", "promotional"],
       claim_type: ["marketing", "clinical", "regulatory"],
       confidence_level: ["low", "medium", "high"],
       data_quality_status: [
@@ -5032,6 +5556,12 @@ export const Constants = {
         "synonym",
       ],
       ingredient_concern_relationship: ["treats", "may_worsen", "preventive"],
+      ingredient_generation_request_status: [
+        "pending",
+        "researched",
+        "published",
+        "rejected",
+      ],
       ingredient_interaction_type: [
         "avoid_combining",
         "enhances",
@@ -5041,6 +5571,14 @@ export const Constants = {
       ],
       irritancy_risk: ["low", "moderate", "high"],
       skin_fit_rating: ["excellent", "good", "caution", "avoid"],
+      web_story_kind: [
+        "editorial",
+        "briefing",
+        "review",
+        "comparison",
+        "video",
+        "promotional",
+      ],
     },
   },
 } as const
