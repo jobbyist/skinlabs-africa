@@ -5282,6 +5282,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      has_live_payment_subscription: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
