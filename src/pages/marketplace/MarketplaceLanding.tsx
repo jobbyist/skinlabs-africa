@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,7 +26,6 @@ const stagger = {
 export default function MarketplaceLanding() {
   const { savedIds: savedProducts, toggleSaved } = useSavedProducts();
   const { picks, isLoading: picksLoading } = useSkinLabsPicks(4);
-  const [activeCategory, setActiveCategory] = useState("face");
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     { loop: true, align: "start" },
@@ -143,19 +142,14 @@ export default function MarketplaceLanding() {
         <section className="max-w-lg lg:max-w-6xl mx-auto px-4 lg:px-8 pb-6 lg:pb-10">
           <div className="flex gap-2 lg:gap-3 overflow-x-auto scrollbar-hide pb-1">
             {categories.map((cat) => (
-              <button
+              <Link
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={cn(
-                  "flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-medium border transition-all duration-200",
-                  activeCategory === cat.id
-                    ? "bg-stone-900 text-white border-stone-900"
-                    : "bg-white text-stone-700 border-stone-200 hover:border-stone-400"
-                )}
+                to={`/marketplace/categories?category=${cat.id}`}
+                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-[12px] font-medium border transition-all duration-200 bg-white text-stone-700 border-stone-200 hover:border-stone-900 hover:bg-stone-900 hover:text-white"
               >
                 <span className="text-[14px]">{cat.icon}</span>
                 {cat.label}
-              </button>
+              </Link>
             ))}
           </div>
         </section>

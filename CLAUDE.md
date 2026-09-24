@@ -171,8 +171,14 @@ feature appear operational.
   had no ratings data, confirmed by re-rendering its pages, so nothing
   was fabricated there) shown with a source-crediting tooltip, separate
   from `marketplace_product_user_ratings` (SkinLabs' own signed-in-user
-  1-5 star ratings, aggregated by the `marketplace_product_internal_
-  rating_summary` view). Cart is `CartContext.tsx` (localStorage for
+  1-5 star ratings). Raw rating rows are author-only (RLS + no anon
+  grant, `20260924120000_openhaus_ratings_privacy.sql`) so rater
+  user_ids/review text never leak; the public aggregate comes from the
+  trigger-maintained `marketplace_product_rating_stats` table (avg +
+  count only) exposed through the `marketplace_product_internal_
+  rating_summary` view. Keep that view `security_invoker = true` — don't
+  "fix" the aggregate by reading raw rows as the view owner; that's the
+  Security Definer View the advisor flags. Cart is `CartContext.tsx` (localStorage for
   guests, synced to `marketplace_cart_items` on sign-in) and currency
   display is `CurrencyContext.tsx` reading `marketplace_fx_rates`; both
   are display/local-storage layers only — ZAR stays canonical. Three
