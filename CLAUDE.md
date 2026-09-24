@@ -66,7 +66,15 @@ feature appear operational.
     (separate from the free-text ADDRESS `profiles.city`, which is only a
     fallback when it names one of the 10 cities); "Use my location" snaps to the
     nearest city on-device. Needs `OPENWEATHER_API_KEY` as an Edge Function
-    secret; the function is **not deployed yet**.
+    secret. **Deployed 2026-09-24** (`skin-weather` v1, `verify_jwt=false`, via the
+    MCP tool with same-root `./_shared/weather/` imports for that upload only —
+    the committed source keeps `../_shared/`). Verified live: unknown city and
+    raw-coordinate requests → 400, CORS preflight → 200. The first real request
+    returned 502 because OpenWeather answered **401** — the secret is set but the
+    key wasn't accepted yet (new keys can take ~2h to activate, or the 4.0
+    subscription isn't attached to that key). Only on this branch, not `main`:
+    if Supabase's GitHub sync redeploys from `main` before merge, re-check the
+    function still exists.
   - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
     were ADDED next to the shadcn tokens — `--primary` is already #262626 and
     drives every primary button, so it was deliberately not renamed to the brief's

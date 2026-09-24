@@ -155,5 +155,5 @@ Applied live on `gnkpzijxuciiaamakgzm`: `20260924100000_formulator_rolling_allow
 **Still to do (needs a human):**
 1. Deploy the frontend, then immediately apply `20260924100100_formulator_allowance_cutover.sql`.
 2. ~~Apply the trial fix~~ — done 2026-09-24.
-3. Subscribe to OpenWeather **One Call API 4.0** ("One Call by Call"; card required, first 1,000 calls/day free — set the daily limit to 1000), then `supabase secrets set OPENWEATHER_API_KEY=...` and deploy the `skin-weather` function (`verify_jwt = false`, as in config.toml).
+3. Subscribe to OpenWeather **One Call API 4.0** ("One Call by Call"; card required, first 1,000 calls/day free — set the daily limit to 1000), then `supabase secrets set OPENWEATHER_API_KEY=...` — secret set; `skin-weather` deployed 2026-09-24 (v1). Waiting on OpenWeather to accept the key (first call got 401).
 4. Optionally update `src/data/plans.ts` fallback prices (Insider R99 → R79, VIP R299 → R199).
