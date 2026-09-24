@@ -14,12 +14,20 @@ export interface StoryPage {
   headline: string | null;
   body: string | null;
   durationMs: number;
+  /** Optional page-level call to action (e.g. "Listen to episode"); falls back to the story's. */
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
 }
 
 export interface Story {
-  /** Stable identity for viewed-state and analytics: the DB slug, or `briefing-<slug>`. */
+  /** Stable identity for viewed-state and analytics: the DB/curated slug, or `briefing-<slug>` / `review-<id>`. */
   key: string;
-  source: "db" | "briefing";
+  /**
+   * db: authored rows in web_stories. curated: built in code from site content
+   * (src/lib/webStories/curated.ts). briefing/review: built from live content,
+   * in-app only (no AMP page).
+   */
+  source: "db" | "curated" | "briefing" | "review";
   slug: string;
   title: string;
   kind: WebStoryKind;
@@ -74,6 +82,17 @@ export const WEB_STORY_SELECT =
   "slug, title, kind, cover_image_url, cover_image_alt, cta_label, cta_url, is_sponsored, sponsor_name, rail_position, publish_at, pages:web_story_pages(position, media_type, media_url, media_alt, poster_url, headline, body, duration_ms)";
 
 const DEFAULT_PAGE_MS = 6000;
+export const MAX_HEADLINE_CHARS = 120;
+export const MAX_BODY_CHARS = 400;
+
+/** Trims to `max` characters at a word boundary with an ellipsis — never mid-word. */
+export const clipText = (text: string, max: number): string => {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.—-]+$/, "")}…`;
+};
 const BRIEFING_TAKEAWAY_PAGES = 3;
 const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
 
@@ -148,11 +167,12 @@ const SPONSORED_SLOTS = [3, 7, 11, 15];
 /**
  * Orders the rail: stories with an explicit rail_position take that slot;
  * sponsored stories without one take the next free spaced slot (3, 7, 11…);
- * remaining authored stories fill the gaps newest-first, then briefings.
+ * remaining authored stories fill the gaps newest-first, then `fillers` in
+ * the order given (briefings, curated stories, reviews — see use-web-stories).
  */
-export const arrangeRail = (authoredInput: Story[], briefingsInput: Story[], maxItems = 14): Story[] => {
+export const arrangeRail = (authoredInput: Story[], fillersInput: Story[], maxItems = Number.POSITIVE_INFINITY): Story[] => {
   const authored = authoredInput.filter((s) => s.pages.length > 0);
-  const briefings = briefingsInput.filter((s) => s.pages.length > 0);
+  const briefings = fillersInput.filter((s) => s.pages.length > 0);
   const slots = new Map<number, Story>();
   const pinned = authored.filter((s) => s.railPosition !== null).sort((a, b) => a.railPosition! - b.railPosition!);
   for (const story of pinned) {

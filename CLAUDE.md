@@ -59,6 +59,25 @@ feature appear operational.
     POST) for authored stories with ≥2 pages; promotional ones are `noindex`
     and excluded from the sitemap. Generated Supabase types were hand-extended
     for these three tables. No admin UI yet — stories are inserted directly.
+    **Rail content (2026-09-24)**, in order (`use-web-stories.ts`): authored
+    DB stories → the 3 newest briefings → curated stories → every published
+    review newest-first (pipeline reviews, then `src/data/reviews.ts`).
+    Curated stories (`src/lib/webStories/curated.ts`) are built in code from
+    site data, not stored in the DB: "The Skin Deep Podcast — Season 1"
+    (cover + episodes 1–10; an unreleased episode is labelled "Coming soon"
+    and linked to `/podcast`, never to a non-existent episode page) and
+    "The Spring Reset" (verbatim excerpts from `seasonHubs.spring`). They get
+    AMP pages and sitemap entries. Podcast story frames are 1080×1920 JPEGs
+    in `public/stories-media/podcast-s1/` (original art over a blurred
+    extension, art kept in the top ~half so text never covers it) —
+    regenerate the same way if an episode cover changes. Do NOT put static
+    media under `public/web-stories/` — that prefix is routed to the SSR
+    function. Review stories (`reviewStories.ts`) use only each review's own
+    fields and skip the live Pexels image fallback. Titles ≤120 / bodies
+    ≤400 chars via `clipText()`. AMP story ads run through
+    `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
+    literal in-page `<amp-ad>` inside a story page is rejected by the AMP
+    validator, so it must never be added there.
 
 - **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
   four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,

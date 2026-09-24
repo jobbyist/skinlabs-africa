@@ -7,6 +7,7 @@ import { spotlightRanking } from "@/data/spotlight";
 import { publishedPodcastEpisodes } from "@/data/podcast";
 import { faqEntries } from "@/data/faq";
 import { isAmpEligible } from "@/lib/webStories/amp";
+import { curatedStories } from "@/lib/webStories/curated";
 import { storyFromRow, WEB_STORY_SELECT, type WebStoryRow } from "@/lib/webStories/stories";
 
 const SITE = "https://skinlabs.co.za";
@@ -44,6 +45,7 @@ async function buildSitemapXml(): Promise<string> {
   for (const entry of spotlightRanking) add(`/spotlight/${entry.slug}`, "monthly", "0.75");
   for (const episode of publishedPodcastEpisodes) add(`/podcast/${episode.slug}`, "monthly", "0.7");
   for (const entry of faqEntries) add(`/knowledge-hub/${entry.slug}`, "monthly", "0.7");
+  for (const story of curatedStories()) add(`/web-stories/${story.slug}`, "weekly", "0.7", story.publishAt.slice(0, 10) || today);
   // /marketplace/concern/:slug intentionally not added here — see the
   // STATIC_SITEMAP_ROUTES removal note in src/lib/sitemap/staticRoutes.ts:
   // every /marketplace/* route is login-gated (MarketplaceGate), so listing

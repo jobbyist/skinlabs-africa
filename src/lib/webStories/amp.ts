@@ -11,7 +11,8 @@ export const SITE_URL = "https://skinlabs.co.za";
 const PUBLISHER = "SkinLabs";
 const PUBLISHER_LOGO = `${SITE_URL}/favicon.png`; // 512x512 square, per amp-story's publisher-logo requirement
 const ADSENSE_CLIENT = "ca-pub-1237323355260727";
-const ADSENSE_STORY_SLOT = "2940635869";
+// Dedicated AdSense AMP ad unit for Web Stories (served as full-screen story ads).
+const ADSENSE_STORY_SLOT = "5315163514";
 
 const AMP_BOILERPLATE =
   "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>";
@@ -32,7 +33,8 @@ export const escapeHtml = (value: string): string =>
 export const absoluteUrl = (url: string): string => (url.startsWith("/") ? `${SITE_URL}${url}` : url);
 
 /** Only stories that are real, standalone, multi-page content get an AMP page. */
-export const isAmpEligible = (story: Story): boolean => story.source === "db" && story.pages.length >= 2;
+export const isAmpEligible = (story: Story): boolean =>
+  (story.source === "db" || story.source === "curated") && story.pages.length >= 2;
 
 const mediaLayer = (page: StoryPage, pageId: string): string => {
   const alt = escapeHtml(page.mediaAlt);
@@ -53,10 +55,13 @@ const renderPage = (story: Story, page: StoryPage, index: number, isLast: boolea
   const disclosure = story.isSponsored
     ? `<amp-story-grid-layer template="vertical" class="disclosure"><span>Sponsored${story.sponsorName ? ` · ${escapeHtml(story.sponsorName)}` : ""}</span></amp-story-grid-layer>`
     : "";
-  // amp-story disallows an outlink on the first page; the CTA lives on the last one.
+  // amp-story disallows an outlink on the first page. A page's own CTA (e.g.
+  // one podcast episode) wins; otherwise the story's CTA sits on the last page.
+  const ctaUrl = page.ctaUrl ?? (isLast ? story.ctaUrl : null);
+  const ctaLabel = (page.ctaUrl ? page.ctaLabel : story.ctaLabel) || "Read more";
   const outlink =
-    isLast && index > 0 && story.ctaUrl
-      ? `<amp-story-page-outlink layout="nodisplay"><a href="${escapeHtml(absoluteUrl(story.ctaUrl))}"${story.isSponsored ? ' rel="sponsored"' : ""}>${escapeHtml(story.ctaLabel || "Read more")}</a></amp-story-page-outlink>`
+    index > 0 && ctaUrl
+      ? `<amp-story-page-outlink layout="nodisplay"><a href="${escapeHtml(absoluteUrl(ctaUrl))}"${story.isSponsored ? ' rel="sponsored"' : ""}>${escapeHtml(ctaLabel)}</a></amp-story-page-outlink>`
       : "";
   return `<amp-story-page id="${pageId}" auto-advance-after="${advance}">${mediaLayer(page, pageId)}${copy}${disclosure}${outlink}</amp-story-page>`;
 };
@@ -107,6 +112,7 @@ export const renderAmpStory = (story: Story): string => {
 ${AMP_BOILERPLATE}
 <script async src="https://cdn.ampproject.org/v0.js"></script>
 <script async custom-element="amp-story" src="https://cdn.ampproject.org/v0/amp-story-1.0.js"></script>
+<script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
 <script async custom-element="amp-story-auto-ads" src="https://cdn.ampproject.org/v0/amp-story-auto-ads-0.1.js"></script>
 <script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script>${hasVideo ? '\n<script async custom-element="amp-video" src="https://cdn.ampproject.org/v0/amp-video-0.1.js"></script>' : ""}
 <style amp-custom>${AMP_CUSTOM_CSS}</style>

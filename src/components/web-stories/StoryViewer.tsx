@@ -207,7 +207,9 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
 
   if (!story || !page) return null;
 
-  const cta = story.ctaUrl ? { url: story.ctaUrl, label: story.ctaLabel || "Read more" } : null;
+  // A page can carry its own CTA (e.g. one episode); otherwise the story's applies.
+  const ctaUrl = page.ctaUrl ?? story.ctaUrl;
+  const cta = ctaUrl ? { url: ctaUrl, label: (page.ctaUrl ? page.ctaLabel : story.ctaLabel) || "Read more" } : null;
   const ctaClass =
     "pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-lg transition-transform active:scale-95";
 
@@ -255,7 +257,11 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
             alt={page.mediaAlt}
             className="absolute inset-0 h-full w-full object-cover"
             onLoad={markReady}
-            onError={markReady}
+            onError={(event) => {
+              // Never paint a broken-image icon or its alt text over the story.
+              event.currentTarget.style.visibility = "hidden";
+              markReady();
+            }}
           />
         )}
 

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createSupabaseServerClient } from "@/lib/content/supabaseServerClient";
 import { isAmpEligible, renderAmpStory } from "@/lib/webStories/amp";
+import { findCuratedStory } from "@/lib/webStories/curated";
 import { storyFromRow, WEB_STORY_SELECT, type WebStoryRow } from "@/lib/webStories/stories";
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -13,8 +14,9 @@ const notFound = () =>
  * /web-stories/:slug — server-only route returning a pure AMP Web Story
  * document (no TanStack document wrapping, same approach as sitemap.xml).
  * Routed to the SSR function ahead of the filesystem phase via the
- * "/web-stories/" entry in scripts/assemble-vercel-output.ts. Only authored,
- * published, multi-page stories get a page (RLS already hides drafts and
+ * "/web-stories/" entry in scripts/assemble-vercel-output.ts. Curated stories
+ * (src/lib/webStories/curated.ts) and authored, published, multi-page
+ * web_stories rows get a page (RLS already hides drafts and
  * expired stories). POST receives amp-analytics beacons from the same page.
  */
 export const Route = createFileRoute("/web-stories/$slug")({
@@ -22,6 +24,10 @@ export const Route = createFileRoute("/web-stories/$slug")({
     handlers: {
       GET: async ({ params }) => {
         if (!SLUG_PATTERN.test(params.slug)) return notFound();
+        const curated = findCuratedStory(params.slug);
+        if (curated) {
+          return new Response(renderAmpStory(curated), { headers: { "content-type": "text/html; charset=utf-8" } });
+        }
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase.from("web_stories").select(WEB_STORY_SELECT).eq("slug", params.slug).maybeSingle();
         if (error) {

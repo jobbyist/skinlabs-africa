@@ -111,9 +111,7 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
                         : "font-medium text-foreground",
                     )}
                   >
-                    {story.isSponsored
-                      ? "Sponsored"
-                      : truncateLabel(story.title)}
+                    {truncateLabel(story.title)}
                   </span>
                 </button>
               );

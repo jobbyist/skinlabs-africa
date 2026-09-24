@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { arrangeRail, storyFromBriefing, type Story } from "../webStories/stories";
+import { arrangeRail, clipText, MAX_BODY_CHARS, MAX_HEADLINE_CHARS, storyFromBriefing, type Story } from "../webStories/stories";
+import { curatedStories, podcastSeasonOneStory, springResetStory } from "../webStories/curated";
+import { storyFromReview } from "../webStories/reviewStories";
+import { podcastEpisodes } from "@/data/podcast";
+import { productReviews } from "@/data/reviews";
 
 const page = { mediaType: "image" as const, mediaUrl: "/x.jpg", mediaAlt: "", posterUrl: null, headline: "h", body: null, durationMs: 6000 };
 
@@ -82,5 +86,74 @@ describe("storyFromBriefing", () => {
     expect(built.pages.map((p) => p.body)).toEqual(["Excerpt text", "one", "two", "three"]);
     expect(built.ctaUrl).toBe("/briefings/melasma");
     expect(built.isSponsored).toBe(false);
+  });
+});
+
+describe("clipText", () => {
+  test("leaves short text alone and never cuts mid-word", () => {
+    expect(clipText("Short line", 120)).toBe("Short line");
+    const clipped = clipText("word ".repeat(100), 50);
+    expect(clipped.length).toBeLessThanOrEqual(50);
+    expect(clipped.endsWith("word…")).toBe(true);
+  });
+});
+
+describe("curated stories", () => {
+  test("podcast season 1 is a cover plus all 10 episodes, within length limits", () => {
+    const story = podcastSeasonOneStory();
+    expect(story.pages).toHaveLength(11);
+    for (const page of story.pages) {
+      expect((page.headline ?? "").length).toBeLessThanOrEqual(MAX_HEADLINE_CHARS);
+      expect((page.body ?? "").length).toBeLessThanOrEqual(MAX_BODY_CHARS);
+    }
+    expect(story.pages.slice(1).map((p) => p.headline)).toEqual(
+      podcastEpisodes.filter((e) => e.id <= 10).sort((a, b) => a.id - b.id).map((e) => clipText(e.title, MAX_HEADLINE_CHARS)),
+    );
+  });
+
+  test("an unreleased episode is labelled coming soon and never linked as playable", () => {
+    const story = podcastSeasonOneStory();
+    podcastEpisodes
+      .filter((e) => e.id <= 10 && e.comingSoon)
+      .forEach((episode) => {
+        const slide = story.pages[episode.id];
+        expect(slide.body?.startsWith("Coming soon.")).toBe(true);
+        expect(slide.ctaUrl).toBe("/podcast");
+      });
+  });
+
+  test("spring reset carries at least 4 excerpts and links back to the hub", () => {
+    const story = springResetStory();
+    expect(story.pages.length).toBeGreaterThanOrEqual(6);
+    expect(story.ctaUrl).toBe("/seasonals/spring");
+  });
+
+  test("curated slugs are unique and AMP-slug safe", () => {
+    const slugs = curatedStories().map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+  });
+});
+
+describe("storyFromReview", () => {
+  test("builds from the review's own fields and keeps sponsorship disclosed", () => {
+    const review = { ...productReviews[0], is_sponsored: true };
+    const built = storyFromReview(review, { url: "/x.jpg", alt: "" });
+    expect(built.key).toBe(`review-${review.id}`);
+    expect(built.ctaUrl).toBe(`/reviews/${review.id}`);
+    expect(built.isSponsored).toBe(true);
+    expect(built.sponsorName).toBe(review.brand);
+    expect(built.pages[0].headline?.length).toBeLessThanOrEqual(MAX_HEADLINE_CHARS);
+    expect(built.railPosition).toBeNull();
+  });
+});
+
+describe("rail order with every source", () => {
+  test("authored → briefings → curated → reviews, sponsored reviews not pulled into promo slots", () => {
+    const briefing = story("briefing-a", { source: "briefing" });
+    const reviews = productReviews.slice(0, 5).map((r) => storyFromReview({ ...r, is_sponsored: true }, { url: "/x.jpg", alt: "" }));
+    const rail = arrangeRail([story("authored")], [briefing, ...curatedStories(), ...reviews]);
+    expect(rail.map((s) => s.source).slice(0, 4)).toEqual(["db", "briefing", "curated", "curated"]);
+    expect(rail.slice(4).every((s) => s.source === "review")).toBe(true);
   });
 });
