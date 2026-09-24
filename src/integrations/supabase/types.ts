@@ -4781,6 +4781,17 @@ export type Database = {
       }
     }
     Views: {
+      conversion_funnel_daily: {
+        Row: {
+          day: string | null
+          live_subscriptions_created: number | null
+          paid_subscriptions_started: number | null
+          signups: number | null
+          starter_analyses_saved: number | null
+          trials_started: number | null
+        }
+        Relationships: []
+      }
       current_product_prices: {
         Row: {
           currency: string | null
@@ -5111,6 +5122,17 @@ export type Database = {
           allowed: boolean
           remaining: number
           transaction_id: string
+        }[]
+      }
+      conversion_funnel_daily_rows: {
+        Args: never
+        Returns: {
+          day: string
+          live_subscriptions_created: number
+          paid_subscriptions_started: number
+          signups: number
+          starter_analyses_saved: number
+          trials_started: number
         }[]
       }
       create_notification: {
