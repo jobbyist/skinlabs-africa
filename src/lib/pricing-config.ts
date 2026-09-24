@@ -98,6 +98,8 @@ const FALLBACK_SETTINGS: PricingSettings = {
   variant_key: "control",
   default_billing_interval: "annual",
   free_ai_analysis_allowance: 1,
+  free_analysis_window_days: 30,
+  promo_free_trial_until: null,
 };
 
 const CONFIG_FETCH_TIMEOUT_MS = 6000;

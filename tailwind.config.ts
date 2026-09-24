@@ -48,6 +48,20 @@ export default {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			brand: {
+  				slate: 'hsl(var(--brand-slate))',
+  				cream: {
+  					DEFAULT: 'hsl(var(--brand-cream))',
+  					foreground: 'hsl(var(--brand-cream-foreground))'
+  				},
+  				ink: {
+  					DEFAULT: 'hsl(var(--brand-ink))',
+  					foreground: 'hsl(var(--brand-ink-foreground))'
+  				},
+  				canvas: 'hsl(var(--brand-canvas))',
+  				gold: 'hsl(var(--brand-gold))'
+  			},
+  			'secondary-text': 'hsl(var(--secondary-text))',
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
