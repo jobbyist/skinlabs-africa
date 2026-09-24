@@ -934,12 +934,19 @@ feature appear operational.
       `PAYPAL_WEBHOOK_ID`, `PAYPAL_ENV=live` (sandbox otherwise). Webhook
       URL: `https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/paypal-payment?webhook=true`.
       Without secrets the UI hides PayPal and falls back to PayFast / the
-      no-card trial. **Unverified end-to-end** (no PayPal credentials here);
-      the migration was applied live, but the function was committed, not
-      MCP-deployed (the MCP deployer can't bundle `../_shared` imports —
-      deploy with `supabase functions deploy paypal-payment` or rely on the
-      GitHub integration after merge). Card-button availability depends on
-      PayPal's guest-checkout eligibility for the merchant country.
+      no-card trial. **Unverified end-to-end.** Migration applied live;
+      function MCP-deployed as **version 20** (2026-09-24) by inlining the
+      `_shared/payments/*` files under `./_shared/...` for that one call (the
+      MCP deployer can't bundle `../` imports — the repo keeps `../`). Live
+      checks at deploy: `config` → 200 `configured: true, env: sandbox`;
+      authed actions without a JWT → 401; bad webhook → 400. Function logs
+      showed two credential problems for a human to fix: `PAYPAL_WEBHOOK_ID`
+      is **not set**, and PayPal OAuth fails with `btoa ... characters
+      outside of the Latin1 range` — the stored `PAYPAL_CLIENT_SECRET`
+      (client id checked clean ASCII) contains a non-ASCII/invisible
+      character from copy-paste and must be re-entered. Card-button
+      availability depends on PayPal's guest-checkout eligibility for the
+      merchant country.
   - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
     business decision to make paid plans free to try for a limited window
     while the rest of the platform's features finish rolling out. Deliberately
