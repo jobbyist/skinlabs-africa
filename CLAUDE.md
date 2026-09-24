@@ -879,6 +879,67 @@ feature appear operational.
       environment (no credentials to test with) — the ITN/webhook
       signature-verification code paths are implemented per each
       provider's own documented contract but unverified end-to-end.
+  - **PayPal recurring subscriptions + inline card/PayPal checkout
+    (2026-09-24)** — paid plans on PayPal are now real PayPal
+    **Subscriptions** (auto-billed monthly/annually), no longer one-off
+    orders (`paypal-payment`'s `initialize` now rejects `purchaseType:
+    'plan'`). Free trial + recurring: the subscription is created with a
+    future `start_time` = trial end, so PayPal's first charge lands exactly
+    when the trial ends — 7 days (`pricing_plans.trial_days`), extended to
+    `pricing_settings.promo_free_trial_until` (1 Nov 2026) while the promo
+    runs, or the member's existing `trial_ends_at` if already trialling;
+    an account that already used its trial is billed at approval.
+    `resolveSubscriptionStart()` in `paypal-payment/index.ts` mirrors
+    `start_free_trial()`'s rules — **keep the two in sync**. Each
+    subscriber's USD price is locked to the live ZAR→USD conversion at
+    signup via a per-subscription `plan` override; PayPal billing plans
+    (one per plan×interval×env) are created lazily and cached in
+    `paypal_billing_plans` (service-role only), so no PayPal-dashboard setup
+    is needed. New `payment_subscriptions` table (owner SELECT only; all
+    writes via the edge function) + migration
+    `20260924100000_paypal_recurring_subscriptions.sql`, which also gives
+    `expire_finished_trials()` a 3-day grace for trials backed by a live
+    subscription (first charge/webhook lag) and adds hourly
+    `expire_lapsed_subscriptions()` (ends paid access after a
+    cancelled/suspended subscription's paid period). Webhook handles
+    `PAYMENT.SALE.COMPLETED/DENIED`, `BILLING.SUBSCRIPTION.*` plus the
+    existing order capture events. **FX**: `_shared/payments/fx.ts`
+    fetches a live Frankfurter rate at checkout, falling back to
+    `marketplace_fx_rates` only if <48h old — never invents a rate. PayPal
+    does not support ZAR, so USD is the only PayPal currency.
+    - **Frontend**: `src/lib/paypal.ts` (edge-function client + JS SDK
+      loader, one namespaced script per mode: `intent=capture` vs
+      `intent=subscription&vault=true`), `components/payments/
+      PayPalButtons.tsx` (inline Smart Buttons: PayPal balance + "Debit or
+      Credit Card", popup — no redirect), `PaypalQuote.tsx` (ZAR ≈ USD at
+      the live rate), `MembershipCheckoutDialog.tsx` (trial/subscribe).
+      `PaymentGatewayDialog` takes an optional `paypal` one-off purchase
+      and renders the inline buttons; Analysis Pass purchases
+      (`AnalysisPassPurchaseModal`, `BillingTab`, `/pricing`) now complete
+      in place and fire `notifyAnalysisPassesUpdated()` to refresh every
+      `useAnalysisPassBalance()`. The redirect flows remain as fallback
+      (`capturePendingPaypalOrder`, new
+      `activatePendingPaypalSubscription` on `/dashboard`).
+    - **/pricing CTA change (supersedes part of the 2026-09-23 note)**:
+      the trial CTA opens `MembershipCheckoutDialog` — PayPal/card
+      auto-renew as primary, the original no-card trial as a secondary
+      "Start without a payment method" (so the promo's "no card required"
+      copy stays true); a trial-used account now gets a "Subscribe" button
+      (billed today) instead of the disabled "Free trial already used".
+      Billing tab shows auto-renew status, offers "Continue after trial" to
+      no-card trialists, and cancels the PayPal subscription before
+      `cancel_subscription()`.
+    - **Required secrets (Supabase Edge Function secrets, not settable
+      from this environment)**: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
+      `PAYPAL_WEBHOOK_ID`, `PAYPAL_ENV=live` (sandbox otherwise). Webhook
+      URL: `https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/paypal-payment?webhook=true`.
+      Without secrets the UI hides PayPal and falls back to PayFast / the
+      no-card trial. **Unverified end-to-end** (no PayPal credentials here);
+      the migration was applied live, but the function was committed, not
+      MCP-deployed (the MCP deployer can't bundle `../_shared` imports —
+      deploy with `supabase functions deploy paypal-payment` or rely on the
+      GitHub integration after merge). Card-button availability depends on
+      PayPal's guest-checkout eligibility for the merchant country.
   - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
     business decision to make paid plans free to try for a limited window
     while the rest of the platform's features finish rolling out. Deliberately

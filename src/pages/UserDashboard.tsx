@@ -35,7 +35,8 @@ import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
-import { capturePendingPaypalOrder } from "@/lib/payments";
+import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
+import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
 
 interface Profile {
   subscription_status: string | null;
@@ -123,6 +124,10 @@ const UserDashboard = () => {
       if (captureResult.captured && !captureResult.ok) {
         toast.error(captureResult.error || "We couldn't confirm your PayPal payment. Contact support if you were charged.");
       }
+      const subResult = await activatePendingPaypalSubscription();
+      if (subResult.activated && !subResult.ok) {
+        toast.error(subResult.error || "We couldn't confirm your PayPal subscription. Contact support if you were charged.");
+      }
     })();
 
     const clearParam = () => {
@@ -133,6 +138,9 @@ const UserDashboard = () => {
       next.delete("interval");
       next.delete("pack_id");
       next.delete("offer_id");
+      next.delete("subscription_id");
+      next.delete("ba_token");
+      next.delete("token");
       setSearchParams(next, { replace: true });
     };
 
@@ -162,7 +170,24 @@ const UserDashboard = () => {
         }
         return false;
       }
-      const { data } = await supabase.from("profiles").select("subscription_status").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("subscription_status, trial_ends_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      // A PayPal subscription started during/with a free trial is billed when
+      // the trial ends — a live trial is the success state for that return.
+      if (
+        purchaseType === "subscription" &&
+        data?.subscription_status === "trial" &&
+        data.trial_ends_at &&
+        new Date(data.trial_ends_at) > new Date()
+      ) {
+        refreshMembership();
+        trackConversionEvent("checkout_completed", { purchaseType });
+        toast.success("PayPal auto-renew is set up — you won't be charged until your free trial ends.");
+        return true;
+      }
       if (isPaidSubscriptionStatus(data?.subscription_status)) {
         refreshMembership();
         trackConversionEvent("checkout_completed", { purchaseType });
@@ -245,6 +270,13 @@ const UserDashboard = () => {
     if (error) setCreditsError(error.message);
     else if (typeof data === "number") setAiCredits(data);
   };
+
+  useEffect(() => {
+    const onUpdated = () => void retryAnalysisPassBalance();
+    window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleReactivate = async () => {
     setReactivating(true);

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Check, Gift, Atom, Sparkles, Crown, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,8 +18,11 @@ import {
 } from "@/lib/pricing-config";
 import { membershipPlans as fallbackPlans, type BillingInterval, type PlanId } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
-import { startCheckout, startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
+import { startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
+import MembershipCheckoutDialog, { type MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
+import type { PaypalOrderPurchase } from "@/lib/paypal";
+import type { PaypalApproval } from "@/components/payments/PayPalButtons";
 import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
@@ -29,6 +32,7 @@ import { isPromoActive, PROMO_END_DATE_LABEL, trialCtaLabel, withPromoTrialCopy 
 
 const Pricing = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { tier, trialUsed } = useMembership();
   const { data: config, isLoading: configLoading } = usePricingConfig();
   const [interval, setIntervalState] = useState<BillingInterval>("annual");
@@ -36,6 +40,8 @@ const Pricing = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
+  const [gatewayPaypalPurchase, setGatewayPaypalPurchase] = useState<PaypalOrderPurchase | undefined>(undefined);
+  const [membershipCheckout, setMembershipCheckout] = useState<{ plan: MembershipCheckoutPlan; trial: boolean } | null>(null);
   const ranPendingActionRef = useRef(false);
   const shouldReduceMotion = useReducedMotion();
 
@@ -91,18 +97,20 @@ const Pricing = () => {
     }));
   }, [config?.plans]);
 
-  const beginCheckout = async (plan: PaymentPlan) => {
-    trackConversionEvent("plan_selected", { plan, interval });
-    setGatewayAction(() => async (gateway: PaymentGateway) => {
-      setProcessingPlan(`subscribe-${plan}`);
-      const { error } = await startCheckout(gateway, plan, interval, variantKey);
-      if (error) {
-        setProcessingPlan(null);
-        toast.error(error.message);
-      } else {
-        setGatewayAction(null);
-      }
-    });
+  const planName = (planId: string) => plans.find((p) => p.plan_id === planId)?.name ?? planId;
+
+  // Paid plans are recurring PayPal subscriptions (PayPal balance or any
+  // debit/credit card). The server decides the first billing date: end of the
+  // free trial for a trial-eligible account, today for one that has used it.
+  const beginCheckout = (plan: PaymentPlan, planInterval: BillingInterval = interval) => {
+    trackConversionEvent("plan_selected", { plan, interval: planInterval });
+    setMembershipCheckout({ plan: { planId: plan, name: planName(plan), interval: planInterval }, trial: false });
+  };
+
+  // The trial CTA offers PayPal auto-renew (billing starts when the trial
+  // ends) with the original no-card trial as a secondary option.
+  const openTrialCheckout = (plan: "insider" | "glow_lite", planInterval: BillingInterval = interval) => {
+    setMembershipCheckout({ plan: { planId: plan, name: planName(plan), interval: planInterval }, trial: true });
   };
 
   const beginTrial = async (plan: "insider" | "glow_lite") => {
@@ -132,10 +140,11 @@ const Pricing = () => {
     if (!intent) return;
     ranPendingActionRef.current = true;
     clearPendingPlanIntent();
+    const intentInterval: BillingInterval = intent.interval ?? interval;
     if (intent.kind === "trial" && (intent.plan === "insider" || intent.plan === "glow_lite")) {
-      void beginTrial(intent.plan);
+      openTrialCheckout(intent.plan, intentInterval);
     } else if (intent.kind === "subscribe" && intent.plan !== "explorer") {
-      void beginCheckout(intent.plan as PaymentPlan);
+      beginCheckout(intent.plan as PaymentPlan, intentInterval);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -153,7 +162,7 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
-    void beginCheckout(plan);
+    beginCheckout(plan);
   };
 
   const handleTrial = (planId: PlanId) => {
@@ -165,7 +174,7 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
-    void beginTrial(plan);
+    openTrialCheckout(plan);
   };
 
   const handleBuyCreditPack = async (packId: string) => {
@@ -173,6 +182,7 @@ const Pricing = () => {
       setAuthOpen(true);
       return;
     }
+    setGatewayPaypalPurchase({ purchaseType: "credit_pack", packId, variantKey });
     setGatewayAction(() => async (gateway: PaymentGateway) => {
       setProcessingPlan(`credit-${packId}`);
       const { error } = await startCreditPackCheckout(gateway, packId, variantKey);
@@ -192,6 +202,7 @@ const Pricing = () => {
       return;
     }
     const offerId = config.foundingOffer.id;
+    setGatewayPaypalPurchase({ purchaseType: "founding_member", offerId });
     setGatewayAction(() => async (gateway: PaymentGateway) => {
       setProcessingPlan("founding-member");
       const { error } = await startFoundingMemberCheckout(gateway, offerId);
@@ -246,11 +257,12 @@ const Pricing = () => {
 
             {isPromoActive() && (
               <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-border bg-accent px-5 py-4 text-center text-sm text-accent-foreground">
-                <span className="font-semibold">Limited time:</span> every paid plan below is free to try, no card
-                required, until {PROMO_END_DATE_LABEL} — all member benefits apply except ad-free browsing.{" "}
+                <span className="font-semibold">Limited time:</span> every paid plan below is free to try until{" "}
+                {PROMO_END_DATE_LABEL}, no card required — all member benefits apply except ad-free browsing.{" "}
                 <span className="text-muted-foreground">
-                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Standard subscription
-                  billing starts {PROMO_END_DATE_LABEL}.
+                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Add PayPal or a card
+                  when you start and your membership continues automatically from {PROMO_END_DATE_LABEL} — you
+                  won't be charged before then.
                 </span>
               </div>
             )}
@@ -370,6 +382,15 @@ const Pricing = () => {
                               )}
                               {trialCtaLabel(plan.trial_days)}
                             </Button>
+                          ) : trialUsed && !isCurrentPlan && !disabled ? (
+                            // Trial already used: subscribing is the only way in, billed from today.
+                            <Button
+                              className="w-full"
+                              variant={plan.badge ? "default" : "outline"}
+                              onClick={() => handleSelect(plan.plan_id as PlanId)}
+                            >
+                              Subscribe
+                            </Button>
                           ) : (
                             <Button className="w-full" variant="outline" disabled>
                               {isCurrentPlan
@@ -383,7 +404,9 @@ const Pricing = () => {
                           )}
                         </div>
                         {trialAvailable && (
-                          <p className="mt-3 text-center text-xs text-muted-foreground">No card required.</p>
+                          <p className="mt-3 text-center text-xs text-muted-foreground">
+                            No card required — or add PayPal or a card to continue automatically after your trial.
+                          </p>
                         )}
                       </motion.div>
                     );
@@ -458,7 +481,8 @@ const Pricing = () => {
             )}
 
             <p className="mt-10 text-center text-xs text-muted-foreground">
-              Billed in ZAR. Cancel any paid plan any time from your dashboard. Virtual consultations will be
+              Prices are in ZAR. PayFast charges in Rand; PayPal and card payments through PayPal are charged in
+              USD at the live exchange rate. Cancel any paid plan any time from your dashboard. Virtual consultations will be
               provided by independent HPCSA-registered practitioners once live, and are not a substitute for
               emergency medical care.
             </p>
@@ -472,8 +496,41 @@ const Pricing = () => {
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
       <PaymentGatewayDialog
         open={!!gatewayAction}
-        onOpenChange={(open) => !open && setGatewayAction(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGatewayAction(null);
+            setGatewayPaypalPurchase(undefined);
+          }
+        }}
         onSelect={(gateway) => gatewayAction?.(gateway) ?? Promise.resolve()}
+        paypal={gatewayPaypalPurchase}
+        onPaypalApproved={(result: PaypalApproval) => {
+          if (result.kind !== "order" || !gatewayPaypalPurchase) return;
+          // Already captured and granted server-side — no polling needed.
+          const p = gatewayPaypalPurchase;
+          setGatewayAction(null);
+          setGatewayPaypalPurchase(undefined);
+          if (p.purchaseType === "credit_pack") {
+            trackConversionEvent("credit_pack_purchased", { packId: p.packId });
+            toast.success("Payment confirmed — your Analysis Passes are ready.");
+            navigate("/dashboard?tab=billing");
+          } else {
+            trackConversionEvent("founding_member_purchased", { offerId: p.offerId });
+            toast.success(result.needsReview ? "Payment received — our team will be in touch about your Founding Member spot." : "Welcome — you're a SkinLabs Founding Member.");
+            navigate("/dashboard");
+          }
+        }}
+      />
+      <MembershipCheckoutDialog
+        open={!!membershipCheckout}
+        onOpenChange={(open) => !open && setMembershipCheckout(null)}
+        plan={membershipCheckout?.plan ?? null}
+        variantKey={variantKey}
+        onStartTrialWithoutCard={
+          membershipCheckout?.trial
+            ? () => beginTrial(membershipCheckout.plan.planId as "insider" | "glow_lite")
+            : undefined
+        }
       />
     </>
   );

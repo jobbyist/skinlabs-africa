@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { BillingInterval, PlanId } from "@/data/plans";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { activatePaypalSubscription, createPaypalSubscription } from "@/lib/paypal";
+
+const PENDING_PAYPAL_SUBSCRIPTION_KEY = "skinlabs_paypal_pending_subscription_id";
 
 export type PaymentGateway = "payfast" | "paypal";
 export type PaymentPlan = Exclude<PlanId, "explorer">;
@@ -71,10 +74,52 @@ export const startCheckout = async (
   interval: BillingInterval = "monthly",
   variantKey = "control",
 ): Promise<CheckoutResult> => {
+  if (gateway === "paypal") {
+    // Memberships on PayPal are recurring subscriptions (redirect variant of
+    // MembershipCheckoutDialog's inline buttons). The server sets the first
+    // billing date — end of the free trial, or today if it's been used.
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) return { error: new Error("Please sign in to continue") };
+    try {
+      const callbackUrl = `${window.location.origin}/dashboard?payment=success&purchase_type=subscription&plan=${plan}&interval=${interval}`;
+      const { subscriptionId, approveUrl } = await createPaypalSubscription(
+        { purchaseType: "plan", planId: plan, interval, variantKey },
+        callbackUrl,
+      );
+      if (!approveUrl) return { error: new Error("Could not start checkout. Please try again.") };
+      sessionStorage.setItem(PENDING_PAYPAL_SUBSCRIPTION_KEY, subscriptionId);
+      trackConversionEvent("checkout_started", { purchaseType: "plan", plan, interval, gateway });
+      window.location.href = approveUrl;
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error("Could not start checkout. Please try again.") };
+    }
+  }
   const callbackUrl = `${window.location.origin}/dashboard?payment=success&purchase_type=plan&plan=${plan}&interval=${interval}`;
   const result = await invokeCheckout(gateway, { purchaseType: "plan", planId: plan, interval, variantKey, callbackUrl });
   if (!result.error) trackConversionEvent("checkout_started", { purchaseType: "plan", plan, interval, gateway });
   return result;
+};
+
+/**
+ * Confirms a PayPal subscription after PayPal redirects back with
+ * ?subscription_id=… (redirect flow only — the inline buttons confirm
+ * themselves). No-ops if this page load isn't such a return.
+ */
+export const activatePendingPaypalSubscription = async (): Promise<
+  { activated: false } | { activated: true; ok: boolean; error?: string; startKind?: string }
+> => {
+  const params = new URLSearchParams(window.location.search);
+  const subscriptionId = params.get("subscription_id");
+  const pending = sessionStorage.getItem(PENDING_PAYPAL_SUBSCRIPTION_KEY);
+  if (!subscriptionId || !pending || subscriptionId !== pending) return { activated: false };
+  sessionStorage.removeItem(PENDING_PAYPAL_SUBSCRIPTION_KEY);
+  try {
+    const result = await activatePaypalSubscription(subscriptionId);
+    return { activated: true, ok: true, startKind: result.startKind };
+  } catch (err) {
+    return { activated: true, ok: false, error: err instanceof Error ? err.message : undefined };
+  }
 };
 
 /** Starts a checkout for a one-time AI-analysis credit pack. */

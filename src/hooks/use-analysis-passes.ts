@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Fired after an in-page purchase (e.g. inline PayPal) grants Analysis Passes. */
+export const ANALYSIS_PASSES_UPDATED_EVENT = "skinlabs:analysis-passes-updated";
+
+export const notifyAnalysisPassesUpdated = () => window.dispatchEvent(new Event(ANALYSIS_PASSES_UPDATED_EVENT));
+
 /**
  * A signed-in user's Analysis Pass balance — the customer-facing name for
  * the existing `ai_credit_transactions` ledger (see `available_ai_credits()`
@@ -35,6 +40,9 @@ export const useAnalysisPassBalance = () => {
 
   useEffect(() => {
     void refresh();
+    const onUpdated = () => void refresh();
+    window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
   }, [refresh]);
 
   return { balance, loading, error, refresh };
