@@ -38,8 +38,29 @@ BEGIN
     RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: fresh explorer should have 1 free (%)', row_to_json(r);
   END IF; n := n + 1;
 
+  -- ---------- 1b. Cutover (20260924100100): the old claim RPC is read-only ----------
+  SELECT * INTO r FROM public.claim_starter_analysis();
+  SELECT * INTO r FROM public.claim_starter_analysis();
+  SELECT * INTO r FROM public.get_formulator_allowance();
+  IF r.free_remaining <> 1 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: claim_starter_analysis still consumes'; END IF; n := n + 1;
+
+  -- ---------- 1c. Cutover: a client cannot insert a starter row directly ----------
+  v_raised := false;
+  BEGIN
+    INSERT INTO public.skincare_recommendations (user_id, skin_type, concerns, recommendation, client_analysis_id, result_payload)
+    VALUES (v_uid, 'oily', ARRAY['acne'], 'x', 'direct-1', '{"x":1}'::jsonb);
+  EXCEPTION WHEN insufficient_privilege THEN v_raised := true;
+  END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: direct starter insert allowed'; END IF; n := n + 1;
+
   SELECT * INTO r FROM public.save_starter_analysis('test-a', 'oily', ARRAY['acne'], 'rec', '{"x":1}'::jsonb);
   IF r.source <> 'free_allowance' THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: first save should use free allowance, got %', r.source; END IF; n := n + 1;
+
+  -- ---------- 1d. Cutover: a client cannot rewrite a saved result in place ----------
+  UPDATE public.skincare_recommendations SET result_payload = '{"hacked":true}'::jsonb WHERE user_id = v_uid;
+  IF EXISTS (SELECT 1 FROM public.skincare_recommendations WHERE user_id = v_uid AND result_payload ? 'hacked') THEN
+    RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: client update of a saved analysis allowed';
+  END IF; n := n + 1;
 
   -- ---------- 2. Same analysis re-saved (refinement) is never charged ----------
   SELECT * INTO r FROM public.save_starter_analysis('test-a', 'oily', ARRAY['acne','pores'], 'rec v2', '{"x":2}'::jsonb);
@@ -54,6 +75,9 @@ BEGIN
     v_raised := v_msg = 'formulator_limit_reached' AND v_hint = 'formulator_limit_reached';
   END;
   IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: second analysis in window must be rejected'; END IF; n := n + 1;
+
+  SELECT * INTO r FROM public.claim_starter_analysis();
+  IF r.allowed THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: claim pre-check should report locked'; END IF; n := n + 1;
 
   SELECT * INTO r FROM public.get_formulator_allowance();
   IF r.free_remaining <> 0 OR r.next_unlock_at IS NULL

@@ -39,13 +39,16 @@ feature appear operational.
     `get_formulator_allowance()` is the read. `formulator_tier()` deliberately
     differs from `is_member()` — a Glow Lite *trial* stays limited.
     Server tests: `supabase/tests/formulator_allowance.sql` (runs in a DO block
-    that always rolls back — safe on prod; 15 assertions passing live).
-  - **Cutover not yet applied**: `20260924100100_formulator_allowance_cutover.sql`
-    (removes direct client INSERT/UPDATE of starter rows on
-    `skincare_recommendations`, makes `claim_starter_analysis()` read-only) must be
-    applied right AFTER this frontend deploys — the old frontend upserts directly.
-    The new frontend never calls `claim_starter_analysis()` (pre-cutover it still
-    consumes credits).
+    that always rolls back — safe on prod; 19 assertions passing live).
+  - **Merged (PR #141, `c809a12`) and cutover applied 2026-09-24** —
+    `20260924100100_formulator_allowance_cutover.sql` was applied live right after
+    the production deploy of `c809a12` went READY: clients can no longer INSERT a
+    row with `client_analysis_id`/`result_payload` or UPDATE their own
+    `skincare_recommendations` rows (admins keep their own UPDATE policy; the
+    `skincare-ai` edge function's live-AI inserts set neither column), and
+    `claim_starter_analysis()` is now a read-only pre-check.
+    `supabase/tests/formulator_allowance.sql` gained 4 cutover assertions — 19
+    passing live after the cutover.
   - Insider/VIP whose weekly live-AI quota is spent now fall back to an unlimited
     starter re-analysis instead of an error.
   - **Skin weather**: `supabase/functions/skin-weather` (city-key allow-list, never
@@ -85,9 +88,8 @@ feature appear operational.
     MCP connector is OpenWeather's separate Bot Forum platform
     (data.openweathermap.org, its own accounts/keys) — its key is not the
     `api.openweathermap.org` appid this function uses, so a connector 401 says
-    nothing about `OPENWEATHER_API_KEY`. Only on this branch, not `main`:
-    if Supabase's GitHub sync redeploys from `main` before merge, re-check the
-    function still exists.
+    nothing about `OPENWEATHER_API_KEY`. Now on `main` too; confirmed
+    still live (Cape Town → 200) after the merge.
   - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
     were ADDED next to the shadcn tokens — `--primary` is already #262626 and
     drives every primary button, so it was deliberately not renamed to the brief's

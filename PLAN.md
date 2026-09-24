@@ -153,7 +153,7 @@ Deviations from the plan above, and why:
 Applied live on `gnkpzijxuciiaamakgzm`: `20260924100000_formulator_rolling_allowance`, `20260924110000_skin_weather_cache`, `20260924110100_profiles_weather_city`, `20260924100200_fix_trial_start_email_idempotency_key` (applied at the user's request, verified).
 
 **Still to do (needs a human):**
-1. Deploy the frontend, then immediately apply `20260924100100_formulator_allowance_cutover.sql`.
+1. ~~Deploy the frontend, then immediately apply `20260924100100_formulator_allowance_cutover.sql`.~~ **Done 2026-09-24**: PR #141 merged (`c809a12`), production deploy READY, cutover applied right after; 19 server assertions pass live.
 2. ~~Apply the trial fix~~ — done 2026-09-24.
 3. Subscribe to OpenWeather **One Call API 4.0** ("One Call by Call"; card required, first 1,000 calls/day free — set the daily limit to 1000), then `supabase secrets set OPENWEATHER_API_KEY=...` — secret set; `skin-weather` deployed 2026-09-24 (v1). Waiting on OpenWeather to accept the key: first call got 401, and a re-check at 12:10 UTC (~2h later) still got 401. After the user reset the key, it works (13:50 UTC: Johannesburg 200, cache row written) — **done**.
 4. Optionally update `src/data/plans.ts` fallback prices (Insider R99 → R79, VIP R299 → R199).
