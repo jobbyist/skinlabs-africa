@@ -1,5 +1,5 @@
 -- FIX: free trials cannot be started (found 2026-09-24 while testing the
--- formulator allowance). NOT YET APPLIED — needs a human go-ahead.
+-- formulator allowance). Applied live 2026-09-24 at the user's request.
 --
 -- notify_subscription_change() (20260916101000_email_system_triggers.sql)
 -- builds the TRIAL_STARTED / Glow Lite MEMBERSHIP_ACTIVATED email idempotency

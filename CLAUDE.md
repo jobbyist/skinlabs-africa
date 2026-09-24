@@ -69,7 +69,12 @@ feature appear operational.
     plan on production — `notify_subscription_change()` builds an email
     idempotency key from `trial_started_at`, which is never set → NULL key →
     NOT NULL violation aborts the trial. No profile has ever recorded a trial.
-    Fix written, **not applied**: `20260924100200_fix_trial_start_email_idempotency_key.sql`.
+    Fixed by `20260924100200_fix_trial_start_email_idempotency_key.sql`
+    (`start_free_trial()` now stamps `trial_started_at`; the trigger falls back
+    to `trial_used_at`/`now()`), **applied live 2026-09-24 at the user's
+    request** and verified with a rolled-back probe: Insider and Glow Lite
+    trials both start (ending 2026-10-31T22:00Z = 1 Nov SAST via the promo), a
+    repeat is refused, and TRIAL_STARTED / MEMBERSHIP_ACTIVATED emails queue.
     (2) `20260919100000` had redefined `protect_profile_privileged_columns()` from
     an old copy, dropping founding_member/is_professional/starter_analyses_used/
     account_status/deactivated_at — restored. Column-level UPDATE grants on
