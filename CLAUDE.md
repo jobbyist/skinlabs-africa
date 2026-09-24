@@ -190,11 +190,16 @@ feature appear operational.
   drift) — all three deployed and pg_cron-scheduled. Price-sync runs in
   batches of 20 (least-recently-checked first via `price_checked_at`,
   100s budget) six times nightly, 00:00–05:00 UTC, to stay under the
-  edge-function wall-clock limit. It takes the **lowest** of the page's
-  Product JSON-LD price and its `og:price:amount`/`product:price:amount`
-  meta tags: FTN's JSON-LD keeps the regular price during a "Special
-  Price" sale, and reading it alone once raised on-sale products ~43%
-  above what FTN charges. The
+  edge-function wall-clock limit. **Prices are held steady through FTN
+  sales** (product-owner decision): the sync records FTN's regular price
+  in `source_regular_price_zar` and reprices only when that changes, so a
+  sale starting or ending never moves the OpenHaus price, while genuine
+  FTN price changes still pass through. Selling price comes from the
+  `og:price:amount` meta tag; regular price from the "Regular Price" in
+  the product's own Magento price box (the box whose price matches og —
+  the rest are cross-sells). Don't use the Product JSON-LD for either:
+  it holds the regular price during a sale (reading it once raised
+  on-sale items ~43%) and on multi-size pages an unrelated amount. The
   jobs send an `x-cron-secret` read at run time from the Vault secret
   `marketplace_cron_secret` (`20260924130000_openhaus_cron_secret_to_vault.sql`
   — never put the literal in a migration). **The matching
