@@ -24,10 +24,20 @@ ALTER TABLE public.ingredient_interactions ADD COLUMN IF NOT EXISTS verified_by 
 ALTER TABLE public.ingredient_interactions ADD COLUMN IF NOT EXISTS last_verified_at timestamptz;
 
 -- Add RLS policies for ingredient_interactions
+-- Guarded: 20260907120000_skincare_intelligence_core.sql already creates both
+-- policies, and a bare CREATE POLICY would abort a fresh replay with 42710.
 ALTER TABLE public.ingredient_interactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public read" ON public.ingredient_interactions FOR SELECT USING (true);
-CREATE POLICY "Admins manage ingredient_interactions" ON public.ingredient_interactions FOR ALL TO authenticated
-  USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+                 AND tablename = 'ingredient_interactions' AND policyname = 'Public read') THEN
+    CREATE POLICY "Public read" ON public.ingredient_interactions FOR SELECT USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+                 AND tablename = 'ingredient_interactions' AND policyname = 'Admins manage ingredient_interactions') THEN
+    CREATE POLICY "Admins manage ingredient_interactions" ON public.ingredient_interactions FOR ALL TO authenticated
+      USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  END IF;
+END $$;
 GRANT SELECT ON public.ingredient_interactions TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.ingredient_interactions TO authenticated;
 GRANT ALL ON public.ingredient_interactions TO service_role;
