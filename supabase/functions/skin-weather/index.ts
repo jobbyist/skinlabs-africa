@@ -5,7 +5,7 @@
  * - Input is a city KEY from a fixed allow-list, never coordinates: browsers
  *   snap geolocation to the nearest listed city before calling (POPIA — no
  *   precise location is sent or stored).
- * - One upstream call per city per CACHE_TTL at most, cached in
+ * - One upstream refresh per city per CACHE_TTL at most, cached in
  *   public.skin_weather_cache (service-role only). Every visitor in a city
  *   shares that row, so page views never fan out to the weather API.
  * - If the provider fails, a reading up to STALE_MAX old is served with
@@ -14,14 +14,17 @@
  *   src/lib/skinWeather/tips.ts) because it depends on the member's own skin
  *   profile, which this public function never sees.
  *
- * Secrets: OPENWEATHER_API_KEY (Supabase Edge Function secret).
+ * Secrets: OPENWEATHER_API_KEY (Supabase Edge Function secret); optional
+ * OPENWEATHER_ONECALL_VERSION=3.0 to use the older single-call API.
  * SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are auto-injected.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { SA_CITY_COORDS, WeatherProviderError, type SkinWeatherProvider, type SkinWeatherReading } from "../_shared/weather/provider.ts";
-import { OpenWeatherProvider } from "../_shared/weather/openWeather.ts";
+import { OpenWeatherProvider, OpenWeatherV4Provider } from "../_shared/weather/openWeather.ts";
 
-const CACHE_TTL_MS = 45 * 60 * 1000;
+// 60 min: One Call 4.0 costs 3 upstream calls per refresh, so this caps usage
+// at 10 cities × 24 × 3 = 720/day, inside OpenWeather's free 1,000/day.
+const CACHE_TTL_MS = 60 * 60 * 1000;
 const STALE_MAX_MS = 6 * 60 * 60 * 1000;
 
 const corsHeaders = {
@@ -46,7 +49,11 @@ interface CachedRow {
 
 const buildProvider = (): SkinWeatherProvider | null => {
   const key = Deno.env.get("OPENWEATHER_API_KEY");
-  return key ? new OpenWeatherProvider(key) : null;
+  if (!key) return null;
+  // New OpenWeather accounts only get One Call 4.0; 3.0 is opt-in for older ones.
+  return Deno.env.get("OPENWEATHER_ONECALL_VERSION") === "3.0"
+    ? new OpenWeatherProvider(key)
+    : new OpenWeatherV4Provider(key);
 };
 
 Deno.serve(async (req) => {

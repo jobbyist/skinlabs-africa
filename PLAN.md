@@ -147,7 +147,7 @@ Answers applied: Q1 (a) summary-only for anonymous visitors, PDF kept free · Q2
 Deviations from the plan above, and why:
 - **Weather city** is a new `profiles.weather_city_key`, not the existing `profiles.city`. That field is the free-text *address* city (any town), and saving "Cape Town" into it from the card would overwrite someone's address. `profiles.city` is still used as a fallback when it names one of the 10 cities.
 - **Rolling window counts from the last *free* analysis** (`last_free_analysis_at`). Spending a purchased Analysis Pass doesn't push the next free one further away.
-- **OpenWeather One Call 3.0** (one call per refresh) rather than 4.0 (three calls). Only the adapter changes if the account ends up with 4.0-only access.
+- **OpenWeather One Call 4.0 is the default** (the subscription page only offers 4.0 to new accounts): 3 calls per refresh, so the per-city cache is 60 min (≤720 calls/day). The 3.0 adapter remains, selectable with `OPENWEATHER_ONECALL_VERSION=3.0`.
 - Found and fixed/flagged along the way: see the 2026-09-24 entry in CLAUDE.md (broken `start_free_trial`, trigger regression, stale static prices).
 
 Applied live on `gnkpzijxuciiaamakgzm`: `20260924100000_formulator_rolling_allowance`, `20260924110000_skin_weather_cache`, `20260924110100_profiles_weather_city`, `20260924100200_fix_trial_start_email_idempotency_key` (applied at the user's request, verified).
@@ -155,5 +155,5 @@ Applied live on `gnkpzijxuciiaamakgzm`: `20260924100000_formulator_rolling_allow
 **Still to do (needs a human):**
 1. Deploy the frontend, then immediately apply `20260924100100_formulator_allowance_cutover.sql`.
 2. ~~Apply the trial fix~~ — done 2026-09-24.
-3. Create an OpenWeather account ("One Call by Call", commercial use; card required, first 1,000 calls/day free), then `supabase secrets set OPENWEATHER_API_KEY=...` and deploy the `skin-weather` function (`verify_jwt = false`, as in config.toml).
+3. Subscribe to OpenWeather **One Call API 4.0** ("One Call by Call"; card required, first 1,000 calls/day free — set the daily limit to 1000), then `supabase secrets set OPENWEATHER_API_KEY=...` and deploy the `skin-weather` function (`verify_jwt = false`, as in config.toml).
 4. Optionally update `src/data/plans.ts` fallback prices (Insider R99 → R79, VIP R299 → R199).

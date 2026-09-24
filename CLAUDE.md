@@ -50,10 +50,16 @@ feature appear operational.
     starter re-analysis instead of an error.
   - **Skin weather**: `supabase/functions/skin-weather` (city-key allow-list, never
     coordinates; per-city cache in `skin_weather_cache`, 45-min TTL, stale-serve up
-    to 6h) → `SkinWeatherCard`; tip logic is the pure, tested
+    to 6h) → `SkinWeatherCard`; cache TTL raised 45 → **60 min** on 2026-09-24 because
+    the default provider is now **One Call 4.0** (`OpenWeatherV4Provider` —
+    new OpenWeather accounts are only offered 4.0; it needs 3 calls per refresh:
+    `current`, `timeline/1h`, `timeline/1day`, so worst case 10 × 24 × 3 = 720
+    calls/day, inside the free 1,000). 4.0 responses are reshaped into the 3.0
+    shape and parsed by the same `normaliseOneCallV3()`; the 3.0 provider stays
+    available via the optional `OPENWEATHER_ONECALL_VERSION=3.0` secret. tip logic is the pure, tested
     `getSkinWeatherTip()` in `src/lib/skinWeather/tips.ts` (WHO UV bands,
     humidity <30 / >70, profile-aware, cosmetic wording only — a test scans every
-    output for claim/medical terms). Provider is OpenWeather One Call 3.0 behind
+    output for claim/medical terms). Provider is OpenWeather One Call (4.0 default, 3.0 optional) behind
     `SkinWeatherProvider` (`_shared/weather/`) — **Open-Meteo's free API is
     non-commercial only and counts ad-supported sites as commercial, so don't
     switch to it without a paid licence**. City is `profiles.weather_city_key`

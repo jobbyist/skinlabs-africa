@@ -10,7 +10,15 @@ import {
 } from "../tips";
 import { SA_CITIES, cityFromProfile, nearestCity } from "../cities";
 import { SA_CITY_COORDS } from "../../../../supabase/functions/_shared/weather/provider";
-import { normaliseOneCallV3, type OneCallV3Response } from "../../../../supabase/functions/_shared/weather/openWeather";
+import {
+  OpenWeatherV4Provider,
+  normaliseOneCallV3,
+  normaliseOneCallV4,
+  type OneCallV3Response,
+  type OneCallV4Current,
+  type OneCallV4Daily,
+  type OneCallV4Hourly,
+} from "../../../../supabase/functions/_shared/weather/openWeather";
 
 const base: SkinWeatherData = {
   uvNow: 4,
@@ -203,5 +211,75 @@ describe("OpenWeather One Call 3.0 normaliser", () => {
     expect(() =>
       normaliseOneCallV3({ timezone_offset: 0, current: { dt: 0, uvi: 1, humidity: 40 }, daily: [] }),
     ).toThrow();
+  });
+});
+
+describe("OpenWeather One Call 4.0 (documented response shape)", () => {
+  const at = (isoZ: string) => Math.floor(new Date(isoZ).getTime() / 1000);
+  // 09:00 SAST; envelope shape mirrors openweathermap.org/api/one-call-4 examples.
+  const current: OneCallV4Current = {
+    timezone_offset: 7200,
+    data: [{ dt: at("2026-09-24T07:03:11Z"), uvi: 2.26, humidity: 27.4 }],
+  };
+  const hourly: OneCallV4Hourly = {
+    timezone_offset: 7200,
+    data: [
+      { dt: at("2026-09-24T08:00:00Z"), uvi: 4.1 },
+      { dt: at("2026-09-24T11:00:00Z"), uvi: 9.1 },
+      { dt: at("2026-09-24T13:00:00Z"), uvi: 6.0 },
+      { dt: at("2026-09-25T11:00:00Z"), uvi: 11 }, // tomorrow — ignored
+    ],
+  };
+  const daily: OneCallV4Daily = {
+    timezone_offset: 7200,
+    data: [
+      { dt: at("2026-09-24T10:00:00Z"), uvi: 9, temp: { max: 26.6 } },
+      { dt: at("2026-09-25T10:00:00Z"), uvi: 11, temp: { max: 30 } },
+    ],
+  };
+
+  test("the three 4.0 responses normalise to the same reading shape as 3.0", () => {
+    const r = normaliseOneCallV4(current, hourly, daily);
+    expect(r).toEqual({
+      uvNow: 2.3,
+      uvMax: 9.1,
+      uvPeakAt: "2026-09-24T11:00:00.000Z",
+      humidity: 27,
+      tempMax: 27,
+      observedAt: new Date(current.data[0].dt * 1000).toISOString(),
+    });
+  });
+
+  test("an empty current envelope throws rather than inventing a reading", () => {
+    expect(() => normaliseOneCallV4({ timezone_offset: 7200, data: [] }, hourly, daily)).toThrow();
+  });
+
+  test("provider makes the 3 documented calls (metric units) and never leaks the key in errors", async () => {
+    const calls: string[] = [];
+    const body: Record<string, unknown> = { current, "timeline/1h": hourly, "timeline/1day": daily };
+    const okFetch = (async (input: string) => {
+      calls.push(input);
+      const path = new URL(input).pathname.replace("/data/4.0/onecall/", "");
+      return new Response(JSON.stringify(body[path]), { status: 200 });
+    }) as unknown as typeof fetch;
+    const reading = await new OpenWeatherV4Provider("SECRET-KEY", okFetch).getSkinWeather(-26.2, 28.05);
+    expect(reading.uvMax).toBe(9.1);
+    expect(calls.map((u) => new URL(u).pathname).sort()).toEqual([
+      "/data/4.0/onecall/current",
+      "/data/4.0/onecall/timeline/1day",
+      "/data/4.0/onecall/timeline/1h",
+    ]);
+    for (const u of calls) {
+      const q = new URL(u).searchParams;
+      expect(q.get("units")).toBe("metric");
+      expect(q.get("lat")).toBe("-26.20");
+      expect(q.get("lon")).toBe("28.05");
+    }
+
+    const failFetch = (async () => new Response("nope", { status: 401 })) as unknown as typeof fetch;
+    const err = await new OpenWeatherV4Provider("SECRET-KEY", failFetch).getSkinWeather(-26.2, 28.05).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain("401");
+    expect((err as Error).message).not.toContain("SECRET-KEY");
   });
 });

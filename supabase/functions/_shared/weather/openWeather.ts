@@ -1,15 +1,24 @@
 /**
- * OpenWeather One Call API 3.0 implementation of SkinWeatherProvider.
+ * OpenWeather One Call implementations of SkinWeatherProvider.
  *
  * Why OpenWeather and not Open-Meteo: Open-Meteo's free API is licensed for
  * non-commercial use only, and its terms explicitly count sites that show
  * advertising as commercial (SkinLabs runs AdSense). OpenWeather's "One Call by
- * Call" plan allows commercial use with the first 1,000 calls/day free; with
- * the per-city cache in the skin-weather function we make at most ~10 cities ×
- * 32 refreshes = 320 calls/day. v3.0 returns current + hourly + daily in ONE
- * call; v4.0 (which OpenWeather now recommends for new integrations) needs
- * three calls per refresh — if the account only has 4.0 access, add a
- * `OpenWeatherV4Provider` here rather than changing the edge function.
+ * Call" plan allows commercial use with the first 1,000 calls/day free.
+ *
+ * Two API versions, same data:
+ * - **4.0 (default, `OpenWeatherV4Provider`)** — what new OpenWeather accounts
+ *   are offered (confirmed 2026-09-24: the subscription page only lists 4.0).
+ *   Current conditions, the hourly timeline and the daily timeline are three
+ *   separate endpoints, so one refresh = 3 calls. With the skin-weather
+ *   function's 60-minute per-city cache that's at most 10 cities × 24 × 3 =
+ *   720 calls/day, inside the free 1,000.
+ * - **3.0 (`OpenWeatherProvider`)** — one call per refresh, for accounts that
+ *   still have it. Select with the `OPENWEATHER_ONECALL_VERSION=3.0` secret.
+ *
+ * Both versions use the same field names (dt, uvi, humidity, temp.max), so the
+ * v4 responses are reshaped into the v3 shape and parsed by the single, tested
+ * `normaliseOneCallV3()`.
  *
  * Attribution: OpenWeather asks for a credit to OpenWeather when its data is shown.
  */
@@ -86,5 +95,69 @@ export class OpenWeatherProvider implements SkinWeatherProvider {
       throw new WeatherProviderError(`OpenWeather request failed (${res.status})`, res.status);
     }
     return normaliseOneCallV3((await res.json()) as OneCallV3Response);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One Call 4.0
+// ---------------------------------------------------------------------------
+
+/** Every 4.0 endpoint wraps its records in a `data` array with the location's UTC offset. */
+export interface OneCallV4Envelope<T> {
+  timezone_offset: number;
+  data: T[];
+}
+export type OneCallV4Current = OneCallV4Envelope<{ dt: number; uvi: number; humidity: number }>;
+export type OneCallV4Hourly = OneCallV4Envelope<{ dt: number; uvi: number }>;
+export type OneCallV4Daily = OneCallV4Envelope<{ dt: number; uvi: number; temp: { max: number } }>;
+
+/** Pure: the three 4.0 responses → the 3.0 shape → SkinWeatherReading. */
+export const normaliseOneCallV4 = (
+  current: OneCallV4Current,
+  hourly: OneCallV4Hourly,
+  daily: OneCallV4Daily,
+): SkinWeatherReading => {
+  const now = current?.data?.[0];
+  if (!now) throw new WeatherProviderError("Malformed One Call 4.0 response: missing current conditions");
+  return normaliseOneCallV3({
+    timezone_offset: current.timezone_offset ?? hourly?.timezone_offset ?? daily?.timezone_offset ?? 0,
+    current: now,
+    hourly: hourly?.data ?? [],
+    daily: daily?.data ?? [],
+  });
+};
+
+const V4_BASE = "https://api.openweathermap.org/data/4.0/onecall";
+
+export class OpenWeatherV4Provider implements SkinWeatherProvider {
+  readonly name = "openweather-v4";
+  readonly attribution = "Weather data © OpenWeather";
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly fetchImpl: typeof fetch = fetch,
+  ) {}
+
+  private async get<T>(path: string, lat: number, lon: number): Promise<T> {
+    const url = new URL(`${V4_BASE}/${path}`);
+    url.searchParams.set("lat", lat.toFixed(2));
+    url.searchParams.set("lon", lon.toFixed(2));
+    url.searchParams.set("units", "metric");
+    url.searchParams.set("appid", this.apiKey);
+    const res = await this.fetchImpl(url.toString(), { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) {
+      // Never echo the URL — it carries the API key.
+      throw new WeatherProviderError(`OpenWeather 4.0 ${path} request failed (${res.status})`, res.status);
+    }
+    return (await res.json()) as T;
+  }
+
+  async getSkinWeather(lat: number, lon: number): Promise<SkinWeatherReading> {
+    const [current, hourly, daily] = await Promise.all([
+      this.get<OneCallV4Current>("current", lat, lon),
+      this.get<OneCallV4Hourly>("timeline/1h", lat, lon),
+      this.get<OneCallV4Daily>("timeline/1day", lat, lon),
+    ]);
+    return normaliseOneCallV4(current, hourly, daily);
   }
 }
