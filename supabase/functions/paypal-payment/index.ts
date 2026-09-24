@@ -251,6 +251,7 @@ async function handleWebhook(req: Request, admin: Admin): Promise<Response> {
 
   const event = JSON.parse(raw);
   const type = event.event_type as string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const resource = (event.resource ?? {}) as Record<string, any>;
 
   // ---- One-off orders ----
@@ -459,6 +460,7 @@ Deno.serve(async (req) => {
       }
 
       const status = captured.json.status as string;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const capture = (captured.json.purchase_units as Array<any>)?.[0]?.payments?.captures?.[0];
       if (status !== "COMPLETED" || !capture) {
         return json({ error: `Payment not completed (status: ${status})` }, 400);

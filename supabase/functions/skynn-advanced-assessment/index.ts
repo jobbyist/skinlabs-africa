@@ -301,8 +301,10 @@ serve(async (req) => {
  */
 async function generateReport(args: {
   // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAuth: any;
   // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabaseAdmin: any;
   userId: string;
   sessionId: string;

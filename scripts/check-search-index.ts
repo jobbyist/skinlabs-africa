@@ -34,6 +34,10 @@ const KNOWN_EXCLUSIONS = new Set([
   // Personal, per-user wishlist (empty for guests, no independent content) — same
   // treatment as /dashboard.
   "/marketplace/saved",
+  // Utility step of the password-recovery email flow, not content.
+  "/reset-password",
+  // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
+  "/quote-ss-beauty",
 ]);
 
 interface RouteEntry {
