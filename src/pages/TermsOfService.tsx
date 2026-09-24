@@ -3,6 +3,7 @@ import { FileText, Shield, AlertCircle, RotateCcw, Scale, Users, ShoppingBag, Ca
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
 const EFFECTIVE = "28 August 2026";
 
@@ -127,7 +128,7 @@ const TermsOfService = () => {
                       <p>
                         Paid memberships (Glow Insider, Glow VIP and any future tiers) are offered on monthly or annual cycles.
                         Prices are displayed in South African Rand (ZAR) and include applicable VAT where we are registered. A free
-                        trial of Glow Insider may be offered (currently 7 days, no card required). Starting a free trial forfeits the
+                        trial of Glow Insider may be offered (currently {isPromoActive() ? `free until ${PROMO_END_DATE_LABEL} under a limited-time promotion` : `${STANDARD_TRIAL_DAYS} days`}, no card required). Starting a free trial forfeits the
                         30-day money-back guarantee that otherwise applies to direct paid subscriptions. Full details appear in our{" "}
                         <Link to="/refund-policy" className="text-primary hover:underline">Refund Policy</Link>.
                       </p>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Check, Gift, Atom, Sparkles, Crown, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
@@ -25,7 +25,7 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getPendingPlanIntent, setPendingPlanIntent, clearPendingPlanIntent } from "@/lib/pendingPlan";
-import { isPromoActive, PROMO_END_DATE_LABEL } from "@/lib/promo";
+import { isPromoActive, PROMO_END_DATE_LABEL, trialCtaLabel, withPromoTrialCopy } from "@/lib/promo";
 
 const Pricing = () => {
   const { user } = useAuth();
@@ -37,6 +37,7 @@ const Pricing = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
   const ranPendingActionRef = useRef(false);
+  const shouldReduceMotion = useReducedMotion();
 
   const variantKey = config?.variantKey ?? "control";
 
@@ -244,7 +245,7 @@ const Pricing = () => {
             </div>
 
             {isPromoActive() && (
-              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-center text-sm text-foreground">
+              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-border bg-accent px-5 py-4 text-center text-sm text-accent-foreground">
                 <span className="font-semibold">Limited time:</span> every paid plan below is free to try, no card
                 required, until {PROMO_END_DATE_LABEL} — all member benefits apply except ad-free browsing.{" "}
                 <span className="text-muted-foreground">
@@ -266,9 +267,11 @@ const Pricing = () => {
                   {(["annual", "monthly"] as BillingInterval[]).map((option) => (
                     <button
                       key={option}
+                      type="button"
                       onClick={() => setInterval(option)}
+                      aria-pressed={interval === option}
                       className={cn(
-                        "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         interval === option
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:text-foreground",
@@ -289,11 +292,12 @@ const Pricing = () => {
                   ))}
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                   {plans.map((plan, index) => {
                     const price = planPrice(plan, interval);
                     const isPaidPlan = plan.plan_id !== "explorer";
-                    const isCurrentPlan = tier === plan.plan_id;
+                    // Signed-out visitors resolve to the free tier but have no plan of their own yet.
+                    const isCurrentPlan = Boolean(user) && tier === plan.plan_id;
                     const trialAvailable =
                       isPaidPlan && plan.trial_eligible && plan.trial_days > 0 && !trialUsed && !isCurrentPlan;
                     const savings = isPaidPlan && interval === "annual" ? annualSavingsLabel(plan) : null;
@@ -302,10 +306,10 @@ const Pricing = () => {
                     return (
                       <motion.div
                         key={plan.plan_id}
-                        initial={{ opacity: 0, y: 24 }}
+                        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: index * 0.08 }}
+                        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
                         className={cn(
                           "relative flex flex-col rounded-3xl border bg-card p-8",
                           plan.badge ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
@@ -317,7 +321,7 @@ const Pricing = () => {
                           </span>
                         )}
                         <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{withPromoTrialCopy(plan.tagline)}</p>
                         <div className="mt-6 flex items-end gap-1">
                           <span className="font-heading text-4xl font-extrabold text-foreground">R{price}</span>
                           <span className="pb-1 text-sm text-muted-foreground">
@@ -334,42 +338,52 @@ const Pricing = () => {
                           {(plan.benefits as string[]).map((feature) => (
                             <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                               <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              {linkifyMoneyBackGuarantee(feature)}
+                              {linkifyMoneyBackGuarantee(withPromoTrialCopy(feature))}
                             </li>
                           ))}
                         </ul>
-                        <div className="mt-8 space-y-2">
-                          {trialAvailable && (
+                        {/* Paid plans offer the free trial as their only call to action — there is
+                            deliberately no direct-subscribe button on this page. Explorer keeps its own
+                            free sign-up CTA; a paid plan that can't be trialled (current plan, trial
+                            already used, not yet purchasable) shows a disabled status instead. */}
+                        <div className="mt-8">
+                          {!isPaidPlan ? (
                             <Button
+                              className="w-full"
                               variant="outline"
+                              disabled={isCurrentPlan}
+                              onClick={() => handleSelect(plan.plan_id as PlanId)}
+                            >
+                              {isCurrentPlan ? "Your current plan" : plan.cta_label}
+                            </Button>
+                          ) : trialAvailable ? (
+                            <Button
                               className="w-full gap-2"
+                              variant={plan.badge ? "default" : "outline"}
                               disabled={processingPlan === `trial-${plan.plan_id}`}
                               onClick={() => handleTrial(plan.plan_id as PlanId)}
                             >
-                              <Gift className="h-4 w-4" />
-                              {isPromoActive() ? `Free until ${PROMO_END_DATE_LABEL}` : `Try free for ${plan.trial_days} days`}
+                              {processingPlan === `trial-${plan.plan_id}` ? (
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Gift className="h-4 w-4" aria-hidden="true" />
+                              )}
+                              {trialCtaLabel(plan.trial_days)}
+                            </Button>
+                          ) : (
+                            <Button className="w-full" variant="outline" disabled>
+                              {isCurrentPlan
+                                ? "Your current plan"
+                                : disabled
+                                  ? (plan.cta_override ?? "Coming soon")
+                                  : trialUsed
+                                    ? "Free trial already used"
+                                    : "Not available right now"}
                             </Button>
                           )}
-                          <Button
-                            className="w-full"
-                            variant={plan.badge ? "default" : "outline"}
-                            disabled={disabled || isCurrentPlan || processingPlan === `subscribe-${plan.plan_id}`}
-                            onClick={() => handleSelect(plan.plan_id as PlanId)}
-                          >
-                            {isCurrentPlan ? "Your current plan" : disabled ? (plan.cta_override ?? "Coming soon") : plan.cta_label}
-                          </Button>
                         </div>
                         {trialAvailable && (
-                          <p className="mt-3 text-center text-xs text-muted-foreground">
-                            No card required. Prefer to skip the trial? Subscribing directly comes with the money-back
-                            guarantee below from day one.
-                          </p>
-                        )}
-                        {isPaidPlan && plan.money_back_days && (
-                          <p className="mt-1 text-center text-xs text-muted-foreground">
-                            {linkifyMoneyBackGuarantee(`${plan.money_back_days}-day money-back guarantee`)} when you
-                            subscribe. Not right for your skin? Full refund.
-                          </p>
+                          <p className="mt-3 text-center text-xs text-muted-foreground">No card required.</p>
                         )}
                       </motion.div>
                     );
@@ -406,7 +420,7 @@ const Pricing = () => {
                 ))}
 
                 {foundingAvailable && founding && (
-                  <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-primary/40 bg-primary/5 p-8">
+                  <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-primary/40 bg-accent/60 p-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start gap-4">
                         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">

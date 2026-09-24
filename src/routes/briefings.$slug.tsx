@@ -6,8 +6,12 @@ import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { articleTitle } from '@/lib/seo-config'
+import { extractEditorialDisclaimer } from '@/lib/editorialDisclaimer'
+import AdSlot from '@/components/AdSlot'
 import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
+import BriefingBody from '@/components/briefings/BriefingBody'
+import EditorialDisclaimer from '@/components/briefings/EditorialDisclaimer'
 
 // Production SSR route for /briefings/:slug (Briefings is the first content
 // type migrated to TanStack Start -- see
@@ -50,6 +54,13 @@ interface BriefingRow {
   is_premium: boolean
 }
 
+interface InlineImage {
+  url: string
+  alt?: string
+  credit_name?: string
+  credit_url?: string
+}
+
 const fetchBriefing = createServerFn({ method: 'GET' })
   .validator((slug: unknown) => {
     if (typeof slug !== 'string' || !slug) throw new Error('slug required')
@@ -66,18 +77,44 @@ const fetchBriefing = createServerFn({ method: 'GET' })
       .eq('status', 'published')
       .maybeSingle()
     if (error || !data) return { found: false as const }
-    return { found: true as const, article: data as BriefingRow }
+
+    // Same get_article_body RPC the real client page uses (NewsroomArticle.tsx),
+    // called here with no user session -- this server client is always
+    // anonymous, so it returns the body for a genuinely free/non-premium
+    // article (matches what any visitor gets) and correctly withholds it for
+    // a premium one (matches what a signed-out visitor gets there too, per
+    // get_article_body's own SQL: `IF auth.uid() IS NULL THEN RETURN; END IF;`
+    // for a premium row). This is the RPC gate itself deciding visibility,
+    // not a bypass of it -- premium briefing bodies are still never exposed
+    // to an anonymous crawler/agent here, exactly as intended.
+    const { data: bodyRows } = await supabase.rpc('get_article_body', { p_slug: slug })
+    const bodyRow = Array.isArray(bodyRows) ? bodyRows[0] : bodyRows
+    const rawBody = (bodyRow?.body_markdown as string | null) ?? null
+    const { body: cleanedBody, disclaimer } = rawBody
+      ? extractEditorialDisclaimer(rawBody)
+      : { body: null, disclaimer: null }
+    const inlineImages = Array.isArray(bodyRow?.inline_images)
+      ? (bodyRow!.inline_images as unknown as InlineImage[])
+      : []
+
+    return {
+      found: true as const,
+      article: data as BriefingRow,
+      body: cleanedBody,
+      disclaimer,
+      inlineImages,
+    }
   })
 
 export const Route = createFileRoute('/briefings/$slug')({
   loader: async ({ params }) => {
     const result = await fetchBriefing({ data: params.slug })
     if (!result.found) throw notFound()
-    return result.article
+    return result
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {}
-    const a = loaderData
+    const a = loaderData.article
     const path = `/briefings/${a.slug}`
     const title = a.seo_title || articleTitle(a.title)
     const description = (a.seo_description || a.excerpt).replace(/\s+/g, ' ').trim().slice(0, 160)
@@ -128,7 +165,7 @@ export const Route = createFileRoute('/briefings/$slug')({
 })
 
 function BriefingPage() {
-  const a = Route.useLoaderData()
+  const { article: a, body, disclaimer, inlineImages } = Route.useLoaderData()
   return (
     <main>
       <nav aria-label="Breadcrumb">
@@ -155,6 +192,43 @@ function BriefingPage() {
           <li key={i}>{k}</li>
         ))}
       </ul>
+
+      {/* Real article body -- previously this SSR route (the only server-
+          rendered view of this URL, since /briefings/:slug isn't build-time
+          prerendered either) never queried or rendered body_markdown at
+          all, so a non-JS crawler/agent saw only the excerpt + key
+          takeaways above, never the actual article the page's own Article
+          JSON-LD claims to describe. body is null either because the
+          article genuinely has none yet, or (for a premium briefing) get_article_body
+          correctly withheld it from this anonymous server request -- same
+          gate a signed-out visitor hits client-side, not a bypass of it. */}
+      {body ? (
+        <>
+          <BriefingBody body={body} />
+          {inlineImages.length > 0 && (
+            <div>
+              {inlineImages.map((img) => (
+                <figure key={img.url}>
+                  <img src={img.url} alt={img.alt || a.title} loading="lazy" />
+                  {img.credit_name && (
+                    <figcaption>
+                      Photo by{' '}
+                      {img.credit_url ? <a href={img.credit_url}>{img.credit_name}</a> : img.credit_name} on
+                      Unsplash
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+          )}
+          {disclaimer && <EditorialDisclaimer text={disclaimer} />}
+        </>
+      ) : a.is_premium ? (
+        <p>
+          This is a premium briefing. <a href="/pricing">Sign in or see membership plans</a> to read the full
+          article -- free accounts get several full briefings every week.
+        </p>
+      ) : null}
 
       <FaithfulToNature placement="briefing-shop" />
 

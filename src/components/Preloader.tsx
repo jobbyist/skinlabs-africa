@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useTheme } from "next-themes";
 import { ArrowRight, Newspaper, ShieldCheck, Lock, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -9,7 +10,10 @@ import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews, overallScore } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
-import logo from "@/assets/newskinlabs.png";
+// Served from public/ (real light/dark wordmark exports), swapped via
+// resolvedTheme rather than a CSS invert filter on one bundled asset.
+const LOGO_LIGHT = "/logosvg.png";
+const LOGO_DARK = "/logosvgwhite.png";
 import Autoplay from "embla-carousel-autoplay";
 import { markEntryGateResolved } from "@/lib/entry-gate";
 import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
@@ -139,6 +143,8 @@ const Preloader = () => {
   const shouldReduceMotion = useReducedMotion();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [externalArrival] = useState(isExternalArrival);
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === "dark" ? LOGO_DARK : LOGO_LIGHT;
 
   const gateSlides: GateSlide[] = [
     ...buildDailyReviewSlides(),
@@ -247,10 +253,11 @@ const Preloader = () => {
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             <motion.img
-              src={logo}
+              src={logoSrc}
               alt="SkinLabs"
+              width={804}
+              height={261}
               style={{ width: 250, height: "auto" }}
-              className="dark:invert"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -292,10 +299,12 @@ const Preloader = () => {
 
             <div className="mx-auto max-w-lg px-6 py-14 text-center">
               <img
-                src={logo}
+                src={logoSrc}
                 alt="SkinLabs"
+                width={804}
+                height={261}
                 style={{ width: 160, height: "auto" }}
-                className="mx-auto mb-8 dark:invert"
+                className="mx-auto mb-8"
               />
               <p className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                 Uncover the whole story behind your skincare.

@@ -40,7 +40,7 @@ const Features = () => {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-card p-6 rounded-2xl border border-border hover:shadow-md transition-shadow"
+              className="bg-card p-6 rounded-2xl border border-border"
             >
               <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mb-4">
                 <feature.icon className="h-6 w-6 text-accent-foreground" />

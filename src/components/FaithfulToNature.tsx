@@ -104,7 +104,7 @@ const FaithfulToNature = ({
           href={AFFILIATE_HREF}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md"
+          className="block overflow-hidden rounded-2xl border border-border bg-card card-interactive"
           data-affiliate-click="faithful-to-nature"
           data-placement={placement}
         >

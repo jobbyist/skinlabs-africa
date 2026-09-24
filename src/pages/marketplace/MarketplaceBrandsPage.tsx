@@ -104,7 +104,7 @@ export default function MarketplaceBrandsPage() {
                   <Link
                     key={brand.id}
                     to={`/marketplace/brand/${brand.slug}`}
-                    className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white hover:border-stone-400 hover:shadow-md transition-all"
+                    className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white card-interactive hover:border-stone-400"
                   >
                     <div className="relative h-28 lg:h-36 bg-stone-900">
                       {cover ? (
