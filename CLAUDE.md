@@ -19,6 +19,43 @@ feature appear operational.
 
 ## Major systems
 
+- **Onboarding overhaul 02 — unified pending intent (2026-09-24)**
+  - `src/lib/pendingIntent.ts` replaces the plan-only `pendingPlan.ts` (now a
+    deprecated re-export shim): `{ action: 'trial'|'subscribe'|'save_analysis'|
+    'unlock', plan?, interval?, variantKey?, returnTo, ts }`, same
+    sessionStorage + URL channels (params `pi_action/plan/interval/variant/
+    return/ts`), 30-minute max age now applied to the URL channel too (`ts`
+    travels in the link), strict validation in the pure
+    `parsePendingIntent()` — `returnTo` must pass `isSafeReturnTo()`
+    (same-origin relative path, no `//`, backslash or control-char tricks),
+    otherwise the whole intent is dropped. Never authorization.
+  - `src/components/IntentResolver.tsx`, mounted once in `App.tsx` inside the
+    router, runs when the user id goes from none to set (in-page auth, OAuth
+    or email-confirmation return): read-and-clear the intent, then trial →
+    `startFreeTrial()` (TODO prompt 05: `useStartTrial`) and land on
+    `trialDestination(returnTo)`; subscribe → `MembershipCheckoutDialog`
+    (lazy); unlock/save_analysis → `returnTo`. No intent + account created
+    < 10 min ago + `profiles.onboarding_completed_at` null → `WELCOME_PATH`
+    (`/dashboard` until prompt 07 adds `/welcome`), once per browser session,
+    never from `/dashboard`, `/welcome`, `/reset-password`, `/admin` or
+    `/skynn-ai*`. Rules live in `src/lib/intentRouting.ts` (unit tested).
+  - Pricing's resume `useEffect` is gone; its trial/subscribe intents carry a
+    validated `?returnTo=`. A locked review's overlay now has "Sign up / Log
+    in" (records `unlock` → back to the review) and its pricing links pass
+    `returnTo`, so a trial started from a review lands back on it, unlocked.
+    AuthDialog's OAuth/email redirects use `withPendingIntentParams()` with
+    the intent's `returnTo`. SKYNN AI's save gate records `save_analysis`, and
+    NewsroomFeed's signed-out Save records `unlock`, so neither is pulled to
+    the new-account landing.
+  - Migration `20260924140000_profiles_onboarding_completed_at.sql` (**applied
+    live**): nullable `timestamptz` + column-level UPDATE grant to
+    `authenticated` (owner-only via the existing RLS policy). Verified with a
+    rolled-back probe: owner can set it, another user's row → 0 rows,
+    `subscription_status` still refused.
+  - Verified in a real browser against a production build (fake local
+    session, no real accounts): locked review → Google carries the intent in
+    `redirect_to`; returning signed in on another page lands on the review
+    with `pi_*` params stripped; a tampered `returnTo` falls back to /pricing.
 - **Onboarding overhaul 01 — P0 fixes and trial-email hygiene (2026-09-24)**
   - Header menu footer "Sign Up / Log In" was a `<Link to="/">`; it now opens
     AuthDialog in sign-up mode and is hidden when signed in. Signed-out

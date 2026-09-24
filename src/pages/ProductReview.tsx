@@ -8,6 +8,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import GatedOverlay from "@/components/GatedOverlay";
+import AuthDialog from "@/components/AuthDialog";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -41,6 +42,7 @@ import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { trialLength, trialNoun } from "@/lib/promo";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 
 interface CommentRow {
   id: string;
@@ -67,6 +69,7 @@ const ProductReview = () => {
   const { data: ingredientBreakdown } = useIngredientBreakdown(review?.key_ingredients ?? []);
 
   const [rating, setRating] = useState(0);
+  const [authOpen, setAuthOpen] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
@@ -266,6 +269,15 @@ const ProductReview = () => {
       keyIngredients: review.key_ingredients.slice(0, 2),
       skinTypes: review.skin_type_match.slice(0, 2),
     });
+
+  // Locked review → sign up / pricing, then straight back here afterwards
+  // (<IntentResolver /> resumes the `unlock` intent; /pricing carries returnTo
+  // into a trial/subscribe intent).
+  const pricingHref = `/pricing?returnTo=${encodeURIComponent(currentReturnTo())}`;
+  const signUpAndReturn = () => {
+    setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
+    setAuthOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -491,6 +503,9 @@ const ProductReview = () => {
               locked={!isMember}
               title="Unlock the full lab breakdown"
               message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
+              ctaHref={pricingHref}
+              onSignIn={user ? undefined : signUpAndReturn}
+              signInLabel="Sign up / Log in"
             >
               <div className="space-y-4 rounded-3xl border border-border bg-card p-6">
                 <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown</h2>
@@ -539,7 +554,7 @@ const ProductReview = () => {
                 Glow Insider members read every product's full lab breakdown, not just the score. Try it free {trialLength()} — no card required.
               </p>
               <Button asChild className="mt-4">
-                <Link to="/pricing">Start my {trialNoun()}</Link>
+                <Link to={pricingHref}>Start my {trialNoun()}</Link>
               </Button>
             </div>
           )}
@@ -603,6 +618,7 @@ const ProductReview = () => {
         </div>
       </main>
       <Footer />
+      <AuthDialog open={authOpen} onOpenChange={setAuthOpen} defaultTab="signup" />
     </div>
   );
 };

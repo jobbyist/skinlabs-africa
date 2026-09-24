@@ -3703,6 +3703,7 @@ export type Database = {
           marketing_consent_at: string | null
           marketing_unsubscribe_token: string
           notes: string | null
+          onboarding_completed_at: string | null
           phone: string | null
           postal_code: string | null
           preferred_routine_time: string | null
@@ -3750,6 +3751,7 @@ export type Database = {
           marketing_consent_at?: string | null
           marketing_unsubscribe_token?: string
           notes?: string | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           postal_code?: string | null
           preferred_routine_time?: string | null
@@ -3797,6 +3799,7 @@ export type Database = {
           marketing_consent_at?: string | null
           marketing_unsubscribe_token?: string
           notes?: string | null
+          onboarding_completed_at?: string | null
           phone?: string | null
           postal_code?: string | null
           preferred_routine_time?: string | null
