@@ -99,7 +99,7 @@ export const ftnCatalog: FtnCatalogProduct[] = [
     rawDescription:
       "Vegan-friendly botanical serum that enhances natural radiant glow. A blend of vitamin C and hyaluronic acid reduces fine lines and wrinkles; turmeric and liquorice minimise dark spots and encourage an even complexion. Brightening & soothing, dermatologist-approved, multiple skin types including mild-moderate acne-prone. Supports collagen, anti-inflammatory (bakuchiol & aloe), hydrates, regenerates. Free from sulphates, parabens, synthetic fragrance & dye. Proudly South African, woman-owned, cruelty-free, vegan.",
     howToUse: "After cleansing, add 3-4 drops, tap until absorbed. Day and night.",
-    sourceUrl: "https://www.faithful-to-nature.co.za/lelive-all-glow-d-up-ha-brightening-serum-vitamin-cturmeric",
+    sourceUrl: "https://www.faithful-to-nature.co.za/lelive-all-glow-d-up-ha-brightening-serum-vitamin-c-turmeric",
   },
   {
     brand: "lelive",

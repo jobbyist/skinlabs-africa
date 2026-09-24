@@ -12,13 +12,12 @@
  * icons/thumbnails, tie-broken by search result position.
  *
  * `Lelive. All Glow'd Up Vitamin C, Turmeric & Hyaluronic Acid Brightening
- * Serum` is a deliberate judgment call: ftnCatalog's `sourceUrl` for it is
- * `lelive-all-glow-d-up-ha-brightening-serum-vitamin-cturmeric` (missing a
- * hyphen), while the live FTN page path is
- * `lelive-all-glow-d-up-ha-brightening-serum-vitamin-c-turmeric`. Treated
- * as a same-product catalog transcription typo (title/SKU sku137436
- * otherwise match exactly) rather than a different product, so its images
- * were accepted.
+ * Serum` is a deliberate judgment call: ftnCatalog's `sourceUrl` for it was
+ * transcribed as `...-vitamin-cturmeric` (missing a hyphen), while the live
+ * FTN page path is `...-vitamin-c-turmeric`. Treated as a same-product
+ * catalog transcription typo (title/SKU sku137436 otherwise match exactly)
+ * rather than a different product, so its images were accepted; the
+ * catalog URL has since been corrected (it 404'd in openhaus-price-sync).
  *
  * `Lelive. Body Glow Up: Mini Edition` and `Standard Beauty Silicone
  * Applicator Brush` only had 2 verified images each — no third candidate

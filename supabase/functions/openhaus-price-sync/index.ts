@@ -1,8 +1,9 @@
 /**
  * OpenHaus pricing sync — re-checks Faithful to Nature (FTN) source pages
  * for current prices and reapplies the 4% markup (charm-rounded to R__.99).
- * Parses the page's own `Product` JSON-LD rather than calling Firecrawl at
- * request time (no extra API key/cost/dependency for a scheduled job).
+ * Reads the page's own `Product` JSON-LD and og/product price meta tags
+ * rather than calling Firecrawl at request time (no extra API key/cost/
+ * dependency for a scheduled job).
  *
  * Runs in batches to stay inside the edge-function wall-clock limit: each
  * invocation checks the BATCH_SIZE products whose price was checked longest
@@ -13,7 +14,7 @@
  *
  * NOTE: faithful-to-nature.co.za sits behind Cloudflare's bot-challenge on
  * some request patterns. A fetch that lands on the challenge page (no
- * parseable JSON-LD) is logged as an error and the existing price is left
+ * readable price) is logged as an error and the existing price is left
  * untouched — this function never zeroes or guesses a price on failure.
  */
 
@@ -63,10 +64,9 @@ function priceFromJsonLdBlock(block: string): number | null {
   return null;
 }
 
-// Linear scan (no regex backtracking over multi-MB pages); tolerates extra
-// attributes and casing on the <script type="application/ld+json"> tag.
-function extractPriceFromJsonLd(html: string): number | null {
-  const lower = html.toLowerCase();
+// Linear scans (no regex backtracking over multi-MB pages); tolerate extra
+// attributes and casing on the tags.
+function jsonLdPrice(html: string, lower: string): number | null {
   let from = 0;
   while (true) {
     const marker = lower.indexOf("application/ld+json", from);
@@ -79,6 +79,39 @@ function extractPriceFromJsonLd(html: string): number | null {
     if (price !== null) return price;
     from = end + "</script>".length;
   }
+}
+
+function metaPrice(html: string, lower: string, property: string): number | null {
+  let from = 0;
+  while (true) {
+    const marker = lower.indexOf(property, from);
+    if (marker === -1) return null;
+    from = marker + property.length;
+    const tagStart = lower.lastIndexOf("<", marker);
+    const tagEnd = lower.indexOf(">", marker);
+    if (tagStart === -1 || tagEnd === -1) return null;
+    // Skip matches outside a tag (e.g. in body text or JSON) and non-meta tags.
+    if (lower.slice(tagStart, marker).includes(">")) continue;
+    const tag = html.slice(tagStart, tagEnd);
+    if (!/^<meta\s/i.test(tag)) continue;
+    const content = /content\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
+    const price = Number(content);
+    return content && Number.isFinite(price) && price > 0 ? price : null;
+  }
+}
+
+// FTN's Product JSON-LD carries the regular price even while a "Special
+// Price" is on; the og/product price meta tags carry the price actually
+// charged. A sale price is never above the regular one, so the lowest
+// candidate is the current selling price.
+function extractSourcePrice(html: string): number | null {
+  const lower = html.toLowerCase();
+  const candidates = [
+    jsonLdPrice(html, lower),
+    metaPrice(html, lower, "og:price:amount"),
+    metaPrice(html, lower, "product:price:amount"),
+  ].filter((p): p is number => p !== null);
+  return candidates.length > 0 ? Math.min(...candidates) : null;
 }
 
 Deno.serve(async (req) => {
@@ -155,14 +188,14 @@ Deno.serve(async (req) => {
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         const html = await res.text();
-        const sourcePrice = html.length > MAX_HTML_BYTES ? null : extractPriceFromJsonLd(html);
+        const sourcePrice = html.length > MAX_HTML_BYTES ? null : extractSourcePrice(html);
 
         if (!res.ok) {
           logError(product, `HTTP ${res.status}`);
         } else if (html.length > MAX_HTML_BYTES) {
           logError(product, "Response too large (>5MB)");
         } else if (sourcePrice === null) {
-          logError(product, "No parseable Product JSON-LD (possibly a bot-challenge page)");
+          logError(product, "No price in JSON-LD or price meta tags (possibly a bot-challenge page)");
         } else {
           const newMarkedUp = computeMarkedUpPrice(sourcePrice);
           const { error: updateError } = await admin
