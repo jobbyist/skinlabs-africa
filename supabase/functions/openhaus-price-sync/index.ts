@@ -1,10 +1,15 @@
 /**
- * OpenHaus pricing sync — re-checks each product's Faithful to Nature (FTN)
- * source page for its current price and reapplies the 4% markup (charm-
- * rounded to R__.99). Parses the page's own `Product` JSON-LD rather than
- * calling Firecrawl at request time (no extra API key/cost/dependency for
- * a scheduled job; Firecrawl is reserved for the one-time content-
- * population script where page structure isn't known in advance).
+ * OpenHaus pricing sync — re-checks Faithful to Nature (FTN) source pages
+ * for current prices and reapplies the 4% markup (charm-rounded to R__.99).
+ * Parses the page's own `Product` JSON-LD rather than calling Firecrawl at
+ * request time (no extra API key/cost/dependency for a scheduled job).
+ *
+ * Runs in batches to stay inside the edge-function wall-clock limit: each
+ * invocation checks the BATCH_SIZE products whose price was checked longest
+ * ago (`price_checked_at`, stamped on every attempt so a persistently
+ * failing page can't starve the rest), and stops starting new fetches once
+ * TIME_BUDGET_MS has elapsed. pg_cron calls it several times a night so the
+ * whole catalogue is covered daily.
  *
  * NOTE: faithful-to-nature.co.za sits behind Cloudflare's bot-challenge on
  * some request patterns. A fetch that lands on the challenge page (no
@@ -28,50 +33,58 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
+const BATCH_SIZE = 20;
+const TIME_BUDGET_MS = 100_000;
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_HTML_BYTES = 5_000_000;
 const REQUEST_DELAY_MS = 700;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function extractPriceFromJsonLd(html: string): number | null {
-  const scriptStart = '<script type="application/ld+json">';
-  const scriptEnd = '</script>';
-  let startIndex = 0;
-  
-  while (true) {
-    const start = html.indexOf(scriptStart, startIndex);
-    if (start === -1) break;
-    const contentStart = start + scriptStart.length;
-    const end = html.indexOf(scriptEnd, contentStart);
-    if (end === -1) break;
-    
-    try {
-      const content = html.slice(contentStart, end).trim();
-      if (content.length > 100000) {
-        startIndex = end + scriptEnd.length;
-        continue;
+function priceFromJsonLdBlock(block: string): number | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(block.trim());
+  } catch {
+    return null;
+  }
+  const candidates = Array.isArray(parsed) ? parsed : [parsed];
+  for (const entry of candidates as Record<string, unknown>[]) {
+    const nodes = (entry?.["@graph"] as Record<string, unknown>[] | undefined) ?? [entry];
+    for (const node of nodes) {
+      const type = node?.["@type"];
+      if (type === "Product" || (Array.isArray(type) && type.includes("Product"))) {
+        const rawOffers = node.offers as Record<string, unknown> | Record<string, unknown>[] | undefined;
+        const offers = Array.isArray(rawOffers) ? rawOffers[0] : rawOffers;
+        const price = Number(offers?.price ?? offers?.lowPrice);
+        if (Number.isFinite(price) && price > 0) return price;
       }
-      const parsed = JSON.parse(content);
-      const candidates = Array.isArray(parsed) ? parsed : [parsed];
-      for (const entry of candidates) {
-        const nodes = entry?.["@graph"] ? entry["@graph"] : [entry];
-        for (const node of nodes) {
-          if (node?.["@type"] === "Product" || (Array.isArray(node?.["@type"]) && node["@type"].includes("Product"))) {
-            const offers = Array.isArray(node.offers) ? node.offers[0] : node.offers;
-            const price = Number(offers?.price ?? offers?.lowPrice);
-            if (Number.isFinite(price) && price > 0) return price;
-          }
-        }
-      }
-    } catch {
-      // Continue to next script tag
     }
-    startIndex = end + scriptEnd.length;
   }
   return null;
+}
+
+// Linear scan (no regex backtracking over multi-MB pages); tolerates extra
+// attributes and casing on the <script type="application/ld+json"> tag.
+function extractPriceFromJsonLd(html: string): number | null {
+  const lower = html.toLowerCase();
+  let from = 0;
+  while (true) {
+    const marker = lower.indexOf("application/ld+json", from);
+    if (marker === -1) return null;
+    const contentStart = lower.indexOf(">", marker) + 1;
+    if (contentStart === 0) return null;
+    const end = lower.indexOf("</script>", contentStart);
+    if (end === -1) return null;
+    const price = priceFromJsonLdBlock(html.slice(contentStart, end));
+    if (price !== null) return price;
+    from = end + "</script>".length;
+  }
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  const startedAt = Date.now();
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
@@ -107,11 +120,14 @@ Deno.serve(async (req) => {
     const { data: products, error: productsError } = await admin
       .from("marketplace_products")
       .select("id, source_url, original_price_zar, marked_up_price_zar")
-      .eq("in_stock", true);
+      .eq("in_stock", true)
+      .order("price_checked_at", { ascending: true, nullsFirst: true })
+      .limit(BATCH_SIZE);
     if (productsError) throw productsError;
 
     let ok = 0;
     let failed = 0;
+    const attemptedIds: string[] = [];
     const logRows: {
       product_id: string;
       old_price: number;
@@ -119,38 +135,35 @@ Deno.serve(async (req) => {
       status: "ok" | "error";
       error: string | null;
     }[] = [];
+    const logError = (product: { id: string; marked_up_price_zar: number }, error: string) => {
+      failed += 1;
+      logRows.push({
+        product_id: product.id,
+        old_price: Number(product.marked_up_price_zar),
+        new_price: null,
+        status: "error",
+        error,
+      });
+    };
 
     for (const product of products ?? []) {
+      if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+      attemptedIds.push(product.id);
       try {
         const res = await fetch(product.source_url, {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; SkinLabsOpenHausBot/1.0)" },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         const html = await res.text();
-        if (html.length > 5_000_000) {
-          failed += 1;
-          logRows.push({
-            product_id: product.id,
-            old_price: Number(product.marked_up_price_zar),
-            new_price: null,
-            status: "error",
-            error: "Response too large (>5MB)",
-          });
-          await sleep(REQUEST_DELAY_MS);
-          continue;
-        }
-        const sourcePrice = extractPriceFromJsonLd(html);
+        const sourcePrice = html.length > MAX_HTML_BYTES ? null : extractPriceFromJsonLd(html);
 
-        if (!res.ok || sourcePrice === null) {
-          failed += 1;
-          logRows.push({
-            product_id: product.id,
-            old_price: Number(product.marked_up_price_zar),
-            new_price: null,
-            status: "error",
-            error: !res.ok ? `HTTP ${res.status}` : "No parseable Product JSON-LD (possibly a bot-challenge page)",
-          });
+        if (!res.ok) {
+          logError(product, `HTTP ${res.status}`);
+        } else if (html.length > MAX_HTML_BYTES) {
+          logError(product, "Response too large (>5MB)");
+        } else if (sourcePrice === null) {
+          logError(product, "No parseable Product JSON-LD (possibly a bot-challenge page)");
         } else {
-          const newMarkedUp = computeMarkedUpPrice(sourcePrice);
           const newMarkedUp = computeMarkedUpPrice(sourcePrice);
           const { error: updateError } = await admin
             .from("marketplace_products")
@@ -161,14 +174,7 @@ Deno.serve(async (req) => {
             })
             .eq("id", product.id);
           if (updateError) {
-            failed += 1;
-            logRows.push({
-              product_id: product.id,
-              old_price: Number(product.marked_up_price_zar),
-              new_price: null,
-              status: "error",
-              error: `DB update failed: ${updateError.message}`,
-            });
+            logError(product, `DB update failed: ${updateError.message}`);
           } else {
             ok += 1;
             logRows.push({
@@ -181,25 +187,28 @@ Deno.serve(async (req) => {
           }
         }
       } catch (err) {
-        failed += 1;
-        logRows.push({
-          product_id: product.id,
-          old_price: Number(product.marked_up_price_zar),
-          new_price: null,
-          status: "error",
-          error: String(err).slice(0, 300),
-        });
+        logError(product, String(err).slice(0, 300));
       }
       await sleep(REQUEST_DELAY_MS);
     }
 
-    if (logRows.length > 0) {
-      await admin.from("marketplace_price_sync_log").insert(logRows);
+    if (attemptedIds.length > 0) {
+      const { error: stampError } = await admin
+        .from("marketplace_products")
+        .update({ price_checked_at: new Date().toISOString() })
+        .in("id", attemptedIds);
+      if (stampError) console.error("openhaus-price-sync: failed to stamp price_checked_at:", stampError);
     }
 
-    return new Response(JSON.stringify({ ok: true, updated: ok, failed }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (logRows.length > 0) {
+      const { error: logInsertError } = await admin.from("marketplace_price_sync_log").insert(logRows);
+      if (logInsertError) console.error("openhaus-price-sync: failed to write sync log:", logInsertError);
+    }
+
+    return new Response(
+      JSON.stringify({ ok: true, checked: attemptedIds.length, updated: ok, failed }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (err) {
     console.error("openhaus-price-sync failed:", err);
     return new Response(JSON.stringify({ error: String(err).slice(0, 500) }), {

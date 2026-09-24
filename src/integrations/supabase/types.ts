@@ -902,6 +902,7 @@ export type Database = {
           marked_up_price_zar: number
           name: string
           original_price_zar: number
+          price_checked_at: string | null
           size: string | null
           skin_tone_claims: string[]
           slug: string
@@ -924,6 +925,7 @@ export type Database = {
           marked_up_price_zar: number
           name: string
           original_price_zar: number
+          price_checked_at?: string | null
           size?: string | null
           skin_tone_claims?: string[]
           slug: string
@@ -946,6 +948,7 @@ export type Database = {
           marked_up_price_zar?: number
           name?: string
           original_price_zar?: number
+          price_checked_at?: string | null
           size?: string | null
           skin_tone_claims?: string[]
           slug?: string

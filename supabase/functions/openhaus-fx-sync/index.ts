@@ -1,6 +1,6 @@
 /**
  * OpenHaus live currency converter — refreshes marketplace_fx_rates from
- * Frankfurter.app (free, no API key, ECB-based rates). Scheduled every 6
+ * Frankfurter (free, no API key, ECB-based rates). Scheduled every 6
  * hours via pg_cron and can be triggered manually by an admin. Rates are
  * display-only: cart/checkout totals stay authoritative in ZAR.
  */
@@ -13,6 +13,25 @@ const corsHeaders = {
 };
 
 const CURRENCIES = ["USD", "EUR", "GBP"];
+const RATES_URL = `https://api.frankfurter.dev/v1/latest?base=ZAR&symbols=${CURRENCIES.join(",")}`;
+
+// One retry: Frankfurter's origin occasionally returns a transient
+// Cloudflare 5xx. On a second failure the previous rates are left in place.
+async function fetchRates(): Promise<{ rates?: Record<string, number> }> {
+  let lastError = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 3000));
+    try {
+      const res = await fetch(RATES_URL, { signal: AbortSignal.timeout(10_000) });
+      if (res.ok) return await res.json();
+      lastError = `Frankfurter HTTP ${res.status}`;
+      await res.body?.cancel();
+    } catch (err) {
+      lastError = `Frankfurter request failed: ${String(err).slice(0, 200)}`;
+    }
+  }
+  throw new Error(lastError);
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -50,11 +69,8 @@ Deno.serve(async (req) => {
     }
 
     // Frankfurter's `base=ZAR` gives rate-from-ZAR directly for each symbol.
-    const res = await fetch(`https://api.frankfurter.app/latest?from=ZAR&to=${CURRENCIES.join(",")}`);
-    if (!res.ok) {
-      throw new Error(`Frankfurter ${res.status}: ${await res.text().catch(() => "")}`);
-    }
-    const payload = await res.json();
+    // api.frankfurter.app now only 301-redirects here.
+    const payload = await fetchRates();
     const rates: Record<string, number> = payload?.rates ?? {};
 
     let updated = 0;
