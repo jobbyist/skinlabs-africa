@@ -89,13 +89,15 @@ const UserDashboard = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
   // The trialist's live auto-renew subscription (PayPal), if they added a payment method.
+  // undefined = not known yet (loading, or the read failed): the banner then makes
+  // no claim either way. null = confirmed no card on file.
   const [trialSubscription, setTrialSubscription] = useState<{
     amount_zar: number;
     amount_charged: number;
     currency: string;
     first_billing_at: string | null;
     next_billing_at: string | null;
-  } | null>(null);
+  } | null | undefined>(undefined);
   const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
@@ -119,7 +121,7 @@ const UserDashboard = () => {
 
   useEffect(() => {
     if (!user || !isTrialing) {
-      setTrialSubscription(null);
+      setTrialSubscription(undefined);
       return;
     }
     let cancelled = false;
@@ -130,8 +132,14 @@ const UserDashboard = () => {
       .in("status", ["trialing", "active", "past_due"])
       .order("created_at", { ascending: false })
       .limit(1)
-      .then(({ data }) => {
-        if (!cancelled) setTrialSubscription(data?.[0] ?? null);
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Could not load trial subscription:", error.message);
+          setTrialSubscription(undefined);
+          return;
+        }
+        setTrialSubscription(data?.[0] ?? null);
       });
     return () => {
       cancelled = true;
@@ -270,9 +278,27 @@ const UserDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentReturn, user]);
 
+  const trialEndsLabel = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" })
+    : null;
   const trialFirstChargeAt = trialSubscription
     ? (trialSubscription.first_billing_at ?? trialSubscription.next_billing_at)
     : null;
+  // Card-backed → auto-renew copy; confirmed no card → "no card on file";
+  // unknown (loading / read failed) → neutral, never a no-charge claim.
+  const trialBannerCopy = trialSubscription
+    ? trialFirstChargeAt
+      ? `Auto-renew is on — first charge ${formatZar(Number(trialSubscription.amount_zar))}${
+          trialSubscription.currency === "USD" ? ` (${formatUsd(Number(trialSubscription.amount_charged))} via PayPal)` : ""
+        } on ${formatBillingDate(trialFirstChargeAt)}. Cancel any time in Billing.`
+      : "Auto-renew is on. Cancel any time in Billing."
+    : trialSubscription === null
+      ? trialEndsLabel
+        ? `Full access until ${trialEndsLabel}. No card on file — your access simply ends unless you upgrade.`
+        : "No card on file. Upgrade any time to keep your access after the trial ends."
+      : trialEndsLabel
+        ? `Full access until ${trialEndsLabel}. Manage your membership any time in Billing.`
+        : "Manage your membership any time in Billing.";
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
@@ -503,19 +529,7 @@ const UserDashboard = () => {
                         {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {trialFirstChargeAt && trialSubscription
-                          ? `Auto-renew is on — first charge ${formatZar(Number(trialSubscription.amount_zar))}${
-                              trialSubscription.currency === "USD"
-                                ? ` (${formatUsd(Number(trialSubscription.amount_charged))} via PayPal)`
-                                : ""
-                            } on ${formatBillingDate(trialFirstChargeAt)}. Cancel any time in Billing.`
-                          : trialEndsAt
-                            ? `Full access until ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })}. No card on file — your access simply ends unless you upgrade.`
-                            : "No card on file. Upgrade any time to keep your access after the trial ends."}
+                        {trialBannerCopy}
                       </p>
                     </div>
                   </div>
