@@ -907,6 +907,7 @@ export type Database = {
           skin_tone_claims: string[]
           slug: string
           source_last_synced_at: string | null
+          source_regular_price_zar: number | null
           source_url: string
           updated_at: string
           values: string[]
@@ -930,6 +931,7 @@ export type Database = {
           skin_tone_claims?: string[]
           slug: string
           source_last_synced_at?: string | null
+          source_regular_price_zar?: number | null
           source_url: string
           updated_at?: string
           values?: string[]
@@ -953,6 +955,7 @@ export type Database = {
           skin_tone_claims?: string[]
           slug?: string
           source_last_synced_at?: string | null
+          source_regular_price_zar?: number | null
           source_url?: string
           updated_at?: string
           values?: string[]

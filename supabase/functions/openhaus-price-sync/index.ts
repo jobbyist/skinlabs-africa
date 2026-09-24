@@ -1,7 +1,9 @@
 /**
  * OpenHaus pricing sync — re-checks Faithful to Nature (FTN) source pages
- * for current prices and reapplies the 4% markup (charm-rounded to R__.99).
- * Reads the page's own `Product` JSON-LD and og/product price meta tags
+ * and reapplies the 4% markup (charm-rounded to R__.99) when FTN's regular
+ * price changes. Prices are held steady through FTN sales: a sale starting
+ * or ending doesn't reprice (`source_regular_price_zar` is the baseline).
+ * Reads the page's price meta tags, price boxes and `Product` JSON-LD
  * rather than calling Firecrawl at request time (no extra API key/cost/
  * dependency for a scheduled job).
  *
@@ -100,18 +102,59 @@ function metaPrice(html: string, lower: string, property: string): number | null
   }
 }
 
-// FTN's Product JSON-LD carries the regular price even while a "Special
-// Price" is on; the og/product price meta tags carry the price actually
-// charged. A sale price is never above the regular one, so the lowest
-// candidate is the current selling price.
-function extractSourcePrice(html: string): number | null {
+const samePrice = (a: number, b: number) => Math.abs(a - b) < 0.005;
+
+function parseRand(text: string): number | null {
+  const n = Number(text.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+// The amount in the first <span class="price"> after `marker` in a box.
+function priceAfter(box: string, lowerBox: string, marker: string): number | null {
+  const at = lowerBox.indexOf(marker);
+  if (at === -1) return null;
+  const span = lowerBox.indexOf('class="price"', at);
+  if (span === -1) return null;
+  const open = lowerBox.indexOf(">", span);
+  const close = open === -1 ? -1 : lowerBox.indexOf("<", open + 1);
+  if (close === -1) return null;
+  return parseRand(box.slice(open + 1, close));
+}
+
+// FTN (Magento) price boxes: the product's own box plus one per cross-sell.
+// On sale a box has "old-price" (Regular Price) and "special-price";
+// otherwise a single "regular-price".
+function priceBoxes(html: string, lower: string): { selling: number; regular: number }[] {
+  const marker = 'class="price-box';
+  const boxes: { selling: number; regular: number }[] = [];
+  let at = lower.indexOf(marker);
+  while (at !== -1) {
+    const next = lower.indexOf(marker, at + marker.length);
+    const end = Math.min(next === -1 ? lower.length : next, at + 4000);
+    const box = html.slice(at, end);
+    const lowerBox = lower.slice(at, end);
+    const selling = priceAfter(box, lowerBox, "special-price") ?? priceAfter(box, lowerBox, "regular-price");
+    if (selling !== null) {
+      boxes.push({ selling, regular: priceAfter(box, lowerBox, "old-price") ?? selling });
+    }
+    at = next;
+  }
+  return boxes;
+}
+
+// Selling price: the og/product price meta tags (what FTN actually charges,
+// sale included), falling back to the Product JSON-LD. Regular price: the
+// "Regular Price" in the product's own price box — found as the box whose
+// selling price matches — not the JSON-LD, which on multi-size pages can
+// carry an unrelated amount.
+function extractSourcePrices(html: string): { selling: number; regular: number } | null {
   const lower = html.toLowerCase();
-  const candidates = [
-    jsonLdPrice(html, lower),
-    metaPrice(html, lower, "og:price:amount"),
-    metaPrice(html, lower, "product:price:amount"),
-  ].filter((p): p is number => p !== null);
-  return candidates.length > 0 ? Math.min(...candidates) : null;
+  const selling = metaPrice(html, lower, "og:price:amount") ??
+    metaPrice(html, lower, "product:price:amount") ??
+    jsonLdPrice(html, lower);
+  if (selling === null) return null;
+  const ownBox = priceBoxes(html, lower).find((b) => samePrice(b.selling, selling));
+  return { selling, regular: ownBox && ownBox.regular > selling ? ownBox.regular : selling };
 }
 
 Deno.serve(async (req) => {
@@ -152,13 +195,14 @@ Deno.serve(async (req) => {
 
     const { data: products, error: productsError } = await admin
       .from("marketplace_products")
-      .select("id, source_url, original_price_zar, marked_up_price_zar")
+      .select("id, source_url, original_price_zar, marked_up_price_zar, source_regular_price_zar")
       .eq("in_stock", true)
       .order("price_checked_at", { ascending: true, nullsFirst: true })
       .limit(BATCH_SIZE);
     if (productsError) throw productsError;
 
     let ok = 0;
+    let held = 0;
     let failed = 0;
     const attemptedIds: string[] = [];
     const logRows: {
@@ -188,28 +232,41 @@ Deno.serve(async (req) => {
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         });
         const html = await res.text();
-        const sourcePrice = html.length > MAX_HTML_BYTES ? null : extractSourcePrice(html);
+        const prices = html.length > MAX_HTML_BYTES ? null : extractSourcePrices(html);
 
         if (!res.ok) {
           logError(product, `HTTP ${res.status}`);
         } else if (html.length > MAX_HTML_BYTES) {
           logError(product, "Response too large (>5MB)");
-        } else if (sourcePrice === null) {
+        } else if (prices === null) {
           logError(product, "No price in JSON-LD or price meta tags (possibly a bot-challenge page)");
         } else {
-          const newMarkedUp = computeMarkedUpPrice(sourcePrice);
+          // Hold our price steady while FTN's regular price is unchanged, so
+          // an FTN sale starting or ending doesn't move it. Reprice only when
+          // the regular price itself changes (or on first sight of it).
+          const baseline = product.source_regular_price_zar;
+          const regularUnchanged = baseline !== null && samePrice(Number(baseline), prices.regular);
+          const newMarkedUp = regularUnchanged
+            ? Number(product.marked_up_price_zar)
+            : computeMarkedUpPrice(prices.selling);
           const { error: updateError } = await admin
             .from("marketplace_products")
-            .update({
-              original_price_zar: sourcePrice,
-              marked_up_price_zar: newMarkedUp,
-              source_last_synced_at: new Date().toISOString(),
-            })
+            .update(
+              regularUnchanged
+                ? { source_last_synced_at: new Date().toISOString() }
+                : {
+                  original_price_zar: prices.selling,
+                  marked_up_price_zar: newMarkedUp,
+                  source_regular_price_zar: prices.regular,
+                  source_last_synced_at: new Date().toISOString(),
+                },
+            )
             .eq("id", product.id);
           if (updateError) {
             logError(product, `DB update failed: ${updateError.message}`);
           } else {
-            ok += 1;
+            if (regularUnchanged) held += 1;
+            else ok += 1;
             logRows.push({
               product_id: product.id,
               old_price: Number(product.marked_up_price_zar),
@@ -239,7 +296,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, checked: attemptedIds.length, updated: ok, failed }),
+      JSON.stringify({ ok: true, checked: attemptedIds.length, repriced: ok, held, failed }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
