@@ -600,6 +600,23 @@ feature appear operational.
         queued as `blocked_not_configured` as designed, the test data was
         deleted, and rollout_stage is still `disabled`. 401/403 errors now
         log the provider's reason (the body never contains the key).
+        **Follow-up (2026-09-24):** `claudeTransport.ts` now falls back to
+        `ANTHROPIC_API_KEY` when the gateway returns 401/403, so an unfunded
+        gateway key no longer blocks a valid direct key (worker redeployed
+        pinned at 1e6a9ce). A new Anthropic key has to be created by a
+        human in the Claude Console: the Admin API cannot create keys, and
+        no tool here can set Supabase Edge secrets. Vercel doesn't need the
+        key, because nothing on Vercel calls Anthropic.
+      - **Dermatologist sign-off pack** — `docs/SKYNN-AI-v2-Dermatologist-
+        Signoff.pdf` (29 pp). It contains the six prompts verbatim (text
+        checked against the live DB by md5), all 73 questions, the scoring
+        rules, the red flags and escalation messages, the disclaimer, the
+        regulatory scan and the 24 references, each with an approval line.
+        The sign-off page maps to `admin_record_prompt_signoff`. It is a
+        snapshot generated from the seed migration plus the scoring/safety
+        modules (the script wasn't kept). Regenerate it after any prompt,
+        question or safety-rule change, since that needs a new sign-off
+        anyway.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
