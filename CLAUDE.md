@@ -72,7 +72,14 @@ feature appear operational.
     raw-coordinate requests → 400, CORS preflight → 200. The first real request
     returned 502 because OpenWeather answered **401** — the secret is set but the
     key wasn't accepted yet (new keys can take ~2h to activate, or the 4.0
-    subscription isn't attached to that key). Only on this branch, not `main`:
+    subscription isn't attached to that key). **Re-checked 12:10 UTC (~2h
+    later): still 401** (logged on `timeline/1day`). The URLs/params/response
+    shape were re-checked against OpenWeather's 4.0 docs and match; the docs
+    define 401 as "key missing or doesn't grant access to this API", so it's the
+    key/subscription (4.0 is a separate subscription from 3.0), not code. A
+    human must confirm in the OpenWeather dashboard that the One Call 4.0
+    subscription is active on the same key stored as `OPENWEATHER_API_KEY`
+    (then re-set the secret if needed). Only on this branch, not `main`:
     if Supabase's GitHub sync redeploys from `main` before merge, re-check the
     function still exists.
   - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
