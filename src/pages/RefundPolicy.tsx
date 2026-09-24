@@ -2,6 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { RotateCcw, CreditCard, Calendar, ShoppingBag } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
 const EFFECTIVE = "28 August 2026";
 
@@ -46,7 +47,7 @@ const RefundPolicy = () => {
                     <div className="space-y-4 text-muted-foreground">
                       <p>If you subscribe to a paid membership <strong className="text-foreground">without</strong> first starting a free trial, you may request a full refund within 30 days of the initial charge.</p>
                       <p className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-sm">
-                        <strong className="text-foreground">Important:</strong> Starting the free trial of Glow Insider (currently 7 days, no card required) forfeits the 30-day money-back guarantee. After the trial converts to a paid subscription, ordinary cancellation rights apply (access until the end of the paid period) but the full-refund guarantee does not.
+                        <strong className="text-foreground">Important:</strong> Starting the free trial of Glow Insider (currently {isPromoActive() ? `free until ${PROMO_END_DATE_LABEL} under a limited-time promotion` : `${STANDARD_TRIAL_DAYS} days`}, no card required) forfeits the 30-day money-back guarantee. After the trial converts to a paid subscription, ordinary cancellation rights apply (access until the end of the paid period) but the full-refund guarantee does not.
                       </p>
                       <p>Refunds are processed to the original payment method within a reasonable period (typically 5–15 business days).</p>
                     </div>

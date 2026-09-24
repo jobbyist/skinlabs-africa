@@ -40,6 +40,7 @@ import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { trialLength, trialNoun } from "@/lib/promo";
 
 interface CommentRow {
   id: string;
@@ -535,10 +536,10 @@ const ProductReview = () => {
             <div className="mt-6 rounded-3xl border border-primary/30 bg-primary/5 p-6 text-center">
               <p className="font-heading text-lg font-bold text-foreground">Get every full breakdown, ingredient deep-dive included</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Glow Insider members read every product's full lab breakdown, not just the score. Try it free for 7 days — no card required.
+                Glow Insider members read every product's full lab breakdown, not just the score. Try it free {trialLength()} — no card required.
               </p>
               <Button asChild className="mt-4">
-                <Link to="/pricing">Start my 7-day free trial</Link>
+                <Link to="/pricing">Start my {trialNoun()}</Link>
               </Button>
             </div>
           )}

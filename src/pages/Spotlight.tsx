@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Plus, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -91,11 +91,14 @@ const Spotlight = () => {
               Archive
             </Link>
           </div>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button onClick={() => setSubmitOpen(true)} className="gap-2">
-              <Sparkles className="h-4 w-4" /> Submit your brand
+          {/* Brand-owner actions stay available but secondary — the ranking itself is what
+              readers come here for, so it (not a B2B form) carries the page's visual weight. */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-sm">
+            <span className="text-muted-foreground">Run a South African skincare brand?</span>
+            <Button variant="outline" size="sm" onClick={() => setSubmitOpen(true)} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Submit your brand
             </Button>
-            <Button variant="outline" onClick={() => setClaimOpen(true)}>
+            <Button variant="ghost" size="sm" onClick={() => setClaimOpen(true)}>
               Claim your brand
             </Button>
           </div>
@@ -163,40 +166,38 @@ const Spotlight = () => {
           </section>
         )}
 
-        {/* Methodology summary */}
+        {/* Methodology + why Spotlight exists — one surface, two sections */}
         <section className="container mx-auto mt-14 px-4">
-          <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
-            <h2 className="font-heading text-lg font-bold text-foreground">How the ranking works</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Every brand's score is the average of its SkinLabs product review scores (efficacy, value, texture and
-              SA climate fit) across every product we've reviewed for that brand — never a hand-typed number.
-              Brands with two or more reviewed products are Ranked; brands with one are New on the Radar. There is
-              no paid placement, no vote count and no way to buy a higher position.
-            </p>
-            <Link to="/spotlight/methodology" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-              Read the full methodology <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </section>
-
-        {/* Why Spotlight exists */}
-        <section className="container mx-auto mt-10 px-4">
-          <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">
-            <h2 className="font-heading text-lg font-bold text-foreground">Why Spotlight exists</h2>
-            <div className="mt-2 space-y-3 text-sm text-muted-foreground">
-              <p>
-                SkinLabs reviews score individual products. Spotlight answers a different question: which South
-                African skincare brands, taken as a whole, are worth paying attention to right now? A brand doesn't
-                get onto this list by having a good marketing budget, a large following or a founder with a
-                compelling story — it gets here because the products we've independently reviewed from that brand
-                are actually scoring well.
+          <div className="mx-auto max-w-3xl divide-y divide-border rounded-3xl border border-border bg-card">
+            <div className="p-6 md:p-8">
+              <h2 className="font-heading text-lg font-bold text-foreground">How the ranking works</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Every brand's score is the average of its SkinLabs product review scores (efficacy, value, texture and
+                SA climate fit) across every product we've reviewed for that brand — never a hand-typed number.
+                Brands with two or more reviewed products are Ranked; brands with one are New on the Radar. There is
+                no paid placement, no vote count and no way to buy a higher position.
               </p>
-              <p>
-                That means Spotlight moves as our review coverage grows. A brand with one strong product sits in New
-                on the Radar rather than the main ranking, not because we doubt it, but because one data point isn't
-                enough to rank a whole brand on. As we review more of a brand's range, its position here becomes a
-                more reliable signal of consistency across its lineup — not just a single hit product.
-              </p>
+              <Link to="/spotlight/methodology" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                Read the full methodology <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="p-6 md:p-8">
+              <h2 className="font-heading text-lg font-bold text-foreground">Why Spotlight exists</h2>
+              <div className="mt-2 space-y-3 text-sm text-muted-foreground">
+                <p>
+                  SkinLabs reviews score individual products. Spotlight answers a different question: which South
+                  African skincare brands, taken as a whole, are worth paying attention to right now? A brand doesn't
+                  get onto this list by having a good marketing budget, a large following or a founder with a
+                  compelling story — it gets here because the products we've independently reviewed from that brand
+                  are actually scoring well.
+                </p>
+                <p>
+                  That means Spotlight moves as our review coverage grows. A brand with one strong product sits in New
+                  on the Radar rather than the main ranking, not because we doubt it, but because one data point isn't
+                  enough to rank a whole brand on. As we review more of a brand's range, its position here becomes a
+                  more reliable signal of consistency across its lineup — not just a single hit product.
+                </p>
+              </div>
             </div>
           </div>
         </section>

@@ -19,47 +19,50 @@ feature appear operational.
 
 ## Major systems
 
-- **Deploy-skew resilience, ad placement system, Web Stories (2026-09-23)**
-  - **Page hangs / broken-after-tab-switch, root causes and fixes** — this
-    project redeploys many times a day and ~60 routes are lazy chunks. A tab
-    on an old build requesting a replaced chunk used to fall through to the
-    SSR catch-all (`/__server`), which cold-started and returned index.html,
-    so the import hung/failed with no error boundary. Now:
-    `scripts/assemble-vercel-output.ts` 404s missing `/assets/*` before the
-    catch-all; every route uses `lazyWithRetry()` (`src/lib/chunkRecovery.ts`,
-    one guarded reload per 30s) — **use it instead of `React.lazy` for any
-    new lazy import**; `main.tsx` handles `vite:preloadError` the same way;
-    `AppErrorBoundary` wraps the app and the routes (resets on navigation);
-    `use-deployment-skew-guard.ts` detects a newer deploy on tab return and
-    hard-loads the next navigation; `BrowserRouter` uses
-    `v7_startTransition`. For tab-return breakage: `src/lib/domResilience.ts`
-    (facebook/react#11538 patch — third-party DOM mutation from AdSense auto
-    ads / auto-translate no longer crashes React) and React Query defaults
-    (staleTime 5 min, `refetchOnWindowFocus: false`). Verified against a real
-    production build by deleting a chunk mid-session.
-  - **Ad placement** — every ad/sponsored unit renders inside
-    `src/components/ads/AdFrame.tsx` (owns vertical spacing, the
-    Advertisement/Sponsored label, disclosure); AdSense units use
-    `useAdSenseUnit` which collapses unfilled/blocked slots. Call sites must
-    NOT add their own vertical margin/padding around ads. Rules: one unit per
-    break, never two adjacent, nothing under a hero or above a page title,
-    no ads before article bodies, content on both sides.
-    `AffiliateBanner` is just an AdSlot alias (it was always the same
-    AdSense slot). If AdSense "Auto ads" is on in the dashboard it bypasses
-    all of this — recommended off.
-  - **Web Stories** — `web_stories` / `web_story_pages` / `web_story_events`
-    tables + public `web-stories` bucket (migration
-    `20260923090000_web_stories.sql`; admin-only writes, public reads of
-    published in-window stories, anonymous insert-only events). Shared model
-    in `src/lib/webStories/stories.ts` (`arrangeRail()` spaces sponsored
-    stories at slots 3/7/11 unless `rail_position` is set — unit tested);
-    briefings top up the rail in-app only. `WebStoriesBar` opens the lazy
-    `StoryViewer`. `/web-stories/:slug` serves validated AMP (amp-story +
-    amp-story-auto-ads + amp-analytics beaconing back to the same route's
-    POST) for authored stories with ≥2 pages; promotional ones are `noindex`
-    and excluded from the sitemap. Generated Supabase types were hand-extended
-    for these three tables. No admin UI yet — stories are inserted directly.
-
+- **Site-wide `/polish` pass + promo-aware trial copy (2026-09-23)** — ran the
+  repo's own `.claude/skills/polish/SKILL.md` over Home, /briefings,
+  /skynn-ai, /seasonals, /ingredients, /shop, /spotlight, /compare, /pricing
+  and /knowledge-hub. Standing decisions from the user that came out of it:
+  - **/pricing paid plans have the free trial as their ONLY CTA** — the
+    direct-subscribe button was removed from plan cards at the user's explicit
+    request. Explorer keeps its own free sign-up CTA; a paid plan that can't be
+    trialled shows a disabled status ("Your current plan" / "Coming soon" /
+    "Free trial already used"). Consequence to be aware of: `/pricing` no
+    longer offers a direct paid checkout for plans, so an account that has
+    already used its trial can't subscribe from there (`BillingTab.tsx` still
+    says "resubscribe any time from the pricing page", and
+    `SubscriptionPaywallModal.tsx` still has its own subscribe button). The
+    `pendingPlan` "subscribe" intent path in `Pricing.tsx` was left intact.
+  - **All trial wording goes through `src/lib/promo.ts`** (`trialCtaLabel()`,
+    `trialNoun()`, `trialLength()`, `withPromoTrialCopy()` for DB/static plan
+    copy) — during the promo it reads "free until 1 November 2026", and it
+    switches back to the standard "7-day free trial" wording automatically once
+    `PROMO_END_AT` passes. Don't hardcode "7-day"/"7 days" trial copy anywhere
+    new; use these helpers. Covers Hero, Pricing, About, FAQ (`faq.ts`), Terms,
+    Refund Policy, ProductReview + its SSR twin, AuthDialog, TrialWelcomeModal,
+    SubscriptionPaywallModal, FormulatorTab and /shop.
+  - **Home hero stats ("3.7K+ Community Members", "4.75/5 Member Rating") are
+    confirmed authentic by the user** — not fabricated social proof.
+  - **SKYNN AI claims (user-confirmed)**: the Advanced AI Dermatology Report is
+    dermatologist reviewed; the free Starter Analysis is based on verified,
+    dermatologist-grounded research. The Starter intro chip therefore reads
+    "Dermatologist-grounded research", not "Dermatologist reviewed".
+  - **Current season is derived from the date** (`getCurrentSeason()` in
+    `src/data/seasonals.ts`, SA southern-hemisphere months, SAST) instead of a
+    hardcoded `"spring"` on `/seasonals` and the homepage teaser.
+  - Briefing cards (`NewsroomFeed.tsx`) carry `.gradient-border-anim` on every
+    card — briefly removed during this pass, then **reapplied at the user's
+    explicit request (2026-09-23)**, so treat it as a deliberate exception to
+    the "one gradient accent per screen" guidance, not drift. Each card's
+    action row is Like / Save / Share: Save is visible to everyone (signed-out
+    visitors get the `AuthDialog` in place, since saves are account-bound in
+    `news_article_engagement`); Share uses the Web Share API with a
+    copy-link fallback, same pattern as `NewsroomArticle.tsx`. Page-level cards
+    stay `rounded-3xl` (the established majority); the shared `ui/card.tsx`
+    primitive stays `rounded-2xl`.
+  - framer-motion entrance animations on /pricing and the briefing grid now
+    check `useReducedMotion()` — the CSS `prefers-reduced-motion` block in
+    `index.css` can't stop JS-driven animations.
 - **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
   four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
   the real production page for that route — `src/routes/briefings.$slug.tsx`
@@ -341,6 +344,35 @@ feature appear operational.
     solve here (that trick targets SSR/hydration mismatches, not a
     pre-JS static snapshot). Not worth solving further unless it's
     actually reported as a visible problem.
+  - **Motion system + `/motion` skill (2026-09-23)** — the project's motion
+    principles live in `.claude/skills/motion/SKILL.md` (invoke with
+    `/motion`); read it before any animation/transition work. First pass
+    applied at the shared-primitive level, not per usage: `ui/button.tsx`
+    now gives every Button a 150ms ease-out transition (colour, shadow and
+    transform, so existing `hover:scale-*` overrides now ease instead of
+    snapping) plus `active:scale-[0.98]` press feedback (`link` variant opts
+    out via `active:scale-100`); `ui/sheet.tsx` entrance shortened from 500ms
+    to 300ms ease-out, and exit to 200ms ease-in; `FloatingBottomNav.tsx`
+    tabs share a `NAV_ITEM` class with `active:scale-95` press feedback and a
+    `focus-visible` ring (they had none). The global
+    `prefers-reduced-motion` block in `src/index.css` now also collapses all
+    transitions, accordions and skeleton pulse (spinners are kept because
+    they communicate state). No dependency was added, and none of the
+    existing `framer-motion` usages were changed.
+    **Second pass, same day**: SKYNN AI step content in `AIFormulator.tsx`
+    is wrapped in one `key={step}` div with a short `animate-in` fade + rise
+    (200ms, or 300ms for the results reveal); stepper/progress/footer sit
+    outside it so they don't re-animate. The analysis state fades between
+    loading/exhausted/error, carries `role="status"`, and its processing
+    halo uses `.gradient-bg-soft`. Clickable cards share one
+    `.card-interactive` utility (`src/index.css`: 2px lift + `--shadow-md`,
+    200ms ease-out, `@media (hover: hover)` only) instead of 4 different
+    `hover:shadow-*` sizes; static informational cards (Features,
+    PartnerBenefits, About, SpotlightMethodology) lost their hover shadow
+    since it implied a click that doesn't exist. Two exceptions: cards whose
+    transform framer-motion owns (inline style beats CSS — `NewsroomFeed`,
+    `AffiliateAdSlot`) keep framer but match the same values, and `Hero.tsx`'s
+    stat cards were left as a prior deliberate choice.
   - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
     snapshot reference of the whole visual design system (brand logo
     usage, color tokens in both modes, the brand gradient and everywhere
@@ -1642,6 +1674,59 @@ feature appear operational.
       (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
       product reviews) or a human needs to trigger it after that reset
       for a real test.
+    - **Stale-deploy incident: two parallel sessions redeploying the same
+      shared edge function file (2026-09-23)** — a scheduled routine woke
+      this session to resume the SEO/structured-data backfill (9 rows left
+      from the day before). The very first `?backfillMissingFields=true`
+      call returned a response shaped like the *daily-generation* handler
+      (`created`/`target`/`modelUsage`/`backfillDate`), not the backfill
+      handler's own shape (`mode`/`processed`/`updated`/`skipped`) — a
+      signal the deployed code didn't match what this session expected.
+      Fetching the live source directly via `mcp__Supabase__get_edge_function`
+      confirmed it: the deployed function was **version 31**, a completely
+      different, older snapshot with none of that day's structured-data
+      fields, `SPONSORED_BRAND_BANNERS`, or the `backfillMissingFields`/
+      `backfillStructuredData`/`backfillPrimaryImage`/`pexelsDiagnostic`
+      routes — instead it had a `runBackfillFullReviews()`/`review_details`
+      full-review-backfill feature this session had never seen. Root cause:
+      a **second, parallel Claude Code session** (working on
+      `claude/manual-briefings-job-trigger-fz0aef`, the briefings-sync/
+      Shelf-Showdown/full_review-backfill work documented elsewhere in this
+      section) had been developing its own independent changes to this same
+      shared `product-review-sync/index.ts` file, and deployed straight
+      from its own branch state — which hadn't yet incorporated this
+      session's PR #133 merge — rather than from `main` after merging.
+      That branch's own PR (#130) was merged into `main` shortly after via
+      a real, correct three-way merge (`git diff` confirmed `main`'s
+      resulting file is a clean, complete superset of both sessions' work,
+      only two trivial line replacements, nothing lost) — so **the git
+      history was never actually broken**, only the live Supabase deployment
+      briefly lagged behind it. Fixed by fast-forwarding this session's
+      local `main` to `origin/main` and redeploying verbatim from there
+      (version 31 → 32), confirmed live via both an unauthenticated-401
+      check and grepping the live source for `SPONSORED_BRAND_BANNERS`/
+      `runBackfillFullReviews` (both present). **Real, if minor, fallout**:
+      before the mismatch was caught, two `?backfillMissingFields=true`
+      calls against the stale v31 code went through its (also legitimate,
+      real) daily-generation path instead and published 2 genuine OpenHaus
+      reviews (`standard-beauty-moisture-bomb`, `standard-beauty-2-
+      salicylic-acid-toner`) using the OLD insert shape — missing
+      `is_sponsored=true` (old code hardcoded `isSponsored: false` for the
+      marketplace candidate pool, since the "flip openhaus_marketplace to
+      sponsored" logic was this session's own addition), and missing every
+      structured-data field. Both were real, ungrounded-in-nothing product
+      reviews (not fabricated data, just incompletely enriched) — fixed
+      with a direct one-time SQL UPDATE (`is_sponsored = true`,
+      `skin_types` backfilled from `skin_type_match`, brand banner
+      `primary_image`/`review_images` set directly since the brand -
+      Standard Beauty - was already known) plus a `?backfillStructuredData
+      =true` call once the correct code was live. **Lesson for future
+      sessions**: when multiple sessions may be touching this same shared
+      edge function file, a response shape that doesn't match what the
+      current source on disk would produce is a strong, fast signal to
+      check `mcp__Supabase__get_edge_function` directly before assuming the
+      deploy tooling is broken or retrying blindly — don't trust that the
+      last version number you personally deployed is still what's live.
     - **Shelf Showdown weekly comparison pipeline added
       (2026-09-22, sixth follow-up)** — a new sibling pipeline,
       `supabase/functions/shelf-showdown-sync/index.ts`, gives the

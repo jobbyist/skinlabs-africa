@@ -237,6 +237,24 @@ All colors MUST be HSL.
   .dark .gradient-bg-soft {
     background-blend-mode: overlay;
   }
+
+  /* The one hover treatment for clickable cards (links, product/episode
+     tiles): a 2px lift plus the --shadow-md step, 200ms ease-out. Gated to
+     real hover devices so a tap on mobile never leaves a card "stuck"
+     raised. Informational cards stay static — don't add this to them. */
+  .card-interactive {
+    transition:
+      transform 200ms ease-out,
+      box-shadow 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+
+  @media (hover: hover) {
+    .card-interactive:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+  }
 }
 
 /* Headings default to a touch of negative tracking (Clerk-style precision) —
@@ -270,6 +288,28 @@ All colors MUST be HSL.
   .animate-out {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  /* Accordions collapse instantly (duration, not animation: none, so
+     Radix still receives animationend and hides the content correctly). */
+  .animate-accordion-down,
+  .animate-accordion-up {
+    animation-duration: 0.01ms !important;
+  }
+
+  /* Skeletons stay visible as quiet muted blocks — just stop pulsing.
+     Spinners (animate-spin) are intentionally kept: they communicate state. */
+  .animate-pulse {
+    animation: none;
+  }
+
+  /* Hover/press/state transitions become instant state changes. The end
+     state is still applied, so no information is lost. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

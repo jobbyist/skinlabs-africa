@@ -10,6 +10,7 @@ import heroVideoAsset from "@/assets/hero-video.mp4";
 import heroPosterImage from "@/assets/hero-skincare.jpg";
 import { useMembership } from "@/hooks/use-membership";
 import { remoteHeroVideos, pickRandom, type HeroVideo } from "@/data/heroVideos";
+import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
 /** Local brand footage + 19 remote clips = 20 total, one chosen at random per page load. */
 const ALL_HERO_VIDEOS: HeroVideo[] = [
@@ -69,7 +70,7 @@ const Hero = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden pt-20">
+    <section className="relative min-h-[100svh] flex items-center overflow-hidden pt-20">
       <div className="absolute inset-0 z-0">
         <video
           key={videoSrc}
@@ -100,7 +101,7 @@ const Hero = () => {
               Skincare Intelligence for South Africa
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight drop-shadow-lg">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold text-foreground leading-tight dark:drop-shadow-lg">
               Skincare, without the nonsense.
             </h1>
 
@@ -113,7 +114,7 @@ const Hero = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button
                 size="lg"
-                className="gap-2 text-base px-8 shadow-lg shadow-primary/10 transition-transform hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/15"
+                className="gap-2 text-base px-8 shadow-lg shadow-primary/10 transition-transform motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] hover:shadow-xl hover:shadow-primary/15"
                 asChild
               >
                 <a href="/skynn-ai">
@@ -127,7 +128,9 @@ const Hero = () => {
                   <a href="/pricing">
                     {!membershipLoading && trialUsed
                       ? "See membership plans"
-                      : "Try Insider free for 7 days"}
+                      : isPromoActive()
+                        ? `Try Insider free until ${PROMO_END_DATE_LABEL}`
+                        : `Try Insider free for ${STANDARD_TRIAL_DAYS} days`}
                     <ArrowRight className="h-4 w-4" />
                   </a>
                 </Button>
@@ -138,7 +141,7 @@ const Hero = () => {
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-border/60 bg-background/55 px-2 py-3 text-center shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md sm:px-4 sm:py-4"
+                  className="rounded-2xl border border-border/60 bg-background/55 px-2 py-3 text-center shadow-sm backdrop-blur-md transition-all motion-safe:hover:-translate-y-0.5 hover:border-border hover:shadow-md sm:px-4 sm:py-4"
                 >
                   <span className="mx-auto mb-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-primary/5 text-primary sm:h-9 sm:w-9">
                     <stat.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
@@ -146,7 +149,7 @@ const Hero = () => {
                   <p className="font-heading text-xl font-extrabold tracking-tight text-foreground drop-shadow-sm sm:text-2xl md:text-3xl">
                     {stat.value}
                   </p>
-                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground/75 sm:text-xs">
+                  <p className="mt-0.5 text-[11px] font-semibold uppercase leading-tight tracking-normal text-foreground/80 sm:text-xs">
                     {stat.label}
                   </p>
                 </div>

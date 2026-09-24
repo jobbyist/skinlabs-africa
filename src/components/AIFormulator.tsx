@@ -831,8 +831,8 @@ const AIFormulator = () => {
                   <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
-                    <Shield className="h-3.5 w-3.5 text-primary" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
+                    <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
                       Starter Analysis, no card required, no account required •
                       <a href="/pricing" className="text-primary hover:underline ml-1">Unlock deeper personalisation with a live AI Dermatology Report</a>
@@ -850,9 +850,7 @@ const AIFormulator = () => {
             >
               {step === STEP_INTRO && (
                 <>
-                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
-                  <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-                  <div className="absolute right-1/3 top-1/4 h-40 w-40 rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
+                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-purple-500/20 dark:bg-purple-500/10 blur-3xl pointer-events-none" aria-hidden="true" />
                 </>
               )}
 
@@ -870,6 +868,17 @@ const AIFormulator = () => {
                 <StepperHeader phase={stepPhase(step)} />
               )}
 
+              {/* Keyed per step so each step's content fades/rises in, marking what
+                  changed; the results reveal gets a slightly longer, larger
+                  entrance. Stepper/progress/footer sit outside so they don't
+                  re-animate. Reduced motion collapses animate-in globally. */}
+              <div
+                key={step}
+                className={cn(
+                  "animate-in fade-in-0 ease-out",
+                  step === STEP_RESULTS ? "slide-in-from-bottom-2 duration-300" : "slide-in-from-bottom-1 duration-200",
+                )}
+              >
               {step === STEP_INTRO && (
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
@@ -879,25 +888,25 @@ const AIFormulator = () => {
                     <span className="text-background/60 font-medium">SkinLabs®</span>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
+                    <h2 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
                       Your skin.
                       <br />
                       <span className="gradient-text">Smarter care.</span>
-                    </h3>
+                    </h2>
                     <p className="text-background/70 max-w-md">
                       AI-powered skin assessment and personalised routine formulation, built for every skin tone.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     {[
-                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400" },
-                      { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400" },
-                      { icon: ShieldCheck, label: "Dermatologist reviewed", tint: "bg-purple-500/15 text-purple-400" },
-                      { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400" },
+                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400 dark:text-emerald-700" },
+                      { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400 dark:text-blue-700" },
+                      { icon: ShieldCheck, label: "Dermatologist-grounded research", tint: "bg-purple-500/15 text-purple-400 dark:text-purple-700" },
+                      { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400 dark:text-pink-700" },
                     ].map(({ icon: Icon, label, tint }) => (
                       <div key={label} className="flex items-center gap-3">
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", tint)}>
-                          <Icon className="h-4 w-4" />
+                          <Icon className="h-4 w-4" aria-hidden="true" />
                         </span>
                         <span className="text-sm font-medium text-background/90">{label}</span>
                       </div>
@@ -975,15 +984,6 @@ const AIFormulator = () => {
                             ? "Use 1 Analysis Pass"
                             : "Explore Advanced Assessment"}
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="text-background/60 hover:bg-background/10 hover:text-background"
-                        onClick={() => handleStartAnalysis()}
-                      >
-                        Continue with Starter Analysis
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -995,9 +995,9 @@ const AIFormulator = () => {
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                       <Shield className="h-8 w-8 text-primary" />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
+                    <h2 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
                       Your consent &amp; privacy
-                    </h3>
+                    </h2>
                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
                       To give you the best experience, we need your consent to collect and use certain information —
                       including images, skin tone (for fairness testing), and your responses.
@@ -1044,9 +1044,9 @@ const AIFormulator = () => {
               {step === STEP_PHOTO && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
                       Add a photo
-                    </h3>
+                    </h2>
                     <p className="text-muted-foreground text-sm">
                       Upload a clear, well-lit photo of your face (optional, but improves accuracy). No filters, no sunglasses.
                     </p>
@@ -1107,9 +1107,9 @@ const AIFormulator = () => {
               {step === STEP_MST && (
                 <div className="space-y-6">
                   <div className="text-center mb-2">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
                       Monk Skin Tone (MST)
-                    </h3>
+                    </h2>
                     <p className="text-muted-foreground text-sm max-w-md mx-auto">
                       Which skin tone most closely represents you? This helps us test and improve AI performance
                       across different skin tones — it does not determine your diagnosis or recommendations.
@@ -1133,7 +1133,7 @@ const AIFormulator = () => {
               {currentQuestion && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h3>
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h2>
                   </div>
                   <RadioGroup
                     value={currentAnswer !== undefined ? String(currentAnswer) : ""}
@@ -1207,13 +1207,18 @@ const AIFormulator = () => {
               )}
 
               {step === STEP_ANALYSIS && (
-                <div className="text-center py-12">
+                <div
+                  key={isLoading ? "loading" : allowanceExhausted ? "exhausted" : "error"}
+                  className="text-center py-12 animate-in fade-in-0 duration-200 ease-out"
+                  role={isLoading ? "status" : undefined}
+                  aria-live="polite"
+                >
                   {isLoading ? (
                     <>
-                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <div className="w-20 h-20 gradient-bg-soft rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h3>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h2>
                       <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
                     </>
                   ) : allowanceExhausted ? (
@@ -1221,7 +1226,7 @@ const AIFormulator = () => {
                       <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
                         <Sparkles className="h-10 w-10 text-primary" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">You've used your free analysis</h3>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">You've used your free analysis</h2>
                       <p className="text-muted-foreground max-w-md mx-auto mb-6">
                         Buy a few more analyses, or upgrade for a live AI report re-analysed every week.
                       </p>
@@ -1242,7 +1247,7 @@ const AIFormulator = () => {
                       <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <AlertTriangle className="h-10 w-10 text-destructive" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h3>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h2>
                       <p className="text-muted-foreground max-w-md mx-auto mb-6">{analysisError}</p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button onClick={() => void runAnalysis()} className="gap-2">
@@ -1262,9 +1267,9 @@ const AIFormulator = () => {
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
                   <div className="text-center">
-                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
+                    <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
                       {isMember ? "Your Personalized Skincare Routine" : "Your Starter Analysis"}
-                    </h3>
+                    </h2>
                     <p className="text-muted-foreground">
                       {isMember
                         ? `Customized for your ${derivedSkinType} skin`
@@ -1537,6 +1542,8 @@ const AIFormulator = () => {
                   </div>
                 </div>
               )}
+
+              </div>
 
               {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
