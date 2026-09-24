@@ -60,8 +60,9 @@ feature appear operational.
     and excluded from the sitemap. Generated Supabase types were hand-extended
     for these three tables. No admin UI yet — stories are inserted directly.
     **Rail content (2026-09-24)**, in order (`use-web-stories.ts`): authored
-    DB stories → the 3 newest briefings → curated stories → every published
-    review newest-first (pipeline reviews, then `src/data/reviews.ts`).
+    DB stories → the 3 newest briefings → curated stories. Product review
+    stories were in the rail briefly and were **removed at the user's request
+    (2026-09-24)** along with `reviewStories.ts` — don't re-add them.
     Curated stories (`src/lib/webStories/curated.ts`) are built in code from
     site data, not stored in the DB: "The Skin Deep Podcast — Season 1"
     (cover + episodes 1–10; an unreleased episode is labelled "Coming soon"
@@ -72,8 +73,7 @@ feature appear operational.
     extension, art kept in the top ~half so text never covers it) —
     regenerate the same way if an episode cover changes. Do NOT put static
     media under `public/web-stories/` — that prefix is routed to the SSR
-    function. Review stories (`reviewStories.ts`) use only each review's own
-    fields and skip the live Pexels image fallback. Titles ≤120 / bodies
+    function. Titles ≤120 / bodies
     ≤400 chars via `clipText()`. AMP story ads run through
     `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
     literal in-page `<amp-ad>` inside a story page is rejected by the AMP
