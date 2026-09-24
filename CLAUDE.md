@@ -944,7 +944,13 @@ feature appear operational.
       is **not set**, and PayPal OAuth fails with `btoa ... characters
       outside of the Latin1 range` — the stored `PAYPAL_CLIENT_SECRET`
       (client id checked clean ASCII) contains a non-ASCII/invisible
-      character from copy-paste and must be re-entered. Card-button
+      character from copy-paste and must be re-entered. **Resolved same day
+      (13:56 UTC)**: the user re-entered the credentials and set
+      `PAYPAL_ENV=live`; `config` now reports `env: live`, and a probe
+      webhook got past `PAYPAL_WEBHOOK_ID` and PayPal OAuth (only the
+      fake signature was rejected, as expected) — so **real charges are
+      now possible**. Still not exercised with a genuine payment or a
+      genuine PayPal-signed webhook. Card-button
       availability depends on PayPal's guest-checkout eligibility for the
       merchant country.
   - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
