@@ -6,7 +6,9 @@
  *
  *   1. AI_GATEWAY_API_KEY (default) -> Vercel AI Gateway, OpenAI-compatible
  *      chat completions, `anthropic/<model>`.
- *   2. ANTHROPIC_API_KEY (fallback) -> Anthropic Messages API directly.
+ *   2. ANTHROPIC_API_KEY (fallback) -> Anthropic Messages API directly. Also
+ *      used when the gateway rejects the request with 401/403, so an
+ *      unfunded or bad gateway key can't block a working direct key.
  *
  * Structured output: the stage's schema is offered as a single tool and the
  * model is told to answer only by calling it. tool_choice is "auto", not
@@ -179,8 +181,19 @@ export function transportConfigured(): boolean {
 export async function callClaudeStructured(args: StructuredCallArgs): Promise<StructuredCallResult> {
   const model = resolveModelForTask(args.task);
   const gatewayKey = readKey("AI_GATEWAY_API_KEY");
-  if (gatewayKey) return callGateway(gatewayKey, model, args);
   const anthropicKey = readKey("ANTHROPIC_API_KEY");
+  if (gatewayKey) {
+    try {
+      return await callGateway(gatewayKey, model, args);
+    } catch (err) {
+      // A gateway that rejects us outright (401/403 — bad key, or the free
+      // tier's "no providers available", seen live 2026-09-23) shouldn't
+      // strand a working direct key. Any other gateway error propagates.
+      const rejected = err instanceof AssessmentProviderError && err.code === "not_configured";
+      if (!rejected || !anthropicKey) throw err;
+      console.warn(`claudeTransport: AI gateway rejected the request, falling back to ANTHROPIC_API_KEY. ${(err as Error).message}`);
+    }
+  }
   if (anthropicKey) return callAnthropic(anthropicKey, model, args);
   throw new AssessmentProviderError("Neither AI_GATEWAY_API_KEY nor ANTHROPIC_API_KEY is configured.", "not_configured");
 }
