@@ -177,8 +177,6 @@ const EpisodePage = () => {
               </div>
             </section>
 
-            <AdSlot placement="episode-mid-2" compact />
-
             {episode.productsMentioned.length > 0 && (
               <section>
                 <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Products mentioned</h2>

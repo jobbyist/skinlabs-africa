@@ -19,7 +19,13 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      // z-[65] (not the shadcn-default z-50): a Sheet is a full navigational
+      // overlay and must render above every fixed decorative bar in the app
+      // (WebStoriesBar z-[55], the promo/cookie-consent/ad-block/podcast bars
+      // at z-[60]) — see Header.tsx's mobile hamburger Sheet, the original
+      // case this was fixed for. Still below the z-[100] tier (Preloader,
+      // toasts, the ambassador application modal stack).
+      "fixed inset-0 z-[65] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className,
     )}
     {...props}

@@ -348,9 +348,7 @@ const KnowledgeHub = () => {
                 </>
               )}
 
-              <div className="mb-10">
-                <AdSlot placement="faq-mid" compact />
-              </div>
+              <AdSlot placement="faq-mid" compact />
 
               {/* Results */}
               {grouped ? (

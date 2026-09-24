@@ -36,9 +36,7 @@ const SpotlightArchive = () => {
             changes over time.
           </p>
 
-          <div className="my-8">
-            <AdSlot placement="spotlight-archive-top" compact />
-          </div>
+          <AdSlot placement="spotlight-archive-top" compact />
 
           {current && (
             <div className="mt-8 rounded-3xl border border-border bg-card p-6">

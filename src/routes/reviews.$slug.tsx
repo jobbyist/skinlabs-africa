@@ -446,13 +446,12 @@ function ReviewPage() {
           <Link to={`/marketplace/product/${marketplaceMatch.slug}`}>Sponsored — Also available on OpenHaus</Link>
         )}
 
-        <FaithfulToNature placement="product-review-shop" />
-
+        {/* Mirrors src/pages/ProductReview.tsx's ad placement — keep the two in sync. */}
         <RoutineBuilder anchor={review} isVip={isVip} />
 
-        <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+        <FaithfulToNature placement="product-review-shop" />
 
-        <AdSlot placement="product-review-mid" />
+        <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
 
         <GatedOverlay
           locked={!isMember}

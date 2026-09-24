@@ -4177,6 +4177,140 @@ export type Database = {
         }
         Relationships: []
       }
+      web_stories: {
+        Row: {
+          cover_image_alt: string
+          cover_image_url: string
+          created_at: string
+          cta_label: string | null
+          cta_url: string | null
+          expires_at: string | null
+          id: string
+          is_sponsored: boolean
+          kind: Database["public"]["Enums"]["web_story_kind"]
+          publish_at: string
+          rail_position: number | null
+          slug: string
+          sponsor_name: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          cover_image_alt?: string
+          cover_image_url: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_sponsored?: boolean
+          kind?: Database["public"]["Enums"]["web_story_kind"]
+          publish_at?: string
+          rail_position?: number | null
+          slug: string
+          sponsor_name?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          cover_image_alt?: string
+          cover_image_url?: string
+          created_at?: string
+          cta_label?: string | null
+          cta_url?: string | null
+          expires_at?: string | null
+          id?: string
+          is_sponsored?: boolean
+          kind?: Database["public"]["Enums"]["web_story_kind"]
+          publish_at?: string
+          rail_position?: number | null
+          slug?: string
+          sponsor_name?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      web_story_pages: {
+        Row: {
+          body: string | null
+          created_at: string
+          duration_ms: number
+          headline: string | null
+          id: string
+          media_alt: string
+          media_type: string
+          media_url: string
+          position: number
+          poster_url: string | null
+          story_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          duration_ms?: number
+          headline?: string | null
+          id?: string
+          media_alt?: string
+          media_type?: string
+          media_url: string
+          position: number
+          poster_url?: string | null
+          story_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          duration_ms?: number
+          headline?: string | null
+          id?: string
+          media_alt?: string
+          media_type?: string
+          media_url?: string
+          position?: number
+          poster_url?: string | null
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "web_story_pages_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "web_stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      web_story_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          page_index: number | null
+          story_key: string
+          surface: string
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          page_index?: number | null
+          story_key: string
+          surface?: string
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          page_index?: number | null
+          story_key?: string
+          surface?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       current_product_prices: {
@@ -4705,6 +4839,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      web_story_kind: "editorial" | "briefing" | "review" | "comparison" | "video" | "promotional"
       claim_type: "marketing" | "clinical" | "regulatory"
       confidence_level: "low" | "medium" | "high"
       data_quality_status:
@@ -4867,6 +5002,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      web_story_kind: ["editorial", "briefing", "review", "comparison", "video", "promotional"],
       claim_type: ["marketing", "clinical", "regulatory"],
       confidence_level: ["low", "medium", "high"],
       data_quality_status: [

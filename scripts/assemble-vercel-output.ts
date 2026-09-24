@@ -91,7 +91,7 @@ const vercelJsonPath = resolve(root, "vercel.json");
  *   route, defeating the point of migrating them) -- see prerender.ts's
  *   own comment on this same requirement.
  */
-const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/"];
+const SSR_ROUTE_CONTENT_TYPES_PRE_FILESYSTEM = ["/briefings/", "/reviews/", "/web-stories/"];
 const SSR_ROUTE_CONTENT_TYPES_POST_FILESYSTEM = ["/ingredients/", "/spotlight/"];
 
 /**
@@ -214,12 +214,21 @@ function buildConfigJson(ssrAvailable: boolean): { version: 3; routes: BoapiRout
   const fallbackRoute: BoapiRoute = ssrAvailable
     ? { src: "/(.*)", dest: "/__server" }
     : { src: "/(.*)", dest: "/index.html", check: true };
+  // A hashed /assets/* file that survives the filesystem phase no longer
+  // exists — almost always a tab still running a previous deploy asking for
+  // its old lazy route chunk. Without this it fell through to the catch-all
+  // below: the SSR function cold-started and answered with index.html (200,
+  // text/html), so the dynamic import hung or failed as a MIME error. A fast
+  // 404 lets the client's chunk-recovery (src/lib/chunkRecovery.ts) reload
+  // onto the new build immediately.
+  const missingAssetRoute: BoapiRoute = { src: "^/assets/(.*)$", status: 404 };
   const routes: BoapiRoute[] = [
     ...baseRoutes.slice(0, filesystemIndex),
     ...preFilesystemSsrRoutes,
     baseRoutes[filesystemIndex],
     ...postFilesystemSsrRoutes,
     ...baseRoutes.slice(filesystemIndex + 1),
+    missingAssetRoute,
     fallbackRoute,
   ];
 

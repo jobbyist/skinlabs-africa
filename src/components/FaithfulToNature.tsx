@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import AdDisclosure from "@/components/AdDisclosure";
+import AdFrame from "@/components/ads/AdFrame";
 
 const AFFILIATE_HREF = "https://c.trackmytarget.com/?a=s1d2fa&i=r344bf";
 const IMPRESSION_SRC = "https://i.trackmytarget.com/?a=s1d2fa&i=r344bf";
@@ -38,7 +38,7 @@ interface FaithfulToNatureProps {
  */
 const FaithfulToNature = ({
   placement = "default",
-  className = "",
+  className,
   compact = false,
   trackWhenVisible = true,
 }: FaithfulToNatureProps) => {
@@ -91,15 +91,15 @@ const FaithfulToNature = ({
   }, [trackWhenVisible, placement]);
 
   return (
-    <aside
+    <AdFrame
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${className}`}
-      data-ad-placement={placement}
-      data-affiliate-placement={placement}
-      data-affiliate-partner="faithful-to-nature"
-      aria-label="Advertisement — Faithful to Nature"
+      placement={placement}
+      label="Sponsored"
+      ariaLabel="Advertisement — Faithful to Nature"
+      className={className}
+      dataAttributes={{ "data-affiliate-placement": placement, "data-affiliate-partner": "faithful-to-nature" }}
     >
-      <div className={`mx-auto max-w-4xl ${compact ? "min-h-[90px]" : "min-h-[140px]"}`}>
+      <div className={compact ? "min-h-[90px]" : "min-h-[140px]"}>
         <a
           href={AFFILIATE_HREF}
           target="_blank"
@@ -117,9 +117,8 @@ const FaithfulToNature = ({
             height={400}
           />
         </a>
-        <AdDisclosure />
       </div>
-    </aside>
+    </AdFrame>
   );
 };
 

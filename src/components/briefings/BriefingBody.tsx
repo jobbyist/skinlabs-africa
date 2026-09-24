@@ -219,7 +219,7 @@ function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
         <div key={i}>
           {segment.trim() ? renderMarkdownSegment(segment, i) : null}
           {insertAds && i < parts.length - 1 && (
-            <div className="not-prose my-8">
+            <div className="not-prose">
               {i % 2 === 0 ? (
                 <AdSlot placement={`briefing-mid-${i + 1}`} />
               ) : (

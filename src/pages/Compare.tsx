@@ -6,7 +6,6 @@ import Footer from "@/components/Footer";
 import { comparisonArticles } from "@/data/comparisons";
 import { featuredEditorials } from "@/data/editorials";
 import AffiliateBanner from "@/components/AffiliateBanner";
-import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
@@ -70,9 +69,6 @@ const Compare = () => {
                 Head-to-head comparisons on the actives, the evidence and the Rand value — so you know which one
                 actually makes sense for your skin, not just which one has the bigger marketing budget.
               </p>
-            </div>
-            <div className="mb-8">
-              <AdSlot placement="compare-top" compact />
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -167,7 +163,7 @@ const Compare = () => {
             </div>
           </section>
         </main>
-        <div className="container mx-auto px-4 pb-8">
+        <div className="container mx-auto px-4">
           <AffiliateBanner placement="compare-bottom" />
         </div>
         <Footer />

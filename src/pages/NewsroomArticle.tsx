@@ -13,7 +13,6 @@ import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
-import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
@@ -238,15 +237,7 @@ const NewsroomArticle = () => {
               </div>
             )}
 
-            <div className="my-8">
-              <AdSlot placement="briefing-top" compact />
-            </div>
-
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
-
-            <div className="my-8">
-              <FaithfulToNature placement="briefing-shop" />
-            </div>
 
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (
@@ -302,9 +293,9 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <div className="my-8">
-              <AdSlot placement="briefing-bottom" compact />
-            </div>
+            {/* Ads never precede the article: in-body breaks come from BriefingBody's
+                ad markers, then one partner unit after the body. */}
+            <FaithfulToNature placement="briefing-shop" />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
@@ -338,9 +329,7 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <div className="mt-8">
-              <AdSlotAutorelaxed placement="briefing-footer" compact />
-            </div>
+            <AdSlotAutorelaxed placement="briefing-footer" compact />
 
             {disclaimer && (
               <div className="mt-8">

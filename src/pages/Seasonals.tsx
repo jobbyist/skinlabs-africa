@@ -74,10 +74,6 @@ const Seasonals = () => {
           </Button>
         </section>
 
-        <div className="container mx-auto px-4 mt-6">
-          <AdSlot placement="seasonals-top" compact />
-        </div>
-
         <section className="container mx-auto mt-12 px-4">
           <div className="grid gap-6 md:grid-cols-3">
             {threeCards.map((card) => (
@@ -98,6 +94,10 @@ const Seasonals = () => {
             ))}
           </div>
         </section>
+
+        <div className="container mx-auto px-4">
+          <AdSlot placement="seasonals-mid" compact />
+        </div>
 
         <section className="container mx-auto mt-14 px-4">
           <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">

@@ -415,9 +415,7 @@ const ProductReview = () => {
 
           <SkinLabsPromiseBadge className="mt-6" />
 
-          <div className="my-8">
-            <AdSlot placement="product-review-top" compact />
-          </div>
+          <AdSlot placement="product-review-top" compact />
 
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
@@ -459,17 +457,13 @@ const ProductReview = () => {
             </Link>
           )}
 
-          <div className="my-8">
-            <FaithfulToNature placement="product-review-shop" />
-          </div>
-
+          {/* Partner banner sits after the routine builder, not straight after
+              "Where to buy" + the OpenHaus link, so commercial units never cluster. */}
           <RoutineBuilder anchor={review} isVip={isVip} />
 
-          <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+          <FaithfulToNature placement="product-review-shop" />
 
-          <div className="my-8">
-            <AdSlot placement="product-review-mid" />
-          </div>
+          <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
 
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -550,9 +544,7 @@ const ProductReview = () => {
             </div>
           )}
 
-          <div className="my-8">
-            <AdSlotAutorelaxed placement="product-review-discussion" compact />
-          </div>
+          <AdSlotAutorelaxed placement="product-review-discussion" compact />
 
           <div className="mt-10 space-y-3">
             <h2 className="font-heading text-lg font-bold text-foreground">Member discussion</h2>

@@ -88,9 +88,6 @@ const PodcastPage = () => {
       <Header />
       <main className="pt-20 pb-28">
         <section className="container mx-auto px-4">
-          <div className="mb-4">
-            <AdSlot placement="podcast-top" compact />
-          </div>
           <div className="mb-8 max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Audio series</p>
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
@@ -311,7 +308,8 @@ const PodcastPage = () => {
                     )}
                   </div>
                 </motion.article>
-                {index < episodes.length - 1 && (
+                {/* One ad break per 3 episodes (a full desktop row), never after the last. */}
+                {(index + 1) % 3 === 0 && index < episodes.length - 1 && (
                   <AdSlot placement={`podcast-list-${index}`} compact className="col-span-full" />
                 )}
                 </Fragment>

@@ -408,7 +408,7 @@ const NewsroomFeed = ({
                   </div>
                 </motion.article>
                 {(index + 1) % 3 === 0 && index < articles.length - 1 ? (
-                  <div className="col-span-full my-2">
+                  <div className="col-span-full">
                     {(index + 1) % 6 === 0 ? (
                       <AdSlotAutorelaxed placement={`briefings-feed-${index}`} compact />
                     ) : (
