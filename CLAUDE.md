@@ -182,11 +182,19 @@ feature appear operational.
   guests, synced to `marketplace_cart_items` on sign-in) and currency
   display is `CurrencyContext.tsx` reading `marketplace_fx_rates`; both
   are display/local-storage layers only — ZAR stays canonical. Three
-  edge functions keep the catalogue live: `openhaus-fx-sync` (Frankfurter.
-  app rates, every 6h), `openhaus-picks-rotation` (weekly "SkinLabs
+  edge functions keep the catalogue live: `openhaus-fx-sync` (Frankfurter
+  rates via `api.frankfurter.dev/v1` — the old `.app` host only
+  redirects — every 6h), `openhaus-picks-rotation` (weekly "SkinLabs
   Picks" diversity-favouring rotation, Mondays 00:00 SAST), and
-  `openhaus-price-sync` (re-parses each product's FTN page JSON-LD for
-  price drift, daily) — all three deployed and pg_cron-scheduled. The
+  `openhaus-price-sync` (re-reads each product's FTN page for price
+  drift) — all three deployed and pg_cron-scheduled. Price-sync runs in
+  batches of 20 (least-recently-checked first via `price_checked_at`,
+  100s budget) six times nightly, 00:00–05:00 UTC, to stay under the
+  edge-function wall-clock limit. It takes the **lowest** of the page's
+  Product JSON-LD price and its `og:price:amount`/`product:price:amount`
+  meta tags: FTN's JSON-LD keeps the regular price during a "Special
+  Price" sale, and reading it alone once raised on-sale products ~43%
+  above what FTN charges. The
   jobs send an `x-cron-secret` read at run time from the Vault secret
   `marketplace_cron_secret` (`20260924130000_openhaus_cron_secret_to_vault.sql`
   — never put the literal in a migration). **The matching
@@ -196,11 +204,13 @@ feature appear operational.
   Vault secret (readable by an admin via `select decrypted_secret from
   vault.decrypted_secrets where name = 'marketplace_cron_secret'`),
   scheduled runs will 401; an admin JWT still works as a manual-trigger
-  fallback. `openhaus-price-sync` is also untested against a real FTN
-  product page in production — FTN sits behind a Cloudflare bot
-  challenge that blocks this sandbox's outbound fetches (confirmed
-  browser-UA curl requests succeed, bare/HEAD requests don't), so whether
-  Supabase's edge runtime gets a cleaner path is unverified.
+  fallback. Verified live 2026-09-24: from Supabase's edge runtime all
+  84 FTN pages were read successfully (FTN's Cloudflare challenge blocks
+  this sandbox's fetches, but not the edge runtime's). To trigger a run
+  without exposing the secret, `net.http_post` from SQL with the header
+  built from `vault.decrypted_secrets` (as the cron jobs do) and pass
+  `timeout_milliseconds` — pg_net's 5s default gives up before a batch
+  finishes, though the function itself keeps running.
 
 ## Infrastructure notes
 
