@@ -593,27 +593,22 @@ Deno.serve(async (req) => {
 
       let trialEndsAt: string | null = null;
       if (row.start_kind === "new_trial" && row.first_billing_at) {
-        // Start the trial now that a payment method is on file. Re-checked
-        // here (not just at create time) so one account can never get two
-        // trials by approving two subscriptions.
-        const { data: profile } = await admin
+        // Start the trial now that a payment method is on file. The
+        // `trial_used_at IS NULL` filter makes this an atomic compare-and-set,
+        // so one account can never get two trials — even by approving two
+        // subscriptions concurrently.
+        await admin
           .from("profiles")
-          .select("trial_used_at")
+          .update({
+            subscription_status: "trial",
+            subscription_started_at: new Date().toISOString(),
+            trial_plan: row.plan_id,
+            trial_ends_at: row.first_billing_at,
+            trial_used_at: new Date().toISOString(),
+            billing_interval: row.billing_interval,
+          })
           .eq("user_id", authed.userId)
-          .maybeSingle();
-        if (!profile?.trial_used_at) {
-          await admin
-            .from("profiles")
-            .update({
-              subscription_status: "trial",
-              subscription_started_at: new Date().toISOString(),
-              trial_plan: row.plan_id,
-              trial_ends_at: row.first_billing_at,
-              trial_used_at: new Date().toISOString(),
-              billing_interval: row.billing_interval,
-            })
-            .eq("user_id", authed.userId);
-        }
+          .is("trial_used_at", null);
         trialEndsAt = row.first_billing_at;
       } else if (row.start_kind === "existing_trial") {
         trialEndsAt = row.first_billing_at;

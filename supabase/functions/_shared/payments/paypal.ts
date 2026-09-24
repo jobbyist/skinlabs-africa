@@ -78,6 +78,13 @@ export async function verifyWebhookSignature(headers: Headers, rawBody: string):
     console.error("paypal webhook: PAYPAL_WEBHOOK_ID not configured, rejecting webhook");
     return false;
   }
+  let webhookEvent: unknown;
+  try {
+    webhookEvent = JSON.parse(rawBody);
+  } catch {
+    console.warn("paypal webhook: body is not valid JSON, rejecting");
+    return false;
+  }
   const { ok, json } = await paypalFetch("/v1/notifications/verify-webhook-signature", {
     method: "POST",
     body: {
@@ -87,7 +94,7 @@ export async function verifyWebhookSignature(headers: Headers, rawBody: string):
       auth_algo: headers.get("paypal-auth-algo"),
       transmission_sig: headers.get("paypal-transmission-sig"),
       webhook_id: webhookId,
-      webhook_event: JSON.parse(rawBody),
+      webhook_event: webhookEvent,
     },
   });
   return ok && json.verification_status === "SUCCESS";
