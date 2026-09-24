@@ -27,6 +27,11 @@ interface AuthDialogProps {
   mode?: "signin" | "signup";
   onModeChange?: (mode: "signin" | "signup") => void;
   onAuthenticated?: () => void;
+  /**
+   * Same-origin path (with query) to come back to after an OAuth redirect or an
+   * email-confirmation click. Defaults to the current pathname.
+   */
+  returnTo?: string;
 }
 
 type View = "signin" | "signup" | "forgot" | "forgot-sent";
@@ -72,6 +77,7 @@ const AuthDialog = ({
   mode,
   onModeChange,
   onAuthenticated,
+  returnTo,
 }: AuthDialogProps) => {
   const { signIn, signUp, signInWithGoogle, signInWithMagicLink, sendPasswordReset } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -102,8 +108,11 @@ const AuthDialog = ({
 
   const logo = resolvedTheme === "dark" ? skinlabsLogoWhite : skinlabsLogoBlack;
 
-  const oauthRedirect = () =>
-    withPendingPlanParams(`${window.location.origin}${window.location.pathname}`, pendingIntent);
+  const oauthRedirect = () => {
+    // Only same-origin absolute paths — never an open redirect.
+    const path = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : window.location.pathname;
+    return withPendingPlanParams(`${window.location.origin}${path}`, pendingIntent);
+  };
 
   const handleGoogleSignIn = async () => {
     setFormError(null);

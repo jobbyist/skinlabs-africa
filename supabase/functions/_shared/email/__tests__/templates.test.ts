@@ -76,4 +76,61 @@ describe("email template registry", () => {
     const html = def.render({ trial_ends_at: "2026-10-01T00:00:00Z" });
     expect(html.toLowerCase()).toContain("trial");
   });
+
+  describe("trial emails (plan-aware, card-aware)", () => {
+    const TRIAL_IDS = ["trial_started", "trial_expiring", "trial_ended"] as const;
+    const NO_CHARGE_PHRASES = ["no surprise charges", "you won't be charged", "no charge was made"];
+    const ends = "2026-11-01T00:00:00+02:00";
+    const renderAll = (id: string, vars: Record<string, unknown>) => {
+      const def = getTemplate(id)!;
+      return `${def.subject(vars)}\n${def.preheader(vars)}\n${def.render(vars)}`;
+    };
+
+    test("a Glow Lite trialist reads 'Glow Lite' in subject and body, never 'Glow Insider'", () => {
+      for (const id of TRIAL_IDS) {
+        for (const has_payment_method of [true, false]) {
+          const def = getTemplate(id)!;
+          const vars = { plan: "glow_lite", trial_ends_at: ends, has_payment_method };
+          expect(def.subject(vars), id).toContain("Glow Lite");
+          expect(def.render(vars), id).toContain("Glow Lite");
+          expect(renderAll(id, vars), id).not.toContain("Glow Insider");
+        }
+      }
+    });
+
+    test("a card-backed trialist never reads a no-charge reassurance", () => {
+      for (const id of TRIAL_IDS) {
+        for (const plan of ["glow_lite", "insider"]) {
+          for (const has_payment_method of [true, "true"]) {
+            const text = renderAll(id, { plan, trial_ends_at: ends, has_payment_method }).toLowerCase();
+            for (const phrase of NO_CHARGE_PHRASES) expect(text, `${id}/${plan}`).not.toContain(phrase);
+          }
+        }
+      }
+    });
+
+    test("an unknown payment state makes no charge promise either way", () => {
+      for (const id of TRIAL_IDS) {
+        const text = renderAll(id, { plan: "insider", trial_ends_at: ends }).toLowerCase();
+        for (const phrase of NO_CHARGE_PHRASES) expect(text, id).not.toContain(phrase);
+      }
+    });
+
+    test("a no-card trialist keeps the reassurance", () => {
+      expect(renderAll("trial_started", { plan: "insider", trial_ends_at: ends, has_payment_method: false })).toContain("no surprise charges");
+      expect(renderAll("trial_expiring", { plan: "insider", trial_ends_at: ends, has_payment_method: false })).toContain("you won't be charged");
+      expect(renderAll("trial_ended", { plan: "insider", has_payment_method: false })).toContain("no charge was made");
+    });
+
+    test("a card-backed trialist is told auto-renew is on and when the first charge lands", () => {
+      const started = renderAll("trial_started", { plan: "glow_lite", trial_ends_at: ends, has_payment_method: true });
+      expect(started).toContain("Auto-renew is on");
+      expect(started).toContain("1 November 2026");
+      expect(renderAll("trial_expiring", { plan: "insider", trial_ends_at: ends, has_payment_method: true })).toContain("Auto-renew is on");
+    });
+
+    test("jobs queued before `plan` existed still render as Glow Insider", () => {
+      expect(getTemplate("trial_started")!.subject({ trial_ends_at: ends })).toBe("Your Glow Insider trial has started");
+    });
+  });
 });

@@ -28,6 +28,7 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { SITE_URL } from "@/lib/seo-config";
+import { usePricingConfig } from "@/lib/pricing-config";
 import { cn } from "@/lib/utils";
 
 // Smart Routines Landing Page
@@ -35,6 +36,14 @@ const SmartRoutines = () => {
   const { user } = useAuth();
   const entitlements = useEntitlements();
   const { balance: analysisPassBalance } = useAnalysisPassBalance();
+  // Prices come from pricing_plans (never hardcoded) and only render once loaded.
+  const { data: pricing } = usePricingConfig();
+  const monthlyPrice = (planId: string) => {
+    const plan = pricing?.plans.find((p) => p.plan_id === planId);
+    return plan ? `R${Number(plan.price_monthly)}` : null;
+  };
+  const insiderPrice = monthlyPrice("insider");
+  const vipPrice = monthlyPrice("vip");
   const [activeSeasonTab, setActiveSeasonTab] = useState<"summer" | "winter">("summer");
 
   useEffect(() => {
@@ -771,7 +780,7 @@ const SmartRoutines = () => {
                       <Sparkles className="h-3 w-3" />
                       Recommended
                     </Badge>
-                    <span className="text-sm font-semibold text-foreground">R99/mo</span>
+                    {insiderPrice && <span className="text-sm font-semibold text-foreground">{insiderPrice}/mo</span>}
                   </div>
                   <CardTitle className="text-xl">Glow Insider</CardTitle>
                 </CardHeader>
@@ -803,7 +812,7 @@ const SmartRoutines = () => {
                 <CardHeader>
                   <div className="mb-2 flex items-center justify-between">
                     <Badge variant="secondary">VIP</Badge>
-                    <span className="text-sm text-muted-foreground">R299/mo</span>
+                    {vipPrice && <span className="text-sm text-muted-foreground">{vipPrice}/mo</span>}
                   </div>
                   <CardTitle className="text-xl">Glow VIP</CardTitle>
                 </CardHeader>
@@ -942,7 +951,8 @@ const SmartRoutines = () => {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Glow Explorer and Glow Lite members can access the Advanced AI Dermatology Report using an Analysis
-                  Pass, starting from R25. It's also included with Glow Insider (R99/month) and Glow VIP (R299/month)
+                  Pass, starting from R25. It's also included with Glow Insider
+                  {insiderPrice ? ` (${insiderPrice}/month)` : ""} and Glow VIP{vipPrice ? ` (${vipPrice}/month)` : ""}{" "}
                   memberships.
                 </AccordionContent>
               </AccordionItem>

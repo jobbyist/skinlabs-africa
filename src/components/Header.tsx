@@ -135,7 +135,14 @@ const ResourceRow = ({ item, onClick }: { item: NavItem; onClick?: () => void })
   </Link>
 );
 
-const DesktopMenuPanel = ({ onNavigate }: { onNavigate?: () => void }) => (
+const DesktopMenuPanel = ({
+  onNavigate,
+  onSignUp,
+}: {
+  onNavigate?: () => void;
+  /** Opens AuthDialog in sign-up mode. Omitted when signed in, which hides the footer CTA. */
+  onSignUp?: () => void;
+}) => (
   <div className="w-[min(92vw,720px)] p-1">
     {/* Primary links */}
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-2 py-2">
@@ -190,14 +197,14 @@ const DesktopMenuPanel = ({ onNavigate }: { onNavigate?: () => void }) => (
       ))}
     </div>
 
-    <div className="mt-2 border-t border-border px-2 pt-3 pb-1">
-      <Button asChild className="w-full justify-between" size="sm">
-        <Link to="/" onClick={onNavigate}>
+    {onSignUp && (
+      <div className="mt-2 border-t border-border px-2 pt-3 pb-1">
+        <Button type="button" className="w-full justify-between" size="sm" onClick={onSignUp}>
           Sign Up / Log In
           <ChevronRight className="h-4 w-4" />
-        </Link>
-      </Button>
-    </div>
+        </Button>
+      </div>
+    )}
   </div>
 );
 
@@ -286,7 +293,18 @@ const Header = () => {
                 sideOffset={8}
                 className="w-auto max-w-[min(92vw,760px)] rounded-2xl border bg-popover p-0 shadow-lg"
               >
-                <DesktopMenuPanel onNavigate={closeDesktopMenu} />
+                <DesktopMenuPanel
+                  onNavigate={closeDesktopMenu}
+                  onSignUp={
+                    user
+                      ? undefined
+                      : () => {
+                          closeDesktopMenu();
+                          setAuthMode("signup");
+                          setAuthOpen(true);
+                        }
+                  }
+                />
               </PopoverContent>
             </Popover>
           </div>

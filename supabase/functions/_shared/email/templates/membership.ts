@@ -19,58 +19,117 @@ function formatDate(value: unknown): string {
   if (!value) return "soon";
   const d = new Date(String(value));
   if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" });
+  // SAST, not the edge runtime's UTC: a trial ending at 00:00 SAST on 1 Nov is
+  // 22:00 UTC on 31 Oct, and members should read the date the site shows them.
+  return d.toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" });
+}
+
+// Trial emails carry `plan` (the trial_plan) and `has_payment_method` (a live
+// auto-renew subscription exists). Charge reassurances ("no surprise charges",
+// "you won't be charged", "no charge was made") only appear when
+// has_payment_method is explicitly false — a card-backed trialist WILL be
+// charged when the trial ends, and an unknown state says nothing either way.
+// Jobs queued before `plan` existed were Insider-only, hence that default.
+function trialPlanLabel(vars: Record<string, unknown>): string {
+  return vars.plan ? planLabel(vars.plan) : "Glow Insider";
+}
+
+function noCardOnFile(vars: Record<string, unknown>): boolean {
+  return vars.has_payment_method === false || vars.has_payment_method === "false";
+}
+
+function cardOnFile(vars: Record<string, unknown>): boolean {
+  return vars.has_payment_method === true || vars.has_payment_method === "true";
+}
+
+// What each trial unlocks, from LADDER_CAPABILITIES in src/lib/entitlements.ts.
+function trialPerks(plan: unknown): string {
+  const key = String(plan ?? "insider").toLowerCase();
+  if (key === "glow_lite") {
+    return "unlimited Shelf Showdown comparisons, full Spotlight brand profiles and the practitioner directory";
+  }
+  return "weekly live AI skin analysis, the full podcast library, full-body reviews, and the Active Ingredient Conflict Matcher";
 }
 
 registerTemplate({
   id: "trial_started",
   category: "TRIAL",
-  internalName: "Glow Insider trial started",
+  internalName: "Membership trial started",
   transactional: true,
   requiredVars: ["trial_ends_at"],
-  subject: () => "Your Glow Insider trial has started",
-  preheader: (vars) => `Free until ${formatDate(vars.trial_ends_at)} — enjoy full Glow Insider access.`,
-  render: (vars) => `
-    ${emailHeading("Your Glow Insider trial has started")}
-    ${emailParagraph(
-      `You now have full Glow Insider access — weekly live AI skin analysis, the full podcast library, ` +
-      `full-body reviews, and the Active Ingredient Conflict Matcher.`
-    )}
+  subject: (vars) => `Your ${trialPlanLabel(vars)} trial has started`,
+  preheader: (vars) => `Free until ${formatDate(vars.trial_ends_at)} — enjoy full ${trialPlanLabel(vars)} access.`,
+  render: (vars) => {
+    const label = escapeHtml(trialPlanLabel(vars));
+    const closing = noCardOnFile(vars)
+      ? emailParagraph(`We'll email you before your trial ends — no surprise charges.`)
+      : cardOnFile(vars)
+        ? emailParagraph(
+            `Auto-renew is on: your ${label} membership continues when the trial ends, and your first charge is on ` +
+            `${escapeHtml(formatDate(vars.trial_ends_at))}. Cancel any time in Billing before then.`
+          )
+        : emailParagraph(`We'll email you before your trial ends. You can review your billing any time from your dashboard.`);
+    return `
+    ${emailHeading(`Your ${label} trial has started`)}
+    ${emailParagraph(`You now have full ${label} access — ${escapeHtml(trialPerks(vars.plan))}.`)}
     ${emailKeyValueTable([["Free until", formatDate(vars.trial_ends_at)]])}
-    ${emailButton("Explore Glow Insider", `${BRAND.siteUrl}/dashboard`)}
-    ${emailParagraph(`We'll email you before your trial ends — no surprise charges.`)}
-  `,
+    ${emailButton(`Explore ${label}`, `${BRAND.siteUrl}/dashboard`)}
+    ${closing}
+  `;
+  },
 });
 
 registerTemplate({
   id: "trial_expiring",
   category: "TRIAL",
-  internalName: "Glow Insider trial ending soon",
+  internalName: "Membership trial ending soon",
   transactional: true,
   requiredVars: ["trial_ends_at"],
-  subject: () => "Your Glow Insider trial ends tomorrow",
+  subject: (vars) => `Your ${trialPlanLabel(vars)} trial ends tomorrow`,
   preheader: (vars) => `Your trial ends ${formatDate(vars.trial_ends_at)}.`,
-  render: (vars) => `
+  render: (vars) => {
+    const label = escapeHtml(trialPlanLabel(vars));
+    const date = escapeHtml(formatDate(vars.trial_ends_at));
+    if (cardOnFile(vars)) {
+      return `
     ${emailHeading("Your trial ends tomorrow")}
-    ${emailParagraph(`Your Glow Insider trial ends on ${escapeHtml(formatDate(vars.trial_ends_at))}. Keep your access by upgrading before then.`)}
-    ${emailButton("Keep Glow Insider", `${BRAND.siteUrl}/pricing`)}
-    ${emailParagraph(`If you do nothing, your account simply returns to Glow Explorer (free) — you won't be charged.`)}
-  `,
+    ${emailParagraph(`Your ${label} trial ends on ${date}. Auto-renew is on, so your membership continues and your first charge is on ${date}.`)}
+    ${emailButton("Manage billing", `${BRAND.siteUrl}/dashboard?tab=billing`)}
+    ${emailParagraph(`Don't want to continue? Cancel in Billing before ${date} and you'll move back to Glow Explorer (free).`)}
+  `;
+    }
+    return `
+    ${emailHeading("Your trial ends tomorrow")}
+    ${emailParagraph(`Your ${label} trial ends on ${date}. Keep your access by upgrading before then.`)}
+    ${emailButton(`Keep ${label}`, `${BRAND.siteUrl}/pricing`)}
+    ${emailParagraph(
+      noCardOnFile(vars)
+        ? `If you do nothing, your account simply returns to Glow Explorer (free) — you won't be charged.`
+        : `If you don't upgrade, your account returns to Glow Explorer (free). You can check your billing any time from your dashboard.`
+    )}
+  `;
+  },
 });
 
 registerTemplate({
   id: "trial_ended",
   category: "TRIAL",
-  internalName: "Glow Insider trial ended",
+  internalName: "Membership trial ended",
   transactional: true,
   requiredVars: [],
-  subject: () => "Your Glow Insider trial has ended",
+  subject: (vars) => `Your ${trialPlanLabel(vars)} trial has ended`,
   preheader: () => "Your account is now on Glow Explorer (free).",
-  render: () => `
+  render: (vars) => {
+    const label = escapeHtml(trialPlanLabel(vars));
+    return `
     ${emailHeading("Your trial has ended")}
-    ${emailParagraph(`Your Glow Insider trial has ended and your account is back on Glow Explorer (free) — no charge was made.`)}
-    ${emailButton("Upgrade to Glow Insider", `${BRAND.siteUrl}/pricing`)}
-  `,
+    ${emailParagraph(
+      `Your ${label} trial has ended and your account is back on Glow Explorer (free)` +
+      (noCardOnFile(vars) ? ` — no charge was made.` : `.`)
+    )}
+    ${emailButton(`Upgrade to ${label}`, `${BRAND.siteUrl}/pricing`)}
+  `;
+  },
 });
 
 registerTemplate({

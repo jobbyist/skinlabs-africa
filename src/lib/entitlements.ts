@@ -17,16 +17,13 @@
  *   Orthogonal flags (layer on top of whichever ladder tier is active):
  *     foundingMember, isProfessional
  *
- * "glow_lite" is defined here for forward-compatibility with the pricing
- * recommendations in the SkinLabs growth-architecture audit (Sept 2026), but
- * has no live purchase path yet — useMembership() cannot currently resolve
- * it from `profiles.subscription_status`, so it will never appear from real
- * user data until that tier ships. Its capability set below is provisional
- * and should be confirmed by product before it's sold. The same caveat
- * applies to founding-member checkout and the professional/B2B tier: the
- * `founding_member` and `is_professional` profile columns exist (see
- * supabase/migrations/20260906180000_entitlement_foundations.sql) but no
- * live flow sets them to true yet.
+ * "glow_lite" is a live, purchasable tier (pricing_plans.glow_lite, with a
+ * trial path). useMembership() resolves it from `profiles.subscription_status
+ * = 'glow_lite'` for a paid member and from `trial_plan = 'glow_lite'` for a
+ * trialist. Founding-member checkout is live too (completePurchase.ts sets
+ * `founding_member`). The professional/B2B tier is not: `is_professional`
+ * exists (see supabase/migrations/20260906180000_entitlement_foundations.sql)
+ * but no live flow sets it to true yet.
  */
 
 export type LadderTier = "anonymous" | "free" | "glow_lite" | "insider" | "vip";

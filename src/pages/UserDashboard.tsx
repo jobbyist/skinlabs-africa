@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import ReportBugButton from "@/components/ReportBugButton";
 import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
+import { formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -73,7 +74,7 @@ type DashboardTab = (typeof VALID_TABS)[number];
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
@@ -87,6 +88,14 @@ const UserDashboard = () => {
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
+  // The trialist's live auto-renew subscription (PayPal), if they added a payment method.
+  const [trialSubscription, setTrialSubscription] = useState<{
+    amount_zar: number;
+    amount_charged: number;
+    currency: string;
+    first_billing_at: string | null;
+    next_billing_at: string | null;
+  } | null>(null);
   const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
@@ -102,10 +111,32 @@ const UserDashboard = () => {
   const purchaseType = searchParams.get("purchase_type") ?? "plan";
 
   useEffect(() => {
+    // Signed out: open sign-in in place (returning here afterwards) instead of
+    // bouncing to the homepage.
     if (loading || user) return;
-    if (paymentReturn) setAuthOpen(true);
-    else navigate("/");
-  }, [user, loading, navigate, paymentReturn]);
+    setAuthOpen(true);
+  }, [user, loading]);
+
+  useEffect(() => {
+    if (!user || !isTrialing) {
+      setTrialSubscription(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("payment_subscriptions")
+      .select("amount_zar, amount_charged, currency, first_billing_at, next_billing_at")
+      .eq("user_id", user.id)
+      .in("status", ["trialing", "active", "past_due"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (!cancelled) setTrialSubscription(data?.[0] ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isTrialing]);
 
   useEffect(() => {
     if (searchParams.get("trial") !== "started") return;
@@ -239,6 +270,9 @@ const UserDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentReturn, user]);
 
+  const trialFirstChargeAt = trialSubscription
+    ? (trialSubscription.first_billing_at ?? trialSubscription.next_billing_at)
+    : null;
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
@@ -355,7 +389,8 @@ const UserDashboard = () => {
     toast.success("Welcome back — your account is active again.");
   };
 
-  if (!loading && !user && paymentReturn) {
+  if (!loading && !user) {
+    const returnTo = `${location.pathname}${location.search}`;
     return (
       <>
         <div className="min-h-screen bg-background">
@@ -364,10 +399,11 @@ const UserDashboard = () => {
             <div className="container mx-auto max-w-md px-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Sign in to finish</CardTitle>
+                  <CardTitle>{paymentReturn ? "Sign in to finish" : "Sign in to your dashboard"}</CardTitle>
                   <CardDescription>
-                    Your payment went through. Sign in with the same email you paid with and we'll take you
-                    straight into your dashboard.
+                    {paymentReturn
+                      ? "Your payment went through. Sign in with the same email you paid with and we'll take you straight into your dashboard."
+                      : "Your saved analyses, routine and membership live here. Sign in or create a free account to continue."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -378,7 +414,7 @@ const UserDashboard = () => {
           </main>
           <Footer />
         </div>
-        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} returnTo={returnTo} />
       </>
     );
   }
@@ -467,18 +503,25 @@ const UserDashboard = () => {
                         {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {trialEndsAt
-                          ? `Full access until ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}. No card on file — your access simply ends unless you upgrade.`
-                          : "No card on file. Upgrade any time to keep your access after the trial ends."}
+                        {trialFirstChargeAt && trialSubscription
+                          ? `Auto-renew is on — first charge ${formatZar(Number(trialSubscription.amount_zar))}${
+                              trialSubscription.currency === "USD"
+                                ? ` (${formatUsd(Number(trialSubscription.amount_charged))} via PayPal)`
+                                : ""
+                            } on ${formatBillingDate(trialFirstChargeAt)}. Cancel any time in Billing.`
+                          : trialEndsAt
+                            ? `Full access until ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}. No card on file — your access simply ends unless you upgrade.`
+                            : "No card on file. Upgrade any time to keep your access after the trial ends."}
                       </p>
                     </div>
                   </div>
+                  {/* Prompt 06 replaces this link with a dialog. */}
                   <Button asChild size="sm">
-                    <Link to="/pricing">Upgrade now</Link>
+                    <Link to="/dashboard?tab=billing">Keep my membership</Link>
                   </Button>
                 </div>
               )}
