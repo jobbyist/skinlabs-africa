@@ -35,7 +35,10 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=closed]:ease-in data-[state=open]:duration-300 data-[state=open]:ease-out",
+  // z-[65] — must match SheetOverlay's z-[65] above. If the panel sits lower
+  // than its own overlay, the menu renders dimmed underneath it and every tap
+  // lands on the overlay (closing the sheet) — the header menu bug this fixed.
+  "fixed z-[65] gap-4 bg-background p-6 shadow-lg transition data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=closed]:ease-in data-[state=open]:duration-300 data-[state=open]:ease-out",
   {
     variants: {
       side: {

@@ -60,8 +60,9 @@ feature appear operational.
     and excluded from the sitemap. Generated Supabase types were hand-extended
     for these three tables. No admin UI yet — stories are inserted directly.
     **Rail content (2026-09-24)**, in order (`use-web-stories.ts`): authored
-    DB stories → the 3 newest briefings → curated stories → every published
-    review newest-first (pipeline reviews, then `src/data/reviews.ts`).
+    DB stories → the 3 newest briefings → curated stories. Product review
+    stories were in the rail briefly and were **removed at the user's request
+    (2026-09-24)** along with `reviewStories.ts` — don't re-add them.
     Curated stories (`src/lib/webStories/curated.ts`) are built in code from
     site data, not stored in the DB: "The Skin Deep Podcast — Season 1"
     (cover + episodes 1–10; an unreleased episode is labelled "Coming soon"
@@ -72,12 +73,24 @@ feature appear operational.
     extension, art kept in the top ~half so text never covers it) —
     regenerate the same way if an episode cover changes. Do NOT put static
     media under `public/web-stories/` — that prefix is routed to the SSR
-    function. Review stories (`reviewStories.ts`) use only each review's own
-    fields and skip the live Pexels image fallback. Titles ≤120 / bodies
+    function. Titles ≤120 / bodies
     ≤400 chars via `clipText()`. AMP story ads run through
     `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
     literal in-page `<amp-ad>` inside a story page is rejected by the AMP
     validator, so it must never be added there.
+  - **Overlay z-index tiers (2026-09-24, header menu bug)** — the mobile
+    menu Sheet opened *under* its own dark overlay (panel z-50, overlay
+    z-[65]): the `/motion` pass rewrote `sheetVariants` from a pre-fix copy
+    and the merge kept its `z-50`, so taps hit the overlay and closed the
+    menu. The shared scale is now: fixed bars ≤ z-[60] (story rail z-[55],
+    promo/cookie/podcast z-[60]) → **modals z-[65]** (Sheet, Dialog,
+    AlertDialog, Drawer — overlay AND panel; Dialog was z-50, so the promo
+    bar and rail painted over the full-screen AuthDialog's header on phones)
+    → **floating layers z-[70]** (Popover, Select, DropdownMenu, Tooltip,
+    HoverCard, ContextMenu, Menubar — must sit above a modal they open
+    inside) → SiteSearch z-[75] → StoryViewer z-[80] → toasts/Preloader
+    z-[100]. When editing any `ui/` overlay primitive, keep overlay and
+    panel on the same tier; never reintroduce shadcn's default `z-50`.
 
 - **Site-wide `/polish` pass + promo-aware trial copy (2026-09-23)** — ran the
   repo's own `.claude/skills/polish/SKILL.md` over Home, /briefings,

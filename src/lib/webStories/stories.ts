@@ -27,7 +27,7 @@ export interface Story {
    * (src/lib/webStories/curated.ts). briefing/review: built from live content,
    * in-app only (no AMP page).
    */
-  source: "db" | "curated" | "briefing" | "review";
+  source: "db" | "curated" | "briefing";
   slug: string;
   title: string;
   kind: WebStoryKind;
