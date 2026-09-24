@@ -589,8 +589,8 @@ const UserDashboard = () => {
                     />
                   </div>
 
-                  <RoutineSnapshot onOpenRoutine={() => setActiveTab("routine")} />
-                  <AdvancedAssessmentCard />
+                  <RoutineSnapshot />
+                  <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading || membershipLoading} />
 
                   <Card>
                     <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>

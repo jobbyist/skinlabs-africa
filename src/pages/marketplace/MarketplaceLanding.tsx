@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronRight, ArrowRight, Leaf, Shield, Users, Sparkles, MapPin, ChevronLeft } from "lucide-react";
@@ -14,7 +14,7 @@ import { MarketplaceProductCard } from "@/components/marketplace/MarketplaceProd
 import { useSkinLabsPicks } from "@/hooks/use-skinlabs-picks";
 import { useSavedProducts } from "@/hooks/use-saved-products";
 
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] } },
 };

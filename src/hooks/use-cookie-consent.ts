@@ -92,7 +92,7 @@ export function useCookieConsent(): UseCookieConsentResult {
         if (cancelled) return;
 
         if (!error && data) {
-          const remote = recordFromProfile(data as Parameters<typeof recordFromProfile>[0]);
+          const remote = recordFromProfile(data);
           if (isConsentValid(remote)) {
             writeCookieConsentRecord(remote!);
             finish(remote);

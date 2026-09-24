@@ -120,10 +120,12 @@ export const buildStarterSavePayload = (params: {
   p_recommendation: params.result.recommendationText,
   p_result_payload: params.result as unknown as Json,
   p_analysis_completeness: params.result.completeness.overall,
-  p_mst_tone: params.result.profile.mstTone,
-  p_contact_name: params.contactName,
-  p_contact_whatsapp: params.contactWhatsApp,
-  p_photo_storage_path: params.photoStoragePath ?? null,
+  // Optional args default to NULL server-side, so an absent value is omitted
+  // (undefined) rather than sent as null — the RPC sees NULL either way.
+  p_mst_tone: params.result.profile.mstTone ?? undefined,
+  p_contact_name: params.contactName ?? undefined,
+  p_contact_whatsapp: params.contactWhatsApp ?? undefined,
+  p_photo_storage_path: params.photoStoragePath ?? undefined,
   p_variant_key: params.variantKey,
 });
 

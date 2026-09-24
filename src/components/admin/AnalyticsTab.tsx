@@ -111,7 +111,7 @@ const AnalyticsTab = () => {
         const res = await fetch(`/api/admin-analytics?days=${range}`);
         const body = (await res.json().catch(() => null)) as AnalyticsPayload | AnalyticsError | null;
         if (cancelled) return;
-        if (res.status === 503 || (body && !body.ok && body.error === "not_configured")) {
+        if (res.status === 503 || (body && body.ok === false && body.error === "not_configured")) {
           setState({ status: "not_connected" });
           return;
         }

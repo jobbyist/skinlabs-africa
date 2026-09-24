@@ -118,7 +118,7 @@ async function fetchIngredientDetail(slug: string): Promise<IngredientDetail | n
   });
 
   const products: IngredientProductLink[] = (productRows ?? [])
-    .map((r) => {
+    .map((r): IngredientProductLink | null => {
       const pv = r.product_versions as { products: { id: string; slug: string; name: string; brands: { name: string } | null } | null } | null;
       const p = pv?.products;
       if (!p) return null;
