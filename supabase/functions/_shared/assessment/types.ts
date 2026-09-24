@@ -8,6 +8,26 @@
  * without duplicating the logic into a second copy under src/.
  */
 
+/** Per-task Claude model routing keys — see modelConfig.ts for the table. */
+export type AssessmentTask =
+  | "report_generation"
+  | "complex_reasoning"
+  | "evidence_synthesis"
+  | "safety_review"
+  | "report_regeneration"
+  | "routine_transformation"
+  | "classification"
+  | "chat"
+  // SKYNN AI v2 multi-model pipeline (2026-09-23, framework §4): Haiku for
+  // high-volume intake/safety triage, Sonnet for reasoning and writing,
+  // Opus as the final compliance/QA gate.
+  | "intake_normalisation"
+  | "safety_triage"
+  | "fairness_calibration"
+  | "assessment_reasoning"
+  | "report_writing"
+  | "qa_review";
+
 export type ConfidenceLevel = "high" | "moderate" | "limited";
 export type SafetyUrgency = "routine" | "prompt" | "urgent";
 

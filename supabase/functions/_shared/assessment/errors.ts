@@ -24,6 +24,7 @@ const PG_MESSAGE_MAP: Record<string, AssessmentApiError> = {
   session_not_found: { status: 404, code: "not_found", message: "That assessment session could not be found." },
   session_not_editable: { status: 409, code: "not_editable", message: "This assessment can no longer be edited." },
   assessment_incomplete: { status: 422, code: "incomplete", message: "Please complete all required questions before submitting." },
+  consent_required: { status: 422, code: "consent_required", message: "We need your consent to process your skin information before we can create your report." },
 };
 
 const PG_CODE_MAP: Record<string, AssessmentApiError> = {

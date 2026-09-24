@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   AdvancedAssessmentAccess,
   AdvancedAssessmentReportRow,
+  AdvancedAssessmentReportSummary,
   AdvancedAssessmentSession,
   AssessmentDefinitionSummary,
   SafetyScreenResult,
@@ -69,18 +70,21 @@ export const saveAdvancedAssessmentProgress = (sessionId: string, responses: Rec
     currentSectionId,
   });
 
+/** Queues the assessment for background generation (SKYNN v2) — returns
+ *  `pending` immediately; poll getAdvancedAssessmentReport for progress. */
 export const submitAdvancedAssessment = (sessionId: string) =>
   invoke<{ sessionId: string; reportId: string; status: string; errorMessage: string | null }>("submit", { sessionId });
 
 export const getAdvancedAssessmentStatus = (sessionId: string) =>
-  invoke<{ sessionStatus: string | null; report: { id: string; generation_status: string; error_message: string | null } | null }>("status", {
-    sessionId,
-  });
+  invoke<{
+    sessionStatus: string | null;
+    report: { id: string; generation_status: string; review_status: string | null; error_message: string | null } | null;
+  }>("status", { sessionId });
 
 export const getAdvancedAssessmentReport = (params: { reportId?: string; sessionId?: string }) =>
   invoke<{ report: AdvancedAssessmentReportRow }>("get_report", params);
 
-export const listAdvancedAssessmentReports = () => invoke<{ reports: AdvancedAssessmentReportRow[] }>("list_reports");
+export const listAdvancedAssessmentReports = () => invoke<{ reports: AdvancedAssessmentReportSummary[] }>("list_reports");
 
 export const logRoutineHandoffClicked = (sessionId: string) =>
   invoke<{ ok: boolean }>("log_event", { eventType: "routine_handoff_clicked", sessionId });

@@ -62,3 +62,23 @@ registerTemplate({
     ])}
   `,
 });
+
+registerTemplate({
+  id: "admin_skynn_review_needed",
+  category: "ADMIN",
+  internalName: "SKYNN AI report awaiting human review",
+  transactional: false,
+  requiredVars: ["report_id"],
+  subject: (vars) => `SKYNN AI report awaiting review${vars.triage && vars.triage !== "clear" ? ` (${String(vars.triage)})` : ""}`,
+  preheader: () => "A QA-approved Advanced AI Dermatology Report is held for release.",
+  render: (vars) => `
+    ${emailHeading("A SKYNN AI report needs review")}
+    ${emailParagraph(`A new Advanced AI Dermatology Report passed automated QA and is held until someone on the team approves or rejects it. No member details are included in this email.`)}
+    ${emailKeyValueTable([
+      ["Report ID", String(vars.report_id ?? "")],
+      ["Safety triage", String(vars.triage ?? "")],
+      ["MST group", String(vars.mst_group ?? "")],
+    ])}
+    ${emailButton("Open SKYNN Reviews", `${BRAND.siteUrl}/admin`)}
+  `,
+});

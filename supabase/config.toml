@@ -6,6 +6,11 @@ verify_jwt = false
 [functions.skynn-advanced-assessment]
 verify_jwt = false
 
+# SKYNN AI v2 async worker: called by pg_cron (x-cron-secret checked against
+# Vault), by skynn-advanced-assessment (service-role bearer) or an admin JWT.
+[functions.skynn-advanced-worker]
+verify_jwt = false
+
 [functions.payfast-payment]
 verify_jwt = false
 
