@@ -6,6 +6,10 @@ verify_jwt = false
 [functions.skynn-advanced-assessment]
 verify_jwt = false
 
+# Public, city-level weather (no personal data); validates a city allow-list itself.
+[functions.skin-weather]
+verify_jwt = false
+
 [functions.payfast-payment]
 verify_jwt = false
 

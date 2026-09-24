@@ -2610,6 +2610,81 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_subscriptions: {
+        Row: {
+          amount_charged: number
+          amount_zar: number
+          billing_interval: string
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          first_billing_at: string | null
+          fx_rate: number | null
+          fx_rate_as_of: string | null
+          fx_rate_source: string | null
+          gateway: string
+          gateway_subscription_id: string
+          id: string
+          metadata: Json
+          next_billing_at: string | null
+          payer_email: string | null
+          plan_id: string
+          start_kind: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_charged: number
+          amount_zar: number
+          billing_interval: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          first_billing_at?: string | null
+          fx_rate?: number | null
+          fx_rate_as_of?: string | null
+          fx_rate_source?: string | null
+          gateway: string
+          gateway_subscription_id: string
+          id?: string
+          metadata?: Json
+          next_billing_at?: string | null
+          payer_email?: string | null
+          plan_id: string
+          start_kind: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_charged?: number
+          amount_zar?: number
+          billing_interval?: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          first_billing_at?: string | null
+          fx_rate?: number | null
+          fx_rate_as_of?: string | null
+          fx_rate_source?: string | null
+          gateway?: string
+          gateway_subscription_id?: string
+          id?: string
+          metadata?: Json
+          next_billing_at?: string | null
+          payer_email?: string | null
+          plan_id?: string
+          start_kind?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount_original: number | null
@@ -2652,6 +2727,33 @@ export type Database = {
           reference?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      paypal_billing_plans: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          env: string
+          paypal_plan_id: string | null
+          paypal_product_id: string | null
+          plan_id: string
+        }
+        Insert: {
+          billing_interval: string
+          created_at?: string
+          env: string
+          paypal_plan_id?: string | null
+          paypal_product_id?: string | null
+          plan_id: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          env?: string
+          paypal_plan_id?: string | null
+          paypal_product_id?: string | null
+          plan_id?: string
         }
         Relationships: []
       }
@@ -5068,6 +5170,7 @@ export type Database = {
       enqueue_trial_expiring_events: { Args: never; Returns: number }
       enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
       expire_finished_trials: { Args: never; Returns: number }
+      expire_lapsed_subscriptions: { Args: never; Returns: number }
       fail_advanced_assessment_session: {
         Args: { p_error_message: string; p_session_id: string }
         Returns: undefined

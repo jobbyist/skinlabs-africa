@@ -19,6 +19,99 @@ feature appear operational.
 
 ## Major systems
 
+- **Free-first SKYNN AI formulator, rolling free analysis, "Today's skin weather" (2026-09-24)**
+  — branch `feat/free-first-formulator-weather`, plan + open items in `PLAN.md`.
+  - **Anonymous flow**: visitors finish the whole quiz with no account and see
+    skin type + top 2 concerns (`src/lib/formulator/summary.ts`); the full
+    on-screen analysis is unlocked by a free sign-up ("Save your results — free")
+    that attaches the SAME result (localStorage snapshot → `save_starter_analysis`).
+    The starter PDF still auto-downloads for anonymous users (explicit decision —
+    value before the ask). Email confirmation now returns to `/skynn-ai`, and the
+    dashboard also attaches a pending local result on arrival.
+  - **Limits**: `FORMULATOR_LIMITS` in `src/lib/formulator/limits.ts` — Explorer
+    and Glow Lite get 1 free starter analysis per ROLLING 30 days counted from the
+    last FREE analysis (`profiles.last_free_analysis_at`; spending an Analysis Pass
+    doesn't move the window); Insider/VIP unlimited. Server values live in
+    `pricing_settings.free_ai_analysis_allowance` / `free_analysis_window_days`
+    (a unit test pins the TS config to the migration). **The only write path for
+    starter rows is `save_starter_analysis()`** (checks + stamps atomically,
+    falls back to a purchased pass, idempotent on `client_analysis_id`);
+    `get_formulator_allowance()` is the read. `formulator_tier()` deliberately
+    differs from `is_member()` — a Glow Lite *trial* stays limited.
+    Server tests: `supabase/tests/formulator_allowance.sql` (runs in a DO block
+    that always rolls back — safe on prod; 15 assertions passing live).
+  - **Cutover not yet applied**: `20260924100100_formulator_allowance_cutover.sql`
+    (removes direct client INSERT/UPDATE of starter rows on
+    `skincare_recommendations`, makes `claim_starter_analysis()` read-only) must be
+    applied right AFTER this frontend deploys — the old frontend upserts directly.
+    The new frontend never calls `claim_starter_analysis()` (pre-cutover it still
+    consumes credits).
+  - Insider/VIP whose weekly live-AI quota is spent now fall back to an unlimited
+    starter re-analysis instead of an error.
+  - **Skin weather**: `supabase/functions/skin-weather` (city-key allow-list, never
+    coordinates; per-city cache in `skin_weather_cache`, 45-min TTL, stale-serve up
+    to 6h) → `SkinWeatherCard`; cache TTL raised 45 → **60 min** on 2026-09-24 because
+    the default provider is now **One Call 4.0** (`OpenWeatherV4Provider` —
+    new OpenWeather accounts are only offered 4.0; it needs 3 calls per refresh:
+    `current`, `timeline/1h`, `timeline/1day`, so worst case 10 × 24 × 3 = 720
+    calls/day, inside the free 1,000). 4.0 responses are reshaped into the 3.0
+    shape and parsed by the same `normaliseOneCallV3()`; the 3.0 provider stays
+    available via the optional `OPENWEATHER_ONECALL_VERSION=3.0` secret. tip logic is the pure, tested
+    `getSkinWeatherTip()` in `src/lib/skinWeather/tips.ts` (WHO UV bands,
+    humidity <30 / >70, profile-aware, cosmetic wording only — a test scans every
+    output for claim/medical terms). Provider is OpenWeather One Call (4.0 default, 3.0 optional) behind
+    `SkinWeatherProvider` (`_shared/weather/`) — **Open-Meteo's free API is
+    non-commercial only and counts ad-supported sites as commercial, so don't
+    switch to it without a paid licence**. City is `profiles.weather_city_key`
+    (separate from the free-text ADDRESS `profiles.city`, which is only a
+    fallback when it names one of the 10 cities); "Use my location" snaps to the
+    nearest city on-device. Needs `OPENWEATHER_API_KEY` as an Edge Function
+    secret. **Deployed 2026-09-24** (`skin-weather` v1, `verify_jwt=false`, via the
+    MCP tool with same-root `./_shared/weather/` imports for that upload only —
+    the committed source keeps `../_shared/`). Verified live: unknown city and
+    raw-coordinate requests → 400, CORS preflight → 200. The first real request
+    returned 502 because OpenWeather answered **401** — the secret is set but the
+    key wasn't accepted yet (new keys can take ~2h to activate, or the 4.0
+    subscription isn't attached to that key). **Re-checked 12:10 UTC (~2h
+    later): still 401** (logged on `timeline/1day`). The URLs/params/response
+    shape were re-checked against OpenWeather's 4.0 docs and match; the docs
+    define 401 as "key missing or doesn't grant access to this API", so it's the
+    key/subscription (4.0 is a separate subscription from 3.0), not code. A
+    human must confirm in the OpenWeather dashboard that the One Call 4.0
+    subscription is active on the same key stored as `OPENWEATHER_API_KEY`
+    (then re-set the secret if needed). **Working 2026-09-24 13:50 UTC** after
+    the user reset the key: Johannesburg → 200 (uvMax 9.4, humidity 42%, high
+    26°C, provider `openweather-v4`), cache row written. Note: the "OpenWeather"
+    MCP connector is OpenWeather's separate Bot Forum platform
+    (data.openweathermap.org, its own accounts/keys) — its key is not the
+    `api.openweathermap.org` appid this function uses, so a connector 401 says
+    nothing about `OPENWEATHER_API_KEY`. Only on this branch, not `main`:
+    if Supabase's GitHub sync redeploys from `main` before merge, re-check the
+    function still exists.
+  - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
+    were ADDED next to the shadcn tokens — `--primary` is already #262626 and
+    drives every primary button, so it was deliberately not renamed to the brief's
+    "Primary #9CA3AF" (which also fails AA as text).
+  - **Found while testing (2026-09-24)**: (1) `start_free_trial()` fails for every
+    plan on production — `notify_subscription_change()` builds an email
+    idempotency key from `trial_started_at`, which is never set → NULL key →
+    NOT NULL violation aborts the trial. No profile has ever recorded a trial.
+    Fixed by `20260924100200_fix_trial_start_email_idempotency_key.sql`
+    (`start_free_trial()` now stamps `trial_started_at`; the trigger falls back
+    to `trial_used_at`/`now()`), **applied live 2026-09-24 at the user's
+    request** and verified with a rolled-back probe: Insider and Glow Lite
+    trials both start (ending 2026-10-31T22:00Z = 1 Nov SAST via the promo), a
+    repeat is refused, and TRIAL_STARTED / MEMBERSHIP_ACTIVATED emails queue.
+    (2) `20260919100000` had redefined `protect_profile_privileged_columns()` from
+    an old copy, dropping founding_member/is_professional/starter_analyses_used/
+    account_status/deactivated_at — restored. Column-level UPDATE grants on
+    `profiles` already blocked clients from those columns, so this was a
+    defence-in-depth gap, not an exploitable hole. (3) `src/data/plans.ts`'s static
+    fallback still lists Insider R99 / VIP R299; live DB is R79 / R199 — the new
+    upgrade CTAs only show a price once `pricing_plans` has loaded.
+  - `skincare_recommendations` was empty on production at the time — no user had
+    ever saved an analysis, so the backfill was a no-op.
+
 - **Deploy-skew resilience, ad placement system, Web Stories (2026-09-23)**
   - **Page hangs / broken-after-tab-switch, root causes and fixes** — this
     project redeploys many times a day and ~60 routes are lazy chunks. A tab
