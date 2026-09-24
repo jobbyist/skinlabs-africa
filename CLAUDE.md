@@ -79,7 +79,13 @@ feature appear operational.
     key/subscription (4.0 is a separate subscription from 3.0), not code. A
     human must confirm in the OpenWeather dashboard that the One Call 4.0
     subscription is active on the same key stored as `OPENWEATHER_API_KEY`
-    (then re-set the secret if needed). Only on this branch, not `main`:
+    (then re-set the secret if needed). **Working 2026-09-24 13:50 UTC** after
+    the user reset the key: Johannesburg → 200 (uvMax 9.4, humidity 42%, high
+    26°C, provider `openweather-v4`), cache row written. Note: the "OpenWeather"
+    MCP connector is OpenWeather's separate Bot Forum platform
+    (data.openweathermap.org, its own accounts/keys) — its key is not the
+    `api.openweathermap.org` appid this function uses, so a connector 401 says
+    nothing about `OPENWEATHER_API_KEY`. Only on this branch, not `main`:
     if Supabase's GitHub sync redeploys from `main` before merge, re-check the
     function still exists.
   - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
