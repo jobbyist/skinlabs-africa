@@ -78,6 +78,19 @@ feature appear operational.
     `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
     literal in-page `<amp-ad>` inside a story page is rejected by the AMP
     validator, so it must never be added there.
+  - **Overlay z-index tiers (2026-09-24, header menu bug)** — the mobile
+    menu Sheet opened *under* its own dark overlay (panel z-50, overlay
+    z-[65]): the `/motion` pass rewrote `sheetVariants` from a pre-fix copy
+    and the merge kept its `z-50`, so taps hit the overlay and closed the
+    menu. The shared scale is now: fixed bars ≤ z-[60] (story rail z-[55],
+    promo/cookie/podcast z-[60]) → **modals z-[65]** (Sheet, Dialog,
+    AlertDialog, Drawer — overlay AND panel; Dialog was z-50, so the promo
+    bar and rail painted over the full-screen AuthDialog's header on phones)
+    → **floating layers z-[70]** (Popover, Select, DropdownMenu, Tooltip,
+    HoverCard, ContextMenu, Menubar — must sit above a modal they open
+    inside) → SiteSearch z-[75] → StoryViewer z-[80] → toasts/Preloader
+    z-[100]. When editing any `ui/` overlay primitive, keep overlay and
+    panel on the same tier; never reintroduce shadcn's default `z-50`.
 
 - **Site-wide `/polish` pass + promo-aware trial copy (2026-09-23)** — ran the
   repo's own `.claude/skills/polish/SKILL.md` over Home, /briefings,
