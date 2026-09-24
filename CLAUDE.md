@@ -186,13 +186,15 @@ feature appear operational.
   app rates, every 6h), `openhaus-picks-rotation` (weekly "SkinLabs
   Picks" diversity-favouring rotation, Mondays 00:00 SAST), and
   `openhaus-price-sync` (re-parses each product's FTN page JSON-LD for
-  price drift, daily) — all three deployed and pg_cron-scheduled, but
-  **the `MARKETPLACE_CRON_SECRET` project secret these cron jobs
-  authenticate with has not been set** (no tool in this environment can
-  set a Supabase project secret) — until a human runs `supabase secrets
-  set MARKETPLACE_CRON_SECRET=<value>` (the value used in the cron job
-  definitions) matching what's embedded in the `openhaus_fx_sync_cron`/
-  `openhaus_picks_rotation_cron`/`openhaus_price_sync_cron` pg_cron jobs,
+  price drift, daily) — all three deployed and pg_cron-scheduled. The
+  jobs send an `x-cron-secret` read at run time from the Vault secret
+  `marketplace_cron_secret` (`20260924130000_openhaus_cron_secret_to_vault.sql`
+  — never put the literal in a migration). **The matching
+  `MARKETPLACE_CRON_SECRET` edge-function secret has not been set** (no
+  tool in this environment can set one): until a human runs `supabase
+  secrets set MARKETPLACE_CRON_SECRET=<value>` with the same value as the
+  Vault secret (readable by an admin via `select decrypted_secret from
+  vault.decrypted_secrets where name = 'marketplace_cron_secret'`),
   scheduled runs will 401; an admin JWT still works as a manual-trigger
   fallback. `openhaus-price-sync` is also untested against a real FTN
   product page in production — FTN sits behind a Cloudflare bot
