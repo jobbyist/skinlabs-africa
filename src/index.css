@@ -93,6 +93,20 @@ All colors MUST be HSL.
        FloatingBottomNav's active-tab tint. Keep this the only place these
        four stops are defined; everything else should reference it. */
     --gradient-brand: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7, #ec4899);
+
+    /* SkinLabs brand palette (2026-09-24). Additive: the shadcn semantic tokens
+       above (--primary is already #262626 and drives every primary button) are
+       deliberately NOT renamed. Use these via Tailwind's brand-* / secondary-text.
+       --brand-slate (#9CA3AF) fails WCAG AA as text on white — borders and
+       decoration only; use --secondary-text for secondary copy. */
+    --brand-slate: 218 11% 65%;            /* #9CA3AF */
+    --brand-cream: 45 76% 88%;             /* #F8EDCB */
+    --brand-cream-foreground: 0 0% 15%;
+    --brand-ink: 0 0% 15%;                 /* #262626 */
+    --brand-ink-foreground: 0 0% 99%;
+    --brand-canvas: 0 0% 99%;              /* #FCFCFC */
+    --brand-gold: 37 89% 80%;              /* #F9D69C — link/highlight */
+    --secondary-text: 0 0% 37%;            /* #5E5E5E — 6.4:1 on canvas */
   }
 
   .dark {
@@ -148,6 +162,17 @@ All colors MUST be HSL.
     --shadow-lg: 0 4px 6px 0 hsl(0 0% 0% / 0.3), 0 16px 36px -10px hsl(0 0% 0% / 0.45);
     --shadow-xl: 0 6px 10px 0 hsl(0 0% 0% / 0.35), 0 24px 52px -14px hsl(0 0% 0% / 0.5);
     --shadow-2xl: 0 8px 14px 0 hsl(0 0% 0% / 0.35), 0 32px 72px -18px hsl(0 0% 0% / 0.55);
+
+    /* Brand palette, dark mode. Ink is darkened so the ink surface still
+       separates from the dark page background (also #262626). */
+    --brand-slate: 218 11% 45%;
+    --brand-cream: 43 22% 24%;
+    --brand-cream-foreground: 45 76% 88%;
+    --brand-ink: 0 0% 9%;
+    --brand-ink-foreground: 0 0% 99%;
+    --brand-canvas: 0 0% 15%;
+    --brand-gold: 37 89% 80%;
+    --secondary-text: 0 0% 71%;            /* #B5B5B5 — ~6:1 on dark card */
   }
 }
 

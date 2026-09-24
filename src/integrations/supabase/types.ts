@@ -2640,18 +2640,21 @@ export type Database = {
         Row: {
           default_billing_interval: string
           free_ai_analysis_allowance: number
+          free_analysis_window_days: number
           promo_free_trial_until: string | null
           variant_key: string
         }
         Insert: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          free_analysis_window_days?: number
           promo_free_trial_until?: string | null
           variant_key?: string
         }
         Update: {
           default_billing_interval?: string
           free_ai_analysis_allowance?: number
+          free_analysis_window_days?: number
           promo_free_trial_until?: string | null
           variant_key?: string
         }
@@ -3272,6 +3275,8 @@ export type Database = {
           skin_color: string | null
           skin_conditions: string[] | null
           starter_analyses_used: number
+          last_free_analysis_at: string | null
+          weather_city_key: string | null
           subscription_started_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -3317,6 +3322,8 @@ export type Database = {
           skin_color?: string | null
           skin_conditions?: string[] | null
           starter_analyses_used?: number
+          last_free_analysis_at?: string | null
+          weather_city_key?: string | null
           subscription_started_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -3362,6 +3369,8 @@ export type Database = {
           skin_color?: string | null
           skin_conditions?: string[] | null
           starter_analyses_used?: number
+          last_free_analysis_at?: string | null
+          weather_city_key?: string | null
           subscription_started_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -4517,6 +4526,39 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_formulator_allowance: {
+        Args: { p_variant_key?: string }
+        Returns: {
+          tier: string
+          unlimited: boolean
+          free_remaining: number | null
+          window_days: number
+          last_free_analysis_at: string | null
+          last_analysis_at: string | null
+          next_unlock_at: string | null
+          pass_balance: number
+        }[]
+      }
+      save_starter_analysis: {
+        Args: {
+          p_client_analysis_id: string
+          p_skin_type: string
+          p_concerns: string[]
+          p_recommendation: string
+          p_result_payload: Json
+          p_analysis_completeness?: number | null
+          p_mst_tone?: number | null
+          p_contact_name?: string | null
+          p_contact_whatsapp?: string | null
+          p_photo_storage_path?: string | null
+          p_variant_key?: string
+        }
+        Returns: {
+          recommendation_id: string
+          source: string
+          next_unlock_at: string | null
+        }[]
       }
       claim_starter_analysis: {
         Args: { p_variant_key?: string }

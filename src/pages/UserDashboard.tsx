@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
+import { Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,13 @@ import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
+import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
+import AnalysisCreditsCard from "@/components/dashboard/AnalysisCreditsCard";
+import SkinWeatherCard from "@/components/dashboard/SkinWeatherCard";
+import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
+import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
+import { loadCompletedState, persistStarterResultToAccount } from "@/lib/starter-analysis/persistence";
+import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import ReportBugButton from "@/components/ReportBugButton";
 import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
@@ -50,6 +57,7 @@ interface Profile {
   skin_color: string | null;
   address_line1: string | null;
   city: string | null;
+  weather_city_key: string | null;
   allergies: string[] | null;
   skin_conditions: string[] | null;
   preferred_routine_time: string | null;
@@ -68,6 +76,7 @@ const UserDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
+  const { data: allowance, loading: allowanceLoading, error: allowanceError, refresh: refreshAllowance } = useFormulatorAllowance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -214,7 +223,7 @@ const UserDashboard = () => {
     (async () => {
       const [profileRes, preordersRes, recsRes, creditsRes, likedRes, savedRes, commentsRes] = await Promise.all([
         supabase.from("profiles").select(
-          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, allergies, skin_conditions, preferred_routine_time",
+          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, weather_city_key, allergies, skin_conditions, preferred_routine_time",
         ).eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase
@@ -237,6 +246,62 @@ const UserDashboard = () => {
       setDataLoading(false);
     })();
   }, [user]);
+
+  // Anonymous → account handoff, wherever the visitor lands after signing up
+  // (e.g. an email-confirmation link opened later): a SKYNN AI result finished
+  // before sign-up is still in this browser, so attach it now. The RPC is
+  // idempotent on the analysis id, so this is safe even if /skynn-ai already
+  // saved it; a refusal (allowance spent) is left alone — the formulator
+  // explains that when they next open it.
+  useEffect(() => {
+    if (!user) return;
+    const pending = loadCompletedState();
+    if (!pending?.result) return;
+    let cancelled = false;
+    (async () => {
+      const outcome = await persistStarterResultToAccount({
+        result: pending.result,
+        contactName: null,
+        contactWhatsApp: null,
+        variantKey: getPersistedPricingVariant(),
+      });
+      if (cancelled || outcome.error || outcome.limitReached || outcome.source === "existing") return;
+      const { data } = await supabase
+        .from("skincare_recommendations")
+        .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (cancelled) return;
+      if (data) setRecommendations(data);
+      void refreshAllowance();
+      toast.success("Your SKYNN AI results were saved to your account.");
+      trackConversionEvent("starter_dashboard_arrived");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, refreshAllowance]);
+
+  const latestAnalysis = recommendations.find((r) => r.status === "delivered") ?? null;
+  const latestPayload = latestAnalysis?.result_payload as StarterAnalysisResult | null | undefined;
+  const weatherProfile = latestAnalysis
+    ? {
+        skinType: latestAnalysis.skin_type,
+        concerns: latestPayload?.profile
+          ? [latestPayload.primaryConcern, ...latestPayload.profile.secondaryConcerns]
+          : latestAnalysis.concerns,
+      }
+    : undefined;
+
+  // Saves only the weather city — never the free-text address city.
+  const saveWeatherCity = async (cityKey: string): Promise<boolean> => {
+    if (!user) return false;
+    const { error } = await supabase.from("profiles").update({ weather_city_key: cityKey }).eq("user_id", user.id);
+    if (error) return false;
+    setProfile((p) => (p ? { ...p, weather_city_key: cityKey } : p));
+    return true;
+  };
 
   const retryAnalysisPassBalance = async () => {
     if (!user) return;
@@ -440,7 +505,33 @@ const UserDashboard = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Hero row: skin profile (two-thirds) + analysis credits (one-third). */}
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                      <SkinProfileHero
+                        latest={latestAnalysis}
+                        loading={dataLoading}
+                        allowance={allowance}
+                        onViewFullAnalysis={() => setActiveTab("analysis")}
+                      />
+                    </div>
+                    <AnalysisCreditsCard
+                      allowance={allowance}
+                      loading={allowanceLoading}
+                      error={allowanceError}
+                      onRetry={() => void refreshAllowance()}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 lg:col-span-1">
+                      <SkinWeatherCard
+                        weatherCityKey={profile?.weather_city_key ?? null}
+                        addressCity={profile?.city ?? null}
+                        skinProfile={weatherProfile}
+                        onSaveCity={saveWeatherCity}
+                      />
+                    </div>
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
                       <CardContent>
@@ -464,14 +555,6 @@ const UserDashboard = () => {
                       error={creditsError}
                       onRetry={() => void retryAnalysisPassBalance()}
                     />
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />Analyses</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{recommendations.length}</p><p className="text-xs text-muted-foreground">Saved analyses</p></CardContent>
-                    </Card>
                   </div>
 
                   <RoutineSnapshot onOpenRoutine={() => setActiveTab("routine")} />
