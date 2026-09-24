@@ -1,7 +1,7 @@
 # PLAN — Free-first SKYNN AI Formulator, monthly free analysis, "Today's skin weather"
 
 Branch: `feat/free-first-formulator-weather` (local only, nothing pushed/deployed).
-Status: **awaiting approval**. Nothing below is built yet.
+Status: **approved as recommended (2026-09-24) and built** — see "Build status" at the end.
 
 ---
 
@@ -137,3 +137,23 @@ Stored as HSL like the rest. The existing shadcn `--primary`/`--accent`/`--secon
 - **Q4: Deploy scope.** You said don't deploy. Should I still **apply the migrations to the live DB** during development? RPC tests need them, and the frontend will break against a DB without the new RPCs. Or should I stop at committed SQL and a rolled-back test only?
 - **Q5: Weather provider.** (a) **OpenWeather One Call** (v4; the first 1,000 calls/day are free, then US$0.0015 each; card required; commercial use allowed). Our cached load of ~320/day fits the free allowance. I recommend this. (b) **Open-Meteo API Standard**, a paid commercial licence (price not published on their pricing page; same data model as the free API). (c) Build with Open-Meteo's free endpoint behind the adapter for development only and switch before launch. Not recommended, because it would be a live licence breach if it shipped.
 - **Q6: Branch/push.** This cloud session's container is temporary, so unpushed commits are lost if it's reclaimed. May I push `feat/free-first-formulator-weather` to origin (push only, no PR/merge/deploy)?
+
+---
+
+## Build status (2026-09-24)
+
+Answers applied: Q1 (a) summary-only for anonymous visitors, PDF kept free · Q2 Glow Lite = Explorer limits · Q3 passes still spendable · Q4 additive migrations applied live · Q5 OpenWeather · Q6 branch pushed.
+
+Deviations from the plan above, and why:
+- **Weather city** is a new `profiles.weather_city_key`, not the existing `profiles.city`. That field is the free-text *address* city (any town), and saving "Cape Town" into it from the card would overwrite someone's address. `profiles.city` is still used as a fallback when it names one of the 10 cities.
+- **Rolling window counts from the last *free* analysis** (`last_free_analysis_at`). Spending a purchased Analysis Pass doesn't push the next free one further away.
+- **OpenWeather One Call 3.0** (one call per refresh) rather than 4.0 (three calls). Only the adapter changes if the account ends up with 4.0-only access.
+- Found and fixed/flagged along the way: see the 2026-09-24 entry in CLAUDE.md (broken `start_free_trial`, trigger regression, stale static prices).
+
+Applied live on `gnkpzijxuciiaamakgzm`: `20260924100000_formulator_rolling_allowance`, `20260924110000_skin_weather_cache`, `20260924110100_profiles_weather_city`.
+
+**Still to do (needs a human):**
+1. Deploy the frontend, then immediately apply `20260924100100_formulator_allowance_cutover.sql`.
+2. Review and apply `20260924100200_fix_trial_start_email_idempotency_key.sql` (free trials are currently failing in production).
+3. Create an OpenWeather account ("One Call by Call", commercial use; card required, first 1,000 calls/day free), then `supabase secrets set OPENWEATHER_API_KEY=...` and deploy the `skin-weather` function (`verify_jwt = false`, as in config.toml).
+4. Optionally update `src/data/plans.ts` fallback prices (Insider R99 → R79, VIP R299 → R199).

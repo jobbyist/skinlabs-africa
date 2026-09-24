@@ -19,6 +19,67 @@ feature appear operational.
 
 ## Major systems
 
+- **Free-first SKYNN AI formulator, rolling free analysis, "Today's skin weather" (2026-09-24)**
+  — branch `feat/free-first-formulator-weather`, plan + open items in `PLAN.md`.
+  - **Anonymous flow**: visitors finish the whole quiz with no account and see
+    skin type + top 2 concerns (`src/lib/formulator/summary.ts`); the full
+    on-screen analysis is unlocked by a free sign-up ("Save your results — free")
+    that attaches the SAME result (localStorage snapshot → `save_starter_analysis`).
+    The starter PDF still auto-downloads for anonymous users (explicit decision —
+    value before the ask). Email confirmation now returns to `/skynn-ai`, and the
+    dashboard also attaches a pending local result on arrival.
+  - **Limits**: `FORMULATOR_LIMITS` in `src/lib/formulator/limits.ts` — Explorer
+    and Glow Lite get 1 free starter analysis per ROLLING 30 days counted from the
+    last FREE analysis (`profiles.last_free_analysis_at`; spending an Analysis Pass
+    doesn't move the window); Insider/VIP unlimited. Server values live in
+    `pricing_settings.free_ai_analysis_allowance` / `free_analysis_window_days`
+    (a unit test pins the TS config to the migration). **The only write path for
+    starter rows is `save_starter_analysis()`** (checks + stamps atomically,
+    falls back to a purchased pass, idempotent on `client_analysis_id`);
+    `get_formulator_allowance()` is the read. `formulator_tier()` deliberately
+    differs from `is_member()` — a Glow Lite *trial* stays limited.
+    Server tests: `supabase/tests/formulator_allowance.sql` (runs in a DO block
+    that always rolls back — safe on prod; 15 assertions passing live).
+  - **Cutover not yet applied**: `20260924100100_formulator_allowance_cutover.sql`
+    (removes direct client INSERT/UPDATE of starter rows on
+    `skincare_recommendations`, makes `claim_starter_analysis()` read-only) must be
+    applied right AFTER this frontend deploys — the old frontend upserts directly.
+    The new frontend never calls `claim_starter_analysis()` (pre-cutover it still
+    consumes credits).
+  - Insider/VIP whose weekly live-AI quota is spent now fall back to an unlimited
+    starter re-analysis instead of an error.
+  - **Skin weather**: `supabase/functions/skin-weather` (city-key allow-list, never
+    coordinates; per-city cache in `skin_weather_cache`, 45-min TTL, stale-serve up
+    to 6h) → `SkinWeatherCard`; tip logic is the pure, tested
+    `getSkinWeatherTip()` in `src/lib/skinWeather/tips.ts` (WHO UV bands,
+    humidity <30 / >70, profile-aware, cosmetic wording only — a test scans every
+    output for claim/medical terms). Provider is OpenWeather One Call 3.0 behind
+    `SkinWeatherProvider` (`_shared/weather/`) — **Open-Meteo's free API is
+    non-commercial only and counts ad-supported sites as commercial, so don't
+    switch to it without a paid licence**. City is `profiles.weather_city_key`
+    (separate from the free-text ADDRESS `profiles.city`, which is only a
+    fallback when it names one of the 10 cities); "Use my location" snaps to the
+    nearest city on-device. Needs `OPENWEATHER_API_KEY` as an Edge Function
+    secret; the function is **not deployed yet**.
+  - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
+    were ADDED next to the shadcn tokens — `--primary` is already #262626 and
+    drives every primary button, so it was deliberately not renamed to the brief's
+    "Primary #9CA3AF" (which also fails AA as text).
+  - **Found while testing (2026-09-24)**: (1) `start_free_trial()` fails for every
+    plan on production — `notify_subscription_change()` builds an email
+    idempotency key from `trial_started_at`, which is never set → NULL key →
+    NOT NULL violation aborts the trial. No profile has ever recorded a trial.
+    Fix written, **not applied**: `20260924100200_fix_trial_start_email_idempotency_key.sql`.
+    (2) `20260919100000` had redefined `protect_profile_privileged_columns()` from
+    an old copy, dropping founding_member/is_professional/starter_analyses_used/
+    account_status/deactivated_at — restored. Column-level UPDATE grants on
+    `profiles` already blocked clients from those columns, so this was a
+    defence-in-depth gap, not an exploitable hole. (3) `src/data/plans.ts`'s static
+    fallback still lists Insider R99 / VIP R299; live DB is R79 / R199 — the new
+    upgrade CTAs only show a price once `pricing_plans` has loaded.
+  - `skincare_recommendations` was empty on production at the time — no user had
+    ever saved an analysis, so the backfill was a no-op.
+
 - **Deploy-skew resilience, ad placement system, Web Stories (2026-09-23)**
   - **Page hangs / broken-after-tab-switch, root causes and fixes** — this
     project redeploys many times a day and ~60 routes are lazy chunks. A tab

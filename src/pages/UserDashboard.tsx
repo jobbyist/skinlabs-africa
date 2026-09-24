@@ -30,6 +30,8 @@ import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
 import AnalysisCreditsCard from "@/components/dashboard/AnalysisCreditsCard";
+import SkinWeatherCard from "@/components/dashboard/SkinWeatherCard";
+import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
 import { loadCompletedState, persistStarterResultToAccount } from "@/lib/starter-analysis/persistence";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
@@ -55,6 +57,7 @@ interface Profile {
   skin_color: string | null;
   address_line1: string | null;
   city: string | null;
+  weather_city_key: string | null;
   allergies: string[] | null;
   skin_conditions: string[] | null;
   preferred_routine_time: string | null;
@@ -220,7 +223,7 @@ const UserDashboard = () => {
     (async () => {
       const [profileRes, preordersRes, recsRes, creditsRes, likedRes, savedRes, commentsRes] = await Promise.all([
         supabase.from("profiles").select(
-          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, allergies, skin_conditions, preferred_routine_time",
+          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, weather_city_key, allergies, skin_conditions, preferred_routine_time",
         ).eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase
@@ -281,6 +284,24 @@ const UserDashboard = () => {
   }, [user, refreshAllowance]);
 
   const latestAnalysis = recommendations.find((r) => r.status === "delivered") ?? null;
+  const latestPayload = latestAnalysis?.result_payload as StarterAnalysisResult | null | undefined;
+  const weatherProfile = latestAnalysis
+    ? {
+        skinType: latestAnalysis.skin_type,
+        concerns: latestPayload?.profile
+          ? [latestPayload.primaryConcern, ...latestPayload.profile.secondaryConcerns]
+          : latestAnalysis.concerns,
+      }
+    : undefined;
+
+  // Saves only the weather city — never the free-text address city.
+  const saveWeatherCity = async (cityKey: string): Promise<boolean> => {
+    if (!user) return false;
+    const { error } = await supabase.from("profiles").update({ weather_city_key: cityKey }).eq("user_id", user.id);
+    if (error) return false;
+    setProfile((p) => (p ? { ...p, weather_city_key: cityKey } : p));
+    return true;
+  };
 
   const retryAnalysisPassBalance = async () => {
     if (!user) return;
@@ -503,6 +524,14 @@ const UserDashboard = () => {
                   </div>
 
                   <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 lg:col-span-1">
+                      <SkinWeatherCard
+                        weatherCityKey={profile?.weather_city_key ?? null}
+                        addressCity={profile?.city ?? null}
+                        skinProfile={weatherProfile}
+                        onSaveCity={saveWeatherCity}
+                      />
+                    </div>
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
                       <CardContent>
@@ -526,10 +555,6 @@ const UserDashboard = () => {
                       error={creditsError}
                       onRetry={() => void retryAnalysisPassBalance()}
                     />
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
-                    </Card>
                   </div>
 
                   <RoutineSnapshot onOpenRoutine={() => setActiveTab("routine")} />

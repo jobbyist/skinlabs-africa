@@ -3276,6 +3276,7 @@ export type Database = {
           skin_conditions: string[] | null
           starter_analyses_used: number
           last_free_analysis_at: string | null
+          weather_city_key: string | null
           subscription_started_at: string | null
           subscription_status: string | null
           trial_ends_at: string | null
@@ -3322,6 +3323,7 @@ export type Database = {
           skin_conditions?: string[] | null
           starter_analyses_used?: number
           last_free_analysis_at?: string | null
+          weather_city_key?: string | null
           subscription_started_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null
@@ -3368,6 +3370,7 @@ export type Database = {
           skin_conditions?: string[] | null
           starter_analyses_used?: number
           last_free_analysis_at?: string | null
+          weather_city_key?: string | null
           subscription_started_at?: string | null
           subscription_status?: string | null
           trial_ends_at?: string | null

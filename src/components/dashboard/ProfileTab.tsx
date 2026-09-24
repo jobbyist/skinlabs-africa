@@ -12,6 +12,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { toast } from "sonner";
+import { SA_CITIES } from "@/lib/skinWeather/cities";
+
+const NO_WEATHER_CITY = "none";
 
 const FITZPATRICK = ["I — Very Fair", "II — Fair", "III — Medium", "IV — Olive", "V — Brown", "VI — Deep"];
 
@@ -31,6 +34,7 @@ const ProfileTab = () => {
     allergies: "",
     skin_conditions: "",
     preferred_routine_time: "both",
+    weather_city_key: NO_WEATHER_CITY,
     notes: "",
     address_line1: "",
     address_line2: "",
@@ -55,6 +59,7 @@ const ProfileTab = () => {
           allergies: (data.allergies || []).join(", "),
           skin_conditions: (data.skin_conditions || []).join(", "),
           preferred_routine_time: data.preferred_routine_time || "both",
+          weather_city_key: data.weather_city_key || NO_WEATHER_CITY,
           notes: data.notes || "",
           address_line1: data.address_line1 || "",
           address_line2: data.address_line2 || "",
@@ -101,6 +106,7 @@ const ProfileTab = () => {
       allergies: form.allergies ? form.allergies.split(",").map((s) => s.trim()).filter(Boolean) : [],
       skin_conditions: form.skin_conditions ? form.skin_conditions.split(",").map((s) => s.trim()).filter(Boolean) : [],
       preferred_routine_time: form.preferred_routine_time || null,
+      weather_city_key: form.weather_city_key === NO_WEATHER_CITY ? null : form.weather_city_key,
       notes: form.notes || null,
       address_line1: form.address_line1 || null,
       address_line2: form.address_line2 || null,
@@ -178,6 +184,19 @@ const ProfileTab = () => {
                 <SelectItem value="both">AM & PM</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label htmlFor="weather-city">City for skin weather</Label>
+            <Select value={form.weather_city_key} onValueChange={(v) => setForm({ ...form, weather_city_key: v })}>
+              <SelectTrigger id="weather-city" aria-describedby="weather-city-hint"><SelectValue placeholder="Choose a city" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_WEATHER_CITY}>Not set (use my address city)</SelectItem>
+                {SA_CITIES.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <p id="weather-city-hint" className="mt-1 text-xs text-secondary-text">
+              Used for your daily UV and humidity tip. We only store the city, never your exact location.
+            </p>
           </div>
         </div>
         <div><Label>Allergies (comma-separated)</Label><Input value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} placeholder="fragrance, nut oils, retinol" /></div>

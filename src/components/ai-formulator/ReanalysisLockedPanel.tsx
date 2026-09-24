@@ -106,7 +106,10 @@ const ReanalysisLockedPanel = ({
 
         <Button
           asChild
-          className={cn("min-h-11 gap-2", inverted && "bg-background text-foreground hover:bg-background/90")}
+          className={cn(
+            "h-auto min-h-11 gap-2 whitespace-normal py-2 text-center",
+            inverted && "bg-background text-foreground hover:bg-background/90",
+          )}
         >
           <Link
             to="/pricing"
