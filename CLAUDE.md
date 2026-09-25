@@ -19,33 +19,42 @@ feature appear operational.
 
 ## Major systems
 
-- **Story ads, footer app badges, bottom-nav ring, Insider ad-light (2026-09-25)**
-  - **Sponsored story ads** (`src/lib/webStories/storyAds.ts`): Timeless Skin
-    Care and Faithful to Nature (both 5s videos; a Youthology image ad was
-    dropped at the user's request — image ads are still supported), shown only
-    inside `StoryViewer`, between rail stories (one after every
-    `STORY_AD_INTERVAL` = 2, never first/last/adjacent, rotating from a
-    per-session random advertiser; `interleaveStoryAds()` is unit tested). Each
-    has an "Advertisement" badge and an affiliate CTA (`rel="sponsored"`). Ad
-    media whose file is missing or can't be decoded is **skipped**, never shown
-    broken. Media goes in `public/stories-media/ads/` (`timeless-skin.mp4` +
-    `-poster.jpg`, `faithful-to-nature.mp4` + `-poster.jpg`) — encoded with
-    `scripts/compress-story-ads.sh` (720×1280 H.264 CRF 28, faststart, ≤60s):
-    the 1080×1920 originals went from 4.3 MB to ~180 KB total at SSIM ≈ 0.99.
-    Re-run the script on the originals if a creative changes. Events log to `web_story_events` under
-    the ad's key (`ad-timeless-skin` etc.). Headless Playwright Chromium can't
-    play H.264, so video ads always skip in local browser tests.
-  - **Ad-light browsing** is now a real, listed Glow Insider benefit: Insider/
-    VIP members (trial included) get no story ads (`WebStoriesBar`). Added to
-    live `pricing_plans.benefits` by `20260925090000_insider_ad_light_benefit.sql`
-    (**applied live**, verified). AdSense in-page units are still shown to
-    everyone — "ad-light", not "ad-free"; widen it there if that changes.
-  - Footer: monochrome "Coming soon" Google Play / App Store badges (not links;
-    black in light mode, white in dark), "Ingredients" moved to the bottom of
-    Platform. `FloatingBottomNav` has the `.gradient-border-anim` ring, a more
-    opaque fill, `text-foreground/80` idle / semibold active tabs, and tighter
-    mobile padding — it overflowed a 390px screen before.
-
+- **Onboarding overhaul 03 — `useConversionAction` behind every gate (2026-09-25)**
+  - `src/hooks/use-conversion-action.ts` (`feature?, source`) → `{ label, sublabel,
+    kind: 'signup'|'trial'|'subscribe'|null, entitled, unavailable, busy, run }`; rules in
+    the pure, tested `src/lib/conversionAction.ts`. Anonymous → "Create free account"
+    (records an `unlock` intent for the current path, opens AuthDialog in sign-up mode);
+    free Explorer with no trial used → `Start free trial — ${trialCtaLabel()}` (Insider,
+    no card, started IN PLACE by `useStartTrial()`); otherwise → "Subscribe" (opens
+    `MembershipCheckoutDialog`); entitled → null. **Only an Explorer is ever offered a
+    trial** — `start_free_trial()` overwrites `subscription_status`, so offering one to a
+    paying Glow Lite member would downgrade them. **A VIP-only feature shows a disabled
+    "Glow VIP — coming soon"**, never a CTA, while VIP is `is_purchasable = false`.
+    Every click fires `upgrade_click { source, kind, feature }` (source list in
+    `docs/conversion-events.md`).
+  - Plumbing: `src/lib/conversionDialogs.ts` (window-event bus: `openSignupDialog()`,
+    `openMembershipCheckout()`) + `<ConversionDialogs />` mounted once in `App.tsx`
+    (IntentResolver's subscribe path now uses it too). The TanStack SSR routes
+    (`reviews.$slug`, `spotlight.$slug`) live outside App.tsx, so they mount
+    `<SsrConversionShell />` (dialogs with full-page navigation, IntentResolver, toaster)
+    inside their MemoryRouter. `notifyMembershipUpdated()` (`use-membership.ts`) makes
+    every `useMembership()` instance refetch, which is how a gate unlocks right after a
+    trial starts. `useStartTrial()` (`src/hooks/use-start-trial.ts`) landed here ahead of
+    prompt 05, which should move Pricing/Hero/IntentResolver onto it.
+  - Refactored: `GatedOverlay` (now takes `feature` + `source`; `ctaHref`/`ctaLabel`/
+    `onSignIn` are gone), `FeatureGate`, `UpgradePrompt`, `PremiumUpsellSection`,
+    `ReanalysisLockedPanel`, `AnalysisCreditsCard`, `FormulatorTab`, `PodcastSection`,
+    `ProductReview` + `routes/reviews.$slug.tsx`, `NewsroomArticle` (new `ConversionCta`),
+    `SmartRoutines` (Analysis Pass card opens `AnalysisPassPurchaseModal` in place, VIP
+    card is "coming soon"), `BillingTab` (non-members; members keep "Change plan"), plus
+    the other GatedOverlay callers. "See all plans" is a secondary `SeeAllPlansLink`
+    carrying `?returnTo=` (set after mount to avoid a hydration mismatch). No gate uses
+    `/pricing` as its primary action. The remaining `/pricing` links are navigation or
+    plan-management links rather than gates: Footer, About, FAQ, Hero, AdBlockNotice,
+    Openhaus, Whitepaper, ComingSoon, the SKYNN AI intro chip, "Change plan", the
+    dashboard trial-ENDED banner (prompt 06) and the unused SSR `briefings.$slug` text.
+    The SSR review HTML still contains the body (verdict, ingredient breakdown) under
+    the blurred gate.
 - **SEO audit fixes: language markup + review structured data (2026-09-25)**
   - **Language markup**: `SEO.tsx` emitted `<meta name="language" content="English">`
     on every Helmet page (baked into prerendered HTML) — not an ISO code, flagged

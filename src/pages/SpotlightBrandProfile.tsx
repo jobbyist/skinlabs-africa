@@ -100,7 +100,8 @@ const SpotlightBrandProfile = () => {
             locked={locked}
             title="Monthly free profile limit reached"
             message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Upgrade to Glow Insider or Glow VIP for unlimited access.`}
-            ctaLabel="View membership plans"
+            feature="spotlight.full_profiles"
+            source="spotlight_limit"
           >
           <Link to="/spotlight" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> All of Spotlight

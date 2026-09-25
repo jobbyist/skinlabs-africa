@@ -1,17 +1,13 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { consumePendingIntent, type PendingIntent } from "@/lib/pendingIntent";
 import { WELCOME_PATH, isNewAccount, shouldRedirectNewAccount, trialDestination } from "@/lib/intentRouting";
 import { startFreeTrial } from "@/lib/trial";
-import type { MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
-
-// Checkout pulls in the PayPal button code — only load it when an intent needs it.
-const MembershipCheckoutDialog = lazyWithRetry(() => import("@/components/payments/MembershipCheckoutDialog"));
+import { openMembershipCheckout } from "@/lib/conversionDialogs";
 
 /** Once per browser session per account, so a reload never re-routes a new member. */
 const ROUTED_KEY_PREFIX = "skinlabs_intent_routed:";
@@ -49,7 +45,6 @@ const IntentResolver = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const lastUserId = useRef<string | null>(null);
-  const [checkout, setCheckout] = useState<{ plan: MembershipCheckoutPlan; variantKey: string } | null>(null);
 
   const here = `${location.pathname}${location.search}${location.hash}`;
 
@@ -85,7 +80,8 @@ const IntentResolver = () => {
         case "subscribe": {
           if (!intent.plan) return;
           go(intent.returnTo);
-          setCheckout({
+          // Rendered by <ConversionDialogs /> (mounted next to this in App.tsx).
+          openMembershipCheckout({
             plan: { planId: intent.plan, name: planLabel(intent.plan), interval: intent.interval ?? "monthly" },
             variantKey: intent.variantKey ?? "control",
           });
@@ -116,17 +112,7 @@ const IntentResolver = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
-  if (!checkout) return null;
-  return (
-    <Suspense fallback={null}>
-      <MembershipCheckoutDialog
-        open
-        onOpenChange={(open) => !open && setCheckout(null)}
-        plan={checkout.plan}
-        variantKey={checkout.variantKey}
-      />
-    </Suspense>
-  );
+  return null;
 };
 
 export default IntentResolver;

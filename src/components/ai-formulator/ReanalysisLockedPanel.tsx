@@ -1,11 +1,11 @@
 import { useEffect, useId, useRef } from "react";
-import { Link } from "react-router-dom";
-import { Lock, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, Lock, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
 import { cn } from "@/lib/utils";
 import { formatUnlockDate } from "@/lib/formulator/limits";
 import { trackConversionEvent } from "@/lib/analytics-events";
-import { useInsiderMonthlyPrice } from "@/hooks/use-formulator-allowance";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 
 interface ReanalysisLockedPanelProps {
   nextUnlockAt: Date | null;
@@ -34,7 +34,8 @@ const ReanalysisLockedPanel = ({
   className,
 }: ReanalysisLockedPanelProps) => {
   const reasonId = useId();
-  const price = useInsiderMonthlyPrice();
+  // Unlimited re-analysis is a Glow Insider perk (ai_analysis.live_weekly).
+  const action = useConversionAction("ai_analysis.live_weekly", `reanalysis_locked:${source}`);
   const firedRef = useRef(false);
 
   useEffect(() => {
@@ -104,22 +105,39 @@ const ReanalysisLockedPanel = ({
           </Button>
         )}
 
-        <Button
-          asChild
-          className={cn(
-            "h-auto min-h-11 gap-2 whitespace-normal py-2 text-center",
-            inverted && "bg-background text-foreground hover:bg-background/90",
-          )}
-        >
-          <Link
-            to="/pricing"
-            onClick={() => trackConversionEvent("upgrade_clicked_from_formulator", { source })}
+        {action.kind && (
+          <Button
+            type="button"
+            onClick={() => {
+              trackConversionEvent("upgrade_clicked_from_formulator", { source });
+              action.run();
+            }}
+            disabled={action.busy}
+            className={cn(
+              "h-auto min-h-11 gap-2 whitespace-normal py-2 text-center",
+              inverted && "bg-background text-foreground hover:bg-background/90",
+            )}
           >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            Unlimited re-analysis with Glow Insider{price !== null ? ` · R${price}/mo` : ""}
-          </Link>
-        </Button>
+            {action.busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            )}
+            {action.label}
+          </Button>
+        )}
       </div>
+      {action.kind && (
+        <p className={cn("text-xs", inverted ? "text-background/70" : "text-muted-foreground")}>
+          Unlimited re-analysis is included with Glow Insider. {action.sublabel}
+        </p>
+      )}
+      <SeeAllPlansLink
+        className={cn(
+          "text-sm underline underline-offset-4",
+          inverted ? "text-background/80 hover:text-background" : "text-muted-foreground hover:text-foreground",
+        )}
+      />
     </div>
   );
 };

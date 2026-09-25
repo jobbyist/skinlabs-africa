@@ -204,6 +204,8 @@ const EpisodePage = () => {
                 locked={!isMember}
                 title="Transcripts are member-only"
                 message="Glow Insider and Glow VIP members get full transcripts and searchable show notes for every episode."
+                feature="podcast.full_library"
+                source="podcast_transcript_gate"
               >
                 <div className="space-y-1">
                   {episode.transcript.map((line, index) => {

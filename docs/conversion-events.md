@@ -86,7 +86,7 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `upgrade_viewed` | Starter allowance used up | `feature: "ai_analysis.starter_allowance"`, `accountState: "free"` |
 | `reanalysis_blocked` | `ReanalysisLockedPanel.tsx` / `SkinProfileHero.tsx`: rolling window locks a re-run | `source` |
 | `upgrade_clicked_from_formulator` | `ReanalysisLockedPanel.tsx` / `AnalysisCreditsCard.tsx` upgrade CTA | `source` |
-| `upgrade_click` | `ai-formulator/PremiumUpsellSection.tsx` | `feature: "ai_analysis.routine_builder"`, `accountState`, `source: "starter_results"` |
+| `upgrade_click` | `useConversionAction().run()` (see "Gate CTAs" below). Here: `PremiumUpsellSection` (`starter_results_upsell`), `ReanalysisLockedPanel` (`reanalysis_locked:<source>`), `AnalysisCreditsCard` (`dashboard_credits`), `FormulatorTab` (`dashboard_formulator_tab`) | `source`, `kind`, `feature` |
 | `skynn_video_opened` / `skynn_video_completed` | `skynn/SkynnVideoModal.tsx` | `source: "ai_formulator_intro"` |
 | `starter_dashboard_arrived` | `UserDashboard.tsx`: a pending local starter result was saved on arrival at the dashboard | none |
 
@@ -114,7 +114,7 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `founding_member_viewed` | `Pricing.tsx`: an active founding offer loaded | `offerId` |
 | `plan_selected` | `Pricing.tsx` `beginCheckout()`: the subscribe (non-trial) checkout dialog opens for a signed-in user | `plan`, `interval` |
 | `membership_plan_selected` | `Pricing.tsx`: plan chosen, before auth or checkout | `plan`, `kind` (`subscribe` \| `trial`) |
-| `trial_activation_started` / `trial_activation_failed` | `Pricing.tsx`: no-card trial path | `plan` (+ `reason` on failure) |
+| `trial_activation_started` / `trial_activation_failed` | `Pricing.tsx`: no-card trial path; `useStartTrial()` (gate CTAs, which add `source`) | `plan` (+ `reason` on failure, `source` from `useStartTrial`) |
 | `trial_started` | `lib/trial.ts`: `start_free_trial` RPC succeeded | `plan` |
 | `trial_started` | `payments/MembershipCheckoutDialog.tsx`: PayPal subscription approved with a new trial | `plan` |
 | `checkout_started` | `lib/payments.ts`: redirect checkout for a plan / credit pack / founding member | `purchaseType`, `gateway`, plus `plan`+`interval` \| `packId` \| `offerId` |
@@ -124,7 +124,7 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `credit_pack_purchased` | `UserDashboard.tsx` poll, `AnalysisPassPurchaseModal.tsx` and `Pricing.tsx` inline PayPal approval | `packId` |
 | `founding_member_purchased` | `UserDashboard.tsx` poll, `Pricing.tsx` inline PayPal approval | `offerId` |
 | `upgrade_viewed` | `FeatureGate.tsx` (overlay), `UpgradePrompt.tsx` (inline) | `feature`, `accountState`, `style` |
-| `upgrade_click` | `UpgradePrompt.tsx` | `feature`, `accountState` |
+| `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership) |
 
 ### Engagement and other site-wide events
 
@@ -142,6 +142,33 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `marketplace_add_to_cart` | `CartContext.tsx` | `productId`, `quantity` |
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
+
+### Gate CTAs: `useConversionAction` (onboarding overhaul 03, 2026-09-25)
+
+Every paywall/gate CTA runs through `src/hooks/use-conversion-action.ts` and fires one
+`upgrade_click { source, kind, feature }` when clicked. `kind` tells you what the click did:
+`signup` (opened AuthDialog in sign-up mode, `unlock` intent recorded), `trial` (started an
+Insider trial in place, then `trial_activation_*` fire with the same `source`) or `subscribe`
+(opened `MembershipCheckoutDialog`). Sources:
+
+| Source | Where |
+|---|---|
+| `feature_gate:<feature>` / `consultations_directory` | `FeatureGate` (default / Consultations) |
+| `upgrade_prompt:<feature>` | `UpgradePrompt` default |
+| `product_review_gate`, `product_review_cta` | `ProductReview.tsx` overlay and promo card |
+| `product_review_gate_ssr`, `product_review_cta_ssr` | `routes/reviews.$slug.tsx` (SSR hard loads) |
+| `routine_builder_gate` | `RoutineBuilder.tsx` |
+| `shelf_showdown_limit` | `ComparisonArticle.tsx` |
+| `podcast_transcript_gate`, `podcast_section` | `EpisodePage.tsx`, homepage `PodcastSection.tsx` |
+| `spotlight_limit`, `spotlight_limit_ssr` | `SpotlightBrandProfile.tsx`, `routes/spotlight.$slug.tsx` |
+| `briefing_weekly_limit`, `briefing_signed_out` | `NewsroomArticle.tsx` |
+| `starter_results_upsell`, `reanalysis_locked:<source>`, `dashboard_credits`, `dashboard_formulator_tab` | SKYNN AI surfaces |
+| `smart_routines` | `/routines` primary CTA and Insider access card |
+| `billing_tab` | Dashboard Billing tab "Upgrade" (non-members) |
+
+Before this change `upgrade_click` carried `{ feature, accountState }` (UpgradePrompt) or
+`{ feature, accountState, source }` (PremiumUpsellSection), so rows before 2026-09-25 have
+no `kind`.
 
 ## Declared but never fired
 
