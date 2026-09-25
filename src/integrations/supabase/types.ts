@@ -3721,6 +3721,7 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string | null
+          username_generated: boolean
           weather_city_key: string | null
         }
         Insert: {
@@ -3769,6 +3770,7 @@ export type Database = {
           updated_at?: string
           user_id: string
           username?: string | null
+          username_generated?: boolean
           weather_city_key?: string | null
         }
         Update: {
@@ -3817,6 +3819,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+          username_generated?: boolean
           weather_city_key?: string | null
         }
         Relationships: []
@@ -5205,6 +5208,7 @@ export type Database = {
         Returns: boolean
       }
       formulator_tier: { Args: { _user_id: string }; Returns: string }
+      generate_placeholder_username: { Args: never; Returns: string }
       get_advanced_assessment_access: {
         Args: never
         Returns: {

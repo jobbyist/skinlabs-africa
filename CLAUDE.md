@@ -19,6 +19,31 @@ feature appear operational.
 
 ## Major systems
 
+- **Onboarding overhaul 04 — lighter sign-up (2026-09-25)**
+  - AuthDialog sign-up is **email + password only** (Google stays first, marketing
+    consent stays unchecked). `useAuth().signUp(email, password, redirectTo?,
+    marketingConsent?)` no longer takes a username. The tab opens via the pure
+    `initialAuthTab()` (`src/lib/authDialogCopy.ts`): an explicit `mode`/`defaultTab`
+    wins (e.g. "Already have an account? Sign in"), otherwise a pending intent opens
+    sign-up. Title/description come from `authDialogCopy()`: trial → "Create your
+    account to start {plan} free", save_analysis → "Save your SKYNN AI results",
+    unlock → "Create a free account to keep reading" (log-in tab keeps its title).
+  - Migration `20260925090000_generated_usernames.sql` (**applied live**):
+    `handle_new_user()` gives accounts with no metadata username a `glow_` + 6-char
+    placeholder (`generate_placeholder_username()`, retried until unique, and the
+    insert retries on a concurrent `unique_violation`) with the new
+    `profiles.username_generated = true`. A BEFORE UPDATE OF username trigger clears
+    the flag when the member picks a name; clients have no grant on the flag itself.
+    Existing usernames untouched (flag defaults false; metadata usernames still
+    win). Verified with rolled-back probes, including as the `authenticated` role.
+  - The live comment forms are the review discussion in `ProductReview.tsx` + SSR
+    `reviews.$slug.tsx` (`ArticleComments.tsx` is read-only seed content). They use
+    `useCommentHandle()` + `CommentHandleDialog`: no handle yet (placeholder or null,
+    `needsCommentHandle()` in `src/lib/commentHandle.ts`) → ask once, check with
+    `is_username_available()`, save to `profiles.username`, then post. `glow_`
+    handles are reserved for placeholders. Comments now show the handle instead of
+    `full_name`/the email prefix (the old fallback leaked part of the email).
+    Signed-out "Post comment" records an `unlock` intent and opens sign-up.
 - **Onboarding overhaul 03 — `useConversionAction` behind every gate (2026-09-25)**
   - `src/hooks/use-conversion-action.ts` (`feature?, source`) → `{ label, sublabel,
     kind: 'signup'|'trial'|'subscribe'|null, entitled, unavailable, busy, run }`; rules in

@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound, Eye, EyeOff, ArrowLeft, Gift, CreditCard } from "lucide-react";
 import skinlabsLogoBlack from "@/assets/skinlabs-logo-black.svg";
@@ -18,10 +17,16 @@ import { getPendingIntent, isSafeReturnTo, withPendingIntentParams, type Pending
 import { getPlan } from "@/data/plans";
 import { cn } from "@/lib/utils";
 import { trialNoun } from "@/lib/promo";
+import { authDialogCopy, initialAuthTab } from "@/lib/authDialogCopy";
 
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Tab to open on. Omit it to let a pending intent decide: someone sent here
+   * from a gate or a "Create account" CTA lands on sign-up, anyone else on
+   * log in (see initialAuthTab()).
+   */
   defaultTab?: "signin" | "signup";
   /** Controlled tab, for callers (e.g. Header) that need to force a specific tab open. */
   mode?: "signin" | "signup";
@@ -74,7 +79,7 @@ const PlanContextBanner = ({ intent }: { intent: PendingIntent }) => {
 const AuthDialog = ({
   open,
   onOpenChange,
-  defaultTab = "signin",
+  defaultTab,
   mode,
   onModeChange,
   onAuthenticated,
@@ -82,12 +87,11 @@ const AuthDialog = ({
 }: AuthDialogProps) => {
   const { signIn, signUp, signInWithGoogle, signInWithMagicLink, sendPasswordReset } = useAuth();
   const { resolvedTheme } = useTheme();
-  const [view, setView] = useState<View>(defaultTab);
+  const [view, setView] = useState<View>(() => initialAuthTab(mode, defaultTab, open ? getPendingIntent() : null));
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -99,13 +103,20 @@ const AuthDialog = ({
 
   useEffect(() => {
     if (!open) return;
-    setView(mode ?? defaultTab);
+    const initialTab = initialAuthTab(mode, defaultTab, pendingIntent);
+    setView(initialTab);
     setFormError(null);
     setMagicLinkMode(false);
     setMagicLinkSent(false);
-    trackConversionEvent("auth_started", { defaultTab: mode ?? defaultTab, hasPendingPlan: Boolean(pendingIntent) });
+    trackConversionEvent("auth_started", {
+      defaultTab: initialTab,
+      hasPendingPlan: Boolean(pendingIntent),
+      intent: pendingIntent?.action ?? "none",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const copy = authDialogCopy(pendingIntent, tab);
 
   const logo = resolvedTheme === "dark" ? skinlabsLogoWhite : skinlabsLogoBlack;
 
@@ -168,28 +179,16 @@ const AuthDialog = ({
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    const handle = username.trim();
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(handle)) {
-      setFormError("Username must be 3-20 characters: letters, numbers or underscores.");
-      return;
-    }
     if (password.length < 8) {
       setFormError("Password must be at least 8 characters.");
       return;
     }
     trackConversionEvent("signup_started", { method: "password" });
     setIsLoading(true);
-    const { data: available, error: checkError } = await supabase.rpc("is_username_available", {
-      p_username: handle,
-    });
-    if (checkError || available === false) {
-      setIsLoading(false);
-      const message = checkError ? "Could not check that username. Try again." : "That username is already taken.";
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    const { error } = await signUp(email, password, handle, oauthRedirect(), marketingConsent);
+    // No username at sign-up: the profile trigger assigns a glow_xxxxxx
+    // placeholder, and the comment form asks for a real handle the first
+    // time it's needed (CommentHandlePrompt).
+    const { error } = await signUp(email, password, oauthRedirect(), marketingConsent);
     setIsLoading(false);
     if (error) {
       setFormError(error.message);
@@ -235,16 +234,12 @@ const AuthDialog = ({
             <img src={logo} alt="SkinLabs®" className="h-8 w-auto" />
             <DialogHeader className="space-y-1.5">
               <DialogTitle className="font-heading text-xl">
-                {view === "forgot" || view === "forgot-sent"
-                  ? "Reset your password"
-                  : tab === "signup"
-                    ? "Create your account"
-                    : "Log in to SkinLabs®"}
+                {view === "forgot" || view === "forgot-sent" ? "Reset your password" : copy.title}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
                 {view === "forgot" || view === "forgot-sent"
                   ? "We'll email you a secure link to set a new password."
-                  : "Save reviews, unlock full podcast episodes and build your AI routine — grounded in SA skin and climate."}
+                  : copy.description}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -475,24 +470,6 @@ const AuthDialog = ({
 
                 <TabsContent value="signup" className="mt-0">
                   <form onSubmit={handleSignUp} className="space-y-4" noValidate>
-                    <div className="space-y-2">
-                      <Label htmlFor="username-signup">Username</Label>
-                      <Input
-                        id="username-signup"
-                        type="text"
-                        placeholder="glowseeker"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        minLength={3}
-                        maxLength={20}
-                        pattern="[a-zA-Z0-9_]{3,20}"
-                        autoComplete="username"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your unique public handle on comments. Letters, numbers and underscores only.
-                      </p>
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="email-signup">Email</Label>
                       <Input
