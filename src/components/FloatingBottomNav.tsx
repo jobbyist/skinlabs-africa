@@ -17,7 +17,14 @@ const tabs = [
 // Shared by every tab: immediate press feedback (nav should feel faster than
 // content) and a visible keyboard focus ring, which the pill previously lacked.
 const NAV_ITEM =
-  "group relative flex flex-col items-center gap-0.5 rounded-full px-3.5 py-2 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
+  "group relative flex flex-col items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-2 min-[380px]:px-2.5 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
+
+// Contrast: muted-foreground at 10px over a translucent pill read too faint,
+// especially in dark mode. Idle tabs use foreground at 80% (≈6:1 on the pill
+// in both themes); the active tab is full foreground + semibold, so "active"
+// never relies on colour alone (it also gets the gradient tint and icon scale).
+const TAB_IDLE = "text-foreground/80 hover:text-foreground";
+const TAB_ACTIVE = "font-semibold text-foreground";
 
 /**
  * Routes that render their own primary bottom bar (Openhaus marketplace's
@@ -66,8 +73,12 @@ const FloatingBottomNav = () => {
       >
         <div
           className={cn(
-            "flex items-center gap-0.5 rounded-full border border-white/20 bg-background/60 px-2 py-2 shadow-xl backdrop-blur-xl backdrop-saturate-150",
-            "supports-[backdrop-filter]:bg-background/40 dark:border-white/10",
+            // Animated brand-gradient ring (.gradient-border-anim draws it as a
+            // 2px ::before, so no CSS border here). The glass fill is kept
+            // fairly opaque so icon labels stay legible over any page content
+            // scrolling underneath, in both themes.
+            "gradient-border-anim flex max-w-full items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150",
+            "supports-[backdrop-filter]:bg-background/85",
           )}
         >
           {tabs.map((tab) => {
@@ -80,7 +91,7 @@ const FloatingBottomNav = () => {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   NAV_ITEM,
-                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  active ? TAB_ACTIVE : TAB_IDLE,
                 )}
               >
                 {active && <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />}
@@ -97,7 +108,7 @@ const FloatingBottomNav = () => {
               aria-current={accountActive ? "page" : undefined}
               className={cn(
                 NAV_ITEM,
-                accountActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                accountActive ? TAB_ACTIVE : TAB_IDLE,
               )}
             >
               {accountActive && (
@@ -111,7 +122,7 @@ const FloatingBottomNav = () => {
               type="button"
               onClick={() => setAuthOpen(true)}
               aria-label="Sign in"
-              className={cn(NAV_ITEM, "text-muted-foreground hover:text-foreground")}
+              className={cn(NAV_ITEM, TAB_IDLE)}
             >
               <LogIn className="relative h-5 w-5" />
               <span className="relative leading-none">Sign In</span>
