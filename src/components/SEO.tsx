@@ -77,7 +77,11 @@ const SEO = ({
       <meta name="twitter:image" content={absoluteOgImage} />
       <meta name="twitter:image:alt" content={fullTitle} />
 
-      <meta name="language" content="English" />
+      {/* ISO 639-1 code only -- "English" is not a valid language code and was
+          flagged by SEO audits. <html lang> is also pinned here so Helmet can't
+          leave a page without it. */}
+      <html lang="en" />
+      <meta name="language" content="en" />
       <meta name="author" content={author} />
       <meta name="geo.region" content="ZA" />
       <meta name="geo.placename" content="South Africa" />

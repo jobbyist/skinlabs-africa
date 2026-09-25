@@ -55,6 +55,40 @@ feature appear operational.
     dashboard trial-ENDED banner (prompt 06) and the unused SSR `briefings.$slug` text.
     The SSR review HTML still contains the body (verdict, ingredient breakdown) under
     the blurred gate.
+- **SEO audit fixes: language markup + review structured data (2026-09-25)**
+  - **Language markup**: `SEO.tsx` emitted `<meta name="language" content="English">`
+    on every Helmet page (baked into prerendered HTML) — not an ISO code, flagged
+    by the SEO audit. Now `content="en"`, and `SEO.tsx` also pins `<html lang="en">`
+    via Helmet. `index.html`, `src/routes/__root.tsx`, the AMP story template and
+    email layouts already used `lang="en"`. Left as-is on purpose (valid BCP 47,
+    not HTML language markup): JSON-LD `inLanguage: "en-ZA"` in the briefing
+    pipelines, `public/podcast.xml` `<language>en-za</language>` (RSS format),
+    and `toLocaleDateString("en-ZA")` formatting.
+  - **GSC "Review has multiple aggregate ratings" (in "review" and in
+    "aggregateRating")** — confirmed live on `/reviews/:slug` before the fix:
+    `productReviewJsonLd()` emitted `aggregateRating` as an ARRAY of two: an
+    "editorial" aggregate built from our own single review (`reviewCount: 1`,
+    self-serving) plus a 1–5 "member" rating from `getMemberRatingStats()`
+    (`src/lib/memberRatings.ts`), which is **hash-generated** (363–890 fake
+    members), i.e. fabricated social proof in structured data. Also,
+    `SitewideSEO.tsx` injected a SECOND Product node (with its own aggregate) on
+    SPA-rendered review pages, and `ProductReview.tsx` could fall back to the
+    seeded `getSeededAverageRating()` and counted comments instead of ratings.
+  - **Rule now (unit-tested in `src/lib/__tests__/productReviewJsonLd.test.ts`)**:
+    a review page emits exactly ONE Product node with ONE editorial `review`
+    (0–10) and AT MOST ONE `aggregateRating` (1–5, `ratingCount`), present only
+    when real `review_ratings` rows exist. The SSR route now loads that aggregate
+    server-side (`communityRating` in `fetchReview()`); `ProductReview.tsx` uses
+    only real rows; `SitewideSEO` no longer emits review JSON-LD. Never pass
+    `getMemberRatingStats()`/seeded values into structured data. Verified with
+    a local node-server SSR build against live data: rated review → one
+    `aggregateRating`, unrated → none. GSC needs a "Validate fix" + recrawl.
+  - **Open, not changed (UI, needs a product decision)**: `ReviewsGrid.tsx`
+    still DISPLAYS the hash-generated `getMemberRatingStats()` average and member
+    count on `/reviews` cards, and pages show seeded like/rating fallbacks
+    (`getSeededLikeCount`/`getSeededAverageRating`). These conflict with the
+    "never fabricate ratings" principle and should be replaced with real
+    `review_ratings` data or removed.
 - **Onboarding overhaul 02 — unified pending intent (2026-09-24)**
   - `src/lib/pendingIntent.ts` replaces the plan-only `pendingPlan.ts` (now a
     deprecated re-export shim): `{ action: 'trial'|'subscribe'|'save_analysis'|

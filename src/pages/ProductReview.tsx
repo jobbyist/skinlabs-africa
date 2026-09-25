@@ -72,6 +72,8 @@ const ProductReview = () => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
+  // Real `review_ratings` rows only (avgRating above may be a seeded display value).
+  const [realRatingStats, setRealRatingStats] = useState<{ average: number; count: number } | null>(null);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
@@ -131,6 +133,8 @@ const ProductReview = () => {
       const rows = ratings ?? [];
       setLikeCount(rows.length > 0 ? rows.filter((r) => r.liked).length : getSeededLikeCount(review.id));
       setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : getSeededAverageRating(review.id));
+      const rated = rows.map((r) => r.rating).filter((n): n is number => typeof n === "number" && n >= 1 && n <= 5);
+      setRealRatingStats(rated.length > 0 ? { average: rated.reduce((a, b) => a + b, 0) / rated.length, count: rated.length } : null);
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
       setRating(mine?.rating ?? 0);
       setLiked(Boolean(mine?.liked));
@@ -238,11 +242,12 @@ const ProductReview = () => {
         // when the pipeline has populated it -- falls back to the short verdict for the
         // static catalogue and for any AI review not yet backfilled.
         reviewBody: review.review_body ?? review.verdict,
-        // Only include community rating if we have real member ratings (not seeded)
-        ...(avgRating && comments.length > 0
+        // Single aggregateRating from REAL review_ratings rows only -- never the
+        // seeded display average, and counted by ratings (not comments).
+        ...(realRatingStats
           ? {
-              communityRating: avgRating,
-              communityReviewCount: comments.length,
+              communityRating: realRatingStats.average,
+              communityReviewCount: realRatingStats.count,
             }
           : {}),
       }),

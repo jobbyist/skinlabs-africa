@@ -4,7 +4,7 @@ import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
 import { pageSeo, SITE_URL, productReviewTitle, productReviewDescription, brandProfileTitle, articleTitle, podcastEpisodeTitle, BRAND } from "@/lib/seo-config";
 import { getEntryBySlug, buildFaqJsonLd } from "@/data/faq";
-import { productReviews, overallScore } from "@/data/reviews";
+import { productReviews } from "@/data/reviews";
 import { podcastEpisodes } from "@/data/podcast";
 import { getSpotlightBrand } from "@/data/spotlight";
 import { comparisonArticles } from "@/data/comparisons";
@@ -61,13 +61,11 @@ const SitewideSEO = () => {
       const review = productReviews.find((r) => r.id === reviewSlug);
       if (review) {
         const image = getImage(review.id, review.category);
-        const score = overallScore(review);
-        return { title: productReviewTitle(review.product_name, review.brand), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url, jsonLd: {
-          "@context": "https://schema.org", "@type": "Product", name: review.product_name,
-          ...(image?.url ? { image: [absolute(image.url)] } : {}), brand: { "@type": "Brand", name: review.brand }, category: review.category,
-          aggregateRating: { "@type": "AggregateRating", ratingValue: score, bestRating: 10, reviewCount: 1 },
-          review: { "@type": "Review", author: { "@type": "Organization", name: BRAND }, reviewRating: { "@type": "Rating", ratingValue: score, bestRating: 10 }, reviewBody: review.verdict },
-        } };
+        // No JSON-LD here: ProductReview.tsx / the SSR route emit the page's one
+        // Product+Review node. A second Product node from this component (with its
+        // own editorial aggregateRating) caused GSC's "Review has multiple
+        // aggregate ratings" error.
+        return { title: productReviewTitle(review.product_name, review.brand), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url };
       }
     }
     if (comparisonSlug) {
