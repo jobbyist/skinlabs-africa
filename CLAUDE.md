@@ -19,6 +19,42 @@ feature appear operational.
 
 ## Major systems
 
+- **Onboarding overhaul 03 — `useConversionAction` behind every gate (2026-09-25)**
+  - `src/hooks/use-conversion-action.ts` (`feature?, source`) → `{ label, sublabel,
+    kind: 'signup'|'trial'|'subscribe'|null, entitled, unavailable, busy, run }`; rules in
+    the pure, tested `src/lib/conversionAction.ts`. Anonymous → "Create free account"
+    (records an `unlock` intent for the current path, opens AuthDialog in sign-up mode);
+    free Explorer with no trial used → `Start free trial — ${trialCtaLabel()}` (Insider,
+    no card, started IN PLACE by `useStartTrial()`); otherwise → "Subscribe" (opens
+    `MembershipCheckoutDialog`); entitled → null. **Only an Explorer is ever offered a
+    trial** — `start_free_trial()` overwrites `subscription_status`, so offering one to a
+    paying Glow Lite member would downgrade them. **A VIP-only feature shows a disabled
+    "Glow VIP — coming soon"**, never a CTA, while VIP is `is_purchasable = false`.
+    Every click fires `upgrade_click { source, kind, feature }` (source list in
+    `docs/conversion-events.md`).
+  - Plumbing: `src/lib/conversionDialogs.ts` (window-event bus: `openSignupDialog()`,
+    `openMembershipCheckout()`) + `<ConversionDialogs />` mounted once in `App.tsx`
+    (IntentResolver's subscribe path now uses it too). The TanStack SSR routes
+    (`reviews.$slug`, `spotlight.$slug`) live outside App.tsx, so they mount
+    `<SsrConversionShell />` (dialogs with full-page navigation, IntentResolver, toaster)
+    inside their MemoryRouter. `notifyMembershipUpdated()` (`use-membership.ts`) makes
+    every `useMembership()` instance refetch, which is how a gate unlocks right after a
+    trial starts. `useStartTrial()` (`src/hooks/use-start-trial.ts`) landed here ahead of
+    prompt 05, which should move Pricing/Hero/IntentResolver onto it.
+  - Refactored: `GatedOverlay` (now takes `feature` + `source`; `ctaHref`/`ctaLabel`/
+    `onSignIn` are gone), `FeatureGate`, `UpgradePrompt`, `PremiumUpsellSection`,
+    `ReanalysisLockedPanel`, `AnalysisCreditsCard`, `FormulatorTab`, `PodcastSection`,
+    `ProductReview` + `routes/reviews.$slug.tsx`, `NewsroomArticle` (new `ConversionCta`),
+    `SmartRoutines` (Analysis Pass card opens `AnalysisPassPurchaseModal` in place, VIP
+    card is "coming soon"), `BillingTab` (non-members; members keep "Change plan"), plus
+    the other GatedOverlay callers. "See all plans" is a secondary `SeeAllPlansLink`
+    carrying `?returnTo=` (set after mount to avoid a hydration mismatch). No gate uses
+    `/pricing` as its primary action. The remaining `/pricing` links are navigation or
+    plan-management links rather than gates: Footer, About, FAQ, Hero, AdBlockNotice,
+    Openhaus, Whitepaper, ComingSoon, the SKYNN AI intro chip, "Change plan", the
+    dashboard trial-ENDED banner (prompt 06) and the unused SSR `briefings.$slug` text.
+    The SSR review HTML still contains the body (verdict, ingredient breakdown) under
+    the blurred gate.
 - **SEO audit fixes: language markup + review structured data (2026-09-25)**
   - **Language markup**: `SEO.tsx` emitted `<meta name="language" content="English">`
     on every Helmet page (baked into prerendered HTML) — not an ISO code, flagged

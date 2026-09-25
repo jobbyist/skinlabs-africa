@@ -11,6 +11,7 @@ import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -276,9 +277,7 @@ const NewsroomArticle = () => {
                       ? "You've reached your weekly briefing limit. Check back in a few days for fresh intelligence."
                       : `Free accounts get ${DAILY_SKINNY_FREE_WEEKLY} full briefings every 7 days. Upgrade for unlimited daily briefings, or check back next week.`}
                   </p>
-                  <Button asChild className="mt-5">
-                    <Link to="/pricing">See membership plans</Link>
-                  </Button>
+                  {!isMember && <ConversionCta source="briefing_weekly_limit" className="mt-5" />}
                 </div>
               ) : (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
@@ -286,9 +285,7 @@ const NewsroomArticle = () => {
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     Free accounts get {DAILY_SKINNY_FREE_WEEKLY} full briefings every week, no card required. Members get unlimited daily briefings.
                   </p>
-                  <Button asChild className="mt-5">
-                    <Link to="/pricing">See membership plans</Link>
-                  </Button>
+                  <ConversionCta source="briefing_signed_out" className="mt-5" />
                 </div>
               )}
             </div>

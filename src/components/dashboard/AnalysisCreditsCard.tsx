@@ -1,12 +1,13 @@
-import { Link } from "react-router-dom";
-import { Infinity as InfinityIcon, Sparkles } from "lucide-react";
+import { Infinity as InfinityIcon, Loader2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { formatUnlockDate, FORMULATOR_LIMITS } from "@/lib/formulator/limits";
 import { trackConversionEvent } from "@/lib/analytics-events";
-import { useInsiderMonthlyPrice, type FormulatorAllowanceStatus } from "@/hooks/use-formulator-allowance";
+import type { FormulatorAllowanceStatus } from "@/hooks/use-formulator-allowance";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
 
 interface AnalysisCreditsCardProps {
   allowance: FormulatorAllowanceStatus | null;
@@ -23,8 +24,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * never computed client-side from stale state.
  */
 const AnalysisCreditsCard = ({ allowance, loading, error, onRetry }: AnalysisCreditsCardProps) => {
-  const price = useInsiderMonthlyPrice();
-
   return (
     <Card className="h-full">
       <CardHeader className="pb-3">
@@ -59,14 +58,16 @@ const AnalysisCreditsCard = ({ allowance, loading, error, onRetry }: AnalysisCre
             )}
           </div>
         ) : (
-          <FreeAllowance allowance={allowance} price={price} />
+          <FreeAllowance allowance={allowance} />
         )}
       </CardContent>
     </Card>
   );
 };
 
-const FreeAllowance = ({ allowance, price }: { allowance: FormulatorAllowanceStatus; price: number | null }) => {
+const FreeAllowance = ({ allowance }: { allowance: FormulatorAllowanceStatus }) => {
+  // Unlimited re-analysis is a Glow Insider perk (ai_analysis.live_weekly).
+  const action = useConversionAction("ai_analysis.live_weekly", "dashboard_credits");
   const total = FORMULATOR_LIMITS[allowance.tier]?.freeAnalyses || 1;
   const remaining = allowance.freeRemaining ?? 0;
   // Bar shows how far through the current window you are (full = free analysis available).
@@ -110,13 +111,24 @@ const FreeAllowance = ({ allowance, price }: { allowance: FormulatorAllowanceSta
           </div>
         )}
       </dl>
-      <Link
-        to="/pricing"
-        onClick={() => trackConversionEvent("upgrade_clicked_from_formulator", { source: "dashboard_credits" })}
-        className="inline-flex min-h-11 items-center text-sm font-medium text-foreground underline decoration-brand-gold decoration-2 underline-offset-4 hover:decoration-foreground"
-      >
-        Unlimited re-analysis with Glow Insider{price !== null ? ` · R${price}/mo` : ""}
-      </Link>
+      {action.kind && (
+        <div className="space-y-1">
+          <p className="text-xs text-secondary-text">Unlimited re-analysis is included with Glow Insider.</p>
+          <Button
+            size="sm"
+            className="min-h-11 gap-2"
+            disabled={action.busy}
+            onClick={() => {
+              trackConversionEvent("upgrade_clicked_from_formulator", { source: "dashboard_credits" });
+              action.run();
+            }}
+          >
+            {action.busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
+            {action.label}
+          </Button>
+        </div>
+      )}
+      <SeeAllPlansLink />
     </div>
   );
 };

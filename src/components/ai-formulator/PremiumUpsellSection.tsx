@@ -1,8 +1,8 @@
-import { Link } from "react-router-dom";
-import { CalendarCheck2, Layers, ShieldCheck, Sparkles } from "lucide-react";
+import { CalendarCheck2, Layers, Loader2, ShieldCheck, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import { trackConversionEvent } from "@/lib/analytics-events";
 
 interface PremiumUpsellSectionProps {
   hasGroundedMatches: boolean;
@@ -18,7 +18,11 @@ interface PremiumUpsellSectionProps {
  * has the capability.
  */
 const PremiumUpsellSection = ({ hasGroundedMatches }: PremiumUpsellSectionProps) => {
-  const { can, loading, accountState } = useEntitlements();
+  const { can, loading } = useEntitlements();
+  // The CTA targets what a one-tap Glow Insider trial actually unlocks (the
+  // named product matches); the VIP-only perks below are revisited in
+  // onboarding overhaul prompt 10.
+  const action = useConversionAction("ai_analysis.live_weekly", "starter_results_upsell");
   if (loading || can("ai_analysis.routine_builder")) return null;
 
   const perks = [
@@ -63,16 +67,16 @@ const PremiumUpsellSection = ({ hasGroundedMatches }: PremiumUpsellSectionProps)
           </div>
         ))}
       </div>
-      <Button
-        asChild
-        className="gap-2"
-        onClick={() => trackConversionEvent("upgrade_click", { feature: "ai_analysis.routine_builder", accountState, source: "starter_results" })}
-      >
-        <Link to="/pricing">
-          <Sparkles className="h-4 w-4" />
-          See membership plans
-        </Link>
-      </Button>
+      <div className="flex flex-col items-start gap-2">
+        {action.kind && (
+          <Button className="gap-2" onClick={action.run} disabled={action.busy}>
+            {action.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {action.label}
+          </Button>
+        )}
+        {action.kind && action.sublabel && <p className="text-xs text-muted-foreground">{action.sublabel}</p>}
+        <SeeAllPlansLink />
+      </div>
     </div>
   );
 };

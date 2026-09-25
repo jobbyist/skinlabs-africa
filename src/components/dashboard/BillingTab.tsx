@@ -25,6 +25,8 @@ import { cancelPaypalSubscriptions, formatBillingDate, formatUsd, formatZar, get
 import { supabase } from "@/integrations/supabase/client";
 import { downloadInvoicePdf } from "@/lib/generateInvoicePdf";
 import { toast } from "sonner";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 
 interface Transaction {
   id: string;
@@ -151,6 +153,7 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
   };
 
   const isSubscribed = tier !== "explorer";
+  const upgradeAction = useConversionAction(undefined, "billing_tab");
   const nextChargeAt = subscription ? (subscription.next_billing_at ?? subscription.first_billing_at) : null;
   // A trialling member without auto-renew can add PayPal now; billing starts when the trial ends.
   const canSetUpAutoRenew = isTrialing && !subscription && paypalAvailable && !isFoundingMember && Boolean(trialEndsAt);
@@ -193,9 +196,19 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Continue after trial
               </Button>
             )}
-            <Button asChild size="sm" variant={canSetUpAutoRenew ? "outline" : "default"}>
-              <Link to="/pricing">{isSubscribed ? "Change plan" : "Upgrade"}</Link>
-            </Button>
+            {isSubscribed ? (
+              <Button asChild size="sm" variant={canSetUpAutoRenew ? "outline" : "default"}>
+                <Link to="/pricing">Change plan</Link>
+              </Button>
+            ) : upgradeAction.kind ? (
+              <Button size="sm" className="gap-1.5" onClick={upgradeAction.run} disabled={upgradeAction.busy}>
+                {upgradeAction.busy && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                {upgradeAction.label}
+              </Button>
+            ) : null}
+            {!isSubscribed && (
+              <SeeAllPlansLink className="self-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground" />
+            )}
             {isSubscribed && (
               <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => setCancelOpen(true)}>
                 <XCircle className="h-3.5 w-3.5" /> Cancel membership

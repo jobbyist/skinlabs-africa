@@ -23,6 +23,7 @@ import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
+import ConversionDialogs from "./components/ConversionDialogs";
 import CookieConsent from "./components/CookieConsent";
 import AdBlockNotice from "./components/AdBlockNotice";
 import SitewideSEO from "./components/SitewideSEO";
@@ -115,6 +116,8 @@ const AppContent = () => {
       <FloatingBottomNav />
       {/* Resumes a pending sign-in intent (src/lib/pendingIntent.ts) after auth. */}
       <IntentResolver />
+      {/* Sign-up + membership checkout dialogs opened by conversion CTAs (useConversionAction). */}
+      <ConversionDialogs />
       <CookieConsent />
       <AdBlockNotice />
       <AppErrorBoundary resetKey={pathname}>
