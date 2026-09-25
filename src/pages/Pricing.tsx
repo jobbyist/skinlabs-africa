@@ -225,13 +225,13 @@ const Pricing = () => {
         <title>SkinLabs® Membership | Personalised Skincare Intelligence</title>
         <meta
           name="description"
-          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines and exclusive member benefits. Glow Explorer free; Glow Lite from R39/month; Insider from R99/month."
+          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines and exclusive member benefits. Start free with Glow Explorer, or compare Glow Lite, Glow Insider and Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
         <meta property="og:title" content="SkinLabs® Membership | Personalised Skincare Intelligence" />
         <meta
           property="og:description"
-          content="Personalised skincare intelligence, AI-powered routines and exclusive member benefits. Glow Explorer free; Glow Lite from R39/month; Insider from R99/month."
+          content="Personalised skincare intelligence, AI-powered routines and exclusive member benefits. Start free with Glow Explorer, or compare Glow Lite, Glow Insider and Glow VIP."
         />
         <meta property="og:url" content="https://skinlabs.co.za/pricing" />
         <meta property="og:type" content="website" />

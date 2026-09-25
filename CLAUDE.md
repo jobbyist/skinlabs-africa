@@ -19,6 +19,45 @@ feature appear operational.
 
 ## Major systems
 
+- **Onboarding overhaul 01 — P0 fixes and trial-email hygiene (2026-09-24)**
+  - Header menu footer "Sign Up / Log In" was a `<Link to="/">`; it now opens
+    AuthDialog in sign-up mode and is hidden when signed in. Signed-out
+    `/dashboard` opens AuthDialog in place (new `returnTo` prop, same-origin
+    paths only) instead of redirecting home.
+  - Dashboard trial banner reads the member's live `payment_subscriptions` row:
+    card-backed → "Auto-renew is on — first charge R… (US$… via PayPal) on …";
+    no card → the old copy. Its CTA is "Keep my membership" → `?tab=billing`
+    (prompt 06 replaces it with a dialog). The trial-ENDED banner still says
+    "Upgrade now".
+  - Deleted the never-imported `SubscriptionPaywallModal.tsx`. `plans.ts`
+    fallback now matches live `pricing_plans` (Lite R39, Insider R79, VIP R199);
+    /pricing meta/OG and `seo-config` carry no prices; `/routines`
+    (`SmartRoutines.tsx`) was also showing stale R99/R299 and now reads prices
+    from `usePricingConfig()` (hidden until loaded).
+  - **Trial emails** (`_shared/email/templates/membership.ts`): `trial_started`,
+    `trial_expiring`, `trial_ended` take `plan` + `has_payment_method`, use
+    `planLabel()`, and only say "no surprise charges" / "you won't be charged" /
+    "no charge was made" when `has_payment_method` is explicitly false (unknown
+    → neutral). Missing `plan` (old queued jobs) → "Glow Insider". Email
+    `formatDate()` now formats in SAST — it was UTC, so the 1 Nov promo trial
+    end rendered as "31 October". The `trial_expiring` guard accepts any trial
+    plan and re-reads the payment state at send time. Tests pin all of this.
+  - Migration `20260924130000_trial_emails_plan_and_payment_method.sql`
+    (**applied live**): `notify_subscription_change()` and
+    `enqueue_trial_expiring_events()` now cover every trial plan and pass
+    `plan` + `has_payment_method` (new internal helper
+    `has_live_payment_subscription()`). Before this a Glow Lite trial start
+    sent `membership_activated` ("membership is now active") and Glow Lite
+    trials got no expiring/ended email. Verified with a rolled-back probe.
+  - **`email-processor` deploy (v35) — read before redeploying it.** Its entry
+    file imports the committed source from raw GitHub pinned to commit
+    `90e071f` (this PR). The previous deploy was pinned to unmerged commit
+    `0a05714` (SKYNN AI v2), whose three templates — `advanced_report_ready`,
+    `advanced_report_not_released`, `admin_skynn_review_needed` — are live
+    (their SQL is applied) but are **not on `main`**. They are copied verbatim
+    into the v35 entry file so they keep working. Any future email-processor
+    deploy must keep them until SKYNN v2 merges, and a SKYNN v2 deploy must
+    include this PR's template/guard changes.
 - **Onboarding overhaul 00 — conversion baseline (2026-09-24)** — measure before
   changing behaviour; no UI change. New admin-only view
   `public.conversion_funnel_daily` (migration
@@ -234,7 +273,8 @@ feature appear operational.
     longer offers a direct paid checkout for plans, so an account that has
     already used its trial can't subscribe from there (`BillingTab.tsx` still
     says "resubscribe any time from the pricing page", and
-    `SubscriptionPaywallModal.tsx` still has its own subscribe button). The
+    `SubscriptionPaywallModal.tsx` had its own subscribe button — that modal
+    was never imported and was deleted on 2026-09-24). The
     `pendingPlan` "subscribe" intent path in `Pricing.tsx` was left intact.
   - **All trial wording goes through `src/lib/promo.ts`** (`trialCtaLabel()`,
     `trialNoun()`, `trialLength()`, `withPromoTrialCopy()` for DB/static plan
@@ -243,7 +283,7 @@ feature appear operational.
     `PROMO_END_AT` passes. Don't hardcode "7-day"/"7 days" trial copy anywhere
     new; use these helpers. Covers Hero, Pricing, About, FAQ (`faq.ts`), Terms,
     Refund Policy, ProductReview + its SSR twin, AuthDialog, TrialWelcomeModal,
-    SubscriptionPaywallModal, FormulatorTab and /shop.
+    FormulatorTab and /shop (SubscriptionPaywallModal was deleted 2026-09-24).
   - **Home hero stats ("3.7K+ Community Members", "4.75/5 Member Rating") are
     confirmed authentic by the user** — not fabricated social proof.
   - **SKYNN AI claims (user-confirmed)**: the Advanced AI Dermatology Report is
@@ -983,7 +1023,7 @@ feature appear operational.
       New `src/components/PaymentGatewayDialog.tsx` (PayFast vs PayPal
       picker) is the one place gateway choice happens — wired into
       `Pricing.tsx` (plan subscribe, credit packs, founding-member offer),
-      `SubscriptionPaywallModal.tsx`, `AnalysisPassPurchaseModal.tsx` and
+      `AnalysisPassPurchaseModal.tsx` and
       `BillingTab.tsx`'s Analysis Pass purchases. Gateway choice isn't
       persisted through an unauthenticated visitor's sign-up redirect
       (`src/lib/pendingPlan.ts` only ever stored plan/interval/variant) —
