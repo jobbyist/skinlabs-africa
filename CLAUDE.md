@@ -19,6 +19,33 @@ feature appear operational.
 
 ## Major systems
 
+- **Story ads, footer app badges, bottom-nav ring, Insider ad-light (2026-09-25)**
+  - **Sponsored story ads** (`src/lib/webStories/storyAds.ts`): Timeless Skin
+    Care (video), Faithful to Nature (video) and Youthology (image), shown only
+    inside `StoryViewer`, between rail stories (one after every
+    `STORY_AD_INTERVAL` = 2, never first/last/adjacent, rotating from a
+    per-session random advertiser; `interleaveStoryAds()` is unit tested). Each
+    has an "Advertisement" badge and an affiliate CTA (`rel="sponsored"`). Ad
+    media whose file is missing or can't be decoded is **skipped**, never shown
+    broken. Media goes in `public/stories-media/ads/` (`timeless-skin.mp4` +
+    `-poster.jpg`, `faithful-to-nature.mp4` + `-poster.jpg`, `youthology.webp`)
+    — encode with `scripts/compress-story-ads.sh` (720×1280 H.264 CRF 28,
+    faststart, ≤60s; 1080×1920 WebP). **The source assets were not received in
+    the session that built this, so no media is committed yet — the ads skip
+    themselves until the files land.** Events log to `web_story_events` under
+    the ad's key (`ad-timeless-skin` etc.). Headless Playwright Chromium can't
+    play H.264, so video ads always skip in local browser tests.
+  - **Ad-light browsing** is now a real, listed Glow Insider benefit: Insider/
+    VIP members (trial included) get no story ads (`WebStoriesBar`). Added to
+    live `pricing_plans.benefits` by `20260925090000_insider_ad_light_benefit.sql`
+    (**applied live**, verified). AdSense in-page units are still shown to
+    everyone — "ad-light", not "ad-free"; widen it there if that changes.
+  - Footer: monochrome "Coming soon" Google Play / App Store badges (not links;
+    black in light mode, white in dark), "Ingredients" moved to the bottom of
+    Platform. `FloatingBottomNav` has the `.gradient-border-anim` ring, a more
+    opaque fill, `text-foreground/80` idle / semibold active tabs, and tighter
+    mobile padding — it overflowed a 390px screen before.
+
 - **SEO audit fixes: language markup + review structured data (2026-09-25)**
   - **Language markup**: `SEO.tsx` emitted `<meta name="language" content="English">`
     on every Helmet page (baked into prerendered HTML) — not an ISO code, flagged

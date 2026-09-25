@@ -1,5 +1,7 @@
-import { Suspense, useCallback, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useWebStories } from "@/hooks/use-web-stories";
+import { useMembership } from "@/hooks/use-membership";
+import { STORY_ADS, interleaveStoryAds, storyFromAd } from "@/lib/webStories/storyAds";
 import { getViewedStoryIds, markStoryViewed } from "@/lib/webStoriesEngagement";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { cn } from "@/lib/utils";
@@ -11,6 +13,7 @@ const StoryViewer = lazyWithRetry(
 
 const SKELETON_COUNT = 6;
 const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
+const AD_STORIES = STORY_ADS.map(storyFromAd);
 
 const truncateLabel = (title: string, max = 15) =>
   title.length > max ? `${title.slice(0, max - 1).trimEnd()}…` : title;
@@ -37,6 +40,15 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
     [],
   );
   const handleClose = useCallback(() => setOpenIndex(null), []);
+  // Ad-light browsing (a Glow Insider/VIP benefit on /pricing): members get no
+  // sponsored story ads between stories. Everyone else sees one after every
+  // STORY_AD_INTERVAL stories, starting from a per-session random advertiser.
+  const { isMember, loading: membershipLoading } = useMembership();
+  const [firstAd] = useState(() => Math.floor(Math.random() * AD_STORIES.length));
+  const playlist = useMemo(
+    () => interleaveStoryAds(stories ?? [], membershipLoading || isMember ? [] : AD_STORIES, undefined, firstAd),
+    [stories, isMember, membershipLoading, firstAd],
+  );
 
   if (!isLoading && (!stories || stories.length === 0)) return null;
 
@@ -125,8 +137,8 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
           }
         >
           <StoryViewer
-            stories={stories}
-            startIndex={openIndex}
+            stories={playlist.stories}
+            startIndex={playlist.playlistIndex[openIndex] ?? 0}
             onClose={handleClose}
             onViewed={handleViewed}
           />
