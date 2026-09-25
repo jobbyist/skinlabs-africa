@@ -19,6 +19,31 @@ feature appear operational.
 
 ## Major systems
 
+- **Onboarding overhaul 05 — one-tap, no-card trial (2026-09-25)**
+  - `useStartTrial()` (`src/hooks/use-start-trial.ts`) is the ONLY no-card trial
+    path: `startFreeTrial()` + loading/error state + `trial_activation_*` (with
+    `source`) + `notifyMembershipUpdated()`, then `navigate(TRIAL_STARTED_PATH)`
+    (router, never `window.location`). `TRIAL_STARTED_PATH` =
+    `${WELCOME_PATH}?trial=started` in `src/lib/intentRouting.ts`, so it is
+    `/dashboard?trial=started` today and becomes `/welcome?trial=started` when
+    prompt 07 flips `WELCOME_PATH` (the `/welcome` route doesn't exist yet, so it
+    wasn't hardcoded). `destination: null` stays on the page (gates, IntentResolver).
+    A used trial (`isTrialAlreadyUsedError()`) shows a friendly toast with a
+    Subscribe action (`openMembershipCheckout`) instead of an error.
+  - `/pricing`: the trial CTA is one tap for a signed-in free account, or records a
+    `trial` intent + opens AuthDialog for a visitor (IntentResolver starts it after
+    sign-up, so anon → trial is 2 interactions). The interval toggle doesn't apply
+    to trials. Trial-used accounts see Subscribe plus a short explanation. The
+    Explorer CTA uses `navigate`. **Supersedes the 2026-09-24 note** that the trial
+    CTA opens `MembershipCheckoutDialog`: that dialog is now subscribe-only (trial
+    mode and `onStartTrialWithoutCard` removed; its title still follows the
+    server's quote). Adding PayPal/a card to continue after a trial stays in the
+    Billing tab ("Continue after trial").
+  - Home `Hero.tsx`: the trial button runs the same hook for Glow Insider (anon →
+    trial intent + sign-up dialog). Only a genuinely free account is offered it;
+    Glow Lite (paying or trialling) and used trials get "See membership plans".
+    Glow Lite stays selectable on /pricing. The button stays rendered (disabled)
+    while auth/membership load, so the prerendered hero doesn't shift.
 - **Onboarding overhaul 03 — `useConversionAction` behind every gate (2026-09-25)**
   - `src/hooks/use-conversion-action.ts` (`feature?, source`) → `{ label, sublabel,
     kind: 'signup'|'trial'|'subscribe'|null, entitled, unavailable, busy, run }`; rules in

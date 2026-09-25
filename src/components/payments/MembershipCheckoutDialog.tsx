@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Gift, Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import PayPalButtons, { type PaypalApproval } from "@/components/payments/PayPalButtons";
 import PaypalQuote from "@/components/payments/PaypalQuote";
 import {
@@ -22,6 +21,7 @@ import {
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { notifyMembershipUpdated } from "@/hooks/use-membership";
 import { toast } from "sonner";
+import { TRIAL_STARTED_PATH } from "@/lib/intentRouting";
 
 export interface MembershipCheckoutPlan {
   planId: string;
@@ -34,15 +34,15 @@ interface MembershipCheckoutDialogProps {
   onOpenChange: (open: boolean) => void;
   plan: MembershipCheckoutPlan | null;
   variantKey?: string;
-  /** When given, a secondary "start without a payment method" path is offered
-   * (the original no-card start_free_trial flow). */
-  onStartTrialWithoutCard?: () => Promise<void>;
   /** Where to go after approval. Defaults to react-router navigation; the SSR
    * routes (which only have a MemoryRouter) pass a full-page navigation. */
   onNavigate?: (to: string) => void;
 }
 
 /**
+ * Subscribe-only: the no-card free trial is a separate one-tap path
+ * (useStartTrial), so this dialog has no trial mode.
+ *
  * Recurring membership checkout via a PayPal subscription — PayPal balance or
  * any debit/credit card. The server decides when the first charge happens:
  *  - a new trial: at the end of the free trial (7 days, or 1 November 2026
@@ -56,7 +56,6 @@ const MembershipCheckoutDialog = ({
   onOpenChange,
   plan,
   variantKey = "control",
-  onStartTrialWithoutCard,
   onNavigate,
 }: MembershipCheckoutDialogProps) => {
   const routerNavigate = useNavigate();
@@ -64,7 +63,6 @@ const MembershipCheckoutDialog = ({
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [busy, setBusy] = useState(false);
-  const [startingNoCard, setStartingNoCard] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -91,7 +89,7 @@ const MembershipCheckoutDialog = ({
     if (result.startKind === "new_trial") {
       trackConversionEvent("trial_started", { plan: plan.planId });
       toast.success("Your free trial is live — PayPal will only charge you when it ends.");
-      navigate("/dashboard?trial=started");
+      navigate(TRIAL_STARTED_PATH);
     } else if (result.startKind === "existing_trial") {
       toast.success("Auto-renew is on — your membership continues when your trial ends.");
       onOpenChange(false);
@@ -101,15 +99,10 @@ const MembershipCheckoutDialog = ({
     }
   };
 
-  const handleNoCard = async () => {
-    if (!onStartTrialWithoutCard) return;
-    setStartingNoCard(true);
-    await onStartTrialWithoutCard();
-    setStartingNoCard(false);
-  };
-
-  const locked = busy || startingNoCard;
-  const title = onStartTrialWithoutCard || startKind === "new_trial" ? `Start your ${plan.name} free trial` : `Subscribe to ${plan.name}`;
+  const locked = busy;
+  // The server may still quote a first charge after a free period (e.g. an
+  // account that never trialled); the title follows the quote, not a mode.
+  const title = startKind === "new_trial" ? `Start your ${plan.name} free trial` : `Subscribe to ${plan.name}`;
 
   return (
     <Dialog open={open} onOpenChange={(next) => !locked && onOpenChange(next)}>
@@ -156,23 +149,9 @@ const MembershipCheckoutDialog = ({
             )}
           </div>
         ) : (
-          !onStartTrialWithoutCard && (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              Online subscriptions are temporarily unavailable. Please try again soon or contact support@skinlabs.co.za.
-            </p>
-          )
-        )}
-
-        {onStartTrialWithoutCard && configured !== null && (
-          <div className="space-y-2 border-t border-border pt-4 text-center">
-            <Button variant={configured ? "ghost" : "default"} className="w-full gap-2" disabled={locked} onClick={() => void handleNoCard()}>
-              {startingNoCard ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Gift className="h-4 w-4" aria-hidden="true" />}
-              {configured ? "Start without a payment method" : "Start my free trial"}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              No card needed — your trial simply ends unless you add a payment method later from your dashboard.
-            </p>
-          </div>
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            Online subscriptions are temporarily unavailable. Please try again soon or contact support@skinlabs.co.za.
+          </p>
         )}
       </DialogContent>
     </Dialog>

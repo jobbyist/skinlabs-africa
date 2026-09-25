@@ -23,7 +23,7 @@ import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import MembershipCheckoutDialog, { type MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
 import type { PaypalOrderPurchase } from "@/lib/paypal";
 import type { PaypalApproval } from "@/components/payments/PayPalButtons";
-import { startFreeTrial } from "@/lib/trial";
+import { useStartTrial } from "@/hooks/use-start-trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -41,7 +41,8 @@ const Pricing = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
   const [gatewayPaypalPurchase, setGatewayPaypalPurchase] = useState<PaypalOrderPurchase | undefined>(undefined);
-  const [membershipCheckout, setMembershipCheckout] = useState<{ plan: MembershipCheckoutPlan; trial: boolean } | null>(null);
+  const [membershipCheckout, setMembershipCheckout] = useState<MembershipCheckoutPlan | null>(null);
+  const { start: startTrial } = useStartTrial();
   const [searchParams] = useSearchParams();
   // Where to resume after sign-up: a page that sent the visitor here (e.g. a
   // locked review's "View membership plans" CTA) passes ?returnTo=; it must be
@@ -109,27 +110,17 @@ const Pricing = () => {
   // free trial for a trial-eligible account, today for one that has used it.
   const beginCheckout = (plan: PaymentPlan, planInterval: BillingInterval = interval) => {
     trackConversionEvent("plan_selected", { plan, interval: planInterval });
-    setMembershipCheckout({ plan: { planId: plan, name: planName(plan), interval: planInterval }, trial: false });
+    setMembershipCheckout({ planId: plan, name: planName(plan), interval: planInterval });
   };
 
-  // The trial CTA offers PayPal auto-renew (billing starts when the trial
-  // ends) with the original no-card trial as a secondary option.
-  const openTrialCheckout = (plan: "insider" | "glow_lite", planInterval: BillingInterval = interval) => {
-    setMembershipCheckout({ plan: { planId: plan, name: planName(plan), interval: planInterval }, trial: true });
-  };
-
+  // One tap, no card: the trial starts immediately and lands on the welcome
+  // flow (useStartTrial). Adding PayPal/a card to continue after the trial is
+  // offered afterwards from the dashboard's Billing tab. The billing-interval
+  // toggle doesn't apply — a trial has no interval.
   const beginTrial = async (plan: "insider" | "glow_lite") => {
     setProcessingPlan(`trial-${plan}`);
-    trackConversionEvent("trial_activation_started", { plan });
-    const { error } = await startFreeTrial(plan, variantKey);
+    await startTrial({ plan, source: "pricing_card" });
     setProcessingPlan(null);
-    if (error) {
-      trackConversionEvent("trial_activation_failed", { plan, reason: error.message });
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Your free trial is live — no card needed.");
-    window.location.href = "/dashboard?trial=started";
   };
 
   // Resuming a plan chosen before sign-in/sign-up (including after a Google
@@ -140,7 +131,7 @@ const Pricing = () => {
     trackConversionEvent("membership_plan_selected", { plan: planId, kind: "subscribe" });
     if (planId === "explorer") {
       if (!user) setAuthOpen(true);
-      else window.location.href = "/dashboard";
+      else navigate("/dashboard");
       return;
     }
     const plan = planId as PaymentPlan;
@@ -157,11 +148,12 @@ const Pricing = () => {
     const plan = planId;
     trackConversionEvent("membership_plan_selected", { plan, kind: "trial" });
     if (!user) {
-      setPendingIntent({ action: "trial", plan, interval, variantKey, returnTo: intentReturnTo });
+      // No interval: the toggle doesn't affect trials.
+      setPendingIntent({ action: "trial", plan, variantKey, returnTo: intentReturnTo });
       setAuthOpen(true);
       return;
     }
-    openTrialCheckout(plan);
+    void beginTrial(plan);
   };
 
   const handleBuyCreditPack = async (packId: string) => {
@@ -394,7 +386,13 @@ const Pricing = () => {
                         </div>
                         {trialAvailable && (
                           <p className="mt-3 text-center text-xs text-muted-foreground">
-                            No card required — or add PayPal or a card to continue automatically after your trial.
+                            No card required. One tap and you're in.
+                          </p>
+                        )}
+                        {isPaidPlan && trialUsed && !isCurrentPlan && !disabled && (
+                          <p className="mt-3 text-center text-xs text-muted-foreground">
+                            You've already had your free trial on this account — subscribe to pick up where you left
+                            off. Cancel any time.
                           </p>
                         )}
                       </motion.div>
@@ -479,9 +477,8 @@ const Pricing = () => {
         </main>
         <Footer />
       </div>
-      {/* The pending plan (if any) is picked up by the effect above once `user` updates —
-          covers password sign-in/up (immediate) and a full-page Google OAuth redirect back
-          to this same page alike, so no onAuthenticated callback is needed here. */}
+      {/* A pending trial/subscribe intent is resumed app-wide by <IntentResolver /> once the
+          visitor is signed in — in-page or after a Google/email redirect back. */}
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
       <PaymentGatewayDialog
         open={!!gatewayAction}
@@ -513,13 +510,8 @@ const Pricing = () => {
       <MembershipCheckoutDialog
         open={!!membershipCheckout}
         onOpenChange={(open) => !open && setMembershipCheckout(null)}
-        plan={membershipCheckout?.plan ?? null}
+        plan={membershipCheckout}
         variantKey={variantKey}
-        onStartTrialWithoutCard={
-          membershipCheckout?.trial
-            ? () => beginTrial(membershipCheckout.plan.planId as "insider" | "glow_lite")
-            : undefined
-        }
       />
     </>
   );
