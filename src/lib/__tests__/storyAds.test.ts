@@ -42,7 +42,7 @@ describe("story ads", () => {
       if (isStoryAd(s)) expect(isStoryAd(stories[i + 1])).toBe(false);
     });
     expect(stories.map((s) => s.key)).toEqual([
-      "s0", "s1", "ad-timeless-skin", "s2", "s3", "ad-faithful-to-nature", "s4", "s5", "ad-youthology", "s6",
+      "s0", "s1", "ad-timeless-skin", "s2", "s3", "ad-faithful-to-nature", "s4", "s5", "ad-timeless-skin", "s6",
     ]);
   });
 
@@ -52,8 +52,8 @@ describe("story ads", () => {
   });
 
   test("rotates from the chosen first ad and wraps", () => {
-    const { stories } = interleaveStoryAds(rail, ads, 2, 2);
-    expect(stories.filter(isStoryAd).map((s) => s.key)).toEqual(["ad-youthology", "ad-timeless-skin", "ad-faithful-to-nature"]);
+    const { stories } = interleaveStoryAds(rail, ads, 2, 1);
+    expect(stories.filter(isStoryAd).map((s) => s.key)).toEqual(["ad-faithful-to-nature", "ad-timeless-skin", "ad-faithful-to-nature"]);
   });
 
   test("no ads (members / ad-light) leaves the rail untouched", () => {

@@ -2,15 +2,15 @@
 # Encodes the sponsored story-ad media (src/lib/webStories/storyAds.ts) for the
 # web: 9:16 portrait, 720x1280 H.264 (CRF 28, faststart so playback starts
 # before the whole file downloads), 64 kbps mono AAC, plus a first-frame JPEG
-# poster; the image ad becomes a 1080x1920 WebP. Needs ffmpeg.
+# poster. Needs ffmpeg.
 #
-#   scripts/compress-story-ads.sh <timeless-video> <faithful-to-nature-video> <youthology-image>
+#   scripts/compress-story-ads.sh <timeless-video> <faithful-to-nature-video>
 #
 # Writes to public/stories-media/ads/ with the exact names storyAds.ts expects.
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-  echo "usage: $0 <timeless-video> <faithful-to-nature-video> <youthology-image>" >&2
+if [ "$#" -ne 2 ]; then
+  echo "usage: $0 <timeless-video> <faithful-to-nature-video>" >&2
   exit 1
 fi
 command -v ffmpeg >/dev/null || { echo "ffmpeg is required" >&2; exit 1; }
@@ -20,7 +20,6 @@ mkdir -p "$OUT"
 
 # Scale to cover 720x1280, then centre-crop, so any source aspect fills the story frame.
 FILL_720='scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,setsar=1'
-FILL_1080='scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1'
 
 encode_video() {
   local src="$1" name="$2"
@@ -32,6 +31,5 @@ encode_video() {
 
 encode_video "$1" timeless-skin
 encode_video "$2" faithful-to-nature
-ffmpeg -y -loglevel error -i "$3" -vf "$FILL_1080" -c:v libwebp -quality 80 "$OUT/youthology.webp"
 
 ls -lh "$OUT"

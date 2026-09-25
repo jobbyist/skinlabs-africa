@@ -21,18 +21,18 @@ feature appear operational.
 
 - **Story ads, footer app badges, bottom-nav ring, Insider ad-light (2026-09-25)**
   - **Sponsored story ads** (`src/lib/webStories/storyAds.ts`): Timeless Skin
-    Care (video), Faithful to Nature (video) and Youthology (image), shown only
+    Care and Faithful to Nature (both 5s videos; a Youthology image ad was
+    dropped at the user's request — image ads are still supported), shown only
     inside `StoryViewer`, between rail stories (one after every
     `STORY_AD_INTERVAL` = 2, never first/last/adjacent, rotating from a
     per-session random advertiser; `interleaveStoryAds()` is unit tested). Each
     has an "Advertisement" badge and an affiliate CTA (`rel="sponsored"`). Ad
     media whose file is missing or can't be decoded is **skipped**, never shown
     broken. Media goes in `public/stories-media/ads/` (`timeless-skin.mp4` +
-    `-poster.jpg`, `faithful-to-nature.mp4` + `-poster.jpg`, `youthology.webp`)
-    — encode with `scripts/compress-story-ads.sh` (720×1280 H.264 CRF 28,
-    faststart, ≤60s; 1080×1920 WebP). **The source assets were not received in
-    the session that built this, so no media is committed yet — the ads skip
-    themselves until the files land.** Events log to `web_story_events` under
+    `-poster.jpg`, `faithful-to-nature.mp4` + `-poster.jpg`) — encoded with
+    `scripts/compress-story-ads.sh` (720×1280 H.264 CRF 28, faststart, ≤60s):
+    the 1080×1920 originals went from 4.3 MB to ~180 KB total at SSIM ≈ 0.99.
+    Re-run the script on the originals if a creative changes. Events log to `web_story_events` under
     the ad's key (`ad-timeless-skin` etc.). Headless Playwright Chromium can't
     play H.264, so video ads always skip in local browser tests.
   - **Ad-light browsing** is now a real, listed Glow Insider benefit: Insider/

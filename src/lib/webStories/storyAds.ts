@@ -52,16 +52,6 @@ export const STORY_ADS: StoryAd[] = [
     ctaLabel: "Shop Faithful to Nature",
     ctaUrl: "https://c.trackmytarget.com/?a=vpmli3&i=r344bf&click_id=WEBSTORYADS",
   },
-  {
-    key: "ad-youthology",
-    advertiser: "Youthology",
-    mediaType: "image",
-    mediaUrl: `${ADS_DIR}/youthology.webp`,
-    posterUrl: null,
-    mediaAlt: "Youthology advertisement",
-    ctaLabel: "Shop Youthology",
-    ctaUrl: "https://c.trackmytarget.com/?a=vpmli3&i=r344bf&click_id=WEBSTORYADS",
-  },
 ];
 
 export const storyFromAd = (ad: StoryAd): Story => ({
