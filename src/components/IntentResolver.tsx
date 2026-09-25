@@ -1,12 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { consumePendingIntent, type PendingIntent } from "@/lib/pendingIntent";
 import { WELCOME_PATH, isNewAccount, shouldRedirectNewAccount, trialDestination } from "@/lib/intentRouting";
-import { startFreeTrial } from "@/lib/trial";
+import { useStartTrial } from "@/hooks/use-start-trial";
 import { openMembershipCheckout } from "@/lib/conversionDialogs";
 
 /** Once per browser session per account, so a reload never re-routes a new member. */
@@ -45,6 +44,7 @@ const IntentResolver = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const lastUserId = useRef<string | null>(null);
+  const { start: startTrial } = useStartTrial();
 
   const here = `${location.pathname}${location.search}${location.hash}`;
 
@@ -66,15 +66,11 @@ const IntentResolver = () => {
             go(intent.returnTo);
             return;
           }
-          // TODO(onboarding overhaul 05): replace with useStartTrial().
-          const { error } = await startFreeTrial(intent.plan, intent.variantKey);
-          if (error) {
-            toast.error(error.message);
-            go(intent.returnTo);
-            return;
-          }
-          toast.success(`Your ${planLabel(intent.plan)} free trial is live.`);
-          go(trialDestination(intent.returnTo));
+          // Same one-tap path as Pricing/Hero (errors, events, membership
+          // refresh). A trial started from content lands back on it,
+          // unlocked; one from /pricing or home goes to the welcome flow.
+          const started = await startTrial({ plan: intent.plan, source: "intent_resume", destination: null });
+          go(started ? trialDestination(intent.returnTo) : intent.returnTo);
           return;
         }
         case "subscribe": {

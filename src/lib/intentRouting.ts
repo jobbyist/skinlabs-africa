@@ -12,6 +12,9 @@ export const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
  */
 export const WELCOME_PATH = "/dashboard";
 
+/** Where a newly started trial lands (useStartTrial). Follows WELCOME_PATH, so it becomes /welcome?trial=started when prompt 07 adds that route. */
+export const TRIAL_STARTED_PATH = `${WELCOME_PATH}?trial=started`;
+
 export const isNewAccount = (
   createdAt: string | null | undefined,
   onboardingCompletedAt: string | null | undefined,
@@ -41,5 +44,5 @@ export const shouldRedirectNewAccount = (pathname: string): boolean =>
  */
 export const trialDestination = (returnTo: string): string => {
   const path = returnTo.split(/[?#]/)[0];
-  return path === "/" || path === "/pricing" ? "/dashboard?trial=started" : returnTo;
+  return path === "/" || path === "/pricing" ? TRIAL_STARTED_PATH : returnTo;
 };

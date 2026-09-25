@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, Atom, Users, Newspaper, Star } from "lucide-react";
+import { ArrowRight, Atom, Loader2, Users, Newspaper, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import heroVideoAsset from "@/assets/hero-video.mp4";
 // Reused as the <video poster> below: because the background clip is chosen
@@ -9,6 +10,11 @@ import heroVideoAsset from "@/assets/hero-video.mp4";
 // target instead of an empty background while the chosen clip streams in.
 import heroPosterImage from "@/assets/hero-skincare.jpg";
 import { useMembership } from "@/hooks/use-membership";
+import { useAuth } from "@/hooks/use-auth";
+import { useStartTrial } from "@/hooks/use-start-trial";
+import { openSignupDialog } from "@/lib/conversionDialogs";
+import { setPendingIntent } from "@/lib/pendingIntent";
+import { trackConversionEvent } from "@/lib/analytics-events";
 import { remoteHeroVideos, pickRandom, type HeroVideo } from "@/data/heroVideos";
 import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
@@ -42,7 +48,25 @@ const Hero = () => {
   const [activeVideo] = useState<HeroVideo>(() => pickRandom(ALL_HERO_VIDEOS));
   const [videoSrc, setVideoSrc] = useState(activeVideo.url);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { isMember, trialUsed, loading: membershipLoading } = useMembership();
+  const { user, loading: authLoading } = useAuth();
+  const { tier, isMember, isTrialing, trialUsed, loading: membershipLoading } = useMembership();
+  const { start: startTrial, loading: trialStarting } = useStartTrial();
+  // One tap for a free account; a signed-out visitor records a trial intent and
+  // signs up (IntentResolver starts the trial as soon as they're in). Only a
+  // genuinely free account is offered it: start_free_trial() overwrites the
+  // plan, so a paying Glow Lite member gets the plans link instead.
+  const statusLoading = authLoading || (Boolean(user) && membershipLoading);
+  const canTrial = !user || (tier === "explorer" && !isTrialing && !trialUsed);
+
+  const handleTrialClick = () => {
+    trackConversionEvent("membership_plan_selected", { plan: "insider", kind: "trial", source: "home_hero" });
+    if (!user) {
+      setPendingIntent({ action: "trial", plan: "insider", returnTo: "/" });
+      openSignupDialog();
+      return;
+    }
+    void startTrial({ plan: "insider", source: "home_hero" });
+  };
 
   // If the randomly picked remote clip fails to load (network hiccup, CDN issue),
   // fall back to the bundled local video rather than leaving a blank hero.
@@ -123,18 +147,28 @@ const Hero = () => {
                 </a>
               </Button>
               {/* Already a paying member — offering a free trial they can't use is redundant/misleading. */}
-              {!(!membershipLoading && isMember) && (
-              <Button variant="outline" size="lg" className="gap-2 text-base px-8 gradient-border-anim" asChild>
-                  <a href="/pricing">
-                    {!membershipLoading && trialUsed
-                      ? "See membership plans"
-                      : isPromoActive()
-                        ? `Try Insider free until ${PROMO_END_DATE_LABEL}`
-                        : `Try Insider free for ${STANDARD_TRIAL_DAYS} days`}
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </Button>
-              )}
+              {!(!statusLoading && isMember) &&
+                (statusLoading || canTrial ? (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="gap-2 text-base px-8 gradient-border-anim"
+                    onClick={handleTrialClick}
+                    disabled={statusLoading || trialStarting}
+                  >
+                    {isPromoActive()
+                      ? `Try Insider free until ${PROMO_END_DATE_LABEL}`
+                      : `Try Insider free for ${STANDARD_TRIAL_DAYS} days`}
+                    {trialStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="lg" className="gap-2 text-base px-8 gradient-border-anim" asChild>
+                    <Link to="/pricing">
+                      See membership plans
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                ))}
             </div>
 
             <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">

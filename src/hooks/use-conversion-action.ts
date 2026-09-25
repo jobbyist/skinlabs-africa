@@ -72,7 +72,8 @@ export const useConversionAction = (feature: FeatureKey | undefined, source: str
       setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
       openSignupDialog();
     } else if (decision.kind === "trial") {
-      void start({ plan: "insider", source });
+      // Gates stay put: the membership refresh unlocks the content in place.
+      void start({ plan: "insider", source, destination: null });
     } else {
       openMembershipCheckout({
         plan: { planId: "insider", name: TIER_LABELS.insider, interval: "monthly" },

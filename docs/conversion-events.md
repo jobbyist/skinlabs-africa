@@ -114,7 +114,7 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `founding_member_viewed` | `Pricing.tsx`: an active founding offer loaded | `offerId` |
 | `plan_selected` | `Pricing.tsx` `beginCheckout()`: the subscribe (non-trial) checkout dialog opens for a signed-in user | `plan`, `interval` |
 | `membership_plan_selected` | `Pricing.tsx`: plan chosen, before auth or checkout | `plan`, `kind` (`subscribe` \| `trial`) |
-| `trial_activation_started` / `trial_activation_failed` | `Pricing.tsx`: no-card trial path; `useStartTrial()` (gate CTAs, which add `source`) | `plan` (+ `reason` on failure, `source` from `useStartTrial`) |
+| `trial_activation_started` / `trial_activation_failed` | `useStartTrial()`, the only no-card trial path (from 2026-09-25): `/pricing` cards (`source: "pricing_card"`), the home Hero (`"home_hero"`), a trial resumed after sign-up (`"intent_resume"`) and gate CTAs (their gate source) | `plan`, `source` (+ `reason` on failure) |
 | `trial_started` | `lib/trial.ts`: `start_free_trial` RPC succeeded | `plan` |
 | `trial_started` | `payments/MembershipCheckoutDialog.tsx`: PayPal subscription approved with a new trial | `plan` |
 | `checkout_started` | `lib/payments.ts`: redirect checkout for a plan / credit pack / founding member | `purchaseType`, `gateway`, plus `plan`+`interval` \| `packId` \| `offerId` |
