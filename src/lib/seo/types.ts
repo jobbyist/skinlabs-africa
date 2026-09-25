@@ -51,14 +51,12 @@ export interface ProductReviewJsonLdInput {
   offers?: { lowPrice: number; highPrice: number; offerCount: number };
   /** overallScore() out of 10 -- same scale used everywhere else in the app. */
   ratingValue: number;
-  /** Optional member rating statistics from getMemberRatingStats() -- average
-   * rating (1-5 scale) and total member count (363-890). When present, adds a
-   * second aggregateRating to the schema markup representing the community voice
-   * alongside the editorial rating. */
-  memberRating?: { average: number; count: number };
+  /** REAL community ratings only (rows in `review_ratings`, 1-5 scale). When
+   * count > 0 this becomes the page's single aggregateRating; otherwise none is
+   * emitted. Never pass getMemberRatingStats() output here -- it is
+   * hash-generated, and Google flags multiple/self-serving aggregate ratings. */
+  communityRating?: { average: number; count: number };
   reviewBody: string;
-  /** Real comment count, never a fabricated number. */
-  reviewCount: number;
   /**
    * When the page has membership-gated lab-breakdown content that remains in
    * the DOM (CSS-hidden for non-members), set this so Google understands the

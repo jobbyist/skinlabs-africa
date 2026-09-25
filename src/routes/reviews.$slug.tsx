@@ -12,7 +12,6 @@ import { productReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl, absoluteUrl } from '@/lib/seo/canonical'
 import { productReviewTitle } from '@/lib/seo-config'
-import { getMemberRatingStats } from '@/lib/memberRatings'
 import {
   productReviews,
   overallScore,
@@ -114,6 +113,8 @@ interface ReviewPageData {
   image: CategoryImage | null
   relatedReviews: ProductReview[]
   ingredientBreakdown: IngredientBreakdownEntry[]
+  /** Real `review_ratings` aggregate (1-5), null when nobody has rated yet. */
+  communityRating: { average: number; count: number } | null
 }
 
 const fetchReview = createServerFn({ method: 'GET' })
@@ -168,7 +169,18 @@ const fetchReview = createServerFn({ method: 'GET' })
     // uses client-side, just given the SSR Supabase client instead of the browser one.
     const ingredientBreakdown = await fetchIngredientBreakdown(supabase, review.key_ingredients)
 
-    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown } }
+    // Real community ratings only -- the single source for the JSON-LD
+    // aggregateRating. Best-effort: a failed read just omits aggregateRating.
+    const { data: ratingRows } = await supabase
+      .from('review_ratings')
+      .select('rating')
+      .eq('review_id', review.id)
+      .not('rating', 'is', null)
+    const ratings = (ratingRows ?? []).map((r) => Number(r.rating)).filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+    const communityRating =
+      ratings.length > 0 ? { average: ratings.reduce((a, b) => a + b, 0) / ratings.length, count: ratings.length } : null
+
+    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown, communityRating } }
   })
 
 export const Route = createFileRoute('/reviews/$slug')({
@@ -179,10 +191,9 @@ export const Route = createFileRoute('/reviews/$slug')({
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {}
-    const { review, image } = loaderData
+    const { review, image, communityRating } = loaderData
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
-    const memberStats = getMemberRatingStats(review)
     // Prefer the pipeline's stored seo_title/seo_description (same formula, computed
     // server-side at publish/backfill time) so this SSR route's initial HTML matches
     // what ProductReview.tsx renders after hydration.
@@ -205,13 +216,12 @@ export const Route = createFileRoute('/reviews/$slug')({
               offerCount: review.retailers.length,
             }
           : undefined,
-      memberRating: { average: memberStats.average, count: memberStats.count },
+      ...(communityRating ? { communityRating } : {}),
       ratingValue: score,
       // Prefer the pipeline's expanded review_body (see
       // supabase/functions/product-review-sync/index.ts's generateSupplementalFields())
       // when populated -- falls back to the short verdict otherwise.
       reviewBody: review.review_body ?? review.verdict,
-      reviewCount: 1,
     })
     const breadcrumb = breadcrumbJsonLd(
       siteBreadcrumbTrail([{ name: 'Reviews', path: '/reviews' }, { name: review.product_name, path }]),
