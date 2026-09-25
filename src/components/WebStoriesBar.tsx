@@ -14,6 +14,26 @@ const StoryViewer = lazyWithRetry(
 const SKELETON_COUNT = 6;
 const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
 const AD_STORIES = STORY_ADS.map(storyFromAd);
+const FIRST_AD_KEY = "skinlabs-story-first-ad";
+
+// Header (and so this rail) remounts on every page, so the random starting
+// advertiser is kept in sessionStorage to stay fixed for the whole visit.
+// Storage can throw (private mode, blocked site data) — fall back to random.
+const pickSessionFirstAd = () => {
+  try {
+    const stored = sessionStorage.getItem(FIRST_AD_KEY);
+    if (stored !== null && /^\d+$/.test(stored)) return Number(stored);
+  } catch {
+    // ignore
+  }
+  const random = Math.floor(Math.random() * AD_STORIES.length);
+  try {
+    sessionStorage.setItem(FIRST_AD_KEY, String(random));
+  } catch {
+    // ignore
+  }
+  return random;
+};
 
 const truncateLabel = (title: string, max = 15) =>
   title.length > max ? `${title.slice(0, max - 1).trimEnd()}…` : title;
@@ -44,7 +64,7 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
   // sponsored story ads between stories. Everyone else sees one after every
   // STORY_AD_INTERVAL stories, starting from a per-session random advertiser.
   const { isMember, loading: membershipLoading } = useMembership();
-  const [firstAd] = useState(() => Math.floor(Math.random() * AD_STORIES.length));
+  const [firstAd] = useState(pickSessionFirstAd);
   const playlist = useMemo(
     () => interleaveStoryAds(stories ?? [], membershipLoading || isMember ? [] : AD_STORIES, undefined, firstAd),
     [stories, isMember, membershipLoading, firstAd],
