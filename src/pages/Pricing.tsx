@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { motion, useReducedMotion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, Gift, Atom, Sparkles, Crown, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -27,7 +27,7 @@ import { startFreeTrial } from "@/lib/trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getPendingPlanIntent, setPendingPlanIntent, clearPendingPlanIntent } from "@/lib/pendingPlan";
+import { isSafeReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { isPromoActive, PROMO_END_DATE_LABEL, trialCtaLabel, withPromoTrialCopy } from "@/lib/promo";
 
 const Pricing = () => {
@@ -42,7 +42,12 @@ const Pricing = () => {
   const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
   const [gatewayPaypalPurchase, setGatewayPaypalPurchase] = useState<PaypalOrderPurchase | undefined>(undefined);
   const [membershipCheckout, setMembershipCheckout] = useState<{ plan: MembershipCheckoutPlan; trial: boolean } | null>(null);
-  const ranPendingActionRef = useRef(false);
+  const [searchParams] = useSearchParams();
+  // Where to resume after sign-up: a page that sent the visitor here (e.g. a
+  // locked review's "View membership plans" CTA) passes ?returnTo=; it must be
+  // a same-origin relative path, otherwise the intent resumes on /pricing.
+  const requestedReturnTo = searchParams.get("returnTo");
+  const intentReturnTo = isSafeReturnTo(requestedReturnTo) ? requestedReturnTo : "/pricing";
   const shouldReduceMotion = useReducedMotion();
 
   const variantKey = config?.variantKey ?? "control";
@@ -127,27 +132,9 @@ const Pricing = () => {
     window.location.href = "/dashboard?trial=started";
   };
 
-  // Runs whatever plan the visitor selected before authenticating — sourced from the
-  // durable pending-plan module (src/lib/pendingPlan.ts) rather than in-memory React
-  // state, so it survives a page refresh or a full-page Google OAuth redirect. The
-  // server re-validates the plan regardless (start_free_trial RPC / payfast-payment /
-  // paypal-payment) — this is only ever a UX convenience so the user never re-picks
-  // the same plan. Gateway choice itself isn't persisted through the redirect; the
-  // visitor picks PayFast/PayPal again via PaymentGatewayDialog once resumed.
-  useEffect(() => {
-    if (!user || ranPendingActionRef.current) return;
-    const intent = getPendingPlanIntent();
-    if (!intent) return;
-    ranPendingActionRef.current = true;
-    clearPendingPlanIntent();
-    const intentInterval: BillingInterval = intent.interval ?? interval;
-    if (intent.kind === "trial" && (intent.plan === "insider" || intent.plan === "glow_lite")) {
-      openTrialCheckout(intent.plan, intentInterval);
-    } else if (intent.kind === "subscribe" && intent.plan !== "explorer") {
-      beginCheckout(intent.plan as PaymentPlan, intentInterval);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  // Resuming a plan chosen before sign-in/sign-up (including after a Google
+  // OAuth or email-confirmation redirect) is handled app-wide by
+  // <IntentResolver /> from the intent recorded below (src/lib/pendingIntent.ts).
 
   const handleSelect = (planId: PlanId) => {
     trackConversionEvent("membership_plan_selected", { plan: planId, kind: "subscribe" });
@@ -158,7 +145,7 @@ const Pricing = () => {
     }
     const plan = planId as PaymentPlan;
     if (!user) {
-      setPendingPlanIntent({ kind: "subscribe", plan, interval, variantKey });
+      setPendingIntent({ action: "subscribe", plan, interval, variantKey, returnTo: intentReturnTo });
       setAuthOpen(true);
       return;
     }
@@ -170,7 +157,7 @@ const Pricing = () => {
     const plan = planId;
     trackConversionEvent("membership_plan_selected", { plan, kind: "trial" });
     if (!user) {
-      setPendingPlanIntent({ kind: "trial", plan, interval, variantKey });
+      setPendingIntent({ action: "trial", plan, interval, variantKey, returnTo: intentReturnTo });
       setAuthOpen(true);
       return;
     }
@@ -179,6 +166,7 @@ const Pricing = () => {
 
   const handleBuyCreditPack = async (packId: string) => {
     if (!user) {
+      setPendingIntent({ action: "unlock", returnTo: "/pricing" });
       setAuthOpen(true);
       return;
     }
@@ -198,6 +186,7 @@ const Pricing = () => {
   const handleBuyFoundingMember = async () => {
     if (!config?.foundingOffer) return;
     if (!user) {
+      setPendingIntent({ action: "unlock", returnTo: "/pricing" });
       setAuthOpen(true);
       return;
     }

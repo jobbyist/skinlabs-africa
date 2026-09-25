@@ -11,6 +11,8 @@ interface GatedOverlayProps {
   ctaLabel?: string;
   ctaHref?: string;
   onSignIn?: () => void;
+  /** Label for the onSignIn button. */
+  signInLabel?: string;
   children: ReactNode;
 }
 
@@ -24,6 +26,7 @@ const GatedOverlay = ({
   ctaLabel = "View membership plans",
   ctaHref = "/pricing",
   onSignIn,
+  signInLabel = "Sign in",
   children,
 }: GatedOverlayProps) => {
   if (!locked) return <>{children}</>;
@@ -55,7 +58,7 @@ const GatedOverlay = ({
           </Button>
           {onSignIn && (
             <Button variant="outline" onClick={onSignIn}>
-              Sign in
+              {signInLabel}
             </Button>
           )}
         </div>

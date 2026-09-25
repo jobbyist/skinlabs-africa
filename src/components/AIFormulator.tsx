@@ -68,6 +68,7 @@ import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { logFairnessEvent } from "@/lib/skynnFairness";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
+import { getPendingIntent, setPendingIntent, withPendingIntentParams } from "@/lib/pendingIntent";
 import { assembleStarterAnalysisResult } from "@/lib/starter-analysis/resultEngine";
 import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
 import {
@@ -647,9 +648,17 @@ const AIFormulator = () => {
     if (authMode === "signup") trackConversionEvent("signup_started", { source: "ai_formulator_results" });
     // Email confirmation lands back here (not the homepage), where the saved
     // local result is restored and attached to the new account automatically.
+    // The save_analysis intent keeps <IntentResolver /> from routing the new
+    // account elsewhere, and rides in the confirmation link for a new tab.
+    setPendingIntent({ action: "save_analysis", returnTo: "/skynn-ai" });
     const response =
       authMode === "signup"
-        ? await signUp(contactEmail, authPassword, undefined, `${window.location.origin}/skynn-ai`)
+        ? await signUp(
+            contactEmail,
+            authPassword,
+            undefined,
+            withPendingIntentParams(`${window.location.origin}/skynn-ai`, getPendingIntent()),
+          )
         : await signIn(contactEmail, authPassword);
     const { error } = response;
     setIsAuthSubmitting(false);

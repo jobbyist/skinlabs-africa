@@ -14,7 +14,7 @@ import skinlabsLogoBlack from "@/assets/skinlabs-logo-black.svg";
 import skinlabsLogoWhite from "@/assets/skinlabs-logo-white.svg";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { AUTH_FLAGS } from "@/lib/auth-flags";
-import { getPendingPlanIntent, withPendingPlanParams, type PendingPlanIntent } from "@/lib/pendingPlan";
+import { getPendingIntent, isSafeReturnTo, withPendingIntentParams, type PendingIntent } from "@/lib/pendingIntent";
 import { getPlan } from "@/data/plans";
 import { cn } from "@/lib/utils";
 import { trialNoun } from "@/lib/promo";
@@ -47,10 +47,11 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 /** Plan/trial context banner — reflects a pending selection made on /pricing so the visitor never wonders why they're being asked to authenticate. */
-const PlanContextBanner = ({ intent }: { intent: PendingPlanIntent }) => {
-  const plan = getPlan(intent.plan);
+const PlanContextBanner = ({ intent }: { intent: PendingIntent }) => {
+  if (intent.action !== "trial" && intent.action !== "subscribe") return null;
+  const plan = intent.plan ? getPlan(intent.plan) : undefined;
   if (!plan) return null;
-  const isTrial = intent.kind === "trial" && plan.trialEligible && plan.trialDays;
+  const isTrial = intent.action === "trial" && plan.trialEligible && plan.trialDays;
   return (
     <div className="relative mb-4 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-left">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -93,7 +94,7 @@ const AuthDialog = ({
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const pendingIntent = useMemo(() => (open ? getPendingPlanIntent() : null), [open]);
+  const pendingIntent = useMemo(() => (open ? getPendingIntent() : null), [open]);
   const tab: "signin" | "signup" = view === "signin" || view === "signup" ? view : "signin";
 
   useEffect(() => {
@@ -108,10 +109,14 @@ const AuthDialog = ({
 
   const logo = resolvedTheme === "dark" ? skinlabsLogoWhite : skinlabsLogoBlack;
 
+  // OAuth / email-confirmation redirect target: the pending intent's returnTo,
+  // else the caller's returnTo, else this page. Same-origin paths only — never
+  // an open redirect. The intent rides along in the URL (withPendingIntentParams)
+  // so <IntentResolver /> can resume it even in a new tab.
   const oauthRedirect = () => {
-    // Only same-origin absolute paths — never an open redirect.
-    const path = returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : window.location.pathname;
-    return withPendingPlanParams(`${window.location.origin}${path}`, pendingIntent);
+    const latest = getPendingIntent() ?? pendingIntent;
+    const path = latest?.returnTo ?? (isSafeReturnTo(returnTo) ? returnTo : window.location.pathname);
+    return withPendingIntentParams(`${window.location.origin}${path}`, latest);
   };
 
   const handleGoogleSignIn = async () => {

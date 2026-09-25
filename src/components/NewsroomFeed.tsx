@@ -19,6 +19,7 @@ import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagem
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/AuthDialog";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 
 const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
 
@@ -165,7 +166,9 @@ const NewsroomFeed = ({
 
   const handleSave = async (article: NewsArticleSummary) => {
     if (!user) {
-      // Saving is tied to an account; open sign-in in place rather than a dead-end toast.
+      // Saving is tied to an account; open sign-in in place rather than a dead-end toast,
+      // and come back to this page afterwards rather than the new-account landing.
+      setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
       setAuthOpen(true);
       return;
     }
