@@ -656,7 +656,6 @@ const AIFormulator = () => {
         ? await signUp(
             contactEmail,
             authPassword,
-            undefined,
             withPendingIntentParams(`${window.location.origin}/skynn-ai`, getPendingIntent()),
           )
         : await signIn(contactEmail, authPassword);

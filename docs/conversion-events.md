@@ -48,7 +48,7 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 
 | Event | Where it fires | Props |
 | --- | --- | --- |
-| `auth_started` | `AuthDialog.tsx`: the dialog opens | `defaultTab`, `hasPendingPlan` |
+| `auth_started` | `AuthDialog.tsx`: the dialog opens | `defaultTab` (the tab it actually opened on), `hasPendingPlan`, `intent` (pending intent action or `"none"`, from 2026-09-25) |
 | `signup_started` | `AuthDialog.tsx`: Google / magic-link / password sign-up submitted | `method` (`google` \| `magic_link` \| `password`) |
 | `signup_started` | `AIFormulator.tsx`: "Save your results" sign-up opened from results | `source: "ai_formulator_results"` |
 | `signup_completed` | `AuthDialog.tsx`: `signUp()` returned no error | none |

@@ -25,9 +25,10 @@ export interface Story {
   /**
    * db: authored rows in web_stories. curated: built in code from site content
    * (src/lib/webStories/curated.ts). briefing/review: built from live content,
-   * in-app only (no AMP page).
+   * in-app only (no AMP page). ad: a sponsored story ad from storyAds.ts,
+   * interleaved between stories in the viewer only (never in the rail).
    */
-  source: "db" | "curated" | "briefing";
+  source: "db" | "curated" | "briefing" | "ad";
   slug: string;
   title: string;
   kind: WebStoryKind;

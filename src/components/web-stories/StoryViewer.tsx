@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowUpRight, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
 import type { Story } from "@/lib/webStories/stories";
 import { logStoryEvent } from "@/lib/webStories/analytics";
+import { isStoryAd } from "@/lib/webStories/storyAds";
 import { cn } from "@/lib/utils";
 
 interface StoryViewerProps {
@@ -54,6 +55,7 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
   const markReady = useCallback(() => setReadyPageKey(pageKey), [pageKey]);
   const paused = held || userPaused || tabHidden || !mediaReady;
   const isVideo = page?.mediaType === "video";
+  const isAd = story ? isStoryAd(story) : false;
 
   const finishStory = useCallback(() => {
     if (story) logStoryEvent(story.key, "complete");
@@ -86,10 +88,11 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
     }
   }, [pageIndex, storyIndex]);
 
-  // New story: mark viewed + log an open.
+  // New story: mark viewed + log an open. Ads aren't in the rail, so they
+  // have no viewed ring to update.
   useEffect(() => {
     if (!story) return;
-    onViewedRef.current(story.key);
+    if (!isStoryAd(story)) onViewedRef.current(story.key);
     logStoryEvent(story.key, "open");
   }, [story]);
 
@@ -248,7 +251,8 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
               if (ratio >= 1) advanceVideoOnce();
             }}
             onEnded={advanceVideoOnce}
-            onError={markReady}
+            // A story ad whose media is missing is skipped, never shown broken.
+            onError={isAd ? advanceVideoOnce : markReady}
           />
         ) : (
           <img
@@ -260,6 +264,10 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
             onError={(event) => {
               // Never paint a broken-image icon or its alt text over the story.
               event.currentTarget.style.visibility = "hidden";
+              if (isAd) {
+                next();
+                return;
+              }
               markReady();
             }}
           />
@@ -295,8 +303,14 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
             <img src={story.coverImageUrl} alt="" className="h-8 w-8 shrink-0 rounded-full border border-white/60 object-cover" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">{story.title}</p>
-              {story.isSponsored && (
-                <p className="text-[11px] font-medium text-white/80">Sponsored{story.sponsorName ? ` · ${story.sponsorName}` : ""}</p>
+              {isAd ? (
+                <span className="mt-0.5 inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+                  Advertisement
+                </span>
+              ) : (
+                story.isSponsored && (
+                  <p className="text-[11px] font-medium text-white/80">Sponsored{story.sponsorName ? ` · ${story.sponsorName}` : ""}</p>
+                )
               )}
             </div>
             <div className="pointer-events-auto flex items-center gap-1">

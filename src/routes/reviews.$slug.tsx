@@ -35,6 +35,10 @@ import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
 import GatedOverlay, { SeeAllPlansLink } from '@/components/GatedOverlay'
 import SsrConversionShell from '@/components/SsrConversionShell'
+import CommentHandleDialog from '@/components/comments/CommentHandleDialog'
+import { useCommentHandle } from '@/hooks/use-comment-handle'
+import { openSignupDialog } from '@/lib/conversionDialogs'
+import { currentReturnTo, setPendingIntent } from '@/lib/pendingIntent'
 import { useConversionAction } from '@/hooks/use-conversion-action'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -341,16 +345,27 @@ function ReviewPage() {
     setLiked(nextLiked)
   }
 
-  const postComment = async () => {
+  const commentHandle = useCommentHandle(user?.id)
+  const [handleDialogOpen, setHandleDialogOpen] = useState(false)
+
+  // Sign-up doesn't ask for a username, so the first comment asks for a
+  // public handle once (CommentHandleDialog), then posts with it.
+  const postComment = async (chosenHandle?: string) => {
     if (!body.trim()) return
     if (!user) {
-      toast.error('Sign in to join the discussion.')
+      setPendingIntent({ action: 'unlock', returnTo: currentReturnTo() })
+      openSignupDialog()
+      return
+    }
+    const displayName = chosenHandle ?? commentHandle.handle
+    if (!displayName) {
+      setHandleDialogOpen(true)
       return
     }
     setPosting(true)
     const { data, error } = await supabase
       .from('review_comments')
-      .insert({ user_id: user.id, review_id: review.id, display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member', body: body.trim() })
+      .insert({ user_id: user.id, review_id: review.id, display_name: displayName, body: body.trim() })
       .select('id, display_name, body, created_at')
       .single()
     setPosting(false)
@@ -520,13 +535,22 @@ function ReviewPage() {
           <Textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder={user ? 'Share your experience with this product…' : 'Sign in to join the discussion'}
+            placeholder={user ? 'Share your experience with this product…' : 'Create a free account to join the discussion'}
             maxLength={2000}
             rows={3}
           />
-          <Button size="sm" onClick={postComment} disabled={posting || !body.trim()}>
+          <Button size="sm" onClick={() => void postComment()} disabled={posting || !body.trim() || commentHandle.loading}>
             {posting ? 'Posting…' : 'Post comment'}
           </Button>
+          <CommentHandleDialog
+            open={handleDialogOpen}
+            onOpenChange={setHandleDialogOpen}
+            saveHandle={commentHandle.saveHandle}
+            onSaved={(handle) => {
+              setHandleDialogOpen(false)
+              void postComment(handle)
+            }}
+          />
           {loading ? (
             <p>Loading discussion…</p>
           ) : displayComments.length === 0 ? (
