@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Layers,
   Heart,
+  Loader2,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -30,6 +31,11 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { SITE_URL } from "@/lib/seo-config";
 import { usePricingConfig } from "@/lib/pricing-config";
 import { cn } from "@/lib/utils";
+import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { openSignupDialog } from "@/lib/conversionDialogs";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 
 // Smart Routines Landing Page
 const SmartRoutines = () => {
@@ -43,6 +49,19 @@ const SmartRoutines = () => {
     return plan ? `R${Number(plan.price_monthly)}` : null;
   };
   const insiderPrice = monthlyPrice("insider");
+  // Free/Lite members without a pass: the report comes with Glow Insider, so the
+  // primary CTA is the one-tap conversion action (trial in place / subscribe),
+  // not a detour to /pricing. An Analysis Pass stays the pay-per-report option.
+  const insiderAction = useConversionAction("ai_analysis.live_weekly", "smart_routines");
+  const [passModalOpen, setPassModalOpen] = useState(false);
+  const openPassPurchase = () => {
+    if (user) {
+      setPassModalOpen(true);
+      return;
+    }
+    setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
+    openSignupDialog();
+  };
   const vipPrice = monthlyPrice("vip");
   const [activeSeasonTab, setActiveSeasonTab] = useState<"summer" | "winter">("summer");
 
@@ -87,11 +106,12 @@ const SmartRoutines = () => {
     }
 
     // Glow Explorer or Lite without Analysis Pass
-    if (entitlements.isFree || entitlements.isGlowLite) {
+    if ((entitlements.isFree || entitlements.isGlowLite) && insiderAction.kind) {
       return {
-        label: "Get My Dermatology Report",
-        href: "/pricing",
-        description: "From R25 with Analysis Pass",
+        label: insiderAction.label,
+        href: null,
+        onClick: insiderAction.run,
+        description: `${insiderAction.sublabel ?? ""} Or buy a one-off Analysis Pass.`.trim(),
       };
     }
 
@@ -103,7 +123,31 @@ const SmartRoutines = () => {
     };
   };
 
-  const primaryCTA = getPrimaryCTA();
+  const primaryCTA: { label: string; href: string | null; onClick?: () => void; description?: string } = getPrimaryCTA();
+
+  const renderPrimaryCta = (location: string, className: string, label = primaryCTA.label) =>
+    primaryCTA.onClick ? (
+      <Button
+        size="lg"
+        className={className}
+        disabled={insiderAction.busy}
+        onClick={() => {
+          handleCTAClick(location);
+          primaryCTA.onClick?.();
+        }}
+      >
+        {insiderAction.busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {label}
+        <ChevronRight className="ml-2 h-4 w-4" />
+      </Button>
+    ) : (
+      <Button size="lg" asChild onClick={() => handleCTAClick(location)}>
+        <Link to={primaryCTA.href ?? "/skynn-ai"} className={className}>
+          {label}
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
+    );
 
   const handleCTAClick = (location: string) => {
     trackConversionEvent("smart_routines_cta_clicked", {
@@ -162,12 +206,7 @@ const SmartRoutines = () => {
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild onClick={() => handleCTAClick("hero-primary")}>
-                <Link to={primaryCTA.href} className="min-w-[200px]">
-                  {primaryCTA.label}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              {renderPrimaryCta("hero-primary", "min-w-[200px]")}
               <Button
                 size="lg"
                 variant="outline"
@@ -720,12 +759,11 @@ const SmartRoutines = () => {
                 </div>
               </div>
               <div className="mt-8">
-                <Button size="lg" asChild onClick={() => handleCTAClick("gate-primary")}>
-                  <Link to={primaryCTA.href} className="min-w-[240px]">
-                    Get My Advanced AI Dermatology Report
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                {renderPrimaryCta(
+                  "gate-primary",
+                  "min-w-[240px]",
+                  primaryCTA.onClick ? primaryCTA.label : "Get My Advanced AI Dermatology Report",
+                )}
               </div>
             </div>
           </div>
@@ -767,8 +805,14 @@ const SmartRoutines = () => {
                       <span>Unlocks Smart Routines</span>
                     </li>
                   </ul>
-                  <Button className="w-full" asChild onClick={() => handleCTAClick("access-pass")}>
-                    <Link to="/pricing">Get Analysis Pass</Link>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      handleCTAClick("access-pass");
+                      openPassPurchase();
+                    }}
+                  >
+                    Get Analysis Pass
                   </Button>
                 </CardContent>
               </Card>
@@ -802,9 +846,23 @@ const SmartRoutines = () => {
                       <span>Smart Routines included</span>
                     </li>
                   </ul>
-                  <Button className="w-full" asChild onClick={() => handleCTAClick("access-insider")}>
-                    <Link to="/pricing">Become an Insider</Link>
-                  </Button>
+                  {insiderAction.kind ? (
+                    <Button
+                      className="w-full gap-2"
+                      disabled={insiderAction.busy}
+                      onClick={() => {
+                        handleCTAClick("access-insider");
+                        insiderAction.run();
+                      }}
+                    >
+                      {insiderAction.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {insiderAction.label}
+                    </Button>
+                  ) : (
+                    <Button className="w-full" variant="outline" disabled>
+                      {insiderAction.entitled ? "Included in your membership" : "Checking your membership…"}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -834,9 +892,13 @@ const SmartRoutines = () => {
                       <span>Priority support</span>
                     </li>
                   </ul>
-                  <Button className="w-full" variant="outline" asChild onClick={() => handleCTAClick("access-vip")}>
-                    <Link to="/pricing">Explore VIP</Link>
+                  {/* Glow VIP isn't purchasable yet (pricing_plans.is_purchasable = false). */}
+                  <Button className="w-full" variant="outline" disabled>
+                    Glow VIP — coming soon
                   </Button>
+                  <div className="text-center">
+                    <SeeAllPlansLink />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -1030,12 +1092,7 @@ const SmartRoutines = () => {
               learns into a routine built around your real skin, your real shelf and your real life.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild onClick={() => handleCTAClick("final-primary")}>
-                <Link to={primaryCTA.href} className="min-w-[200px]">
-                  {primaryCTA.label}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              {renderPrimaryCta("final-primary", "min-w-[200px]")}
               <Button
                 size="lg"
                 variant="outline"
@@ -1051,6 +1108,7 @@ const SmartRoutines = () => {
           </div>
         </section>
 
+        <AnalysisPassPurchaseModal open={passModalOpen} onOpenChange={setPassModalOpen} />
         <Footer />
       </div>
     </>

@@ -20,6 +20,7 @@ import {
   type PaypalSubscriptionPurchase,
 } from "@/lib/paypal";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { notifyMembershipUpdated } from "@/hooks/use-membership";
 import { toast } from "sonner";
 
 export interface MembershipCheckoutPlan {
@@ -36,6 +37,9 @@ interface MembershipCheckoutDialogProps {
   /** When given, a secondary "start without a payment method" path is offered
    * (the original no-card start_free_trial flow). */
   onStartTrialWithoutCard?: () => Promise<void>;
+  /** Where to go after approval. Defaults to react-router navigation; the SSR
+   * routes (which only have a MemoryRouter) pass a full-page navigation. */
+  onNavigate?: (to: string) => void;
 }
 
 /**
@@ -47,8 +51,16 @@ interface MembershipCheckoutDialogProps {
  *  - an account that has used its trial: today.
  * This dialog only displays what the server quoted; it never sets a date or price.
  */
-const MembershipCheckoutDialog = ({ open, onOpenChange, plan, variantKey = "control", onStartTrialWithoutCard }: MembershipCheckoutDialogProps) => {
-  const navigate = useNavigate();
+const MembershipCheckoutDialog = ({
+  open,
+  onOpenChange,
+  plan,
+  variantKey = "control",
+  onStartTrialWithoutCard,
+  onNavigate,
+}: MembershipCheckoutDialogProps) => {
+  const routerNavigate = useNavigate();
+  const navigate = onNavigate ?? routerNavigate;
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [busy, setBusy] = useState(false);
@@ -74,6 +86,7 @@ const MembershipCheckoutDialog = ({ open, onOpenChange, plan, variantKey = "cont
 
   const handleApproved = (result: PaypalApproval) => {
     if (result.kind !== "subscription") return;
+    notifyMembershipUpdated();
     trackConversionEvent("checkout_completed", { purchaseType: "plan", plan: plan.planId, interval: plan.interval, gateway: "paypal" });
     if (result.startKind === "new_trial") {
       trackConversionEvent("trial_started", { plan: plan.planId });

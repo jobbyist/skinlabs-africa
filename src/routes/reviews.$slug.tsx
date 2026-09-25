@@ -34,10 +34,12 @@ import RelatedKnowledgeHub from '@/components/RelatedKnowledgeHub'
 import AdSlot from '@/components/AdSlot'
 import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
-import GatedOverlay from '@/components/GatedOverlay'
+import GatedOverlay, { SeeAllPlansLink } from '@/components/GatedOverlay'
+import SsrConversionShell from '@/components/SsrConversionShell'
+import { useConversionAction } from '@/hooks/use-conversion-action'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { trialNoun } from '@/lib/promo'
+import { trialLength } from '@/lib/promo'
 
 // Production SSR route for /reviews/:slug -- the second content type
 // migrated to TanStack Start after Briefings (see
@@ -250,6 +252,7 @@ function ReviewPage() {
   // auth session exists) and hydrates to the real state on mount.
   const { user } = useAuth()
   const { isMember, isVip } = useMembership()
+  const reviewAction = useConversionAction('reviews.full_body', 'product_review_cta_ssr')
 
   const [rating, setRating] = useState(0)
   const [liked, setLiked] = useState(false)
@@ -354,6 +357,7 @@ function ReviewPage() {
 
   return (
     <MemoryRouter initialEntries={[`/reviews/${review.id}`]}>
+      <SsrConversionShell />
       <main>
         <nav aria-label="Breadcrumb">
           <a href="/">SkinLabs</a> {'> '}
@@ -457,6 +461,8 @@ function ReviewPage() {
           locked={!isMember}
           title="Unlock the full lab breakdown"
           message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
+          feature="reviews.full_body"
+          source="product_review_gate_ssr"
         >
           <div>
             <h2>The full breakdown</h2>
@@ -484,12 +490,16 @@ function ReviewPage() {
           </div>
         </GatedOverlay>
 
-        {!isMember && (
+        {!isMember && reviewAction.kind && (
           <div>
-            <p>Get every full breakdown, ingredient deep-dive included.</p>
-            <Button asChild>
-              <Link to="/pricing">Start my {trialNoun()}</Link>
+            <p>
+              Get every full breakdown, ingredient deep-dive included.
+              {reviewAction.kind === 'trial' ? ` Try it free ${trialLength()} — no card required.` : ''}
+            </p>
+            <Button onClick={reviewAction.run} disabled={reviewAction.busy}>
+              {reviewAction.label}
             </Button>
+            <SeeAllPlansLink />
           </div>
         )}
 
