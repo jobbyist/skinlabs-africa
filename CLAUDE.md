@@ -32,6 +32,12 @@ feature appear operational.
   and the podcast RSS description. Per-item statements that are still true
   (Spotlight/Shelf Showdown outcomes aren't paid, the podcast takes no paid
   mentions) were left as they are.
+  **Follow-up (same day):** the FAQ "Do you sell skincare products?" (and
+  "Where can I buy…") now say that some product links go to OpenHaus or partner
+  retailers, that SkinLabs may earn a commission or margin on those sales, and
+  that such links are labelled Sponsored. "We buy the products we review" was
+  removed from /reviews at the user's request. Don't reintroduce either claim
+  ("we're not a retailer / don't earn a cut" or "we buy every product").
 
 - **Onboarding overhaul 05 — one-tap, no-card trial (2026-09-25)**
   - `useStartTrial()` (`src/hooks/use-start-trial.ts`) is the ONLY no-card trial
