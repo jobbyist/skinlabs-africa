@@ -54,9 +54,8 @@ const Reviews = () => {
                   rating is the average, not a marketing-friendly round number.
                 </p>
                 <p>
-                  We buy the products we review. Where a brand sends a sample instead, that's disclosed on the
-                  review itself and it doesn't change the score — a gifted product held to a lower bar isn't a
-                  review, it's an advertisement. SkinLabs® is partly ad-supported, so this page carries ads and some
+                  Where a brand sends us a product or sample, that's disclosed on the review itself and it doesn't
+                  change the score — a gifted product held to a lower bar isn't a review, it's an advertisement. SkinLabs® is partly ad-supported, so this page carries ads and some
                   reviews are marked Sponsored, where we earn from a disclosed brand or marketplace partner. That label
                   never changes the verdict: brands can't buy a higher score, a better position in the grid or a more
                   flattering write-up.

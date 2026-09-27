@@ -259,7 +259,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "does-skinlabs-sell-products",
     question: "Do you sell skincare products?",
     answer:
-      "No — we're not a retailer. SkinLabs gives you independent recommendations and links you to trusted South African retailers where you can actually buy the products we cover. That separation is deliberate: it's what lets us score honestly instead of steering you toward whatever we'd earn a cut on.",
+      "Not as a traditional retailer, but some products we cover link to the SkinLabs® OpenHaus marketplace or to partner retailers, and we may earn a commission or margin when you buy through those links. Those links are labelled Sponsored, and they never affect a product's score, ranking or verdict: our editorial content can't be bought.",
     category: "about",
     tags: ["retailer", "independence", "commercial relationships"],
     relatedQuestions: ["products-where-to-buy", "products-authentic-brands"],
@@ -915,7 +915,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "where-can-i-buy-the-products-you-recommend",
     question: "Where can I buy the products you recommend?",
     answer:
-      "Most of what we recommend is available at Clicks, Dis-Chem, Woolworths, Takealot and specialist retailers like Dermastore. Every product review links directly to where you can buy it — retailer availability and stock levels shift, so treat those links as the current source of truth rather than anything we state generally here.",
+      "Most of what we recommend is available at Clicks, Dis-Chem, Woolworths, Takealot and specialist retailers like Dermastore. Every product review links directly to where you can buy it — retailer availability and stock levels shift, so treat those links as the current source of truth rather than anything we state generally here. Some links go to the SkinLabs® OpenHaus marketplace or partner retailers, where we may earn a commission or margin; those are labelled Sponsored.",
     category: "products",
     tags: ["retailers", "where to buy"],
     relatedQuestions: ["south-africa-authentic-brands", "about-do-you-sell"],
