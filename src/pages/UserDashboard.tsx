@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Sparkles, Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
+import { Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,14 +28,23 @@ import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
+import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
+import AnalysisCreditsCard from "@/components/dashboard/AnalysisCreditsCard";
+import SkinWeatherCard from "@/components/dashboard/SkinWeatherCard";
+import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
+import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
+import { loadCompletedState, persistStarterResultToAccount } from "@/lib/starter-analysis/persistence";
+import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import ReportBugButton from "@/components/ReportBugButton";
 import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import { toast } from "sonner";
+import { formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
-import { capturePendingPaypalOrder } from "@/lib/payments";
+import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
+import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
 
 interface Profile {
   subscription_status: string | null;
@@ -50,6 +59,7 @@ interface Profile {
   skin_color: string | null;
   address_line1: string | null;
   city: string | null;
+  weather_city_key: string | null;
   allergies: string[] | null;
   skin_conditions: string[] | null;
   preferred_routine_time: string | null;
@@ -64,10 +74,11 @@ type DashboardTab = (typeof VALID_TABS)[number];
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
+  const { data: allowance, loading: allowanceLoading, error: allowanceError, refresh: refreshAllowance } = useFormulatorAllowance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -77,6 +88,16 @@ const UserDashboard = () => {
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
+  // The trialist's live auto-renew subscription (PayPal), if they added a payment method.
+  // undefined = not known yet (loading, or the read failed): the banner then makes
+  // no claim either way. null = confirmed no card on file.
+  const [trialSubscription, setTrialSubscription] = useState<{
+    amount_zar: number;
+    amount_charged: number;
+    currency: string;
+    first_billing_at: string | null;
+    next_billing_at: string | null;
+  } | null | undefined>(undefined);
   const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
@@ -92,10 +113,38 @@ const UserDashboard = () => {
   const purchaseType = searchParams.get("purchase_type") ?? "plan";
 
   useEffect(() => {
+    // Signed out: open sign-in in place (returning here afterwards) instead of
+    // bouncing to the homepage.
     if (loading || user) return;
-    if (paymentReturn) setAuthOpen(true);
-    else navigate("/");
-  }, [user, loading, navigate, paymentReturn]);
+    setAuthOpen(true);
+  }, [user, loading]);
+
+  useEffect(() => {
+    if (!user || !isTrialing) {
+      setTrialSubscription(undefined);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from("payment_subscriptions")
+      .select("amount_zar, amount_charged, currency, first_billing_at, next_billing_at")
+      .eq("user_id", user.id)
+      .in("status", ["trialing", "active", "past_due"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.warn("Could not load trial subscription:", error.message);
+          setTrialSubscription(undefined);
+          return;
+        }
+        setTrialSubscription(data?.[0] ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isTrialing]);
 
   useEffect(() => {
     if (searchParams.get("trial") !== "started") return;
@@ -123,6 +172,10 @@ const UserDashboard = () => {
       if (captureResult.captured && !captureResult.ok) {
         toast.error(captureResult.error || "We couldn't confirm your PayPal payment. Contact support if you were charged.");
       }
+      const subResult = await activatePendingPaypalSubscription();
+      if (subResult.activated && !subResult.ok) {
+        toast.error(subResult.error || "We couldn't confirm your PayPal subscription. Contact support if you were charged.");
+      }
     })();
 
     const clearParam = () => {
@@ -133,6 +186,9 @@ const UserDashboard = () => {
       next.delete("interval");
       next.delete("pack_id");
       next.delete("offer_id");
+      next.delete("subscription_id");
+      next.delete("ba_token");
+      next.delete("token");
       setSearchParams(next, { replace: true });
     };
 
@@ -162,7 +218,24 @@ const UserDashboard = () => {
         }
         return false;
       }
-      const { data } = await supabase.from("profiles").select("subscription_status").eq("user_id", user.id).maybeSingle();
+      const { data } = await supabase
+        .from("profiles")
+        .select("subscription_status, trial_ends_at")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      // A PayPal subscription started during/with a free trial is billed when
+      // the trial ends — a live trial is the success state for that return.
+      if (
+        purchaseType === "subscription" &&
+        data?.subscription_status === "trial" &&
+        data.trial_ends_at &&
+        new Date(data.trial_ends_at) > new Date()
+      ) {
+        refreshMembership();
+        trackConversionEvent("checkout_completed", { purchaseType });
+        toast.success("PayPal auto-renew is set up — you won't be charged until your free trial ends.");
+        return true;
+      }
       if (isPaidSubscriptionStatus(data?.subscription_status)) {
         refreshMembership();
         trackConversionEvent("checkout_completed", { purchaseType });
@@ -205,6 +278,27 @@ const UserDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentReturn, user]);
 
+  const trialEndsLabel = trialEndsAt
+    ? new Date(trialEndsAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Johannesburg" })
+    : null;
+  const trialFirstChargeAt = trialSubscription
+    ? (trialSubscription.first_billing_at ?? trialSubscription.next_billing_at)
+    : null;
+  // Card-backed → auto-renew copy; confirmed no card → "no card on file";
+  // unknown (loading / read failed) → neutral, never a no-charge claim.
+  const trialBannerCopy = trialSubscription
+    ? trialFirstChargeAt
+      ? `Auto-renew is on — first charge ${formatZar(Number(trialSubscription.amount_zar))}${
+          trialSubscription.currency === "USD" ? ` (${formatUsd(Number(trialSubscription.amount_charged))} via PayPal)` : ""
+        } on ${formatBillingDate(trialFirstChargeAt)}. Cancel any time in Billing.`
+      : "Auto-renew is on. Cancel any time in Billing."
+    : trialSubscription === null
+      ? trialEndsLabel
+        ? `Full access until ${trialEndsLabel}. No card on file — your access simply ends unless you upgrade.`
+        : "No card on file. Upgrade any time to keep your access after the trial ends."
+      : trialEndsLabel
+        ? `Full access until ${trialEndsLabel}. Manage your membership any time in Billing.`
+        : "Manage your membership any time in Billing.";
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
@@ -214,7 +308,7 @@ const UserDashboard = () => {
     (async () => {
       const [profileRes, preordersRes, recsRes, creditsRes, likedRes, savedRes, commentsRes] = await Promise.all([
         supabase.from("profiles").select(
-          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, allergies, skin_conditions, preferred_routine_time",
+          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, weather_city_key, allergies, skin_conditions, preferred_routine_time",
         ).eq("user_id", user.id).single(),
         supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase
@@ -238,6 +332,62 @@ const UserDashboard = () => {
     })();
   }, [user]);
 
+  // Anonymous → account handoff, wherever the visitor lands after signing up
+  // (e.g. an email-confirmation link opened later): a SKYNN AI result finished
+  // before sign-up is still in this browser, so attach it now. The RPC is
+  // idempotent on the analysis id, so this is safe even if /skynn-ai already
+  // saved it; a refusal (allowance spent) is left alone — the formulator
+  // explains that when they next open it.
+  useEffect(() => {
+    if (!user) return;
+    const pending = loadCompletedState();
+    if (!pending?.result) return;
+    let cancelled = false;
+    (async () => {
+      const outcome = await persistStarterResultToAccount({
+        result: pending.result,
+        contactName: null,
+        contactWhatsApp: null,
+        variantKey: getPersistedPricingVariant(),
+      });
+      if (cancelled || outcome.error || outcome.limitReached || outcome.source === "existing") return;
+      const { data } = await supabase
+        .from("skincare_recommendations")
+        .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (cancelled) return;
+      if (data) setRecommendations(data);
+      void refreshAllowance();
+      toast.success("Your SKYNN AI results were saved to your account.");
+      trackConversionEvent("starter_dashboard_arrived");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, refreshAllowance]);
+
+  const latestAnalysis = recommendations.find((r) => r.status === "delivered") ?? null;
+  const latestPayload = latestAnalysis?.result_payload as StarterAnalysisResult | null | undefined;
+  const weatherProfile = latestAnalysis
+    ? {
+        skinType: latestAnalysis.skin_type,
+        concerns: latestPayload?.profile
+          ? [latestPayload.primaryConcern, ...latestPayload.profile.secondaryConcerns]
+          : latestAnalysis.concerns,
+      }
+    : undefined;
+
+  // Saves only the weather city — never the free-text address city.
+  const saveWeatherCity = async (cityKey: string): Promise<boolean> => {
+    if (!user) return false;
+    const { error } = await supabase.from("profiles").update({ weather_city_key: cityKey }).eq("user_id", user.id);
+    if (error) return false;
+    setProfile((p) => (p ? { ...p, weather_city_key: cityKey } : p));
+    return true;
+  };
+
   const retryAnalysisPassBalance = async () => {
     if (!user) return;
     setCreditsError(null);
@@ -245,6 +395,13 @@ const UserDashboard = () => {
     if (error) setCreditsError(error.message);
     else if (typeof data === "number") setAiCredits(data);
   };
+
+  useEffect(() => {
+    const onUpdated = () => void retryAnalysisPassBalance();
+    window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleReactivate = async () => {
     setReactivating(true);
@@ -258,7 +415,8 @@ const UserDashboard = () => {
     toast.success("Welcome back — your account is active again.");
   };
 
-  if (!loading && !user && paymentReturn) {
+  if (!loading && !user) {
+    const returnTo = `${location.pathname}${location.search}`;
     return (
       <>
         <div className="min-h-screen bg-background">
@@ -267,10 +425,11 @@ const UserDashboard = () => {
             <div className="container mx-auto max-w-md px-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Sign in to finish</CardTitle>
+                  <CardTitle>{paymentReturn ? "Sign in to finish" : "Sign in to your dashboard"}</CardTitle>
                   <CardDescription>
-                    Your payment went through. Sign in with the same email you paid with and we'll take you
-                    straight into your dashboard.
+                    {paymentReturn
+                      ? "Your payment went through. Sign in with the same email you paid with and we'll take you straight into your dashboard."
+                      : "Your saved analyses, routine and membership live here. Sign in or create a free account to continue."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -281,7 +440,7 @@ const UserDashboard = () => {
           </main>
           <Footer />
         </div>
-        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
+        <AuthDialog open={authOpen} onOpenChange={setAuthOpen} returnTo={returnTo} />
       </>
     );
   }
@@ -370,18 +529,13 @@ const UserDashboard = () => {
                         {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {trialEndsAt
-                          ? `Full access until ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}. No card on file — your access simply ends unless you upgrade.`
-                          : "No card on file. Upgrade any time to keep your access after the trial ends."}
+                        {trialBannerCopy}
                       </p>
                     </div>
                   </div>
+                  {/* Prompt 06 replaces this link with a dialog. */}
                   <Button asChild size="sm">
-                    <Link to="/pricing">Upgrade now</Link>
+                    <Link to="/dashboard?tab=billing">Keep my membership</Link>
                   </Button>
                 </div>
               )}
@@ -440,7 +594,33 @@ const UserDashboard = () => {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Hero row: skin profile (two-thirds) + analysis credits (one-third). */}
+                  <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="lg:col-span-2">
+                      <SkinProfileHero
+                        latest={latestAnalysis}
+                        loading={dataLoading}
+                        allowance={allowance}
+                        onViewFullAnalysis={() => setActiveTab("analysis")}
+                      />
+                    </div>
+                    <AnalysisCreditsCard
+                      allowance={allowance}
+                      loading={allowanceLoading}
+                      error={allowanceError}
+                      onRetry={() => void refreshAllowance()}
+                    />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 lg:col-span-1">
+                      <SkinWeatherCard
+                        weatherCityKey={profile?.weather_city_key ?? null}
+                        addressCity={profile?.city ?? null}
+                        skinProfile={weatherProfile}
+                        onSaveCity={saveWeatherCity}
+                      />
+                    </div>
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
                       <CardContent>
@@ -464,18 +644,10 @@ const UserDashboard = () => {
                       error={creditsError}
                       onRetry={() => void retryAnalysisPassBalance()}
                     />
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Pre-Orders</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{preorders.length}</p><p className="text-xs text-muted-foreground">Total orders</p></CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />Analyses</CardTitle></CardHeader>
-                      <CardContent><p className="text-2xl font-bold text-foreground">{recommendations.length}</p><p className="text-xs text-muted-foreground">Saved analyses</p></CardContent>
-                    </Card>
                   </div>
 
-                  <RoutineSnapshot onOpenRoutine={() => setActiveTab("routine")} />
-                  <AdvancedAssessmentCard />
+                  <RoutineSnapshot />
+                  <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading || membershipLoading} />
 
                   <Card>
                     <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>

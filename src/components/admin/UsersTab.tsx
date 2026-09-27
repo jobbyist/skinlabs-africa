@@ -75,7 +75,7 @@ const UsersTab = () => {
 
   const search = useCallback(async (q: string, p: number) => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("admin_search_profiles", { _query: q || null, _page: p, _page_size: PAGE_SIZE });
+    const { data, error } = await supabase.rpc("admin_search_profiles", { _query: q || undefined, _page: p, _page_size: PAGE_SIZE });
     if (error) {
       toast.error("Failed to load users");
       setLoading(false);

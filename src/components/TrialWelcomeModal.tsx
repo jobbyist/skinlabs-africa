@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Mic, PartyPopper, Sparkles, Star } from "lucide-react";
+import { trialLength } from "@/lib/promo";
 
 interface TrialWelcomeModalProps {
   open: boolean;
@@ -47,7 +48,7 @@ const TrialWelcomeModal = ({ open, onOpenChange, planName, trialEndsAt }: TrialW
           <DialogDescription className="text-base">
             {endsLabel
               ? `Full access until ${endsLabel} — no card on file, no surprise charge.`
-              : "Full access for 7 days — no card on file, no surprise charge."}
+              : `Full access ${trialLength()} — no card on file, no surprise charge.`}
           </DialogDescription>
         </DialogHeader>
 

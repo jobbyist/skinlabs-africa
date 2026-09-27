@@ -50,7 +50,7 @@ const Consultations = () => {
               feature="practitioner_directory"
               title="Consultations are for Glow Insider & VIP"
               message="Browse is reserved for members. Glow Insider unlocks the directory; Glow VIP includes a monthly virtual consult."
-              ctaLabel="View membership plans"
+              source="consultations_directory"
             >
               <div className="grid gap-6 md:grid-cols-2">
                 {practitioners.map((practitioner, index) => (

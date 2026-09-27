@@ -101,7 +101,13 @@ export type ConversionEvent =
   | "site_search_result_clicked"
   | "account_deactivated"
   | "account_deletion_requested"
-  | "routine_checkin_completed";
+  | "routine_checkin_completed"
+  // Free-first SKYNN AI formulator + rolling free-analysis allowance (2026-09-24).
+  | "formulator_started"
+  | "formulator_completed_anonymous"
+  | "signup_from_formulator"
+  | "reanalysis_blocked"
+  | "upgrade_clicked_from_formulator";
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

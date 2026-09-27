@@ -38,11 +38,8 @@ const AIFormulatorPage = () => {
         <Header />
         <main className="pt-20">
           <h1 className="sr-only">SKYNN AI (beta) — A Skincare Assessment Built for Every Skin Tone</h1>
-          <div className="container mx-auto px-4 py-6">
-            <AdSlot placement="ai-formulator-top" compact />
-          </div>
           <AIFormulator />
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4">
             <AdSlot placement="ai-formulator-bottom" />
           </div>
         </main>

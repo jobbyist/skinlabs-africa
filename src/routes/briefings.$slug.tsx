@@ -186,8 +186,6 @@ function BriefingPage() {
       </p>
       <p>{a.excerpt}</p>
 
-      <AdSlot placement="briefing-top" compact />
-
       <h2>Key takeaways</h2>
       <ul>
         {a.key_takeaways.map((k, i) => (
@@ -245,8 +243,6 @@ function BriefingPage() {
           </small>
         </p>
       )}
-
-      <AdSlot placement="briefing-bottom" compact />
 
       <AdSlotAutorelaxed placement="briefing-footer" compact />
     </main>

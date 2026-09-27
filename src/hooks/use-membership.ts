@@ -5,6 +5,18 @@ import type { BillingInterval, PlanId } from "@/data/plans";
 
 export type MembershipTier = "explorer" | "glow_lite" | "insider" | "vip";
 
+/**
+ * useMembership() is per-component state, not a shared context, so a trial
+ * started in one gate wouldn't unlock the others on the page. Anything that
+ * changes the signed-in member's plan (useStartTrial, checkout success) calls
+ * this, and every mounted useMembership() re-reads the profile.
+ */
+const MEMBERSHIP_UPDATED_EVENT = "skinlabs:membership-updated";
+
+export const notifyMembershipUpdated = () => {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(MEMBERSHIP_UPDATED_EVENT));
+};
+
 interface ProfileMembershipRow {
   subscription_status: string | null;
   billing_interval: string | null;
@@ -48,6 +60,12 @@ export const useMembership = () => {
   const [isProfessional, setIsProfessional] = useState(false);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
+
+  useEffect(() => {
+    const onUpdated = () => setNonce((n) => n + 1);
+    window.addEventListener(MEMBERSHIP_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(MEMBERSHIP_UPDATED_EVENT, onUpdated);
+  }, []);
 
   useEffect(() => {
     let active = true;

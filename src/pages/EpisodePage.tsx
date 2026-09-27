@@ -177,8 +177,6 @@ const EpisodePage = () => {
               </div>
             </section>
 
-            <AdSlot placement="episode-mid-2" compact />
-
             {episode.productsMentioned.length > 0 && (
               <section>
                 <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Products mentioned</h2>
@@ -206,6 +204,8 @@ const EpisodePage = () => {
                 locked={!isMember}
                 title="Transcripts are member-only"
                 message="Glow Insider and Glow VIP members get full transcripts and searchable show notes for every episode."
+                feature="podcast.full_library"
+                source="podcast_transcript_gate"
               >
                 <div className="space-y-1">
                   {episode.transcript.map((line, index) => {

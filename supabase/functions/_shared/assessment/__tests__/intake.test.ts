@@ -1,5 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { jsPDF } from "jspdf";
+
+// Another suite (src/lib/formulator/__tests__/handoff.test.ts) leaves a
+// minimal `window` stub on globalThis; jsPDF's node build reads atob/btoa
+// off `window` when one exists, so give any stub the real ones before a
+// dynamic import (static imports would be hoisted above this).
+const stubWindow = (globalThis as { window?: Record<string, unknown> }).window;
+if (stubWindow && typeof stubWindow.atob !== "function") {
+  stubWindow.atob = globalThis.atob.bind(globalThis);
+  stubWindow.btoa = globalThis.btoa.bind(globalThis);
+}
+const { jsPDF } = await import("jspdf");
 
 import { computeDeterministicScores } from "../scoring/index.ts";
 import { computeDeterministicTriage } from "../safety.ts";

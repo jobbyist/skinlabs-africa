@@ -33,7 +33,7 @@ const RelatedKnowledgeHub = ({
           <Link
             key={entry.id}
             to={`/knowledge-hub/${entry.slug}`}
-            className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            className="group flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm card-interactive hover:border-primary/40"
           >
             <span className="text-xs font-medium uppercase tracking-wider text-primary">
               Knowledge Hub

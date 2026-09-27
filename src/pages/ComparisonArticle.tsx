@@ -167,7 +167,8 @@ const ComparisonArticle = () => {
           locked={locked}
           title="Monthly free comparison limit reached"
           message="Glow Explorer and signed-out visitors can open 2 Shelf Showdowns per month. Upgrade for unlimited access."
-          ctaLabel="View membership plans"
+          feature="comparisons.unlimited"
+          source="shelf_showdown_limit"
         >
         <article className="container mx-auto max-w-3xl px-4">
           <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

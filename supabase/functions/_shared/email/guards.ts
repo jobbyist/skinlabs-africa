@@ -34,10 +34,21 @@ const guards: Record<string, GuardFn> = {
       .eq("user_id", job.user_id)
       .maybeSingle();
     if (error || !data) return { send: false, reason: "profile not found" };
-    if (String(data.subscription_status ?? "").toLowerCase() !== "trial" || data.trial_plan !== "insider") {
+    if (String(data.subscription_status ?? "").toLowerCase() !== "trial" || !data.trial_plan) {
       return { send: false, reason: "trial is no longer active (converted or cancelled before reminder sent)" };
     }
-    return { send: true, vars: { trial_ends_at: data.trial_ends_at } };
+    // Re-read the payment state too: a member may add or cancel auto-renew
+    // between the cron's fan-out and this send, and the copy differs.
+    const { data: subs, error: subsError } = await supabase
+      .from("payment_subscriptions")
+      .select("id")
+      .eq("user_id", job.user_id)
+      .in("status", ["trialing", "active", "past_due"])
+      .limit(1);
+    const vars: Record<string, unknown> = { trial_ends_at: data.trial_ends_at, plan: data.trial_plan };
+    // On a read error, drop the flag so the template makes no charge promise either way.
+    vars.has_payment_method = subsError ? undefined : (subs ?? []).length > 0;
+    return { send: true, vars };
   },
 
   trial_ended: async (supabase, job) => {

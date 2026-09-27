@@ -51,4 +51,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "Privacy Policy", description: "How SkinLabs handles your data", href: "/privacy-policy" },
   { title: "Terms of Service", description: "SkinLabs' terms of service", href: "/terms-of-service" },
   { title: "Cookie Policy", description: "SkinLabs' cookie policy", href: "/cookie-policy" },
+  { title: "Advertising & Sponsored Content Policy", description: "How SkinLabs handles commercial relationships, disclosures and advertising standards", href: "/advertising-policy", keywords: "advertising sponsored content disclosure policy" },
+  { title: "Correction & Removal Requests", description: "Request a correction or removal of reviews, directory listings, brand profiles or editorial content", href: "/corrections-removals", keywords: "corrections removal request takedown" },
+  { title: "Ingredient Combination Checker", description: "Check whether two skincare ingredients are safe to combine, backed by cited sources", href: "/ingredients/checker", keywords: "ingredient checker combine compatibility conflict" },
 ];

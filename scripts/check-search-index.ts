@@ -34,6 +34,13 @@ const KNOWN_EXCLUSIONS = new Set([
   // Personal, per-user wishlist (empty for guests, no independent content) — same
   // treatment as /dashboard.
   "/marketplace/saved",
+  // Utility step of the password-recovery email flow, not content.
+  "/reset-password",
+  // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
+  "/quote-ss-beauty",
+  // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached
+  // from /skynn-ai, the dashboard and emails rather than site search.
+  "/skynn-ai/advanced",
 ]);
 
 interface RouteEntry {

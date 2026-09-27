@@ -13,6 +13,7 @@ import { membershipPlans } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { cn } from "@/lib/utils";
 import { buildOrganizationJsonLd } from "@/lib/seo-config";
+import { withPromoTrialCopy } from "@/lib/promo";
 
 const About = () => {
   const location = useLocation();
@@ -337,7 +338,7 @@ const About = () => {
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Platform Features</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     {keyFeatures.map((feature, index) => (
-                      <div key={index} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                      <div key={index} className="bg-card border border-border rounded-2xl p-6">
                         <div className="flex items-start gap-4 mb-4">
                           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
                             {feature.icon}
@@ -530,7 +531,7 @@ const About = () => {
                           </span>
                         )}
                         <h3 className="font-heading text-xl font-bold text-foreground">{plan.name}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{withPromoTrialCopy(plan.tagline)}</p>
                         <div className="mt-6 flex items-end gap-1">
                           <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.priceMonthly}</span>
                           <span className="pb-1 text-sm text-muted-foreground">/month</span>
@@ -539,7 +540,7 @@ const About = () => {
                           {plan.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                               <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              {linkifyMoneyBackGuarantee(feature)}
+                              {linkifyMoneyBackGuarantee(withPromoTrialCopy(feature))}
                             </li>
                           ))}
                         </ul>

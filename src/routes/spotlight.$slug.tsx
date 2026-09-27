@@ -14,6 +14,7 @@ import { spotlightComments } from '@/data/articleComments'
 import { useEntitlements } from '@/hooks/use-entitlements'
 import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from '@/lib/access-quotas'
 import GatedOverlay from '@/components/GatedOverlay'
+import SsrConversionShell from '@/components/SsrConversionShell'
 import BrandLogo from '@/components/BrandLogo'
 import BrandRequestModal from '@/components/BrandRequestModal'
 import ArticleComments from '@/components/ArticleComments'
@@ -135,12 +136,14 @@ function SpotlightBrandPage() {
 
   return (
     <MemoryRouter initialEntries={[`/spotlight/${entry.slug}`]}>
+      <SsrConversionShell />
       <main>
         <GatedOverlay
           locked={locked}
           title="Monthly free profile limit reached"
           message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Upgrade to Glow Insider or Glow VIP for unlimited access.`}
-          ctaLabel="View membership plans"
+          feature="spotlight.full_profiles"
+          source="spotlight_limit_ssr"
         >
           <Link to="/spotlight">All of Spotlight</Link>
 

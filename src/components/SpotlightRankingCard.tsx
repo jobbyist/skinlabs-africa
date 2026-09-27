@@ -19,7 +19,7 @@ const SpotlightRankingCard = ({ entry, compact = false }: SpotlightRankingCardPr
   const likeCount = (seededBrandLikes[entry.slug] ?? 0) + (liked ? 1 : 0);
 
   return (
-    <div className="flex flex-col rounded-3xl border border-border bg-card p-5 transition-colors hover:border-primary">
+    <div className="flex flex-col rounded-3xl border border-border bg-card p-5 transition-colors hover:border-foreground/30">
       <div className="flex items-start gap-3">
         {entry.rank !== null ? (
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">

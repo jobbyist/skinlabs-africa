@@ -12,7 +12,6 @@ import { productReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl, absoluteUrl } from '@/lib/seo/canonical'
 import { productReviewTitle } from '@/lib/seo-config'
-import { getMemberRatingStats } from '@/lib/memberRatings'
 import {
   productReviews,
   overallScore,
@@ -34,9 +33,16 @@ import RelatedKnowledgeHub from '@/components/RelatedKnowledgeHub'
 import AdSlot from '@/components/AdSlot'
 import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
-import GatedOverlay from '@/components/GatedOverlay'
+import GatedOverlay, { SeeAllPlansLink } from '@/components/GatedOverlay'
+import SsrConversionShell from '@/components/SsrConversionShell'
+import CommentHandleDialog from '@/components/comments/CommentHandleDialog'
+import { useCommentHandle } from '@/hooks/use-comment-handle'
+import { openSignupDialog } from '@/lib/conversionDialogs'
+import { currentReturnTo, setPendingIntent } from '@/lib/pendingIntent'
+import { useConversionAction } from '@/hooks/use-conversion-action'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { trialLength } from '@/lib/promo'
 
 // Production SSR route for /reviews/:slug -- the second content type
 // migrated to TanStack Start after Briefings (see
@@ -113,6 +119,8 @@ interface ReviewPageData {
   image: CategoryImage | null
   relatedReviews: ProductReview[]
   ingredientBreakdown: IngredientBreakdownEntry[]
+  /** Real `review_ratings` aggregate (1-5), null when nobody has rated yet. */
+  communityRating: { average: number; count: number } | null
 }
 
 const fetchReview = createServerFn({ method: 'GET' })
@@ -167,7 +175,18 @@ const fetchReview = createServerFn({ method: 'GET' })
     // uses client-side, just given the SSR Supabase client instead of the browser one.
     const ingredientBreakdown = await fetchIngredientBreakdown(supabase, review.key_ingredients)
 
-    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown } }
+    // Real community ratings only -- the single source for the JSON-LD
+    // aggregateRating. Best-effort: a failed read just omits aggregateRating.
+    const { data: ratingRows } = await supabase
+      .from('review_ratings')
+      .select('rating')
+      .eq('review_id', review.id)
+      .not('rating', 'is', null)
+    const ratings = (ratingRows ?? []).map((r) => Number(r.rating)).filter((n) => Number.isFinite(n) && n >= 1 && n <= 5)
+    const communityRating =
+      ratings.length > 0 ? { average: ratings.reduce((a, b) => a + b, 0) / ratings.length, count: ratings.length } : null
+
+    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown, communityRating } }
   })
 
 export const Route = createFileRoute('/reviews/$slug')({
@@ -178,10 +197,9 @@ export const Route = createFileRoute('/reviews/$slug')({
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {}
-    const { review, image } = loaderData
+    const { review, image, communityRating } = loaderData
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
-    const memberStats = getMemberRatingStats(review)
     // Prefer the pipeline's stored seo_title/seo_description (same formula, computed
     // server-side at publish/backfill time) so this SSR route's initial HTML matches
     // what ProductReview.tsx renders after hydration.
@@ -204,13 +222,12 @@ export const Route = createFileRoute('/reviews/$slug')({
               offerCount: review.retailers.length,
             }
           : undefined,
-      memberRating: { average: memberStats.average, count: memberStats.count },
+      ...(communityRating ? { communityRating } : {}),
       ratingValue: score,
       // Prefer the pipeline's expanded review_body (see
       // supabase/functions/product-review-sync/index.ts's generateSupplementalFields())
       // when populated -- falls back to the short verdict otherwise.
       reviewBody: review.review_body ?? review.verdict,
-      reviewCount: 1,
     })
     const breadcrumb = breadcrumbJsonLd(
       siteBreadcrumbTrail([{ name: 'Reviews', path: '/reviews' }, { name: review.product_name, path }]),
@@ -249,6 +266,7 @@ function ReviewPage() {
   // auth session exists) and hydrates to the real state on mount.
   const { user } = useAuth()
   const { isMember, isVip } = useMembership()
+  const reviewAction = useConversionAction('reviews.full_body', 'product_review_cta_ssr')
 
   const [rating, setRating] = useState(0)
   const [liked, setLiked] = useState(false)
@@ -327,16 +345,27 @@ function ReviewPage() {
     setLiked(nextLiked)
   }
 
-  const postComment = async () => {
+  const commentHandle = useCommentHandle(user?.id)
+  const [handleDialogOpen, setHandleDialogOpen] = useState(false)
+
+  // Sign-up doesn't ask for a username, so the first comment asks for a
+  // public handle once (CommentHandleDialog), then posts with it.
+  const postComment = async (chosenHandle?: string) => {
     if (!body.trim()) return
     if (!user) {
-      toast.error('Sign in to join the discussion.')
+      setPendingIntent({ action: 'unlock', returnTo: currentReturnTo() })
+      openSignupDialog()
+      return
+    }
+    const displayName = chosenHandle ?? commentHandle.handle
+    if (!displayName) {
+      setHandleDialogOpen(true)
       return
     }
     setPosting(true)
     const { data, error } = await supabase
       .from('review_comments')
-      .insert({ user_id: user.id, review_id: review.id, display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member', body: body.trim() })
+      .insert({ user_id: user.id, review_id: review.id, display_name: displayName, body: body.trim() })
       .select('id, display_name, body, created_at')
       .single()
     setPosting(false)
@@ -353,6 +382,7 @@ function ReviewPage() {
 
   return (
     <MemoryRouter initialEntries={[`/reviews/${review.id}`]}>
+      <SsrConversionShell />
       <main>
         <nav aria-label="Breadcrumb">
           <a href="/">SkinLabs</a> {'> '}
@@ -445,18 +475,19 @@ function ReviewPage() {
           <Link to={`/marketplace/product/${marketplaceMatch.slug}`}>Sponsored — Also available on OpenHaus</Link>
         )}
 
-        <FaithfulToNature placement="product-review-shop" />
-
+        {/* Mirrors src/pages/ProductReview.tsx's ad placement — keep the two in sync. */}
         <RoutineBuilder anchor={review} isVip={isVip} />
 
-        <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+        <FaithfulToNature placement="product-review-shop" />
 
-        <AdSlot placement="product-review-mid" />
+        <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
 
         <GatedOverlay
           locked={!isMember}
           title="Unlock the full lab breakdown"
           message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
+          feature="reviews.full_body"
+          source="product_review_gate_ssr"
         >
           <div>
             <h2>The full breakdown</h2>
@@ -484,12 +515,16 @@ function ReviewPage() {
           </div>
         </GatedOverlay>
 
-        {!isMember && (
+        {!isMember && reviewAction.kind && (
           <div>
-            <p>Get every full breakdown, ingredient deep-dive included.</p>
-            <Button asChild>
-              <Link to="/pricing">Start my 7-day free trial</Link>
+            <p>
+              Get every full breakdown, ingredient deep-dive included.
+              {reviewAction.kind === 'trial' ? ` Try it free ${trialLength()} — no card required.` : ''}
+            </p>
+            <Button onClick={reviewAction.run} disabled={reviewAction.busy}>
+              {reviewAction.label}
             </Button>
+            <SeeAllPlansLink />
           </div>
         )}
 
@@ -500,13 +535,22 @@ function ReviewPage() {
           <Textarea
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder={user ? 'Share your experience with this product…' : 'Sign in to join the discussion'}
+            placeholder={user ? 'Share your experience with this product…' : 'Create a free account to join the discussion'}
             maxLength={2000}
             rows={3}
           />
-          <Button size="sm" onClick={postComment} disabled={posting || !body.trim()}>
+          <Button size="sm" onClick={() => void postComment()} disabled={posting || !body.trim() || commentHandle.loading}>
             {posting ? 'Posting…' : 'Post comment'}
           </Button>
+          <CommentHandleDialog
+            open={handleDialogOpen}
+            onOpenChange={setHandleDialogOpen}
+            saveHandle={commentHandle.saveHandle}
+            onSaved={(handle) => {
+              setHandleDialogOpen(false)
+              void postComment(handle)
+            }}
+          />
           {loading ? (
             <p>Loading discussion…</p>
           ) : displayComments.length === 0 ? (

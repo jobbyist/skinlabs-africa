@@ -77,30 +77,22 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
     },
   };
 
-  // Editorial aggregate rating (0-10 scale)
-  const editorialRating = {
-    "@type": "AggregateRating",
-    ratingValue: input.ratingValue,
-    bestRating: 10,
-    worstRating: 1,
-    reviewCount: input.reviewCount,
-  };
-
-  // If member ratings are available, include them as a second aggregateRating
-  // (1-5 scale, representing community voice)
-  if (input.memberRating) {
-    product.aggregateRating = [
-      editorialRating,
-      {
+  // At most ONE aggregateRating, and only from real community ratings.
+  // Google Search Console flagged "Review has multiple aggregate ratings" (in
+  // "review" and in "aggregateRating") when this emitted an array of two: an
+  // "editorial" aggregate built from our own single review (reviewCount 1 --
+  // self-serving, not an aggregate) plus a hash-generated member count from
+  // getMemberRatingStats(). Neither is allowed. The editorial verdict lives in
+  // `review` above; aggregateRating is community-only.
+  const community = input.communityRating;
+  if (community && community.count > 0 && Number.isFinite(community.average)) {
+    product.aggregateRating = {
       "@type": "AggregateRating",
-        ratingValue: input.memberRating.average,
-        bestRating: 5,
+      ratingValue: Number(community.average.toFixed(1)),
+      bestRating: 5,
       worstRating: 1,
-        reviewCount: input.memberRating.count,
-      },
-    ];
-  } else {
-    product.aggregateRating = editorialRating;
+      ratingCount: community.count,
+    };
   }
 
   if (!input.paywallCssSelector) {
@@ -186,10 +178,11 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
   if (input.communityRating !== undefined && input.communityReviewCount !== undefined && input.communityReviewCount > 0) {
     productData.aggregateRating = {
       "@type": "AggregateRating",
-      ratingValue: input.communityRating,
+      ratingValue: Number(input.communityRating.toFixed(1)),
       bestRating: 5, // Community uses 5-star scale
       worstRating: 1,
-      reviewCount: input.communityReviewCount,
+      // Star ratings without review text are counted by ratingCount, not reviewCount.
+      ratingCount: input.communityReviewCount,
     };
   }
 

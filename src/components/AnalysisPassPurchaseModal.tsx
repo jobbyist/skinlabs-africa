@@ -15,6 +15,8 @@ import { usePricingConfig } from "@/lib/pricing-config";
 import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
+import { notifyAnalysisPassesUpdated } from "@/hooks/use-analysis-passes";
+import { toast } from "sonner";
 
 interface AnalysisPassPurchaseModalProps {
   open: boolean;
@@ -52,6 +54,7 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
     const { error } = await startCreditPackCheckout(gateway, selectedPack.pack_id, config?.variantKey ?? "control");
     if (error) {
       setSubmitting(false);
+      toast.error(error.message);
     } else {
       setGatewayDialogOpen(false);
     }
@@ -118,6 +121,23 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
         open={gatewayDialogOpen}
         onOpenChange={(next) => !submitting && setGatewayDialogOpen(next)}
         onSelect={handleGatewaySelect}
+        paypal={
+          selectedPack
+            ? { purchaseType: "credit_pack", packId: selectedPack.pack_id, variantKey: config?.variantKey ?? "control" }
+            : undefined
+        }
+        onPaypalApproved={() => {
+          // Captured and granted server-side already — stay on the page.
+          if (selectedPack) {
+            trackConversionEvent("credit_pack_purchased", { packId: selectedPack.pack_id });
+            toast.success(
+              `Payment confirmed — ${selectedPack.credits} Analysis Pass${selectedPack.credits === 1 ? " is" : "es are"} ready to use.`,
+            );
+          }
+          notifyAnalysisPassesUpdated();
+          setGatewayDialogOpen(false);
+          onOpenChange(false);
+        }}
       />
     </Dialog>
   );

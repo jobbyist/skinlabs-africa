@@ -7,25 +7,36 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mail, KeyRound, Eye, EyeOff, ArrowLeft, Gift, CreditCard } from "lucide-react";
 import skinlabsLogoBlack from "@/assets/skinlabs-logo-black.svg";
 import skinlabsLogoWhite from "@/assets/skinlabs-logo-white.svg";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { AUTH_FLAGS } from "@/lib/auth-flags";
-import { getPendingPlanIntent, withPendingPlanParams, type PendingPlanIntent } from "@/lib/pendingPlan";
+import { getPendingIntent, isSafeReturnTo, withPendingIntentParams, type PendingIntent } from "@/lib/pendingIntent";
 import { getPlan } from "@/data/plans";
 import { cn } from "@/lib/utils";
+import { trialNoun } from "@/lib/promo";
+import { authDialogCopy, initialAuthTab } from "@/lib/authDialogCopy";
 
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Tab to open on. Omit it to let a pending intent decide: someone sent here
+   * from a gate or a "Create account" CTA lands on sign-up, anyone else on
+   * log in (see initialAuthTab()).
+   */
   defaultTab?: "signin" | "signup";
   /** Controlled tab, for callers (e.g. Header) that need to force a specific tab open. */
   mode?: "signin" | "signup";
   onModeChange?: (mode: "signin" | "signup") => void;
   onAuthenticated?: () => void;
+  /**
+   * Same-origin path (with query) to come back to after an OAuth redirect or an
+   * email-confirmation click. Defaults to the current pathname.
+   */
+  returnTo?: string;
 }
 
 type View = "signin" | "signup" | "forgot" | "forgot-sent";
@@ -41,10 +52,11 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 /** Plan/trial context banner — reflects a pending selection made on /pricing so the visitor never wonders why they're being asked to authenticate. */
-const PlanContextBanner = ({ intent }: { intent: PendingPlanIntent }) => {
-  const plan = getPlan(intent.plan);
+const PlanContextBanner = ({ intent }: { intent: PendingIntent }) => {
+  if (intent.action !== "trial" && intent.action !== "subscribe") return null;
+  const plan = intent.plan ? getPlan(intent.plan) : undefined;
   if (!plan) return null;
-  const isTrial = intent.kind === "trial" && plan.trialEligible && plan.trialDays;
+  const isTrial = intent.action === "trial" && plan.trialEligible && plan.trialDays;
   return (
     <div className="relative mb-4 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-left">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -52,7 +64,7 @@ const PlanContextBanner = ({ intent }: { intent: PendingPlanIntent }) => {
       </div>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-foreground">
-          {plan.name} {isTrial ? `· ${plan.trialDays}-day free trial` : ""}
+          {plan.name} {isTrial ? `· ${trialNoun(plan.trialDays)}` : ""}
         </p>
         <p className="text-xs text-muted-foreground">
           {isTrial
@@ -67,42 +79,56 @@ const PlanContextBanner = ({ intent }: { intent: PendingPlanIntent }) => {
 const AuthDialog = ({
   open,
   onOpenChange,
-  defaultTab = "signin",
+  defaultTab,
   mode,
   onModeChange,
   onAuthenticated,
+  returnTo,
 }: AuthDialogProps) => {
   const { signIn, signUp, signInWithGoogle, signInWithMagicLink, sendPasswordReset } = useAuth();
   const { resolvedTheme } = useTheme();
-  const [view, setView] = useState<View>(defaultTab);
+  const [view, setView] = useState<View>(() => initialAuthTab(mode, defaultTab, open ? getPendingIntent() : null));
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [magicLinkMode, setMagicLinkMode] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const pendingIntent = useMemo(() => (open ? getPendingPlanIntent() : null), [open]);
+  const pendingIntent = useMemo(() => (open ? getPendingIntent() : null), [open]);
   const tab: "signin" | "signup" = view === "signin" || view === "signup" ? view : "signin";
 
   useEffect(() => {
     if (!open) return;
-    setView(mode ?? defaultTab);
+    const initialTab = initialAuthTab(mode, defaultTab, pendingIntent);
+    setView(initialTab);
     setFormError(null);
     setMagicLinkMode(false);
     setMagicLinkSent(false);
-    trackConversionEvent("auth_started", { defaultTab: mode ?? defaultTab, hasPendingPlan: Boolean(pendingIntent) });
+    trackConversionEvent("auth_started", {
+      defaultTab: initialTab,
+      hasPendingPlan: Boolean(pendingIntent),
+      intent: pendingIntent?.action ?? "none",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const copy = authDialogCopy(pendingIntent, tab);
+
   const logo = resolvedTheme === "dark" ? skinlabsLogoWhite : skinlabsLogoBlack;
 
-  const oauthRedirect = () =>
-    withPendingPlanParams(`${window.location.origin}${window.location.pathname}`, pendingIntent);
+  // OAuth / email-confirmation redirect target: the pending intent's returnTo,
+  // else the caller's returnTo, else this page. Same-origin paths only — never
+  // an open redirect. The intent rides along in the URL (withPendingIntentParams)
+  // so <IntentResolver /> can resume it even in a new tab.
+  const oauthRedirect = () => {
+    const latest = getPendingIntent() ?? pendingIntent;
+    const path = latest?.returnTo ?? (isSafeReturnTo(returnTo) ? returnTo : window.location.pathname);
+    return withPendingIntentParams(`${window.location.origin}${path}`, latest);
+  };
 
   const handleGoogleSignIn = async () => {
     setFormError(null);
@@ -153,28 +179,16 @@ const AuthDialog = ({
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
-    const handle = username.trim();
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(handle)) {
-      setFormError("Username must be 3-20 characters: letters, numbers or underscores.");
-      return;
-    }
     if (password.length < 8) {
       setFormError("Password must be at least 8 characters.");
       return;
     }
     trackConversionEvent("signup_started", { method: "password" });
     setIsLoading(true);
-    const { data: available, error: checkError } = await supabase.rpc("is_username_available", {
-      p_username: handle,
-    });
-    if (checkError || available === false) {
-      setIsLoading(false);
-      const message = checkError ? "Could not check that username. Try again." : "That username is already taken.";
-      setFormError(message);
-      toast.error(message);
-      return;
-    }
-    const { error } = await signUp(email, password, handle, oauthRedirect(), marketingConsent);
+    // No username at sign-up: the profile trigger assigns a glow_xxxxxx
+    // placeholder, and the comment form asks for a real handle the first
+    // time it's needed (CommentHandlePrompt).
+    const { error } = await signUp(email, password, oauthRedirect(), marketingConsent);
     setIsLoading(false);
     if (error) {
       setFormError(error.message);
@@ -220,16 +234,12 @@ const AuthDialog = ({
             <img src={logo} alt="SkinLabs®" className="h-8 w-auto" />
             <DialogHeader className="space-y-1.5">
               <DialogTitle className="font-heading text-xl">
-                {view === "forgot" || view === "forgot-sent"
-                  ? "Reset your password"
-                  : tab === "signup"
-                    ? "Create your account"
-                    : "Log in to SkinLabs®"}
+                {view === "forgot" || view === "forgot-sent" ? "Reset your password" : copy.title}
               </DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
                 {view === "forgot" || view === "forgot-sent"
                   ? "We'll email you a secure link to set a new password."
-                  : "Save reviews, unlock full podcast episodes and build your AI routine — grounded in SA skin and climate."}
+                  : copy.description}
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -460,24 +470,6 @@ const AuthDialog = ({
 
                 <TabsContent value="signup" className="mt-0">
                   <form onSubmit={handleSignUp} className="space-y-4" noValidate>
-                    <div className="space-y-2">
-                      <Label htmlFor="username-signup">Username</Label>
-                      <Input
-                        id="username-signup"
-                        type="text"
-                        placeholder="glowseeker"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                        minLength={3}
-                        maxLength={20}
-                        pattern="[a-zA-Z0-9_]{3,20}"
-                        autoComplete="username"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Your unique public handle on comments. Letters, numbers and underscores only.
-                      </p>
-                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="email-signup">Email</Label>
                       <Input

@@ -13,10 +13,10 @@ import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import AdSlot from "@/components/AdSlot";
-import AffiliateBanner from "@/components/AffiliateBanner";
 import FaithfulToNature from "@/components/FaithfulToNature";
 
 const PAGE_SIZE = 6;
+const REVIEWS_PER_AD_BREAK = 3;
 
 const ScoreBar = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-1">
@@ -253,17 +253,18 @@ const ReviewsGrid = ({
         </motion.div>,
       );
 
-      if ((index + 1) % 3 === 0 && index < pageItems.length - 1) {
-        const adIndex = Math.floor(index / 3);
+      // A single unit mid-page (after the first row of 3 on desktop), never a
+      // stack of several — alternating AdSense and the Faithful to Nature
+      // partner banner from one page to the next.
+      if ((index + 1) % REVIEWS_PER_AD_BREAK === 0 && index < pageItems.length - 1) {
+        const adIndex = Math.floor(index / REVIEWS_PER_AD_BREAK);
         nodes.push(
-          <div key={`ad-row-${adIndex}`} className="col-span-full space-y-4 py-4">
-            {adIndex % 2 === 0 ? (
-              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact />
+          <div key={`ad-row-${adIndex}`} className="col-span-full">
+            {(page + adIndex) % 2 === 1 ? (
+              <AdSlot placement={`reviews-grid-${adIndex}`} compact />
             ) : (
-              <AffiliateBanner placement={`reviews-grid-${adIndex}`} compact />
+              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact />
             )}
-            <AdSlot placement={`reviews-grid-slot-a-${adIndex}`} compact />
-            <AdSlot placement={`reviews-grid-slot-b-${adIndex}`} compact />
           </div>,
         );
       }

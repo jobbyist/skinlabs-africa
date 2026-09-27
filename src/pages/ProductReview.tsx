@@ -7,7 +7,12 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import GatedOverlay from "@/components/GatedOverlay";
+import GatedOverlay, { SeeAllPlansLink } from "@/components/GatedOverlay";
+import CommentHandleDialog from "@/components/comments/CommentHandleDialog";
+import { useCommentHandle } from "@/hooks/use-comment-handle";
+import { openSignupDialog } from "@/lib/conversionDialogs";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -40,6 +45,7 @@ import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { trialLength } from "@/lib/promo";
 
 interface CommentRow {
   id: string;
@@ -66,9 +72,12 @@ const ProductReview = () => {
   const { data: ingredientBreakdown } = useIngredientBreakdown(review?.key_ingredients ?? []);
 
   const [rating, setRating] = useState(0);
+  const reviewAction = useConversionAction("reviews.full_body", "product_review_cta");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
+  // Real `review_ratings` rows only (avgRating above may be a seeded display value).
+  const [realRatingStats, setRealRatingStats] = useState<{ average: number; count: number } | null>(null);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
@@ -128,6 +137,8 @@ const ProductReview = () => {
       const rows = ratings ?? [];
       setLikeCount(rows.length > 0 ? rows.filter((r) => r.liked).length : getSeededLikeCount(review.id));
       setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : getSeededAverageRating(review.id));
+      const rated = rows.map((r) => r.rating).filter((n): n is number => typeof n === "number" && n >= 1 && n <= 5);
+      setRealRatingStats(rated.length > 0 ? { average: rated.reduce((a, b) => a + b, 0) / rated.length, count: rated.length } : null);
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
       setRating(mine?.rating ?? 0);
       setLiked(Boolean(mine?.liked));
@@ -139,6 +150,9 @@ const ProductReview = () => {
       active = false;
     };
   }, [review, user]);
+
+  const commentHandle = useCommentHandle(user?.id);
+  const [handleDialogOpen, setHandleDialogOpen] = useState(false);
 
   if (!review) {
     return (
@@ -173,21 +187,24 @@ const ProductReview = () => {
     setLiked(nextLiked);
   };
 
-  const postComment = async () => {
+  // Sign-up doesn't ask for a username, so the first comment asks for a
+  // public handle once (CommentHandleDialog), then posts with it.
+  const postComment = async (chosenHandle?: string) => {
     if (!body.trim()) return;
     if (!user) {
-      toast.error("Sign in to join the discussion.");
+      setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
+      openSignupDialog();
+      return;
+    }
+    const displayName = chosenHandle ?? commentHandle.handle;
+    if (!displayName) {
+      setHandleDialogOpen(true);
       return;
     }
     setPosting(true);
     const { data, error } = await supabase
       .from("review_comments")
-      .insert({
-        user_id: user.id,
-        review_id: review.id,
-        display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Member",
-        body: body.trim(),
-      })
+      .insert({ user_id: user.id, review_id: review.id, display_name: displayName, body: body.trim() })
       .select("id, display_name, body, created_at")
       .single();
     setPosting(false);
@@ -235,11 +252,12 @@ const ProductReview = () => {
         // when the pipeline has populated it -- falls back to the short verdict for the
         // static catalogue and for any AI review not yet backfilled.
         reviewBody: review.review_body ?? review.verdict,
-        // Only include community rating if we have real member ratings (not seeded)
-        ...(avgRating && comments.length > 0
+        // Single aggregateRating from REAL review_ratings rows only -- never the
+        // seeded display average, and counted by ratings (not comments).
+        ...(realRatingStats
           ? {
-              communityRating: avgRating,
-              communityReviewCount: comments.length,
+              communityRating: realRatingStats.average,
+              communityReviewCount: realRatingStats.count,
             }
           : {}),
       }),
@@ -414,9 +432,7 @@ const ProductReview = () => {
 
           <SkinLabsPromiseBadge className="mt-6" />
 
-          <div className="my-8">
-            <AdSlot placement="product-review-top" compact />
-          </div>
+          <AdSlot placement="product-review-top" compact />
 
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
@@ -458,17 +474,13 @@ const ProductReview = () => {
             </Link>
           )}
 
-          <div className="my-8">
-            <FaithfulToNature placement="product-review-shop" />
-          </div>
-
+          {/* Partner banner sits after the routine builder, not straight after
+              "Where to buy" + the OpenHaus link, so commercial units never cluster. */}
           <RoutineBuilder anchor={review} isVip={isVip} />
 
-          <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+          <FaithfulToNature placement="product-review-shop" />
 
-          <div className="my-8">
-            <AdSlot placement="product-review-mid" />
-          </div>
+          <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
 
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -496,6 +508,8 @@ const ProductReview = () => {
               locked={!isMember}
               title="Unlock the full lab breakdown"
               message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
+              feature="reviews.full_body"
+              source="product_review_gate"
             >
               <div className="space-y-4 rounded-3xl border border-border bg-card p-6">
                 <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown</h2>
@@ -537,34 +551,46 @@ const ProductReview = () => {
             </GatedOverlay>
           </div>
 
-          {!isMember && (
+          {!isMember && reviewAction.kind && (
             <div className="mt-6 rounded-3xl border border-primary/30 bg-primary/5 p-6 text-center">
               <p className="font-heading text-lg font-bold text-foreground">Get every full breakdown, ingredient deep-dive included</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Glow Insider members read every product's full lab breakdown, not just the score. Try it free for 7 days — no card required.
+                Glow Insider members read every product's full lab breakdown, not just the score.
+                {reviewAction.kind === "trial" ? ` Try it free ${trialLength()} — no card required.` : ""}
               </p>
-              <Button asChild className="mt-4">
-                <Link to="/pricing">Start my 7-day free trial</Link>
-              </Button>
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <Button onClick={reviewAction.run} disabled={reviewAction.busy} className="gap-2">
+                  {reviewAction.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {reviewAction.label}
+                </Button>
+                <SeeAllPlansLink />
+              </div>
             </div>
           )}
 
-          <div className="my-8">
-            <AdSlotAutorelaxed placement="product-review-discussion" compact />
-          </div>
+          <AdSlotAutorelaxed placement="product-review-discussion" compact />
 
           <div className="mt-10 space-y-3">
             <h2 className="font-heading text-lg font-bold text-foreground">Member discussion</h2>
             <Textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              placeholder={user ? "Share your experience with this product…" : "Sign in to join the discussion"}
+              placeholder={user ? "Share your experience with this product…" : "Create a free account to join the discussion"}
               maxLength={2000}
               rows={3}
             />
-            <Button size="sm" onClick={postComment} disabled={posting || !body.trim()}>
+            <Button size="sm" onClick={() => void postComment()} disabled={posting || !body.trim() || commentHandle.loading}>
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post comment"}
             </Button>
+            <CommentHandleDialog
+              open={handleDialogOpen}
+              onOpenChange={setHandleDialogOpen}
+              saveHandle={commentHandle.saveHandle}
+              onSaved={(handle) => {
+                setHandleDialogOpen(false);
+                void postComment(handle);
+              }}
+            />
 
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading discussion…</p>

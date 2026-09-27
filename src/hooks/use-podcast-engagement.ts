@@ -94,14 +94,15 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
         return next;
       });
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (currently) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any)
             .from("podcast_likes")
             .delete()
             .eq("user_id", user.id)
             .eq("episode_slug", episode.slug);
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from("podcast_likes").insert({
             user_id: user.id,
             episode_slug: episode.slug,

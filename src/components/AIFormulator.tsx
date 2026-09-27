@@ -57,6 +57,9 @@ import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
 import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
+import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
+import ReanalysisLockedPanel from "@/components/ai-formulator/ReanalysisLockedPanel";
+import { summarizeStarterResult } from "@/lib/formulator/summary";
 import { MST_SCALE } from "@/data/mstScale";
 import { QUESTIONS } from "@/data/quiz";
 import { CHANGE_QUESTION } from "@/data/starter-analysis/contextQuestions";
@@ -65,6 +68,7 @@ import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { logFairnessEvent } from "@/lib/skynnFairness";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
+import { getPendingIntent, setPendingIntent, withPendingIntentParams } from "@/lib/pendingIntent";
 import { assembleStarterAnalysisResult } from "@/lib/starter-analysis/resultEngine";
 import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
 import {
@@ -77,6 +81,7 @@ import {
   loadCompletedState,
   loadDraftState,
   persistStarterResultToAccount,
+  removeAnalysisPhoto,
   saveCompletedState,
   saveDraftState,
   uploadAnalysisPhoto,
@@ -95,10 +100,12 @@ import type {
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
 // Funnel: Intro -> Consent -> Photo -> MST -> Quiz questions -> What Changed ->
-// Routine preference -> Analysis -> Results. Anonymous visitors can reach
-// Results without ever creating an account — "save my results" (account
-// creation) only ever appears AFTER results are shown, as an optional upgrade
-// path, never a gate in front of the analysis itself.
+// Routine preference -> Analysis -> Results. Anonymous visitors complete the
+// whole quiz with no account and get a real summary (skin type + top two
+// concerns, plus the starter PDF); the full on-screen analysis and routine are
+// unlocked by a free sign-up that attaches this same result — no re-quiz.
+// Signed-in Explorer/Lite accounts get one free analysis per rolling 30 days
+// (FORMULATOR_LIMITS), enforced server-side by save_starter_analysis().
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
@@ -123,6 +130,7 @@ const AIFormulator = () => {
   const { isMember } = useMembership();
   const { can: canEntitlement } = useEntitlements();
   const { balance: passBalance, loading: passBalanceLoading, refresh: refreshPassBalance } = useAnalysisPassBalance();
+  const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [skinImage, setSkinImage] = useState<string | null>(null);
@@ -137,7 +145,9 @@ const AIFormulator = () => {
   const [resultsSaved, setResultsSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveAttempt, setSaveAttempt] = useState(0);
-  const [saveCtaDismissed, setSaveCtaDismissed] = useState(false);
+  /** Server refused the save: free allowance spent and no Analysis Pass held. */
+  const [saveLimitReached, setSaveLimitReached] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<Date | null>(null);
   const [consentData, setConsentData] = useState(false);
   const [consentMst, setConsentMst] = useState(false);
   const [consentTerms, setConsentTerms] = useState(false);
@@ -285,8 +295,11 @@ const AIFormulator = () => {
       return false;
     }
     if (quotaAllowed === false) {
-      setAnalysisError("You've used this week's AI analysis — your next one unlocks in a few days.");
-      return false;
+      // Insider/VIP have unlimited starter re-analysis (FORMULATOR_LIMITS) —
+      // when this week's live AI report is spent, fall back to that instead of
+      // a dead end.
+      toast.message("You've used this week's live AI report — here's your updated starter analysis instead.");
+      return runStarterAnalysis();
     }
     return invokeAdvancedAnalysis();
   };
@@ -334,24 +347,23 @@ const AIFormulator = () => {
    * photo-aware report, not "the rest of this same result."
    */
   const runStarterAnalysis = async (): Promise<boolean> => {
-    // Anonymous visitors are never metered here (there's no account to meter
-    // against, and the top of funnel should stay frictionless). A signed-in
-    // free/Glow Lite account gets a configurable free allowance, then can
-    // spend a purchased AI-analysis credit — claim_starter_analysis() is the
-    // single, server-side source of truth for both, so this can't be
-    // bypassed by a stale or tampered client state.
-    if (user) {
-      const { data, error } = await supabase.rpc("claim_starter_analysis", {
+    // Anonymous visitors are never metered (there's no account to meter, and
+    // the top of the funnel stays frictionless). For a signed-in Explorer/Lite
+    // account this is a read-only pre-check so nobody sits through the loader
+    // just to be told no; the real enforcement is save_starter_analysis() when
+    // the result is saved below (a tampered client can't skip that).
+    if (user && !isMember) {
+      const { data, error } = await supabase.rpc("get_formulator_allowance", {
         p_variant_key: getPersistedPricingVariant(),
       });
-      const result = Array.isArray(data) ? data[0] : data;
+      const status = Array.isArray(data) ? data[0] : data;
       if (error) {
         setAnalysisError("Couldn't check your analysis allowance — please try again.");
         return false;
       }
-      if (!result?.allowed) {
+      if (status && !status.unlimited && (status.free_remaining ?? 0) <= 0 && (status.pass_balance ?? 0) <= 0) {
         setAllowanceExhausted(true);
-        trackConversionEvent("advanced_assessment_access_denied", { reason: "free_allowance_exhausted" });
+        setLockedUntil(status.next_unlock_at ? new Date(status.next_unlock_at) : null);
         return false;
       }
     }
@@ -373,6 +385,7 @@ const AIFormulator = () => {
     setGroundedRoutine(result.groundedRoutine);
     setCompleteness(result.completeness);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
+    if (!user) trackConversionEvent("formulator_completed_anonymous", { skinType: result.skinType });
     void logFairnessEvent({
       source: "starter",
       resultTier: "free",
@@ -510,21 +523,33 @@ const AIFormulator = () => {
           const upload = await uploadAnalysisPhoto({ userId: user.id, analysisId, dataUrl: skinImage });
           photoStoragePath = upload.path;
         }
-        const { error } = await persistStarterResultToAccount({
-          userId: user.id,
+        const outcome = await persistStarterResultToAccount({
           result: starterResult,
           contactName: contactName || null,
           contactWhatsApp: contactWhatsApp || null,
           photoStoragePath,
+          variantKey: getPersistedPricingVariant(),
         });
         savingResultsRef.current = false;
-        if (error) {
-          setSaveError(error.message);
-          trackConversionEvent("starter_account_link_failed", { message: error.message });
+        if (outcome.limitReached) {
+          // Server refused: free allowance spent, no Analysis Pass. Don't keep a
+          // photo for an analysis that was never saved.
+          if (photoStoragePath) void removeAnalysisPhoto(photoStoragePath);
+          setSaveLimitReached(true);
+          setLockedUntil(outcome.nextUnlockAt);
+          void refreshAllowance();
+          return;
+        }
+        if (outcome.error) {
+          setSaveError(outcome.error.message);
+          trackConversionEvent("starter_account_link_failed", { message: outcome.error.message });
           return;
         }
         setSaveError(null);
+        setSaveLimitReached(false);
         trackConversionEvent("starter_account_link_completed");
+        if (outcome.source === "analysis_pass") void refreshPassBalance();
+        void refreshAllowance();
       }
       setResultsSaved(true);
       trackConversionEvent("results_saved", { resultTier });
@@ -593,6 +618,10 @@ const AIFormulator = () => {
   const handleStartAnalysis = (options?: { useAdvancedPass?: boolean }) => {
     useAdvancedPassRef.current = Boolean(options?.useAdvancedPass);
     trackConversionEvent("analysis_started", options?.useAdvancedPass ? { advancedPass: true } : undefined);
+    trackConversionEvent("formulator_started", {
+      accountState: user ? (isMember ? "member" : "free") : "anonymous",
+      ...(options?.useAdvancedPass ? { advancedPass: true } : {}),
+    });
     setStep(STEP_CONSENT);
   };
 
@@ -617,16 +646,36 @@ const AIFormulator = () => {
     e.preventDefault();
     setIsAuthSubmitting(true);
     if (authMode === "signup") trackConversionEvent("signup_started", { source: "ai_formulator_results" });
-    const { error } =
-      authMode === "signup" ? await signUp(contactEmail, authPassword) : await signIn(contactEmail, authPassword);
+    // Email confirmation lands back here (not the homepage), where the saved
+    // local result is restored and attached to the new account automatically.
+    // The save_analysis intent keeps <IntentResolver /> from routing the new
+    // account elsewhere, and rides in the confirmation link for a new tab.
+    setPendingIntent({ action: "save_analysis", returnTo: "/skynn-ai" });
+    const response =
+      authMode === "signup"
+        ? await signUp(
+            contactEmail,
+            authPassword,
+            withPendingIntentParams(`${window.location.origin}/skynn-ai`, getPendingIntent()),
+          )
+        : await signIn(contactEmail, authPassword);
+    const { error } = response;
     setIsAuthSubmitting(false);
     if (error) {
       toast.error(error.message);
       if (authMode === "signup") trackConversionEvent("starter_account_creation_failed", { message: error.message });
       return;
     }
-    if (authMode === "signup") trackConversionEvent("signup_completed", { source: "ai_formulator_results" });
-    toast.success(authMode === "signup" ? "Account created — saving your results..." : "Welcome back.");
+    if (authMode === "signup") {
+      trackConversionEvent("signup_completed", { source: "ai_formulator_results" });
+      trackConversionEvent("signup_from_formulator", { hasResult: Boolean(starterResult) });
+    }
+    const needsConfirmation = authMode === "signup" && !(response.data as { session?: unknown } | null)?.session;
+    if (needsConfirmation) {
+      toast.success("Check your email to confirm your account — your results are kept on this device and will be saved as soon as you confirm.");
+    } else {
+      toast.success(authMode === "signup" ? "Account created — saving your results..." : "Welcome back.");
+    }
   };
 
   const handleShareResults = async () => {
@@ -691,7 +740,9 @@ const AIFormulator = () => {
     setGroundedRoutine(null);
     setResultsSaved(false);
     setSaveError(null);
-    setSaveCtaDismissed(false);
+    setSaveLimitReached(false);
+    setLockedUntil(null);
+    setAllowanceExhausted(false);
     setConsentData(false);
     setConsentMst(false);
     setConsentTerms(false);
@@ -818,6 +869,12 @@ const AIFormulator = () => {
 
   const mstSwatch = mstTone !== null ? MST_SCALE.find((s) => s.level === mstTone) : null;
 
+  // Anonymous visitors see the summary + a free sign-up; a signed-in account
+  // sees everything unless the server refused to save (allowance spent).
+  const showFullResult = resultTier === "premium" || isMember || (Boolean(user) && !saveLimitReached);
+  const starterSummary = starterResult ? summarizeStarterResult(starterResult) : null;
+  const introLocked = Boolean(user && !isMember && allowance?.locked);
+
   return (
     <>
       <section id="skynn-ai" className="py-20 bg-background">
@@ -831,8 +888,8 @@ const AIFormulator = () => {
                   <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-full text-xs font-medium mb-3">
-                    <Shield className="h-3.5 w-3.5 text-primary" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
+                    <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
                       Starter Analysis, no card required, no account required •
                       <a href="/pricing" className="text-primary hover:underline ml-1">Unlock deeper personalisation with a live AI Dermatology Report</a>
@@ -850,9 +907,7 @@ const AIFormulator = () => {
             >
               {step === STEP_INTRO && (
                 <>
-                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-purple-500/20 blur-3xl pointer-events-none" />
-                  <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none" />
-                  <div className="absolute right-1/3 top-1/4 h-40 w-40 rounded-full bg-pink-500/10 blur-3xl pointer-events-none" />
+                  <div className="absolute -right-16 -bottom-24 h-72 w-72 rounded-full bg-purple-500/20 dark:bg-purple-500/10 blur-3xl pointer-events-none" aria-hidden="true" />
                 </>
               )}
 
@@ -870,6 +925,17 @@ const AIFormulator = () => {
                 <StepperHeader phase={stepPhase(step)} />
               )}
 
+              {/* Keyed per step so each step's content fades/rises in, marking what
+                  changed; the results reveal gets a slightly longer, larger
+                  entrance. Stepper/progress/footer sit outside so they don't
+                  re-animate. Reduced motion collapses animate-in globally. */}
+              <div
+                key={step}
+                className={cn(
+                  "animate-in fade-in-0 ease-out",
+                  step === STEP_RESULTS ? "slide-in-from-bottom-2 duration-300" : "slide-in-from-bottom-1 duration-200",
+                )}
+              >
               {step === STEP_INTRO && (
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
@@ -879,31 +945,48 @@ const AIFormulator = () => {
                     <span className="text-background/60 font-medium">SkinLabs®</span>
                   </div>
                   <div className="space-y-4">
-                    <h3 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
+                    <h2 className="text-3xl md:text-4xl font-heading font-bold leading-tight">
                       Your skin.
                       <br />
                       <span className="gradient-text">Smarter care.</span>
-                    </h3>
+                    </h2>
                     <p className="text-background/70 max-w-md">
                       AI-powered skin assessment and personalised routine formulation, built for every skin tone.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     {[
-                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400" },
-                      { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400" },
-                      { icon: ShieldCheck, label: "Dermatologist reviewed", tint: "bg-purple-500/15 text-purple-400" },
-                      { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400" },
+                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400 dark:text-emerald-700" },
+                      { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400 dark:text-blue-700" },
+                      { icon: ShieldCheck, label: "Dermatologist-grounded research", tint: "bg-purple-500/15 text-purple-400 dark:text-purple-700" },
+                      { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400 dark:text-pink-700" },
                     ].map(({ icon: Icon, label, tint }) => (
                       <div key={label} className="flex items-center gap-3">
                         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", tint)}>
-                          <Icon className="h-4 w-4" />
+                          <Icon className="h-4 w-4" aria-hidden="true" />
                         </span>
                         <span className="text-sm font-medium text-background/90">{label}</span>
                       </div>
                     ))}
                   </div>
+                  {introLocked && (
+                    <ReanalysisLockedPanel
+                      nextUnlockAt={allowance?.nextUnlockAt ?? null}
+                      source="formulator_intro"
+                      tone="inverted"
+                    />
+                  )}
                   <div className="space-y-2">
+                    {introLocked ? (
+                      <Button
+                        asChild
+                        size="lg"
+                        variant="ghost"
+                        className="min-h-11 w-full text-background hover:bg-background/10 hover:text-background"
+                      >
+                        <a href="/dashboard?tab=analysis">View my last analysis</a>
+                      </Button>
+                    ) : (
                     <Button
                       size="lg"
                       onClick={() => handleStartAnalysis()}
@@ -917,9 +1000,18 @@ const AIFormulator = () => {
                           Both are already resolved above (isMember/passBalance) for the
                           "Want to go deeper?" panel just below, so this reuses the same
                           state rather than adding a new check. */}
-                      {isMember || (passBalance && passBalance > 0) ? "Start My Analysis" : "Get started for free"}
+                      {isMember || (passBalance && passBalance > 0) || (user && allowance?.freeRemaining === 0)
+                        ? "Start My Analysis"
+                        : "Get started for free"}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
+                    )}
+                    {user && !isMember && allowance && allowance.freeRemaining === 0 && allowance.passBalance > 0 && (
+                      <p className="text-center text-xs text-background/70">
+                        You've used your free analysis for now — this one will use 1 of your {allowance.passBalance} Analysis Pass
+                        {allowance.passBalance === 1 ? "" : "es"}.
+                      </p>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
@@ -975,15 +1067,6 @@ const AIFormulator = () => {
                             ? "Use 1 Analysis Pass"
                             : "Explore Advanced Assessment"}
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="text-background/60 hover:bg-background/10 hover:text-background"
-                        onClick={() => handleStartAnalysis()}
-                      >
-                        Continue with Starter Analysis
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -995,9 +1078,9 @@ const AIFormulator = () => {
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                       <Shield className="h-8 w-8 text-primary" />
                     </div>
-                    <h3 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
+                    <h2 className="text-xl md:text-2xl font-heading font-bold text-card-foreground">
                       Your consent &amp; privacy
-                    </h3>
+                    </h2>
                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
                       To give you the best experience, we need your consent to collect and use certain information —
                       including images, skin tone (for fairness testing), and your responses.
@@ -1044,9 +1127,9 @@ const AIFormulator = () => {
               {step === STEP_PHOTO && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
                       Add a photo
-                    </h3>
+                    </h2>
                     <p className="text-muted-foreground text-sm">
                       Upload a clear, well-lit photo of your face (optional, but improves accuracy). No filters, no sunglasses.
                     </p>
@@ -1107,9 +1190,9 @@ const AIFormulator = () => {
               {step === STEP_MST && (
                 <div className="space-y-6">
                   <div className="text-center mb-2">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
                       Monk Skin Tone (MST)
-                    </h3>
+                    </h2>
                     <p className="text-muted-foreground text-sm max-w-md mx-auto">
                       Which skin tone most closely represents you? This helps us test and improve AI performance
                       across different skin tones — it does not determine your diagnosis or recommendations.
@@ -1133,7 +1216,7 @@ const AIFormulator = () => {
               {currentQuestion && (
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h3 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h3>
+                    <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground">{currentQuestion.title}</h2>
                   </div>
                   <RadioGroup
                     value={currentAnswer !== undefined ? String(currentAnswer) : ""}
@@ -1207,42 +1290,35 @@ const AIFormulator = () => {
               )}
 
               {step === STEP_ANALYSIS && (
-                <div className="text-center py-12">
+                <div
+                  key={isLoading ? "loading" : allowanceExhausted ? "exhausted" : "error"}
+                  className="text-center py-12 animate-in fade-in-0 duration-200 ease-out"
+                  role={isLoading ? "status" : undefined}
+                  aria-live="polite"
+                >
                   {isLoading ? (
                     <>
-                      <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <div className="w-20 h-20 gradient-bg-soft rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h3>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h2>
                       <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
                     </>
                   ) : allowanceExhausted ? (
-                    <>
-                      <div className="w-20 h-20 bg-accent rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Sparkles className="h-10 w-10 text-primary" />
-                      </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">You've used your free analysis</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                        Buy a few more analyses, or upgrade for a live AI report re-analysed every week.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        <Button asChild className="gap-2">
-                          <a href="/pricing">
-                            <Sparkles className="h-4 w-4" />
-                            Buy more analyses
-                          </a>
-                        </Button>
-                        <Button variant="outline" asChild>
-                          <a href="/pricing">See membership plans</a>
-                        </Button>
-                      </div>
-                    </>
+                    <div className="text-left">
+                      <ReanalysisLockedPanel
+                        nextUnlockAt={lockedUntil}
+                        source="formulator_save"
+                        passBalance={passBalance ?? 0}
+                        onUsePass={handleUseAnalysisPass}
+                      />
+                    </div>
                   ) : (
                     <>
                       <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-6">
                         <AlertTriangle className="h-10 w-10 text-destructive" />
                       </div>
-                      <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h3>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h2>
                       <p className="text-muted-foreground max-w-md mx-auto mb-6">{analysisError}</p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button onClick={() => void runAnalysis()} className="gap-2">
@@ -1262,16 +1338,20 @@ const AIFormulator = () => {
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
                   <div className="text-center">
-                    <h3 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      {isMember ? "Your Personalized Skincare Routine" : "Your Starter Analysis"}
-                    </h3>
+                    <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
+                      {isMember ? "Your Personalized Skincare Routine" : showFullResult ? "Your Starter Analysis" : "Your skin at a glance"}
+                    </h2>
                     <p className="text-muted-foreground">
                       {isMember
                         ? `Customized for your ${derivedSkinType} skin`
-                        : `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`}
+                        : showFullResult
+                          ? `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`
+                          : "Here's what your answers say about your skin. Your full analysis and routine are one free step away."}
                     </p>
                   </div>
 
+                  {showFullResult ? (
+                  <>
                   {isMember && resultTier === "free" && (
                     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-accent/40 p-4">
                       <div className="space-y-1">
@@ -1380,75 +1460,7 @@ const AIFormulator = () => {
                     </Button>
                   </div>
 
-                  {!user && !saveCtaDismissed ? (
-                    <div
-                      ref={(el) => {
-                        if (el && !saveCtaViewedRef.current) {
-                          saveCtaViewedRef.current = true;
-                          trackConversionEvent("starter_save_cta_viewed");
-                        }
-                      }}
-                      className="rounded-2xl border border-border bg-muted/30 p-6 space-y-4"
-                    >
-                      <div className="flex items-center gap-2">
-                        <UserPlus className="h-5 w-5 text-primary" />
-                        <h4 className="font-heading font-semibold text-card-foreground">Save your results to your free SkinLabs account</h4>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Keep your personalised skin profile, routine and priorities in your SkinLabs dashboard. No card required.
-                      </p>
-                      <form onSubmit={handleSaveResults} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
-                        <div>
-                          <Label htmlFor="save-email" className="sr-only">Email</Label>
-                          <Input
-                            id="save-email"
-                            type="email"
-                            placeholder="Email address"
-                            value={contactEmail}
-                            onChange={(e) => setContactEmail(e.target.value)}
-                            autoComplete="email"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="save-password" className="sr-only">Password</Label>
-                          <Input
-                            id="save-password"
-                            type="password"
-                            placeholder={authMode === "signup" ? "Set a password" : "Password"}
-                            value={authPassword}
-                            onChange={(e) => setAuthPassword(e.target.value)}
-                            autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-                            minLength={authMode === "signup" ? 8 : undefined}
-                            required
-                          />
-                        </div>
-                        <Button type="submit" disabled={isAuthSubmitting} className="gap-2">
-                          {isAuthSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                          {authMode === "signup" ? "Save results" : "Log in"}
-                        </Button>
-                      </form>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                        <button
-                          type="button"
-                          onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
-                          className="text-xs text-primary hover:underline"
-                        >
-                          {authMode === "signup" ? "Already have an account? Log in instead" : "New here? Create a free account instead"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            trackConversionEvent("starter_continue_without_account");
-                            setSaveCtaDismissed(true);
-                          }}
-                          className="text-xs text-muted-foreground hover:underline"
-                        >
-                          Continue without an account
-                        </button>
-                      </div>
-                    </div>
-                  ) : user ? (
+                  {user ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-primary">
                         <CheckCircle2 className="h-4 w-4" />
@@ -1531,12 +1543,119 @@ const AIFormulator = () => {
                     body="Glow Insider and VIP get a dermatology-grounded report re-analysed weekly as your skin changes — not just this one-time starter match."
                   />
 
+                  </>
+                  ) : (
+                    <>
+                      {starterSummary && (
+                        <section
+                          aria-labelledby="skynn-summary-heading"
+                          className="rounded-2xl bg-brand-cream text-brand-cream-foreground p-6 sm:p-8 text-center space-y-5"
+                        >
+                          <div className="space-y-1">
+                            <p id="skynn-summary-heading" className="text-xs font-semibold uppercase tracking-wider">Your skin type</p>
+                            <p className="text-3xl sm:text-4xl font-heading font-bold">{starterSummary.skinTypeLabel}</p>
+                          </div>
+                          {starterSummary.topConcerns.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-wider">Your top concerns</p>
+                              <ul className="flex flex-wrap justify-center gap-2">
+                                {starterSummary.topConcerns.map((concern) => (
+                                  <li key={concern} className="rounded-full bg-background px-4 py-2 text-sm font-medium text-foreground">
+                                    {concern}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </section>
+                      )}
+
+                      {!user ? (
+                        <div
+                          ref={(el) => {
+                            if (el && !saveCtaViewedRef.current) {
+                              saveCtaViewedRef.current = true;
+                              trackConversionEvent("starter_save_cta_viewed");
+                            }
+                          }}
+                          className="rounded-2xl border border-border bg-card p-6 space-y-4"
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserPlus className="h-5 w-5 text-primary" aria-hidden="true" />
+                            <h3 className="font-heading font-semibold text-card-foreground">Save your results — free</h3>
+                          </div>
+                          <p className="text-sm text-secondary-text">
+                            Create a free SkinLabs account to see your full analysis: your AM/PM routine, ingredient
+                            priorities and product picks, saved to your dashboard. Your answers are kept, so there's no
+                            need to redo the quiz. No card required.
+                          </p>
+                          <form onSubmit={handleSaveResults} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+                            <div>
+                              <Label htmlFor="save-email" className="sr-only">Email</Label>
+                              <Input
+                                id="save-email"
+                                type="email"
+                                placeholder="Email address"
+                                value={contactEmail}
+                                onChange={(e) => setContactEmail(e.target.value)}
+                                autoComplete="email"
+                                className="min-h-11"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="save-password" className="sr-only">Password</Label>
+                              <Input
+                                id="save-password"
+                                type="password"
+                                placeholder={authMode === "signup" ? "Set a password" : "Password"}
+                                value={authPassword}
+                                onChange={(e) => setAuthPassword(e.target.value)}
+                                autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                                minLength={authMode === "signup" ? 8 : undefined}
+                                className="min-h-11"
+                                required
+                              />
+                            </div>
+                            <Button type="submit" disabled={isAuthSubmitting} className="min-h-11 gap-2">
+                              {isAuthSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                              {authMode === "signup" ? "Save my results" : "Log in"}
+                            </Button>
+                          </form>
+                          <button
+                            type="button"
+                            onClick={() => setAuthMode((m) => (m === "signup" ? "signin" : "signup"))}
+                            className="min-h-11 text-sm text-primary hover:underline"
+                          >
+                            {authMode === "signup" ? "Already have an account? Log in instead" : "New here? Create a free account instead"}
+                          </button>
+                        </div>
+                      ) : saveLimitReached ? (
+                        <ReanalysisLockedPanel
+                          nextUnlockAt={lockedUntil}
+                          source="formulator_save"
+                          passBalance={passBalance ?? 0}
+                          onUsePass={handleUseAnalysisPass}
+                        />
+                      ) : null}
+
+                      <div className="flex justify-center">
+                        <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                          Share my skin type
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                     <Button size="lg" className="gap-2" asChild><a href="/reviews">See Recommended Products <ChevronRight className="h-4 w-4" /></a></Button>
                     <Button variant="outline" size="lg" onClick={resetFormulator}>Start Over</Button>
                   </div>
                 </div>
               )}
+
+              </div>
 
               {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">

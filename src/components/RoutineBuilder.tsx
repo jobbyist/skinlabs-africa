@@ -58,8 +58,8 @@ const RoutineBuilder = ({ anchor, isVip }: RoutineBuilderProps) => {
         locked={!isVip}
         title="Glow VIP unlocks the Routine Builder"
         message="Build a complete routine around this exact product — cleanser, serum, moisturiser, SPF and eye care, each the highest-scoring skin-type match from every product SkinLabs has reviewed."
-        ctaLabel="Go VIP"
-        ctaHref="/pricing"
+        feature="ai_analysis.routine_builder"
+        source="routine_builder_gate"
       >
         <div className="rounded-3xl border border-border bg-card p-6">
           <div className="flex items-center gap-2">

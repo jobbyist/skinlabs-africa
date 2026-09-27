@@ -9,11 +9,13 @@ export const CONSENT_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
 export type ConsentDecision = "accepted" | "rejected";
 
-export interface CookiePreferences {
+// A type alias (not an interface) so it stays assignable to Supabase's `Json`
+// column type when written to profiles.cookie_preferences.
+export type CookiePreferences = {
   analytics: boolean;
   personalisation: boolean;
   targetedAdvertising: boolean;
-}
+};
 
 export const DEFAULT_COOKIE_PREFERENCES: CookiePreferences = {
   analytics: false,
@@ -179,7 +181,8 @@ export function recordFromProfile(profile: {
   cookie_consent_at?: string | null;
   cookie_consent_expires_at?: string | null;
   cookie_consent_version?: string | null;
-  cookie_preferences?: CookiePreferences | null;
+  // Raw Json column; validated by isValidPreferences() below.
+  cookie_preferences?: unknown;
 }): CookieConsentRecord | null {
   if (!profile.cookie_consent || !profile.cookie_consent_at || !profile.cookie_consent_expires_at) return null;
   const decision =

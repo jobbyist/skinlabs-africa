@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Check, Gift, Atom, Sparkles, Crown, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,17 +18,21 @@ import {
 } from "@/lib/pricing-config";
 import { membershipPlans as fallbackPlans, type BillingInterval, type PlanId } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
-import { startCheckout, startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
+import { startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
-import { startFreeTrial } from "@/lib/trial";
+import MembershipCheckoutDialog, { type MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
+import type { PaypalOrderPurchase } from "@/lib/paypal";
+import type { PaypalApproval } from "@/components/payments/PayPalButtons";
+import { useStartTrial } from "@/hooks/use-start-trial";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getPendingPlanIntent, setPendingPlanIntent, clearPendingPlanIntent } from "@/lib/pendingPlan";
-import { isPromoActive, PROMO_END_DATE_LABEL } from "@/lib/promo";
+import { isSafeReturnTo, setPendingIntent } from "@/lib/pendingIntent";
+import { isPromoActive, PROMO_END_DATE_LABEL, trialCtaLabel, withPromoTrialCopy } from "@/lib/promo";
 
 const Pricing = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { tier, trialUsed } = useMembership();
   const { data: config, isLoading: configLoading } = usePricingConfig();
   const [interval, setIntervalState] = useState<BillingInterval>("annual");
@@ -36,7 +40,16 @@ const Pricing = () => {
   const [authOpen, setAuthOpen] = useState(false);
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [gatewayAction, setGatewayAction] = useState<((gateway: PaymentGateway) => Promise<void>) | null>(null);
-  const ranPendingActionRef = useRef(false);
+  const [gatewayPaypalPurchase, setGatewayPaypalPurchase] = useState<PaypalOrderPurchase | undefined>(undefined);
+  const [membershipCheckout, setMembershipCheckout] = useState<MembershipCheckoutPlan | null>(null);
+  const { start: startTrial } = useStartTrial();
+  const [searchParams] = useSearchParams();
+  // Where to resume after sign-up: a page that sent the visitor here (e.g. a
+  // locked review's "View membership plans" CTA) passes ?returnTo=; it must be
+  // a same-origin relative path, otherwise the intent resumes on /pricing.
+  const requestedReturnTo = searchParams.get("returnTo");
+  const intentReturnTo = isSafeReturnTo(requestedReturnTo) ? requestedReturnTo : "/pricing";
+  const shouldReduceMotion = useReducedMotion();
 
   const variantKey = config?.variantKey ?? "control";
 
@@ -90,69 +103,44 @@ const Pricing = () => {
     }));
   }, [config?.plans]);
 
-  const beginCheckout = async (plan: PaymentPlan) => {
-    trackConversionEvent("plan_selected", { plan, interval });
-    setGatewayAction(() => async (gateway: PaymentGateway) => {
-      setProcessingPlan(`subscribe-${plan}`);
-      const { error } = await startCheckout(gateway, plan, interval, variantKey);
-      if (error) {
-        setProcessingPlan(null);
-        toast.error(error.message);
-      } else {
-        setGatewayAction(null);
-      }
-    });
+  const planName = (planId: string) => plans.find((p) => p.plan_id === planId)?.name ?? planId;
+
+  // Paid plans are recurring PayPal subscriptions (PayPal balance or any
+  // debit/credit card). The server decides the first billing date: end of the
+  // free trial for a trial-eligible account, today for one that has used it.
+  const beginCheckout = (plan: PaymentPlan, planInterval: BillingInterval = interval) => {
+    trackConversionEvent("plan_selected", { plan, interval: planInterval });
+    setMembershipCheckout({ planId: plan, name: planName(plan), interval: planInterval });
   };
 
+  // One tap, no card: the trial starts immediately and lands on the welcome
+  // flow (useStartTrial). Adding PayPal/a card to continue after the trial is
+  // offered afterwards from the dashboard's Billing tab. The billing-interval
+  // toggle doesn't apply — a trial has no interval.
   const beginTrial = async (plan: "insider" | "glow_lite") => {
     setProcessingPlan(`trial-${plan}`);
-    trackConversionEvent("trial_activation_started", { plan });
-    const { error } = await startFreeTrial(plan, variantKey);
+    await startTrial({ plan, source: "pricing_card" });
     setProcessingPlan(null);
-    if (error) {
-      trackConversionEvent("trial_activation_failed", { plan, reason: error.message });
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Your free trial is live — no card needed.");
-    window.location.href = "/dashboard?trial=started";
   };
 
-  // Runs whatever plan the visitor selected before authenticating — sourced from the
-  // durable pending-plan module (src/lib/pendingPlan.ts) rather than in-memory React
-  // state, so it survives a page refresh or a full-page Google OAuth redirect. The
-  // server re-validates the plan regardless (start_free_trial RPC / payfast-payment /
-  // paypal-payment) — this is only ever a UX convenience so the user never re-picks
-  // the same plan. Gateway choice itself isn't persisted through the redirect; the
-  // visitor picks PayFast/PayPal again via PaymentGatewayDialog once resumed.
-  useEffect(() => {
-    if (!user || ranPendingActionRef.current) return;
-    const intent = getPendingPlanIntent();
-    if (!intent) return;
-    ranPendingActionRef.current = true;
-    clearPendingPlanIntent();
-    if (intent.kind === "trial" && (intent.plan === "insider" || intent.plan === "glow_lite")) {
-      void beginTrial(intent.plan);
-    } else if (intent.kind === "subscribe" && intent.plan !== "explorer") {
-      void beginCheckout(intent.plan as PaymentPlan);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  // Resuming a plan chosen before sign-in/sign-up (including after a Google
+  // OAuth or email-confirmation redirect) is handled app-wide by
+  // <IntentResolver /> from the intent recorded below (src/lib/pendingIntent.ts).
 
   const handleSelect = (planId: PlanId) => {
     trackConversionEvent("membership_plan_selected", { plan: planId, kind: "subscribe" });
     if (planId === "explorer") {
       if (!user) setAuthOpen(true);
-      else window.location.href = "/dashboard";
+      else navigate("/dashboard");
       return;
     }
     const plan = planId as PaymentPlan;
     if (!user) {
-      setPendingPlanIntent({ kind: "subscribe", plan, interval, variantKey });
+      setPendingIntent({ action: "subscribe", plan, interval, variantKey, returnTo: intentReturnTo });
       setAuthOpen(true);
       return;
     }
-    void beginCheckout(plan);
+    beginCheckout(plan);
   };
 
   const handleTrial = (planId: PlanId) => {
@@ -160,7 +148,8 @@ const Pricing = () => {
     const plan = planId;
     trackConversionEvent("membership_plan_selected", { plan, kind: "trial" });
     if (!user) {
-      setPendingPlanIntent({ kind: "trial", plan, interval, variantKey });
+      // No interval: the toggle doesn't affect trials.
+      setPendingIntent({ action: "trial", plan, variantKey, returnTo: intentReturnTo });
       setAuthOpen(true);
       return;
     }
@@ -169,9 +158,11 @@ const Pricing = () => {
 
   const handleBuyCreditPack = async (packId: string) => {
     if (!user) {
+      setPendingIntent({ action: "unlock", returnTo: "/pricing" });
       setAuthOpen(true);
       return;
     }
+    setGatewayPaypalPurchase({ purchaseType: "credit_pack", packId, variantKey });
     setGatewayAction(() => async (gateway: PaymentGateway) => {
       setProcessingPlan(`credit-${packId}`);
       const { error } = await startCreditPackCheckout(gateway, packId, variantKey);
@@ -187,10 +178,12 @@ const Pricing = () => {
   const handleBuyFoundingMember = async () => {
     if (!config?.foundingOffer) return;
     if (!user) {
+      setPendingIntent({ action: "unlock", returnTo: "/pricing" });
       setAuthOpen(true);
       return;
     }
     const offerId = config.foundingOffer.id;
+    setGatewayPaypalPurchase({ purchaseType: "founding_member", offerId });
     setGatewayAction(() => async (gateway: PaymentGateway) => {
       setProcessingPlan("founding-member");
       const { error } = await startFoundingMemberCheckout(gateway, offerId);
@@ -213,13 +206,13 @@ const Pricing = () => {
         <title>SkinLabs® Membership | Personalised Skincare Intelligence</title>
         <meta
           name="description"
-          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines and exclusive member benefits. Glow Explorer free; Glow Lite from R39/month; Insider from R99/month."
+          content="Join SkinLabs® for personalised skincare intelligence, AI-powered routines and exclusive member benefits. Start free with Glow Explorer, or compare Glow Lite, Glow Insider and Glow VIP."
         />
         <link rel="canonical" href="https://skinlabs.co.za/pricing" />
         <meta property="og:title" content="SkinLabs® Membership | Personalised Skincare Intelligence" />
         <meta
           property="og:description"
-          content="Personalised skincare intelligence, AI-powered routines and exclusive member benefits. Glow Explorer free; Glow Lite from R39/month; Insider from R99/month."
+          content="Personalised skincare intelligence, AI-powered routines and exclusive member benefits. Start free with Glow Explorer, or compare Glow Lite, Glow Insider and Glow VIP."
         />
         <meta property="og:url" content="https://skinlabs.co.za/pricing" />
         <meta property="og:type" content="website" />
@@ -244,12 +237,13 @@ const Pricing = () => {
             </div>
 
             {isPromoActive() && (
-              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-primary/30 bg-primary/5 px-5 py-4 text-center text-sm text-foreground">
-                <span className="font-semibold">Limited time:</span> every paid plan below is free to try, no card
-                required, until {PROMO_END_DATE_LABEL} — all member benefits apply except ad-free browsing.{" "}
+              <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-border bg-accent px-5 py-4 text-center text-sm text-accent-foreground">
+                <span className="font-semibold">Limited time:</span> every paid plan below is free to try until{" "}
+                {PROMO_END_DATE_LABEL}, no card required — all member benefits apply except ad-free browsing.{" "}
                 <span className="text-muted-foreground">
-                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Standard subscription
-                  billing starts {PROMO_END_DATE_LABEL}.
+                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Add PayPal or a card
+                  when you start and your membership continues automatically from {PROMO_END_DATE_LABEL} — you
+                  won't be charged before then.
                 </span>
               </div>
             )}
@@ -266,9 +260,11 @@ const Pricing = () => {
                   {(["annual", "monthly"] as BillingInterval[]).map((option) => (
                     <button
                       key={option}
+                      type="button"
                       onClick={() => setInterval(option)}
+                      aria-pressed={interval === option}
                       className={cn(
-                        "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                        "flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                         interval === option
                           ? "bg-primary text-primary-foreground"
                           : "text-muted-foreground hover:text-foreground",
@@ -289,11 +285,12 @@ const Pricing = () => {
                   ))}
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-4">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                   {plans.map((plan, index) => {
                     const price = planPrice(plan, interval);
                     const isPaidPlan = plan.plan_id !== "explorer";
-                    const isCurrentPlan = tier === plan.plan_id;
+                    // Signed-out visitors resolve to the free tier but have no plan of their own yet.
+                    const isCurrentPlan = Boolean(user) && tier === plan.plan_id;
                     const trialAvailable =
                       isPaidPlan && plan.trial_eligible && plan.trial_days > 0 && !trialUsed && !isCurrentPlan;
                     const savings = isPaidPlan && interval === "annual" ? annualSavingsLabel(plan) : null;
@@ -302,10 +299,10 @@ const Pricing = () => {
                     return (
                       <motion.div
                         key={plan.plan_id}
-                        initial={{ opacity: 0, y: 24 }}
+                        initial={shouldReduceMotion ? false : { opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.4, delay: index * 0.08 }}
+                        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
                         className={cn(
                           "relative flex flex-col rounded-3xl border bg-card p-8",
                           plan.badge ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
@@ -317,7 +314,7 @@ const Pricing = () => {
                           </span>
                         )}
                         <h2 className="font-heading text-xl font-bold text-foreground">{plan.name}</h2>
-                        <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{withPromoTrialCopy(plan.tagline)}</p>
                         <div className="mt-6 flex items-end gap-1">
                           <span className="font-heading text-4xl font-extrabold text-foreground">R{price}</span>
                           <span className="pb-1 text-sm text-muted-foreground">
@@ -334,41 +331,68 @@ const Pricing = () => {
                           {(plan.benefits as string[]).map((feature) => (
                             <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                               <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              {linkifyMoneyBackGuarantee(feature)}
+                              {linkifyMoneyBackGuarantee(withPromoTrialCopy(feature))}
                             </li>
                           ))}
                         </ul>
-                        <div className="mt-8 space-y-2">
-                          {trialAvailable && (
+                        {/* Paid plans offer the free trial as their only call to action — there is
+                            deliberately no direct-subscribe button on this page. Explorer keeps its own
+                            free sign-up CTA; a paid plan that can't be trialled (current plan, trial
+                            already used, not yet purchasable) shows a disabled status instead. */}
+                        <div className="mt-8">
+                          {!isPaidPlan ? (
                             <Button
+                              className="w-full"
                               variant="outline"
+                              disabled={isCurrentPlan}
+                              onClick={() => handleSelect(plan.plan_id as PlanId)}
+                            >
+                              {isCurrentPlan ? "Your current plan" : plan.cta_label}
+                            </Button>
+                          ) : trialAvailable ? (
+                            <Button
                               className="w-full gap-2"
+                              variant={plan.badge ? "default" : "outline"}
                               disabled={processingPlan === `trial-${plan.plan_id}`}
                               onClick={() => handleTrial(plan.plan_id as PlanId)}
                             >
-                              <Gift className="h-4 w-4" />
-                              {isPromoActive() ? `Free until ${PROMO_END_DATE_LABEL}` : `Try free for ${plan.trial_days} days`}
+                              {processingPlan === `trial-${plan.plan_id}` ? (
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Gift className="h-4 w-4" aria-hidden="true" />
+                              )}
+                              {trialCtaLabel(plan.trial_days)}
+                            </Button>
+                          ) : trialUsed && !isCurrentPlan && !disabled ? (
+                            // Trial already used: subscribing is the only way in, billed from today.
+                            <Button
+                              className="w-full"
+                              variant={plan.badge ? "default" : "outline"}
+                              onClick={() => handleSelect(plan.plan_id as PlanId)}
+                            >
+                              Subscribe
+                            </Button>
+                          ) : (
+                            <Button className="w-full" variant="outline" disabled>
+                              {isCurrentPlan
+                                ? "Your current plan"
+                                : disabled
+                                  ? (plan.cta_override ?? "Coming soon")
+                                  : trialUsed
+                                    ? "Free trial already used"
+                                    : "Not available right now"}
                             </Button>
                           )}
-                          <Button
-                            className="w-full"
-                            variant={plan.badge ? "default" : "outline"}
-                            disabled={disabled || isCurrentPlan || processingPlan === `subscribe-${plan.plan_id}`}
-                            onClick={() => handleSelect(plan.plan_id as PlanId)}
-                          >
-                            {isCurrentPlan ? "Your current plan" : disabled ? (plan.cta_override ?? "Coming soon") : plan.cta_label}
-                          </Button>
                         </div>
                         {trialAvailable && (
                           <p className="mt-3 text-center text-xs text-muted-foreground">
-                            No card required. Prefer to skip the trial? Subscribing directly comes with the money-back
-                            guarantee below from day one.
+                            No card required. One tap and you're in.
                           </p>
                         )}
-                        {isPaidPlan && plan.money_back_days && (
-                          <p className="mt-1 text-center text-xs text-muted-foreground">
-                            {linkifyMoneyBackGuarantee(`${plan.money_back_days}-day money-back guarantee`)} when you
-                            subscribe. Not right for your skin? Full refund.
+                        {isPaidPlan && trialUsed && !isCurrentPlan && !disabled && (
+                          <p className="mt-3 text-center text-xs text-muted-foreground">
+                            You've already had your free trial on this account — subscribe to pick up where you left
+                            off. Cancel any time.
                           </p>
                         )}
                       </motion.div>
@@ -406,7 +430,7 @@ const Pricing = () => {
                 ))}
 
                 {foundingAvailable && founding && (
-                  <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-primary/40 bg-primary/5 p-8">
+                  <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-primary/40 bg-accent/60 p-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start gap-4">
                         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -444,7 +468,8 @@ const Pricing = () => {
             )}
 
             <p className="mt-10 text-center text-xs text-muted-foreground">
-              Billed in ZAR. Cancel any paid plan any time from your dashboard. Virtual consultations will be
+              Prices are in ZAR. PayFast charges in Rand; PayPal and card payments through PayPal are charged in
+              USD at the live exchange rate. Cancel any paid plan any time from your dashboard. Virtual consultations will be
               provided by independent HPCSA-registered practitioners once live, and are not a substitute for
               emergency medical care.
             </p>
@@ -452,14 +477,41 @@ const Pricing = () => {
         </main>
         <Footer />
       </div>
-      {/* The pending plan (if any) is picked up by the effect above once `user` updates —
-          covers password sign-in/up (immediate) and a full-page Google OAuth redirect back
-          to this same page alike, so no onAuthenticated callback is needed here. */}
+      {/* A pending trial/subscribe intent is resumed app-wide by <IntentResolver /> once the
+          visitor is signed in — in-page or after a Google/email redirect back. */}
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
       <PaymentGatewayDialog
         open={!!gatewayAction}
-        onOpenChange={(open) => !open && setGatewayAction(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGatewayAction(null);
+            setGatewayPaypalPurchase(undefined);
+          }
+        }}
         onSelect={(gateway) => gatewayAction?.(gateway) ?? Promise.resolve()}
+        paypal={gatewayPaypalPurchase}
+        onPaypalApproved={(result: PaypalApproval) => {
+          if (result.kind !== "order" || !gatewayPaypalPurchase) return;
+          // Already captured and granted server-side — no polling needed.
+          const p = gatewayPaypalPurchase;
+          setGatewayAction(null);
+          setGatewayPaypalPurchase(undefined);
+          if (p.purchaseType === "credit_pack") {
+            trackConversionEvent("credit_pack_purchased", { packId: p.packId });
+            toast.success("Payment confirmed — your Analysis Passes are ready.");
+            navigate("/dashboard?tab=billing");
+          } else {
+            trackConversionEvent("founding_member_purchased", { offerId: p.offerId });
+            toast.success(result.needsReview ? "Payment received — our team will be in touch about your Founding Member spot." : "Welcome — you're a SkinLabs Founding Member.");
+            navigate("/dashboard");
+          }
+        }}
+      />
+      <MembershipCheckoutDialog
+        open={!!membershipCheckout}
+        onOpenChange={(open) => !open && setMembershipCheckout(null)}
+        plan={membershipCheckout}
+        variantKey={variantKey}
       />
     </>
   );

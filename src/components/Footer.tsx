@@ -23,6 +23,43 @@ const XIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
   </svg>
 );
 
+const AppleIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M16.365 1.43c0 1.14-.462 2.23-1.21 3.03-.803.86-2.11 1.52-3.19 1.43-.13-1.1.42-2.25 1.17-3.02.83-.86 2.24-1.5 3.23-1.44zM20.5 17.02c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.52-4.12 3.53-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.35C-.03 15.77-.32 10.66 1.43 7.97c1.24-1.91 3.2-3.03 5.05-3.03 1.88 0 3.06 1.03 4.61 1.03 1.51 0 2.43-1.03 4.61-1.03 1.64 0 3.39.9 4.63 2.44-4.07 2.23-3.41 8.04.17 9.64z" />
+  </svg>
+);
+
+const GooglePlayIcon = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M3.61 1.81 13.79 12 3.61 22.19a1.4 1.4 0 0 1-.61-1.17V2.98c0-.48.24-.9.61-1.17zm11.6 11.6 2.3 2.3-10.95 6.32 8.65-8.62zm3.52-3.53 2.6 1.5c.84.49.84 1.75 0 2.24l-2.6 1.5L16.3 12.7l2.43-2.82zM6.56 1.97l10.95 6.32-2.3 2.3-8.65-8.62z" />
+  </svg>
+);
+
+/**
+ * Monochrome "Coming soon" store badges. Not links — the apps don't exist
+ * yet, so nothing here may look tappable-to-install. Black badge in light
+ * mode, white badge in dark mode (the footer itself is inverted, so the
+ * border keeps each badge distinct from the footer behind it).
+ */
+const appStoreBadges = [
+  { store: "Google Play", ariaStore: "Google Play", icon: GooglePlayIcon },
+  { store: "App Store", ariaStore: "the App Store", icon: AppleIcon },
+];
+
+const AppStoreBadge = ({ store, ariaStore, icon: Icon }: (typeof appStoreBadges)[number]) => (
+  <div
+    role="img"
+    aria-label={`Coming soon to ${ariaStore}`}
+    className="inline-flex h-12 min-w-[156px] cursor-default select-none items-center gap-2.5 rounded-xl border border-[#A6A6A6] bg-black px-3.5 text-white dark:border-black/70 dark:bg-white dark:text-black"
+  >
+    <Icon className="h-6 w-6 shrink-0" />
+    <span className="flex flex-col text-left leading-none">
+      <span className="text-[10px] font-medium tracking-wide">Coming soon to</span>
+      <span className="mt-1 text-[15px] font-semibold tracking-tight">{store}</span>
+    </span>
+  </div>
+);
+
 const Footer = () => {
   const { isMember, loading: membershipLoading } = useMembership();
 
@@ -34,7 +71,6 @@ const Footer = () => {
       { label: "Brand Spotlight", href: "/spotlight", isNew: true },
       { label: "Seasonal Guides", href: "/seasonals", isNew: true },
       { label: "Podcast Series", href: "/podcast" },
-      { label: "Ingredients", href: "/ingredients" },
     ],
     platform: [
       { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
@@ -43,6 +79,7 @@ const Footer = () => {
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
       { label: "Academy", href: "/learn", isComingSoon: true },
       ...(!membershipLoading && isMember ? [] : [{ label: "Memberships", href: "/pricing" }]),
+      { label: "Ingredients", href: "/ingredients" },
     ],
     company: [
       { label: "About Us", href: "/about" },
@@ -121,6 +158,11 @@ const Footer = () => {
                 >
                   <social.icon className="w-4 h-4" />
                 </a>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {appStoreBadges.map((badge) => (
+                <AppStoreBadge key={badge.store} {...badge} />
               ))}
             </div>
           </div>
