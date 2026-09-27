@@ -14,12 +14,21 @@
 export type AssessmentAccessType = "analysis_pass" | "membership" | "none";
 export type AssessmentRolloutStage = "disabled" | "internal" | "beta" | "pass_holders_review" | "public";
 
+/** Central server-side switch (skynn_advanced_assessment_config.report_mode):
+ *  what happens to a new submission. fallback = pre-approval intake (stored,
+ *  queued, report delivered later); production = the v2 pipeline. */
+export type AdvancedReportMode = "disabled" | "fallback" | "production";
+export type ProcessingMode = "fallback" | "production";
+export type IntakeStatus =
+  | "submitted" | "pending" | "processing" | "review_required" | "approved" | "released" | "rejected" | "failed";
+
 export interface AdvancedAssessmentAccess {
   eligible: boolean;
   accessType: AssessmentAccessType;
   membershipTier: string | null;
   passesAvailable: number;
   rolloutStage: AssessmentRolloutStage;
+  reportMode: AdvancedReportMode;
 }
 
 export type QuestionType = "single_select" | "multi_select" | "scale" | "frequency" | "text" | "product_list";
@@ -192,6 +201,10 @@ export interface AdvancedAssessmentReportRow {
   rendered_markdown: string | null;
   engine_version: string | null;
   prompt_version: string | null;
+  reference_number: string | null;
+  processing_mode: ProcessingMode | null;
+  intake_status: IntakeStatus | null;
+  submitted_at: string | null;
 }
 
 export interface AdvancedAssessmentReportSummary {
@@ -202,7 +215,46 @@ export interface AdvancedAssessmentReportSummary {
   released_at: string | null;
   generated_at: string | null;
   created_at: string;
+  reference_number: string | null;
+  processing_mode: ProcessingMode | null;
+  intake_status: IntakeStatus | null;
+  submitted_at: string | null;
 }
+
+/** One member-facing status for any report row, whichever lifecycle it's on
+ *  (pre-approval intake or the production pipeline). Every status label in
+ *  the UI goes through this so the two lifecycles can't drift apart. */
+export type ReportDisplayStatus = "pending_intake" | "preparing" | "in_review" | "ready" | "not_released" | "failed";
+
+export function getReportDisplayStatus(r: {
+  generation_status: ReportGenerationStatus;
+  review_status: ReportReviewStatus | null;
+  processing_mode?: ProcessingMode | null;
+  intake_status?: IntakeStatus | null;
+}): ReportDisplayStatus {
+  if (r.processing_mode === "fallback") {
+    if (r.intake_status === "rejected") return "not_released";
+    if (r.intake_status === "failed") return "failed";
+    return "pending_intake";
+  }
+  if (r.generation_status === "failed") return "failed";
+  if (r.review_status === "rejected") return "not_released";
+  if (r.review_status === "approved") return "ready";
+  if (r.generation_status === "pending") return "preparing";
+  return "in_review";
+}
+
+export const REPORT_STATUS_LABEL: Record<ReportDisplayStatus, string> = {
+  pending_intake: "Pending",
+  preparing: "Being prepared",
+  in_review: "With our review team",
+  ready: "Ready",
+  not_released: "Not released · pass refunded",
+  failed: "Couldn't be created · pass refunded",
+};
+
+/** Shown wherever a pre-approval submission is described. */
+export const INTAKE_EXPECTED_DELIVERY = "approximately 3–4 weeks";
 
 /**
  * Smart Routines integration contract (section 35) — the shape an approved

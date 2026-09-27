@@ -67,7 +67,12 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [submission, setSubmission] = useState<{ reportId: string; status: string } | null>(null);
+  const [submission, setSubmission] = useState<{
+    reportId: string;
+    status: string;
+    referenceNumber: string | null;
+    processingMode: string | null;
+  } | null>(null);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestResponses = useRef(responses);
@@ -156,7 +161,12 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     try {
       await persist();
       const result = await submitAdvancedAssessment(session.id);
-      setSubmission({ reportId: result.reportId, status: result.status });
+      setSubmission({
+        reportId: result.reportId,
+        status: result.status,
+        referenceNumber: result.referenceNumber ?? null,
+        processingMode: result.processingMode ?? null,
+      });
       if (result.status === "failed") {
         setError(result.errorMessage ?? "We couldn't generate your report this time.");
       }

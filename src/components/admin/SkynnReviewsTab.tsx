@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportMarkdown from "@/components/advanced-assessment/ReportMarkdown";
 import ScoresPanel from "@/components/advanced-assessment/ScoresPanel";
+import AdvancedReportsPanel from "@/components/admin/AdvancedReportsPanel";
 import {
   getReviewDetail,
   listPromptSignoffs,
@@ -29,8 +30,26 @@ import type { ReportReviewStatus } from "@/lib/assessment/types";
  * and the member's own answers, and records an approve/reject decision.
  * Approval is refused server-side until the active prompt set has a
  * completed dermatologist sign-off record, which is captured here too.
+ *
+ * "Advanced Reports" (2026-09-27) lists every submission, including the
+ * pre-approval intake queue — see AdvancedReportsPanel.
  */
 const SkynnReviewsTab = () => {
+  const [view, setView] = useState<"advanced" | "review">("advanced");
+  return (
+    <div className="space-y-6">
+      <Tabs value={view} onValueChange={(v) => setView(v as "advanced" | "review")}>
+        <TabsList>
+          <TabsTrigger value="advanced">Advanced Reports</TabsTrigger>
+          <TabsTrigger value="review">Report review</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {view === "advanced" ? <AdvancedReportsPanel /> : <ReviewQueue />}
+    </div>
+  );
+};
+
+const ReviewQueue = () => {
   const [status, setStatus] = useState<ReportReviewStatus>("awaiting_review");
   const [queue, setQueue] = useState<ReviewQueueRow[] | null>(null);
   const [signoffs, setSignoffs] = useState<PromptSignoff[]>([]);

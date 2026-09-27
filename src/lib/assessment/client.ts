@@ -12,6 +12,7 @@ import type {
   AdvancedAssessmentReportSummary,
   AdvancedAssessmentSession,
   AssessmentDefinitionSummary,
+  ProcessingMode,
   SafetyScreenResult,
 } from "./types";
 
@@ -73,7 +74,23 @@ export const saveAdvancedAssessmentProgress = (sessionId: string, responses: Rec
 /** Queues the assessment for background generation (SKYNN v2) — returns
  *  `pending` immediately; poll getAdvancedAssessmentReport for progress. */
 export const submitAdvancedAssessment = (sessionId: string) =>
-  invoke<{ sessionId: string; reportId: string; status: string; errorMessage: string | null }>("submit", { sessionId });
+  invoke<{
+    sessionId: string;
+    reportId: string;
+    referenceNumber: string | null;
+    processingMode: ProcessingMode | null;
+    status: string;
+    errorMessage: string | null;
+  }>("submit", { sessionId });
+
+/** Deletes (withdraws) the member's own submission: answers, report and any
+ *  stored intake PDF. An unreleased submission's Analysis Pass is refunded. */
+export const deleteAdvancedAssessmentSubmission = (sessionId: string) =>
+  invoke<{ deleted: boolean; refunded: boolean }>("delete_session", { sessionId });
+
+/** Admin only (checked server-side): a 60-second signed URL for an intake PDF. */
+export const getAdminIntakePdfUrl = (reportId: string) =>
+  invoke<{ url: string; expiresIn: number }>("admin_intake_pdf_url", { reportId });
 
 export const getAdvancedAssessmentStatus = (sessionId: string) =>
   invoke<{
