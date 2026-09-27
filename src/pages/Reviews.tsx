@@ -21,13 +21,13 @@ const Reviews = () => {
         </title>
         <meta
           name="description"
-          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. No paid placement."
+          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. Scores can't be bought."
         />
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content="SA Skincare Product Reviews — Independent Scores | SkinLabs®" />
         <meta
           property="og:description"
-          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. No paid placement."
+          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. Scores can't be bought."
         />
         <meta property="og:url" content={canonical} />
         <meta property="og:type" content="website" />
@@ -56,8 +56,10 @@ const Reviews = () => {
                 <p>
                   We buy the products we review. Where a brand sends a sample instead, that's disclosed on the
                   review itself and it doesn't change the score — a gifted product held to a lower bar isn't a
-                  review, it's an advertisement. There's no paid placement anywhere on this page: brands can't buy a
-                  higher score, a better position in the grid or a more flattering write-up.
+                  review, it's an advertisement. SkinLabs® is partly ad-supported, so this page carries ads and some
+                  reviews are marked Sponsored, where we earn from a disclosed brand or marketplace partner. That label
+                  never changes the verdict: brands can't buy a higher score, a better position in the grid or a more
+                  flattering write-up.
                 </p>
                 <p>
                   New reviews are added continuously as we work through the South African skincare shelf — from

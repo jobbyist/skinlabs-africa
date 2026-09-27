@@ -132,7 +132,7 @@ const Hero = () => {
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
               We read the ingredient list so you don't have to. Evidence-graded product reviews, daily skin
               science briefings and SKYNN AI (beta) — a skin assessment that builds your routine around your
-              skin, our climate and your budget — no affiliate deals, no gifted samples.
+              skin, our climate and your budget — editorial that can't be bought.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">

@@ -19,6 +19,20 @@ feature appear operational.
 
 ## Major systems
 
+- **Funding + editorial-independence wording (2026-09-27)** — SkinLabs® is
+  member-funded and **partly ad-supported** (AdSense, labelled sponsored
+  placements, sponsored story ads, OpenHaus-sourced "Sponsored" reviews). The
+  approved copy lives in `src/lib/editorialIndependence.ts`
+  (`EDITORIAL_TAGLINE` "editorial that can't be bought",
+  `FUNDING_MODEL_HEADLINE`, `FUNDING_STATEMENT`, `EDITORIAL_INDEPENDENCE_LINE`).
+  Never write "no ads", "no sponsored content", "no affiliate deals" or
+  "member-funded, not ad-funded" anywhere. The old claims were replaced on
+  About, Hero, Features, ReviewsGrid, /reviews (copy + meta), the home SEO
+  description, the Editorial Policy, the FAQ (new `about-ads-sponsored` entry)
+  and the podcast RSS description. Per-item statements that are still true
+  (Spotlight/Shelf Showdown outcomes aren't paid, the podcast takes no paid
+  mentions) were left as they are.
+
 - **Onboarding overhaul 05 — one-tap, no-card trial (2026-09-25)**
   - `useStartTrial()` (`src/hooks/use-start-trial.ts`) is the ONLY no-card trial
     path: `startFreeTrial()` + loading/error state + `trial_activation_*` (with

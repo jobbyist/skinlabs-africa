@@ -14,7 +14,7 @@ const features = [
   {
     icon: Star,
     title: "Independent Reviews",
-    description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. No affiliate deals, no gifted samples.",
+    description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. Advertisers and sponsors can't buy a score.",
   },
   {
     icon: Mic,

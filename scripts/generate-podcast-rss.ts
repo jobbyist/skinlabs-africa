@@ -91,7 +91,7 @@ function main() {
     <atom:link href="${SITE}/podcast.xml" rel="self" type="application/rss+xml" />
     <language>en-za</language>
     <description>${cdata(
-      "The Skin Deep is SkinLabs®'s audio series for evidence-first South African skincare conversations — ingredient science, skincare culture and routines, grounded in South African skin, climate and shelves. No affiliate deals, no gifted samples, no paid rankings.",
+      "The Skin Deep is SkinLabs®'s audio series for evidence-first South African skincare conversations — ingredient science, skincare culture and routines, grounded in South African skin, climate and shelves. Our editorial can't be bought: no paid rankings, and any sponsorship is disclosed.",
     )}</description>
     <itunes:summary>${cdata(
       "Evidence-first South African skincare conversations from SkinLabs® — ingredient science, skincare culture and routines, grounded in South African skin, climate and shelves.",

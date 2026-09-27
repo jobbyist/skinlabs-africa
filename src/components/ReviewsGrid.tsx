@@ -46,7 +46,7 @@ interface ReviewsGridProps {
 const ReviewsGrid = ({
   limit,
   heading = "Independent SA product scores",
-  description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
+  description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. Brands can't buy a score.",
   paginate = false,
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
