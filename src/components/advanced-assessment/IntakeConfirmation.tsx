@@ -74,7 +74,7 @@ export const ReferenceBlock = ({ referenceNumber }: { referenceNumber: string })
     <div className="rounded-xl border border-border bg-muted/40 p-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">Reference</p>
-        <p className="font-mono text-base sm:text-lg font-semibold tracking-wide break-all">{referenceNumber}</p>
+        <p className="font-mono text-sm sm:text-lg font-semibold sm:tracking-wide break-all">{referenceNumber}</p>
       </div>
       <Button variant="ghost" size="icon" onClick={() => void copy()} aria-label="Copy reference number">
         {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}

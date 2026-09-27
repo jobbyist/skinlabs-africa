@@ -401,6 +401,7 @@ const AssessmentRunner = ({
       onAnswer={setAnswer}
       onGoToSection={goToSection}
       onSubmit={submit}
+      intakeMode={reportMode === "fallback"}
     />
   );
 };
