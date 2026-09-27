@@ -16,6 +16,14 @@
  * Function secret is needed), OR a signed-in admin's JWT for manual runs.
  * verify_jwt is off in config.toml because pg_cron sends no JWT.
  *
+ * Pre-approval intake (report_mode = 'fallback'): before the model pass,
+ * each tick also claims fallback submissions that still need their intake
+ * PDF / internal email (claim_advanced_intake_jobs) and runs
+ * _shared/assessment/intake/processIntake.ts on them. That path makes no AI
+ * call and runs whether or not an AI key is configured; fallback rows are
+ * never claimed by the model pass (claim_advanced_assessment_jobs filters
+ * processing_mode = 'production').
+ *
  * Runs in the background (EdgeRuntime.waitUntil) after a 202 response.
  * Wall clock: the pipeline stops starting new stages after TIME_BUDGET_MS
  * and releases its lease; the next tick resumes from the last saved stage.
@@ -29,11 +37,14 @@ import { STAGE_ORDER, type StageRole } from "../_shared/assessment/pipeline/stag
 import { generateSalt } from "../_shared/assessment/pipeline/userData.ts";
 import { deriveTopicsV2, selectEvidenceV2, type EvidenceEntry } from "../_shared/assessment/pipeline/evidenceV2.ts";
 import { callClaudeStructured, transportConfigured } from "../_shared/assessment/pipeline/claudeTransport.ts";
+import { processIntakeJob, type IntakeJob } from "../_shared/assessment/intake/processIntake.ts";
 
 // Conservative so a stage started near the budget still finishes inside the
 // edge runtime's wall-clock limit; unfinished work resumes next tick.
 const TIME_BUDGET_MS = 60_000;
 const MAX_JOBS_PER_RUN = 1;
+// Intake jobs are small (a PDF + one email), so a few per tick is fine.
+const MAX_INTAKE_JOBS_PER_RUN = 3;
 
 function json(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -222,14 +233,40 @@ Deno.serve(async (req) => {
 
   if (!(await authorised(req, admin, supabaseUrl, anonKey))) return json(401, { error: "Unauthorized" });
 
+  const workerId = `w-${crypto.randomUUID().slice(0, 8)}`;
+
+  // ---- Pre-approval intake pass (no AI) ----
+  const { data: intakeJobs, error: intakeClaimError } = await admin.rpc("claim_advanced_intake_jobs", { p_limit: MAX_INTAKE_JOBS_PER_RUN, p_worker: workerId });
+  if (intakeClaimError) console.error("skynn-advanced-worker: intake claim failed", intakeClaimError.message);
+  const intakeClaimed = (intakeJobs ?? []) as IntakeJob[];
+  const intakeWork = (async () => {
+    const results: Array<Record<string, unknown>> = [];
+    for (const job of intakeClaimed) {
+      try {
+        results.push(await processIntakeJob(admin, job, { supabaseUrl, serviceKey }));
+      } catch (err) {
+        console.error(`skynn-advanced-worker: intake ${job.report_id} crashed`, err instanceof Error ? err.message : err);
+        // Release the lease so the next tick retries (bounded by intake_attempts).
+        await admin.from("advanced_assessment_reports").update({ locked_at: null, locked_by: null }).eq("id", job.report_id);
+        results.push({ reportId: job.report_id, status: "error", step: "crash" });
+      }
+    }
+    if (results.length) console.log(`skynn-advanced-worker ${workerId} intake: ${JSON.stringify(results)}`);
+    return results;
+  })();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deno-lint-ignore no-explicit-any
+  const edgeRuntime = (globalThis as any).EdgeRuntime;
+  if (edgeRuntime?.waitUntil && intakeClaimed.length > 0) edgeRuntime.waitUntil(intakeWork);
+  else await intakeWork;
+
   if (!transportConfigured()) {
     // Leave jobs pending (not failed) — a missing secret is an operator fix,
     // and failing would refund + email every member in the queue.
-    console.error("skynn-advanced-worker: neither AI_GATEWAY_API_KEY nor ANTHROPIC_API_KEY is set; leaving jobs queued.");
-    return json(503, { error: "AI transport not configured", code: "not_configured" });
+    console.error("skynn-advanced-worker: neither AI_GATEWAY_API_KEY nor ANTHROPIC_API_KEY is set; leaving production jobs queued.");
+    return json(intakeClaimed.length ? 202 : 503, {
+      error: "AI transport not configured", code: "not_configured", intakeClaimed: intakeClaimed.map((j) => j.report_id),
+    });
   }
-
-  const workerId = `w-${crypto.randomUUID().slice(0, 8)}`;
   const { data: jobs, error: claimError } = await admin.rpc("claim_advanced_assessment_jobs", { p_limit: MAX_JOBS_PER_RUN, p_worker: workerId });
   if (claimError) return json(500, { error: "claim failed" });
 

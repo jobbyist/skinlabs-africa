@@ -12,6 +12,7 @@ describe("email template registry", () => {
       "payment_succeeded", "payment_failed",
       "analysis_completed", "analysis_failed",
       "advanced_report_ready", "advanced_report_not_released", "admin_skynn_review_needed",
+      "advanced_intake_received", "admin_skynn_intake_failed", "admin_skynn_intake_withdrawn",
       "form_confirmation_contact", "admin_form_notification_contact",
       "form_confirmation_partner", "admin_form_notification_partner",
       "form_confirmation_spotlight_brand", "admin_form_notification_spotlight_brand",

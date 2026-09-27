@@ -41,6 +41,27 @@ registerTemplate({
 // human review before release (see 20260923100000_skynn_v2_framework.sql's
 // admin_review_advanced_assessment). The email never contains report
 // content: it points the member back to the signed-in page.
+// Pre-approval intake (report_mode = 'fallback'): confirms RECEIPT of a
+// submission only. It must never read like a report or imply clinical
+// review — the report itself follows later through the production workflow.
+registerTemplate({
+  id: "advanced_intake_received",
+  category: "SKYNN",
+  internalName: "SKYNN AI Advanced Dermatology Report request received (pre-approval intake)",
+  transactional: true,
+  requiredVars: ["reference_number"],
+  subject: (vars) => `We've received your Advanced Dermatology Report request (${escapeHtml(vars.reference_number)})`,
+  preheader: () => "Your request is pending — no need to complete the assessment again.",
+  render: (vars) => `
+    ${emailHeading("Your request has been received")}
+    ${emailParagraph(`Thanks for completing the SKYNN AI Advanced Dermatology Report assessment. Your reference is <strong>${escapeHtml(vars.reference_number)}</strong>.`)}
+    ${emailParagraph("Your request is currently <strong>pending</strong> while we complete the upgraded SKYNN AI dermatology review system and clinical approval process. Your answers are securely recorded and queued, so you don't need to complete the assessment again.")}
+    ${emailParagraph("Expected delivery: <strong>approximately 3–4 weeks</strong>. We'll email you as soon as your report is ready to read.")}
+    ${emailButton("View submission status", `${BRAND.siteUrl}/skynn-ai/advanced${vars.session_id ? `?session=${encodeURIComponent(String(vars.session_id))}` : ""}`)}
+    ${emailNotice("This email confirms we've received your submission. It isn't a report, a diagnosis or a dermatologist review. Changed your mind? You can withdraw and delete your submission from the same page; an unused Analysis Pass is refunded.", "info")}
+  `,
+});
+
 registerTemplate({
   id: "advanced_report_ready",
   category: "SKYNN",

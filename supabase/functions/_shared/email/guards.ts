@@ -55,6 +55,16 @@ const guards: Record<string, GuardFn> = {
     return { send: true };
   },
 
+  // A member can withdraw (delete) a pre-approval submission right after
+  // submitting; don't send "we've received it" for something already gone.
+  advanced_intake_received: async (supabase, job) => {
+    const sessionId = job.payload?.session_id;
+    if (typeof sessionId !== "string") return { send: true };
+    const { data } = await supabase.from("advanced_assessment_sessions").select("id").eq("id", sessionId).maybeSingle();
+    if (!data) return { send: false, reason: "submission was withdrawn before send" };
+    return { send: true };
+  },
+
   // Marketing consent can be withdrawn (one-click unsubscribe) any time
   // between the weekly cron's fan-out and the processor actually sending —
   // re-check it rather than trusting the snapshot at enqueue time.

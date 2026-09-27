@@ -39,6 +39,10 @@ import { AssessmentProviderError } from "../_shared/assessment/types.ts";
 import { computeSafetyScreen } from "../_shared/assessment/safety.ts";
 import { mapPostgrestError, mapProviderErrorCode } from "../_shared/assessment/errors.ts";
 
+// Private bucket written by the worker's intake pass (see
+// _shared/assessment/intake/processIntake.ts). Service-role access only.
+const INTAKE_BUCKET = "skynn-advanced-intake";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -72,8 +76,13 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    // The service-role key is only used to authenticate the best-effort
-    // worker kick in `submit` — every data access here is user-scoped.
+    // The service-role client is used only for: the best-effort worker kick
+    // in `submit`, deleting a member's own submission (the RPC takes the
+    // JWT-verified user id, never client input, and the stored PDF has to be
+    // removed from private storage in the same request), and minting a
+    // short-lived signed URL for an admin after has_role() confirms it.
+    // Every other data access here is user-scoped.
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
@@ -94,6 +103,7 @@ serve(async (req) => {
           membershipTier: data.membership_tier,
           passesAvailable: data.passes_available,
           rolloutStage: data.rollout_stage,
+          reportMode: data.report_mode,
         });
       }
 
@@ -141,7 +151,7 @@ serve(async (req) => {
 
         const { data: report } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, generation_status, review_status, error_message, generated_at")
+          .select("id, generation_status, review_status, error_message, generated_at, reference_number, processing_mode, intake_status, submitted_at")
           .eq("session_id", sessionId)
           .maybeSingle();
 
@@ -194,8 +204,10 @@ serve(async (req) => {
         if (submitError) { const m = mapPostgrestError(submitError); return json(m.status, { error: m.message, code: m.code }); }
         const submission = Array.isArray(submissionData) ? submissionData[0] : submissionData;
 
-        const reportId = (submission as { report_id: string | null }).report_id;
-        if (!reportId) return json(500, { error: "Could not start report generation." });
+        const { report_id: reportId, reference_number: referenceNumber, processing_mode: processingMode } = submission as {
+          report_id: string | null; reference_number: string | null; processing_mode: string | null;
+        };
+        if (!reportId) return json(500, { error: "Could not record your submission." });
 
         // Best-effort nudge so the worker starts now rather than on the next
         // pg_cron minute. Never awaited into the response and never fatal:
@@ -209,7 +221,10 @@ serve(async (req) => {
         const runtime = (globalThis as any).EdgeRuntime;
         if (runtime?.waitUntil) runtime.waitUntil(kick);
 
-        return json(200, { sessionId, reportId, status: "pending", reviewStatus: null, errorMessage: null });
+        return json(200, {
+          sessionId, reportId, referenceNumber, processingMode,
+          status: "pending", intakeStatus: processingMode === "fallback" ? "pending" : null, reviewStatus: null, errorMessage: null,
+        });
       }
 
       case "status": {
@@ -218,7 +233,7 @@ serve(async (req) => {
         const { data: session } = await supabaseAuth.from("advanced_assessment_sessions").select("status").eq("id", sessionId).single();
         const { data: report } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, generation_status, review_status, error_message")
+          .select("id, generation_status, review_status, error_message, reference_number, processing_mode, intake_status, submitted_at")
           .eq("session_id", sessionId)
           .maybeSingle();
         return json(200, { sessionStatus: session?.status ?? null, report: report ?? null });
@@ -249,10 +264,49 @@ serve(async (req) => {
       case "list_reports": {
         const { data: reports, error } = await supabaseAuth
           .from("advanced_assessment_reports")
-          .select("id, session_id, generation_status, review_status, released_at, generated_at, created_at")
+          .select("id, session_id, generation_status, review_status, released_at, generated_at, created_at, reference_number, processing_mode, intake_status, submitted_at")
           .order("created_at", { ascending: false });
         if (error) return json(500, { error: "Could not load your reports." });
         return json(200, { reports: reports ?? [] });
+      }
+
+      case "delete_session": {
+        // Member deletes (withdraws) their own submission: answers, report
+        // and stored intake PDF. Unreleased submissions are refunded.
+        const sessionId = body?.sessionId as string | undefined;
+        if (!sessionId) return json(400, { error: "sessionId is required" });
+        const { data: result, error } = await supabaseAdmin.rpc("delete_advanced_assessment_for_user", {
+          p_user_id: userId,
+          p_session_id: sessionId,
+        });
+        if (error) { const m = mapPostgrestError(error); return json(m.status, { error: m.message, code: m.code }); }
+        const pdfPath = (result as { pdf_path?: string | null })?.pdf_path;
+        if (pdfPath) {
+          const { error: rmErr } = await supabaseAdmin.storage.from(INTAKE_BUCKET).remove([pdfPath]);
+          if (rmErr) console.error("skynn-advanced-assessment: intake PDF removal failed", rmErr.message);
+        }
+        return json(200, { deleted: true, refunded: Boolean((result as { refunded?: boolean })?.refunded) });
+      }
+
+      case "admin_intake_pdf_url": {
+        // Admin-only, audited, 60-second signed URL — the bucket has no
+        // storage policies, so this is the only way to open an intake PDF.
+        const reportId = body?.reportId as string | undefined;
+        if (!reportId) return json(400, { error: "reportId is required" });
+        const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
+        if (isAdmin !== true) return json(403, { error: "You don't have access to do that.", code: "forbidden" });
+        const { data: row } = await supabaseAdmin
+          .from("advanced_assessment_reports")
+          .select("session_id, pdf_storage_path, pdf_status")
+          .eq("id", reportId)
+          .maybeSingle();
+        if (!row?.pdf_storage_path || row.pdf_status !== "generated") return json(404, { error: "No PDF is available for this submission yet." });
+        const { data: signed, error: signErr } = await supabaseAdmin.storage.from(INTAKE_BUCKET).createSignedUrl(row.pdf_storage_path, 60);
+        if (signErr || !signed?.signedUrl) return json(500, { error: "Could not open the PDF. Please try again." });
+        await supabaseAdmin.rpc("log_advanced_assessment_audit", {
+          p_session_id: row.session_id, p_report_id: reportId, p_actor_type: "admin", p_actor_id: userId, p_action: "admin_downloaded", p_meta: {},
+        });
+        return json(200, { url: signed.signedUrl, expiresIn: 60 });
       }
 
       case "log_event": {
