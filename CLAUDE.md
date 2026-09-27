@@ -1135,8 +1135,11 @@ feature appear operational.
         - **Go live (fallback)**: merge the branch (the `/skynn-ai/advanced`
           route was only registered in `App.tsx` on this branch; it never
           existed before), then `UPDATE skynn_advanced_assessment_config SET
-          rollout_stage = 'pass_holders_review' WHERE id;`. **Later,
-          production**: record the sign-off, set a working AI key,
+          rollout_stage = 'pass_holders_review' WHERE id;`. **Done
+          2026-09-27**: PR #137 merged (4ff12d2), `rollout_stage =
+          'pass_holders_review'`, `report_mode = 'fallback'` live; worker
+          redeployed pinned at 4ff12d2 (v23). Pause new submissions with
+          `rollout_stage = 'disabled'`. **Later, production**: record the sign-off, set a working AI key,
           `report_mode = 'production'`, then Admin → Send to production.
         - **Known limits**: the reports@ mailbox copy sits outside in-app
           deletion (a user decision: attach the PDF), and the withdrawn alert
