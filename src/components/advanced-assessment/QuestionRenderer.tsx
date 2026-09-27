@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import type { AssessmentQuestion, ProductListEntry } from "@/lib/assessment/types";
+import { MST_SCALE } from "@/data/mstScale";
 
 interface QuestionRendererProps {
   question: AssessmentQuestion;
@@ -21,6 +22,36 @@ interface QuestionRendererProps {
  * feel like a considered profile-building step, not a generic SaaS form.
  */
 const QuestionRenderer = ({ question, value, onChange }: QuestionRendererProps) => {
+  // Monk Skin Tone is chosen from real swatches, never from a word label.
+  if (question.id === "mst_tone") {
+    const selected = typeof value === "string" ? value : undefined;
+    return (
+      <div role="radiogroup" aria-label={question.prompt} className="grid grid-cols-5 gap-2.5 sm:grid-cols-10">
+        {MST_SCALE.map((swatch) => {
+          const v = String(swatch.level);
+          const isSelected = selected === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={`Monk ${swatch.level}`}
+              onClick={() => onChange(v)}
+              className={
+                "flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors " +
+                (isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")
+              }
+            >
+              <span className="h-9 w-9 rounded-full border border-black/10" style={{ backgroundColor: swatch.hex }} />
+              <span className="text-xs text-muted-foreground">{swatch.level}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   switch (question.type) {
     case "single_select": {
       const selected = typeof value === "string" ? value : undefined;

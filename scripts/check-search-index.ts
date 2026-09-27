@@ -38,6 +38,9 @@ const KNOWN_EXCLUSIONS = new Set([
   "/reset-password",
   // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
   "/quote-ss-beauty",
+  // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached
+  // from /skynn-ai, the dashboard and emails rather than site search.
+  "/skynn-ai/advanced",
 ]);
 
 interface RouteEntry {

@@ -979,6 +979,203 @@ feature appear operational.
       product-catalogue search for the `product_list` question type
       (currently name-only entries); true async/background generation;
       end-to-end QA with a real (non-placeholder) prompt.
+    - **SKYNN AI v2 — Advanced AI Dermatology Report framework live
+      (2026-09-23)** — implements the "SKYNN AI v2 – Dermatologist-Approved,
+      POPIA- and SAHPRA-Aligned Skin Assessment Framework" master reference
+      on top of the engine above (most of the "deferred" list directly above
+      is now done). SkinLabs confirmed the framework's prompts are
+      dermatologist-approved; the sign-off RECORD (name, HPCSA no., date) was
+      not supplied, so it sits at `pending_details` and **SQL refuses to
+      release any report until an admin records it** (admin dashboard →
+      SKYNN Reviews). User decisions: access = anyone holding an Analysis
+      Pass (rollout_stage `pass_holders_review`; membership alone doesn't
+      qualify; one pass per submission; refunded on failure or rejection);
+      **every report is held for manual admin review before the member can
+      read it**; questions are SkinLabs-authored (no DLQI — licensed — and no
+      Baumann BSTI items — proprietary; outputs are labelled "Baumann-style"
+      and "not the DLQI"); generation is async.
+      - **Pipeline** (`supabase/functions/_shared/assessment/pipeline/run.ts`,
+        pure + bun-tested with a mocked model): consent gate → deterministic
+        scores (`../scoring/`: Baumann-style 4-axis, GAGS/IGA-style, Glogau-
+        style, mMASI-style tracker, QoL bands, MST tier/groups 1-3/4-6/7-10)
+        → Haiku intake → Haiku safety (final triage = stricter of model and
+        the deterministic floor `computeDeterministicTriage()` in
+        `safety.ts`) → Sonnet fairness (MST always the member's own answer)
+        → Sonnet reasoner (only PubMed-verified evidence codes; unknown codes
+        stripped) → Sonnet writer → deterministic regulatory term scan
+        (`scanRegulatoryFlags`) → Opus QA, one redline rewrite, then reject.
+        Every stage is persisted so a run resumes after a timeout. User data
+        only ever reaches a model inside `<user_data-{SALT}>` tags (random
+        per session, PII-scrubbed, tag-forging neutralised —
+        `pipeline/userData.ts`). Structured output is a single tool with
+        `tool_choice: auto` (forced only on Haiku) because forced tool use
+        doesn't combine with Opus 5's default adaptive thinking.
+      - **Prompts** — six role prompts transcribed verbatim from the PDF's
+        §5 A–F into `assessment_prompt_versions` (prompt set `skynn-v2.0.0`,
+        new `prompt_set`/`role` columns; md5 of each verified against the
+        source after seeding). Still service-role only.
+      - **Worker** — `supabase/functions/skynn-advanced-worker` runs from
+        pg_cron every minute (only when a pending report exists), responds
+        202 and processes in `EdgeRuntime.waitUntil`. Auth: `x-cron-secret`
+        verified IN THE DATABASE against Vault `skynn_worker_cron_secret` via
+        `verify_skynn_worker_secret()` using the auto-injected service-role
+        key — so, unlike the briefings/openhaus crons, **no `supabase secrets
+        set` step is needed**. Also accepts the service-role bearer (the
+        post-submit kick) or an admin JWT.
+      - **Schema** — `20260923100000_skynn_v2_framework.sql` (+`…100100_seed`,
+        `…100200_retire_v1_completion`): `assessment_prompt_signoffs`,
+        `advanced_assessment_audit_log` (append-only, no content), review
+        columns + resumable `pipeline_state` + lease on reports, column-level
+        SELECT grants so owners see status only; content comes from
+        `get_my_advanced_assessment_report()` once approved. Admin RPCs:
+        `admin_list_/admin_get_/admin_review_advanced_assessment`,
+        `admin_get_prompt_signoffs`, `admin_record_prompt_signoff`. The v1
+        `complete_advanced_assessment_session()` is revoked from
+        service_role so a stale v1 deploy can't bypass review.
+      - **Evidence** — 16 efficacy citations (C1–C16) + 8 methodology refs
+        (M1–M8) in `advanced_assessment_evidence`, every PMID/DOI resolved
+        live via the PubMed MCP; `verified` = bibliographically verified.
+      - **Emails** — `advanced_report_ready`, `advanced_report_not_released`
+        (SKYNN) and `admin_skynn_review_needed` (ADMIN, no member details);
+        failures reuse `analysis_failed`.
+      - **Deploy mechanism used** — edge functions were deployed via the MCP
+        tool as a one-line entrypoint that imports the committed source from
+        `raw.githubusercontent.com/jobbyist/skinlabs-africa/<commit-sha>/…`
+        (repo is public; pinned sha = immutable, and avoids the MCP bundler's
+        `../` import bug). The seed migration was applied the same way via
+        `pg_net` + an md5 guard. A later GitHub-sync deploy from `main`
+        replaces these with the same source once the branch is merged.
+      - **Live E2E (2026-09-23) and the one blocker left**: a synthetic,
+        fully-answered 2026.2 session on the admin account was run through
+        the deployed worker via the real pg_cron job. Everything up to the
+        first model call worked (cron fired, Vault auth, claim/lease,
+        deterministic scores persisted, audit rows). The model calls did
+        not: `AI_GATEWAY_API_KEY` is not set as a Supabase Edge Function
+        secret, and `ANTHROPIC_API_KEY` contained a stray non-ASCII
+        character and, once stripped, was rejected by Anthropic (401 "API
+        key is invalid"). The test data was deleted. A rejected or missing
+        key now leaves jobs queued as `blocked_not_configured` without using
+        up retries. **So rollout_stage was left at `disabled`**; no member
+        can submit yet. To go live: (1) set a valid `ANTHROPIC_API_KEY` (or
+        `AI_GATEWAY_API_KEY`) Edge Function secret; (2) `UPDATE
+        skynn_advanced_assessment_config SET rollout_stage =
+        'pass_holders_review' WHERE id;`; (3) record the dermatologist
+        sign-off in the admin SKYNN Reviews tab before approving the first
+        report. The real multi-model run (prompt quality, QA pass rate,
+        latency per stage) has not been observed yet. Check it on the first
+        real submission.
+        **Update (same day):** you set `AI_GATEWAY_API_KEY` and a second
+        synthetic run reached the gateway. The key authenticates, but
+        Vercel AI Gateway returned 403 `no_providers_available`: "Free tier
+        users do not have access to this model. Upgrade to paid credits."
+        The Vercel team needs paid AI Gateway credits (Vercel dashboard →
+        AI → top up) before Claude models can be called. The job stayed
+        queued as `blocked_not_configured` as designed, the test data was
+        deleted, and rollout_stage is still `disabled`. 401/403 errors now
+        log the provider's reason (the body never contains the key).
+        **Follow-up (2026-09-24):** `claudeTransport.ts` now falls back to
+        `ANTHROPIC_API_KEY` when the gateway returns 401/403, so an unfunded
+        gateway key no longer blocks a valid direct key (worker redeployed
+        pinned at 1e6a9ce). A new Anthropic key has to be created by a
+        human in the Claude Console: the Admin API cannot create keys, and
+        no tool here can set Supabase Edge secrets. Vercel doesn't need the
+        key, because nothing on Vercel calls Anthropic.
+      - **Pre-approval intake ("fallback") mode (2026-09-27)** — lets pass
+        holders submit now while the sign-off record and a working AI key are
+        pending. It is a MODE of the v2 model, not a parallel system:
+        - **Flag**: `skynn_advanced_assessment_config.report_mode`
+          (`disabled` / `fallback` / `production`, default `fallback`).
+          `rollout_stage` still decides WHO may submit. The frontend reads
+          the mode from `get_advanced_assessment_access()` (`reportMode`) and
+          never hardcodes it.
+        - **Submission**: the same `submit_advanced_assessment_session()`
+          (consent gate, completeness recomputed server-side, one pass
+          consumed, idempotent on retry). In fallback mode it also writes a
+          server-generated `reference_number` (`SKYNN-ADV-YYYYMMDD-XXXXXX`,
+          Crockford alphabet, unique index), `processing_mode = 'fallback'`,
+          `intake_status = 'pending'`, a version snapshot (prompt set,
+          definition, scoring, evidence) and a consent snapshot, and enqueues
+          `advanced_intake_received` to the member. It refuses a second open
+          fallback submission (`duplicate_pending`) BEFORE charging.
+        - **Worker**: `claim_advanced_assessment_jobs()` now requires
+          `processing_mode = 'production'`, so a fallback row can never reach
+          a model. The worker's intake pass (`_shared/assessment/intake/`,
+          no AI, no Anthropic key) claims fallback rows
+          (`claim_advanced_intake_jobs()`), computes the deterministic scores
+          and triage floor, renders the intake PDF (jsPDF via esm.sh; plain
+          text, "STATUS: PENDING", not report-like), stores it in the private
+          `skynn-advanced-intake` bucket (no storage policies, service role
+          only), and emails it to reports@skinlabs.co.za through `send-email`
+          (which now accepts validated PDF attachments). Each step records
+          its outcome via `record_advanced_intake_result()`, with backoff at
+          1/5/15/60/180 min. After 6 attempts the admin alert
+          `admin_skynn_intake_failed` goes to support@ + reports@. The
+          submission itself is never lost.
+        - **Member**: a confirmation screen and the "Advanced Dermatology
+          Report — Pending" status (reference, date, approx. 3–4 weeks),
+          plus a dashboard card block. `getReportDisplayStatus()` in
+          `src/lib/assessment/types.ts` is the single status mapper for both
+          lifecycles. **Delete**: members can withdraw/delete any submission
+          (`delete_session` → `delete_advanced_assessment_for_user()`, which
+          is service-role only and takes the JWT-verified id). An unreleased
+          submission is refunded, the PDF is removed, and if the intake email
+          was already sent, `admin_skynn_intake_withdrawn` asks reports@ to
+          delete the mailbox copy. The consent question had promised this
+          delete ability; it didn't exist before. `list_orphan_intake_pdfs()`
+          plus a worker sweep removes any PDF whose row is gone. account-delete
+          removes PDFs and sends the same withdrawn alert.
+        - **Admin**: SKYNN Reviews → "Advanced Reports"
+          (`AdvancedReportsPanel.tsx`) offers search (reference, email, user
+          id), status/mode/date filters, full answers, delivery state, a
+          60-second signed-URL PDF (`admin_intake_pdf_url`, audited
+          `admin_downloaded`), retry, reject + refund, and "Send to
+          production" (`admin_promote_advanced_intake_to_production()`, which
+          refuses unless `report_mode = 'production'`; release is still gated
+          by the sign-off check).
+        - **Go live (fallback)**: merge the branch (the `/skynn-ai/advanced`
+          route was only registered in `App.tsx` on this branch; it never
+          existed before), then `UPDATE skynn_advanced_assessment_config SET
+          rollout_stage = 'pass_holders_review' WHERE id;`. **Later,
+          production**: record the sign-off, set a working AI key,
+          `report_mode = 'production'`, then Admin → Send to production.
+        - **Known limits**: the reports@ mailbox copy sits outside in-app
+          deletion (a user decision: attach the PDF), and the withdrawn alert
+          is the mitigation. Resend delivery couldn't be checked from here
+          (the Resend connector needs re-authorisation), only that
+          `send-email` returned OK.
+        - **Bug found on the way**: `enqueue_email()`'s priority parameter
+          is smallint, so a bare `50` fails with 42883. This broke the
+          exhaustion and withdrawn alerts and the v2 "review needed" alert
+          (`complete_advanced_assessment_for_review`, never run live). All
+          three are fixed in `20260927110000_skynn_enqueue_priority_casts.sql`.
+          Always write `50::smallint`.
+        - **Live E2E (2026-09-27)**: on the admin account, a synthetic
+          2026.2 submission went through the real submit RPC and got a
+          reference. The cron worker then produced a 30 KB PDF and the
+          reports@ email on the first attempt. Also verified live:
+          - idempotent resubmit (same reference, no charge)
+          - `duplicate_pending` blocks a second submission without charging
+          - forced PDF + email failure, recovered by the worker on the next
+            backoff
+          - retries exhausted: row kept, alert queued (checked inside a
+            rolled-back transaction)
+          - admin retry and reject with refund (rolled back)
+          - member delete: refund, withdrawn alert sent, orphan sweep
+            removed the PDF
+          - RLS/privilege probes: non-admin denied the admin/service RPCs,
+            the PDF path column and storage; owner sees status only
+
+          All test data was removed. `rollout_stage` was left `disabled`.
+      - **Dermatologist sign-off pack** — `docs/SKYNN-AI-v2-Dermatologist-
+        Signoff.pdf` (29 pp). It contains the six prompts verbatim (text
+        checked against the live DB by md5), all 73 questions, the scoring
+        rules, the red flags and escalation messages, the disclaimer, the
+        regulatory scan and the 24 references, each with an approval line.
+        The sign-off page maps to `admin_record_prompt_signoff`. It is a
+        snapshot generated from the seed migration plus the scoring/safety
+        modules (the script wasn't kept). Regenerate it after any prompt,
+        question or safety-rule change, since that needs a new sign-off
+        anyway.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a

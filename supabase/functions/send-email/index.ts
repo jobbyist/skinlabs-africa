@@ -92,11 +92,35 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Optional PDF attachments (the SKYNN intake record to reports@). Kept
+  // deliberately narrow: at most 2 files, PDF only, base64 content, a
+  // sanitised filename and a 5 MB decoded cap each.
+  const attachments: Array<{ filename: string; content: string }> = []
+  if (payload.attachments !== undefined) {
+    if (!Array.isArray(payload.attachments) || payload.attachments.length === 0 || payload.attachments.length > 2) {
+      return json({ error: 'attachments must be an array of 1–2 files' }, 400)
+    }
+    for (const raw of payload.attachments as unknown[]) {
+      const a = raw as { filename?: unknown; content?: unknown }
+      if (typeof a?.filename !== 'string' || !/^[A-Za-z0-9._-]{1,120}\.pdf$/.test(a.filename)) {
+        return json({ error: 'attachment filename must be a plain .pdf name' }, 400)
+      }
+      if (typeof a.content !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(a.content)) {
+        return json({ error: 'attachment content must be base64' }, 400)
+      }
+      if (a.content.length * 0.75 > 5 * 1024 * 1024) {
+        return json({ error: 'attachment is too large' }, 413)
+      }
+      attachments.push({ filename: a.filename, content: a.content })
+    }
+  }
+
   const resendPayload: Record<string, unknown> = {
     from: FROM,
     to: recipients,
     subject: subject.trim(),
   }
+  if (attachments.length > 0) resendPayload.attachments = attachments
   if (typeof html === 'string') resendPayload.html = html
   if (typeof text === 'string') resendPayload.text = text
   if (isEmail(payload.reply_to)) resendPayload.reply_to = payload.reply_to

@@ -24,6 +24,10 @@ const PG_MESSAGE_MAP: Record<string, AssessmentApiError> = {
   session_not_found: { status: 404, code: "not_found", message: "That assessment session could not be found." },
   session_not_editable: { status: 409, code: "not_editable", message: "This assessment can no longer be edited." },
   assessment_incomplete: { status: 422, code: "incomplete", message: "Please complete all required questions before submitting." },
+  consent_required: { status: 422, code: "consent_required", message: "We need your consent to process your skin information before we can create your report." },
+  submissions_paused: { status: 503, code: "submissions_paused", message: "New Advanced Dermatology Report requests are paused for a short while. Please check back soon." },
+  duplicate_pending: { status: 409, code: "duplicate_pending", message: "You already have an Advanced Dermatology Report request pending. We'll let you know as soon as it's ready — there's no need to submit again." },
+  report_in_progress: { status: 409, code: "report_in_progress", message: "Your report is being prepared right now. Please try again in a few minutes." },
 };
 
 const PG_CODE_MAP: Record<string, AssessmentApiError> = {

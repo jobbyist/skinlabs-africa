@@ -32,6 +32,7 @@ import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const AIFormulator = lazyWithRetry(() => import("./pages/AIFormulator"));
+const AdvancedAssessment = lazyWithRetry(() => import("./pages/AdvancedAssessment"));
 const QuoteSSBeauty = lazyWithRetry(() => import("./pages/QuoteSSBeauty"));
 const About = lazyWithRetry(() => import("./pages/About"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
@@ -126,6 +127,8 @@ const AppContent = () => {
             <Route path="/" element={<Index />} />
             <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
             <Route path="/skynn-ai" element={<AIFormulator />} />
+            {/* SKYNN AI Advanced Dermatology Report — gated server-side by get_advanced_assessment_access(). */}
+            <Route path="/skynn-ai/advanced" element={<AdvancedAssessment />} />
             <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
             <Route path="/quote-ss-beauty" element={<QuoteSSBeauty />} />
             <Route path="/about" element={<About />} />

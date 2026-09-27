@@ -9,8 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type {
   AdvancedAssessmentAccess,
   AdvancedAssessmentReportRow,
+  AdvancedAssessmentReportSummary,
   AdvancedAssessmentSession,
   AssessmentDefinitionSummary,
+  ProcessingMode,
   SafetyScreenResult,
 } from "./types";
 
@@ -69,18 +71,37 @@ export const saveAdvancedAssessmentProgress = (sessionId: string, responses: Rec
     currentSectionId,
   });
 
+/** Queues the assessment for background generation (SKYNN v2) — returns
+ *  `pending` immediately; poll getAdvancedAssessmentReport for progress. */
 export const submitAdvancedAssessment = (sessionId: string) =>
-  invoke<{ sessionId: string; reportId: string; status: string; errorMessage: string | null }>("submit", { sessionId });
+  invoke<{
+    sessionId: string;
+    reportId: string;
+    referenceNumber: string | null;
+    processingMode: ProcessingMode | null;
+    status: string;
+    errorMessage: string | null;
+  }>("submit", { sessionId });
+
+/** Deletes (withdraws) the member's own submission: answers, report and any
+ *  stored intake PDF. An unreleased submission's Analysis Pass is refunded. */
+export const deleteAdvancedAssessmentSubmission = (sessionId: string) =>
+  invoke<{ deleted: boolean; refunded: boolean }>("delete_session", { sessionId });
+
+/** Admin only (checked server-side): a 60-second signed URL for an intake PDF. */
+export const getAdminIntakePdfUrl = (reportId: string) =>
+  invoke<{ url: string; expiresIn: number }>("admin_intake_pdf_url", { reportId });
 
 export const getAdvancedAssessmentStatus = (sessionId: string) =>
-  invoke<{ sessionStatus: string | null; report: { id: string; generation_status: string; error_message: string | null } | null }>("status", {
-    sessionId,
-  });
+  invoke<{
+    sessionStatus: string | null;
+    report: { id: string; generation_status: string; review_status: string | null; error_message: string | null } | null;
+  }>("status", { sessionId });
 
 export const getAdvancedAssessmentReport = (params: { reportId?: string; sessionId?: string }) =>
   invoke<{ report: AdvancedAssessmentReportRow }>("get_report", params);
 
-export const listAdvancedAssessmentReports = () => invoke<{ reports: AdvancedAssessmentReportRow[] }>("list_reports");
+export const listAdvancedAssessmentReports = () => invoke<{ reports: AdvancedAssessmentReportSummary[] }>("list_reports");
 
 export const logRoutineHandoffClicked = (sessionId: string) =>
   invoke<{ ok: boolean }>("log_event", { eventType: "routine_handoff_clicked", sessionId });
