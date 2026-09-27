@@ -37,7 +37,7 @@ import { STAGE_ORDER, type StageRole } from "../_shared/assessment/pipeline/stag
 import { generateSalt } from "../_shared/assessment/pipeline/userData.ts";
 import { deriveTopicsV2, selectEvidenceV2, type EvidenceEntry } from "../_shared/assessment/pipeline/evidenceV2.ts";
 import { callClaudeStructured, transportConfigured } from "../_shared/assessment/pipeline/claudeTransport.ts";
-import { processIntakeJob, type IntakeJob } from "../_shared/assessment/intake/processIntake.ts";
+import { INTAKE_BUCKET, processIntakeJob, type IntakeJob } from "../_shared/assessment/intake/processIntake.ts";
 
 // Conservative so a stage started near the budget still finishes inside the
 // edge runtime's wall-clock limit; unfinished work resumes next tick.
@@ -252,11 +252,20 @@ Deno.serve(async (req) => {
       }
     }
     if (results.length) console.log(`skynn-advanced-worker ${workerId} intake: ${JSON.stringify(results)}`);
+
+    // Safety net for member/account deletion: remove any intake PDF whose
+    // report row no longer exists (see list_orphan_intake_pdfs()).
+    const { data: orphans } = await admin.rpc("list_orphan_intake_pdfs", { p_limit: 50 });
+    const orphanNames = ((orphans ?? []) as Array<{ name: string }>).map((o) => o.name);
+    if (orphanNames.length) {
+      const { error: rmErr } = await admin.storage.from(INTAKE_BUCKET).remove(orphanNames);
+      console.log(`skynn-advanced-worker ${workerId}: orphan intake PDFs removed=${rmErr ? 0 : orphanNames.length}${rmErr ? ` error=${rmErr.message}` : ""}`);
+    }
     return results;
   })();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- deno-lint-ignore no-explicit-any
   const edgeRuntime = (globalThis as any).EdgeRuntime;
-  if (edgeRuntime?.waitUntil && intakeClaimed.length > 0) edgeRuntime.waitUntil(intakeWork);
+  if (edgeRuntime?.waitUntil) edgeRuntime.waitUntil(intakeWork);
   else await intakeWork;
 
   if (!transportConfigured()) {
