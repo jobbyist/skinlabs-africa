@@ -221,7 +221,12 @@ async function processJob(admin: Admin, job: { report_id: string; session_id: st
     p_engine_version: ENGINE_VERSION,
     p_evidence_version: "2026.2",
   });
-  if (error) throw new Error(`complete_advanced_assessment_for_review failed: ${error.message}`);
+  if (error) {
+    // Database detail stays in this function's own server-side log; the
+    // error that propagates carries a fixed message only.
+    console.error(`skynn-advanced-worker: complete_advanced_assessment_for_review failed for ${reportId}`, error.code, error.message);
+    throw new AssessmentProviderError("Failed to complete advanced assessment.", "upstream_error");
+  }
   return { reportId, status: "awaiting_review" };
 }
 
