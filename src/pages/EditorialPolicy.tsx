@@ -41,7 +41,7 @@ const EditorialPolicy = () => {
                       <h2 className="text-2xl font-bold text-foreground">2. Independence</h2>
                     </div>
                     <p className="text-muted-foreground">
-                      SkinLabs maintains editorial independence. Our “no affiliate” stance means we do not earn commission from product sales via hidden or undisclosed affiliate links in scored reviews or comparative content. Commercial relationships (if any) are separated from scoring and verdict processes.
+                      SkinLabs maintains editorial independence. The Platform is funded by memberships and partly supported by advertising, and may feature sponsored content and placements, but our editorial content cannot be bought and is not directly influenced by advertisers or sponsors. We do not earn commission from product sales via hidden or undisclosed affiliate links in scored reviews or comparative content, and commercial relationships are separated from scoring and verdict processes.
                     </p>
                   </div>
 

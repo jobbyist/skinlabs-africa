@@ -16,6 +16,7 @@
  */
 import { STANDARD_TRIAL_DAYS, trialNoun } from "@/lib/promo";
 import { getPlan, MONEY_BACK_GUARANTEE_DAYS, PODCAST_FREE_MONTHLY, COMPARE_FREE_MONTHLY, type MembershipPlan } from "./plans";
+import { FUNDING_STATEMENT } from "@/lib/editorialIndependence";
 
 export type FAQCategoryId =
   | "about"
@@ -190,7 +191,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "what-is-skinlabs",
     question: "What is SkinLabs?",
     answer:
-      "SkinLabs is South Africa's independent skincare intelligence platform. Tell us your skin, your concerns, your lifestyle and your climate, and SKYNN AI builds a routine around it — grounded in dermatological science and local market knowledge, not guesswork. We also publish independent product reviews, daily skin science briefings and brand rankings, funded by members rather than brand deals.",
+      "SkinLabs is South Africa's independent skincare intelligence platform. Tell us your skin, your concerns, your lifestyle and your climate, and SKYNN AI builds a routine around it — grounded in dermatological science and local market knowledge, not guesswork. We also publish independent product reviews, daily skin science briefings and brand rankings. We're funded by members and partly supported by advertising, but our editorial content can't be bought.",
     category: "about",
     tags: ["skinlabs", "platform", "overview"],
     relatedQuestions: ["about-ai-formulator-works", "about-is-free", "membership-subscription-service"],
@@ -263,6 +264,23 @@ export const faqEntries: FAQEntry[] = [
     tags: ["retailer", "independence", "commercial relationships"],
     relatedQuestions: ["products-where-to-buy", "products-authentic-brands"],
     relatedPages: [{ label: "Our scoring methodology", href: "/spotlight/methodology" }],
+    evidence: [],
+    lastReviewed: KNOWLEDGE_HUB_REVIEW_DATE,
+    reviewedBy: REVIEWER,
+    riskLevel: "low",
+  },
+  {
+    id: "about-ads-sponsored",
+    slug: "is-skinlabs-ad-supported",
+    question: "Is SkinLabs ad-supported? Can brands pay for coverage?",
+    answer: `${FUNDING_STATEMENT} Ads are labelled "Advertisement" and paid placements are labelled "Sponsored". Members on Glow Insider and above see fewer ads.`,
+    category: "about",
+    tags: ["advertising", "sponsored content", "independence", "commercial relationships"],
+    relatedQuestions: ["about-do-you-sell", "about-is-free"],
+    relatedPages: [
+      { label: "Advertising & Sponsored Content Policy", href: "/advertising-policy" },
+      { label: "Editorial Policy", href: "/editorial-policy" },
+    ],
     evidence: [],
     lastReviewed: KNOWLEDGE_HUB_REVIEW_DATE,
     reviewedBy: REVIEWER,
