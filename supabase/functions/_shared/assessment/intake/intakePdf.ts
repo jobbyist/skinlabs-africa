@@ -79,7 +79,9 @@ export function buildIntakePdf(JsPDF: JsPdfCtor, data: IntakePdfData): Uint8Arra
     if (y + needed > pageHeight - 48) newPage();
   };
   const heading = (text: string) => {
-    ensure(40);
+    // Room for the heading AND its first row, so a heading is never
+    // stranded at the bottom of a page.
+    ensure(64);
     y += 10;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);

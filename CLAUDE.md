@@ -607,6 +607,92 @@ feature appear operational.
         human in the Claude Console: the Admin API cannot create keys, and
         no tool here can set Supabase Edge secrets. Vercel doesn't need the
         key, because nothing on Vercel calls Anthropic.
+      - **Pre-approval intake ("fallback") mode (2026-09-27)** — lets pass
+        holders submit now while the sign-off record and a working AI key are
+        pending. It is a MODE of the v2 model, not a parallel system:
+        - **Flag**: `skynn_advanced_assessment_config.report_mode`
+          (`disabled` / `fallback` / `production`, default `fallback`).
+          `rollout_stage` still decides WHO may submit. The frontend reads
+          the mode from `get_advanced_assessment_access()` (`reportMode`) and
+          never hardcodes it.
+        - **Submission**: the same `submit_advanced_assessment_session()`
+          (consent gate, completeness recomputed server-side, one pass
+          consumed, idempotent on retry). In fallback mode it also writes a
+          server-generated `reference_number` (`SKYNN-ADV-YYYYMMDD-XXXXXX`,
+          Crockford alphabet, unique index), `processing_mode = 'fallback'`,
+          `intake_status = 'pending'`, a version snapshot (prompt set,
+          definition, scoring, evidence) and a consent snapshot, and enqueues
+          `advanced_intake_received` to the member. It refuses a second open
+          fallback submission (`duplicate_pending`) BEFORE charging.
+        - **Worker**: `claim_advanced_assessment_jobs()` now requires
+          `processing_mode = 'production'`, so a fallback row can never reach
+          a model. The worker's intake pass (`_shared/assessment/intake/`,
+          no AI, no Anthropic key) claims fallback rows
+          (`claim_advanced_intake_jobs()`), computes the deterministic scores
+          and triage floor, renders the intake PDF (jsPDF via esm.sh; plain
+          text, "STATUS: PENDING", not report-like), stores it in the private
+          `skynn-advanced-intake` bucket (no storage policies, service role
+          only), and emails it to reports@skinlabs.co.za through `send-email`
+          (which now accepts validated PDF attachments). Each step records
+          its outcome via `record_advanced_intake_result()`, with backoff at
+          1/5/15/60/180 min. After 6 attempts the admin alert
+          `admin_skynn_intake_failed` goes to support@ + reports@. The
+          submission itself is never lost.
+        - **Member**: a confirmation screen and the "Advanced Dermatology
+          Report — Pending" status (reference, date, approx. 3–4 weeks),
+          plus a dashboard card block. `getReportDisplayStatus()` in
+          `src/lib/assessment/types.ts` is the single status mapper for both
+          lifecycles. **Delete**: members can withdraw/delete any submission
+          (`delete_session` → `delete_advanced_assessment_for_user()`, which
+          is service-role only and takes the JWT-verified id). An unreleased
+          submission is refunded, the PDF is removed, and if the intake email
+          was already sent, `admin_skynn_intake_withdrawn` asks reports@ to
+          delete the mailbox copy. The consent question had promised this
+          delete ability; it didn't exist before. `list_orphan_intake_pdfs()`
+          plus a worker sweep removes any PDF whose row is gone. account-delete
+          removes PDFs and sends the same withdrawn alert.
+        - **Admin**: SKYNN Reviews → "Advanced Reports"
+          (`AdvancedReportsPanel.tsx`) offers search (reference, email, user
+          id), status/mode/date filters, full answers, delivery state, a
+          60-second signed-URL PDF (`admin_intake_pdf_url`, audited
+          `admin_downloaded`), retry, reject + refund, and "Send to
+          production" (`admin_promote_advanced_intake_to_production()`, which
+          refuses unless `report_mode = 'production'`; release is still gated
+          by the sign-off check).
+        - **Go live (fallback)**: merge the branch (the `/skynn-ai/advanced`
+          route was only registered in `App.tsx` on this branch; it never
+          existed before), then `UPDATE skynn_advanced_assessment_config SET
+          rollout_stage = 'pass_holders_review' WHERE id;`. **Later,
+          production**: record the sign-off, set a working AI key,
+          `report_mode = 'production'`, then Admin → Send to production.
+        - **Known limits**: the reports@ mailbox copy sits outside in-app
+          deletion (a user decision: attach the PDF), and the withdrawn alert
+          is the mitigation. Resend delivery couldn't be checked from here
+          (the Resend connector needs re-authorisation), only that
+          `send-email` returned OK.
+        - **Bug found on the way**: `enqueue_email()`'s priority parameter
+          is smallint, so a bare `50` fails with 42883. This broke the
+          exhaustion and withdrawn alerts and the v2 "review needed" alert
+          (`complete_advanced_assessment_for_review`, never run live). All
+          three are fixed in `20260927110000_skynn_enqueue_priority_casts.sql`.
+          Always write `50::smallint`.
+        - **Live E2E (2026-09-27)**: on the admin account, a synthetic
+          2026.2 submission went through the real submit RPC and got a
+          reference. The cron worker then produced a 30 KB PDF and the
+          reports@ email on the first attempt. Also verified live:
+          - idempotent resubmit (same reference, no charge)
+          - `duplicate_pending` blocks a second submission without charging
+          - forced PDF + email failure, recovered by the worker on the next
+            backoff
+          - retries exhausted: row kept, alert queued (checked inside a
+            rolled-back transaction)
+          - admin retry and reject with refund (rolled back)
+          - member delete: refund, withdrawn alert sent, orphan sweep
+            removed the PDF
+          - RLS/privilege probes: non-admin denied the admin/service RPCs,
+            the PDF path column and storage; owner sees status only
+
+          All test data was removed. `rollout_stage` was left `disabled`.
       - **Dermatologist sign-off pack** — `docs/SKYNN-AI-v2-Dermatologist-
         Signoff.pdf` (29 pp). It contains the six prompts verbatim (text
         checked against the live DB by md5), all 73 questions, the scoring
