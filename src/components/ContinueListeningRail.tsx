@@ -36,18 +36,25 @@ const ContinueListeningRail = () => {
   const { episode, seconds } = inProgress;
 
   return (
-    <div className="mb-8 flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+    // `min-w-0`/`max-w-full` on every flex level + a BLOCK link: `truncate` does
+    // nothing on an inline <a>, which is what let long titles push the card
+    // (and the page) wider than a phone screen.
+    <div className="mb-8 flex w-full min-w-0 max-w-full items-center gap-3 overflow-hidden rounded-2xl border border-border bg-card p-3 sm:gap-4 sm:p-4">
       <img
         src={episode.image}
         alt={`${episode.title} cover art`}
-        className="h-16 w-16 shrink-0 rounded-xl object-cover"
+        className="h-12 w-12 shrink-0 rounded-xl object-cover sm:h-16 sm:w-16"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Continue listening</p>
-        <Link to={`/podcast/${episode.slug}`} className="truncate text-sm font-semibold text-foreground hover:underline">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-primary sm:text-xs">Continue listening</p>
+        <Link
+          to={`/podcast/${episode.slug}`}
+          title={episode.title}
+          className="block max-w-full truncate text-sm font-semibold text-foreground hover:underline"
+        >
           {episode.title}
         </Link>
-        <p className="text-xs text-muted-foreground">
+        <p className="truncate text-xs text-muted-foreground">
           {formatTime(seconds)} of {episode.duration}
         </p>
       </div>
