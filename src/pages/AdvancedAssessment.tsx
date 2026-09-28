@@ -403,7 +403,7 @@ const AssessmentRunner = ({
         <div className="flex flex-col items-center gap-3 py-24 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Securely submitting your answers…</p>
-          <p className="text-sm text-muted-foreground">Securely sending your answers…</p>
+        </div>
       );
     }
     return <ProcessingState />;
