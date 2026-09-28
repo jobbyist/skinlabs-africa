@@ -172,6 +172,9 @@ const PodcastPage = () => {
             </div>
           </section>
 
+          {/* Between the show intro and the episode grid. */}
+          <AdSlot placement="podcast-after-about" compact priority="primary" />
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {episodes.map((episode, index) => {
               const isCurrent = current?.id === episode.id;

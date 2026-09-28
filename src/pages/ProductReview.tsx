@@ -35,10 +35,6 @@ import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
   productReviews,
-  seededComments,
-  seededRatings,
-  getSeededAverageRating,
-  getSeededLikeCount,
 } from "@/data/reviews";
 import { spotlightRanking } from "@/data/spotlight";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
@@ -58,7 +54,7 @@ interface CommentRow {
 const ProductReview = () => {
   const { slug } = useParams();
   const { user } = useAuth();
-  const { isMember, isVip } = useMembership();
+  const { isMember } = useMembership();
   const { data: generatedReviews } = useGeneratedReviews();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
@@ -77,7 +73,7 @@ const ProductReview = () => {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
-  // Real `review_ratings` rows only (avgRating above may be a seeded display value).
+  // Real `review_ratings` rows only.
   const [realRatingStats, setRealRatingStats] = useState<{ average: number; count: number } | null>(null);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [body, setBody] = useState("");
@@ -138,8 +134,8 @@ const ProductReview = () => {
       ]);
       if (!active) return;
       const rows = ratings ?? [];
-      setLikeCount(rows.length > 0 ? rows.filter((r) => r.liked).length : getSeededLikeCount(review.id));
-      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : getSeededAverageRating(review.id));
+      setLikeCount(rows.filter((r) => r.liked).length);
+      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : null);
       const rated = rows.map((r) => r.rating).filter((n): n is number => typeof n === "number" && n >= 1 && n <= 5);
       setRealRatingStats(rated.length > 0 ? { average: rated.reduce((a, b) => a + b, 0) / rated.length, count: rated.length } : null);
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
@@ -221,7 +217,8 @@ const ProductReview = () => {
   };
 
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
-  const displayComments = comments.length === 0 ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` })) : comments;
+  // Real comments only — the seeded placeholder discussion was fabricated social proof.
+  const displayComments = comments;
   const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
   const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
   const seasonalFeature = allSeasons
@@ -404,6 +401,9 @@ const ProductReview = () => {
             </div>
           )}
 
+          {/* Only when the FAQ follows, so it never sits directly above product-review-top. */}
+          {review.faq && review.faq.length > 0 && <AdSlot placement="product-review-deep-dive" compact />}
+
           {review.faq && review.faq.length > 0 && (
             <div className="mt-6">
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Frequently asked questions</h2>
@@ -435,7 +435,7 @@ const ProductReview = () => {
 
           <SkinLabsPromiseBadge className="mt-6" />
 
-          <AdSlot placement="product-review-top" compact />
+          <AdSlot placement="product-review-top" compact priority="primary" />
 
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
@@ -479,7 +479,7 @@ const ProductReview = () => {
 
           {/* Partner banner sits after the routine builder, not straight after
               "Where to buy" + the OpenHaus link, so commercial units never cluster. */}
-          <RoutineBuilder anchor={review} isVip={isVip} />
+          <RoutineBuilder anchor={review} />
 
           <FaithfulToNature placement="product-review-shop" />
 
@@ -613,6 +613,8 @@ const ProductReview = () => {
               </ul>
             )}
           </div>
+
+          <AdSlotAutorelaxed placement="product-review-related" compact />
 
           {relatedReviews.length > 0 && (
             <div className="mt-12">

@@ -23,6 +23,7 @@ import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
 import { useTheme } from "next-themes";
 import { pageSeo, SITE_URL, BRAND, buildOrganizationJsonLd } from "@/lib/seo-config";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const SectionDivider = () => (
   <div className="container mx-auto px-4" aria-hidden="true">
@@ -67,7 +68,7 @@ const Index = () => {
               content section, none under the hero or after the SKYNN AI section. */}
           <NewsroomFeed limit={3} showExploreLink />
           <div className="container mx-auto px-4">
-            <AdSlot placement="home-after-newsroom" compact />
+            <AdSlot placement="home-after-newsroom" compact priority="primary" />
           </div>
 
           <SeasonalsTeaser />
@@ -100,7 +101,9 @@ const Index = () => {
 
           {/* Brand Ambassador Programme 2026 announcement (replaces The Short Version / Features) */}
           <BrandAmbassadorTeaser />
-          <SectionDivider />
+          <div className="container mx-auto px-4">
+            <AdSlotAutorelaxed placement="home-before-newsletter" compact />
+          </div>
 
           <Newsletter />
         </main>

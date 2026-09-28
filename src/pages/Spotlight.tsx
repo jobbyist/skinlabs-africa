@@ -12,6 +12,7 @@ import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek } from "@/data/spotlight";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const RANKING_PAGE_SIZE = 5;
 
@@ -131,7 +132,7 @@ const Spotlight = () => {
         </section>
 
         <div className="container mx-auto px-4">
-          <AdSlot placement="spotlight-mid" compact />
+          <AdSlot placement="spotlight-mid" compact priority="primary" />
         </div>
 
         {/* Full ranking */}
@@ -165,6 +166,10 @@ const Spotlight = () => {
             </div>
           </section>
         )}
+
+        <div className="container mx-auto px-4">
+          <AdSlotAutorelaxed placement="spotlight-before-methodology" compact />
+        </div>
 
         {/* Methodology + why Spotlight exists — one surface, two sections */}
         <section className="container mx-auto mt-14 px-4">

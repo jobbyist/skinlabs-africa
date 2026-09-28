@@ -141,7 +141,7 @@ function SpotlightBrandPage() {
         <GatedOverlay
           locked={locked}
           title="Monthly free profile limit reached"
-          message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Upgrade to Glow Insider or Glow VIP for unlimited access.`}
+          message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Glow Lite and above get unlimited access.`}
           feature="spotlight.full_profiles"
           source="spotlight_limit_ssr"
         >

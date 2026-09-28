@@ -12,6 +12,8 @@ import type { Database } from '@/integrations/supabase/types'
 import EvidenceBadge from '@/components/ingredients/EvidenceBadge'
 import IngredientDisclaimer from '@/components/ingredients/IngredientDisclaimer'
 import SourceCitationList from '@/components/ingredients/SourceCitationList'
+import AdSlot from '@/components/AdSlot'
+import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 
 // Production SSR route for /ingredients/:slug -- the third content type
 // migrated to TanStack Start after Briefings and Reviews (see
@@ -246,6 +248,8 @@ function IngredientPage() {
         <p>{ingredient.description || ingredient.function_summary || 'A detailed profile for this ingredient is still being written.'}</p>
       </section>
 
+      <AdSlot placement="ingredient-after-intro" compact priority="primary" />
+
       {ingredient.function_summary && (
         <section>
           <h2>What does it do?</h2>
@@ -322,6 +326,8 @@ function IngredientPage() {
           </ul>
         </section>
       )}
+
+      <AdSlotAutorelaxed placement="ingredient-before-suppliers" compact />
 
       <section>
         <h2>Local suppliers (Coming soon)</h2>

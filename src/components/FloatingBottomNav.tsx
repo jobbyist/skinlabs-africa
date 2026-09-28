@@ -17,7 +17,7 @@ const tabs = [
 // Shared by every tab: immediate press feedback (nav should feel faster than
 // content) and a visible keyboard focus ring, which the pill previously lacked.
 const NAV_ITEM =
-  "group relative flex flex-col items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-2 min-[380px]:px-2.5 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
+  "group relative flex flex-col items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-2 min-[360px]:px-2 min-[380px]:px-2.5 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
 
 // Contrast: muted-foreground at 10px over a translucent pill read too faint,
 // especially in dark mode. Idle tabs use foreground at 80% (≈6:1 on the pill
@@ -67,7 +67,7 @@ const FloatingBottomNav = () => {
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed inset-x-0 z-40 flex justify-center px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out",
+          "fixed inset-x-0 z-40 flex justify-center px-2 min-[360px]:px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out",
           currentEpisode ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6",
         )}
       >
@@ -77,7 +77,7 @@ const FloatingBottomNav = () => {
             // 2px ::before, so no CSS border here). The glass fill is kept
             // fairly opaque so icon labels stay legible over any page content
             // scrolling underneath, in both themes.
-            "gradient-border-anim flex max-w-full items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150",
+            "gradient-border-anim flex max-w-full items-center gap-0 min-[380px]:gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150",
             "supports-[backdrop-filter]:bg-background/85",
           )}
         >

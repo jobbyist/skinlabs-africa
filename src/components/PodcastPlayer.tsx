@@ -221,10 +221,10 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
                 />
               </Link>
               <div className="min-w-0 flex-1">
-                <Link to={`/podcast/${current.slug}`} className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground hover:underline">
-                  {current.title}
+                <Link to={`/podcast/${current.slug}`} title={current.title} className="flex min-w-0 max-w-full items-center gap-1.5 text-sm font-semibold text-foreground hover:underline">
+                  <span className="min-w-0 truncate">{current.title}</span>
                   {!isMember && isSignedIn && (
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <span className="hidden shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">
                       Free monthly episode
                     </span>
                   )}

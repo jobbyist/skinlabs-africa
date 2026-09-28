@@ -21,6 +21,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const EDITORIAL_DISCLAIMER =
   "SKINLABS's views and opinions are independent. This article is not paid or sponsored content. Product information is assessed using publicly available information, ingredient analysis, editorial research and, where applicable, product testing. Prices, availability and formulations may change.";
@@ -297,6 +299,8 @@ const ComparisonArticle = () => {
             <BriefingBody body={article.bodyMarkdown} insertAds={false} />
           </div>
 
+          <AdSlot placement="comparison-before-verdicts" compact priority="primary" />
+
           <section className="mt-10" aria-labelledby="verdicts-heading">
             <h2
               id="verdicts-heading"
@@ -313,6 +317,8 @@ const ComparisonArticle = () => {
               ))}
             </div>
           </section>
+
+          <AdSlotAutorelaxed placement="comparison-after-verdicts" compact />
 
           <RelatedKnowledgeHub
             keywords={[article.saContext, ...article.productsCompared.flatMap((p) => [p.brand, p.name])]}

@@ -12,6 +12,8 @@ import ArticleComments from "@/components/ArticleComments";
 import { seasonalComments } from "@/data/articleComments";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const SeasonalHub = () => {
   const { season: seasonParam } = useParams();
@@ -162,6 +164,8 @@ const SeasonalHub = () => {
             </div>
           </section>
 
+          <AdSlot placement="seasonal-before-edit" compact priority="primary" />
+
           {/* The Edit */}
           <section id="the-edit" className="mt-12 scroll-mt-24">
             <h2 className="mb-5 font-heading text-xl font-bold text-foreground">{hub.productEdit.heading}</h2>
@@ -235,6 +239,8 @@ const SeasonalHub = () => {
               </div>
             </section>
           )}
+
+          <AdSlotAutorelaxed placement="seasonal-before-guides" compact />
 
           {/* Guides and reviews */}
           <section className="mt-12">

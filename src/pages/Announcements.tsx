@@ -1,99 +1,30 @@
-import type { ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
-import { Megaphone, Sparkles, Award, Sun, Mic, ShoppingBag, Calendar, Beaker, Gift } from "lucide-react";
+import {
+  Megaphone,
+  Sparkles,
+  Award,
+  Sun,
+  Mic,
+  ShoppingBag,
+  Calendar,
+  Beaker,
+  Gift,
+} from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { announcements, type AnnouncementIcon } from "@/data/announcements";
 
-interface Announcement {
-  date: string;
-  tag: string;
-  icon: ReactNode;
-  title: string;
-  description: string;
-}
-
-const announcements: Announcement[] = [
-  {
-    date: "2026-09-22",
-    tag: "New",
-    icon: <Gift className="h-5 w-5" />,
-    title: "All paid plans free to try until 1 November 2026, plus Founding Member is back",
-    description:
-      "For a limited time, Glow Lite and Glow Insider are free to try — sign up for either plan's free trial with no card required, and it runs all the way through 1 November 2026 instead of the usual 7 days. Every member benefit applies during this period except ad-free browsing, which stays a Glow VIP perk once standard billing resumes. Advanced AI Analysis Passes (for your Advanced AI Dermatology Report from SKYNN AI) remain a small once-off payment for every account, member or not — that's unchanged. We've also brought back the Founding Member offer: a once-off R499 for lifetime Glow Insider access, limited to the first 100 members. Standard subscription-based billing returns for everyone on 1 November 2026 as we continue rolling out the rest of the platform — see the Pricing page for full details.",
-  },
-  {
-    date: "2026-09-13",
-    tag: "New",
-    icon: <Beaker className="h-5 w-5" />,
-    title: "Ingredients Directory with Combination Checker now live",
-    description:
-      "We've launched a comprehensive Ingredients directory featuring our new Ingredient Combination checker — a database-driven compatibility checker backed by real, cited sources. The combination checker is available for free to all members for a limited time. Browse ingredient profiles freely, or sign in to use the Combination checker and see which ingredients work together, which need spacing, and which should never be mixed.",
-  },
-  {
-    date: "2026-09-08",
-    tag: "Platform",
-    icon: <Sparkles className="h-5 w-5" />,
-    title: "Starter Analysis 2.0: your Skin Story, ranked priorities and refinement",
-    description:
-      "Skin Analysis (SKYNN AI)'s free Starter Analysis is significantly more personalised, without asking more questions. It now includes a plain-language \"Skin Story\" built from your answers, a transparent ranked list of your top skin priorities with the reasoning behind each one, a lightweight check on anything that's recently changed with your skin, and an interactive \"how close is this?\" refinement step that adjusts your result on the spot. Analysis completeness — how much information SKYNN AI had to work with — stays clearly separate from any claim of accuracy. Your exact SkinLabs-reviewed product matches and the interactive Routine Builder remain part of Glow Insider and VIP membership.",
-  },
-  {
-    date: "2026-09-07",
-    tag: "Platform",
-    icon: <Sparkles className="h-5 w-5" />,
-    title: "SKYNN AI (beta) is here",
-    description:
-      "The AI Formulator is now SKYNN AI (beta), at a new home: /skynn-ai. It adds an optional Monk Skin Tone (MST) step for fairness testing across skin tones, product picks grounded in SkinLabs' own reviewed catalogue, and a transparent \"analysis completeness\" indicator instead of a vague confidence score.",
-  },
-  {
-    date: "2026-08-28",
-    tag: "Coming Soon",
-    icon: <ShoppingBag className="h-5 w-5" />,
-    title: "Openhaus Marketplace is on its way",
-    description:
-      "We're building a multivendor marketplace for South African skincare brands. Join the waiting list on the Marketplace page for early-bird samples, giveaways and launch discounts.",
-  },
-  {
-    date: "2026-08-20",
-    tag: "Platform",
-    icon: <Calendar className="h-5 w-5" />,
-    title: "Consultations rebranded to Consult",
-    description:
-      "Virtual derm consultations now live under a shorter \"Consult\" label in the header — same HPCSA-registered practitioners, same booking flow, just easier to find on mobile.",
-  },
-  {
-    date: "2026-08-12",
-    tag: "New",
-    icon: <Sun className="h-5 w-5" />,
-    title: "Seasonal Guides launched",
-    description:
-      "Skincare advice built around the season you're actually living in, with regional notes for Gauteng, KZN, the Western Cape and the Eastern Cape.",
-  },
-  {
-    date: "2026-08-01",
-    tag: "New",
-    icon: <Award className="h-5 w-5" />,
-    title: "Spotlight by SkinLabs launched",
-    description:
-      "A monthly, review-led ranking of South African skincare brands, computed live from our own published product scores — never a paid placement.",
-  },
-  {
-    date: "2026-06-15",
-    tag: "Platform",
-    icon: <Sparkles className="h-5 w-5" />,
-    title: "AI Formulator upgraded",
-    description:
-      "Personalised routines now factor in your climate zone, budget and skin concerns together, with weekly refreshes for Glow Insider and Glow VIP members.",
-  },
-  {
-    date: "2026-02-05",
-    tag: "New",
-    icon: <Mic className="h-5 w-5" />,
-    title: "The Skin Deep Podcast premiered",
-    description:
-      "Weekly episodes on skincare myths, ingredient science and SA-specific routines, with new instalments dropping every Wednesday.",
-  },
-];
+const ICONS: Record<AnnouncementIcon, typeof Megaphone> = {
+  megaphone: Megaphone,
+  sparkles: Sparkles,
+  award: Award,
+  sun: Sun,
+  mic: Mic,
+  "shopping-bag": ShoppingBag,
+  calendar: Calendar,
+  beaker: Beaker,
+  gift: Gift,
+};
 
 const tagStyles: Record<string, string> = {
   "Coming Soon": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
@@ -112,12 +43,24 @@ const Announcements = () => {
         />
         <link rel="canonical" href="https://skinlabs.co.za/announcements" />
         <meta property="og:title" content="Announcements | SkinLabs®" />
-        <meta property="og:description" content="Platform launches, feature updates and what's coming next on SkinLabs." />
-        <meta property="og:url" content="https://skinlabs.co.za/announcements" />
+        <meta
+          property="og:description"
+          content="Platform launches, feature updates and what's coming next on SkinLabs."
+        />
+        <meta
+          property="og:url"
+          content="https://skinlabs.co.za/announcements"
+        />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://skinlabs.co.za/og-image.png" />
+        <meta
+          property="og:image"
+          content="https://skinlabs.co.za/og-image.png"
+        />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://skinlabs.co.za/og-image.png" />
+        <meta
+          name="twitter:image"
+          content="https://skinlabs.co.za/og-image.png"
+        />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -134,30 +77,47 @@ const Announcements = () => {
                     Announcements
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    What's new, what's changed, and what's coming next on SkinLabs.
+                    What's new, what's changed, and what's coming next on
+                    SkinLabs.
                   </p>
                 </div>
 
                 <div className="space-y-6">
-                  {announcements.map((item) => (
-                    <div key={item.title} className="bg-card border border-border rounded-3xl p-6 md:p-8 flex gap-4">
-                      <div className="w-11 h-11 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        {item.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className={`text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${tagStyles[item.tag] ?? "bg-muted text-muted-foreground"}`}>
-                            {item.tag}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(item.date).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}
-                          </span>
+                  {announcements.map((item) => {
+                    const Icon = ICONS[item.icon];
+                    return (
+                      <div
+                        key={item.title}
+                        className="bg-card border border-border rounded-3xl p-6 md:p-8 flex gap-4"
+                      >
+                        <div className="w-11 h-11 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                          <Icon className="h-5 w-5" />
                         </div>
-                        <h2 className="text-lg font-semibold text-foreground mb-1.5">{item.title}</h2>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <span
+                              className={`text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${tagStyles[item.tag] ?? "bg-muted text-muted-foreground"}`}
+                            >
+                              {item.tag}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(item.date).toLocaleDateString("en-ZA", {
+                                day: "numeric",
+                                month: "long",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <h2 className="text-lg font-semibold text-foreground mb-1.5">
+                            {item.title}
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
