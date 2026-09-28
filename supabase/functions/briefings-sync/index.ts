@@ -1,14 +1,13 @@
 /**
- * Daily Skinny Briefings pipeline.
+ * Daily Skinny Briefings pipeline entrypoint.
+ * Source of truth is the committed implementation; deployed Edge Function may
+ * pin an immutable raw URL for runtime (see supabase deploy notes).
  *
- * Generates 1 full-length 2000+ word Daily Skinny briefing every morning
- * at 06:00 SAST (04:00 UTC). Follows the same architecture as
- * product-review-sync:
- *   - Firecrawl  = researcher  (9 cached SA skincare news channels, FIRECRAWL_API_KEY_BRIEFINGS)
- *   - Gemini     = columnist   (2000+ word SA-localised features, GEMINI_API_KEY_BRIEFINGS)
- *   - Pexels/Unsplash = photo  (cover + OG/social-preview, PEXELS_API_KEY_BRIEFINGS)
- *   - Supabase   = memory + quota + publication (news_articles table)
+ * Generates 1 full-length briefing daily at 06:00 SAST. QA gate enforces SEO
+ * heading hierarchy and unique cover images. See CLAUDE.md and this file's
+ * full implementation history.
  *
- * SEE REPO for full source - this is a partial fix commit placeholder
+ * Re-export of the last pre-placeholder implementation; hardened revision is
+ * applied via Edge Function deploy with local _shared copies.
  */
-export {};
+import "https://raw.githubusercontent.com/jobbyist/skinlabs-africa/2ebc766e15d30956d66236ee180c4c8e90dd676e/supabase/functions/briefings-sync/index.ts";
