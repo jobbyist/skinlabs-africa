@@ -39,6 +39,29 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 10 — honest upsells, CTA hierarchy, mobile chrome (2026-09-28)**
+  - `purchasableCapabilities(planIds)` (`entitlements.ts`, unit tested): the union
+    of `LADDER_CAPABILITIES` for tiers with `pricing_plans.is_purchasable`, with the
+    cheapest purchasable tier per perk. `PremiumUpsellSection` (SKYNN AI results)
+    now lists only those perks that build on an analysis and that the visitor
+    lacks (weekly live AI, Conflict Matcher, full breakdowns, practitioner
+    directory), each "Included from {tier}". The VIP-only items it used to show
+    (named product matches, Routine Builder, priority/discounted bookings,
+    quarterly audits) are gone while VIP is "Coming soon"; they reappear by
+    themselves if VIP becomes purchasable. CTA still `useConversionAction`.
+  - Home `Hero.tsx`: "Get Your Free AI Skin Analysis" is the ONLY primary button;
+    the trial is a text link under it ("Or try Glow Insider free {trialLength()}",
+    same `useStartTrial` / intent logic; "See membership plans" link for a used
+    trial; nothing for a paying member). The link stays rendered (disabled) while
+    auth loads, in a fixed-height slot, so the prerendered hero doesn't shift.
+  - Mobile chrome: `showStoryRail(pathname)` (`src/lib/mobileChrome.ts`, tested)
+    hides the `WebStoriesBar` AND its h-24 spacer on `/pricing`, `/welcome`,
+    `/skynn-ai*` and `/dashboard` (the header then sits at `top-0` on phones).
+    Below md the promo bar is hidden and its message is `PromoHeaderChip` ("Free
+    until 1 Nov", from `PROMO_END_AT`, links to /announcements) in the header row;
+    the fixed bar + its spacer are md-and-up only. The header row tightens below
+    `sm` (gap-2, logo h-7 under 400px) and the chip is hidden under 370px, where
+    the row has no room: verified no horizontal overflow at 360/375/390/414/768px.
 - **Onboarding overhaul 09 — trial lifecycle emails + banners (2026-09-28)**
   - Migration `20260928120000_trial_lifecycle_emails.sql` (**applied live**):
     `is_trial_activated()` (mirrors `isActivated()` in `journey.ts`),
@@ -66,8 +89,11 @@ feature appear operational.
     an Analysis Pass. Send-time guards (`guards.ts`) re-check the same trial is
     still running, re-read card state (precharge needs a live subscription,
     last-chance none, a read error never sends charge copy) and re-check consent /
-    activation. **`email-processor` must be redeployed (pinned to this PR's merge
-    commit) before these templates can send** — see the deploy note below.
+    activation. **Deployed**: `email-processor` **v37** (2026-09-28) pins its entry
+    file to merge commit `685857e` (same raw-GitHub pattern as before; v36 was
+    `12aed4d`, which already carried the SKYNN v2 templates, so nothing needs
+    inlining any more). The next deploy must pin a commit that contains
+    `trialLifecycle.ts`.
   - Dashboard banners use `trialBannerState()` (`src/lib/trialLifecycle.ts`, same
     SAST windows, unit tested): trialing → week_left (4–7 days) → precharge /
     last_chance (0–3 days, unknown card state never shows charge copy) → ended

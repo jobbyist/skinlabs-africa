@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
@@ -44,7 +44,8 @@ import AuthDialog from "@/components/AuthDialog";
 import SiteSearch from "@/components/SiteSearch";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
-import PromoAnnouncementBar from "@/components/PromoAnnouncementBar";
+import PromoAnnouncementBar, { PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import { showStoryRail } from "@/lib/mobileChrome";
 import WebStoriesBar from "@/components/WebStoriesBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
@@ -218,6 +219,8 @@ const Header = () => {
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
+  const { pathname } = useLocation();
+  const storyRail = showStoryRail(pathname);
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -235,23 +238,29 @@ const Header = () => {
       {/* Non-fixed flow spacer matching the promo bar's h-9 — this is what actually
           pushes every page's <main> down by the bar's height. Editing each page's own
           pt-* class isn't needed: Header renders in place of <Header /> in each page's
-          JSX, so this spacer's flow height applies right there, before <main>. */}
-      {promoBarVisible && <div className="h-9" aria-hidden="true" />}
+          JSX, so this spacer's flow height applies right there, before <main>.
+          Below md the bar is hidden and its message sits in the header row instead
+          (PromoHeaderChip), so the spacer is md-and-up only. */}
+      {promoBarVisible && <div className="hidden h-9 md:block" aria-hidden="true" />}
       {/* Mobile-only Instagram-style story rail, stacked directly above the nav
-          header (below the promo bar when it's also showing). WebStoriesBar is
-          md:hidden itself; this flow spacer matches its h-24 and is md:hidden
-          too, so it contributes zero space at md: and up. */}
-      <WebStoriesBar top={promoBarVisible ? "top-9" : "top-0"} />
-      <div className="h-24 md:hidden" aria-hidden="true" />
+          header. WebStoriesBar is md:hidden itself; this flow spacer matches its
+          h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
+      {storyRail && (
+        <>
+          <WebStoriesBar top="top-0" />
+          <div className="h-24 md:hidden" aria-hidden="true" />
+        </>
+      )}
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
-          // Combined offset = promo bar (36px) + story rail (96px, mobile only via md:).
-          promoBarVisible ? "top-[132px] md:top-9" : "top-24 md:top-0",
+          // Mobile: below the story rail (96px) when it shows. md+: below the promo bar (36px).
+          storyRail ? "top-24" : "top-0",
+          promoBarVisible ? "md:top-9" : "md:top-0",
         )}
       >
         <ScrollProgressBar />
-        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-2 px-4 sm:gap-3 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2" onClick={closeMenu}>
             <img
@@ -259,16 +268,19 @@ const Header = () => {
               alt="SkinLabs"
               width={804}
               height={261}
-              className="h-8 w-auto md:h-9 dark:hidden"
+              className="h-8 w-auto max-[399px]:h-7 md:h-9 dark:hidden"
             />
             <img
               src="/logosvgwhite.png"
               alt="SkinLabs"
               width={804}
               height={261}
-              className="hidden h-8 w-auto md:h-9 dark:block"
+              className="hidden h-8 w-auto max-[399px]:h-7 md:h-9 dark:block"
             />
           </Link>
+          {/* Below md the promo message lives here, in the header row, instead of its own bar
+              (hidden under 370px, where the row has no room for it). */}
+          {promoBarVisible && <PromoHeaderChip />}
 
           {/* Desktop Menu button (replaces individual primary links) */}
           <div className="hidden lg:flex items-center">
