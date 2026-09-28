@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership, type MembershipTier } from "@/hooks/use-membership";
 import { usePricingConfig } from "@/lib/pricing-config";
-import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
+import { PAYFAST_ENABLED, startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import { notifyAnalysisPassesUpdated } from "@/hooks/use-analysis-passes";
 import { cancelPaypalSubscriptions, formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
@@ -270,8 +270,10 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Payments are processed securely by PayFast (in Rand) or PayPal (PayPal balance or any debit/credit card,
-            charged in USD at the live exchange rate). SkinLabs never stores your card details. Recurring PayPal
+            {PAYFAST_ENABLED
+              ? "Payments are processed securely by PayFast (in Rand) or PayPal (PayPal balance or any debit/credit card, charged in USD at the live exchange rate)."
+              : "Payments are processed securely by PayPal (PayPal balance or any debit/credit card, charged in USD at the live exchange rate). Rand payments through PayFast are temporarily unavailable."}{" "}
+            SkinLabs never stores your card details. Recurring PayPal
             memberships can also be viewed or updated from your PayPal account's automatic payments settings.
           </p>
         </CardContent>
