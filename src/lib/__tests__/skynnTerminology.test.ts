@@ -34,6 +34,8 @@ const BANNED: Array<[RegExp, string]> = [
   [/\bAI Formulator\b/, "use “SKYNN AI” (/ai-formulator is only a redirect)"],
   [/\bAdvanced Assessment\b/, "use “Advanced AI Dermatology Analysis”"],
   [/\bAdvanced (AI )?Dermatology Report\b/, "use “Advanced AI Dermatology Analysis”"],
+  [/^\s*Dermatology Report\b|>\s*Dermatology Report\s*</, "use “Advanced AI Dermatology Analysis”"],
+  [/\bAdvanced Reports?\b/, "use “Advanced AI Dermatology Analysis”"],
   [/\bAdvanced Skin Analysis\b/, "use “Advanced AI Dermatology Analysis”"],
   [/\bSKYNN AI Advanced\b(?! AI Dermatology Analysis)/, "use “Advanced AI Dermatology Analysis”"],
   [/\bSkynn AI\b/, "use “SKYNN AI”"],

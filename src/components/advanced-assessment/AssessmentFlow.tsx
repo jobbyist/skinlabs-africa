@@ -87,7 +87,7 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
           </Button>
           <Button onClick={onSubmit} disabled={submitting} className="gap-2 flex-1 gradient-border-anim">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {intakeMode ? "Submit my request" : "Generate my Advanced Report"}
+            {intakeMode ? "Submit my request" : "Generate my Advanced AI Dermatology Analysis report"}
           </Button>
         </div>
       </div>

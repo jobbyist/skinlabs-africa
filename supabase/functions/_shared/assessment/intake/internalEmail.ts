@@ -40,7 +40,7 @@ export function buildInternalIntakeEmail(input: InternalEmailInput): { subject: 
       ["Access", input.access],
       ["Attachment", "Intake record PDF attached"],
     ])}
-    ${emailNotice("The attached PDF contains special personal information (POPIA). Keep it confidential, don't forward it, and delete it if the member withdraws their submission. The full record is also in Admin → SKYNN Reviews → Advanced Reports.", "warning")}
+    ${emailNotice("The attached PDF contains special personal information (POPIA). Keep it confidential, don't forward it, and delete it if the member withdraws their submission. The full record is also in Admin → SKYNN Reviews → Advanced AI Dermatology Analysis.", "warning")}
   `;
   return {
     subject,

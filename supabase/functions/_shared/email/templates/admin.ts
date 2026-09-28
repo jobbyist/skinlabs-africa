@@ -80,7 +80,7 @@ registerTemplate({
       ["PDF", String(vars.pdf_status ?? "")],
       ["Email to reports@", String(vars.email_status ?? "")],
     ])}
-    ${emailButton("Open Advanced Reports", `${BRAND.siteUrl}/admin`)}
+    ${emailButton("Open Advanced AI Dermatology Analysis submissions", `${BRAND.siteUrl}/admin`)}
   `,
 });
 

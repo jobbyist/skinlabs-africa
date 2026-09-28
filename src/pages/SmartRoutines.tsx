@@ -908,7 +908,7 @@ const SmartRoutines = () => {
                   <tr>
                     <th className="p-4 text-left text-sm font-semibold text-foreground">Capability</th>
                     <th className="p-4 text-center text-sm font-semibold text-muted-foreground">Basic</th>
-                    <th className="p-4 text-center text-sm font-semibold text-primary">Dermatology Report</th>
+                    <th className="p-4 text-center text-sm font-semibold text-primary">Advanced</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -966,7 +966,7 @@ const SmartRoutines = () => {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Smart Routines is a living AM and PM skincare routine system built around your Advanced AI
-                  Dermatology Report from SKYNN AI. It creates personalised morning and evening routines that adapt
+                  Dermatology Analysis from SKYNN AI. It creates personalised morning and evening routines that adapt
                   to your skin profile, seasonal conditions, budget and the products you already own.
                 </AccordionContent>
               </AccordionItem>
