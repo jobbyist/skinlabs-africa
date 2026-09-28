@@ -21,7 +21,7 @@ interface FormulatorTabProps {
 }
 
 /** Previous skin assessments — real history from skincare_recommendations, most recent first. */
-const AnalysisHistory = () => {
+const AnalysisHistory = ({ emptyMessage }: { emptyMessage?: string }) => {
   const { user } = useAuth();
   const [recs, setRecs] = useState<SavedRecommendationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,7 @@ const AnalysisHistory = () => {
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   if (recs.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No previous assessments yet — start your first analysis above.</p>;
+    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage ?? "No previous assessments yet — start your first analysis above."}</p>;
   }
 
   return (
@@ -76,30 +76,42 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
 
   if (tier === "explorer") {
     return (
-      <Card className="border-primary/30 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-primary" /> Members only
-          </CardTitle>
-          <CardDescription>
-            Running the Basic AI Skin Analysis inside your dashboard, with unlimited re-analysis and saved
-            history, is included with Glow Insider and Glow VIP.
-            {action.kind === "trial" ? ` Start the Insider ${trialNoun()}, no card needed.` : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
-          {action.kind && (
-            <Button className="gap-2" onClick={action.run} disabled={action.busy}>
-              {action.busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              {action.label}
+      <div className="space-y-6">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" /> Unlimited re-analysis is for members
+            </CardTitle>
+            <CardDescription>
+              You can save one free Basic AI Skin Analysis every 7 days at /skynn-ai. Running it inside your dashboard,
+              with unlimited re-analysis, is included with Glow Insider and Glow VIP.
+              {action.kind === "trial" ? ` Start the Insider ${trialNoun()}, no card needed.` : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            {action.kind && (
+              <Button className="gap-2" onClick={action.run} disabled={action.busy}>
+                {action.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {action.label}
+              </Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link to="/skynn-ai">Start your free Basic AI Skin Analysis</Link>
             </Button>
-          )}
-          <Button variant="outline" asChild>
-            <Link to="/skynn-ai">Start your free Basic AI Skin Analysis</Link>
-          </Button>
-          <SeeAllPlansLink />
-        </CardContent>
-      </Card>
+            <SeeAllPlansLink />
+          </CardContent>
+        </Card>
+        {/* Your own saved analyses (and their PDFs) are always yours, on any plan. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Your saved analyses</CardTitle>
+            <CardDescription>Open one to read it again or download it as a PDF.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AnalysisHistory emptyMessage="You haven't saved a Basic AI Skin Analysis yet." />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

@@ -374,9 +374,9 @@ const SmartRoutines = () => {
                 },
                 {
                   icon: Wallet,
-                  title: "Respects your budget",
+                  title: "Favours best value when budget matters",
                   description:
-                    "Routine recommendations account for your selected budget so skincare stays sustainable for your life.",
+                    "If you told SKYNN AI that budget matters, your routine leans towards the best-value reviewed products for your skin.",
                 },
                 {
                   icon: Layers,
@@ -489,7 +489,7 @@ const SmartRoutines = () => {
                     </div>
                     <div>
                       <h3 className="font-heading text-lg font-bold text-foreground">Your Smart Routine</h3>
-                      <p className="text-xs text-muted-foreground">Personalized • Seasonal • Budget-aware</p>
+                      <p className="text-xs text-muted-foreground">Personalised • Seasonal • Example</p>
                     </div>
                   </div>
                   <Badge className="gap-1.5">
@@ -723,9 +723,9 @@ const SmartRoutines = () => {
             </Card>
 
             <div className="mt-8 text-center">
-              <p className="font-heading text-xl font-bold text-foreground">Set your budget. We'll work within it.</p>
+              <p className="font-heading text-xl font-bold text-foreground">Budget matters? Tell us once.</p>
               <p className="mt-2 text-muted-foreground">
-                Smart Routines creates recommendations that respect your financial reality.
+                If you say in your analysis that budget matters, Smart Routines favours the best-value products SkinLabs has reviewed for your skin.
               </p>
             </div>
           </div>
