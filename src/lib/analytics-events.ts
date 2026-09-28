@@ -34,6 +34,8 @@ export type ConversionEvent =
   | "welcome_viewed"
   | "welcome_step_completed"
   | "welcome_finished"
+  | "checklist_step_clicked"
+  | "checklist_dismissed"
   | "subscription_started"
   | "subscription_cancelled"
   | "credit_pack_viewed"

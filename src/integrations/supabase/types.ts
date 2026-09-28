@@ -2205,6 +2205,30 @@ export type Database = {
           },
         ]
       }
+      member_content_reads: {
+        Row: {
+          content_type: string
+          first_read_at: string
+          id: string
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          content_type: string
+          first_read_at?: string
+          id?: string
+          slug: string
+          user_id: string
+        }
+        Update: {
+          content_type?: string
+          first_read_at?: string
+          id?: string
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       news_article_engagement: {
         Row: {
           article_id: string
@@ -3750,6 +3774,7 @@ export type Database = {
           address_line2: string | null
           allergies: string[] | null
           billing_interval: string
+          checklist_dismissed_at: string | null
           city: string | null
           cookie_consent: string | null
           cookie_consent_at: string | null
@@ -3799,6 +3824,7 @@ export type Database = {
           address_line2?: string | null
           allergies?: string[] | null
           billing_interval?: string
+          checklist_dismissed_at?: string | null
           city?: string | null
           cookie_consent?: string | null
           cookie_consent_at?: string | null
@@ -3848,6 +3874,7 @@ export type Database = {
           address_line2?: string | null
           allergies?: string[] | null
           billing_interval?: string
+          checklist_dismissed_at?: string | null
           city?: string | null
           cookie_consent?: string | null
           cookie_consent_at?: string | null

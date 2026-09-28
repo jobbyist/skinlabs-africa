@@ -13,6 +13,7 @@ import { useCommentHandle } from "@/hooks/use-comment-handle";
 import { openSignupDialog } from "@/lib/conversionDialogs";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { useConversionAction } from "@/hooks/use-conversion-action";
+import { recordContentRead } from "@/lib/contentReads";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -114,10 +115,12 @@ const ProductReview = () => {
         .maybeSingle();
       if (active) setFullReview(data?.full_review ?? null);
     })();
+    // A member sees the unlocked body: counts as a full read (Getting Started checklist).
+    void recordContentRead(user?.id, "review", review.id);
     return () => {
       active = false;
     };
-  }, [review, isMember]);
+  }, [review, isMember, user?.id]);
 
   useEffect(() => {
     if (!review) return;
