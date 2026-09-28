@@ -16,8 +16,12 @@ const noLegacyCalls = (state: MockState) => {
   expect(state.rpcCalls).not.toContain("register_ai_analysis_use");
 };
 
-/** Intro → consent → photo (skipped) → MST (prefer not to say) → 20 questions → context → preference → results. */
+/**
+ * Intro → consent → photo (skipped) → MST (prefer not to say) → 20 questions → context → preference → results.
+ * 26 steps, ~35 s on a loaded runner — callers raise the per-test timeout.
+ */
 async function completeBasicAnalysis(page: Page) {
+  test.setTimeout(90_000);
   await page.goto("/skynn-ai");
   await page.getByRole("button", { name: /Start my (free )?Basic AI Skin Analysis/ }).click();
   for (const id of ["consent-data", "consent-mst", "consent-terms"]) await page.locator(`#${id}`).click();
@@ -54,6 +58,8 @@ test("signed-in Basic AI Skin Analysis: saved server-side, then the full result 
   await expect(page.getByRole("heading", { name: "Your Basic AI Skin Analysis", exact: true })).toBeVisible();
   expect(state.basicSaves).toHaveLength(1);
   expect(state.rpcCalls).toContain("get_formulator_allowance");
+  // Nothing on the results screen may push the page sideways on a phone.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("button", { name: /Download my Basic AI Skin Analysis report/ }).click(),

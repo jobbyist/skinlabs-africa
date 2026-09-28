@@ -1327,9 +1327,15 @@ const AIFormulator = () => {
                   {starterResult && <AboutYourAnalysisSection />}
 
                   <div className="flex flex-wrap justify-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="min-h-11 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPdf}
+                      aria-label={`Download my ${BASIC_NAME} report (PDF)`}
+                      className="min-h-11 h-auto gap-2 whitespace-normal text-center"
+                    >
                       <Download className="h-4 w-4" aria-hidden="true" />
-                      Download my {BASIC_NAME} report (PDF)
+                      Download my report (PDF)
                     </Button>
                     <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
                       <Share2 className="h-4 w-4" aria-hidden="true" />
