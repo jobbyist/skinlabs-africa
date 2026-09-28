@@ -6,13 +6,13 @@
 /** An account counts as brand new for this long after auth.users.created_at. */
 export const NEW_ACCOUNT_WINDOW_MS = 10 * 60 * 1000;
 
-/**
- * Where a brand-new account with no pending intent lands after sign-up.
- * TODO(onboarding overhaul 07): switch to "/welcome" once that route exists.
- */
-export const WELCOME_PATH = "/dashboard";
+/** Where a brand-new account with no pending intent lands after sign-up (src/pages/Welcome.tsx). */
+export const WELCOME_PATH = "/welcome";
 
-/** Where a newly started trial lands (useStartTrial). Follows WELCOME_PATH, so it becomes /welcome?trial=started when prompt 07 adds that route. */
+/**
+ * Where a newly started trial lands (useStartTrial). /welcome sends anyone who
+ * has already finished onboarding straight on to /dashboard.
+ */
 export const TRIAL_STARTED_PATH = `${WELCOME_PATH}?trial=started`;
 
 export const isNewAccount = (

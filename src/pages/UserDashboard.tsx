@@ -23,7 +23,6 @@ import AccountTab from "@/components/dashboard/AccountTab";
 import SavedContentTab from "@/components/dashboard/SavedContentTab";
 import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
 import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
-import TrialWelcomeModal from "@/components/TrialWelcomeModal";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
@@ -86,7 +85,6 @@ const UserDashboard = () => {
   const [activity, setActivity] = useState<ActivityStats>({ liked: 0, saved: 0, comments: 0 });
   const [dataLoading, setDataLoading] = useState(true);
   const [creditsError, setCreditsError] = useState<string | null>(null);
-  const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
   // The trialist's live auto-renew subscription (PayPal), if they added a payment method.
@@ -198,15 +196,6 @@ const UserDashboard = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user]);
-
-  useEffect(() => {
-    if (searchParams.get("trial") !== "started") return;
-    setTrialWelcomeOpen(true);
-    const next = new URLSearchParams(searchParams);
-    next.delete("trial");
-    setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     if (!paymentReturn || !user) return;
@@ -778,12 +767,6 @@ const UserDashboard = () => {
         <Footer />
       </div>
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
-      <TrialWelcomeModal
-        open={trialWelcomeOpen}
-        onOpenChange={setTrialWelcomeOpen}
-        planName={tierLabel}
-        trialEndsAt={trialEndsAt}
-      />
     </>
   );
 };

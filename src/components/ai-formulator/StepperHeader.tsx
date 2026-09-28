@@ -3,8 +3,10 @@ import { Check } from "lucide-react";
 const PHASES = ["Consent", "Profile", "Assessment", "Results"] as const;
 
 interface StepperHeaderProps {
-  /** 1-indexed current phase (1 = Consent .. 4 = Results). */
-  phase: 1 | 2 | 3 | 4;
+  /** 1-indexed current phase (1 = Consent .. 4 = Results by default). */
+  phase: number;
+  /** Step labels; defaults to the SKYNN AI flow. /welcome passes its own three. */
+  phases?: readonly string[];
 }
 
 /**
@@ -15,9 +17,12 @@ interface StepperHeaderProps {
  * as .gradient-border-anim/.gradient-text so the active step reads as "the flagship
  * AI flow" rather than a generic form wizard.
  */
-const StepperHeader = ({ phase }: StepperHeaderProps) => (
-  <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-8" aria-label={`Step ${phase} of 4: ${PHASES[phase - 1]}`}>
-    {PHASES.map((label, idx) => {
+const StepperHeader = ({ phase, phases = PHASES }: StepperHeaderProps) => (
+  <div
+    className="flex items-center justify-center gap-1.5 sm:gap-2 mb-8"
+    aria-label={`Step ${phase} of ${phases.length}: ${phases[phase - 1]}`}
+  >
+    {phases.map((label, idx) => {
       const stepNum = idx + 1;
       const state = stepNum < phase ? "done" : stepNum === phase ? "current" : "upcoming";
       return (
@@ -48,7 +53,7 @@ const StepperHeader = ({ phase }: StepperHeaderProps) => (
               {label}
             </span>
           </div>
-          {stepNum < PHASES.length && <div className={"h-px w-4 sm:w-8 -mt-4 " + (stepNum < phase ? "bg-primary" : "bg-border")} />}
+          {stepNum < phases.length && <div className={"h-px w-4 sm:w-8 -mt-4 " + (stepNum < phase ? "bg-primary" : "bg-border")} />}
         </div>
       );
     })}
