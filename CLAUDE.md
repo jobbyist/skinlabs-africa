@@ -17,6 +17,52 @@ social proof, scarcity, product data, reviews, ratings or performance
 claims; never expose sensitive user data; never make an unfinished
 feature appear operational.
 
+## Onboarding & conversion overhaul (2026-09-24 → 2026-09-28) — standing rules
+
+Prompts 00–12 (PRs #144–#146, #149–#151, #154–#160). The per-prompt dated
+bullets under "Major systems" have the detail; these are the rules to keep.
+
+- **New gates use `useConversionAction(feature, source)`; never make `/pricing`
+  the primary action.** It returns the one right CTA for the viewer (sign-up →
+  one-tap no-card trial for a Glow Explorer → Subscribe; VIP-only → disabled
+  "coming soon"). `/pricing` is only ever a secondary `SeeAllPlansLink`
+  (with `?returnTo=`) or a navigation link.
+- **The only no-card trial path is `useStartTrial()`** (Hero, /pricing, /welcome,
+  gates, IntentResolver). Only an Explorer is offered a trial (it overwrites
+  `subscription_status`). In the `card_upfront` pricing variant (weight 0 until a
+  human enables it after 1 Nov 2026) it opens `KeepMembershipDialog` instead.
+  Trial wording always goes through `src/lib/promo.ts`.
+- **Pending intent + `IntentResolver`**: anything a visitor was doing when asked to
+  sign up (`trial | subscribe | save_analysis | unlock`, validated `returnTo`) is
+  recorded with `setPendingIntent()` and resumed by `IntentResolver` (mounted once
+  in `App.tsx`; SSR routes use `SsrConversionShell`) when the session appears. A
+  brand-new account with no intent goes to `/welcome` once. Never authorization.
+- **Journey model** (`src/lib/journey.ts`, pure + tested): `resolveJourneyStage()`
+  (visitor → analysed → member → trialing → activated → payment_on_file → paid →
+  lapsed), `isActivated()` (2nd analysis / a routine / 3 check-ins / 3 saves —
+  mirrored in SQL by `is_trial_activated()`), `nextBestAction()` (ONE action) and
+  `gettingStartedChecklist()`. Use `useJourney()`; don't re-derive stages in
+  components.
+- **Trial lifecycle**: banners (`trialBannerState()`) and emails
+  (`trial_lifecycle_email_plan()`) share SAST calendar-day windows; card copy is
+  never shown when the payment state is unknown. The daily email cron is NOT
+  enabled yet (see overhaul 09).
+- **Money**: "Keep my membership" = PayFast ZAR recurring (card tokenised at R0,
+  first charge on the trial-end day) or PayPal; both use the shared
+  `resolveSubscriptionStart()`. Prices are always resolved server-side.
+- **Tests**: `bun test` (pure rules), `npx playwright test` (the journeys, mocked
+  Supabase, 4 projects: desktop/mobile × light/dark; build first), and
+  `scripts/run-sql-probes.sh` (`supabase/tests/*.sql`, rolled back, needs
+  `SUPABASE_DB_URL`). `.github/workflows/ci.yml` runs all three.
+- **Human actions still open** (as of 2026-09-28): set `PAYFAST_MERCHANT_ID` /
+  `PAYFAST_MERCHANT_KEY` / `PAYFAST_PASSPHRASE` and run the PayFast sandbox test
+  before `PAYFAST_MODE=live`; review a trial-email dry run and schedule
+  `trial-lifecycle-emails-daily` before 25 Oct 2026; add the `SUPABASE_DB_URL`
+  GitHub secret for the SQL probes; decide on the Glow Insider benefit string
+  "Intelligent Routine Builder on every review page" (live `pricing_plans` copy)
+  while the Routine Builder is gated to VIP in `entitlements.ts`; enable
+  `card_upfront` (if wanted) only after 1 Nov 2026.
+
 ## Major systems
 
 - **Funding + editorial-independence wording (2026-09-27)** — SkinLabs® is
@@ -39,6 +85,30 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 12 — end-to-end QA, trial SQL probe, docs (2026-09-28)**
+  - Playwright (`@playwright/test` 1.56.1, `playwright.config.ts`, specs
+    `e2e/*.e2e.ts` so `bun test` never picks them up): analysis → account → trial
+    (new account lands on /welcome once, one-tap trial), returning member skips
+    /welcome, pricing → trial, gate → trial → unlocked in place, trial → Keep
+    membership (price, 1 Nov first charge, cancel terms before payment; the live
+    PayFast sandbox leg is `test.skip` unless `PAYFAST_SANDBOX_E2E` is set),
+    lapsed → subscribe (billed today), legacy `?tab=` links. Four projects
+    (desktop/mobile × light/dark): **28 passed, 4 skipped** locally against a
+    production build. `e2e/support/mockSupabase.ts` fakes the session and an
+    in-memory Supabase (mutable profile, RPC/function call log, live plan rows'
+    shape); it pre-dismisses the ad-block notice because ads are aborted. Run:
+    `npx vite build && npx playwright test` (set `PLAYWRIGHT_CHROMIUM_PATH` to a
+    preinstalled Chromium in the sandbox).
+  - `supabase/tests/start_free_trial.sql`: a rolled-back probe with one throwaway
+    account per purchasable, trial-eligible plan (read from `pricing_plans`):
+    starts, profile is a trial, length ≥ trial_days / the promo date, a second
+    trial is refused, the member can't write `subscription_status`, a plan-aware
+    `trial_started` email is queued, VIP is refused. **Passed live: 13 assertions
+    (glow_lite, insider).** `scripts/run-sql-probes.sh` runs every
+    `supabase/tests/*.sql` (needs `SUPABASE_DB_URL`, skips without it).
+  - `.github/workflows/ci.yml` (new; the repo had no test CI): checks (TanStack
+    build for the route tree → tsc → lint → bun test), e2e (Playwright Chromium),
+    sql-probes (psql, secret-gated).
 - **Onboarding overhaul 11 — admin funnel panel + card-upfront experiment (2026-09-28)**
   - Admin → Analytics now opens with `ConversionFunnelPanel`
     (`src/components/admin/`): reads the admin-only `conversion_funnel_daily` view

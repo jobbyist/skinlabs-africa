@@ -17,7 +17,9 @@
     "prerender": "bun run scripts/prerender.ts",
     "search-index:check": "bun run scripts/check-search-index.ts",
     "compress-images": "bun run scripts/compress-images.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "test:e2e": "playwright test",
+    "test:sql": "bash scripts/run-sql-probes.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -86,6 +88,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@playwright/test": "1.56.1",
     "@sparticuz/chromium": "^149.0.0",
     "@tailwindcss/typography": "^0.5.16",
     "@tanstack/nitro-v2-vite-plugin": "^1.155.2",
