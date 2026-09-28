@@ -143,6 +143,15 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
 
+### Getting Started checklist (onboarding overhaul 08, 2026-09-28)
+
+| Event | Where | Props |
+|---|---|---|
+| `checklist_step_clicked` | A step's action on the dashboard checklist | `step` (`analysis`, `routine`, `weather`, `checkins`, `content`, `mfa`, `keep_membership`) |
+| `checklist_dismissed` | Hiding the completed checklist | — |
+
+`keep_membership_viewed` gains the source `checklist`.
+
 ### /welcome (onboarding overhaul 07, 2026-09-28)
 
 | Event | Where | Props |

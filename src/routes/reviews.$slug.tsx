@@ -40,6 +40,7 @@ import { useCommentHandle } from '@/hooks/use-comment-handle'
 import { openSignupDialog } from '@/lib/conversionDialogs'
 import { currentReturnTo, setPendingIntent } from '@/lib/pendingIntent'
 import { useConversionAction } from '@/hooks/use-conversion-action'
+import { recordContentRead } from '@/lib/contentReads'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trialLength } from '@/lib/promo'
@@ -300,10 +301,12 @@ function ReviewPage() {
       const { data } = await supabase.from('review_details').select('full_review').eq('review_id', review.id).maybeSingle()
       if (active) setFullReview(data?.full_review ?? null)
     })()
+    // A member sees the unlocked body: counts as a full read (Getting Started checklist).
+    void recordContentRead(user?.id, 'review', review.id)
     return () => {
       active = false
     }
-  }, [review.id, isMember])
+  }, [review.id, isMember, user?.id])
 
   useEffect(() => {
     let active = true

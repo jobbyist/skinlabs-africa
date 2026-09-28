@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -16,7 +16,6 @@ import EmailVerificationCard from "@/components/EmailVerificationCard";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
 import RoutineTrackerTab from "@/components/dashboard/RoutineTrackerTab";
-import RoutineSnapshot from "@/components/dashboard/RoutineSnapshot";
 import BillingTab from "@/components/dashboard/BillingTab";
 import InboxTab from "@/components/dashboard/InboxTab";
 import AccountTab from "@/components/dashboard/AccountTab";
@@ -28,6 +27,10 @@ import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
+import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
+import SectionNav from "@/components/dashboard/SectionNav";
+import { useJourney } from "@/hooks/use-journey";
+import { GROUP_DEFAULT_SECTION, SECTION_GROUP, resolveDashboardSection, type DashboardGroup } from "@/lib/dashboardTabs";
 import AnalysisCreditsCard from "@/components/dashboard/AnalysisCreditsCard";
 import SkinWeatherCard from "@/components/dashboard/SkinWeatherCard";
 import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
@@ -69,8 +72,6 @@ interface Preorder { id: string; product_type: string; amount: number; status: s
 type Recommendation = SavedRecommendationRow;
 interface ActivityStats { liked: number; saved: number; comments: number }
 
-const VALID_TABS = ["overview", "profile", "analysis", "routine", "journey", "saved", "billing", "inbox", "security", "account"] as const;
-type DashboardTab = (typeof VALID_TABS)[number];
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -100,13 +101,28 @@ const UserDashboard = () => {
   const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
-  const tabParam = searchParams.get("tab");
-  const activeTab: DashboardTab = (VALID_TABS as readonly string[]).includes(tabParam ?? "") ? (tabParam as DashboardTab) : "overview";
+  // ?tab= holds a leaf section (legacy values resolve via LEGACY_TAB_ALIASES);
+  // the top-level group is derived from it. See src/lib/dashboardTabs.ts.
+  const activeSection = resolveDashboardSection(searchParams.get("tab"));
+  const activeGroup = SECTION_GROUP[activeSection];
   const setActiveTab = (tab: string) => {
     const next = new URLSearchParams(searchParams);
-    next.set("tab", tab);
+    next.set("tab", resolveDashboardSection(tab));
     setSearchParams(next, { replace: true });
   };
+  const setActiveGroup = (group: string) => setActiveTab(GROUP_DEFAULT_SECTION[group as DashboardGroup] ?? "home");
+  const journey = useJourney();
+  // Checklist completion comes from data changed on other tabs (routine,
+  // security…): re-read it whenever Home is shown again.
+  const seenGroup = useRef(false);
+  useEffect(() => {
+    if (!seenGroup.current) {
+      seenGroup.current = true;
+      return;
+    }
+    if (activeGroup === "home") journey.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGroup]);
 
   const paymentReturn = searchParams.get("payment") === "success";
   const purchaseType = searchParams.get("purchase_type") ?? "plan";
@@ -617,13 +633,10 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <Tabs value={activeGroup} onValueChange={setActiveGroup} className="space-y-6">
                 <TabsList className="flex flex-wrap h-auto">
-                  <TabsTrigger value="overview">Home</TabsTrigger>
-                  <TabsTrigger value="profile">Profile</TabsTrigger>
-                  <TabsTrigger value="analysis">Skin Analysis (SKYNN AI)</TabsTrigger>
-                  <TabsTrigger value="routine">Routine</TabsTrigger>
-                  <TabsTrigger value="journey">Skin Journey</TabsTrigger>
+                  <TabsTrigger value="home">Home</TabsTrigger>
+                  <TabsTrigger value="skin">My Skin</TabsTrigger>
                   <TabsTrigger value="saved" className="gap-1.5">
                     <Bookmark className="h-3.5 w-3.5" />
                     Saved
@@ -631,43 +644,50 @@ const UserDashboard = () => {
                       <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{activity.saved}</Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="billing">Billing</TabsTrigger>
                   <TabsTrigger value="inbox" className="gap-1.5">
                     Inbox
                     {unreadCount > 0 && <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{unreadCount}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="security">Security</TabsTrigger>
-                  <TabsTrigger value="account">Account</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="overview" className="space-y-6">
-                  {/* Hero row: skin profile (two-thirds) + analysis credits (one-third). */}
-                  <div className="grid gap-6 lg:grid-cols-3">
-                    <div className="lg:col-span-2">
-                      <SkinProfileHero
-                        latest={latestAnalysis}
-                        loading={dataLoading}
-                        allowance={allowance}
-                        onViewFullAnalysis={() => setActiveTab("analysis")}
-                      />
-                    </div>
+                <TabsContent value="home" className="space-y-6">
+                  {!journey.loading && !journey.checklistDismissedAt && (
+                    <GettingStartedChecklist
+                      items={journey.checklist}
+                      onGoToTab={setActiveTab}
+                      onDismiss={journey.dismissChecklist}
+                    />
+                  )}
+
+                  <SkinProfileHero
+                    latest={latestAnalysis}
+                    loading={dataLoading}
+                    allowance={allowance}
+                    onViewFullAnalysis={() => setActiveTab("analysis")}
+                  />
+
+                  <div id="skin-weather" className="scroll-mt-28">
+                    <SkinWeatherCard
+                      weatherCityKey={profile?.weather_city_key ?? null}
+                      addressCity={profile?.city ?? null}
+                      skinProfile={weatherProfile}
+                      onSaveCity={async (key) => {
+                        const ok = await saveWeatherCity(key);
+                        if (ok) journey.refresh();
+                        return ok;
+                      }}
+                    />
+                  </div>
+
+                  {/* One row of secondary cards. */}
+                  <div className="grid gap-6 md:grid-cols-3">
                     <AnalysisCreditsCard
                       allowance={allowance}
                       loading={allowanceLoading}
                       error={allowanceError}
                       onRetry={() => void refreshAllowance()}
                     />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div className="md:col-span-2 lg:col-span-1">
-                      <SkinWeatherCard
-                        weatherCityKey={profile?.weather_city_key ?? null}
-                        addressCity={profile?.city ?? null}
-                        skinProfile={weatherProfile}
-                        onSaveCity={saveWeatherCity}
-                      />
-                    </div>
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
                       <CardContent>
@@ -692,15 +712,31 @@ const UserDashboard = () => {
                       onRetry={() => void retryAnalysisPassBalance()}
                     />
                   </div>
+                </TabsContent>
 
-                  <RoutineSnapshot />
-                  <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading || membershipLoading} />
+                <TabsContent value="skin" className="space-y-6">
+                  <SectionNav
+                    label="My Skin"
+                    value={activeSection}
+                    onChange={setActiveTab}
+                    items={[
+                      { value: "analysis", label: "Analysis" },
+                      { value: "routine", label: "Routine" },
+                      { value: "journey", label: "Journey" },
+                    ]}
+                  />
+                  {activeSection === "analysis" && (
+                    <div className="space-y-6">
+                      <FormulatorTab onGoToProfile={() => setActiveTab("profile")} />
+                      <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading || membershipLoading} />
+                    </div>
+                  )}
+                  {activeSection === "routine" && <RoutineTrackerTab />}
+                  {activeSection === "journey" && <SkinJourneyTab />}
+                </TabsContent>
 
-                  <Card>
-                    <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>
-                    <CardContent><NewsfeedCarousel /></CardContent>
-                  </Card>
-
+                <TabsContent value="saved" className="space-y-6">
+                  <SavedContentTab />
                   {(activity.liked > 0 || activity.saved > 0 || activity.comments > 0) && (
                     <Card>
                       <CardHeader className="pb-3"><CardTitle className="text-base">Your activity</CardTitle><CardDescription>Real engagement from your account — briefings you've liked or saved, and comments you've posted.</CardDescription></CardHeader>
@@ -714,7 +750,30 @@ const UserDashboard = () => {
                       </CardContent>
                     </Card>
                   )}
+                  <Card>
+                    <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>
+                    <CardContent><NewsfeedCarousel /></CardContent>
+                  </Card>
+                </TabsContent>
 
+                <TabsContent value="inbox"><InboxTab /></TabsContent>
+
+                <TabsContent value="settings" className="space-y-6">
+                  <SectionNav
+                    label="Settings"
+                    value={activeSection}
+                    onChange={setActiveTab}
+                    items={[
+                      { value: "profile", label: "Profile" },
+                      { value: "billing", label: "Billing" },
+                      { value: "security", label: "Security" },
+                      { value: "account", label: "Account" },
+                    ]}
+                  />
+                  {activeSection === "profile" && <ProfileTab />}
+                  {activeSection === "billing" && (
+                    <div className="space-y-6">
+                      <BillingTab aiCredits={aiCredits} />
                   {preorders.length > 0 && (
                     <Card>
                       <CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Your Pre-Orders</CardTitle></CardHeader>
@@ -736,30 +795,16 @@ const UserDashboard = () => {
                       </CardContent>
                     </Card>
                   )}
+                    </div>
+                  )}
+                  {activeSection === "security" && (
+                    <div className="space-y-6">
+                      <EmailVerificationCard />
+                      <MFASettingsCard />
+                    </div>
+                  )}
+                  {activeSection === "account" && <AccountTab />}
                 </TabsContent>
-
-                <TabsContent value="profile"><ProfileTab /></TabsContent>
-
-                <TabsContent value="analysis">
-                  <FormulatorTab onGoToProfile={() => setActiveTab("profile")} />
-                </TabsContent>
-
-                <TabsContent value="routine"><RoutineTrackerTab /></TabsContent>
-
-                <TabsContent value="journey"><SkinJourneyTab /></TabsContent>
-
-                <TabsContent value="saved"><SavedContentTab /></TabsContent>
-
-                <TabsContent value="billing"><BillingTab aiCredits={aiCredits} /></TabsContent>
-
-                <TabsContent value="inbox"><InboxTab /></TabsContent>
-
-                <TabsContent value="security" className="space-y-6">
-                  <EmailVerificationCard />
-                  <MFASettingsCard />
-                </TabsContent>
-
-                <TabsContent value="account"><AccountTab /></TabsContent>
               </Tabs>
             </div>
           </section>

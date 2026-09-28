@@ -39,6 +39,41 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 08 — journey model, Getting Started checklist, dashboard IA (2026-09-28)**
+  - `src/lib/journey.ts` (pure, `src/lib/__tests__/journey.test.ts` covers every
+    stage): `resolveJourneyStage(facts)` → `visitor | analysed | member | trialing |
+    activated | payment_on_file | paid | lapsed`, `isActivated()` (a 2nd saved
+    analysis, a saved routine (≥1 `routine_steps`), 3 routine check-ins or 3 saved
+    briefings), `nextBestAction(stage, facts)` (ONE action) and
+    `gettingStartedChecklist(facts)`. `src/hooks/use-journey.ts` gathers the facts
+    (head counts on existing tables, `payment_subscriptions` live rows,
+    `auth.mfa.listFactors()`, `useMembership()`). Never authorization.
+  - `GettingStartedChecklist` (dashboard Home, first): Do your skin analysis · Save
+    your routine · Set your Skin Weather city · Check in on your routine twice ·
+    Read one full review or episode · Secure your account with two-step
+    verification (MFA), plus "Keep my membership" (opens `KeepMembershipDialog`,
+    source `checklist`) for an ACTIVATED trialist with no payment method.
+    Completion is real data only; the X appears only once everything is done and
+    stamps `profiles.checklist_dismissed_at`.
+  - Migration `20260928110000_journey_checklist.sql` (**applied live**):
+    `profiles.checklist_dismissed_at` (+ column UPDATE grant) and
+    `member_content_reads` (`user_id, content_type review|episode, slug`, unique,
+    owner SELECT/INSERT only) — written insert-once by `recordContentRead()`
+    (`src/lib/contentReads.ts`) when a member views an unlocked review
+    (`ProductReview.tsx` + SSR `reviews.$slug.tsx`) or plays an episode
+    (`use-podcast-engagement.ts`). Verified with a rolled-back probe as
+    `authenticated`: duplicate insert → 1 row, another user's insert → 42501,
+    another user's dismiss → 0 rows, `subscription_status` still refused.
+  - **Dashboard IA**: tabs are Home · My Skin (Analysis / Routine / Journey) ·
+    Saved · Inbox · Settings (Profile / Billing / Security / Account), second level
+    via `SectionNav`. `?tab=` always holds a LEAF section, so every existing link
+    (`?tab=billing`, `?tab=routine`, …) is unchanged; `src/lib/dashboardTabs.ts`
+    `resolveDashboardSection()` + `LEGACY_TAB_ALIASES` (`overview`→home,
+    `skin`→analysis, `settings`→profile, …) handle the rest (unit tested). Home is
+    checklist → `SkinProfileHero` → `SkinWeatherCard` → one row (analysis
+    allowance, plan, Analysis Passes). Moved: Advanced assessment card → My Skin ›
+    Analysis; Daily Skinny feed + activity → Saved; pre-orders → Settings › Billing.
+    `RoutineSnapshot` was deleted (the Routine section is the full tracker).
 - **Onboarding overhaul 07 — `/welcome` first-run onboarding (2026-09-28)**
   - `src/pages/Welcome.tsx` (`lazyWithRetry`, `noindex`, in `KNOWN_EXCLUSIONS`),
     signed-in only (signed out → AuthDialog in place, `returnTo=/welcome`). Three
