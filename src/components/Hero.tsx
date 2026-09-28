@@ -16,7 +16,7 @@ import { openSignupDialog } from "@/lib/conversionDialogs";
 import { setPendingIntent } from "@/lib/pendingIntent";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { remoteHeroVideos, pickRandom, type HeroVideo } from "@/data/heroVideos";
-import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
+import { trialLength } from "@/lib/promo";
 
 /** Local brand footage + 19 remote clips = 20 total, one chosen at random per page load. */
 const ALL_HERO_VIDEOS: HeroVideo[] = [
@@ -135,40 +135,41 @@ const Hero = () => {
               skin, our climate and your budget — editorial that can't be bought.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            {/* SKYNN AI is the one primary action; the trial is a quiet text link under it. */}
+            <div className="flex flex-col items-center gap-3 lg:items-start">
               <Button
                 size="lg"
                 className="gap-2 text-base px-8 shadow-lg shadow-primary/10 transition-transform motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] hover:shadow-xl hover:shadow-primary/15"
                 asChild
               >
                 <a href="/skynn-ai">
-                Get Your Free AI Skin Analysis
-                  <ArrowRight className="h-4 w-4" />
+                  Get Your Free AI Skin Analysis
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </a>
               </Button>
-              {/* Already a paying member — offering a free trial they can't use is redundant/misleading. */}
-              {!(!statusLoading && isMember) &&
-                (statusLoading || canTrial ? (
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="gap-2 text-base px-8 gradient-border-anim"
-                    onClick={handleTrialClick}
-                    disabled={statusLoading || trialStarting}
-                  >
-                    {isPromoActive()
-                      ? `Try Insider free until ${PROMO_END_DATE_LABEL}`
-                      : `Try Insider free for ${STANDARD_TRIAL_DAYS} days`}
-                    {trialStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                  </Button>
-                ) : (
-                  <Button variant="outline" size="lg" className="gap-2 text-base px-8 gradient-border-anim" asChild>
-                    <Link to="/pricing">
+              {/* Stays rendered (disabled) while auth/membership load, so the prerendered hero doesn't shift.
+                  A paying member gets nothing here — a trial they can't use would be misleading. */}
+              <div className="min-h-6 text-sm">
+                {!(!statusLoading && isMember) &&
+                  (statusLoading || canTrial ? (
+                    <button
+                      type="button"
+                      onClick={handleTrialClick}
+                      disabled={statusLoading || trialStarting}
+                      className="inline-flex items-center gap-1.5 font-medium text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground disabled:opacity-60"
+                    >
+                      Or try Glow Insider free {trialLength()}
+                      {trialStarting && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/pricing"
+                      className="font-medium text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground"
+                    >
                       See membership plans
-                      <ArrowRight className="h-4 w-4" />
                     </Link>
-                  </Button>
-                ))}
+                  ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">

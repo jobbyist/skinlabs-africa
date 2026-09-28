@@ -157,3 +157,23 @@ export const PAID_SUBSCRIPTION_STATUSES = ["active", "glow_lite", "insider", "vi
 
 export const isPaidSubscriptionStatus = (status: string | null | undefined): boolean =>
   (PAID_SUBSCRIPTION_STATUSES as readonly string[]).includes((status ?? "").toLowerCase());
+
+/**
+ * Capabilities a visitor can actually buy today: the union of what each
+ * PURCHASABLE ladder tier unlocks (pricing_plans.is_purchasable), so an upsell
+ * never advertises a perk that only a "Coming soon" tier (VIP, today) has.
+ * `cheapestTier` is the lowest purchasable tier that includes it.
+ */
+export const purchasableCapabilities = (
+  purchasablePlanIds: readonly string[],
+): { feature: FeatureKey; cheapestTier: LadderTier }[] => {
+  const tiers = LADDER_ORDER.filter((t) => t !== "anonymous" && t !== "free" && purchasablePlanIds.includes(t));
+  const out = new Map<FeatureKey, LadderTier>();
+  for (const tier of tiers) {
+    for (const feature of LADDER_CAPABILITIES[tier]) {
+      if (feature === "ai_analysis.starter") continue; // free for everyone
+      if (!out.has(feature)) out.set(feature, tier);
+    }
+  }
+  return Array.from(out, ([feature, cheapestTier]) => ({ feature, cheapestTier }));
+};
