@@ -44,8 +44,21 @@ async function invoke<T>(body: Record<string, unknown>): Promise<T> {
   return payload;
 }
 
-export const quoteMembership = (req: KeepMembershipRequest) =>
-  invoke<MembershipQuote>({ action: "subscription_quote", ...req });
+/** Validated: a malformed response becomes an error the dialog can show, never a render crash. */
+export const quoteMembership = async (req: KeepMembershipRequest): Promise<MembershipQuote> => {
+  const q = await invoke<Partial<MembershipQuote>>({ action: "subscription_quote", ...req });
+  if (typeof q.amountZar !== "number" || !Number.isFinite(q.amountZar) || !q.startKind) {
+    throw new Error("We couldn't load your price. Please try again.");
+  }
+  return {
+    amountZar: q.amountZar,
+    planId: String(q.planId ?? req.planId),
+    interval: q.interval === "annual" ? "annual" : "monthly",
+    startKind: q.startKind,
+    firstChargeDate: typeof q.firstChargeDate === "string" ? q.firstChargeDate : null,
+    payfastAvailable: Boolean(q.payfastAvailable),
+  };
+};
 
 /** Signed form post to PayFast (card entry + 3-D Secure happen on PayFast). */
 function submitPayfastForm(paymentUrl: string, paymentData: Record<string, string>) {

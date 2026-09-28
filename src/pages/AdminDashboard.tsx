@@ -17,6 +17,7 @@ import { PAID_SUBSCRIPTION_STATUSES } from "@/lib/entitlements";
 import { useAdminGate } from "@/hooks/use-admin-gate";
 import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
+import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 
@@ -578,7 +579,8 @@ const AdminDashboard = () => {
                 <SkynnReviewsTab />
               </TabsContent>
 
-              <TabsContent value="analytics">
+              <TabsContent value="analytics" className="space-y-6">
+                <ConversionFunnelPanel />
                 <AnalyticsTab />
               </TabsContent>
             </Tabs>

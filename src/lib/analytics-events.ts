@@ -31,6 +31,7 @@ export type ConversionEvent =
   | "keep_membership_viewed"
   | "keep_membership_gateway_selected"
   | "keep_membership_completed"
+  | "trial_card_upfront_shown"
   | "welcome_viewed"
   | "welcome_step_completed"
   | "welcome_finished"
