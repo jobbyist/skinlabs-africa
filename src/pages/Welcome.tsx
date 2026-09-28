@@ -114,7 +114,15 @@ const Welcome = () => {
   const finish = async (how: "finished" | "skipped") => {
     if (!user) return;
     setFinishing(true);
-    await supabase.from("profiles").update({ onboarding_completed_at: new Date().toISOString() }).eq("user_id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ onboarding_completed_at: new Date().toISOString() })
+      .eq("user_id", user.id);
+    if (error) {
+      setFinishing(false);
+      toast.error("Couldn't finish setup — try again.");
+      return;
+    }
     trackConversionEvent("welcome_finished", { how, step });
     navigate("/dashboard", { replace: true });
   };
