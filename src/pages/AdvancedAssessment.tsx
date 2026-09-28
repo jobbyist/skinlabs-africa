@@ -353,9 +353,10 @@ const IntakePendingView = ({ row }: { row: AdvancedAssessmentReportRow }) => (
       </div>
     </dl>
     <div className="space-y-2 text-sm text-muted-foreground">
-      <p>Your submission has been received and securely queued. No action is needed from you.</p>
       <p>Your request has been received and is being prepared. No action is needed from you.</p>
+      <p>
         We&apos;re completing the upgraded SKYNN AI dermatology review system and clinical approval process. Your report
+      </p>
         We&apos;re completing the upgraded SKYNN AI dermatology review and clinical approval. Your report will be prepared from the answers you&apos;ve already given, and we&apos;ll email you as soon as it&apos;s ready to read here.
     </div>
     <IntakeDisclaimer />

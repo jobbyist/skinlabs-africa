@@ -49,7 +49,7 @@ const IntakeConfirmation = ({
 
         <div className="flex flex-col sm:flex-row gap-2">
           <Button className="flex-1" onClick={onViewStatus}>View Submission Status</Button>
-          <Button className="flex-1" onClick={onViewStatus}>View Report Status</Button>
+          <Button variant="outline" className="flex-1" asChild>
             <Link to="/skynn-ai">Return to SKYNN AI</Link>
           </Button>
         </div>

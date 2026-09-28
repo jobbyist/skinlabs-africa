@@ -965,7 +965,6 @@ const AIFormulator = () => {
                       <p className="text-xs text-background/60 mt-1">
                         The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a
                         The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a longer, more detailed questionnaire that uses one Analysis Pass. Get an Analysis Pass to get your Advanced AI Dermatology Report. SKYNN AI will deliver your personalised skin report in 3-4 weeks (towards the end of October 2026) as we work on improving the service. Keep your reference number handy — we'll use it to keep you updated via email and on your dashboard when your report is ready.
-                    </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Button
                         type="button"

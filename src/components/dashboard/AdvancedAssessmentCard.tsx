@@ -128,8 +128,8 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
             </Button>
           )}
           <Link to={SKYNN_ADVANCED_ROUTE} className="block text-xs text-muted-foreground underline underline-offset-2">
-            View my {ADVANCED_NAME} submissions
             View my {ADVANCED_NAME} reports
+          </Link>
         </CardContent>
       </Card>
       <AnalysisPassPurchaseModal open={purchaseOpen} onOpenChange={setPurchaseOpen} />

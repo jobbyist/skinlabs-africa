@@ -55,8 +55,8 @@ const DeleteSubmissionButton = ({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{released ? "Delete this report?" : "Withdraw and delete your submission?"}</AlertDialogTitle>
           <AlertDialogTitle>{released ? "Delete this report?" : "Withdraw and delete your request?"}</AlertDialogTitle>
+          <AlertDialogDescription>
             This permanently deletes your answers{released ? " and your report" : ""} from SkinLabs. It can&apos;t be undone.
             {!released && " Your Analysis Pass will be refunded so you can use it again."}
           </AlertDialogDescription>

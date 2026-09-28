@@ -117,8 +117,8 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
 
       {consentDeclined && (
         <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
-          We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or
           We can only accept an Advanced AI Dermatology Analysis request with your consent. You can change your answer above, or
+          exit to /skynn-ai below and keep exploring without submitting.
         </p>
       )}
 
