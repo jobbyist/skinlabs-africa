@@ -169,6 +169,12 @@ export interface StarterAnalysisResult {
   preferences: RoutinePreferences;
   completeness: CompletenessBreakdown;
   groundedRoutine: GroundedRoutine;
+  /**
+   * The raw quiz answers (q1..q20 → option index 0-3), saved from v2.1 so the
+   * Advanced AI Dermatology Analysis can start from them and the PDF can list
+   * them. Absent on results saved before v2.1.
+   */
+  answers?: Record<string, number>;
   /** Full markdown-shaped text — same shape formatRecommendation()/generateSkincarePdf.ts already parse. */
   recommendationText: string;
   refinementHistory: RefinementEvent[];

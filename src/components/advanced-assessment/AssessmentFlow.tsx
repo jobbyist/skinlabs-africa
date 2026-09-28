@@ -18,6 +18,10 @@ interface AssessmentFlowProps {
   /** Pre-approval intake mode submits a request rather than generating a
    *  report, so the final step must say so. */
   intakeMode?: boolean;
+  /** Questions suggested from the member's Basic AI Skin Analysis. */
+  isPrefilled?: (questionId: string) => boolean;
+  /** Shown once above the questions when the session started from a Basic analysis. */
+  prefillNote?: string | null;
 }
 
 const questionApplies = (question: AssessmentQuestion, responses: Record<string, unknown>): boolean => {
@@ -36,7 +40,19 @@ const isAnswered = (question: AssessmentQuestion, responses: Record<string, unkn
 /** Discover → Prepare → Assess → Analyse → Reveal (section 27) — this
  *  component owns the "Assess" phase: one section per screen, a review
  *  step, then handoff to submit. */
-const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitting, onAnswer, onGoToSection, onSubmit, intakeMode = false }: AssessmentFlowProps) => {
+const AssessmentFlow = ({
+  sections,
+  currentSectionId,
+  responses,
+  saving,
+  submitting,
+  onAnswer,
+  onGoToSection,
+  onSubmit,
+  intakeMode = false,
+  isPrefilled,
+  prefillNote,
+}: AssessmentFlowProps) => {
   const [showReview, setShowReview] = useState(false);
   const currentIndex = sections.findIndex((s) => s.id === currentSectionId);
   const currentSection = sections[currentIndex] ?? sections[0];
@@ -98,6 +114,10 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
     <div className="max-w-2xl mx-auto">
       <AssessmentProgress sections={sections} currentSectionId={currentSection.id} responses={responses} />
 
+      {prefillNote && currentIndex <= 1 && (
+        <p className="mb-6 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">{prefillNote}</p>
+      )}
+
       <div className="space-y-8">
         <div>
           <h2 className="text-xl font-heading font-semibold">{currentSection.title}</h2>
@@ -109,6 +129,11 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
             <div>
               <p className="text-sm font-medium">{question.prompt}</p>
               {question.helperText && <p className="text-xs text-muted-foreground mt-1">{question.helperText}</p>}
+              {isPrefilled?.(question.id) && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  From your Basic AI Skin Analysis — check it still fits
+                </p>
+              )}
             </div>
             <QuestionRenderer question={question} value={responses[question.id]} onChange={(v) => onAnswer(question.id, v)} />
           </div>

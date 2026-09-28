@@ -15,7 +15,7 @@ import { computeDeterministicTriage } from "../safety.ts";
 import { formatResponses, formatSast, summariseScores, summariseTriage, type IntakeSection } from "./format.ts";
 import { buildIntakePdf } from "./intakePdf.ts";
 import { buildInternalIntakeEmail, INTAKE_RECIPIENT } from "./internalEmail.ts";
-import { SKYNN_FEATURE_VERSION, SKYNN_RELEASE_LABEL } from "../../skynn/terminology.ts";
+import { BASIC_NAME, SKYNN_FEATURE_VERSION, SKYNN_RELEASE_LABEL } from "../../skynn/terminology.ts";
 
 export const INTAKE_BUCKET = "skynn-advanced-intake";
 
@@ -62,7 +62,7 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
 
   const { data: session } = await admin
     .from("advanced_assessment_sessions")
-    .select("responses, assessment_definition_id, access_type, pass_transaction_id, engine_version")
+    .select("responses, assessment_definition_id, access_type, pass_transaction_id, engine_version, basic_analysis_id, prefilled_question_ids")
     .eq("id", job.session_id)
     .single();
   if (!session) {
@@ -90,6 +90,20 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
     ["Engine", `SKYNN AI v${session.engine_version ?? "2.0.0"} (beta)`],
     ["Release", `${SKYNN_RELEASE_LABEL} (${SKYNN_FEATURE_VERSION})`],
   ];
+  // Started from the member's Basic AI Skin Analysis? (Suggested answers the
+  // member confirmed or changed before submitting.)
+  if (session.basic_analysis_id) {
+    const { data: basic } = await admin
+      .from("skincare_recommendations")
+      .select("created_at")
+      .eq("id", session.basic_analysis_id)
+      .maybeSingle();
+    const count = Array.isArray(session.prefilled_question_ids) ? session.prefilled_question_ids.length : 0;
+    versions.push([
+      "Started from",
+      `${BASIC_NAME} of ${basic?.created_at ? formatSast(basic.created_at) : "an earlier date"} (${count} suggested answer${count === 1 ? "" : "s"}, confirmed by the member)`,
+    ]);
+  }
   const accessText = session.access_type === "analysis_pass"
     ? `Analysis Pass${session.pass_transaction_id ? " (1 pass consumed at submission)" : ""}`
     : String(session.access_type ?? "—");

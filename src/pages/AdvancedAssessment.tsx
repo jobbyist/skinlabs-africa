@@ -17,6 +17,7 @@ import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } fr
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
 import { getAdvancedAssessmentReport, listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { BASIC_NAME } from "@/lib/skynn/terminology";
 import {
   getReportDisplayStatus,
   INTAKE_EXPECTED_DELIVERY,
@@ -373,8 +374,24 @@ const AssessmentRunner = ({
   onSubmitted: (sessionId: string, submission: { referenceNumber: string | null; processingMode: string | null }) => void;
   onExit: () => void;
 }) => {
-  const { session, definition, responses, currentSectionId, saving, submitting, submission, error, setAnswer, goToSection, submit } =
-    useAdvancedAssessment();
+  const {
+    session,
+    definition,
+    responses,
+    currentSectionId,
+    saving,
+    submitting,
+    submission,
+    error,
+    setAnswer,
+    goToSection,
+    submit,
+    prefill,
+    isPrefilled,
+  } = useAdvancedAssessment();
+  const prefillNote = prefill?.ids.length
+    ? `We've started from your ${BASIC_NAME}${prefill.basicAnalysisDate ? ` of ${new Date(prefill.basicAnalysisDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}` : ""}: ${prefill.ids.length} answer${prefill.ids.length === 1 ? " is" : "s are"} filled in and marked. Please check each one — your skin may have changed. Consent and safety questions are always yours to answer.`
+    : null;
 
   useEffect(() => {
     if (submission && session) onSubmitted(session.id, submission);
@@ -421,6 +438,8 @@ const AssessmentRunner = ({
       onGoToSection={goToSection}
       onSubmit={submit}
       intakeMode={reportMode === "fallback"}
+      isPrefilled={isPrefilled}
+      prefillNote={prefillNote}
     />
   );
 };

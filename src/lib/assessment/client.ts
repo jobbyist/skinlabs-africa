@@ -58,6 +58,10 @@ export const getAdvancedAssessmentAccess = () => invoke<AdvancedAssessmentAccess
 export const createAdvancedAssessmentSession = () =>
   invoke<{ session: AdvancedAssessmentSession; definition: AssessmentDefinitionSummary }>("create_session");
 
+/** Records that a new session started from the member's saved Basic AI Skin Analysis. */
+export const linkBasicAnalysisToSession = (sessionId: string, basicAnalysisId: string, prefilledQuestionIds: string[]) =>
+  invoke<{ linked: boolean }>("link_basic_analysis", { sessionId, basicAnalysisId, prefilledQuestionIds });
+
 export const getAdvancedAssessmentSession = (sessionId: string) =>
   invoke<{ session: AdvancedAssessmentSession; definition: AssessmentDefinitionSummary; report: { id: string; generation_status: string } | null }>(
     "get_session",

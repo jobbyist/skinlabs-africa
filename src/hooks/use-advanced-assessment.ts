@@ -5,11 +5,14 @@ import {
   createAdvancedAssessmentSession,
   getAdvancedAssessmentAccess,
   getAdvancedAssessmentSession,
+  linkBasicAnalysisToSession,
   saveAdvancedAssessmentProgress,
   submitAdvancedAssessment,
 } from "@/lib/assessment/client";
 import { computeAssessmentCompleteness } from "@/lib/assessment/completeness";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { buildAdvancedPrefill, type BasicAnalysisRow } from "@/lib/skynn/basicToAdvancedPrefill";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   AdvancedAssessmentAccess,
   AdvancedAssessmentSession,
@@ -75,6 +78,9 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     processingMode: string | null;
   } | null>(null);
 
+  /** Answers suggested from the member's Basic AI Skin Analysis (new sessions only). */
+  const [prefill, setPrefill] = useState<{ ids: string[]; basicAnalysisDate: string } | null>(null);
+
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestResponses = useRef(responses);
   latestResponses.current = responses;
@@ -89,11 +95,15 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
         setDefinition(d);
         setResponses(s.responses ?? {});
         setCurrentSectionId(s.current_section_id ?? d.sections[0]?.id ?? null);
+        const ids = (s as { prefilled_question_ids?: string[] | null }).prefilled_question_ids;
+        if (ids?.length) setPrefill({ ids, basicAnalysisDate: "" });
       } else {
         const { session: s, definition: d } = await createAdvancedAssessmentSession();
-        setSession(s);
+        const seeded = await seedFromBasicAnalysis(s, d);
+        setSession(seeded.session);
         setDefinition(d);
-        setResponses({});
+        setResponses(seeded.responses);
+        setPrefill(seeded.prefill);
         setCurrentSectionId(d.sections[0]?.id ?? null);
       }
     } catch (err) {
@@ -152,6 +162,11 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     [persist],
   );
 
+  const isPrefilled = useCallback(
+    (questionId: string) => Boolean(prefill?.ids.includes(questionId)),
+    [prefill],
+  );
+
   const completenessPct = definition ? computeAssessmentCompleteness(definition.sections, responses) : 0;
 
   const submit = useCallback(async () => {
@@ -206,5 +221,45 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     goToSection,
     submit,
     refresh: start,
+    prefill,
+    isPrefilled,
   };
 };
+
+/**
+ * A new session starts from the member's latest saved Basic AI Skin Analysis:
+ * suggested answers are saved straight away (the server recomputes
+ * completeness) and the session records which analysis it came from. Any
+ * failure just leaves an empty questionnaire.
+ */
+async function seedFromBasicAnalysis(
+  session: AdvancedAssessmentSession,
+  definition: AssessmentDefinitionSummary,
+): Promise<{
+  session: AdvancedAssessmentSession;
+  responses: Record<string, unknown>;
+  prefill: { ids: string[]; basicAnalysisDate: string } | null;
+}> {
+  const empty = { session, responses: session.responses ?? {}, prefill: null };
+  try {
+    const { data } = await supabase
+      .from("skincare_recommendations")
+      .select("id, created_at, mst_tone, result_payload")
+      .eq("user_id", session.user_id)
+      .eq("status", "delivered")
+      .not("result_payload", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!data) return empty;
+    const p = buildAdvancedPrefill(data as BasicAnalysisRow, definition);
+    if (!p.prefilledIds.length) return empty;
+    const { session: saved } = await saveAdvancedAssessmentProgress(session.id, p.responses, null);
+    void linkBasicAnalysisToSession(session.id, p.basicAnalysisId, p.prefilledIds).catch(() => undefined);
+    trackSkynnEvent("skynn_advanced_prefill_applied", { mode: "advanced", count: p.prefilledIds.length });
+    return { session: saved, responses: p.responses, prefill: { ids: p.prefilledIds, basicAnalysisDate: p.basicAnalysisDate } };
+  } catch (err) {
+    console.warn("Starting from the Basic AI Skin Analysis failed:", err);
+    return empty;
+  }
+}

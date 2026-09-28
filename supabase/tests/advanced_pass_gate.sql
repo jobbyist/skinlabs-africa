@@ -90,9 +90,16 @@ BEGIN
   END IF; n := n + 1;
   IF public.available_ai_credits(v_a) <> 0 THEN RAISE EXCEPTION 'ADVANCED_GATE_TEST_FAILED: replay charged again'; END IF; n := n + 1;
 
-  -- The member cannot hand the Pass spent on a submission back to themselves.
+  -- The member cannot hand the Pass spent on a submission back to themselves
+  -- (since 20260928150000 clients can't call refund_analysis_pass at all;
+  -- before it, the function itself refused a Pass linked to a submission).
   SELECT pass_transaction_id INTO v_tx FROM public.advanced_assessment_sessions WHERE id = s1.id;
-  IF public.refund_analysis_pass(v_tx) THEN
+  v_raised := false;
+  BEGIN
+    v_raised := NOT public.refund_analysis_pass(v_tx);
+  EXCEPTION WHEN insufficient_privilege THEN v_raised := true;
+  END;
+  IF NOT v_raised THEN
     RAISE EXCEPTION 'ADVANCED_GATE_TEST_FAILED: member refunded the Pass spent on their submission';
   END IF; n := n + 1;
   IF public.available_ai_credits(v_a) <> 0 THEN RAISE EXCEPTION 'ADVANCED_GATE_TEST_FAILED: Pass balance changed after refund attempt'; END IF; n := n + 1;
