@@ -187,6 +187,7 @@ const AIFormulator = () => {
   const saveCtaViewedRef = useRef(false);
   const progressPctRef = useRef(0);
   const funnelViewedRef = useRef(false);
+  const completedFiredRef = useRef(false);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -669,6 +670,7 @@ const AIFormulator = () => {
     viewedFiredRef.current = false;
     saveCtaViewedRef.current = false;
     progressPctRef.current = 0;
+    completedFiredRef.current = false;
     clearAllStarterAnalysisState();
   };
 
@@ -691,6 +693,15 @@ const AIFormulator = () => {
     if (milestone) trackSkynnEvent("skynn_questionnaire_progress", { mode: "basic", progress_pct: milestone });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion]);
+
+  // Funnel end-state: the full, saved Basic AI Skin Analysis is on screen.
+  const fullResultVisible = Boolean(user) && resultsSaved && !saveLimitReached;
+  useEffect(() => {
+    if (step !== STEP_RESULTS || !fullResultVisible || completedFiredRef.current) return;
+    completedFiredRef.current = true;
+    trackSkynnEvent("skynn_results_completed", { mode: "basic", account_state: accountState });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, fullResultVisible]);
 
   if (authLoading) {
     return (
@@ -789,7 +800,7 @@ const AIFormulator = () => {
   // The full Basic AI Skin Analysis (routine, PDF) is shown only once the server
   // has accepted the save — that save is the weekly-limit gate. Anonymous
   // visitors, a save in flight, and a refused save all see the preview.
-  const showFullResult = Boolean(user) && resultsSaved && !saveLimitReached;
+  const showFullResult = fullResultVisible;
   const saveInFlight = Boolean(user) && !resultsSaved && !saveLimitReached && !saveError;
   const starterSummary = starterResult ? summarizeStarterResult(starterResult) : null;
   const introLocked = Boolean(user && !isMember && allowance?.locked);

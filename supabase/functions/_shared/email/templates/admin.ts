@@ -74,7 +74,7 @@ registerTemplate({
   preheader: () => "The submission is safe, but its PDF or email step kept failing.",
   render: (vars) => `
     ${emailHeading("An intake record needs attention")}
-    ${emailParagraph("A pre-approval Advanced Dermatology Report submission is stored safely, but its intake PDF or the email to reports@ failed after several retries. Open it in the admin dashboard to retry.")}
+    ${emailParagraph("A pre-approval Advanced AI Dermatology Analysis submission is stored safely, but its intake PDF or the email to reports@ failed after several retries. Open it in the admin dashboard to retry.")}
     ${emailKeyValueTable([
       ["Reference", String(vars.reference_number ?? "")],
       ["PDF", String(vars.pdf_status ?? "")],
@@ -94,7 +94,7 @@ registerTemplate({
   preheader: () => "The member deleted their submission; remove any mailbox copies.",
   render: (vars) => `
     ${emailHeading("A submission was withdrawn")}
-    ${emailParagraph("The member has deleted this Advanced Dermatology Report submission. Its answers and stored PDF have been removed from SkinLabs systems. Please delete the intake email and PDF for this reference from the reports@ mailbox (and anywhere it was saved), as required under POPIA.")}
+    ${emailParagraph("The member has deleted this Advanced AI Dermatology Analysis submission. Its answers and stored PDF have been removed from SkinLabs systems. Please delete the intake email and PDF for this reference from the reports@ mailbox (and anywhere it was saved), as required under POPIA.")}
     ${emailKeyValueTable([["Reference", String(vars.reference_number ?? "")]])}
   `,
 });
@@ -106,10 +106,10 @@ registerTemplate({
   transactional: false,
   requiredVars: ["report_id"],
   subject: (vars) => `SKYNN AI report awaiting review${vars.triage && vars.triage !== "clear" ? ` (${String(vars.triage)})` : ""}`,
-  preheader: () => "A QA-approved Advanced AI Dermatology Report is held for release.",
+  preheader: () => "A QA-approved Advanced AI Dermatology Analysis report is held for release.",
   render: (vars) => `
     ${emailHeading("A SKYNN AI report needs review")}
-    ${emailParagraph(`A new Advanced AI Dermatology Report passed automated QA and is held until someone on the team approves or rejects it. No member details are included in this email.`)}
+    ${emailParagraph(`A new Advanced AI Dermatology Analysis report passed automated QA and is held until someone on the team approves or rejects it. No member details are included in this email.`)}
     ${emailKeyValueTable([
       ["Report ID", String(vars.report_id ?? "")],
       ["Safety triage", String(vars.triage ?? "")],

@@ -25,10 +25,10 @@ export function buildInternalIntakeEmail(input: InternalEmailInput): { subject: 
   if (!REFERENCE_PATTERN.test(input.referenceNumber)) {
     throw new Error("invalid reference number");
   }
-  const subject = `SKYNN AI Advanced Report Submission — ${input.referenceNumber}`;
+  const subject = `SKYNN AI v2.1 — Advanced AI Dermatology Analysis submission — ${input.referenceNumber}`;
   const body = `
-    ${emailHeading("New Advanced Dermatology Report submission")}
-    ${emailParagraph("A member has submitted the SKYNN AI Advanced Dermatology Report questionnaire. It is stored securely and queued for the production workflow; no report has been generated.")}
+    ${emailHeading("New Advanced AI Dermatology Analysis submission")}
+    ${emailParagraph("A member has submitted the SKYNN AI Advanced AI Dermatology Analysis questionnaire. It is stored securely and queued for the production workflow; no report has been generated.")}
     ${emailKeyValueTable([
       ["Reference", input.referenceNumber],
       ["Submitted", input.submittedAt],

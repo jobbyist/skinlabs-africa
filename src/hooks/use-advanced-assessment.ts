@@ -125,7 +125,7 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     } catch (err) {
       // Autosave failures are surfaced quietly — the user's local answers
       // are never lost client-side, and the next successful save catches up.
-      console.warn("Advanced Assessment autosave failed:", err);
+      console.warn("Advanced AI Dermatology Analysis autosave failed:", err);
     } finally {
       setSaving(false);
     }
