@@ -72,6 +72,26 @@ touching the trigger/business-event layer at all.
 | ADMIN | EMAIL_DELIVERY_FAILED_ALERT | `admin_delivery_failed` | `fail_email_job()`, on a **transactional** job's final failure only | `email_failed_alert:{outbox_id}` |
 | MARKETING | NEWSLETTER_WEEKLY_DIGEST | `newsletter_weekly_digest` | `enqueue_weekly_newsletter_digest()` — Monday 07:00 UTC cron (`newsletter-weekly-digest`), fans out to every `profiles.marketing_consent = true` row with a confirmed email | `newsletter_weekly:{week_label}:{user_id}` |
 
+| TRIAL | TRIAL_ACTIVATION_NUDGE (day 2, not activated) | `trial_activation_nudge` | daily `enqueue_trial_lifecycle_emails()` (**MARKETING**, consent only) | `trial_activation_nudge:{user_id}:{trial_ends_at}` |
+| TRIAL | TRIAL_WEEK_LEFT (T-7) | `trial_week_left` | same (TRIAL, transactional; `?keep=1` link) | `trial_week_left:{user_id}:{trial_ends_at}` |
+| TRIAL | TRIAL_PRECHARGE_REMINDER (T-3, card on file) | `trial_precharge_reminder` | same (exact date + rand amount; PayPal adds the USD charge) | `trial_precharge_reminder:{user_id}:{trial_ends_at}` |
+| TRIAL | TRIAL_LAST_CHANCE (T-3, no card) | `trial_last_chance` | same | `trial_last_chance:{user_id}:{trial_ends_at}` |
+| TRIAL | TRIAL_WINBACK (+5 days, once) | `trial_winback` | same (**MARKETING**, consent only) | `trial_winback:{user_id}:{trial_ends_at}` |
+
+**Trial lifecycle (onboarding overhaul 09, 2026-09-28).** Selection lives in ONE
+SQL function, `trial_lifecycle_email_plan(p_today date)` (SAST calendar days),
+which is also the **dry run** (`SELECT * FROM trial_lifecycle_email_plan('2026-10-25')`
+returns who would get which email that day and enqueues nothing);
+`enqueue_trial_lifecycle_emails()` just loops it. Both are service-role only.
+Send-time guards (`guards.ts`) re-check that the same trial (same end date) is
+still running, re-read the card state (a precharge reminder needs a live
+subscription, last-chance needs none, and a read error never sends
+charge-dependent copy), and re-check marketing consent and activation for the
+nudge/win-back. `trial_ended` now offers "Keep my membership" (`?keep=1`) and an
+Analysis Pass. The hourly T-1 `trial_expiring` job is unchanged. **The daily cron
+is NOT scheduled** — review a dry run, then:
+`SELECT cron.schedule('trial-lifecycle-emails-daily', '5 4 * * *', $$SELECT public.enqueue_trial_lifecycle_emails()$$);`
+
 Form pairs wired: `contact` (new `contact_submissions` table), `partner`
 (`partner_enquiries`), `spotlight_brand` (`spotlight_brand_requests`),
 `custom_formula` (`custom_formula_requests`), `business`
