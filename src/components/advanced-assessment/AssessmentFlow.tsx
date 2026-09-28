@@ -16,8 +16,8 @@ interface AssessmentFlowProps {
   onGoToSection: (sectionId: string) => void;
   onSubmit: () => void;
   /** Pre-approval intake mode submits a request rather than generating a
-   *  report, so the final step must say so. */
-  intakeMode?: boolean;
+  /** Intake mode sends a request rather than generating a
+   *  report immediately, so the final step must say so. */
 }
 
 const questionApplies = (question: AssessmentQuestion, responses: Record<string, unknown>): boolean => {
@@ -118,7 +118,7 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
       {consentDeclined && (
         <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
           We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or
-          leave now — no Analysis Pass has been used.
+          We can only accept an Advanced AI Dermatology Analysis request with your consent. You can change your answer above, or
         </p>
       )}
 

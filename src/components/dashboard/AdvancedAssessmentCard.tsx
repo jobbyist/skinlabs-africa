@@ -30,8 +30,8 @@ interface AdvancedAssessmentCardProps {
  * treated Insider/VIP membership as access and linked to /skynn-ai, where the
  * legacy live-AI path ran without a Pass. That path is retired.)
  *
- * A member with a queued pre-approval submission sees it here as
- * "Advanced AI Dermatology Analysis — Pending" with its reference.
+ * A member with a pending request sees it here as
+ * "Advanced AI Dermatology Analysis — Pending" with their tracking number.
  */
 const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssessmentCardProps) => {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
@@ -95,19 +95,19 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
               </div>
               {pending.reference_number && <p className="font-mono text-xs text-muted-foreground">{pending.reference_number}</p>}
               <p className="text-xs text-muted-foreground">
-                Your submission has been received and securely queued. It is not a completed report yet. Expected
+                We've received your request and it's being prepared. It's not a completed report yet. Expected
                 delivery: {INTAKE_EXPECTED_DELIVERY}. No action needed.
               </p>
               <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
-                View submission status
+                View report status
               </Link>
             </div>
           )}
           <p className="text-sm text-muted-foreground">
             A longer, more detailed questionnaire than your {BASIC_NAME}. Each submission uses one {ANALYSIS_PASS}.
             {access?.reportMode === "fallback"
-              ? " During this beta, submissions are received and queued with a reference number while the report workflow is finalised."
-              : " Every report is checked by the SkinLabs team before it's released."}
+              ? " Get an Analysis Pass to get your Advanced AI Dermatology Report. SKYNN AI will deliver your personalised skin report in 3-4 weeks (towards the end of October 2026) as we work on improving the service. Keep your reference number handy — we'll use it to keep you updated via email and on your dashboard when your report is ready."
+              : " Every report is reviewed by the SkinLabs team before it's ready to view."}
           </p>
           {paused && !loading ? (
             <p className="text-xs text-muted-foreground">New submissions are paused at the moment — check back soon.</p>
@@ -129,7 +129,7 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
           )}
           <Link to={SKYNN_ADVANCED_ROUTE} className="block text-xs text-muted-foreground underline underline-offset-2">
             View my {ADVANCED_NAME} submissions
-          </Link>
+            View my {ADVANCED_NAME} reports
         </CardContent>
       </Card>
       <AnalysisPassPurchaseModal open={purchaseOpen} onOpenChange={setPurchaseOpen} />

@@ -38,9 +38,9 @@ import {
  * "your report is ready" email) opens a specific report's status/view.
  *
  * Pre-approval intake (2026-09-27): while report_mode = 'fallback' (read
- * from the server via get_advanced_assessment_access, never hardcoded
- * here), a submission is stored and queued instead of generated. The member
- * gets a reference number and an "Advanced Dermatology Report — Pending"
+ * here), a request is stored and prepared instead of generated. The member
+ * gets a tracking number and an "Advanced Dermatology Report — Pending"
+ * status, and the report follows later through the automated workflow.
  * status, and the report follows later through the production workflow.
  */
 const AdvancedAssessmentPage = () => {
@@ -165,7 +165,7 @@ const NotAvailable = ({ paused, onPurchase }: { paused: boolean; onPurchase: () 
     </p>
     <p className="text-sm text-muted-foreground">
       {paused
-        ? "New Advanced AI Dermatology Analysis submissions are paused at the moment — check back soon."
+        ? "New Advanced AI Dermatology Analysis requests are paused at the moment — check back soon."
         : "Each Advanced AI Dermatology Analysis uses one Analysis Pass — membership alone doesn't include it. If we can't release your report, the pass is refunded."}
     </p>
     {!paused && <Button onClick={onPurchase}>Get an Analysis Pass</Button>}
@@ -192,8 +192,7 @@ const Landing = ({ passesAvailable, reportMode, onStart }: { passesAvailable: nu
       <p className="flex gap-2 text-sm text-left max-w-md mx-auto rounded-xl border border-border bg-muted/40 p-3">
         <CalendarClock className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
         <span>
-          We&apos;re finishing the upgraded SKYNN AI review system and its clinical approval. Requests made now are securely
-          queued and your report is expected in {INTAKE_EXPECTED_DELIVERY} — you won&apos;t need to answer the questions again.
+          We&apos;re finishing the upgraded SKYNN AI review and its clinical approval. Requests made now are securely recorded and your report is expected in {INTAKE_EXPECTED_DELIVERY} — you won&apos;t need to answer the questions again.
         </span>
       </p>
     )}
@@ -221,7 +220,7 @@ const PastReports = ({ onOpen }: { onOpen: (id: string) => void }) => {
   if (!reports || reports.length === 0) return null;
   return (
     <div className="max-w-2xl mx-auto space-y-3">
-      <p className="font-medium text-sm">Your Advanced AI Dermatology Analysis submissions</p>
+      <p className="font-medium text-sm">Your Advanced AI Dermatology Analysis reports</p>
       {reports.map((r) => {
         const status = getReportDisplayStatus(r);
         return (
@@ -334,8 +333,8 @@ const ReportStatusView = ({ sessionId, onBack }: { sessionId: string; onBack: ()
   );
 };
 
-/** "Advanced Dermatology Report — Pending": a stored, queued pre-approval
- *  submission. Receipt only — no report content exists yet. */
+/** "Advanced Dermatology Report — Pending": a stored, pending pre-approval
+ *  request. Receipt only — no report content exists yet. */
 const IntakePendingView = ({ row }: { row: AdvancedAssessmentReportRow }) => (
   <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-5 shadow-sm">
     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -355,10 +354,9 @@ const IntakePendingView = ({ row }: { row: AdvancedAssessmentReportRow }) => (
     </dl>
     <div className="space-y-2 text-sm text-muted-foreground">
       <p>Your submission has been received and securely queued. No action is needed from you.</p>
-      <p>
+      <p>Your request has been received and is being prepared. No action is needed from you.</p>
         We&apos;re completing the upgraded SKYNN AI dermatology review system and clinical approval process. Your report
-        will be prepared from the answers you&apos;ve already given, and we&apos;ll email you as soon as it&apos;s ready to read here.
-      </p>
+        We&apos;re completing the upgraded SKYNN AI dermatology review and clinical approval. Your report will be prepared from the answers you&apos;ve already given, and we&apos;ll email you as soon as it&apos;s ready to read here.
     </div>
     <IntakeDisclaimer />
   </div>
@@ -404,7 +402,7 @@ const AssessmentRunner = ({
         <div className="flex flex-col items-center gap-3 py-24 text-center">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Securely submitting your answers…</p>
-        </div>
+          <p className="text-sm text-muted-foreground">Securely sending your answers…</p>
       );
     }
     return <ProcessingState />;

@@ -964,9 +964,7 @@ const AIFormulator = () => {
                       <p className="text-sm font-medium text-background/90">Want to go deeper?</p>
                       <p className="text-xs text-background/60 mt-1">
                         The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a
-                        longer, more detailed questionnaire that uses one Analysis Pass. During this beta, submissions
-                        are received and queued with a reference number while the full report workflow is finalised.
-                      </p>
+                        The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a longer, more detailed questionnaire that uses one Analysis Pass. Get an Analysis Pass to get your Advanced AI Dermatology Report. SKYNN AI will deliver your personalised skin report in 3-4 weeks (towards the end of October 2026) as we work on improving the service. Keep your reference number handy — we'll use it to keep you updated via email and on your dashboard when your report is ready.
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Button
@@ -1388,9 +1386,7 @@ const AIFormulator = () => {
                       <div>
                         <h4 className="font-heading font-semibold text-card-foreground">Go deeper with the {ADVANCED_NAME}</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          A longer, more detailed questionnaire about how your skin behaves, your concerns and your
-                          day-to-day. It uses one Analysis Pass. During this beta your submission is received and
-                          queued with a reference number; your report follows once the review workflow is finalised.
+                          A longer, more detailed questionnaire about how your skin behaves, your concerns and your day-to-day. It uses one Analysis Pass. Get an Analysis Pass to get your Advanced AI Dermatology Report. SKYNN AI will deliver your personalised skin report in 3-4 weeks (towards the end of October 2026) as we work on improving the service. Keep your reference number handy — we'll use it to keep you updated via email and on your dashboard when your report is ready.
                         </p>
                       </div>
                       <Button size="lg" className="gap-2" onClick={() => goToAdvanced("results")}>

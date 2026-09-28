@@ -16,10 +16,10 @@ import { Button } from "@/components/ui/button";
 import { AssessmentApiError, deleteAdvancedAssessmentSubmission } from "@/lib/assessment/client";
 
 /**
- * Lets a member delete (withdraw) their own Advanced Report submission —
+ * Lets a member delete (withdraw) their own Advanced Report request —
  * the "delete it from your dashboard at any time" promise made in the POPIA
  * consent question. Removes the answers, the report and any stored intake
- * PDF; an unreleased submission's Analysis Pass is refunded server-side.
+ * PDF; an unreleased request's Analysis Pass is refunded server-side.
  */
 const DeleteSubmissionButton = ({
   sessionId,
@@ -36,10 +36,10 @@ const DeleteSubmissionButton = ({
     setBusy(true);
     try {
       const { refunded } = await deleteAdvancedAssessmentSubmission(sessionId);
-      toast.success(refunded ? "Deleted. Your Analysis Pass has been refunded." : "Your submission has been deleted.");
+      toast.success(refunded ? "Deleted. Your Analysis Pass has been refunded." : "Your request has been deleted.");
       onDeleted();
     } catch (err) {
-      toast.error(err instanceof AssessmentApiError ? err.message : "Couldn't delete your submission. Please try again.");
+      toast.error(err instanceof AssessmentApiError ? err.message : "Couldn't delete your request. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -56,7 +56,7 @@ const DeleteSubmissionButton = ({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{released ? "Delete this report?" : "Withdraw and delete your submission?"}</AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogTitle>{released ? "Delete this report?" : "Withdraw and delete your request?"}</AlertDialogTitle>
             This permanently deletes your answers{released ? " and your report" : ""} from SkinLabs. It can&apos;t be undone.
             {!released && " Your Analysis Pass will be refunded so you can use it again."}
           </AlertDialogDescription>
