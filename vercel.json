@@ -70,6 +70,21 @@
       "source": "/newsroom/:slug",
       "destination": "/briefings/:slug",
       "permanent": true
+    },
+    {
+      "source": "/briefings/the-pigment-puzzle-navigating-hyperpigmentation-in-the-south-african-s",
+      "destination": "/briefings/the-pigment-puzzle-a-south-african-guide-to-clearing-your-skin",
+      "permanent": true
+    },
+    {
+      "source": "/briefings/the-pigment-puzzle-managing-hyperpigmentation-in-the-south-african-sun",
+      "destination": "/briefings/the-pigment-puzzle-a-south-african-guide-to-clearing-your-skin",
+      "permanent": true
+    },
+    {
+      "source": "/briefings/the-daily-skinny-decoding-your-face-s-hidden-history",
+      "destination": "/briefings/the-skin-on-your-arms-a-practical-guide-to-monitoring-flat-spots",
+      "permanent": true
     }
   ]
 }

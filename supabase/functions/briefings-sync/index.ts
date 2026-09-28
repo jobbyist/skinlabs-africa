@@ -70,6 +70,10 @@ import {
   type GeminiAttemptLog,
 } from "../_shared/pipelines/geminiFallback.ts";
 import { scanComplianceFlags } from "../_shared/pipelines/complianceTerms.ts";
+import { canonicalSourceUrl, findDuplicate } from "../_shared/pipelines/briefingSimilarity.ts";
+
+/** How far back the near-duplicate check looks. Topics may come back after this. */
+const DEDUP_LOOKBACK_DAYS = 45;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -728,9 +732,34 @@ Deno.serve(async (req) => {
       .lte("retry_after", new Date().toISOString())
       .limit(target * 2);
 
-    // Track seen source URLs to prevent duplicates
+    // Track seen source URLs to prevent duplicates. Compared CANONICALLY
+    // (tracking params like Google's `srsltid` stripped): raw-URL comparison let
+    // the same barbeauty.ca page through three times as "The Pigment Puzzle".
     const { data: existingRows } = await admin.from("news_articles").select("source_url");
-    const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
+    const seenUrls = new Set(
+      (existingRows ?? []).map((r: { source_url: string | null }) => canonicalSourceUrl(r.source_url)).filter(Boolean),
+    );
+
+    // Recent briefings (any status) for the topic-level near-duplicate check.
+    interface RecentBriefing {
+      title: string;
+      excerpt: string | null;
+      key_takeaways: string[] | null;
+      source_url: string | null;
+    }
+    const lookbackDate = new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 86400000).toISOString().slice(0, 10);
+    const { data: recentRows } = await admin
+      .from("news_articles")
+      .select("title, excerpt, key_takeaways, source_url")
+      .gte("publish_date", lookbackDate)
+      .order("publish_date", { ascending: false })
+      .limit(200);
+    const recentBriefings: RecentBriefing[] = (recentRows ?? []) as RecentBriefing[];
+    const recentTitlesForPrompt = () =>
+      recentBriefings
+        .slice(0, 40)
+        .map((b) => `- ${b.title}`)
+        .join("\n");
 
     interface GenerationCandidate {
       channel: { id: string; topicTag: string };
@@ -742,7 +771,7 @@ Deno.serve(async (req) => {
     const retriedCandidates: GenerationCandidate[] = [];
     for (const row of dueRetries ?? []) {
       const payload = row.candidate_payload as RetryPayload | null;
-      if (!payload?.primaryPageUrl || seenUrls.has(payload.primaryPageUrl)) continue; // already published since queuing
+      if (!payload?.primaryPageUrl || seenUrls.has(canonicalSourceUrl(payload.primaryPageUrl))) continue; // already published since queuing
       retriedCandidates.push({
         channel: { id: payload.channelId, topicTag: payload.topicTag },
         compositeSource: payload.compositeSource,
@@ -772,8 +801,15 @@ Deno.serve(async (req) => {
     // fresh channel (up to target) ----
     const freshCandidates: GenerationCandidate[] = [];
     for (const { channel, pages } of channelResults) {
-      const freshPages = pages.filter((p) => !seenUrls.has(p.url));
+      const freshPages = pages.filter((p) => !seenUrls.has(canonicalSourceUrl(p.url)));
       if (freshPages.length === 0) continue;
+      // Skip a lead page whose own title already matches a recent briefing —
+      // saves a Gemini call on a topic we'd reject after generation anyway.
+      const leadDuplicate = findDuplicate({ title: freshPages[0].title ?? "" }, recentBriefings);
+      if (leadDuplicate) {
+        errors.push(`${channel.id}: lead source duplicates "${leadDuplicate.match.title}" -- skipped`);
+        continue;
+      }
       const primaryPage = freshPages[0];
       const compositeSource = freshPages
         .slice(0, 3)
@@ -805,7 +841,12 @@ Deno.serve(async (req) => {
           apiKey: geminiKey as string,
           models: modelChain,
           systemInstruction: BRIEFING_INSTRUCTIONS,
-          userContent: compositeSource,
+          // The "already covered" list steers the model away from repeating a
+          // recent angle; the similarity check below is what actually enforces it.
+          userContent:
+            recentBriefings.length > 0
+              ? `ALREADY PUBLISHED IN THE LAST ${DEDUP_LOOKBACK_DAYS} DAYS -- do not repeat these topics, titles or angles; pick a clearly different angle from the research or the output will be rejected:\n${recentTitlesForPrompt()}\n\n=== RESEARCH ===\n\n${compositeSource}`
+              : compositeSource,
           responseSchema: BRIEFING_SCHEMA,
           temperature: 0.6,
           maxOutputTokens: 8192,
@@ -822,6 +863,18 @@ Deno.serve(async (req) => {
         const qa = qaBriefing(briefing, wc, minWordCount);
         if (!qa.passed) {
           errors.push(`QA rejected ${channel.id}: ${qa.reasons.join("; ")}`);
+          continue;
+        }
+
+        // ---- Near-duplicate gate: never publish a topic we covered recently ----
+        const duplicate = findDuplicate(
+          { title: briefing.title, excerpt: briefing.excerpt, key_takeaways: briefing.key_takeaways },
+          recentBriefings,
+        );
+        if (duplicate) {
+          errors.push(
+            `Duplicate rejected ${channel.id}: "${briefing.title}" ~ "${duplicate.match.title}" (${duplicate.result.reason}, ${duplicate.result.score.toFixed(2)})`,
+          );
           continue;
         }
 
@@ -895,15 +948,23 @@ Deno.serve(async (req) => {
             articleSection: channel.topicTag,
             wordCount: finalWordCount,
           }),
-          // Seed a realistic view count so a brand-new briefing doesn't read as unread.
-          view_count: Math.floor(Math.random() * 780) + 120,
+          // Real views only -- a seeded random count was fabricated social proof
+          // (and skewed the "Most viewed" sort).
+          view_count: 0,
         });
 
         if (error) {
           errors.push(`${channel.id}: ${error.message}`);
         } else {
           created += 1;
-          seenUrls.add(primaryPageUrl);
+          seenUrls.add(canonicalSourceUrl(primaryPageUrl));
+          // Same-run guard: the next candidate is checked against this one too.
+          recentBriefings.unshift({
+            title: cleanTitle,
+            excerpt: briefing.excerpt,
+            key_takeaways: briefing.key_takeaways ?? [],
+            source_url: primaryPageUrl,
+          });
           if (candidate.retryQueueId) {
             await admin
               .from("pipeline_retry_queue")
