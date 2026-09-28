@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import { arrangeRail, clipText, MAX_BODY_CHARS, MAX_HEADLINE_CHARS, storyFromBriefing, type Story } from "../webStories/stories";
-import { curatedStories, podcastSeasonOneStory, springResetStory } from "../webStories/curated";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import {
+  curatedStories,
+  icymiSeptember2026Story,
+  ICYMI_SEPTEMBER_2026_MEDIA,
+  ICYMI_SEPTEMBER_2026_VIDEO_READY,
+  podcastSeasonOneStory,
+  springResetStory,
+} from "../webStories/curated";
 import { podcastEpisodes } from "@/data/podcast";
 
 const page = { mediaType: "image" as const, mediaUrl: "/x.jpg", mediaAlt: "", posterUrl: null, headline: "h", body: null, durationMs: 6000 };
@@ -126,6 +135,25 @@ describe("curated stories", () => {
     expect(story.ctaUrl).toBe("/seasonals/spring");
   });
 
+  test("ICYMI September 2026: video first, then that month's announcements verbatim", () => {
+    const story = icymiSeptember2026Story();
+    expect(story.title).toBe("ICYMI: September 2026");
+    expect(story.pages[0].mediaType).toBe("video");
+    expect(story.pages[0].posterUrl).toBe(ICYMI_SEPTEMBER_2026_MEDIA.poster);
+    expect(story.pages.length).toBeGreaterThanOrEqual(4);
+    expect(story.pages.slice(1).every((p) => p.ctaUrl === "/announcements")).toBe(true);
+  });
+
+  test("ICYMI story is only listed once its video and poster are committed", () => {
+    const listed = curatedStories().some((s) => s.slug === "icymi-september-2026");
+    expect(listed).toBe(ICYMI_SEPTEMBER_2026_VIDEO_READY);
+    if (ICYMI_SEPTEMBER_2026_VIDEO_READY) {
+      for (const file of Object.values(ICYMI_SEPTEMBER_2026_MEDIA)) {
+        expect(existsSync(join(import.meta.dir, "../../../public", file))).toBe(true);
+      }
+    }
+  });
+
   test("curated slugs are unique and AMP-slug safe", () => {
     const slugs = curatedStories().map((s) => s.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
@@ -137,6 +165,6 @@ describe("rail order with every source", () => {
   test("authored → briefings → curated, with no product review stories", () => {
     const briefing = story("briefing-a", { source: "briefing" });
     const rail = arrangeRail([story("authored")], [briefing, ...curatedStories()]);
-    expect(rail.map((s) => s.source)).toEqual(["db", "briefing", "curated", "curated"]);
+    expect(rail.map((s) => s.source)).toEqual(["db", "briefing", ...curatedStories().map(() => "curated" as const)]);
   });
 });

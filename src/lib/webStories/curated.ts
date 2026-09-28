@@ -2,6 +2,7 @@ import { podcastEpisodes } from "@/data/podcast";
 import { seasonHubs } from "@/data/seasonals";
 import { productReviews } from "@/data/reviews";
 import { getProductImage } from "@/data/productImages";
+import { announcementsForMonth } from "@/data/announcements";
 import { clipText, MAX_BODY_CHARS, MAX_HEADLINE_CHARS, type Story, type StoryPage } from "./stories";
 
 /**
@@ -122,6 +123,73 @@ export const springResetStory = (): Story => {
   };
 };
 
-export const curatedStories = (): Story[] => [podcastSeasonOneStory(), springResetStory()];
+export const ICYMI_SEPTEMBER_2026_SLUG = "icymi-september-2026";
+const ANNOUNCEMENTS_MEDIA = "/stories-media/announcements";
+
+/**
+ * The September 2026 recap video. The story stays OUT of the rail, AMP route
+ * and sitemap until the file is committed and this is flipped to true — a
+ * unit test (webStories.test.ts) fails if it's true while the files are
+ * missing, so it can't ship pointing at a 404. Expected files (9:16):
+ *   public/stories-media/announcements/icymi-september-2026.mp4  (H.264/AAC, ≤ ~15 MB)
+ *   public/stories-media/announcements/icymi-september-2026.jpg  (1080×1920 poster, first frame)
+ */
+export const ICYMI_SEPTEMBER_2026_VIDEO_READY = false;
+export const ICYMI_SEPTEMBER_2026_MEDIA = {
+  video: `${ANNOUNCEMENTS_MEDIA}/icymi-september-2026.mp4`,
+  poster: `${ANNOUNCEMENTS_MEDIA}/icymi-september-2026.jpg`,
+} as const;
+
+/**
+ * "Announcements" story: the recap video, then one page per announcement
+ * published that month, text taken verbatim from src/data/announcements.ts.
+ */
+export const icymiSeptember2026Story = (): Story => {
+  const { video, poster } = ICYMI_SEPTEMBER_2026_MEDIA;
+  const items = announcementsForMonth("2026-09");
+  return {
+    key: ICYMI_SEPTEMBER_2026_SLUG,
+    source: "curated",
+    slug: ICYMI_SEPTEMBER_2026_SLUG,
+    title: "ICYMI: September 2026",
+    kind: "video",
+    coverImageUrl: poster,
+    coverImageAlt: "ICYMI: September 2026 — SkinLabs announcements",
+    ctaLabel: "See all announcements",
+    ctaUrl: "/announcements",
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-09-30",
+    pages: [
+      {
+        ...page({
+          mediaUrl: video,
+          mediaAlt: "ICYMI: September 2026 recap video",
+          headline: "ICYMI: September 2026",
+          body: "Everything new on SkinLabs this month, in one place.",
+        }),
+        mediaType: "video",
+        posterUrl: poster,
+      },
+      ...items.map((item) =>
+        page({
+          mediaUrl: poster,
+          mediaAlt: "ICYMI: September 2026",
+          headline: item.title,
+          body: item.description,
+          ctaLabel: "Read the announcement",
+          ctaUrl: "/announcements",
+        }),
+      ),
+    ],
+  };
+};
+
+export const curatedStories = (): Story[] => [
+  ...(ICYMI_SEPTEMBER_2026_VIDEO_READY ? [icymiSeptember2026Story()] : []),
+  podcastSeasonOneStory(),
+  springResetStory(),
+];
 
 export const findCuratedStory = (slug: string): Story | null => curatedStories().find((story) => story.slug === slug) ?? null;
