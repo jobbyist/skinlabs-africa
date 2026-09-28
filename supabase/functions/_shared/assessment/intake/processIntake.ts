@@ -12,7 +12,7 @@ import { jsPDF } from "https://esm.sh/jspdf@4.2.1?target=deno";
 
 import { computeDeterministicScores } from "../scoring/index.ts";
 import { computeDeterministicTriage } from "../safety.ts";
-import { formatResponses, formatSast, summariseScores, summariseTriage, type IntakeSection } from "./format.ts";
+import { formatResponses, formatSast, startedFromRow, summariseScores, summariseTriage, type IntakeSection } from "./format.ts";
 import { buildIntakePdf } from "./intakePdf.ts";
 import { buildInternalIntakeEmail, INTAKE_RECIPIENT } from "./internalEmail.ts";
 import { BASIC_NAME, SKYNN_FEATURE_VERSION, SKYNN_RELEASE_LABEL } from "../../skynn/terminology.ts";
@@ -99,10 +99,7 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
       .eq("id", session.basic_analysis_id)
       .maybeSingle();
     const count = Array.isArray(session.prefilled_question_ids) ? session.prefilled_question_ids.length : 0;
-    versions.push([
-      "Started from",
-      `${BASIC_NAME} of ${basic?.created_at ? formatSast(basic.created_at) : "an earlier date"} (${count} suggested answer${count === 1 ? "" : "s"}, which the member could check and change)`,
-    ]);
+    versions.push(startedFromRow(BASIC_NAME, basic?.created_at, count));
   }
   const accessText = session.access_type === "analysis_pass"
     ? `Analysis Pass${session.pass_transaction_id ? " (1 pass consumed at submission)" : ""}`
