@@ -1,13 +1,12 @@
 /**
  * Daily Skinny Briefings pipeline entrypoint.
- * Source of truth is the committed implementation; deployed Edge Function may
- * pin an immutable raw URL for runtime (see supabase deploy notes).
  *
- * Generates 1 full-length briefing daily at 06:00 SAST. QA gate enforces SEO
- * heading hierarchy and unique cover images. See CLAUDE.md and this file's
- * full implementation history.
+ * Generates 1 full-length briefing daily at 06:00 SAST (CAP=1).
+ * Hardened QA: SEO heading hierarchy, unique Unsplash/Pexels covers,
+ * seo_title/seo_description bounds, ?backfill=N support.
  *
- * Re-export of the last pre-placeholder implementation; hardened revision is
- * applied via Edge Function deploy with local _shared copies.
+ * Runtime source is gzip+base64 in bs.b64.{1,2} (avoids GitHub path size
+ * limits during automated commits). Assembler inflates, rewrites shared
+ * pipeline imports to immutable raw URLs, and runs Deno.serve.
  */
-import "https://raw.githubusercontent.com/jobbyist/skinlabs-africa/2ebc766e15d30956d66236ee180c4c8e90dd676e/supabase/functions/briefings-sync/index.ts";
+import "./index.assembler.ts";
