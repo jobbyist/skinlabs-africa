@@ -166,6 +166,7 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rand-budget setting that doesn't exist; its CTA checks real access.
 - Migrations applied live: `20260928160000`, `…170000`, `…171000` (ops summary gains
   "started from Basic" and "Smart Routines saved"), `…180000` (save_smart_routine hardening).
+- **Edge deploys (2026-09-28)**, all pinned raw-GitHub entrypoints on this branch: `skynn-advanced-assessment` v35 and `email-processor` v39 at `f44c962`, `skynn-advanced-worker` v26 at `587e3e5`. Live check with a throwaway account: Basic row → Advanced session with the link recorded → submit → worker produced the intake PDF and sent the email first time → withdraw refunded the Pass → data deleted. The next deploy must pin a commit containing them. Release PDF: `docs/SKYNN-AI-v2.1-followup-Release.pdf`.
 - **Honest wording rules from the review**: prefilled answers are "suggested… yours to
   check and change" (nothing forces a change, so never say "confirmed"); the "check it
   still fits" hint disappears once the answer changes; the Privacy Policy only promises
