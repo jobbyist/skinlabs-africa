@@ -169,4 +169,22 @@ describe("public and legal copy never claims photos are uploaded or analysed", (
     const src = read("src/data/formulaResults.ts");
     expect(src).not.toContain("Photo provided");
   });
+
+  test("an analysis saved before v2.1 is shown without its photo factor", async () => {
+    const { withoutPhotoFactor } = await import("@/data/formulaResults");
+    const legacy = {
+      overall: 90,
+      factors: [
+        { label: "Profile completeness", value: 100 },
+        { label: "Photo provided", value: 100 },
+        { label: "Skin tone (MST) provided", value: 60 },
+      ],
+    };
+    const shown = withoutPhotoFactor(legacy);
+    expect(shown.factors.map((f) => f.label)).toEqual(["Profile completeness", "Skin tone (MST) provided"]);
+    expect(shown.overall).toBe(80);
+    // Current results are returned untouched.
+    const current = { overall: 80, factors: shown.factors };
+    expect(withoutPhotoFactor(current)).toBe(current);
+  });
 });

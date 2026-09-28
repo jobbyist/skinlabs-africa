@@ -63,7 +63,7 @@ export async function buildAdvancedSubmissionPdf(data: AdvancedSubmissionPdfData
     ...(data.basicAnalysisDate
       ? ([[
           "Started from",
-          `Your ${BASIC_NAME} of ${formatPdfDate(data.basicAnalysisDate)}${data.prefilledCount ? ` (${data.prefilledCount} suggested answers, each confirmed or changed by you)` : ""}`,
+          `Your ${BASIC_NAME} of ${formatPdfDate(data.basicAnalysisDate)}${data.prefilledCount ? ` (${data.prefilledCount} suggested answers, each one yours to check and change)` : ""}`,
         ]] as Array<[string, string]>)
       : []),
   ]);

@@ -33,7 +33,7 @@ interface Sources {
  * Loads everything the dashboard personalises from — the member's own
  * submissions, never analytics — and their saved Smart Routine.
  */
-export const useMemberSources = () => {
+export const useMemberSources = ({ withReport = true }: { withReport?: boolean } = {}) => {
   const { user } = useAuth();
   const [sources, setSources] = useState<Sources | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +78,8 @@ export const useMemberSources = () => {
         .eq("id", latest.session_id)
         .maybeSingle();
       if (session) advanced = { id: session.id, submitted_at: session.submitted_at, responses: session.responses as Record<string, unknown> };
-      if (getReportDisplayStatus(latest as never) === "ready") {
+      // Only the Routine tab needs the released report; Home skips the edge call.
+      if (withReport && getReportDisplayStatus(latest as never) === "ready") {
         try {
           const { report } = await getAdvancedAssessmentReport({ reportId: latest.id });
           const r = report.report as { routineAm?: ReportRoutineStep[]; routinePm?: ReportRoutineStep[] } | null;
@@ -95,7 +96,7 @@ export const useMemberSources = () => {
       allergies: (profileRes.data?.allergies as string[] | null) ?? null,
     });
     setLoading(false);
-  }, [user]);
+  }, [user, withReport]);
 
   useEffect(() => {
     void load();
@@ -113,9 +114,9 @@ export const useMemberSources = () => {
 };
 
 /** Smart Routines: access (server), the saved routine, and build/rebuild. */
-export const useSmartRoutine = () => {
+export const useSmartRoutine = (options: { withReport?: boolean } = {}) => {
   const { user } = useAuth();
-  const { sources, profile, loading: sourcesLoading, refresh: refreshSources } = useMemberSources();
+  const { sources, profile, loading: sourcesLoading, refresh: refreshSources } = useMemberSources(options);
   const [access, setAccess] = useState<boolean | null>(null);
   const [saved, setSaved] = useState<SavedSmartRoutine | null>(null);
   const [loading, setLoading] = useState(true);

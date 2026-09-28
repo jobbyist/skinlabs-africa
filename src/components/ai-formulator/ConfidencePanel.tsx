@@ -1,6 +1,6 @@
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
 import { Lock, AlertTriangle } from "lucide-react";
-import type { CompletenessBreakdown } from "@/data/formulaResults";
+import { withoutPhotoFactor, type CompletenessBreakdown } from "@/data/formulaResults";
 
 interface ConfidencePanelProps {
   completeness: CompletenessBreakdown;
@@ -13,7 +13,9 @@ interface ConfidencePanelProps {
  * bias-free-performance claim, per SkinLabs' standing instruction against fabricating
  * AI performance claims and the SKYNN AI fairness blueprint's release-gate language.
  */
-const ConfidencePanel = ({ completeness, limitations }: ConfidencePanelProps) => (
+const ConfidencePanel = ({ completeness: storedCompleteness, limitations }: ConfidencePanelProps) => {
+  const completeness = withoutPhotoFactor(storedCompleteness);
+  return (
   <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
     <h4 className="font-heading font-semibold text-card-foreground">Confidence &amp; Limitations</h4>
 
@@ -90,6 +92,7 @@ const ConfidencePanel = ({ completeness, limitations }: ConfidencePanelProps) =>
       </p>
     </div>
   </div>
-);
+  );
+};
 
 export default ConfidencePanel;

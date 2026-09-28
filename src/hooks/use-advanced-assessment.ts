@@ -79,7 +79,7 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
   } | null>(null);
 
   /** Answers suggested from the member's Basic AI Skin Analysis (new sessions only). */
-  const [prefill, setPrefill] = useState<{ ids: string[]; basicAnalysisDate: string } | null>(null);
+  const [prefill, setPrefill] = useState<PrefillState | null>(null);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestResponses = useRef(responses);
@@ -162,9 +162,14 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     [persist],
   );
 
+  // The "check it still fits" hint goes away once the member changes the answer.
   const isPrefilled = useCallback(
-    (questionId: string) => Boolean(prefill?.ids.includes(questionId)),
-    [prefill],
+    (questionId: string) => {
+      if (!prefill?.ids.includes(questionId)) return false;
+      const suggested = prefill.values?.[questionId];
+      return suggested === undefined || JSON.stringify(suggested) === JSON.stringify(responses[questionId]);
+    },
+    [prefill, responses],
   );
 
   const completenessPct = definition ? computeAssessmentCompleteness(definition.sections, responses) : 0;
@@ -232,13 +237,20 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
  * completeness) and the session records which analysis it came from. Any
  * failure just leaves an empty questionnaire.
  */
+interface PrefillState {
+  ids: string[];
+  basicAnalysisDate: string;
+  /** The suggested values, so a changed answer stops being flagged. Absent when reloaded from a saved session. */
+  values?: Record<string, unknown>;
+}
+
 async function seedFromBasicAnalysis(
   session: AdvancedAssessmentSession,
   definition: AssessmentDefinitionSummary,
 ): Promise<{
   session: AdvancedAssessmentSession;
   responses: Record<string, unknown>;
-  prefill: { ids: string[]; basicAnalysisDate: string } | null;
+  prefill: PrefillState | null;
 }> {
   const empty = { session, responses: session.responses ?? {}, prefill: null };
   try {
@@ -255,9 +267,16 @@ async function seedFromBasicAnalysis(
     const p = buildAdvancedPrefill(data as BasicAnalysisRow, definition);
     if (!p.prefilledIds.length) return empty;
     const { session: saved } = await saveAdvancedAssessmentProgress(session.id, p.responses, null);
-    void linkBasicAnalysisToSession(session.id, p.basicAnalysisId, p.prefilledIds).catch(() => undefined);
+    // The link is the provenance the reviewers and the PDF rely on: retry once,
+    // and if it still fails say so rather than pretend it was recorded.
+    const link = () => linkBasicAnalysisToSession(session.id, p.basicAnalysisId, p.prefilledIds);
+    await link().catch(() => link()).catch((err) => console.warn("Recording the Basic analysis link failed:", err));
     trackSkynnEvent("skynn_advanced_prefill_applied", { mode: "advanced", count: p.prefilledIds.length });
-    return { session: saved, responses: p.responses, prefill: { ids: p.prefilledIds, basicAnalysisDate: p.basicAnalysisDate } };
+    return {
+      session: saved,
+      responses: p.responses,
+      prefill: { ids: p.prefilledIds, basicAnalysisDate: p.basicAnalysisDate, values: Object.fromEntries(p.prefilledIds.map((id) => [id, p.responses[id]])) },
+    };
   } catch (err) {
     console.warn("Starting from the Basic AI Skin Analysis failed:", err);
     return empty;

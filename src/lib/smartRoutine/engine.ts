@@ -232,7 +232,7 @@ export function buildSmartRoutine(
     notes.push("Keep exfoliating acids and your treatment serum on different nights, as in the weekly plan.");
   }
   if (profile.cautionPregnancy) {
-    notes.push("Because you told us you're pregnant, breastfeeding or trying to conceive, this routine leaves out retinoids and hydroquinone. Check any new product with your doctor or pharmacist.");
+    notes.push("Because you're pregnant, breastfeeding or trying to conceive (or chose not to say), this routine leaves out retinoids and hydroquinone. Check any new product with your doctor or pharmacist.");
   }
   if (profile.mstTone && profile.mstTone >= 7 && (concern === "brightening" || concern === "acne")) {
     notes.push("For marks that linger on deeper skin tones, daily sunscreen is the biggest help; a tinted sunscreen can also protect against visible light.");
@@ -267,13 +267,21 @@ export function fromReport(
 ): SmartRoutine {
   const base = buildSmartRoutine(profile, options);
   const catalogue = options.catalogue ?? productReviews;
+  // The report's own text is shown as written (only clamped to what
+  // save_smart_routine() accepts), so it is never a rule-based routine: drop
+  // the rule-based "leaves out retinoids" note, which would not be true here.
+  const clamp = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
   const toSteps = (steps: ReportRoutineStep[], timeOfDay: TimeOfDay) =>
     steps.slice(0, 8).map((s) => {
       const category = REPORT_CATEGORY.find(([re]) => re.test(`${s.step} ${s.product_type}`))?.[1] ?? null;
       const product = category ? pickProduct({ category, profile }, catalogue) : null;
-      return step(timeOfDay, s.step, s.product_type, product, s.guidance, "from your Advanced AI Dermatology Analysis report");
+      return step(timeOfDay, clamp(s.step, 80), clamp(s.product_type, 120), product, clamp(s.guidance, 600), "from your Advanced AI Dermatology Analysis report");
     });
-  return { ...base, source: "advanced_report", am: toSteps(routineAm, "am"), pm: toSteps(routinePm, "pm") };
+  const notes = base.notes.filter((n) => !/leaves out retinoids/i.test(n));
+  if (profile.cautionPregnancy) {
+    notes.push("These steps are taken as written from your released report. If you're pregnant, breastfeeding or trying to conceive, check any retinoid or hydroquinone product with your doctor first.");
+  }
+  return { ...base, source: "advanced_report", am: toSteps(routineAm, "am"), pm: toSteps(routinePm, "pm"), notes };
 }
 
 /** Every user-facing string, for the compliance test. */

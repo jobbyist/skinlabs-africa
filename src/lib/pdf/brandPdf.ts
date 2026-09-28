@@ -50,7 +50,11 @@ export const loadLogoDataUrl = (src = "/logosvgwhite.png"): Promise<string | nul
     } catch {
       return null;
     }
-  })();
+  })().then((url) => {
+    // Only a loaded logo is cached, so one failed fetch doesn't cost every later PDF its logo.
+    if (!url) logoCache = null;
+    return url;
+  });
   return logoCache;
 };
 

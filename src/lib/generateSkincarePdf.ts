@@ -11,6 +11,7 @@
  */
 import type jsPDF from "jspdf";
 import { QUESTIONS } from "@/data/quiz";
+import { withoutPhotoFactor } from "@/data/formulaResults";
 import { CHANGE_QUESTION, PRIORITY_PREFERENCE_QUESTION } from "@/data/starter-analysis/contextQuestions";
 import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
 import { BrandDoc, formatPdfDate, loadLogoDataUrl, safeFileName } from "@/lib/pdf/brandPdf";
@@ -130,11 +131,12 @@ export async function buildBasicAnalysisPdf(data: SkincarePdfData): Promise<jsPD
   b.section("Your full analysis");
   b.markdown(data.recommendation);
 
-  if (r?.completeness?.factors?.length) {
+  const completeness = r?.completeness ? withoutPhotoFactor(r.completeness) : null;
+  if (completeness?.factors?.length) {
     b.section("How complete your answers were");
-    b.keyValues(r.completeness.factors.map((f) => [f.label, `${f.value}%`] as [string, string]));
+    b.keyValues(completeness.factors.map((f) => [f.label, `${f.value}%`] as [string, string]));
     b.paragraph(
-      `Overall ${r.completeness.overall}%. This shows how much you told us, not how accurate the analysis is.`,
+      `Overall ${completeness.overall}%. This shows how much you told us, not how accurate the analysis is.`,
       { muted: true, size: 8.5 },
     );
   }

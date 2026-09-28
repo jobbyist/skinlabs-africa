@@ -154,7 +154,10 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   `smart_routines` + `routine_steps` (`source` manual|default|smart); the member's manual
   steps are never touched. `routine_steps` seeded by the tracker are `source='default'`
   and **no longer count as activation** (`is_trial_activated()` and `journey` ignore
-  them). Probe: `supabase/tests/smart_routines.sql` (15).
+  them). Rebuilding never erases check-ins (`…180000`: kept steps are updated in place,
+  ticked starter steps are adopted as `manual`, a routine missing `am`/`pm` is rejected).
+  Probe: `supabase/tests/smart_routines.sql` (20). Pregnancy caution also covers "prefer
+  not to say" (fail safe); `fromReport()` never claims retinoids were left out.
 - **Personalisation reads the member's own submissions, never `analytics_events`** (a
   member can't read them and payloads carry no skin data by design). Analytics props
   are counts/tokens only (`count`, `routine_source`). `analytics_events` INSERT now
@@ -162,7 +165,21 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
 - `/routines` no longer says Smart Routines are "included" with Insider or lists a
   rand-budget setting that doesn't exist; its CTA checks real access.
 - Migrations applied live: `20260928160000`, `…170000`, `…171000` (ops summary gains
-  "started from Basic" and "Smart Routines saved").
+  "started from Basic" and "Smart Routines saved"), `…180000` (save_smart_routine hardening).
+- **Honest wording rules from the review**: prefilled answers are "suggested… yours to
+  check and change" (nothing forces a change, so never say "confirmed"); the "check it
+  still fits" hint disappears once the answer changes; the Privacy Policy only promises
+  removal on request or via account deletion (there is no delete button for a saved Basic
+  analysis or Smart Routine — Advanced submissions can be withdrawn); results saved before
+  v2.1 are shown without their photo completeness factor (`withoutPhotoFactor()`).
+- **Main was broken when this branch was merged with it**: `src/components/AIFormulator.tsx`
+  on `origin/main` had been replaced by the one-line placeholder
+  `RESTORED_FROM_LOCAL_FILE_SEE_ARTIFACTS` (commits 32b7ce9/5fef60a, which also tried to
+  rename the Advanced CTA to "Get An Advanced AI Dermatology Report"). This branch keeps the
+  working file and the standard CTA "Explore the Advanced AI Dermatology Analysis" (the
+  terminology guard bans "…Dermatology Report" while submissions are pending). If that
+  rename is really wanted it is a product decision that also needs `terminology.ts`, the
+  guard test and the e2e updated together.
 
 ## Major systems
 

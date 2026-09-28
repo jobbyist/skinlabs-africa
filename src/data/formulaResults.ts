@@ -337,6 +337,17 @@ export interface CompletenessBreakdown {
  * labelled honestly (see ConfidencePanel) to avoid implying a fabricated performance
  * claim: this reflects "how much we had to work with," nothing more.
  */
+/**
+ * Analyses saved before v2.1 include a photo factor. A photo never
+ * leaves the device and is never analysed, so it must not count: drop it and
+ * average what's left (same mean computeCompleteness() uses).
+ */
+export const withoutPhotoFactor = (c: CompletenessBreakdown): CompletenessBreakdown => {
+  const factors = c.factors.filter((f) => !/photo/i.test(f.label));
+  if (factors.length === c.factors.length || factors.length === 0) return c;
+  return { overall: Math.round(factors.reduce((sum, f) => sum + f.value, 0) / factors.length), factors };
+};
+
 export const computeCompleteness = (params: {
   answeredCount: number;
   totalQuestions: number;

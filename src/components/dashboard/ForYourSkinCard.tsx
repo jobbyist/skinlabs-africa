@@ -15,7 +15,7 @@ import { ADVANCED_NAME, BASIC_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/ter
  * Renders nothing until there's at least one saved analysis.
  */
 const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
-  const { access, saved, profile, sources, loading } = useSmartRoutine();
+  const { access, saved, profile, sources, loading } = useSmartRoutine({ withReport: false });
   const viewed = useRef(false);
 
   const picks = useMemo(() => {

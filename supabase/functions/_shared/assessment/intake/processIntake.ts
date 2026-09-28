@@ -91,7 +91,7 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
     ["Release", `${SKYNN_RELEASE_LABEL} (${SKYNN_FEATURE_VERSION})`],
   ];
   // Started from the member's Basic AI Skin Analysis? (Suggested answers the
-  // member confirmed or changed before submitting.)
+  // member could check and change; nothing forces a change.)
   if (session.basic_analysis_id) {
     const { data: basic } = await admin
       .from("skincare_recommendations")
@@ -101,7 +101,7 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
     const count = Array.isArray(session.prefilled_question_ids) ? session.prefilled_question_ids.length : 0;
     versions.push([
       "Started from",
-      `${BASIC_NAME} of ${basic?.created_at ? formatSast(basic.created_at) : "an earlier date"} (${count} suggested answer${count === 1 ? "" : "s"}, confirmed by the member)`,
+      `${BASIC_NAME} of ${basic?.created_at ? formatSast(basic.created_at) : "an earlier date"} (${count} suggested answer${count === 1 ? "" : "s"}, which the member could check and change)`,
     ]);
   }
   const accessText = session.access_type === "analysis_pass"

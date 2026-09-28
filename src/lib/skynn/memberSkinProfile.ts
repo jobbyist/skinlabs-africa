@@ -8,7 +8,7 @@
  * .responses). Never analytics events (they're stripped of skin data by
  * design) and never anything inferred from a photo. Where both analyses
  * answer the same thing, the Advanced answer wins (more detailed, and the
- * member confirmed or changed any value suggested from the Basic analysis).
+ * member could check and change any value suggested from the Basic analysis).
  */
 import type { FormulaConcern, FormulaSkinType } from "@/data/formulaResults";
 
@@ -73,7 +73,8 @@ const ADVANCED_CONCERN_TO_FORMULA: Record<string, FormulaConcern> = {
   redness_sensitivity: "sensitivity",
 };
 
-const PREGNANCY_CAUTION = new Set(["pregnant", "breastfeeding", "trying_to_conceive"]);
+// "prefer_not_to_say" fails safe: same as disclosing, since we can't know.
+const PREGNANCY_CAUTION = new Set(["pregnant", "breastfeeding", "trying_to_conceive", "prefer_not_to_say"]);
 
 export function buildMemberSkinProfile(input: {
   basic?: BasicSource | null;

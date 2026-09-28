@@ -157,7 +157,7 @@ const PrivacyPolicy = () => {
                         <strong className="text-foreground">4.5 Basic AI Skin Analysis.</strong> The analysis runs in your
                         browser. If you save it to your account we store your answers and the derived results so you can see
                         them again, download them as a PDF, start your Advanced AI Dermatology Analysis from them and build
-                        your Smart Routine. You can delete saved analyses at any time.
+                        your Smart Routine. To have a saved analysis or your Smart Routine removed, ask us (see section 15) or delete your account, which removes everything.
                       </p>
                       <p>
                         <strong className="text-foreground">4.6 Advanced AI Dermatology Analysis.</strong> Your submitted
@@ -246,8 +246,8 @@ const PrivacyPolicy = () => {
                       <ul className="list-disc list-inside space-y-1 ml-4">
                         <li>Account data: retained while your account is active and for a reasonable period thereafter (or longer if required for legal claims or accounting)</li>
                         <li>Skin photos: not collected — a photo you add stays on your device and is never uploaded</li>
-                        <li>Saved skin analyses, Advanced AI Dermatology Analysis submissions and your Smart Routine: retained in your account until you delete them or close the account</li>
-                        <li>Derived metrics and routine history: retained in your account until you delete them or close the account</li>
+                        <li>Saved skin analyses, Advanced AI Dermatology Analysis submissions and your Smart Routine: retained in your account until you ask us to remove them (an Advanced submission can also be withdrawn from your dashboard) or close the account</li>
+                        <li>Derived metrics and routine history: retained in your account until you ask us to remove them or close the account</li>
                         <li>Transaction records: retained for tax and consumer-law periods (typically 5–7 years)</li>
                       </ul>
                       <p>

@@ -102,6 +102,28 @@ describe("Smart Routine engine", () => {
     expect(r.notes.join(" ")).toContain("leaves out retinoids");
   });
 
+  test("pregnancy: 'prefer not to say' fails safe, the same as disclosing", () => {
+    const p = buildMemberSkinProfile({ basic: BASIC, advanced: { ...ADVANCED, responses: { ...ADVANCED.responses, pregnancy_status: "prefer_not_to_say" } } });
+    expect(p.cautionPregnancy).toBe(true);
+    const ok = buildMemberSkinProfile({ basic: BASIC, advanced: { ...ADVANCED, responses: { ...ADVANCED.responses, pregnancy_status: "not_applicable" } } });
+    expect(ok.cautionPregnancy).toBe(false);
+  });
+
+  test("fromReport: never claims retinoids were left out, and clamps to what the server accepts", () => {
+    const preg = buildMemberSkinProfile({ basic: BASIC, advanced: { ...ADVANCED, responses: { ...ADVANCED.responses, pregnancy_status: "pregnant" } } });
+    const r = fromReport(
+      preg,
+      [{ step: "S".repeat(120), product_type: "T".repeat(200), guidance: "G".repeat(900), citations: [] }],
+      [{ step: "Treat", product_type: "Retinol serum", guidance: "Two nights a week", citations: [] }],
+      { now: NOW },
+    );
+    expect(r.notes.join(" ")).not.toMatch(/leaves out retinoids/i);
+    expect(r.notes.join(" ")).toContain("taken as written from your released report");
+    expect(r.am[0].step.length).toBeLessThanOrEqual(80);
+    expect(r.am[0].productType.length).toBeLessThanOrEqual(120);
+    expect(r.am[0].guidance.length).toBeLessThanOrEqual(600);
+  });
+
   test("sensitive skin gets two treatment nights; daily exfoliation gets a gentle note", () => {
     const r = buildSmartRoutine(profile, { now: NOW });
     const treatNights = r.weekly.filter((d) => d.pm.includes("Treatment")).length;
