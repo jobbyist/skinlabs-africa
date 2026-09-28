@@ -111,10 +111,11 @@ export const apiSignature = (params: Record<string, string>, passphrase: string)
   return md5(query);
 };
 
+/** Constant-time over the longer input, so neither content nor length leaks through timing. */
 export const safeEqual = (a: string, b: string): boolean => {
-  if (a.length !== b.length) return false;
-  let out = 0;
-  for (let i = 0; i < a.length; i++) out |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const len = Math.max(a.length, b.length);
+  let out = a.length ^ b.length;
+  for (let i = 0; i < len; i++) out |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   return out === 0;
 };
 
@@ -136,7 +137,9 @@ export const sastMidnightIso = (date: string): string =>
 
 /** The billing date one period after `date` (YYYY-MM-DD), month-end clamped. */
 export const addBillingPeriod = (date: string, interval: "monthly" | "annual"): string => {
-  const [y, m, d] = date.split("-").map(Number);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) throw new Error(`addBillingPeriod: expected YYYY-MM-DD, got "${date}"`);
+  const [y, m, d] = match.slice(1).map(Number);
   const months = interval === "annual" ? 12 : 1;
   const target = new Date(Date.UTC(y, m - 1 + months, 1));
   const lastDay = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();

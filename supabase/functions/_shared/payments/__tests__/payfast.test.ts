@@ -10,6 +10,7 @@ import {
   payfastHost,
   payfastTimestamp,
   phpUrlencode,
+  safeEqual,
   sastDate,
   sastMidnightIso,
 } from "../payfast";
@@ -105,5 +106,16 @@ describe("billing dates", () => {
     expect(payfastFrequency("annual")).toBe("6");
     expect(payfastHost(undefined)).toBe("sandbox.payfast.co.za");
     expect(payfastHost("live")).toBe("www.payfast.co.za");
+  });
+});
+
+describe("hardening", () => {
+  test("safeEqual is false for different lengths and true for equal strings", () => {
+    expect(safeEqual("abc", "abcd")).toBe(false);
+    expect(safeEqual("abcd", "abcd")).toBe(true);
+    expect(safeEqual("", "")).toBe(true);
+  });
+  test("addBillingPeriod rejects malformed dates", () => {
+    expect(() => addBillingPeriod("2026-1-5", "monthly")).toThrow();
   });
 });

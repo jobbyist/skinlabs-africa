@@ -205,7 +205,12 @@ async function handleSubscriptionItn(
     // Capture the token on the first ITN (the R0 card authorisation, or the
     // first charge for an account that has used its trial).
     if (data.token && !row.payfast_token) {
-      await update({ payfast_token: data.token, payer_email: data.email_address || row.payer_email || null });
+      // Compare-and-set, so a redelivered ITN racing the first can't overwrite it.
+      await admin
+        .from("payment_subscriptions")
+        .update({ payfast_token: data.token, payer_email: data.email_address || row.payer_email || null, updated_at: now })
+        .eq("gateway_subscription_id", subscriptionId)
+        .is("payfast_token", null);
     }
 
     if (paidZar <= 0) {
@@ -365,7 +370,7 @@ Deno.serve(async (req) => {
       // made", so R0 + today would leave the first period unpaid.
       const trialStart = start.kind !== "immediate" && start.firstBillingAt;
       const today = sastDate(new Date());
-      const billingDate = trialStart ? sastDate(start.firstBillingAt!) : addBillingPeriod(today, interval);
+      const billingDate = trialStart && start.firstBillingAt ? sastDate(start.firstBillingAt) : addBillingPeriod(today, interval);
       const initialAmount = trialStart ? 0 : charge.amountZar;
 
       const mPaymentId = `sub_${crypto.randomUUID()}`;
@@ -464,7 +469,7 @@ Deno.serve(async (req) => {
           }
         }
         // A pending row never got a card on file, so there's nothing to stop at PayFast.
-        await admin
+        const { error: cancelError } = await admin
           .from("payment_subscriptions")
           .update({
             status: "cancelled",
@@ -473,6 +478,12 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           })
           .eq("gateway_subscription_id", r.gateway_subscription_id as string);
+        if (cancelError) {
+          // Billing already stopped at PayFast; the caller must not go on to
+          // cancel_subscription() as if everything were recorded.
+          console.error("payfast cancel: could not record cancellation", { subscription: r.gateway_subscription_id, cancelError });
+          return json({ error: "We couldn't finish cancelling your subscription. Please try again." }, 500);
+        }
       }
       return json({ ok: true, cancelled: (rows ?? []).length });
     }
