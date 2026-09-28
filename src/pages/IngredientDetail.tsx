@@ -15,6 +15,8 @@ import AllergyCautionNote from "@/components/AllergyCautionNote";
 import { ingredientCategoryLabel } from "@/lib/ingredientCategories";
 import { SITE_URL } from "@/lib/seo-config";
 import { ingredientJsonLd, breadcrumbJsonLd } from "@/lib/seo/jsonLd";
+import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const INTERACTION_META: Record<
   IngredientInteractionLink["interaction_type"],
@@ -194,6 +196,9 @@ const IngredientDetail = () => {
               </p>
             </section>
 
+            {/* After the opening definition, never before it. */}
+            <AdSlot placement="ingredient-after-intro" compact priority="primary" />
+
             {ingredient.function_summary && (
               <section>
                 <h2 className="font-heading text-xl font-bold text-foreground">What does it do?</h2>
@@ -303,6 +308,8 @@ const IngredientDetail = () => {
                 </div>
               </section>
             )}
+
+            <AdSlotAutorelaxed placement="ingredient-before-suppliers" compact />
 
             <section>
               <div className="flex items-center gap-2">

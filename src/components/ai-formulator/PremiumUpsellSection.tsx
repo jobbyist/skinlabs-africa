@@ -7,7 +7,7 @@ import { TIER_LABELS, purchasableCapabilities, type FeatureKey } from "@/lib/ent
 import { usePricingConfig } from "@/lib/pricing-config";
 
 interface PremiumUpsellSectionProps {
-  /** Kept for the caller's API; named product matches are VIP-only today, so they're not advertised here. */
+  /** Kept for the caller's API. */
   hasGroundedMatches?: boolean;
 }
 
@@ -17,6 +17,11 @@ const PERKS: Partial<Record<FeatureKey, { icon: LucideIcon; title: string; body:
     icon: RefreshCw,
     title: "Weekly live AI analysis",
     body: "Re-run SKYNN AI whenever your skin changes and watch your profile update.",
+  },
+  "ai_analysis.routine_builder": {
+    icon: Sparkles,
+    title: "Named product matches + Routine Builder",
+    body: "See the exact SkinLabs-reviewed products matched to your routine, with real prices and scores, and build a full routine from any review.",
   },
   "routine.conflict_matcher": {
     icon: FlaskConical,

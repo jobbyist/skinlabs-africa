@@ -63,6 +63,7 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
   insider: [
     "ai_analysis.starter",
     "ai_analysis.live_weekly",
+    "ai_analysis.routine_builder",
     "podcast.full_library",
     "reviews.full_body",
     "comparisons.unlimited",

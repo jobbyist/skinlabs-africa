@@ -15,9 +15,6 @@ import { productReviewTitle } from '@/lib/seo-config'
 import {
   productReviews,
   overallScore,
-  seededComments,
-  getSeededAverageRating,
-  getSeededLikeCount,
   type ProductReview,
   type RetailerListing,
 } from '@/data/reviews'
@@ -266,7 +263,7 @@ function ReviewPage() {
   // It resolves to the signed-out/loading state during SSR (no server-side
   // auth session exists) and hydrates to the real state on mount.
   const { user } = useAuth()
-  const { isMember, isVip } = useMembership()
+  const { isMember } = useMembership()
   const reviewAction = useConversionAction('reviews.full_body', 'product_review_cta_ssr')
 
   const [rating, setRating] = useState(0)
@@ -318,8 +315,8 @@ function ReviewPage() {
       ])
       if (!active) return
       const rows = ratings ?? []
-      setLikeCount(rows.length > 0 ? rows.filter((r) => r.liked).length : getSeededLikeCount(review.id))
-      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : getSeededAverageRating(review.id))
+      setLikeCount(rows.filter((r) => r.liked).length)
+      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : null)
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined
       setRating(mine?.rating ?? 0)
       setLiked(Boolean(mine?.liked))
@@ -381,7 +378,8 @@ function ReviewPage() {
     toast.success('Comment posted')
   }
 
-  const displayComments = comments.length === 0 ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` })) : comments
+  // Real comments only — the seeded placeholder discussion was fabricated social proof.
+  const displayComments = comments
 
   return (
     <MemoryRouter initialEntries={[`/reviews/${review.id}`]}>
@@ -423,6 +421,9 @@ function ReviewPage() {
 
         <p>{review.verdict}</p>
         {review.review_body && <p>{review.review_body}</p>}
+        {/* Only when the FAQ follows, so it never sits directly above product-review-top. */}
+        {review.faq && review.faq.length > 0 && <AdSlot placement="product-review-deep-dive" compact />}
+
         {review.faq && review.faq.length > 0 && (
           <section aria-labelledby="faq-heading">
             <h2 id="faq-heading">Frequently asked questions</h2>
@@ -444,7 +445,7 @@ function ReviewPage() {
 
         <SkinLabsPromiseBadge />
 
-        <AdSlot placement="product-review-top" compact />
+        <AdSlot placement="product-review-top" compact priority="primary" />
 
         <div>
           <button type="button" aria-pressed={liked} onClick={() => persist(rating, !liked)}>
@@ -479,7 +480,7 @@ function ReviewPage() {
         )}
 
         {/* Mirrors src/pages/ProductReview.tsx's ad placement — keep the two in sync. */}
-        <RoutineBuilder anchor={review} isVip={isVip} />
+        <RoutineBuilder anchor={review} />
 
         <FaithfulToNature placement="product-review-shop" />
 
@@ -570,6 +571,8 @@ function ReviewPage() {
             </ul>
           )}
         </div>
+
+        <AdSlotAutorelaxed placement="product-review-related" compact />
 
         {relatedReviews.length > 0 && (
           <div>

@@ -415,7 +415,7 @@ const NewsroomFeed = ({
                     {(index + 1) % 6 === 0 ? (
                       <AdSlotAutorelaxed placement={`briefings-feed-${index}`} compact />
                     ) : (
-                      <AdSlot placement={`briefings-feed-${index}`} compact />
+                      <AdSlot placement={`briefings-feed-${index}`} compact priority={index === 2 ? "primary" : "secondary"} />
                     )}
                   </div>
                 ) : null}
@@ -423,6 +423,9 @@ const NewsroomFeed = ({
             ))}
           </div>
         )}
+        {/* End-of-page unit on the paginated listing only (not the homepage teaser):
+            the grid above, pagination and the rest of the page below. */}
+        {paginate && articles.length >= 3 && <AdSlot placement={`briefings-feed-end-${page}`} compact />}
 
         {paginate && !loading && articles.length > 0 && (
           <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} className="mt-10" />

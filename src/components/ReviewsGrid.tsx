@@ -1,18 +1,18 @@
 import { useMemo, useState, Fragment } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MapPin, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
-import { getMemberRatingStats } from "@/lib/memberRatings";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import AdSlot from "@/components/AdSlot";
+import PaginationControls from "@/components/PaginationControls";
 import FaithfulToNature from "@/components/FaithfulToNature";
 
 const PAGE_SIZE = 6;
@@ -184,17 +184,6 @@ const ReviewsGrid = ({
               </div>
             </div>
 
-            {(() => {
-              const members = getMemberRatingStats(review);
-              return (
-                <p className="mb-3 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">{members.average}</span>
-                  <span className="text-muted-foreground">/5 from </span>
-                  <span className="font-medium text-foreground">{members.count.toLocaleString("en-ZA")}</span>
-                  <span className="text-muted-foreground"> members</span>
-                </p>
-              );
-            })()}
 
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
@@ -261,9 +250,9 @@ const ReviewsGrid = ({
         nodes.push(
           <div key={`ad-row-${adIndex}`} className="col-span-full">
             {(page + adIndex) % 2 === 1 ? (
-              <AdSlot placement={`reviews-grid-${adIndex}`} compact />
+              <AdSlot placement={`reviews-grid-${adIndex}`} compact priority={adIndex === 0 ? "primary" : "secondary"} />
             ) : (
-              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact />
+              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact priority={adIndex === 0 ? "primary" : "secondary"} />
             )}
           </div>,
         );
@@ -385,39 +374,11 @@ const ReviewsGrid = ({
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
         )}
 
+        {/* End-of-page unit: the grid above, pagination + page below. */}
+        {paginate && !limit && pageItems.length >= 3 && <AdSlot placement={`reviews-grid-end-${page}`} compact />}
+
         {paginate && !limit && totalPages > 1 && (
-          <nav className="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Reviews pagination">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => goToPage(page - 1)}
-              className="gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <Button
-                key={p}
-                variant={p === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(p)}
-                aria-current={p === page ? "page" : undefined}
-                className="min-w-9"
-              >
-                {p}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => goToPage(page + 1)}
-              className="gap-1"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </Button>
-          </nav>
+          <PaginationControls page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-12" />
         )}
       </div>
     </section>

@@ -164,8 +164,8 @@ const ConflictMatcherPanel = ({ routine }: Props) => {
       <p className="mb-3 text-xs font-semibold text-foreground">Active Ingredient Conflict Matcher</p>
       <FeatureGate
         feature="routine.conflict_matcher"
-        title="Glow Insider & VIP feature"
-        message="Upgrade to Glow Insider or VIP to scan this routine for incompatible actives and see what pairs well together."
+        title="A Glow Insider feature"
+        message="Glow Insider scans this routine for incompatible actives and shows what pairs well together."
       >
         <PanelBody routine={routine} />
       </FeatureGate>

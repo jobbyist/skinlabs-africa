@@ -17,6 +17,7 @@ import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 import GatedOverlay from "@/components/GatedOverlay";
 import { spotlightComments } from "@/data/articleComments";
 import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from "@/lib/access-quotas";
+import AdSlot from "@/components/AdSlot";
 
 const EDITORIAL_DISCLAIMER =
   "Spotlight by SkinLabs is an independent editorial feature. Rankings and profiles are determined using the SkinLabs editorial methodology and available product information. Inclusion does not constitute paid endorsement. Commercial relationships, affiliate links, gifted products or other benefits are disclosed where applicable.";
@@ -99,7 +100,7 @@ const SpotlightBrandProfile = () => {
           <GatedOverlay
             locked={locked}
             title="Monthly free profile limit reached"
-            message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Upgrade to Glow Insider or Glow VIP for unlimited access.`}
+            message={`Glow Explorer and signed-out visitors can open ${SPOTLIGHT_FREE_MONTHLY} Spotlight brand profiles per month. Glow Lite and above get unlimited access.`}
             feature="spotlight.full_profiles"
             source="spotlight_limit"
           >
@@ -161,6 +162,8 @@ const SpotlightBrandProfile = () => {
           {editorial.evidenceLimitation && (
             <p className="mt-4 text-xs italic text-muted-foreground">{editorial.evidenceLimitation}</p>
           )}
+
+          <AdSlot placement="spotlight-profile-mid" compact priority="primary" />
 
           <div className="mt-8">
             <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Featured product</h2>

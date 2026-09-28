@@ -36,29 +36,30 @@ export const COMPARE_FREE_MONTHLY = 2;
 /** Signed-in Glow Explorer members get this many full Daily Skinny briefings per rolling 7 days. Signed-out visitors get none. */
 export const DAILY_SKINNY_FREE_WEEKLY = 3;
 
+// Offline fallback only — mirrors the live pricing_plans rows (see
+// supabase/migrations/20260928150000_plan_benefits_match_code.sql). Keep in sync.
 export const membershipPlans: MembershipPlan[] = [
   {
     id: "explorer",
     name: "Glow Explorer",
-    tagline: "See what your skin actually needs — free",
+    tagline: "See what SkinLabs can do, free",
     priceMonthly: 0,
     priceAnnual: 0,
     trialEligible: false,
     isPurchasable: true,
     cta: "Start free",
     features: [
-      "One full AI starter analysis to see your real skin profile",
-      "Public reviews, scores and Shelf Showdowns",
-      `${DAILY_SKINNY_FREE_WEEKLY} full Daily Skinny briefings per week`,
-      "Ingredient Combination Checker (limited time)",
-      `${COMPARE_FREE_MONTHLY} free product comparison articles per month`,
-      "Public Spotlight rankings",
+      "One free Basic AI Skin Analysis every 7 days to see your real skin profile",
+      "Public reviews, scores and Spotlight rankings",
+      `${DAILY_SKINNY_FREE_WEEKLY} full Daily Skinny briefings a week`,
+      `${COMPARE_FREE_MONTHLY} Shelf Showdowns and 3 Spotlight brand profiles a month`,
+      "Ingredient Combination Checker — free for a limited time",
     ],
   },
   {
     id: "glow_lite",
     name: "Glow Lite",
-    tagline: "Try free for 7 days — for the skin-curious",
+    tagline: "For the skin-curious who aren't ready to commit",
     priceMonthly: 39,
     priceAnnual: 390,
     trialEligible: true,
@@ -67,18 +68,16 @@ export const membershipPlans: MembershipPlan[] = [
     isPurchasable: true,
     cta: "Start Glow Lite",
     features: [
-      "Everything in Explorer",
-      "7-day free trial — no card required",
-      "Unlimited product comparisons and Spotlight profiles",
-      "Ingredient Combination Checker (limited time)",
-      "Priority access to new Daily Skinny briefings",
+      "Everything in Glow Explorer",
+      "Unlimited Shelf Showdowns and Spotlight brand profiles",
+      "Practitioner directory",
       "30-day money-back guarantee",
     ],
   },
   {
     id: "insider",
     name: "Glow Insider",
-    tagline: "Try free for 7 days — a routine that keeps up with you",
+    tagline: "The full skincare intelligence toolkit",
     priceMonthly: 79,
     priceAnnual: 790,
     highlight: true,
@@ -88,12 +87,11 @@ export const membershipPlans: MembershipPlan[] = [
     isPurchasable: true,
     cta: "Become an Insider",
     features: [
-      "7-day free trial — no card required",
-      "A live AI routine that re-analyses your skin every week",
-      "Full podcast library and unlimited reviews",
-      "Ingredient Combination Checker (limited time)",
-      "Full Spotlight brand profiles and practitioner directory",
-      "Member-only ingredient deep dives",
+      "Everything in Glow Lite",
+      "Unlimited Basic AI Skin Analysis, plus weekly live AI analysis",
+      "Intelligent Routine Builder on every review page",
+      "Unlimited Daily Skinny briefings, full reviews and the full podcast library",
+      "Active Ingredient Conflict Matcher for your SKYNN AI routine",
       "Ad-light browsing",
       "30-day money-back guarantee",
     ],
@@ -111,11 +109,8 @@ export const membershipPlans: MembershipPlan[] = [
     cta: "Go VIP",
     features: [
       "Everything in Glow Insider",
-      "Intelligent Routine Builder on every product review page",
       "Virtual derm consultations — launching soon",
-      "Ingredient Combination Checker (limited time)",
-      "Ad-free & offline browsing",
-      "VIP badge",
+      "Ad-free browsing",
     ],
   },
 ];

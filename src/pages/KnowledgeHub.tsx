@@ -45,6 +45,7 @@ import {
   GLOBAL_SAFETY_NOTICE,
   KNOWLEDGE_HUB_REVIEW_DATE,
 } from "@/data/faq";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const ICONS: Record<string, LucideIcon> = {
   Atom,
@@ -348,7 +349,7 @@ const KnowledgeHub = () => {
                 </>
               )}
 
-              <AdSlot placement="faq-mid" compact />
+              <AdSlot placement="faq-mid" compact priority="primary" />
 
               {/* Results */}
               {grouped ? (
@@ -428,6 +429,8 @@ const KnowledgeHub = () => {
                   </Accordion>
                 </div>
               )}
+
+              <AdSlotAutorelaxed placement="faq-after-results" compact />
 
               {/* Still have questions CTA */}
               <div className="mt-16 rounded-3xl bg-gradient-to-r from-primary/10 to-secondary/10 p-8 text-center md:p-12">

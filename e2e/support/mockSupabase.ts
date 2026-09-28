@@ -173,8 +173,8 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       try {
         if (signedIn) localStorage.setItem("sb-gnkpzijxuciiaamakgzm-auth-token", JSON.stringify(session));
         localStorage.setItem("skinlabs-cookie-consent", "accepted");
-        // Ads are aborted in tests, so the ad-blocker notice would cover bottom-of-page buttons.
-        sessionStorage.setItem("skinlabs_adblock_notice_dismissed", "1");
+        // Ads are aborted in tests; the ad-block wall never shows under Playwright
+        // anyway (navigator.webdriver → isAutomatedAgent in viewerContext.ts).
       } catch {
         /* storage blocked */
       }

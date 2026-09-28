@@ -9,6 +9,7 @@ import AffiliateBanner from "@/components/AffiliateBanner";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
+import AdSlot from "@/components/AdSlot";
 
 const SHOWDOWN_PAGE_SIZE = 5;
 
@@ -130,6 +131,10 @@ const Compare = () => {
             </div>
             <PaginationControls page={currentPage} totalPages={totalPages} onPageChange={setPage} className="mt-8" />
           </section>
+
+          <div className="container mx-auto px-4">
+            <AdSlot placement="compare-after-grid" compact priority="primary" />
+          </div>
 
           <section className="container mx-auto mt-14 px-4">
             <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">

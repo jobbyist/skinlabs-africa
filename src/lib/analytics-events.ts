@@ -23,6 +23,8 @@ export type ConversionEvent =
   | "signup_completed"
   | "upgrade_viewed"
   | "upgrade_click"
+  | "adblock_wall_shown"
+  | "adblock_wall_cleared"
   | "pricing_view"
   | "plan_selected"
   | "trial_started"

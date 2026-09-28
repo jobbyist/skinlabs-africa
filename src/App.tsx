@@ -25,7 +25,7 @@ import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
 import CookieConsent from "./components/CookieConsent";
-import AdBlockNotice from "./components/AdBlockNotice";
+import AdBlockWall from "./components/AdBlockWall";
 import SitewideSEO from "./components/SitewideSEO";
 import { CartProvider } from "./contexts/CartContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
@@ -121,7 +121,7 @@ const AppContent = () => {
       {/* Sign-up + membership checkout dialogs opened by conversion CTAs (useConversionAction). */}
       <ConversionDialogs />
       <CookieConsent />
-      <AdBlockNotice />
+      <AdBlockWall />
       <AppErrorBoundary resetKey={pathname}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
