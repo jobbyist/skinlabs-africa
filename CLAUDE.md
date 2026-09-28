@@ -123,8 +123,11 @@ feature appear operational.
     an Analysis Pass. Send-time guards (`guards.ts`) re-check the same trial is
     still running, re-read card state (precharge needs a live subscription,
     last-chance none, a read error never sends charge copy) and re-check consent /
-    activation. **`email-processor` must be redeployed (pinned to this PR's merge
-    commit) before these templates can send** — see the deploy note below.
+    activation. **Deployed**: `email-processor` **v37** (2026-09-28) pins its entry
+    file to merge commit `685857e` (same raw-GitHub pattern as before; v36 was
+    `12aed4d`, which already carried the SKYNN v2 templates, so nothing needs
+    inlining any more). The next deploy must pin a commit that contains
+    `trialLifecycle.ts`.
   - Dashboard banners use `trialBannerState()` (`src/lib/trialLifecycle.ts`, same
     SAST windows, unit tested): trialing → week_left (4–7 days) → precharge /
     last_chance (0–3 days, unknown card state never shows charge copy) → ended
