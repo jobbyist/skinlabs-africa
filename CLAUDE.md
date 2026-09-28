@@ -97,7 +97,7 @@ feature appear operational.
     run the sandbox test** — card tokenised at R0, first charge scheduled on the
     trial-end date, ITN verification passes, cancel works, dashboard shows "Auto-renew
     on" — before `PAYFAST_MODE=live`.
-  - Deployed: `payfast-payment` **v35** (MCP, `./_shared` inlined for that upload
+  - Deployed: `payfast-payment` **v36** (MCP, `./_shared` inlined for that upload
     only). Live checks: `config` → `{subscriptionsConfigured:false, mode:"sandbox"}`
     (secrets not set yet), an authed action without a JWT → 401, a forged ITN → 400.
     `paypal-payment` was NOT redeployed: live v26 still has its inline copy of the
