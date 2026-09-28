@@ -82,9 +82,10 @@ export async function buildAdvancedSubmissionPdf(data: AdvancedSubmissionPdfData
     ["Processing outside South Africa", consentAgreed("popia_cross_border_consent") ? "Given" : "Not given"],
   ]);
 
-  const sections = formatResponses(data.definition.sections, data.responses).filter(
-    (s) => s.answers.length > 0 && !s.answers.every((a) => a.questionId.startsWith("popia_")),
-  );
+  // Consent is summarised above; every other answer is listed as it was asked.
+  const sections = formatResponses(data.definition.sections, data.responses)
+    .map((s) => ({ ...s, answers: s.answers.filter((a) => !a.questionId.startsWith("popia_")) }))
+    .filter((s) => s.answers.length > 0);
   for (const section of sections) {
     b.section(section.title);
     b.keyValues(section.answers.map((a) => [a.prompt, a.answer]));
