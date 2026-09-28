@@ -5,7 +5,6 @@ import { purchasableCapabilities } from "../entitlements";
 describe("purchasableCapabilities", () => {
   test("VIP-only perks are never offered while VIP isn't purchasable", () => {
     const features = purchasableCapabilities(["glow_lite", "insider"]).map((c) => c.feature);
-    expect(features).not.toContain("ai_analysis.routine_builder");
     expect(features).not.toContain("consult.priority_booking");
     expect(features).toContain("reviews.full_body");
     expect(features).not.toContain("ai_analysis.starter");
@@ -14,9 +13,10 @@ describe("purchasableCapabilities", () => {
     const byFeature = Object.fromEntries(purchasableCapabilities(["glow_lite", "insider"]).map((c) => [c.feature, c.cheapestTier]));
     expect(byFeature["practitioner_directory"]).toBe("glow_lite");
     expect(byFeature["routine.conflict_matcher"]).toBe("insider");
+    expect(byFeature["ai_analysis.routine_builder"]).toBe("insider");
   });
   test("once VIP is purchasable its perks appear", () => {
-    expect(purchasableCapabilities(["insider", "vip"]).map((c) => c.feature)).toContain("ai_analysis.routine_builder");
+    expect(purchasableCapabilities(["insider", "vip"]).map((c) => c.feature)).toContain("consult.priority_booking");
   });
   test("nothing purchasable → nothing offered", () => {
     expect(purchasableCapabilities([])).toEqual([]);

@@ -11,6 +11,7 @@ import {
   trackAffiliateImpression,
 } from "@/lib/affiliate/tracking";
 import { useInView } from "@/hooks/use-in-view";
+import { useShouldShowAd } from "@/hooks/use-viewer-context";
 import type { AffiliatePartner, AffiliatePlacement } from "@/lib/affiliate/types";
 
 interface AffiliateAdSlotProps {
@@ -31,7 +32,7 @@ interface AffiliateAdSlotProps {
  * No Shopify-specific (or any partner-specific) logic lives here — swapping
  * or adding a partner is a campaign-registry change only.
  */
-const AffiliateAdSlot = ({ partner, placement, className }: AffiliateAdSlotProps) => {
+const AffiliateAdSlotUnit = ({ partner, placement, className }: AffiliateAdSlotProps) => {
   const shouldReduceMotion = useReducedMotion();
   const campaign = useMemo(() => getActiveCampaign(placement, partner), [placement, partner]);
   const capped = campaign ? hasReachedFrequencyCap(campaign) : true;
@@ -140,5 +141,8 @@ const AffiliateAdSlot = ({ partner, placement, className }: AffiliateAdSlotProps
     </motion.aside>
   );
 };
+
+/** Partner offers are ads too: hidden for ad-light/ad-free plans (see viewerContext.ts). */
+const AffiliateAdSlot = (props: AffiliateAdSlotProps) => (useShouldShowAd("secondary") ? <AffiliateAdSlotUnit {...props} /> : null);
 
 export default AffiliateAdSlot;

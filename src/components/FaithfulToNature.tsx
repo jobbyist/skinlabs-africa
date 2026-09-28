@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 import AdFrame from "@/components/ads/AdFrame";
+import { useShouldShowAd } from "@/hooks/use-viewer-context";
+import type { AdPriority } from "@/lib/viewerContext";
 
 const AFFILIATE_HREF = "https://c.trackmytarget.com/?a=s1d2fa&i=r344bf";
 const IMPRESSION_SRC = "https://i.trackmytarget.com/?a=s1d2fa&i=r344bf";
@@ -29,6 +31,7 @@ interface FaithfulToNatureProps {
    * 50% visible in the viewport. When false, fire on mount.
    */
   trackWhenVisible?: boolean;
+  priority?: AdPriority;
 }
 
 /**
@@ -36,12 +39,12 @@ interface FaithfulToNatureProps {
  * Tracks viewable impressions via the trackmytarget pixel and routes clicks
  * through the affiliate URL. Clearly labelled as an advertisement.
  */
-const FaithfulToNature = ({
+const FaithfulToNatureBanner = ({
   placement = "default",
   className,
   compact = false,
   trackWhenVisible = true,
-}: FaithfulToNatureProps) => {
+}: Omit<FaithfulToNatureProps, "priority">) => {
   const containerRef = useRef<HTMLElement>(null);
   const impressionFired = useRef(false);
 
@@ -121,5 +124,9 @@ const FaithfulToNature = ({
     </AdFrame>
   );
 };
+
+/** Sponsored partner banner, subject to the viewer's ad policy (see viewerContext.ts). */
+const FaithfulToNature = ({ priority = "secondary", ...props }: FaithfulToNatureProps) =>
+  useShouldShowAd(priority) ? <FaithfulToNatureBanner {...props} /> : null;
 
 export default FaithfulToNature;

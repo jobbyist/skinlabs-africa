@@ -166,8 +166,6 @@ const NewsroomFeed = ({
 
   const handleSave = async (article: NewsArticleSummary) => {
     if (!user) {
-      // Saving is tied to an account; open sign-in in place rather than a dead-end toast,
-      // and come back to this page afterwards rather than the new-account landing.
       setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
       setAuthOpen(true);
       return;
@@ -305,7 +303,13 @@ const NewsroomFeed = ({
               </div>
             </div>
             <p className="text-xs text-muted-foreground" aria-live="polite">
-              {loading ? "Loading briefings…" : `${articles.length} briefing${articles.length === 1 ? "" : "s"}${hasActiveFilters ? " matching filters" : ""}`}
+              {loading
+                ? "Loading briefings…"
+                : hasActiveFilters
+                  ? `${articles.length} of ${totalCount} briefing${totalCount === 1 ? "" : "s"}`
+                  : paginate
+                    ? `${articles.length} of ${totalCount} briefing${totalCount === 1 ? "" : "s"}`
+                    : `${articles.length} briefing${articles.length === 1 ? "" : "s"}`}
             </p>
           </div>
         )}
@@ -415,7 +419,7 @@ const NewsroomFeed = ({
                     {(index + 1) % 6 === 0 ? (
                       <AdSlotAutorelaxed placement={`briefings-feed-${index}`} compact />
                     ) : (
-                      <AdSlot placement={`briefings-feed-${index}`} compact />
+                      <AdSlot placement={`briefings-feed-${index}`} compact priority={index === 2 ? "primary" : "secondary"} />
                     )}
                   </div>
                 ) : null}
@@ -423,6 +427,7 @@ const NewsroomFeed = ({
             ))}
           </div>
         )}
+        {paginate && articles.length >= 3 && <AdSlot placement={`briefings-feed-end-${page}`} compact />}
 
         {paginate && !loading && articles.length > 0 && (
           <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} className="mt-10" />

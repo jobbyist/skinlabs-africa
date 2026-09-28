@@ -844,6 +844,14 @@ const SmartRoutines = () => {
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>Smart Routines unlock with an {ADVANCED_NAME} (Analysis Pass)</span>
                     </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>Intelligent Routine Builder</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>Ad-light browsing</span>
+                    </li>
                   </ul>
                   {insiderAction.kind ? (
                     <Button
@@ -884,11 +892,11 @@ const SmartRoutines = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Intelligent Routine Builder</span>
+                      <span>Virtual derm consultations — launching soon</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Priority support</span>
+                      <span>Ad-free browsing</span>
                     </li>
                   </ul>
                   {/* Glow VIP isn't purchasable yet (pricing_plans.is_purchasable = false). */}

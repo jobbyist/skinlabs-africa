@@ -24,6 +24,7 @@ const SCAN_DIRS = [
 /** Historical records and the terminology module itself (which names the legacy terms on purpose). */
 const ALLOWLIST = new Set([
   "src/pages/Announcements.tsx", // dated release notes
+  "src/data/announcements.ts", // the same dated release notes (shared with the ICYMI stories)
   "src/pages/About.tsx", // 2025 roadmap timeline
   "src/data/newsroom.ts", // dated newsroom articles
   "src/lib/skynn/terminology.ts",

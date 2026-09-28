@@ -18,8 +18,9 @@ export interface OpenCheckoutDetail {
   variantKey?: string;
 }
 
-export const openSignupDialog = () => {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(OPEN_SIGNUP_EVENT));
+/** Opens AuthDialog on the sign-up tab, or on "Log in" for existing-member prompts. */
+export const openSignupDialog = (mode: "signup" | "signin" = "signup") => {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent<{ mode: "signup" | "signin" }>(OPEN_SIGNUP_EVENT, { detail: { mode } }));
 };
 
 export const openMembershipCheckout = (detail: OpenCheckoutDetail) => {
@@ -28,10 +29,11 @@ export const openMembershipCheckout = (detail: OpenCheckoutDetail) => {
 
 // Subscribers are only called from effects, but stay no-ops without a window
 // for symmetry with the dispatchers above.
-export const onOpenSignupDialog = (handler: () => void) => {
+export const onOpenSignupDialog = (handler: (mode: "signup" | "signin") => void) => {
   if (typeof window === "undefined") return () => {};
-  window.addEventListener(OPEN_SIGNUP_EVENT, handler);
-  return () => window.removeEventListener(OPEN_SIGNUP_EVENT, handler);
+  const listener = (e: Event) => handler((e as CustomEvent<{ mode?: "signup" | "signin" }>).detail?.mode ?? "signup");
+  window.addEventListener(OPEN_SIGNUP_EVENT, listener);
+  return () => window.removeEventListener(OPEN_SIGNUP_EVENT, listener);
 };
 
 export const onOpenMembershipCheckout = (handler: (detail: OpenCheckoutDetail) => void) => {

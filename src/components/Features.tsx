@@ -19,7 +19,7 @@ const features = [
   {
     icon: Mic,
     title: "The Skin Deep Podcast",
-    description: "Dermatologist interviews and ingredient deep-dives that don't take themselves too seriously. New episode every Friday at 12pm SAST.",
+    description: "Ingredient-science deep dives that don't take themselves too seriously. New episode every Friday at 12pm SAST.",
   },
 ];
 

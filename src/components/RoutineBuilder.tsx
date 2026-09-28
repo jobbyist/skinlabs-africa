@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { productReviews, overallScore, type ProductReview } from "@/data/reviews";
 import GatedOverlay from "@/components/GatedOverlay";
+import { useEntitlements } from "@/hooks/use-entitlements";
 
 /** The routine slots the builder tries to fill, in application order. */
 const ROUTINE_STEPS = ["Cleanser", "Serum", "Moisturiser", "Sunscreen", "Eye Cream"] as const;
@@ -33,16 +34,18 @@ const pickBestForCategory = (category: string, anchor: ProductReview): ProductRe
 
 interface RoutineBuilderProps {
   anchor: ProductReview;
-  isVip: boolean;
 }
 
 /**
- * Intelligent Routine Builder (Glow VIP): assembles a complete routine around the
+ * Intelligent Routine Builder (Glow Insider and above — `ai_analysis.routine_builder`
+ * in entitlements.ts): assembles a complete routine around the
  * product being viewed by picking the highest-scoring, skin-type-matched product
  * SkinLabs has reviewed for every other step — never a fabricated or paid pick, just
  * the same review data the rest of the site is built on, applied to this one product.
  */
-const RoutineBuilder = ({ anchor, isVip }: RoutineBuilderProps) => {
+const RoutineBuilder = ({ anchor }: RoutineBuilderProps) => {
+  const { can } = useEntitlements();
+  const unlocked = can("ai_analysis.routine_builder");
   const steps = ROUTINE_STEPS.map((category) => {
     const product = category === anchor.category ? anchor : pickBestForCategory(category, anchor);
     return product ? { category, product, isAnchor: product.id === anchor.id } : null;
@@ -55,8 +58,8 @@ const RoutineBuilder = ({ anchor, isVip }: RoutineBuilderProps) => {
   return (
     <div className="mt-8">
       <GatedOverlay
-        locked={!isVip}
-        title="Glow VIP unlocks the Routine Builder"
+        locked={!unlocked}
+        title="Glow Insider unlocks the Routine Builder"
         message="Build a complete routine around this exact product — cleanser, serum, moisturiser, SPF and eye care, each the highest-scoring skin-type match from every product SkinLabs has reviewed."
         feature="ai_analysis.routine_builder"
         source="routine_builder_gate"

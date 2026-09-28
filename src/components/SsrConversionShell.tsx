@@ -1,3 +1,4 @@
+import AdBlockWall from "@/components/AdBlockWall";
 import ConversionDialogs from "@/components/ConversionDialogs";
 import IntentResolver from "@/components/IntentResolver";
 import { Toaster } from "@/components/ui/sonner";
@@ -8,13 +9,14 @@ import { Toaster } from "@/components/ui/sonner";
  * the conversion dialogs (with full-page navigation, since these routes only
  * have a MemoryRouter), the pending-intent resolver (so an intent returning
  * from Google/email to this page is consumed here rather than replayed later
- * on another page) and a toast outlet. Mount inside the route's MemoryRouter.
+ * on another page), a toast outlet and the ad-block wall. Mount inside the route's MemoryRouter.
  */
 const SsrConversionShell = () => (
   <>
     <IntentResolver />
     <ConversionDialogs fullPageNavigation />
     <Toaster />
+    <AdBlockWall />
   </>
 );
 

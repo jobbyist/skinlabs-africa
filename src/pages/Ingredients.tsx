@@ -11,6 +11,7 @@ import IngredientFilters from "@/components/ingredients/IngredientFilters";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import { useIngredients, INGREDIENTS_PER_PAGE, type IngredientFilters as Filters } from "@/hooks/use-ingredients";
 import { SITE_URL } from "@/lib/seo-config";
+import AdSlot from "@/components/AdSlot";
 
 const Ingredients = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -141,6 +142,8 @@ const Ingredients = () => {
           </div>
 
           <div className="mx-auto mt-12 max-w-5xl">
+            <AdSlot placement="ingredients-directory-end" compact priority="primary" />
+
             <IngredientDisclaimer />
           </div>
         </div>

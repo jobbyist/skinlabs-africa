@@ -58,10 +58,9 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   `PAYFAST_MERCHANT_KEY` / `PAYFAST_PASSPHRASE` and run the PayFast sandbox test
   before `PAYFAST_MODE=live`; review a trial-email dry run and schedule
   `trial-lifecycle-emails-daily` before 25 Oct 2026; add the `SUPABASE_DB_URL`
-  GitHub secret for the SQL probes; decide on the Glow Insider benefit string
-  "Intelligent Routine Builder on every review page" (live `pricing_plans` copy)
-  while the Routine Builder is gated to VIP in `entitlements.ts`; enable
-  `card_upfront` (if wanted) only after 1 Nov 2026.
+  GitHub secret for the SQL probes; enable `card_upfront` (if wanted) only
+  after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
+  it is now an Insider capability.)
 
 ## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
 
@@ -166,6 +165,89 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   "started from Basic" and "Smart Routines saved").
 
 ## Major systems
+
+- **Platform updates: viewer context, ad policy + ad-block wall, dedup, copy audit (2026-09-28)**
+  — branch `claude/skinlabs-platform-updates-vl8d16`.
+  - **Viewer-context layer** (standing rule for new UI): `src/lib/viewerContext.ts`
+    (pure, tested) + `useViewerContext()` / `<ForViewer when={…}>` /
+    `useShouldShowAd()` in `src/hooks/use-viewer-context.tsx`. One object for
+    login state, ladder tier, trial, ad policy and ad-block status. Use it
+    instead of combining useAuth/useMembership/ad checks ad hoc. Presentation
+    only, never authorization. `useMembership()` now shares one profile read
+    per user for 15 s (`fetchMembershipRow`), cleared by
+    `notifyMembershipUpdated()`, because every ad slot reads the context.
+  - **Ad policy**: visitors / Explorer / Glow Lite `full`; Glow Insider and
+    founding members `light` (only `priority="primary"` units render, one per
+    page); VIP `none`. Every ad component (AdSlot, AdSlotAutorelaxed,
+    AffiliateBanner, FaithfulToNature, AffiliateAdSlot) takes `priority`
+    (default `secondary`) and renders nothing when the policy hides it. This
+    makes the live "Ad-light browsing" (Insider) / "Ad-free browsing" (VIP)
+    plan copy true; before, ads ignored membership. `AdDisclosure` text is
+    audience-aware.
+  - **Ad-block wall** (`src/components/AdBlockWall.tsx`, replaces the
+    dismissible `AdBlockNotice`; mounted in App.tsx and `SsrConversionShell`):
+    detection is a shared store (`src/lib/adBlockDetection.ts`: bait element +
+    AdSense request that fails while a same-origin control succeeds, so offline
+    ≠ blocked; re-checks on focus and on "I've turned it off"). Blocks content
+    only for `full`-policy viewers, never for crawlers/headless/webdriver
+    (`isAutomatedAgent`, so prerender, SEO and Playwright never see it) and
+    never on `AD_BLOCK_WALL_EXEMPT_PREFIXES` (pricing, legal pages, dashboard,
+    welcome, reset-password, admin). Content stays in the DOM but `inert`.
+    z-[62]: above fixed bars, below modals so AuthDialog ("Sign in") opens over
+    it (`openSignupDialog("signin")` is new). Events `adblock_wall_shown/cleared`.
+  - **Ad density (~2–3×)**: product reviews (both renderings) +2, briefing
+    bodies now get automatic breaks every 2nd `##` section when the pipeline
+    body has no `<!-- ad:mid-N -->` markers (`splitBriefingForAds`, tested; they
+    previously got none), feeds get an end-of-page unit, ingredient profiles
+    (SPA + SSR), Shelf Showdown articles, seasonal hubs, the ingredients
+    directory (all had 0) +2/+1, and one more on Knowledge Hub, Compare,
+    Spotlight, brand profiles, Seasonals, Podcast, Episode and Home. Placement
+    rules above (never adjacent, never before an article body) still apply.
+  - **Routine Builder is Glow Insider** (`ai_analysis.routine_builder` added to
+    the insider ladder), so the live Insider benefit is now true; RoutineBuilder
+    gates via `useEntitlements().can()`. Side effect: Insiders now also see
+    named product matches in SKYNN AI results (same capability).
+  - **Plan copy matches code**: migration
+    `20260928160000_plan_benefits_match_code.sql` (**applied live**, after
+    v2.1's `20260928142000_skynn_v21_plan_copy.sql`) rewrote
+    `pricing_plans.benefits`; `src/data/plans.ts` mirrors it. Removed perks
+    nothing implements (Lite "priority briefings", Insider "member-only
+    ingredient deep dives", VIP "exclusive OpenHaus access", "offline browsing",
+    "VIP badge", /routines "Priority support"). Consultations copy no longer
+    offers bookable sessions (not launched); gate titles name the right tier.
+  - **Fabricated social proof removed**: `/reviews` cards no longer show the
+    hash-generated `getMemberRatingStats()` rating/member count; review pages
+    no longer fall back to `seededRatings`/`seededComments` (invented reviewer
+    names and comments). Real `review_ratings`/comments only. briefings-sync no
+    longer seeds a random `view_count`. The podcast `engagementSeed` play counts
+    were an earlier explicit user request and were left alone.
+  - **Briefings dedup**: `_shared/pipelines/briefingSimilarity.ts` (tested with
+    the real Sept titles): source URLs compared canonically (Google `srsltid`
+    and utm params stripped; that bug let one barbeauty.ca page produce three
+    "The Pigment Puzzle" briefings); title/content/excerpt similarity against
+    the last 45 days before generation (lead page) and before insert; the
+    recent titles are also given to Gemini as "already covered". Three
+    duplicates from the past 10 days were set to `status = 'duplicate'`
+    (reversible, migration `20260928143000_…`), and vercel.json 301s their URLs
+    to the originals.
+    **Deployed**: `briefings-sync` **v29** (2026-09-28) is a one-line entry
+    importing the committed source from raw GitHub pinned to `2ebc766` (this
+    branch). If Supabase's GitHub sync redeploys from `main` before merge it
+    reverts to the pre-dedup version — re-check after merge.
+  - **Pagination**: `getPageWindow()` (`src/lib/pagination.ts`, tested) —
+    first · current±1 · last with ellipses, first · current · last and
+    icon-only prev/next on phones, "Page x of y". ReviewsGrid's own
+    every-page-number pagination now uses `PaginationControls` too.
+  - **Continue listening / mini-player**: long titles truncate (the link was
+    inline, so `truncate` did nothing and the card overflowed on phones).
+  - **"ICYMI: September 2026" story** (`icymiSeptember2026Story()` in
+    `curated.ts`): the recap video, then each September announcement verbatim
+    from the new `src/data/announcements.ts` (shared with /announcements).
+    **Hidden until the video exists**: add
+    `public/stories-media/announcements/icymi-september-2026.mp4` + `.jpg`
+    poster, then set `ICYMI_SEPTEMBER_2026_VIDEO_READY = true` (a test fails if
+    it's true while the files are missing).
+  - The promo bar/chip hides for trialists, paying members and used trials.
 
 - **Funding + editorial-independence wording (2026-09-27)** — SkinLabs® is
   member-funded and **partly ad-supported** (AdSense, labelled sponsored

@@ -27,9 +27,9 @@ const ConversionDialogs = ({ fullPageNavigation = false }: ConversionDialogsProp
 
   useEffect(
     () =>
-      onOpenSignupDialog(() => {
-        // Opens on sign-up; the visitor can still switch to "Log in".
-        setAuthMode("signup");
+      onOpenSignupDialog((mode) => {
+        // Opens on sign-up by default; the visitor can still switch tabs.
+        setAuthMode(mode);
         setSignupOpen(true);
       }),
     [],

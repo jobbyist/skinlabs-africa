@@ -14,6 +14,7 @@ import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { SITE_URL } from "@/lib/seo-config";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const EpisodePage = () => {
   const { slug } = useParams();
@@ -146,7 +147,7 @@ const EpisodePage = () => {
               </ul>
             </section>
 
-            <AdSlot placement="episode-mid-1" compact />
+            <AdSlot placement="episode-mid-1" compact priority="primary" />
 
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Chapters</h2>
@@ -176,6 +177,8 @@ const EpisodePage = () => {
                 })}
               </div>
             </section>
+
+            {episode.productsMentioned.length > 0 && <AdSlot placement="episode-mid-2" compact />}
 
             {episode.productsMentioned.length > 0 && (
               <section>
@@ -237,6 +240,8 @@ const EpisodePage = () => {
                 </div>
               </GatedOverlay>
             </section>
+
+            <AdSlotAutorelaxed placement="episode-before-discussion" compact />
 
             <ArticleComments heading="Listener discussion" comments={podcastComments[episode.slug] ?? []} />
           </div>

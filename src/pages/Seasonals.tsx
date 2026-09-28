@@ -6,6 +6,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import AdSlot from "@/components/AdSlot";
 import { allSeasons, getCurrentSeason, seasonHubs, seasonTransitionPhrase, type Season } from "@/data/seasonals";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const buildThreeCards = (season: Season) => [
   {
@@ -96,7 +97,7 @@ const Seasonals = () => {
         </section>
 
         <div className="container mx-auto px-4">
-          <AdSlot placement="seasonals-mid" compact />
+          <AdSlot placement="seasonals-mid" compact priority="primary" />
         </div>
 
         <section className="container mx-auto mt-14 px-4">
@@ -134,6 +135,10 @@ const Seasonals = () => {
             </div>
           </div>
         </section>
+
+        <div className="container mx-auto px-4">
+          <AdSlotAutorelaxed placement="seasonals-before-hubs" compact />
+        </div>
 
         <section className="container mx-auto mt-14 px-4">
           <h2 className="mb-6 font-heading text-2xl font-bold text-foreground">The four seasonal hubs</h2>
