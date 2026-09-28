@@ -37,7 +37,7 @@ export const COMPARE_FREE_MONTHLY = 2;
 export const DAILY_SKINNY_FREE_WEEKLY = 3;
 
 // Offline fallback only — mirrors the live pricing_plans rows (see
-// supabase/migrations/20260928150000_plan_benefits_match_code.sql). Keep in sync.
+// supabase/migrations/20260928160000_plan_benefits_match_code.sql). Keep in sync.
 export const membershipPlans: MembershipPlan[] = [
   {
     id: "explorer",
@@ -88,7 +88,7 @@ export const membershipPlans: MembershipPlan[] = [
     cta: "Become an Insider",
     features: [
       "Everything in Glow Lite",
-      "Unlimited Basic AI Skin Analysis, plus weekly live AI analysis",
+      "Unlimited Basic AI Skin Analysis — re-analyse whenever your skin changes",
       "Intelligent Routine Builder on every review page",
       "Unlimited Daily Skinny briefings, full reviews and the full podcast library",
       "Active Ingredient Conflict Matcher for your SKYNN AI routine",

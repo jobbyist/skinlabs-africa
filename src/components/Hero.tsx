@@ -130,9 +130,9 @@ const Hero = () => {
             </h1>
 
             <p className="text-lg font-medium text-foreground/90 max-w-xl mx-auto lg:mx-0 drop-shadow-sm">
-              We read the ingredient list so you don't have to. Evidence-graded product reviews, daily skin
-              science briefings and SKYNN AI (beta) — a skin assessment that builds your routine around your
-              skin, our climate and your budget — editorial that can't be bought.
+              Evidence-graded product reviews, daily skin
+              science briefings and SKYNN AI — a personalised skin assessment that builds your routine around your
+              skin, our climate and your budget. No hype, just evidence - editorial that can't be bought.
             </p>
 
             {/* SKYNN AI is the one primary action; the trial is a quiet text link under it. */}
@@ -143,7 +143,7 @@ const Hero = () => {
                 asChild
               >
                 <a href="/skynn-ai">
-                  Get Your Free AI Skin Analysis
+                  Get Your Free Basic AI Skin Report
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </a>
               </Button>

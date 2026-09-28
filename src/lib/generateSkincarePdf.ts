@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import { MST_SCALE } from "@/data/mstScale";
+import { BASIC_NAME, BASIC_REPORT_NAME, SKYNN_RELEASE_LABEL } from "@/lib/skynn/terminology";
 
 export interface SkincarePdfData {
   clientName: string;
@@ -46,7 +47,7 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
     doc.setFontSize(8);
     doc.setTextColor(...BRAND.muted);
     doc.text(
-      `SKINLABS Personalized Skincare Report  •  Page ${pageNum}  •  AI-generated, dermatologist-reviewed  •  Not medical advice`,
+      `${SKYNN_RELEASE_LABEL}  •  ${BASIC_REPORT_NAME}  •  Page ${pageNum}  •  Not reviewed by a dermatologist  •  Not medical advice`,
       pageWidth / 2,
       pageHeight - 24,
       { align: "center" },
@@ -63,7 +64,7 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
   doc.text("SKINLABS®", margin, 50);
   doc.setFontSize(11);
   doc.setFont("helvetica", "normal");
-  doc.text("SKYNN AI (beta) — Personalized AI Skincare Report", margin, 70);
+  doc.text(`${SKYNN_RELEASE_LABEL} · ${BASIC_REPORT_NAME}`, margin, 70);
 
   doc.setFontSize(9);
   doc.text(
@@ -113,7 +114,7 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(
-      `Monk Skin Tone: ${data.mstTone}/10 (self-reported, fairness signal only)`,
+      `Monk Skin Tone (MST): ${data.mstTone}/10 (self-reported, optional, not a diagnosis)`,
       pageWidth - margin - 16,
       y + 58,
       { align: "right" },
@@ -220,7 +221,7 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
   doc.setTextColor(...BRAND.muted);
   doc.setFontSize(9);
   const disclaimer = doc.splitTextToSize(
-    "This report is AI-generated, grounded in dermatology reference literature, and reviewed by SKINLABS skincare specialists. It is general skincare guidance, not medical advice. For medical skin conditions, persistent reactions, or before starting prescription actives, please consult a licensed dermatologist.",
+    `This ${BASIC_NAME} report is a rule-based analysis of your own answers, grounded in general dermatology reference material. It has not been reviewed by a dermatologist or a SkinLabs specialist, your photo (if you added one) was not analysed, and your Monk Skin Tone is only what you chose to share. It is general skincare guidance, not medical advice or a diagnosis. For medical skin conditions, persistent reactions, or before starting prescription actives, please consult a licensed dermatologist.`,
     contentWidth - 28,
   );
   doc.text(disclaimer, margin + 14, y + 32);
@@ -232,5 +233,5 @@ export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
 export function downloadSkincarePdf(data: SkincarePdfData) {
   const doc = generateSkincarePdf(data);
   const safeName = (data.clientName || "client").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-  doc.save(`skinlabs-skincare-report-${safeName}.pdf`);
+  doc.save(`skinlabs-basic-ai-skin-analysis-${safeName}.pdf`);
 }

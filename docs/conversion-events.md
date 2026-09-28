@@ -62,17 +62,19 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 before the user confirms their email. It counts sign-up **submissions**. Use the
 `signups` column of `conversion_funnel_daily` for real accounts.
 
-### SKYNN AI formulator: `AIFormulator.tsx` unless noted
+### SKYNN AI — Basic AI Skin Analysis (legacy event names): `AIFormulator.tsx` unless noted
+
+These names predate SKYNN AI v2.1 and are kept for historical reporting. New funnel work should read the `skynn_*` events below.
 
 | Event | Where it fires | Props |
 | --- | --- | --- |
-| `analysis_started` | Analysis started from the intro | `advancedPass: true` when a pass is used, otherwise none |
-| `formulator_started` | Same moment as `analysis_started` | `accountState` (`anonymous` \| `free` \| `member`), optional `advancedPass` |
+| `analysis_started` | Analysis started from the intro | none (`advancedPass` was sent before v2.1) |
+| `formulator_started` | Same moment as `analysis_started` | `accountState` (`anonymous` \| `free` \| `member`) |
 | `consent_completed` | Consent step accepted | none |
 | `starter_question_skipped` | Photo step skipped | `step: "photo"` |
 | `profile_completed` | Profile step completed | none |
 | `starter_question_viewed` / `_answered` / `_back` | Each quiz question shown / answered / "Back" | `questionId` |
-| `analysis_generated` | Live-AI (member) result returned | `resultTier` (`data.tier`, default `"premium"`) |
+| `analysis_generated` | Live-AI (member) result returned — **retired in v2.1** with the `skincare-ai` path | `resultTier` |
 | `analysis_generated` | Starter (free) result computed | `resultTier: "free"` |
 | `formulator_completed_anonymous` | Starter result computed (fires next to the one above) | `skinType` |
 | `analysis_viewed` | Results screen shown | `resultTier` |
@@ -90,20 +92,53 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `skynn_video_opened` / `skynn_video_completed` | `skynn/SkynnVideoModal.tsx` | `source: "ai_formulator_intro"` |
 | `starter_dashboard_arrived` | `UserDashboard.tsx`: a pending local starter result was saved on arrival at the dashboard | none |
 
-### Advanced AI Dermatology Report and Analysis Passes
+### Advanced AI Dermatology Analysis and Analysis Passes (legacy event names)
 
 | Event | Where it fires | Props |
 | --- | --- | --- |
 | `advanced_assessment_upsell_viewed` | `AIFormulator.tsx` (pre-analysis, during analysis, results), `dashboard/AdvancedAssessmentCard.tsx` | `funnelLocation`, `accessState` (`member` \| `pass_holder` \| `none`, not sent during analysis) |
 | `advanced_assessment_upsell_clicked` | Same surfaces | `funnelLocation` |
 | `advanced_assessment_membership_cta_clicked` | Membership CTA in the pre-analysis, results and dashboard surfaces | `funnelLocation` |
-| `advanced_assessment_access_denied` | `AIFormulator.tsx`: advanced run requested with no pass | `reason: "no_analysis_pass"` |
-| `advanced_analysis_started` | `AIFormulator.tsx`: results-screen advanced CTA | none |
+| `advanced_assessment_access_denied` | **Retired in v2.1** (was the in-page pass path) | `reason: "no_analysis_pass"` |
+| `advanced_analysis_started` | **Retired in v2.1** (was the member results-screen CTA) | none |
 | `advanced_analysis_cta_clicked` | `AIFormulator.tsx`, `AdvancedAssessmentCard.tsx` | `cta` (`use_pass` \| `get_pass`), optional `funnelLocation` |
-| `analysis_pass_used` | `AIFormulator.tsx`: pass consumed | none |
+| `analysis_pass_used` | **Retired in v2.1** — Passes are consumed only server-side by `submit_advanced_assessment_session()` | none |
 | `analysis_pass_purchase_viewed` | Purchase modal opened (formulator, dashboard) | `source` |
 | `analysis_pass_package_selected` | `AnalysisPassPurchaseModal.tsx` | `packId`, `credits` |
 | `analysis_pass_balance_viewed` | `dashboard/AnalysisPassesCard.tsx` | `balance`, `source: "dashboard"` |
+
+### SKYNN AI v2.1 funnel: `skynn_*` events (2026-09-28)
+
+Fired only through `trackSkynnEvent()` (`src/lib/skynn/analytics.ts`), which passes
+the payload through a whitelist: `mode` (`basic` \| `advanced`), `step`,
+`step_index`, `progress_pct`, `has_photo`, `mst_selected` (a boolean — never the
+tone), `error_category`, `source`, `account_state`, `processing_mode`, `eligible`,
+plus `feature_version: "2.1.0-beta"`. Answers, the MST value, free text, photos,
+report content and reference numbers are never sent (Vercel is a third party and
+`analytics_events` is insert-open). `src/lib/__tests__/skynnAnalytics.test.ts`
+pins this. `skynn_ops_summary()` (Admin → SKYNN Reviews) reads several of these.
+
+| Event | Where it fires | Notable props |
+| --- | --- | --- |
+| `skynn_viewed` | `/skynn-ai` mount (basic); `/skynn-ai/advanced` once access loads (advanced) | `mode`, `account_state` |
+| `skynn_started` | Basic: intro "Start"; Advanced: landing "Start my assessment" | `mode` |
+| `skynn_mode_selected` | Basic start; any Advanced CTA (`goToAdvanced`, dashboard card) | `mode`, `source` |
+| `skynn_consent_viewed` / `_accepted` / `_declined` | Consent step shown / continued / "Back" from consent | `mode` |
+| `skynn_photo_step_viewed` / `_uploaded` / `_skipped` / `_failed` | Photo step. "uploaded" means attached on the device (nothing is uploaded) | `mode`, `error_category` |
+| `skynn_mst_viewed` / `_selected` / `_skipped` | MST step | `mst_selected` |
+| `skynn_assessment_started`, `skynn_profile_started` | First quiz question (basic); assessment start (advanced) | `mode` |
+| `skynn_questionnaire_progress` | 25 / 50 / 75 % of the quiz only | `progress_pct` |
+| `skynn_questionnaire_completed`, `skynn_profile_completed` | Last quiz question answered | `mode` |
+| `skynn_basic_submission_started` / `_succeeded` / `_failed` | Analysis run / server save accepted / save or run failed | `account_state`, `error_category` |
+| `skynn_basic_limit_reached` | Weekly limit hit (pre-check, save, intro or dashboard lock panel) | `source` |
+| `skynn_advanced_entitlement_checked` | Advanced page and dashboard card, after the server access check | `eligible` |
+| `skynn_analysis_pass_required` / `_confirmed` | No Pass → gate shown / Pass held | `mode` |
+| `skynn_advanced_submission_started` / `_succeeded` / `_failed` | `use-advanced-assessment.ts` submit | `processing_mode`, `error_category` |
+| `skynn_advanced_reference_created`, `skynn_advanced_pending` | Fallback submission accepted (the reference itself is never sent) | `processing_mode` |
+| `skynn_results_viewed` | Basic results screen shown (preview or full) | `account_state` |
+| `skynn_results_completed` | The full, saved Basic result is on screen | `account_state` |
+| `skynn_results_pdf_generated` / `_downloaded` | Basic PDF button (only after a successful save) | `mode` |
+| `skynn_error` | Allowance check failure, PDF failure | `error_category` |
 
 ### Pricing, trial and checkout
 

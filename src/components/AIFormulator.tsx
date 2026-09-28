@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -26,11 +27,11 @@ import {
   UserRound,
   Leaf,
   Play,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -41,7 +42,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useEntitlements } from "@/hooks/use-entitlements";
-import UpgradePrompt from "@/components/UpgradePrompt";
 import AuthDialog from "@/components/AuthDialog";
 import StepperHeader from "@/components/ai-formulator/StepperHeader";
 import MstGrid from "@/components/ai-formulator/MstGrid";
@@ -54,9 +54,7 @@ import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
-import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
-import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
 import ReanalysisLockedPanel from "@/components/ai-formulator/ReanalysisLockedPanel";
 import { summarizeStarterResult } from "@/lib/formulator/summary";
@@ -70,7 +68,6 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { getPendingIntent, setPendingIntent, withPendingIntentParams } from "@/lib/pendingIntent";
 import { assembleStarterAnalysisResult } from "@/lib/starter-analysis/resultEngine";
-import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
 import {
   applyAdjustmentsToPreferences,
   applyAdjustmentsToProfile,
@@ -81,11 +78,17 @@ import {
   loadCompletedState,
   loadDraftState,
   persistStarterResultToAccount,
-  removeAnalysisPhoto,
   saveCompletedState,
   saveDraftState,
-  uploadAnalysisPhoto,
 } from "@/lib/starter-analysis/persistence";
+import {
+  ADVANCED_NAME,
+  BASIC_NAME,
+  SKYNN_ADVANCED_ROUTE,
+  SKYNN_FEATURE_VERSION,
+  SKYNN_RELEASE_LABEL,
+} from "@/lib/skynn/terminology";
+import { crossedMilestone, trackSkynnEvent } from "@/lib/skynn/analytics";
 import type {
   ChangeContext,
   ConcernKey,
@@ -99,13 +102,19 @@ import type {
 
 const TOTAL_QUESTIONS = QUESTIONS.length;
 
+// SKYNN AI v2.1 — beta · Basic AI Skin Analysis.
 // Funnel: Intro -> Consent -> Photo -> MST -> Quiz questions -> What Changed ->
 // Routine preference -> Analysis -> Results. Anonymous visitors complete the
-// whole quiz with no account and get a real summary (skin type + top two
-// concerns, plus the starter PDF); the full on-screen analysis and routine are
-// unlocked by a free sign-up that attaches this same result — no re-quiz.
-// Signed-in Explorer/Lite accounts get one free analysis per rolling 30 days
-// (FORMULATOR_LIMITS), enforced server-side by save_starter_analysis().
+// whole quiz with no account and see a preview (skin type + top two concerns);
+// the full analysis, routine and PDF unlock only once the result is SAVED to an
+// account by save_starter_analysis(), which is also where the weekly limit is
+// enforced (Explorer / Glow Lite: 1 per rolling 7 days; Insider / VIP
+// unlimited). A Basic AI Skin Analysis never spends an Analysis Pass.
+//
+// The photo never leaves the device: it only counts toward input completeness.
+// Monk Skin Tone is optional and self-reported — nothing here infers it.
+// Every "Advanced" CTA routes to the one Advanced AI Dermatology Analysis flow
+// at /skynn-ai/advanced (Analysis Pass required, enforced server-side).
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
@@ -128,8 +137,9 @@ const stepPhase = (step: number): 1 | 2 | 3 | 4 => {
 const AIFormulator = () => {
   const { user, loading: authLoading, signIn, signUp } = useAuth();
   const { isMember } = useMembership();
+  const accountState: "anonymous" | "free" | "member" = user ? (isMember ? "member" : "free") : "anonymous";
   const { can: canEntitlement } = useEntitlements();
-  const { balance: passBalance, loading: passBalanceLoading, refresh: refreshPassBalance } = useAnalysisPassBalance();
+  const navigate = useNavigate();
   const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -139,7 +149,6 @@ const AIFormulator = () => {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [allowanceExhausted, setAllowanceExhausted] = useState(false);
   const [recommendation, setRecommendation] = useState<string | null>(null);
-  const [resultTier, setResultTier] = useState<"free" | "premium">("free");
   const [completeness, setCompleteness] = useState<CompletenessBreakdown | null>(null);
   const [groundedRoutine, setGroundedRoutine] = useState<GroundedRoutine | null>(null);
   const [resultsSaved, setResultsSaved] = useState(false);
@@ -170,15 +179,15 @@ const AIFormulator = () => {
   const [changeDetail, setChangeDetail] = useState("");
   const [priorityPreference, setPriorityPreference] = useState<PriorityPreference | null>(null);
   const [starterResult, setStarterResult] = useState<StarterAnalysisResult | null>(null);
-  const [passPurchaseOpen, setPassPurchaseOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
   const viewedFiredRef = useRef(false);
   const restoredRef = useRef(false);
   const saveCtaViewedRef = useRef(false);
-  /** Set just before jumping to STEP_ANALYSIS to run an Analysis-Pass-funded Advanced Analysis instead of the default free/member path — see runAnalysis(). */
-  const useAdvancedPassRef = useRef(false);
+  const progressPctRef = useRef(0);
+  const funnelViewedRef = useRef(false);
+  const completedFiredRef = useRef(false);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -197,18 +206,24 @@ const AIFormulator = () => {
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         toast.error("That image is over 5MB — try a smaller one");
+        trackSkynnEvent("skynn_photo_failed", { mode: "basic", error_category: "photo_invalid" });
         return;
       }
       if (!file.type.startsWith("image/")) {
         toast.error("That doesn't look like an image file — try again");
+        trackSkynnEvent("skynn_photo_failed", { mode: "basic", error_category: "photo_invalid" });
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         setSkinImage(reader.result as string);
-        toast.success("Photo uploaded");
+        toast.success("Photo added — it stays on this device");
+        trackSkynnEvent("skynn_photo_uploaded", { mode: "basic" });
       };
-      reader.onerror = () => toast.error("Couldn't read that image file — try again");
+      reader.onerror = () => {
+        toast.error("Couldn't read that image file — try again");
+        trackSkynnEvent("skynn_photo_failed", { mode: "basic", error_category: "photo_invalid" });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -220,150 +235,30 @@ const AIFormulator = () => {
   };
 
   /**
-   * Shared with both entry points into the live skincare-ai edge function —
-   * paying/trialing members (runLiveAnalysis) and Glow Explorer Analysis
-   * Pass holders (runAdvancedAnalysisWithPass). Only the gating step before
-   * this (membership quota vs. pass consumption) differs between the two.
-   */
-  const invokeAdvancedAnalysis = async (): Promise<boolean> => {
-    const quizAnswers = QUESTIONS.map((q) => ({
-      question: q.title,
-      answer: q.options.find((o) => o.value === answers[q.id])?.label ?? "Not answered",
-    }));
-
-    // Advanced handoff (Section 20): if a Starter Analysis already ran this session (or was
-    // restored from localStorage after upgrading), pass its structured output through so the
-    // live model builds on it instead of re-deriving everything from the raw quiz answers.
-    const starterContext = starterResult
-      ? {
-          skinStoryNarrative: starterResult.skinStory.narrative,
-          priorities: starterResult.priorities.items.map((p) => ({
-            label: priorityLabel(p.key),
-            level: p.level,
-            reason: p.reason,
-          })),
-          changeSummary: starterResult.context.status ? CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label ?? null : null,
-          routineComplexity: starterResult.preferences.complexity,
-          priorityPreference: starterResult.preferences.priority,
-        }
-      : null;
-
-    const { data, error } = await supabase.functions.invoke("skincare-ai", {
-      body: {
-        quizAnswers,
-        skinImage: skinImage && photoConsent ? skinImage : null,
-        mstTone,
-        contactName: contactName || user?.email?.split("@")[0] || "",
-        contactEmail: contactEmail || user?.email || "",
-        starterContext,
-      },
-    });
-
-    if (error) {
-      setAnalysisError("Couldn't generate your recommendation — please try again.");
-      return false;
-    }
-    if (data?.error) {
-      setAnalysisError(data.error);
-      return false;
-    }
-
-    setRecommendation(data.recommendation);
-    setResultTier(data.tier === "premium" ? "premium" : "free");
-    trackConversionEvent("analysis_generated", { resultTier: data.tier || "premium" });
-
-    try {
-      downloadSkincarePdf({
-        clientName: contactName || user?.email?.split("@")[0] || "Client",
-        email: contactEmail || user?.email || "",
-        recommendation: data.recommendation,
-        skinType: derivedSkinType,
-        mstTone,
-      });
-      toast.success("Your skincare PDF is downloaded");
-    } catch {
-      toast.message("Your report is ready — PDF download didn't work this time, but your results are below.");
-    }
-    return true;
-  };
-
-  /** Live, dermatology-grounded path for paying/trialing members. Returns success. */
-  const runLiveAnalysis = async (): Promise<boolean> => {
-    const { data: quotaAllowed, error: quotaError } = await supabase.rpc("register_ai_analysis_use");
-    if (quotaError) {
-      setAnalysisError("Couldn't check your analysis quota — please try again.");
-      return false;
-    }
-    if (quotaAllowed === false) {
-      // Insider/VIP have unlimited starter re-analysis (FORMULATOR_LIMITS) —
-      // when this week's live AI report is spent, fall back to that instead of
-      // a dead end.
-      toast.message("You've used this week's live AI report — here's your updated starter analysis instead.");
-      return runStarterAnalysis();
-    }
-    return invokeAdvancedAnalysis();
-  };
-
-  /**
-   * Glow Explorer path: an Analysis Pass unlocks one Advanced Skin Analysis run
-   * through the same live edge function members use. The pass is consumed
-   * server-side (consume_analysis_pass, atomic) *before* the call so a double
-   * click or retry can't spend two passes on one analysis; if the edge function
-   * call itself then fails, the pass is refunded (Section 7/17 — never charge
-   * for a failed analysis) via the matching, ownership-verified RPC.
-   */
-  const runAdvancedAnalysisWithPass = async (): Promise<boolean> => {
-    const { data, error } = await supabase.rpc("consume_analysis_pass");
-    const claim = Array.isArray(data) ? data[0] : data;
-    if (error) {
-      setAnalysisError("Couldn't check your Analysis Pass balance — please try again.");
-      return false;
-    }
-    if (!claim?.allowed) {
-      setAnalysisError("You don't have an Analysis Pass available right now.");
-      trackConversionEvent("advanced_assessment_access_denied", { reason: "no_analysis_pass" });
-      return false;
-    }
-
-    const ok = await invokeAdvancedAnalysis();
-    if (!ok) {
-      await supabase.rpc("refund_analysis_pass", { p_transaction_id: claim.transaction_id });
-      toast.message("Your Analysis Pass wasn't used — nothing was charged for that attempt.");
-    } else {
-      trackConversionEvent("analysis_pass_used");
-    }
-    void refreshPassBalance();
-    return ok;
-  };
-
-  /**
-   * Free/anonymous path: an instant, deterministic "starter analysis" built from the
-   * quiz answers alone — no Supabase call, no account, no AI quota spent. The brief
-   * artificial delay keeps the experience consistent with the live AI path rather
-   * than feeling suspiciously instant. This is a genuinely complete analysis (AM/PM
-   * routine, actives schedule, product types — grounded in SkinLabs' real reviewed
-   * catalogue where a match exists) — not a crippled teaser — so nothing about it is
-   * hidden behind a paywall; the upgrade pitch afterward is a live, weekly-refreshed,
-   * photo-aware report, not "the rest of this same result."
+   * Basic AI Skin Analysis: a deterministic analysis built from the quiz answers
+   * (and the self-reported MST, if given) — no model call, no photo processing.
+   * The brief delay keeps the step from feeling suspiciously instant.
    */
   const runStarterAnalysis = async (): Promise<boolean> => {
-    // Anonymous visitors are never metered (there's no account to meter, and
-    // the top of the funnel stays frictionless). For a signed-in Explorer/Lite
-    // account this is a read-only pre-check so nobody sits through the loader
-    // just to be told no; the real enforcement is save_starter_analysis() when
-    // the result is saved below (a tampered client can't skip that).
-    if (user && !isMember) {
+    trackSkynnEvent("skynn_basic_submission_started", { mode: "basic", account_state: accountState });
+    // Signed-in accounts get a read-only server pre-check so nobody sits through
+    // the loader just to be told no. The authoritative check is
+    // save_starter_analysis() when the result is saved (a tampered client can't
+    // skip it, and nothing beyond the preview is shown until it succeeds).
+    if (user) {
       const { data, error } = await supabase.rpc("get_formulator_allowance", {
         p_variant_key: getPersistedPricingVariant(),
       });
       const status = Array.isArray(data) ? data[0] : data;
       if (error) {
         setAnalysisError("Couldn't check your analysis allowance — please try again.");
+        trackSkynnEvent("skynn_error", { mode: "basic", error_category: "allowance_check" });
         return false;
       }
-      if (status && !status.unlimited && (status.free_remaining ?? 0) <= 0 && (status.pass_balance ?? 0) <= 0) {
+      if (status && !status.unlimited && (status.free_remaining ?? 0) <= 0) {
         setAllowanceExhausted(true);
         setLockedUntil(status.next_unlock_at ? new Date(status.next_unlock_at) : null);
+        trackSkynnEvent("skynn_basic_limit_reached", { mode: "basic", source: "pre_check" });
         return false;
       }
     }
@@ -381,7 +276,6 @@ const AIFormulator = () => {
     });
     setStarterResult(result);
     setRecommendation(result.recommendationText);
-    setResultTier("free");
     setGroundedRoutine(result.groundedRoutine);
     setCompleteness(result.completeness);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
@@ -395,21 +289,32 @@ const AIFormulator = () => {
       completenessScore: result.completeness.overall,
       groundedMatchCount: result.groundedRoutine.matchStats.matched,
       groundedMatchAttempted: result.groundedRoutine.matchStats.attempted,
+      modelVersion: `skynn-basic-${SKYNN_FEATURE_VERSION}`,
     });
+    // No automatic PDF: the Basic AI Skin Analysis report downloads only once the
+    // result is saved to an account (handleDownloadPdf below).
     saveCompletedState({ analysisId, answers, mstTone, context, result, savedAt: new Date().toISOString() });
+    return true;
+  };
+
+  /** The Basic AI Skin Analysis report PDF — offered only once the result is saved. */
+  const handleDownloadPdf = () => {
+    if (!starterResult) return;
     try {
       downloadSkincarePdf({
-        clientName: contactName || "Client",
-        email: contactEmail,
-        recommendation: result.recommendationText,
-        skinType: result.skinType,
+        clientName: contactName || user?.email?.split("@")[0] || "Client",
+        email: contactEmail || user?.email || "",
+        recommendation: starterResult.recommendationText,
+        skinType: starterResult.skinType,
         mstTone,
       });
-      toast.success("Your starter skincare PDF is downloaded");
+      trackSkynnEvent("skynn_results_pdf_generated", { mode: "basic" });
+      trackSkynnEvent("skynn_results_pdf_downloaded", { mode: "basic" });
+      toast.success(`Your ${BASIC_NAME} report is downloaded`);
     } catch {
-      toast.message("Your analysis is ready — PDF download didn't work this time, but your results are below.");
+      trackSkynnEvent("skynn_error", { mode: "basic", error_category: "pdf_failed" });
+      toast.error("The PDF didn't download this time — your results are still below. Please try again.");
     }
-    return true;
   };
 
   /** Re-runs the deterministic pipeline with feedback-derived adjustments — see refinement.ts. */
@@ -464,26 +369,25 @@ const AIFormulator = () => {
     setAnalysisError(null);
     setAllowanceExhausted(false);
     try {
-      const ok = isMember
-        ? await runLiveAnalysis()
-        : useAdvancedPassRef.current
-          ? await runAdvancedAnalysisWithPass()
-          : await runStarterAnalysis();
-      useAdvancedPassRef.current = false;
+      const ok = await runStarterAnalysis();
       if (ok) setStep(STEP_RESULTS);
     } catch {
-      useAdvancedPassRef.current = false;
       setAnalysisError("Something went wrong on our end — please try again.");
+      trackSkynnEvent("skynn_basic_submission_failed", { mode: "basic", error_category: "unknown" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  /** "Use an Analysis Pass" CTA on the Starter Analysis results screen (Explorer users only). */
-  const handleUseAnalysisPass = () => {
-    trackConversionEvent("advanced_analysis_cta_clicked", { cta: "use_pass" });
-    useAdvancedPassRef.current = true;
-    setStep(STEP_ANALYSIS);
+  /**
+   * Every Advanced CTA on this page lands on the single Advanced AI Dermatology
+   * Analysis flow. That page handles sign-in, the Analysis Pass gate (server-side
+   * via get_advanced_assessment_access) and purchase — nothing is spent here.
+   */
+  const goToAdvanced = (funnelLocation: string) => {
+    trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation });
+    trackSkynnEvent("skynn_mode_selected", { mode: "advanced", source: funnelLocation });
+    navigate(SKYNN_ADVANCED_ROUTE);
   };
 
   // Kick off generation the moment the visitor reaches the Analysis step.
@@ -498,64 +402,78 @@ const AIFormulator = () => {
     }
   }, [step, allowanceExhausted]);
 
+  // Once per page view: the SKYNN AI discovery event.
+  useEffect(() => {
+    if (funnelViewedRef.current || authLoading) return;
+    funnelViewedRef.current = true;
+    trackSkynnEvent("skynn_viewed", { mode: "basic", account_state: accountState });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
+
+  // Step-entry funnel events (consent / photo / MST / questionnaire).
+  useEffect(() => {
+    if (step === STEP_CONSENT) trackSkynnEvent("skynn_consent_viewed", { mode: "basic" });
+    else if (step === STEP_PHOTO) trackSkynnEvent("skynn_photo_step_viewed", { mode: "basic" });
+    else if (step === STEP_MST) trackSkynnEvent("skynn_mst_viewed", { mode: "basic" });
+    else if (step === FIRST_QUESTION_STEP) {
+      trackSkynnEvent("skynn_assessment_started", { mode: "basic" });
+      trackSkynnEvent("skynn_profile_started", { mode: "basic" });
+    }
+  }, [step]);
+
   // Fire the "viewed" funnel event once per completed analysis, separate from
   // "generated" (the data existing) — this is the moment a person actually saw it.
   useEffect(() => {
     if (step === STEP_RESULTS && recommendation && !viewedFiredRef.current) {
       viewedFiredRef.current = true;
-      trackConversionEvent("analysis_viewed", { resultTier });
+      trackConversionEvent("analysis_viewed", { resultTier: "free" });
+      trackSkynnEvent("skynn_results_viewed", { mode: "basic", account_state: accountState });
     }
-  }, [step, recommendation, resultTier]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, recommendation]);
 
   // Save the result to the account the moment one exists — whether the visitor was
   // already signed in, or just created/logged into an account from the results
-  // screen below. The live-AI path already persists server-side (skincare-ai), so
-  // only the free/starter path needs a client-side save here. Idempotent: keyed on
-  // `analysisId` via an upsert, so a refinement re-save or a retried save after a
-  // network error updates the same row instead of creating a duplicate (Section 18).
+  // screen below. This save is the Basic AI Skin Analysis weekly-limit gate
+  // (save_starter_analysis); the full result and PDF render only after it
+  // succeeds. Idempotent on `analysisId`, so a refinement re-save or a retried
+  // save after a network error updates the same row (Section 18). The photo is
+  // never uploaded (SKYNN AI v2.1).
   useEffect(() => {
-    if (step !== STEP_RESULTS || !recommendation || !user || resultsSaved || savingResultsRef.current) return;
+    if (step !== STEP_RESULTS || !recommendation || !user || resultsSaved || savingResultsRef.current || !starterResult) return;
     savingResultsRef.current = true;
     (async () => {
-      if (resultTier === "free" && starterResult) {
-        let photoStoragePath: string | null = null;
-        if (skinImage && photoConsent) {
-          const upload = await uploadAnalysisPhoto({ userId: user.id, analysisId, dataUrl: skinImage });
-          photoStoragePath = upload.path;
-        }
-        const outcome = await persistStarterResultToAccount({
-          result: starterResult,
-          contactName: contactName || null,
-          contactWhatsApp: contactWhatsApp || null,
-          photoStoragePath,
-          variantKey: getPersistedPricingVariant(),
-        });
-        savingResultsRef.current = false;
-        if (outcome.limitReached) {
-          // Server refused: free allowance spent, no Analysis Pass. Don't keep a
-          // photo for an analysis that was never saved.
-          if (photoStoragePath) void removeAnalysisPhoto(photoStoragePath);
-          setSaveLimitReached(true);
-          setLockedUntil(outcome.nextUnlockAt);
-          void refreshAllowance();
-          return;
-        }
-        if (outcome.error) {
-          setSaveError(outcome.error.message);
-          trackConversionEvent("starter_account_link_failed", { message: outcome.error.message });
-          return;
-        }
-        setSaveError(null);
-        setSaveLimitReached(false);
-        trackConversionEvent("starter_account_link_completed");
-        if (outcome.source === "analysis_pass") void refreshPassBalance();
+      const outcome = await persistStarterResultToAccount({
+        result: starterResult,
+        contactName: contactName || null,
+        contactWhatsApp: contactWhatsApp || null,
+        photoStoragePath: null,
+        variantKey: getPersistedPricingVariant(),
+      });
+      savingResultsRef.current = false;
+      if (outcome.limitReached) {
+        setSaveLimitReached(true);
+        setLockedUntil(outcome.nextUnlockAt);
+        trackSkynnEvent("skynn_basic_limit_reached", { mode: "basic", source: "save" });
         void refreshAllowance();
+        return;
       }
+      if (outcome.error) {
+        setSaveError(outcome.error.message);
+        trackConversionEvent("starter_account_link_failed", { message: outcome.error.message });
+        trackSkynnEvent("skynn_basic_submission_failed", { mode: "basic", error_category: "save_failed" });
+        return;
+      }
+      setSaveError(null);
+      setSaveLimitReached(false);
+      trackConversionEvent("starter_account_link_completed");
+      trackSkynnEvent("skynn_basic_submission_succeeded", { mode: "basic", account_state: accountState });
+      void refreshAllowance();
       setResultsSaved(true);
-      trackConversionEvent("results_saved", { resultTier });
+      trackConversionEvent("results_saved", { resultTier: "free" });
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, recommendation, user, resultsSaved, resultTier, starterResult, saveAttempt]);
+  }, [step, recommendation, user, resultsSaved, starterResult, saveAttempt]);
 
   // Anonymous persistence (Section 16): restore a completed result or an
   // in-progress draft from localStorage on mount, so a refresh, accidental back
@@ -574,7 +492,6 @@ const AIFormulator = () => {
       setPriorityPreference(completed.result.preferences.priority);
       setStarterResult(completed.result);
       setRecommendation(completed.result.recommendationText);
-      setResultTier("free");
       setCompleteness(completed.result.completeness);
       setGroundedRoutine(completed.result.groundedRoutine);
       setStep(STEP_RESULTS);
@@ -615,31 +532,12 @@ const AIFormulator = () => {
     });
   }, [step, answers, mstTone, changeStatus, changeDetail, priorityPreference, skinImage, contactName, contactEmail, contactWhatsApp, analysisId]);
 
-  const handleStartAnalysis = (options?: { useAdvancedPass?: boolean }) => {
-    useAdvancedPassRef.current = Boolean(options?.useAdvancedPass);
-    trackConversionEvent("analysis_started", options?.useAdvancedPass ? { advancedPass: true } : undefined);
-    trackConversionEvent("formulator_started", {
-      accountState: user ? (isMember ? "member" : "free") : "anonymous",
-      ...(options?.useAdvancedPass ? { advancedPass: true } : {}),
-    });
+  const handleStartAnalysis = () => {
+    trackConversionEvent("analysis_started");
+    trackConversionEvent("formulator_started", { accountState });
+    trackSkynnEvent("skynn_started", { mode: "basic", account_state: accountState });
+    trackSkynnEvent("skynn_mode_selected", { mode: "basic", source: "intro" });
     setStep(STEP_CONSENT);
-  };
-
-  /** Pre-quiz "Want to go deeper?" teaser CTA — adapts to what the visitor can already access. */
-  const handlePreAnalysisAdvancedCta = () => {
-    trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "pre_analysis" });
-    if (isMember) {
-      trackConversionEvent("advanced_assessment_membership_cta_clicked", { funnelLocation: "pre_analysis" });
-      handleStartAnalysis();
-      return;
-    }
-    if (passBalance && passBalance > 0) {
-      toast.message("Your next analysis will use an Analysis Pass.");
-      handleStartAnalysis({ useAdvancedPass: true });
-      return;
-    }
-    trackConversionEvent("analysis_pass_purchase_viewed", { source: "pre_analysis" });
-    setPassPurchaseOpen(true);
   };
 
   const handleSaveResults = async (e: React.FormEvent) => {
@@ -696,20 +594,30 @@ const AIFormulator = () => {
   const handleNext = () => {
     if (step === STEP_CONSENT) {
       trackConversionEvent("consent_completed");
+      trackSkynnEvent("skynn_consent_accepted", { mode: "basic" });
       setStep(STEP_PHOTO);
       return;
     }
     if (step === STEP_PHOTO) {
-      if (!skinImage) trackConversionEvent("starter_question_skipped", { step: "photo" });
+      if (!skinImage) {
+        trackConversionEvent("starter_question_skipped", { step: "photo" });
+        trackSkynnEvent("skynn_photo_skipped", { mode: "basic" });
+      }
       setStep(STEP_MST);
       return;
     }
     if (step === STEP_MST) {
+      trackSkynnEvent(mstTone !== null ? "skynn_mst_selected" : "skynn_mst_skipped", {
+        mode: "basic",
+        mst_selected: mstTone !== null,
+      });
       setStep(FIRST_QUESTION_STEP);
       return;
     }
     if (step === LAST_QUESTION_STEP) {
       trackConversionEvent("profile_completed");
+      trackSkynnEvent("skynn_profile_completed", { mode: "basic" });
+      trackSkynnEvent("skynn_questionnaire_completed", { mode: "basic" });
       setStep(STEP_CHANGE);
       return;
     }
@@ -726,6 +634,8 @@ const AIFormulator = () => {
 
   const handleBack = () => {
     if (currentQuestion) trackConversionEvent("starter_question_back", { questionId: currentQuestion.id });
+    // Backing out of consent without accepting is the only "decline" signal we have.
+    if (step === STEP_CONSENT) trackSkynnEvent("skynn_consent_declined", { mode: "basic" });
     if (step > 0) setStep(step - 1);
   };
 
@@ -759,8 +669,8 @@ const AIFormulator = () => {
     savingResultsRef.current = false;
     viewedFiredRef.current = false;
     saveCtaViewedRef.current = false;
-    useAdvancedPassRef.current = false;
-    setPassPurchaseOpen(false);
+    progressPctRef.current = 0;
+    completedFiredRef.current = false;
     clearAllStarterAnalysisState();
   };
 
@@ -774,6 +684,24 @@ const AIFormulator = () => {
   useEffect(() => {
     if (currentQuestion) trackConversionEvent("starter_question_viewed", { questionId: currentQuestion.id });
   }, [currentQuestion]);
+
+  // Questionnaire progress at 25/50/75% only — never which answer was given.
+  useEffect(() => {
+    if (!currentQuestion) return;
+    const milestone = crossedMilestone(progressPctRef.current, progress);
+    progressPctRef.current = Math.max(progressPctRef.current, progress);
+    if (milestone) trackSkynnEvent("skynn_questionnaire_progress", { mode: "basic", progress_pct: milestone });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestion]);
+
+  // Funnel end-state: the full, saved Basic AI Skin Analysis is on screen.
+  const fullResultVisible = Boolean(user) && resultsSaved && !saveLimitReached;
+  useEffect(() => {
+    if (step !== STEP_RESULTS || !fullResultVisible || completedFiredRef.current) return;
+    completedFiredRef.current = true;
+    trackSkynnEvent("skynn_results_completed", { mode: "basic", account_state: accountState });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, fullResultVisible]);
 
   if (authLoading) {
     return (
@@ -869,9 +797,11 @@ const AIFormulator = () => {
 
   const mstSwatch = mstTone !== null ? MST_SCALE.find((s) => s.level === mstTone) : null;
 
-  // Anonymous visitors see the summary + a free sign-up; a signed-in account
-  // sees everything unless the server refused to save (allowance spent).
-  const showFullResult = resultTier === "premium" || isMember || (Boolean(user) && !saveLimitReached);
+  // The full Basic AI Skin Analysis (routine, PDF) is shown only once the server
+  // has accepted the save — that save is the weekly-limit gate. Anonymous
+  // visitors, a save in flight, and a refused save all see the preview.
+  const showFullResult = fullResultVisible;
+  const saveInFlight = Boolean(user) && !resultsSaved && !saveLimitReached && !saveError;
   const starterSummary = starterResult ? summarizeStarterResult(starterResult) : null;
   const introLocked = Boolean(user && !isMember && allowance?.locked);
 
@@ -885,14 +815,14 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                   <Sparkles className="h-4 w-4" />
                   <span className="gradient-text font-bold">SKYNN AI</span>{" "}
-                  <span className="text-muted-foreground font-normal">(beta)</span> · by SkinLabs®
+                  <span className="text-muted-foreground font-normal">v2.1 — beta</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
                     <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
-                      Starter Analysis, no card required, no account required •
-                      <a href="/pricing" className="text-primary hover:underline ml-1">Unlock deeper personalisation with a live AI Dermatology Report</a>
+                      {BASIC_NAME} · free, no card required •
+                      <a href={SKYNN_ADVANCED_ROUTE} className="text-primary hover:underline ml-1">Go deeper with the {ADVANCED_NAME}</a>
                     </span>
                   </div>
                 )}
@@ -940,7 +870,7 @@ const AIFormulator = () => {
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-heading font-bold tracking-tight">
-                      SKYNN AI <span className="font-normal text-background/60">(beta)</span>
+                      SKYNN AI <span className="font-normal text-background/60">v2.1 — beta</span>
                     </span>
                     <span className="text-background/60 font-medium">SkinLabs®</span>
                   </div>
@@ -951,12 +881,12 @@ const AIFormulator = () => {
                       <span className="gradient-text">Smarter care.</span>
                     </h2>
                     <p className="text-background/70 max-w-md">
-                      AI-powered skin assessment and personalised routine formulation, built for every skin tone.
+                      A free {BASIC_NAME} and personalised routine, built for every skin tone — once every 7 days.
                     </p>
                   </div>
                   <div className="grid gap-3">
                     {[
-                      { icon: BarChart3, label: "Advanced skin analysis", tint: "bg-emerald-500/15 text-emerald-400 dark:text-emerald-700" },
+                      { icon: BarChart3, label: BASIC_NAME, tint: "bg-emerald-500/15 text-emerald-400 dark:text-emerald-700" },
                       { icon: Layers, label: "Personalised routines", tint: "bg-blue-500/15 text-blue-400 dark:text-blue-700" },
                       { icon: ShieldCheck, label: "Dermatologist-grounded research", tint: "bg-purple-500/15 text-purple-400 dark:text-purple-700" },
                       { icon: Lock, label: "Privacy-first", tint: "bg-pink-500/15 text-pink-400 dark:text-pink-700" },
@@ -992,25 +922,10 @@ const AIFormulator = () => {
                       onClick={() => handleStartAnalysis()}
                       className="w-full gap-2 bg-background text-foreground hover:bg-background/90 gradient-border-anim"
                     >
-                      {/* "Get started for free" is the right framing for a visitor who
-                          doesn't yet have access to the Advanced AI Dermatology Report —
-                          but it reads oddly for an Insider/VIP member, or an Explorer/Lite
-                          member holding an Analysis Pass, since they're not starting a
-                          free trial of anything; they already have paid/entitled access.
-                          Both are already resolved above (isMember/passBalance) for the
-                          "Want to go deeper?" panel just below, so this reuses the same
-                          state rather than adding a new check. */}
-                      {isMember || (passBalance && passBalance > 0) || (user && allowance?.freeRemaining === 0)
-                        ? "Start My Analysis"
-                        : "Get started for free"}
+                      {/* Members aren't starting anything "free" — they're already entitled. */}
+                      {isMember ? `Start my ${BASIC_NAME}` : `Start my free ${BASIC_NAME}`}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                    )}
-                    {user && !isMember && allowance && allowance.freeRemaining === 0 && allowance.passBalance > 0 && (
-                      <p className="text-center text-xs text-background/70">
-                        You've used your free analysis for now — this one will use 1 of your {allowance.passBalance} Analysis Pass
-                        {allowance.passBalance === 1 ? "" : "es"}.
-                      </p>
                     )}
                     <Button
                       type="button"
@@ -1039,7 +954,7 @@ const AIFormulator = () => {
                         preAnalysisUpsellViewedRef.current = true;
                         trackConversionEvent("advanced_assessment_upsell_viewed", {
                           funnelLocation: "pre_analysis",
-                          accessState: isMember ? "member" : passBalance && passBalance > 0 ? "pass_holder" : "none",
+                          accessState: isMember ? "member" : "none",
                         });
                       }
                     }}
@@ -1048,8 +963,9 @@ const AIFormulator = () => {
                     <div>
                       <p className="text-sm font-medium text-background/90">Want to go deeper?</p>
                       <p className="text-xs text-background/60 mt-1">
-                        The free Starter Analysis gives you a quick snapshot of your skin. The Advanced Assessment goes
-                        further with a more comprehensive skin profile and advanced personalised insights.
+                        The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a
+                        longer, more detailed questionnaire that uses one Analysis Pass. During this beta, submissions
+                        are received and queued with a reference number while the full report workflow is finalised.
                       </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
@@ -1058,14 +974,10 @@ const AIFormulator = () => {
                         size="sm"
                         variant="outline"
                         className="gap-2 border-background/30 bg-transparent text-background hover:bg-background/10 hover:text-background"
-                        onClick={handlePreAnalysisAdvancedCta}
+                        onClick={() => goToAdvanced("pre_analysis")}
                       >
                         <Sparkles className="h-3.5 w-3.5" />
-                        {isMember
-                          ? "Start Advanced Assessment"
-                          : passBalance && passBalance > 0
-                            ? "Use 1 Analysis Pass"
-                            : "Explore Advanced Assessment"}
+                        Explore the {ADVANCED_NAME}
                       </Button>
                     </div>
                   </div>
@@ -1082,8 +994,8 @@ const AIFormulator = () => {
                       Your consent &amp; privacy
                     </h2>
                     <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                      To give you the best experience, we need your consent to collect and use certain information —
-                      including images, skin tone (for fairness testing), and your responses.
+                      Before we start, we need your consent to use your answers and, if you choose to share it, your
+                      self-reported Monk Skin Tone. An optional photo stays on this device.
                     </p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4 space-y-2">
@@ -1092,7 +1004,7 @@ const AIFormulator = () => {
                       Important Disclaimer
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      SKYNN AI (beta) provides general skincare guidance and is <strong>not medical advice, diagnosis or
+                      {SKYNN_RELEASE_LABEL} provides general skincare guidance and is <strong>not medical advice, diagnosis or
                       treatment</strong>. For medical skin conditions, rashes or persistent concerns, please consult a
                       licensed dermatologist or HPCSA-registered practitioner.
                     </p>
@@ -1108,8 +1020,9 @@ const AIFormulator = () => {
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-mst" checked={consentMst} onCheckedChange={(c) => setConsentMst(c === true)} className="mt-0.5" />
                       <Label htmlFor="consent-mst" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                        I understand that my skin tone (MST) — if I choose to share it — is used for fairness and
-                        inclusion testing, not as a diagnosis.
+                        I understand that my Monk Skin Tone (MST) is optional and self-reported. If I share it, it
+                        tailors sun-protection and pigmentation guidance and helps SkinLabs test fairness across skin
+                        tones. It is never inferred from a photo and is not a diagnosis.
                       </Label>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
@@ -1117,7 +1030,7 @@ const AIFormulator = () => {
                       <Label htmlFor="consent-terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I agree to the <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a> and{" "}
                         <a href="/terms" className="text-primary hover:underline">Terms of Service</a>, and understand SKYNN AI
-                        (beta) does not replace professional medical care.
+                        does not replace professional medical care.
                       </Label>
                     </div>
                   </div>
@@ -1131,17 +1044,18 @@ const AIFormulator = () => {
                       Add a photo
                     </h2>
                     <p className="text-muted-foreground text-sm">
-                      Upload a clear, well-lit photo of your face (optional, but improves accuracy). No filters, no sunglasses.
+                      Optional. Your photo stays on this device — it is not uploaded, not analysed by AI and never used
+                      to estimate your skin tone. It's shown on your results screen for your own reference.
                     </p>
                   </div>
                   {!skinImage ? (
                     <>
                       <div className="grid sm:grid-cols-2 gap-4">
-                        <button type="button" onClick={() => cameraInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                        <button type="button" onClick={() => cameraInputRef.current?.click()} aria-label="Take a photo with your camera (optional)" className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
                           <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Camera className="h-7 w-7 text-primary" /></div>
                           <span className="font-medium text-card-foreground">Take Photo</span>
                         </button>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
+                        <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Choose a photo from your device (optional)" className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
                           <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
                           <span className="font-medium text-card-foreground">Upload Image</span>
                         </button>
@@ -1168,22 +1082,22 @@ const AIFormulator = () => {
                       <img src={skinImage} alt="Skin preview" className="w-full h-52 object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                       <div className="absolute bottom-3 left-3 flex items-center gap-2 text-primary-foreground">
-                        <ImageIcon className="h-4 w-4" /><span className="text-sm font-medium">Photo uploaded</span>
+                        <ImageIcon className="h-4 w-4" /><span className="text-sm font-medium">Photo added (stays on this device)</span>
                       </div>
-                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} className="absolute top-3 right-3"><X className="h-4 w-4" /></Button>
+                      <Button type="button" variant="destructive" size="icon" onClick={removeImage} aria-label="Remove photo" className="absolute top-3 right-3"><X className="h-4 w-4" /></Button>
                     </div>
                   )}
                   {skinImage && (
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
                       <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
                       <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                        I consent to my photo being analysed by AI for skincare assessment purposes only.
-                        Photos are processed securely and deleted within 30 days. You can request deletion at any time.
+                        I understand my photo stays on this device. It isn't uploaded or analysed, and SKYNN AI never
+                        uses it to estimate my skin tone.
                       </Label>
                     </div>
                   )}
-                  <input ref={cameraInputRef} type="file" accept="image/*" capture="user" onChange={handleImageUpload} className="hidden" />
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <input ref={cameraInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" capture="user" onChange={handleImageUpload} className="hidden" aria-hidden="true" tabIndex={-1} />
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleImageUpload} className="hidden" aria-hidden="true" tabIndex={-1} />
                 </div>
               )}
 
@@ -1191,11 +1105,11 @@ const AIFormulator = () => {
                 <div className="space-y-6">
                   <div className="text-center mb-2">
                     <h2 className="text-xl md:text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      Monk Skin Tone (MST)
+                      Monk Skin Tone (MST) — optional
                     </h2>
                     <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                      Which skin tone most closely represents you? This helps us test and improve AI performance
-                      across different skin tones — it does not determine your diagnosis or recommendations.
+                      Which tone most closely represents you? This is your choice to share — SKYNN AI never infers it
+                      from your photo, and it is not a diagnosis.
                     </p>
                   </div>
                   <MstGrid value={mstTone} onChange={setMstTone} />
@@ -1204,9 +1118,9 @@ const AIFormulator = () => {
                     <div>
                       <p className="text-xs font-medium text-card-foreground mb-1">Why we ask</p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        We ask about your Monk Skin Tone (MST) to test and improve AI performance across different skin
-                        tones. It helps us make sure SKYNN AI works well for everyone — across all skin tones. This
-                        information does not determine your diagnosis or recommendations, and sharing it is optional.
+                        If you share it, your Monk Skin Tone (MST) tailors your sun-protection and pigmentation
+                        guidance, and it helps us check that SKYNN AI works equally well across all skin tones. It
+                        only ever comes from your own choice here, and you can choose "Prefer not to say".
                       </p>
                     </div>
                   </div>
@@ -1255,28 +1169,13 @@ const AIFormulator = () => {
                   className="mb-5 rounded-xl border border-primary/20 bg-accent/30 p-4 space-y-2"
                 >
                   <p className="text-sm text-card-foreground">
-                    <span className="font-medium">You're building your skin profile.</span> Want the full picture? The
-                    Advanced Assessment looks deeper at the factors behind your skin concerns and creates a much more
-                    comprehensive profile.
+                    <span className="font-medium">You're building your skin profile.</span> Want the full picture? The{" "}
+                    {ADVANCED_NAME} asks in more depth about the factors behind your skin concerns. You can finish this{" "}
+                    {BASIC_NAME} first — nothing here is lost.
                   </p>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "during_analysis" });
-                      if (passBalance && passBalance > 0) {
-                        useAdvancedPassRef.current = true;
-                        toast.message("Your next analysis will use an Analysis Pass.");
-                      } else {
-                        trackConversionEvent("analysis_pass_purchase_viewed", { source: "during_analysis" });
-                        setPassPurchaseOpen(true);
-                      }
-                    }}
-                  >
+                  <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => goToAdvanced("during_analysis")}>
                     <Sparkles className="h-3.5 w-3.5" />
-                    See Advanced Assessment
+                    See the {ADVANCED_NAME}
                   </Button>
                 </div>
               )}
@@ -1301,17 +1200,12 @@ const AIFormulator = () => {
                       <div className="w-20 h-20 gradient-bg-soft rounded-full flex items-center justify-center mx-auto mb-6">
                         <Loader2 className="h-10 w-10 text-primary animate-spin" />
                       </div>
-                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running SKYNN AI analysis...</h2>
+                      <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">Running your {BASIC_NAME}…</h2>
                       <p className="text-muted-foreground max-w-md mx-auto">Building a routine around your actual answers — this takes a few seconds</p>
                     </>
                   ) : allowanceExhausted ? (
                     <div className="text-left">
-                      <ReanalysisLockedPanel
-                        nextUnlockAt={lockedUntil}
-                        source="formulator_save"
-                        passBalance={passBalance ?? 0}
-                        onUsePass={handleUseAnalysisPass}
-                      />
+                      <ReanalysisLockedPanel nextUnlockAt={lockedUntil} source="formulator_save" />
                     </div>
                   ) : (
                     <>
@@ -1319,7 +1213,7 @@ const AIFormulator = () => {
                         <AlertTriangle className="h-10 w-10 text-destructive" />
                       </div>
                       <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">We couldn't generate your analysis</h2>
-                      <p className="text-muted-foreground max-w-md mx-auto mb-6">{analysisError}</p>
+                      <p className="text-muted-foreground max-w-md mx-auto mb-6" role="alert">{analysisError}</p>
                       <div className="flex flex-col sm:flex-row gap-3 justify-center">
                         <Button onClick={() => void runAnalysis()} className="gap-2">
                           <Sparkles className="h-4 w-4" />
@@ -1339,42 +1233,21 @@ const AIFormulator = () => {
                 <div className="space-y-6">
                   <div className="text-center">
                     <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
-                      {isMember ? "Your Personalized Skincare Routine" : showFullResult ? "Your Starter Analysis" : "Your skin at a glance"}
+                      {showFullResult ? `Your ${BASIC_NAME}` : "Your skin at a glance"}
                     </h2>
                     <p className="text-muted-foreground">
-                      {isMember
-                        ? `Customized for your ${derivedSkinType} skin`
-                        : showFullResult
-                          ? `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`
-                          : "Here's what your answers say about your skin. Your full analysis and routine are one free step away."}
+                      {showFullResult
+                        ? `Your personalised starting point for ${derivedSkinType} skin, built from the information you shared`
+                        : saveInFlight
+                          ? "Saving your analysis to your account…"
+                          : user
+                            ? "Here's what your answers say about your skin."
+                            : "Here's what your answers say about your skin. Your full analysis, routine and PDF are one free step away."}
                     </p>
                   </div>
 
                   {showFullResult ? (
                   <>
-                  {isMember && resultTier === "free" && (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-accent/40 p-4">
-                      <div className="space-y-1">
-                        <Badge variant="secondary" className="mb-1">Included with your membership</Badge>
-                        <p className="text-sm text-card-foreground">
-                          Get your Advanced Assessment — a live, dermatology-grounded report using these same answers, no re-doing the assessment.
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="gap-2 shrink-0"
-                        onClick={() => {
-                          trackConversionEvent("advanced_analysis_started");
-                          trackConversionEvent("advanced_assessment_membership_cta_clicked", { funnelLocation: "results" });
-                          setStep(STEP_ANALYSIS);
-                        }}
-                      >
-                        <Sparkles className="h-4 w-4" />
-                        Start Advanced Assessment
-                      </Button>
-                    </div>
-                  )}
-
                   {/* Skin Snapshot strip */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {skinImage && (
@@ -1433,8 +1306,8 @@ const AIFormulator = () => {
                         <ConfidencePanel
                           completeness={completeness}
                           limitations={[
-                            "May be less accurate in low light or with an unclear photo.",
-                            "Some conditions can look different across skin tones — MST helps us test for this.",
+                            "Built from your answers only — your photo is not analysed.",
+                            "Some concerns can look different across skin tones — your optional, self-reported MST helps us check for this.",
                             "Not a substitute for professional medical advice.",
                           ]}
                         />
@@ -1453,9 +1326,19 @@ const AIFormulator = () => {
 
                   {starterResult && <AboutYourAnalysisSection />}
 
-                  <div className="flex justify-center">
-                    <Button variant="ghost" size="sm" onClick={handleShareResults} className="gap-2 text-muted-foreground">
-                      <Share2 className="h-4 w-4" />
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDownloadPdf}
+                      aria-label={`Download my ${BASIC_NAME} report (PDF)`}
+                      className="min-h-11 h-auto gap-2 whitespace-normal text-center"
+                    >
+                      <Download className="h-4 w-4" aria-hidden="true" />
+                      Download my report (PDF)
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
+                      <Share2 className="h-4 w-4" aria-hidden="true" />
                       Share my skin type
                     </Button>
                   </div>
@@ -1464,7 +1347,7 @@ const AIFormulator = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-primary">
                         <CheckCircle2 className="h-4 w-4" />
-                        {resultsSaved ? "Saved to your account" : saveError ? "Couldn't save your results" : "Saving to your account..."}
+                        {resultsSaved ? "Saved to your account" : saveError ? "Couldn't save your results" : "Saving to your account…"}
                       </div>
                       {saveError && (
                         <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
@@ -1486,14 +1369,14 @@ const AIFormulator = () => {
                     </div>
                   ) : null}
 
-                  {!isMember && starterResult && (
+                  {starterResult && (
                     <div
                       ref={(el) => {
                         if (el && !resultsUpsellViewedRef.current) {
                           resultsUpsellViewedRef.current = true;
                           trackConversionEvent("advanced_assessment_upsell_viewed", {
                             funnelLocation: "results",
-                            accessState: passBalance && passBalance > 0 ? "pass_holder" : "none",
+                            accessState: isMember ? "member" : "none",
                           });
                         }
                       }}
@@ -1503,45 +1386,21 @@ const AIFormulator = () => {
                         This is your starting point. There's more to your skin story.
                       </p>
                       <div>
-                        <h4 className="font-heading font-semibold text-card-foreground">Go deeper with Advanced Assessment</h4>
+                        <h4 className="font-heading font-semibold text-card-foreground">Go deeper with the {ADVANCED_NAME}</h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Your Starter Analysis gives you a personalised snapshot. The Advanced Assessment takes the next
-                          step — combining a deeper skin questionnaire, additional skin-profile data and a more
-                          comprehensive AI analysis to build a detailed report tailored to you.
+                          A longer, more detailed questionnaire about how your skin behaves, your concerns and your
+                          day-to-day. It uses one Analysis Pass. During this beta your submission is received and
+                          queued with a reference number; your report follows once the review workflow is finalised.
                         </p>
                       </div>
-                      {passBalanceLoading ? (
-                        <Button size="lg" disabled className="gap-2"><Loader2 className="h-4 w-4 animate-spin" />Checking your Analysis Passes…</Button>
-                      ) : passBalance && passBalance > 0 ? (
-                        <Button size="lg" className="gap-2" onClick={handleUseAnalysisPass}>
-                          <Sparkles className="h-4 w-4" />
-                          Use an Analysis Pass ({passBalance} available)
-                        </Button>
-                      ) : (
-                        <Button
-                          size="lg"
-                          className="gap-2"
-                          onClick={() => {
-                            trackConversionEvent("advanced_analysis_cta_clicked", { cta: "get_pass" });
-                            trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "results" });
-                            trackConversionEvent("analysis_pass_purchase_viewed", { source: "starter_results" });
-                            setPassPurchaseOpen(true);
-                          }}
-                        >
-                          <Sparkles className="h-4 w-4" />
-                          Unlock Advanced Assessment
-                        </Button>
-                      )}
+                      <Button size="lg" className="gap-2" onClick={() => goToAdvanced("results")}>
+                        <Sparkles className="h-4 w-4" />
+                        Explore the {ADVANCED_NAME}
+                      </Button>
                     </div>
                   )}
 
                   {starterResult && <PremiumUpsellSection hasGroundedMatches={starterResult.groundedRoutine.matchStats.matched > 0} />}
-
-                  <UpgradePrompt
-                    feature="ai_analysis.live_weekly"
-                    headline="Want a live AI report analysed from your exact photo?"
-                    body="Glow Insider and VIP get a dermatology-grounded report re-analysed weekly as your skin changes — not just this one-time starter match."
-                  />
 
                   </>
                   ) : (
@@ -1631,12 +1490,28 @@ const AIFormulator = () => {
                           </button>
                         </div>
                       ) : saveLimitReached ? (
-                        <ReanalysisLockedPanel
-                          nextUnlockAt={lockedUntil}
-                          source="formulator_save"
-                          passBalance={passBalance ?? 0}
-                          onUsePass={handleUseAnalysisPass}
-                        />
+                        <ReanalysisLockedPanel nextUnlockAt={lockedUntil} source="formulator_save" />
+                      ) : saveError ? (
+                        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                          <span>We couldn't save your analysis: {saveError}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSaveError(null);
+                              savingResultsRef.current = false;
+                              setSaveAttempt((n) => n + 1);
+                            }}
+                          >
+                            Retry
+                          </Button>
+                        </div>
+                      ) : saveInFlight ? (
+                        <p role="status" className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          Saving your {BASIC_NAME}…
+                        </p>
                       ) : null}
 
                       <div className="flex justify-center">
@@ -1670,7 +1545,6 @@ const AIFormulator = () => {
         </div>
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
-      <AnalysisPassPurchaseModal open={passPurchaseOpen} onOpenChange={setPassPurchaseOpen} />
       <SkynnVideoModal open={videoModalOpen} onOpenChange={setVideoModalOpen} />
     </>
   );

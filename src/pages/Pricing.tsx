@@ -241,7 +241,7 @@ const Pricing = () => {
                 <span className="font-semibold">Limited time:</span> every paid plan below is free to try until{" "}
                 {PROMO_END_DATE_LABEL}, no card required — all member benefits apply except ad-free browsing.{" "}
                 <span className="text-muted-foreground">
-                  Advanced AI Analysis Passes stay a small once-off payment for everyone. Add PayPal or a card
+                  Analysis Passes for the Advanced AI Dermatology Analysis stay a small once-off payment for everyone. Add PayPal or a card
                   when you start and your membership continues automatically from {PROMO_END_DATE_LABEL} — you
                   won't be charged before then.
                 </span>

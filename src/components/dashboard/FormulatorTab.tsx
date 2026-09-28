@@ -82,8 +82,8 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
             <Crown className="h-5 w-5 text-primary" /> Members only
           </CardTitle>
           <CardDescription>
-            The full AI skin profile — selfie analysis, AM/PM routine, actives schedule and PDF export — is
-            included with Glow Insider and Glow VIP.
+            Running the Basic AI Skin Analysis inside your dashboard, with unlimited re-analysis and saved
+            history, is included with Glow Insider and Glow VIP.
             {action.kind === "trial" ? ` Start the Insider ${trialNoun()}, no card needed.` : ""}
           </CardDescription>
         </CardHeader>
@@ -95,7 +95,7 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
             </Button>
           )}
           <Button variant="outline" asChild>
-            <Link to="/skynn-ai">Try the free starter version</Link>
+            <Link to="/skynn-ai">Start your free Basic AI Skin Analysis</Link>
           </Button>
           <SeeAllPlansLink />
         </CardContent>

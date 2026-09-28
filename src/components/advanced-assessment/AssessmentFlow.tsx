@@ -87,7 +87,7 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
           </Button>
           <Button onClick={onSubmit} disabled={submitting} className="gap-2 flex-1 gradient-border-anim">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {intakeMode ? "Submit my request" : "Generate my Advanced Report"}
+            {intakeMode ? "Submit my request" : "Generate my Advanced AI Dermatology Analysis report"}
           </Button>
         </div>
       </div>
@@ -117,7 +117,7 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
 
       {consentDeclined && (
         <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
-          We can only create an Advanced AI Dermatology Report with your consent. You can change your answer above, or
+          We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or
           leave now — no Analysis Pass has been used.
         </p>
       )}

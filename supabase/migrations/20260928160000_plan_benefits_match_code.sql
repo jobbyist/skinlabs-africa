@@ -12,7 +12,9 @@
 -- The Ingredient Combination Checker is free to every signed-in account, so
 -- it's listed on Explorer instead of reading as a paid perk. The Routine
 -- Builder moved from VIP to Insider (entitlements.ts) and stays on Insider.
--- Keep src/data/plans.ts (the offline fallback) in sync.
+-- Builds on 20260928142000_skynn_v21_plan_copy.sql (the legacy weekly live-AI
+-- report is retired, so it is not advertised). Keep src/data/plans.ts (the
+-- offline fallback) in sync.
 UPDATE public.pricing_plans SET benefits = '[
   "One free Basic AI Skin Analysis every 7 days to see your real skin profile",
   "Public reviews, scores and Spotlight rankings",
@@ -30,7 +32,7 @@ UPDATE public.pricing_plans SET benefits = '[
 
 UPDATE public.pricing_plans SET benefits = '[
   "Everything in Glow Lite",
-  "Unlimited Basic AI Skin Analysis, plus weekly live AI analysis",
+  "Unlimited Basic AI Skin Analysis — re-analyse whenever your skin changes",
   "Intelligent Routine Builder on every review page",
   "Unlimited Daily Skinny briefings, full reviews and the full podcast library",
   "Active Ingredient Conflict Matcher for your SKYNN AI routine",

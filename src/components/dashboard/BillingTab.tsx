@@ -244,7 +244,7 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                   <div>
                     <p className="font-medium text-foreground">{pack.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {pack.credits} advanced AI Skin Analys{pack.credits === 1 ? "is" : "es"}
+                      {pack.credits} Advanced AI Dermatology Analys{pack.credits === 1 ? "is" : "es"}
                     </p>
                   </div>
                   <div className="text-right">

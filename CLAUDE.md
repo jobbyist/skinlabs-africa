@@ -62,6 +62,55 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
+
+Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
+`docs/conversion-events.md` (skynn_* section), the release PDF
+`docs/SKYNN-AI-v2.1-beta-Release.pdf`.
+
+- **Names** come from `src/lib/skynn/terminology.ts` (edge mirror
+  `supabase/functions/_shared/skynn/terminology.ts`): **SKYNN AI v2.1 — beta**,
+  **Basic AI Skin Analysis**, **Advanced AI Dermatology Analysis** (fallback =
+  "submission" / "— Pending", never "report ready/reviewed"), **Analysis Pass**,
+  **Monk Skin Tone (MST)**. `skynnTerminology.test.ts` fails on retired names
+  (Starter Analysis, AI Formulator, Advanced Assessment, (Advanced) Dermatology
+  Report, SKYNN AI (beta)…). DB/analytics identifiers keep their old names.
+- **Basic**: deterministic for every tier; Explorer/Glow Lite 1 per rolling
+  **7 days** (`pricing_settings.free_analysis_window_days`), Insider/VIP
+  unlimited; enforced only by `save_starter_analysis()`, which **never spends an
+  Analysis Pass** and raises `profile_missing` without a profile row. The full
+  result + PDF render only after that save succeeds; anonymous visitors see a
+  preview; no automatic PDF. Basic PDF must never claim dermatologist/specialist
+  review.
+- **Photos never leave the device and are never analysed; MST is never inferred.**
+  `mst_source` CHECK = `user_reported` only. `skynnNoToneInference.test.ts`
+  scans SKYNN edge code for image-to-model calls and tone-estimation prompts.
+- **One Advanced flow**: every Advanced CTA → `/skynn-ai/advanced`; membership
+  never grants it (`assessment.advanced` is in no ladder tier); the server
+  (`get_advanced_assessment_access`) is the only gate. Production is
+  `rollout_stage = pass_holders_review`, `report_mode = fallback` (it already was
+  before v2.1 — older notes below saying "left disabled" are stale).
+- **Legacy live-AI path retired**: `skincare-ai` repo source is a 410 stub; the
+  deployed function is an interim no-photo/no-tone version (v36) until merge.
+  **After merge**: deploy the stub (pinned raw-GitHub entry) and apply
+  `20260928150000_skynn_v21_retire_legacy_ai.sql` (revokes client EXECUTE on
+  consume/refund_analysis_pass + register_ai_analysis_use, drops the client
+  INSERT policy on `skincare_recommendations`).
+- **Pass safety**: `consume_analysis_pass`/`refund_analysis_pass` take a per-user
+  advisory lock; a client refund of a Pass linked to an Advanced session (or older
+  than 15 min) is refused — this was an exploitable bypass (reproduced live, 0
+  real sessions affected), fixed in `20260928141000`.
+- Analytics: only via `trackSkynnEvent()` (payload whitelist). Admin → SKYNN
+  Reviews shows `SkynnOpsPanel` (`skynn_ops_summary()`, admin-gated counts).
+- Probes (rolled back, pass live): `supabase/tests/formulator_allowance.sql`
+  (19), `supabase/tests/advanced_pass_gate.sql` (22). e2e: `e2e/skynn.e2e.ts`.
+- Edge deploys 2026-09-28 pinned to `e7e3389` (branch): `email-processor` v38,
+  `skynn-advanced-worker` v24, `skynn-advanced-assessment` v34. Next deploy must
+  pin a commit containing them.
+- Left for a human: Privacy Policy / Terms / Whitepaper still describe photo
+  upload/analysis (now over-describes); `/routines` markets unbuilt "Smart
+  Routines".
+
 ## Major systems
 
 - **Platform updates: viewer context, ad policy + ad-block wall, dedup, copy audit (2026-09-28)**
@@ -106,15 +155,13 @@ bullets under "Major systems" have the detail; these are the rules to keep.
     gates via `useEntitlements().can()`. Side effect: Insiders now also see
     named product matches in SKYNN AI results (same capability).
   - **Plan copy matches code**: migration
-    `20260928150000_plan_benefits_match_code.sql` (**applied live**) rewrote
+    `20260928160000_plan_benefits_match_code.sql` (**applied live**, after
+    v2.1's `20260928142000_skynn_v21_plan_copy.sql`) rewrote
     `pricing_plans.benefits`; `src/data/plans.ts` mirrors it. Removed perks
     nothing implements (Lite "priority briefings", Insider "member-only
     ingredient deep dives", VIP "exclusive OpenHaus access", "offline browsing",
     "VIP badge", /routines "Priority support"). Consultations copy no longer
     offers bookable sessions (not launched); gate titles name the right tier.
-    **Open decision**: live `pricing_settings.free_analysis_window_days` is **7**
-    (server enforces it, copy says 7) while `FORMULATOR_LIMITS`/the migration
-    default say 30.
   - **Fabricated social proof removed**: `/reviews` cards no longer show the
     hash-generated `getMemberRatingStats()` rating/member count; review pages
     no longer fall back to `seededRatings`/`seededComments` (invented reviewer
@@ -128,7 +175,7 @@ bullets under "Major systems" have the detail; these are the rules to keep.
     the last 45 days before generation (lead page) and before insert; the
     recent titles are also given to Gemini as "already covered". Three
     duplicates from the past 10 days were set to `status = 'duplicate'`
-    (reversible, migration `20260928140000_…`), and vercel.json 301s their URLs
+    (reversible, migration `20260928143000_…`), and vercel.json 301s their URLs
     to the originals.
   - **Pagination**: `getPageWindow()` (`src/lib/pagination.ts`, tested) —
     first · current±1 · last with ellipses, first · current · last and

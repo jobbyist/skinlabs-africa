@@ -130,7 +130,7 @@ registerTemplate({
     )}
     ${emailButton(`Keep ${label}`, `${BRAND.siteUrl}/dashboard?tab=billing&keep=1`)}
     ${emailParagraph(
-      `Just want one more deep dive? A single Analysis Pass unlocks an Advanced AI Dermatology Report from SKYNN AI, ` +
+      `Just want one more deep dive? A single Analysis Pass unlocks an Advanced AI Dermatology Analysis from SKYNN AI, ` +
       `no membership needed. <a href="${BRAND.siteUrl}/dashboard?tab=billing" style="color:${BRAND.text};">Get an Analysis Pass</a>.`
     )}
   `;

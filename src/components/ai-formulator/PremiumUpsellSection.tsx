@@ -15,8 +15,8 @@ interface PremiumUpsellSectionProps {
 const PERKS: Partial<Record<FeatureKey, { icon: LucideIcon; title: string; body: string }>> = {
   "ai_analysis.live_weekly": {
     icon: RefreshCw,
-    title: "Weekly live AI analysis",
-    body: "Re-run SKYNN AI whenever your skin changes and watch your profile update.",
+    title: "Unlimited Basic AI Skin Analysis",
+    body: "Re-run your Basic AI Skin Analysis whenever your skin changes — no 7-day wait.",
   },
   "ai_analysis.routine_builder": {
     icon: Sparkles,
@@ -41,7 +41,7 @@ const PERKS: Partial<Record<FeatureKey, { icon: LucideIcon; title: string; body:
 };
 
 /**
- * The Starter Analysis result screen's upsell. Honest by construction: it lists
+ * The Basic AI Skin Analysis result screen's upsell. Honest by construction: it lists
  * only capabilities of tiers that can be bought right now (pricing_plans
  * .is_purchasable ∩ LADDER_CAPABILITIES via purchasableCapabilities()), so a
  * VIP-only perk or consult booking never appears while VIP is "Coming soon",

@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportMarkdown from "@/components/advanced-assessment/ReportMarkdown";
 import ScoresPanel from "@/components/advanced-assessment/ScoresPanel";
 import AdvancedReportsPanel from "@/components/admin/AdvancedReportsPanel";
+import SkynnOpsPanel from "@/components/admin/SkynnOpsPanel";
 import {
   getReviewDetail,
   listPromptSignoffs,
@@ -38,9 +39,10 @@ const SkynnReviewsTab = () => {
   const [view, setView] = useState<"advanced" | "review">("advanced");
   return (
     <div className="space-y-6">
+      <SkynnOpsPanel />
       <Tabs value={view} onValueChange={(v) => setView(v as "advanced" | "review")}>
         <TabsList>
-          <TabsTrigger value="advanced">Advanced Reports</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced AI Dermatology Analysis</TabsTrigger>
           <TabsTrigger value="review">Report review</TabsTrigger>
         </TabsList>
       </Tabs>

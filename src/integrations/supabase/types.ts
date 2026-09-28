@@ -5656,6 +5656,23 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      skynn_ops_summary: {
+        Args: { p_days?: number }
+        Returns: {
+          advanced_intake_email_failed: number
+          advanced_intake_pdf_failed: number
+          advanced_pending: number
+          advanced_submissions: number
+          analysis_passes_consumed: number
+          basic_analyses_saved: number
+          basic_limit_hits: number
+          skynn_errors: number
+          skynn_pdf_downloads: number
+          skynn_results_viewed: number
+          skynn_starts: number
+          window_days: number
+        }[]
+      }
       start_free_trial: {
         Args: { p_plan: string; p_variant_key?: string }
         Returns: boolean

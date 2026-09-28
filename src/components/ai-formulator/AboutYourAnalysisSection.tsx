@@ -28,7 +28,7 @@ const AboutYourAnalysisSection = () => {
         <h4 className="font-heading font-semibold text-card-foreground">About Your Skin Analysis</h4>
       </div>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Your personalised SkinLabs Starter Analysis has been created from the information you shared about your
+        Your personalised Basic AI Skin Analysis has been created from the information you shared about your
         skin, concerns, goals and preferences.
       </p>
       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -36,12 +36,12 @@ const AboutYourAnalysisSection = () => {
         recommendations selected around your priorities, preferred routine complexity and budget.
       </p>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        Want to explore your skin in greater depth? As a Glow Explorer, you can unlock an Advanced Skin Analysis
-        whenever you need one — from just R{single?.price ?? 25} per analysis. {passLine}
+        Want to explore your skin in greater depth? The Advanced AI Dermatology Analysis is available with an
+        Analysis Pass — from just R{single?.price ?? 25} per analysis. {passLine}
       </p>
       <p className="text-sm text-muted-foreground leading-relaxed">
-        For an even more connected experience, SkinLabs Insider and VIP members unlock deeper AI-powered analysis,
-        more personalised recommendations and ongoing skin intelligence designed to evolve with your skin over time.
+        Glow Insider members can re-run their Basic AI Skin Analysis whenever their skin changes, instead of once
+        every 7 days.
       </p>
     </div>
   );

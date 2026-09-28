@@ -42,7 +42,7 @@ const ReportView = ({ report, sessionId, releasedAt }: ReportViewProps) => (
         </Badge>
       </div>
       <p className="text-sm font-semibold uppercase tracking-wide gradient-text">SKYNN AI</p>
-      <h1 className="text-2xl font-heading font-semibold">Your Advanced AI Dermatology Report</h1>
+      <h1 className="text-2xl font-heading font-semibold">Your Advanced AI Dermatology Analysis report</h1>
       <p className="text-muted-foreground">{report.summary}</p>
     </div>
 

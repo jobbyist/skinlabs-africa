@@ -70,7 +70,6 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "spotlight.full_profiles",
     "practitioner_directory",
     "routine.conflict_matcher",
-    "assessment.advanced",
   ],
   vip: [
     "ai_analysis.starter",
@@ -83,22 +82,21 @@ const LADDER_CAPABILITIES: Record<LadderTier, FeatureKey[]> = {
     "practitioner_directory",
     "consult.priority_booking",
     "routine.conflict_matcher",
-    "assessment.advanced",
   ],
 };
 
 /**
- * "assessment.advanced" (the SKYNN AI Advanced Dermatology Assessment
- * engine) is documented here for the same reason every other capability is —
- * a single source of truth for "what does Insider/VIP unlock" — but unlike
- * a pure ladder feature, Glow Explorer/Lite can ALSO reach it by spending an
- * Analysis Pass (the same pattern as the existing Advanced AI Dermatology
- * Report upsell, see AdvancedAssessmentCard.tsx). hasCapability()/can()
- * alone therefore under-reports real access for pass-holders — the
- * authoritative check is always the server-side
- * get_advanced_assessment_access() RPC (via useAdvancedAssessmentAccess()),
- * which combines both paths. Use this ladder entry only for "what tier
- * would unlock it for free" copy, never as the sole gate.
+ * "assessment.advanced" (the SKYNN AI Advanced AI Dermatology Analysis) is a
+ * FeatureKey but is deliberately in NO ladder tier: since SKYNN AI v2.1 it
+ * needs an Analysis Pass on every plan (rollout_stage 'pass_holders_review';
+ * membership alone never qualifies). The only real gate is the server-side
+ * get_advanced_assessment_access() RPC via useAdvancedAssessmentAccess() —
+ * never can()/hasCapability().
+ *
+ * "ai_analysis.live_weekly" is the historical key for what is now "unlimited
+ * Basic AI Skin Analysis re-analysis" (Insider / VIP; Explorer and Glow Lite
+ * get one per rolling 7 days). The key name is kept for compatibility — the
+ * legacy weekly live-AI report it originally described was retired in v2.1.
  */
 
 /** Granted regardless of ladder tier — the professional/B2B axis is orthogonal to it. */

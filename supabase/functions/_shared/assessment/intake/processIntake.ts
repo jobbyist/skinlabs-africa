@@ -15,6 +15,7 @@ import { computeDeterministicTriage } from "../safety.ts";
 import { formatResponses, formatSast, summariseScores, summariseTriage, type IntakeSection } from "./format.ts";
 import { buildIntakePdf } from "./intakePdf.ts";
 import { buildInternalIntakeEmail, INTAKE_RECIPIENT } from "./internalEmail.ts";
+import { SKYNN_FEATURE_VERSION, SKYNN_RELEASE_LABEL } from "../../skynn/terminology.ts";
 
 export const INTAKE_BUCKET = "skynn-advanced-intake";
 
@@ -87,6 +88,7 @@ export async function processIntakeJob(admin: Admin, job: IntakeJob, env: { supa
     ["Scoring rules version", report.scoring_version ?? "—"],
     ["Evidence catalogue version", report.evidence_version ?? "—"],
     ["Engine", `SKYNN AI v${session.engine_version ?? "2.0.0"} (beta)`],
+    ["Release", `${SKYNN_RELEASE_LABEL} (${SKYNN_FEATURE_VERSION})`],
   ];
   const accessText = session.access_type === "analysis_pass"
     ? `Analysis Pass${session.pass_transaction_id ? " (1 pass consumed at submission)" : ""}`
