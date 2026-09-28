@@ -165,7 +165,6 @@ Explain that upgrading to Glow Insider or Glow VIP unlocks:
 - Detailed actives schedule with introduction timeline
 - Specific ingredient recommendations
 - Product-type guidance for your climate and budget
-- Fitzpatrick analysis
 - Lifestyle & environmental tips
 
 Tone: friendly, encouraging. Keep it simple and educational.`;
@@ -176,21 +175,19 @@ Tone: friendly, encouraging. Keep it simple and educational.`;
 CLIENT SKIN ASSESSMENT (20-question quiz):
 ${answersText}
 
-${skinImage ? "A clear selfie has been attached — analyse it for visible skin tone (Fitzpatrick estimate), oil/shine distribution, visible texture, redness, post-inflammatory marks, congestion, and barrier signs. Cross-reference the visual observations with the quiz answers." : "(No selfie provided — base analysis on quiz answers only.)"}
-${validMstTone ? `Client self-reported Monk Skin Tone (MST): ${validMstTone}/10. This is a fairness/self-report signal, not a diagnosis — use it only to sanity-check your Fitzpatrick estimate and to tailor PIH-risk and sun-protection guidance, never to infer race, ethnicity or identity.` : ""}
+Base the analysis on the quiz answers only. No photo is provided. Never estimate, infer or state the client's skin tone, Fitzpatrick type or Monk Skin Tone yourself.
+${validMstTone ? `Client self-reported Monk Skin Tone (MST): ${validMstTone}/10. This is a fairness/self-report signal, not a diagnosis — use it only to tailor PIH-risk and sun-protection guidance, never to infer race, ethnicity or identity.` : ""}
 ${starterContextBlock}
 
 OUTPUT FORMAT — use EXACTLY these markdown sections in this order:
 
 ## 1. SKIN PROFILE
 - Skin type (oily / dry / combination / sensitive / normal / dehydrated)
-- Estimated Fitzpatrick phototype + reasoning
 - Dehydration status
 - Sensitivity & barrier status
 - Acne risk
 - Pigmentation / PIH risk
 - Photoaging risk
-${skinImage ? "- Visible observations from the photo (objective, non-diagnostic)" : ""}
 
 ## 2. MORNING ROUTINE (AM)
 4–6 numbered steps. For each: step name, product TYPE, 2–3 key ingredients, brief WHY tied to this person's profile.
@@ -228,7 +225,7 @@ Tone: warm, professional, encouraging, evidence-led. Cite the client's own quiz 
     const userTextPrompt = isPremiumMember ? userTextPromptPremium : userTextPromptFree;
 
     const systemPromptPremium = `You are SKINLABS' senior AI skincare formulator. You produce dermatologist-grade personalized skincare routines for clients in South Africa. You are NOT a dermatologist — always remind users to consult one for medical concerns.
-You MUST ground every recommendation in the dermatology reference knowledge below. Do not invent ingredients or concentrations outside this reference. Adapt strictly to the client's quiz answers and (when provided) selfie.
+You MUST ground every recommendation in the dermatology reference knowledge below. Do not invent ingredients or concentrations outside this reference. Adapt strictly to the client's quiz answers.
 
 === DERMATOLOGY REFERENCE KNOWLEDGE ===
 ${DERMATOLOGIST_KNOWLEDGE}
@@ -237,7 +234,7 @@ ${DERMATOLOGIST_KNOWLEDGE}
 Output rules:
 - Use clean markdown with the exact section headers requested by the user prompt.
 - Be specific (product type + key ingredients + reason), but never name competitor brands.
-- Always tailor SPF and active titration to the client's Fitzpatrick estimate and barrier status. If a self-reported Monk Skin Tone (MST) is given, use it only as a sanity-check/fairness signal alongside your own Fitzpatrick estimate — never as a diagnosis, and never to infer race, ethnicity or identity.
+- Tailor SPF and active titration to the client's barrier status and answers. Never estimate or infer skin tone yourself. If a self-reported Monk Skin Tone (MST) is given, use it only to tailor sun-protection and PIH guidance — never as a diagnosis, and never to infer race, ethnicity or identity.
 - This is cosmetic skincare guidance, not medical advice. Never name or imply a medical diagnosis (e.g. eczema, rosacea, psoriasis, fungal acne, PCOS) — describe visible signs descriptively instead, and recommend a licensed dermatologist or HPCSA-registered practitioner for anything that looks medical.
 - Never claim or imply this report cures, treats or prevents a disease.`;
 
@@ -256,12 +253,7 @@ This is cosmetic skincare guidance, not medical advice or diagnosis — never na
       { type: "text", text: userTextPrompt },
     ];
 
-    if (skinImage && typeof skinImage === "string" && skinImage.startsWith("data:image/")) {
-      userContent.push({
-        type: "image_url",
-        image_url: { url: skinImage },
-      });
-    }
+    // SKYNN AI v2.1: photos are never sent to a model (no photo-based skin-tone inference).
 
     let response;
     let recommendation;
