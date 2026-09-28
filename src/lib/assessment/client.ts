@@ -63,7 +63,14 @@ export const linkBasicAnalysisToSession = (sessionId: string, basicAnalysisId: s
   invoke<{ linked: boolean }>("link_basic_analysis", { sessionId, basicAnalysisId, prefilledQuestionIds });
 
 export const getAdvancedAssessmentSession = (sessionId: string) =>
-  invoke<{ session: AdvancedAssessmentSession; definition: AssessmentDefinitionSummary; report: { id: string; generation_status: string } | null }>(
+  invoke<{
+    session: AdvancedAssessmentSession;
+    definition: AssessmentDefinitionSummary;
+    report: Pick<
+      AdvancedAssessmentReportSummary,
+      "id" | "generation_status" | "review_status" | "generated_at" | "reference_number" | "processing_mode" | "intake_status" | "submitted_at"
+    > | null;
+  }>(
     "get_session",
     { sessionId },
   );

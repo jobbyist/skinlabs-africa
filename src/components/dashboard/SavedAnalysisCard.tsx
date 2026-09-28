@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, Download, Loader2, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { BASIC_NAME } from "@/lib/skynn/terminology";
 import { cn } from "@/lib/utils";
 import { priorityLabel } from "@/lib/starter-analysis/priorityEngine";
 import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
@@ -32,8 +37,33 @@ interface SavedAnalysisCardProps {
  */
 const SavedAnalysisCard = ({ rec }: SavedAnalysisCardProps) => {
   const [open, setOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const { user } = useAuth();
   const result = rec.result_payload as StarterAnalysisResult | null;
   const isStarter = Boolean(result);
+
+  const downloadPdf = async () => {
+    if (!result) return;
+    setDownloading(true);
+    try {
+      const { downloadSkincarePdf } = await import("@/lib/generateSkincarePdf");
+      await downloadSkincarePdf({
+        clientName: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Member",
+        email: user?.email ?? "",
+        recommendation: result.recommendationText ?? "",
+        skinType: rec.skin_type,
+        mstTone: rec.mst_tone,
+        generatedAt: new Date(rec.created_at),
+        result,
+      });
+      trackSkynnEvent("skynn_results_pdf_downloaded", { mode: "basic", source: "dashboard" });
+    } catch {
+      trackSkynnEvent("skynn_error", { mode: "basic", error_category: "pdf_failed", source: "dashboard" });
+      toast.error("The PDF didn't download this time. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <div className="border-b border-border last:border-0 py-3">
@@ -41,7 +71,7 @@ const SavedAnalysisCard = ({ rec }: SavedAnalysisCardProps) => {
         <div>
           <div className="flex items-center gap-2">
             <p className="font-medium text-foreground capitalize">{rec.skin_type} Skin</p>
-            <Badge variant="outline" className="text-[10px]">{isStarter ? "Basic AI Skin Analysis" : "Legacy live AI report"}</Badge>
+            <Badge variant="outline" className="text-[10px]">{isStarter ? BASIC_NAME : "Legacy live AI report"}</Badge>
           </div>
           <div className="flex gap-1 mt-1 flex-wrap">
             {rec.concerns.slice(0, 3).map((c) => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
@@ -88,11 +118,15 @@ const SavedAnalysisCard = ({ rec }: SavedAnalysisCardProps) => {
               <p className="text-[10px] text-muted-foreground/70">
                 Result v{result.versions.resultVersion} · scoring v{result.versions.scoringVersion}
               </p>
+              <Button size="sm" variant="outline" onClick={() => void downloadPdf()} disabled={downloading} className="gap-2">
+                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                Download PDF
+              </Button>
               <ConflictMatcherPanel routine={result.groundedRoutine} />
             </>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Saved before the detailed Skin Story view — the full report is in your downloaded PDF from that analysis.
+              Saved before detailed results were stored, so this one can't be downloaded as a PDF.
             </p>
           )}
         </div>

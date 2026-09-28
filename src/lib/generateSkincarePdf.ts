@@ -1,237 +1,160 @@
-import jsPDF from "jspdf";
-import { MST_SCALE } from "@/data/mstScale";
-import { BASIC_NAME, BASIC_REPORT_NAME, SKYNN_RELEASE_LABEL } from "@/lib/skynn/terminology";
+/**
+ * The Basic AI Skin Analysis report PDF (SKYNN AI v2.1 — beta), built on the
+ * shared SkinLabs® PDF kit (src/lib/pdf/brandPdf.ts).
+ *
+ * Built from the saved result (`StarterAnalysisResult`, i.e.
+ * skincare_recommendations.result_payload), so the same file is produced
+ * right after the analysis and when a member re-downloads it from the
+ * dashboard. Older results without some fields simply skip those sections.
+ * Everything here is the member's own data plus the deterministic engine's
+ * output — no review or specialist claims.
+ */
+import type jsPDF from "jspdf";
+import { QUESTIONS } from "@/data/quiz";
+import { CHANGE_QUESTION, PRIORITY_PREFERENCE_QUESTION } from "@/data/starter-analysis/contextQuestions";
+import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
+import { BrandDoc, formatPdfDate, loadLogoDataUrl, safeFileName } from "@/lib/pdf/brandPdf";
+import { BASIC_NAME, BASIC_REPORT_NAME, MST_FULL_NAME, SKYNN_RELEASE_LABEL } from "@/lib/skynn/terminology";
 
 export interface SkincarePdfData {
   clientName: string;
   email: string;
+  /** Markdown-shaped recommendation text (always present). */
   recommendation: string;
   skinType?: string;
   generatedAt?: Date;
   /** Self-reported Monk Skin Tone (1–10), optional. */
   mstTone?: number | null;
+  /** The full saved result, when available — adds the detailed sections. */
+  result?: Partial<StarterAnalysisResult> | null;
 }
 
-const hexToRgb = (hex: string): [number, number, number] => {
-  const clean = hex.replace("#", "");
-  return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
+const title = (s: string | null | undefined) =>
+  s ? s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "-";
+
+const CONCERN_LABEL: Record<string, string> = {
+  acne: "Breakouts",
+  brightening: "Uneven tone / brightening",
+  aging: "Visible ageing",
+  sensitivity: "Sensitivity",
 };
 
-const BRAND = {
-  primary: [30, 41, 59] as [number, number, number], // slate-800
-  accent: [99, 102, 241] as [number, number, number], // indigo-500
-  muted: [100, 116, 139] as [number, number, number], // slate-500
-  bg: [248, 250, 252] as [number, number, number],
-};
+export const DISCLAIMER = `This ${BASIC_NAME} report is a rule-based analysis of your own answers, grounded in general dermatology reference material. It has not been reviewed by a dermatologist or a SkinLabs specialist, your photo (if you added one) stayed on your device and was not analysed, and your ${MST_FULL_NAME} is only what you chose to share. It is general skincare guidance, not medical advice or a diagnosis. For medical skin conditions, persistent reactions, or before starting prescription actives, please consult a licensed dermatologist.`;
 
-export function generateSkincarePdf(data: SkincarePdfData): jsPDF {
-  const doc = new jsPDF({ unit: "pt", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 48;
-  const contentWidth = pageWidth - margin * 2;
-  const generatedAt = data.generatedAt ?? new Date();
+export async function buildBasicAnalysisPdf(data: SkincarePdfData): Promise<jsPDF> {
+  const r = data.result ?? null;
+  const generatedAt = data.generatedAt ?? (r?.generatedAt ? new Date(r.generatedAt) : new Date());
+  const b = new BrandDoc({
+    title: BASIC_REPORT_NAME,
+    subtitle: `${SKYNN_RELEASE_LABEL} · prepared for ${data.clientName || "you"}`,
+    footer: `${SKYNN_RELEASE_LABEL} · ${BASIC_REPORT_NAME} · Not reviewed by a dermatologist · Not medical advice`,
+    logoDataUrl: await loadLogoDataUrl(),
+    generatedAt,
+  });
 
-  let y = margin;
+  const profile = r?.profile;
+  const mst = data.mstTone ?? profile?.mstTone ?? null;
 
-  const ensureSpace = (needed: number) => {
-    if (y + needed > pageHeight - margin - 30) {
-      addFooter();
-      doc.addPage();
-      y = margin;
-    }
-  };
+  b.section("Summary");
+  b.keyValues([
+    ["Prepared for", [data.clientName, data.email].filter(Boolean).join(" · ") || "-"],
+    ["Analysis date", formatPdfDate(r?.generatedAt ?? generatedAt)],
+    ...(r?.analysisId ? ([["Analysis ID", r.analysisId.slice(0, 8).toUpperCase()]] as Array<[string, string]>) : []),
+    ["Skin type", title(r?.skinType ?? data.skinType)],
+    ["Main concern", r?.primaryConcern ? CONCERN_LABEL[r.primaryConcern] ?? title(r.primaryConcern) : "-"],
+    ...(profile?.secondaryConcerns?.length
+      ? ([["Other concerns", profile.secondaryConcerns.map(title).join(", ")]] as Array<[string, string]>)
+      : []),
+    [MST_FULL_NAME, mst ? `MST ${mst} of 10 (self-reported, optional, not a diagnosis)` : "Not shared"],
+  ]);
 
-  const addFooter = () => {
-    const pageNum = doc.getNumberOfPages();
-    doc.setFontSize(8);
-    doc.setTextColor(...BRAND.muted);
-    doc.text(
-      `${SKYNN_RELEASE_LABEL}  •  ${BASIC_REPORT_NAME}  •  Page ${pageNum}  •  Not reviewed by a dermatologist  •  Not medical advice`,
-      pageWidth / 2,
-      pageHeight - 24,
-      { align: "center" },
-    );
-  };
-
-  // ---- Header banner ----
-  doc.setFillColor(...BRAND.primary);
-  doc.rect(0, 0, pageWidth, 110, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.text("SKINLABS®", margin, 50);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${SKYNN_RELEASE_LABEL} · ${BASIC_REPORT_NAME}`, margin, 70);
-
-  doc.setFontSize(9);
-  doc.text(
-    `Generated ${generatedAt.toLocaleDateString("en-ZA", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })}`,
-    pageWidth - margin,
-    50,
-    { align: "right" },
-  );
-  doc.text("skinlabs.co.za", pageWidth - margin, 70, { align: "right" });
-
-  y = 140;
-
-  // ---- Client card ----
-  doc.setFillColor(...BRAND.bg);
-  doc.roundedRect(margin, y, contentWidth, 70, 6, 6, "F");
-  doc.setTextColor(...BRAND.muted);
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.text("PREPARED FOR", margin + 16, y + 22);
-  doc.setTextColor(...BRAND.primary);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(data.clientName || "Client", margin + 16, y + 42);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(...BRAND.muted);
-  doc.text(data.email, margin + 16, y + 58);
-
-  if (data.skinType) {
-    doc.setTextColor(...BRAND.accent);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(
-      `${data.skinType.toUpperCase()} SKIN`,
-      pageWidth - margin - 16,
-      y + 42,
-      { align: "right" },
-    );
-  }
-  if (data.mstTone) {
-    const swatch = MST_SCALE.find((s) => s.level === data.mstTone);
-    doc.setTextColor(...BRAND.muted);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.text(
-      `Monk Skin Tone (MST): ${data.mstTone}/10 (self-reported, optional, not a diagnosis)`,
-      pageWidth - margin - 16,
-      y + 58,
-      { align: "right" },
-    );
-    if (swatch) {
-      const rgb = hexToRgb(swatch.hex);
-      doc.setFillColor(rgb[0], rgb[1], rgb[2]);
-      doc.circle(pageWidth - margin - 138, y + 55, 4, "F");
-    }
-  }
-  y += 90;
-
-  // ---- Body: render the markdown-ish recommendation ----
-  const lines = data.recommendation.split("\n");
-
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) {
-      y += 6;
-      continue;
-    }
-
-    // H2 (## Section)
-    if (line.startsWith("## ")) {
-      ensureSpace(38);
-      y += 8;
-      doc.setDrawColor(...BRAND.accent);
-      doc.setLineWidth(2);
-      doc.line(margin, y, margin + 24, y);
-      y += 16;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(13);
-      doc.setTextColor(...BRAND.primary);
-      doc.text(line.replace(/^##\s*/, "").replace(/\*\*/g, ""), margin, y);
-      y += 14;
-      continue;
-    }
-
-    // H3 (### )
-    if (line.startsWith("### ")) {
-      ensureSpace(26);
-      y += 4;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...BRAND.primary);
-      doc.text(line.replace(/^###\s*/, "").replace(/\*\*/g, ""), margin, y);
-      y += 14;
-      continue;
-    }
-
-    // Bullet
-    if (/^[-*•]\s/.test(line)) {
-      const text = line.replace(/^[-*•]\s*/, "").replace(/\*\*/g, "");
-      const wrapped = doc.splitTextToSize(text, contentWidth - 18);
-      ensureSpace(wrapped.length * 13 + 4);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(...BRAND.primary);
-      doc.setFillColor(...BRAND.accent);
-      doc.circle(margin + 4, y - 3, 1.6, "F");
-      doc.text(wrapped, margin + 14, y);
-      y += wrapped.length * 13 + 2;
-      continue;
-    }
-
-    // Numbered list
-    const num = /^(\d+)\.\s+(.*)/.exec(line);
-    if (num) {
-      const text = num[2].replace(/\*\*/g, "");
-      const wrapped = doc.splitTextToSize(text, contentWidth - 22);
-      ensureSpace(wrapped.length * 13 + 4);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.setTextColor(...BRAND.accent);
-      doc.text(`${num[1]}.`, margin, y);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(...BRAND.primary);
-      doc.text(wrapped, margin + 18, y);
-      y += wrapped.length * 13 + 2;
-      continue;
-    }
-
-    // Paragraph
-    const cleaned = line.replace(/\*\*/g, "");
-    const wrapped = doc.splitTextToSize(cleaned, contentWidth);
-    ensureSpace(wrapped.length * 13 + 4);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(...BRAND.primary);
-    doc.text(wrapped, margin, y);
-    y += wrapped.length * 13 + 2;
+  if (profile) {
+    b.section("Your skin profile");
+    b.keyValues([
+      ["Sensitivity", title(profile.sensitivityTendency)],
+      ["Skin barrier", title(profile.barrierTendency)],
+      ["Experience with actives", title(profile.activeTolerance)],
+      ["Routine experience", title(profile.routineMaturity)],
+      ["How your skin behaves", title(profile.skinBehaviour)],
+      ["Main goal", title(profile.primaryGoal)],
+      ...(profile.secondaryGoal ? ([["Second goal", title(profile.secondaryGoal)]] as Array<[string, string]>) : []),
+    ]);
   }
 
-  // ---- Disclaimer ----
-  ensureSpace(80);
-  y += 14;
-  doc.setFillColor(...BRAND.bg);
-  doc.roundedRect(margin, y, contentWidth, 64, 6, 6, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(...BRAND.primary);
-  doc.text("IMPORTANT", margin + 14, y + 18);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(...BRAND.muted);
-  doc.setFontSize(9);
-  const disclaimer = doc.splitTextToSize(
-    `This ${BASIC_NAME} report is a rule-based analysis of your own answers, grounded in general dermatology reference material. It has not been reviewed by a dermatologist or a SkinLabs specialist, your photo (if you added one) was not analysed, and your Monk Skin Tone is only what you chose to share. It is general skincare guidance, not medical advice or a diagnosis. For medical skin conditions, persistent reactions, or before starting prescription actives, please consult a licensed dermatologist.`,
-    contentWidth - 28,
-  );
-  doc.text(disclaimer, margin + 14, y + 32);
+  if (r?.skinStory?.narrative) {
+    b.section("Your skin story");
+    b.paragraph(r.skinStory.narrative);
+  }
 
-  addFooter();
-  return doc;
+  if (r?.priorities?.items?.length) {
+    b.section("What to focus on first");
+    b.bullets(r.priorities.items.map((p) => `${p.rank}. ${title(p.key)} (${p.level} priority): ${p.reason}`));
+  }
+
+  const routine = r?.groundedRoutine;
+  if (routine && (routine.am?.length || routine.pm?.length)) {
+    b.section("Your routine, with SkinLabs-reviewed products");
+    if (routine.am?.length) {
+      b.subheading("Morning");
+      b.bullets(routine.am.map((p) => `${p.slot}: ${p.product.brand} ${p.product.product_name}`));
+    }
+    if (routine.pm?.length) {
+      b.subheading("Evening");
+      b.bullets(routine.pm.map((p) => `${p.slot}: ${p.product.brand} ${p.product.product_name}`));
+    }
+    b.paragraph(
+      "Products are matched to your skin type and main concern from SkinLabs' published product reviews. Check each product's label for ingredients you avoid.",
+      { muted: true, size: 8.5 },
+    );
+  }
+
+  if (r?.routineStrategy || r?.preferences || r?.context) {
+    b.section("How we shaped it");
+    const rows: Array<[string, string]> = [];
+    if (r?.routineStrategy) {
+      rows.push(["Target routine size", `${r.routineStrategy.targetStepCount} steps`]);
+      rows.push(["Active ingredient intensity", title(r.routineStrategy.activeIntensity)]);
+      rows.push(["Budget", r.routineStrategy.budgetStance === "constrained" ? "Budget-conscious" : "Flexible"]);
+    }
+    if (r?.preferences?.priority) {
+      const label = PRIORITY_PREFERENCE_QUESTION.options.find((o) => o.value === r.preferences?.priority)?.label;
+      rows.push(["Your priority", label ?? title(r.preferences.priority)]);
+    }
+    if (r?.context?.status) {
+      const label = CHANGE_QUESTION.options.find((o) => o.value === r.context?.status)?.label;
+      rows.push(["What's happening with your skin", [label ?? title(r.context.status), r.context.detail].filter(Boolean).join(": ")]);
+    }
+    b.keyValues(rows);
+  }
+
+  b.section("Your full analysis");
+  b.markdown(data.recommendation);
+
+  if (r?.completeness?.factors?.length) {
+    b.section("How complete your answers were");
+    b.keyValues(r.completeness.factors.map((f) => [f.label, `${f.value}%`] as [string, string]));
+    b.paragraph(
+      `Overall ${r.completeness.overall}%. This shows how much you told us, not how accurate the analysis is.`,
+      { muted: true, size: 8.5 },
+    );
+  }
+
+  const answers = r?.answers;
+  if (answers && Object.keys(answers).length) {
+    b.section("Your answers");
+    b.keyValues(
+      QUESTIONS.filter((q) => typeof answers[q.id] === "number").map((q) => [
+        q.title,
+        q.options.find((o) => o.value === answers[q.id])?.label ?? "-",
+      ]),
+    );
+  }
+
+  b.callout("Important", DISCLAIMER);
+  return b.finish();
 }
 
-export function downloadSkincarePdf(data: SkincarePdfData) {
-  const doc = generateSkincarePdf(data);
-  const safeName = (data.clientName || "client").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-  doc.save(`skinlabs-basic-ai-skin-analysis-${safeName}.pdf`);
+export async function downloadSkincarePdf(data: SkincarePdfData) {
+  const doc = await buildBasicAnalysisPdf(data);
+  doc.save(`skinlabs-basic-ai-skin-analysis-${safeFileName(data.clientName || "client")}.pdf`);
 }

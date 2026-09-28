@@ -15,6 +15,7 @@ import ProcessingState from "@/components/advanced-assessment/ProcessingState";
 import ReportView from "@/components/advanced-assessment/ReportView";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
+import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
 import { getAdvancedAssessmentReport, listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
 import { BASIC_NAME } from "@/lib/skynn/terminology";
@@ -290,7 +291,10 @@ const ReportStatusView = ({ sessionId, onBack }: { sessionId: string; onBack: ()
       <div className="max-w-xl mx-auto">
         {back}
         <IntakePendingView row={row} />
-        <div className="mt-4 flex justify-center">{del}</div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <DownloadSubmissionPdfButton sessionId={row.session_id} source="status_page" />
+          {del}
+        </div>
       </div>
     );
   }

@@ -42,7 +42,8 @@ export const useJourney = () => {
             .eq("user_id", user.id)
             .eq("status", "delivered"),
         ),
-        count(supabase.from("routine_steps").select("id", { count: "exact", head: true }).eq("user_id", user.id)),
+        // Seeded starter steps aren't the member saving a routine (mirrors is_trial_activated()).
+        count(supabase.from("routine_steps").select("id", { count: "exact", head: true }).eq("user_id", user.id).neq("source", "default")),
         count(supabase.from("routine_checkins").select("id", { count: "exact", head: true }).eq("user_id", user.id)),
         count(
           supabase

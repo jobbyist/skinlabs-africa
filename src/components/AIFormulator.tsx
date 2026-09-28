@@ -298,15 +298,16 @@ const AIFormulator = () => {
   };
 
   /** The Basic AI Skin Analysis report PDF — offered only once the result is saved. */
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!starterResult) return;
     try {
-      downloadSkincarePdf({
+      await downloadSkincarePdf({
         clientName: contactName || user?.email?.split("@")[0] || "Client",
         email: contactEmail || user?.email || "",
         recommendation: starterResult.recommendationText,
         skinType: starterResult.skinType,
         mstTone,
+        result: starterResult,
       });
       trackSkynnEvent("skynn_results_pdf_generated", { mode: "basic" });
       trackSkynnEvent("skynn_results_pdf_downloaded", { mode: "basic" });

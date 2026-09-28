@@ -10,6 +10,7 @@ import { useAdvancedAssessmentAccess } from "@/hooks/use-advanced-assessment";
 import { listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { getReportDisplayStatus, INTAKE_EXPECTED_DELIVERY, type AdvancedAssessmentReportSummary } from "@/lib/assessment/types";
 import { PendingBadge } from "@/components/advanced-assessment/IntakeConfirmation";
+import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
 import { ADVANCED_NAME, ANALYSIS_PASS, BASIC_NAME, SKYNN_ADVANCED_ROUTE, analysisPassCount } from "@/lib/skynn/terminology";
 
@@ -98,9 +99,12 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
                 Your submission has been received and securely queued. It is not a completed report yet. Expected
                 delivery: {INTAKE_EXPECTED_DELIVERY}. No action needed.
               </p>
-              <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
-                View submission status
-              </Link>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
+                  View submission status
+                </Link>
+                <DownloadSubmissionPdfButton sessionId={pending.session_id} source="dashboard" variant="ghost" />
+              </div>
             </div>
           )}
           <p className="text-sm text-muted-foreground">

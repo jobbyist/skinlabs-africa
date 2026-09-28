@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
 
 export interface RoutineStep {
   id: string;
@@ -10,7 +11,13 @@ export interface RoutineStep {
   product_name: string | null;
   time_of_day: "am" | "pm" | "both";
   sort_order: number;
+  /** manual = added by the member; default = seeded starter step; smart = from their Smart Routine. */
+  source?: "manual" | "default" | "smart";
+  guidance?: string | null;
+  product_slug?: string | null;
 }
+
+const STEP_COLUMNS = "id, step_name, product_name, time_of_day, sort_order, source, guidance, product_slug";
 
 const DEFAULT_STEPS: Array<Pick<RoutineStep, "step_name" | "time_of_day">> = [
   { step_name: "Cleanser", time_of_day: "both" },
@@ -59,18 +66,23 @@ export const useRoutine = () => {
     setLoading(true);
     const { data: stepRows } = await supabase
       .from("routine_steps")
-      .select("id, step_name, product_name, time_of_day, sort_order")
+      .select(STEP_COLUMNS)
       .eq("user_id", user.id)
       .order("sort_order", { ascending: true });
 
     let finalSteps = (stepRows ?? []) as RoutineStep[];
 
-    // First visit: seed a sensible default AM/PM routine the member can edit freely.
+    // First visit: seed a sensible default AM/PM routine the member can edit
+    // freely. Marked `default` so it doesn't count as the member saving a
+    // routine (is_trial_activated / journey.isActivated) and so a Smart
+    // Routine replaces it.
     if (finalSteps.length === 0) {
       const inserted = await supabase
         .from("routine_steps")
-        .insert(DEFAULT_STEPS.map((s, i) => ({ user_id: user.id, step_name: s.step_name, time_of_day: s.time_of_day, sort_order: i })))
-        .select("id, step_name, product_name, time_of_day, sort_order");
+        .insert(
+          DEFAULT_STEPS.map((s, i) => ({ user_id: user.id, step_name: s.step_name, time_of_day: s.time_of_day, sort_order: i, source: "default" })),
+        )
+        .select(STEP_COLUMNS);
       finalSteps = (inserted.data ?? []) as RoutineStep[];
     }
     setSteps(finalSteps);
@@ -177,7 +189,12 @@ export const useRoutine = () => {
       toast.error("Could not update your routine — please try again.");
       return;
     }
-    if (!isDone) trackConversionEvent("routine_checkin_completed", { slot });
+    if (!isDone) {
+      trackConversionEvent("routine_checkin_completed", { slot });
+      if (steps.find((s) => s.id === stepId)?.source === "smart") {
+        trackSkynnEvent("skynn_smart_routine_step_checked", { step: slot });
+      }
+    }
     void load();
   };
 
