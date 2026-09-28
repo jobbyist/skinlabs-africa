@@ -18,7 +18,7 @@ import {
 } from "@/lib/pricing-config";
 import { membershipPlans as fallbackPlans, type BillingInterval, type PlanId } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
-import { startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
+import { PAYFAST_ENABLED, startCreditPackCheckout, startFoundingMemberCheckout, type PaymentGateway, type PaymentPlan } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
 import MembershipCheckoutDialog, { type MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
 import type { PaypalOrderPurchase } from "@/lib/paypal";
@@ -304,7 +304,9 @@ const Pricing = () => {
                         viewport={{ once: true }}
                         transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.4, delay: index * 0.08 }}
                         className={cn(
-                          "relative flex flex-col rounded-3xl border bg-card p-8",
+                          // min-w-0 + wrapping CTAs: the long promo trial label used to force
+                          // every card wider than a 320px screen.
+                          "relative flex min-w-0 flex-col rounded-3xl border bg-card p-6 sm:p-8",
                           plan.badge ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
                         )}
                       >
@@ -342,7 +344,7 @@ const Pricing = () => {
                         <div className="mt-8">
                           {!isPaidPlan ? (
                             <Button
-                              className="w-full"
+                              className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center"
                               variant="outline"
                               disabled={isCurrentPlan}
                               onClick={() => handleSelect(plan.plan_id as PlanId)}
@@ -351,7 +353,7 @@ const Pricing = () => {
                             </Button>
                           ) : trialAvailable ? (
                             <Button
-                              className="w-full gap-2"
+                              className="h-auto min-h-10 w-full gap-2 whitespace-normal py-2.5 text-center"
                               variant={plan.badge ? "default" : "outline"}
                               disabled={processingPlan === `trial-${plan.plan_id}`}
                               onClick={() => handleTrial(plan.plan_id as PlanId)}
@@ -366,14 +368,14 @@ const Pricing = () => {
                           ) : trialUsed && !isCurrentPlan && !disabled ? (
                             // Trial already used: subscribing is the only way in, billed from today.
                             <Button
-                              className="w-full"
+                              className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center"
                               variant={plan.badge ? "default" : "outline"}
                               onClick={() => handleSelect(plan.plan_id as PlanId)}
                             >
                               Subscribe
                             </Button>
                           ) : (
-                            <Button className="w-full" variant="outline" disabled>
+                            <Button className="h-auto min-h-10 w-full whitespace-normal py-2.5 text-center" variant="outline" disabled>
                               {isCurrentPlan
                                 ? "Your current plan"
                                 : disabled
@@ -468,8 +470,10 @@ const Pricing = () => {
             )}
 
             <p className="mt-10 text-center text-xs text-muted-foreground">
-              Prices are in ZAR. PayFast charges in Rand; PayPal and card payments through PayPal are charged in
-              USD at the live exchange rate. Cancel any paid plan any time from your dashboard. Virtual consultations will be
+              Prices are in ZAR.{" "}
+              {PAYFAST_ENABLED
+                ? "PayFast charges in Rand; PayPal and card payments through PayPal are charged in USD at the live exchange rate."
+                : "Payments are taken through PayPal (PayPal balance or any debit/credit card) in USD at the live exchange rate; Rand payments through PayFast are temporarily unavailable."} Cancel any paid plan any time from your dashboard. Virtual consultations will be
               provided by independent HPCSA-registered practitioners once live, and are not a substitute for
               emergency medical care.
             </p>

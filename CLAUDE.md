@@ -184,6 +184,53 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
 
 ## Major systems
 
+- **Follow-up batch (2026-09-28, evening)** — branch
+  `claude/skinlabs-platform-updates-vl8d16` restarted from `main` after PR #166 merged.
+  - **PayFast is temporarily OFF** (`PAYFAST_ENABLED = false` in
+    `src/lib/payments.ts`, with `isGatewayEnabled()`): every checkout offers
+    PayPal / debit or credit card only; `PaymentGatewayDialog` shows PayFast as a
+    disabled "Temporarily unavailable" card; `KeepMembershipDialog` hides "Pay with
+    PayFast" even when the server says it's configured; `invokeCheckout()` and
+    `startPayfastMembership()` refuse PayFast. Existing PayFast subscriptions still
+    show and cancel in Billing. The `payfast-payment` edge function was not
+    changed. Flip the one constant to bring it back (and revert the e2e assertion
+    in `onboarding.e2e.ts`).
+  - **PaymentGatewayDialog redesign** (from the user's mock-up): left-aligned title,
+    option cards as real `<button>`s (a shadcn `Button` is `whitespace-nowrap`,
+    which is what made the old dialog overflow phones), outline icon, wrapping
+    title/subtitle, accepted-payment marks (`src/components/payments/PaymentMarks.tsx`,
+    inline SVG on white chips, only marks the gateway accepts; the mock-up's
+    "Instant EFT" and "Apple Pay" on PayPal were not added, PayPal doesn't take
+    them). Inset `w-[calc(100%-2rem)]` rounded card, viewport-capped and
+    scrollable. Verified at 320/375/390/1280 in all 4 Playwright projects: no
+    overflow. `/pricing` plan cards also overflowed 320px (the long promo trial
+    CTA couldn't wrap) — fixed with `min-w-0` + wrapping CTAs.
+  - **Podcast Season 1 complete**: episode 10 published 2026-09-28 from its real
+    audio (ffmpeg + Vosk transcript in the scratchpad only, timestamps from word
+    timings; the audio's "no affiliate deals" claim and the retired "AI formulator"
+    name were deliberately NOT repeated in show notes). Episodes 5–9 `publishedAt`
+    moved from the never-enforced weekly drip dates (up to 16 Oct) to 2026-09-13,
+    the day they actually went live. The weekly-Friday promise and
+    `getNextEpisodeDate()` are gone; all copy uses `PODCAST_SCHEDULE_LINE` /
+    `PODCAST_SEASON_2_LINE` / `PODCAST_SEASON_2_START` ("January 2027") from
+    `src/data/podcast.ts` — update those when the Season 2 calendar is published.
+    About/Features no longer claim "expert/dermatologist interviews". Episode 10
+    got an `engagementSeed` entry per the standing (user-requested) seed rule.
+  - **ICYMI: September 2026 story is live** (`ICYMI_SEPTEMBER_2026_VIDEO_READY =
+    true`): video compressed 11.6 MB → 1.2 MB (720×1280, 30 fps, H.264 CRF 26,
+    faststart, audio track dropped — the source was silent). The video page has no
+    overlay text (every frame carries its own); text pages use a blurred photo
+    background (`icymi-september-2026-bg.jpg`). The video itself says "All members
+    can reanalyse their skin anytime" — true only for Insider/VIP (Explorer/Lite
+    are 1 per 7 days); it can't be edited in code.
+  - **`main` was broken and was repaired here**: commits `32b7ce9`/`5fef60a`
+    replaced `src/components/AIFormulator.tsx` with a one-line placeholder and
+    emptied `e2e/skynn.e2e.ts`. Both were restored from `e7e3389`, with the
+    intended change applied: Advanced CTAs read "Get an Advanced AI Dermatology
+    Analysis" and wrap on phones. The commit message asked for "…Dermatology
+    Report", which the v2.1 naming rules (and their tests) forbid — awaiting the
+    user's call.
+
 - **Platform updates: viewer context, ad policy + ad-block wall, dedup, copy audit (2026-09-28)**
   — branch `claude/skinlabs-platform-updates-vl8d16`.
   - **Viewer-context layer** (standing rule for new UI): `src/lib/viewerContext.ts`
@@ -261,10 +308,8 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   - **"ICYMI: September 2026" story** (`icymiSeptember2026Story()` in
     `curated.ts`): the recap video, then each September announcement verbatim
     from the new `src/data/announcements.ts` (shared with /announcements).
-    **Hidden until the video exists**: add
-    `public/stories-media/announcements/icymi-september-2026.mp4` + `.jpg`
-    poster, then set `ICYMI_SEPTEMBER_2026_VIDEO_READY = true` (a test fails if
-    it's true while the files are missing).
+    Live since the evening follow-up (see above); a test fails if the flag is
+    true while the media files are missing.
   - The promo bar/chip hides for trialists, paying members and used trials.
 
 - **Funding + editorial-independence wording (2026-09-27)** — SkinLabs® is

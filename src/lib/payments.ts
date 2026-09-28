@@ -6,6 +6,19 @@ import { activatePaypalSubscription, createPaypalSubscription } from "@/lib/payp
 const PENDING_PAYPAL_SUBSCRIPTION_KEY = "skinlabs_paypal_pending_subscription_id";
 
 export type PaymentGateway = "payfast" | "paypal";
+
+/**
+ * PayFast is TEMPORARILY switched off as a payment option (2026-09-28): every
+ * checkout (one-off purchases in PaymentGatewayDialog and "Keep my membership")
+ * offers PayPal / debit or credit card only, and PayFast shows as
+ * "Temporarily unavailable". Existing PayFast subscriptions are unaffected:
+ * Billing still shows and cancels them. Flip to `true` to bring it back — no
+ * other change needed (the server-side payfast-payment function was not
+ * touched).
+ */
+export const PAYFAST_ENABLED = false;
+
+export const isGatewayEnabled = (gateway: PaymentGateway): boolean => (gateway === "payfast" ? PAYFAST_ENABLED : true);
 export type PaymentPlan = Exclude<PlanId, "explorer">;
 
 interface CheckoutResult {
@@ -35,6 +48,9 @@ function submitPayfastForm(paymentUrl: string, paymentData: Record<string, strin
 }
 
 const invokeCheckout = async (gateway: PaymentGateway, body: Record<string, unknown>): Promise<CheckoutResult> => {
+  if (!isGatewayEnabled(gateway)) {
+    return { error: new Error("PayFast is temporarily unavailable. Please pay with PayPal or a debit/credit card.") };
+  }
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
     return { error: new Error("Please sign in to continue") };

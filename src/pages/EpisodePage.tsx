@@ -9,7 +9,7 @@ import ArticleComments from "@/components/ArticleComments";
 import PodcastEngagementBar from "@/components/PodcastEngagementBar";
 import AdSlot from "@/components/AdSlot";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { latestPublishedEpisode, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, PODCAST_SEASON_2_LINE, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
@@ -60,7 +60,7 @@ const EpisodePage = () => {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {episode?.comingSoon
-              ? "We’re still recording. New episodes drop every Friday at 12pm SAST."
+              ? PODCAST_SEASON_2_LINE
               : "That episode doesn’t exist or has been moved."}
           </p>
           <Button asChild className="mt-6">

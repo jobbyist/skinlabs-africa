@@ -74,7 +74,9 @@ test("trial → keep membership: the dialog states price, first charge date and 
   await expect(dialog).toContainText("R79");
   await expect(dialog).toContainText("1 November 2026");
   await expect(dialog).toContainText("Cancel any time in Billing");
-  await expect(dialog.getByRole("button", { name: "Pay with PayFast" })).toBeVisible();
+  // PayFast is temporarily switched off (PAYFAST_ENABLED in src/lib/payments.ts): PayPal/card only.
+  await expect(dialog.getByRole("button", { name: "Pay with PayPal" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Pay with PayFast" })).toHaveCount(0);
   expect(state.functionCalls.some((c) => c.action === "subscription_quote")).toBe(true);
 });
 

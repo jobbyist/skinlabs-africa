@@ -11,6 +11,7 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { formatZar, getPaypalConfig, type PaypalSubscriptionPurchase } from "@/lib/paypal";
 import { formatChargeDate, quoteMembership, startPayfastMembership, type MembershipQuote } from "@/lib/payfast";
+import { PAYFAST_ENABLED } from "@/lib/payments";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +77,9 @@ const KeepMembershipDialog = ({ open, onOpenChange, planId, interval, source = "
   const planName = TIER_LABELS[resolvedPlan];
   const per = chosenInterval === "annual" ? "year" : "month";
   const locked = redirecting || paypalBusy;
+  // PayFast is temporarily switched off client-side (PAYFAST_ENABLED in payments.ts),
+  // even when the server reports it configured.
+  const payfastAvailable = Boolean(quote?.payfastAvailable) && PAYFAST_ENABLED;
 
   const payWithPayfast = async () => {
     trackConversionEvent("keep_membership_gateway_selected", { gateway: "payfast", source });
@@ -177,7 +181,7 @@ const KeepMembershipDialog = ({ open, onOpenChange, planId, interval, source = "
 
             {!showPaypal ? (
               <div className="space-y-2">
-                {quote.payfastAvailable && (
+                {payfastAvailable && (
                   <Button className="w-full gap-2" disabled={locked} onClick={() => void payWithPayfast()}>
                     {redirecting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
                     Pay with PayFast
@@ -185,7 +189,7 @@ const KeepMembershipDialog = ({ open, onOpenChange, planId, interval, source = "
                 )}
                 {paypalAvailable && (
                   <Button
-                    variant={quote.payfastAvailable ? "outline" : "default"}
+                    variant={payfastAvailable ? "outline" : "default"}
                     className="w-full"
                     disabled={locked}
                     onClick={() => {
@@ -196,12 +200,12 @@ const KeepMembershipDialog = ({ open, onOpenChange, planId, interval, source = "
                     Pay with PayPal
                   </Button>
                 )}
-                {!quote.payfastAvailable && !paypalAvailable && (
+                {!payfastAvailable && !paypalAvailable && (
                   <p className="text-center text-sm text-muted-foreground">
                     Online payments are temporarily unavailable. Please try again soon or contact support@skinlabs.co.za.
                   </p>
                 )}
-                {quote.payfastAvailable && (
+                {payfastAvailable && (
                   <p className="text-center text-xs text-muted-foreground">
                     {quote.firstChargeDate
                       ? "PayFast confirms your card with 3-D Secure. No money is taken today."

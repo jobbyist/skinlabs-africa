@@ -1,4 +1,5 @@
 import { Atom, Newspaper, Star, Mic } from "lucide-react";
+import { PODCAST_SEASON_2_START } from "@/data/podcast";
 
 const features = [
   {
@@ -19,7 +20,7 @@ const features = [
   {
     icon: Mic,
     title: "The Skin Deep Podcast",
-    description: "Ingredient-science deep dives that don't take themselves too seriously. New episode every Friday at 12pm SAST.",
+    description: `Ingredient-science deep dives that don't take themselves too seriously. Season 1 is streaming now; Season 2 starts ${PODCAST_SEASON_2_START}.`,
   },
 ];
 

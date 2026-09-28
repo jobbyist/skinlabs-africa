@@ -298,16 +298,15 @@ const AIFormulator = () => {
   };
 
   /** The Basic AI Skin Analysis report PDF — offered only once the result is saved. */
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = () => {
     if (!starterResult) return;
     try {
-      await downloadSkincarePdf({
+      downloadSkincarePdf({
         clientName: contactName || user?.email?.split("@")[0] || "Client",
         email: contactEmail || user?.email || "",
         recommendation: starterResult.recommendationText,
         skinType: starterResult.skinType,
         mstTone,
-        result: starterResult,
       });
       trackSkynnEvent("skynn_results_pdf_generated", { mode: "basic" });
       trackSkynnEvent("skynn_results_pdf_downloaded", { mode: "basic" });
@@ -974,11 +973,11 @@ const AIFormulator = () => {
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="gap-2 border-background/30 bg-transparent text-background hover:bg-background/10 hover:text-background"
+                        className="h-auto min-h-9 max-w-full gap-2 whitespace-normal border-background/30 bg-transparent py-2 text-left text-background hover:bg-background/10 hover:text-background"
                         onClick={() => goToAdvanced("pre_analysis")}
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Explore the {ADVANCED_NAME}
+                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                        Get an {ADVANCED_NAME}
                       </Button>
                     </div>
                   </div>
@@ -1058,11 +1057,11 @@ const AIFormulator = () => {
                         </button>
                         <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Choose a photo from your device (optional)" className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
                           <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
-                          <span className="font-medium text-card-foreground">Choose Photo</span>
+                          <span className="font-medium text-card-foreground">Upload Image</span>
                         </button>
                       </div>
                       <div className="rounded-lg bg-muted/40 p-4">
-                        <p className="text-xs font-medium text-card-foreground mb-2">For a useful before-and-after reference (it stays on this device and isn't analysed)</p>
+                        <p className="text-xs font-medium text-card-foreground mb-2">Image quality tips</p>
                         <ul className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
                           {[
                             "Good natural lighting",
@@ -1174,8 +1173,8 @@ const AIFormulator = () => {
                     {ADVANCED_NAME} asks in more depth about the factors behind your skin concerns. You can finish this{" "}
                     {BASIC_NAME} first — nothing here is lost.
                   </p>
-                  <Button type="button" size="sm" variant="outline" className="gap-2" onClick={() => goToAdvanced("during_analysis")}>
-                    <Sparkles className="h-3.5 w-3.5" />
+                  <Button type="button" size="sm" variant="outline" className="h-auto min-h-9 max-w-full gap-2 whitespace-normal py-2 text-left" onClick={() => goToAdvanced("during_analysis")}>
+                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
                     See the {ADVANCED_NAME}
                   </Button>
                 </div>
@@ -1252,7 +1251,7 @@ const AIFormulator = () => {
                   {/* Skin Snapshot strip */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {skinImage && (
-                      <img src={skinImage} alt="Your photo (kept on this device)" className="h-14 w-14 rounded-full object-cover border border-border" />
+                      <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
                     )}
                     <span className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium capitalize">
                       {derivedSkinType} skin
@@ -1394,9 +1393,10 @@ const AIFormulator = () => {
                           queued with a reference number; your report follows once the review workflow is finalised.
                         </p>
                       </div>
-                      <Button size="lg" className="gap-2" onClick={() => goToAdvanced("results")}>
-                        <Sparkles className="h-4 w-4" />
-                        Explore the {ADVANCED_NAME}
+                      {/* Long product name: let the label wrap instead of overflowing on phones. */}
+                      <Button size="lg" className="h-auto min-h-11 max-w-full gap-2 whitespace-normal py-2.5 text-center" onClick={() => goToAdvanced("results")}>
+                        <Sparkles className="h-4 w-4 shrink-0" />
+                        Get an {ADVANCED_NAME}
                       </Button>
                     </div>
                   )}

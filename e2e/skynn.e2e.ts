@@ -84,7 +84,7 @@ test("weekly limit: a second Basic AI Skin Analysis inside 7 days is refused wit
 test("every Advanced entry point on /skynn-ai goes to the one Pass-gated flow", async ({ page, context }) => {
   const state = await mockSupabase(context, { profile: freeProfile({ subscription_status: "insider" }) });
   await page.goto("/skynn-ai");
-  await page.getByRole("button", { name: "Explore the Advanced AI Dermatology Analysis" }).click();
+  await page.getByRole("button", { name: "Get an Advanced AI Dermatology Analysis" }).click();
   await expect(page).toHaveURL(/\/skynn-ai\/advanced$/);
   // Membership alone doesn't include it — the server's access check says no Pass.
   await expect(page.getByText("You'll need an Analysis Pass")).toBeVisible();

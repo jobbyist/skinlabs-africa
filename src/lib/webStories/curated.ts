@@ -127,17 +127,23 @@ export const ICYMI_SEPTEMBER_2026_SLUG = "icymi-september-2026";
 const ANNOUNCEMENTS_MEDIA = "/stories-media/announcements";
 
 /**
- * The September 2026 recap video. The story stays OUT of the rail, AMP route
- * and sitemap until the file is committed and this is flipped to true — a
- * unit test (webStories.test.ts) fails if it's true while the files are
- * missing, so it can't ship pointing at a 404. Expected files (9:16):
- *   public/stories-media/announcements/icymi-september-2026.mp4  (H.264/AAC, ≤ ~15 MB)
- *   public/stories-media/announcements/icymi-september-2026.jpg  (1080×1920 poster, first frame)
+ * The September 2026 recap video. A unit test (webStories.test.ts) fails if
+ * this is true while the files are missing, so the story can't ship pointing
+ * at a 404. Files (9:16):
+ *   icymi-september-2026.mp4     — 720×1280, 30 fps, H.264 CRF 26, faststart,
+ *                                  no audio track (the source was silent);
+ *                                  1.2 MB, down from the 11.6 MB 1080p/50 fps original
+ *   icymi-september-2026.jpg     — poster (first title frame)
+ *   icymi-september-2026-bg.jpg  — blurred, darkened photo panel used behind
+ *                                  the text pages (every video frame carries
+ *                                  its own text, so the poster can't sit
+ *                                  under a white headline)
  */
-export const ICYMI_SEPTEMBER_2026_VIDEO_READY = false;
+export const ICYMI_SEPTEMBER_2026_VIDEO_READY = true;
 export const ICYMI_SEPTEMBER_2026_MEDIA = {
   video: `${ANNOUNCEMENTS_MEDIA}/icymi-september-2026.mp4`,
   poster: `${ANNOUNCEMENTS_MEDIA}/icymi-september-2026.jpg`,
+  background: `${ANNOUNCEMENTS_MEDIA}/icymi-september-2026-bg.jpg`,
 } as const;
 
 /**
@@ -145,7 +151,7 @@ export const ICYMI_SEPTEMBER_2026_MEDIA = {
  * published that month, text taken verbatim from src/data/announcements.ts.
  */
 export const icymiSeptember2026Story = (): Story => {
-  const { video, poster } = ICYMI_SEPTEMBER_2026_MEDIA;
+  const { video, poster, background } = ICYMI_SEPTEMBER_2026_MEDIA;
   const items = announcementsForMonth("2026-09");
   return {
     key: ICYMI_SEPTEMBER_2026_SLUG,
@@ -160,22 +166,23 @@ export const icymiSeptember2026Story = (): Story => {
     isSponsored: false,
     sponsorName: null,
     railPosition: null,
-    publishAt: "2026-09-30",
+    publishAt: "2026-09-28",
     pages: [
       {
         ...page({
           mediaUrl: video,
-          mediaAlt: "ICYMI: September 2026 recap video",
-          headline: "ICYMI: September 2026",
-          body: "Everything new on SkinLabs this month, in one place.",
+          mediaAlt: "ICYMI: September 2026 — a recap of what's new on SkinLabs",
+          // The video carries its own headline and copy on every frame.
+          headline: null,
+          body: null,
         }),
         mediaType: "video",
         posterUrl: poster,
       },
       ...items.map((item) =>
         page({
-          mediaUrl: poster,
-          mediaAlt: "ICYMI: September 2026",
+          mediaUrl: background,
+          mediaAlt: "",
           headline: item.title,
           body: item.description,
           ctaLabel: "Read the announcement",
