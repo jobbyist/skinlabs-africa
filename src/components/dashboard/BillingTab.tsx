@@ -19,9 +19,10 @@ import { useMembership, type MembershipTier } from "@/hooks/use-membership";
 import { usePricingConfig } from "@/lib/pricing-config";
 import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
-import MembershipCheckoutDialog from "@/components/payments/MembershipCheckoutDialog";
 import { notifyAnalysisPassesUpdated } from "@/hooks/use-analysis-passes";
-import { cancelPaypalSubscriptions, formatBillingDate, formatUsd, formatZar, getPaypalConfig } from "@/lib/paypal";
+import { cancelPaypalSubscriptions, formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
+import { cancelPayfastSubscriptions } from "@/lib/payfast";
+import { openKeepMembership } from "@/lib/conversionDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadInvoicePdf } from "@/lib/generateInvoicePdf";
 import { toast } from "sonner";
@@ -46,6 +47,7 @@ const TIER_LABEL: Record<MembershipTier, string> = {
 };
 
 interface PaymentSubscription {
+  gateway: "paypal" | "payfast";
   gateway_subscription_id: string;
   plan_id: string;
   billing_interval: "monthly" | "annual";
@@ -74,8 +76,6 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [subscription, setSubscription] = useState<PaymentSubscription | null>(null);
-  const [paypalAvailable, setPaypalAvailable] = useState(false);
-  const [autoRenewOpen, setAutoRenewOpen] = useState(false);
 
   const loadTransactions = async () => {
     if (!user) {
@@ -94,17 +94,14 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
   useEffect(() => {
     void loadTransactions();
     if (!user) return;
-    // payment_subscriptions isn't in the generated Supabase types yet.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as unknown as { from: (t: string) => any })
+    supabase
       .from("payment_subscriptions")
-      .select("gateway_subscription_id, plan_id, billing_interval, status, first_billing_at, next_billing_at, current_period_end, amount_zar, amount_charged, currency")
+      .select("gateway, gateway_subscription_id, plan_id, billing_interval, status, first_billing_at, next_billing_at, current_period_end, amount_zar, amount_charged, currency")
       .eq("user_id", user.id)
       .in("status", LIVE_SUBSCRIPTION_STATUSES)
       .order("created_at", { ascending: false })
       .limit(1)
-      .then(({ data }: { data: PaymentSubscription[] | null }) => setSubscription(data?.[0] ?? null));
-    void getPaypalConfig().then((c) => setPaypalAvailable(c.configured));
+      .then(({ data }) => setSubscription(((data ?? []) as PaymentSubscription[])[0] ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -129,15 +126,17 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
 
   const handleCancel = async () => {
     setCancelling(true);
-    // Stop PayPal billing first — never tell a member they're cancelled
-    // while a recurring charge is still scheduled.
+    // Stop the gateway's recurring billing first (PayFast's subscription
+    // cancel API / PayPal's) — never tell a member they're cancelled while a
+    // charge is still scheduled.
     if (subscription) {
       try {
-        await cancelPaypalSubscriptions();
+        if (subscription.gateway === "payfast") await cancelPayfastSubscriptions();
+        else await cancelPaypalSubscriptions();
       } catch (err) {
         setCancelling(false);
         setCancelOpen(false);
-        toast.error(err instanceof Error ? err.message : "Couldn't cancel your PayPal subscription right now.");
+        toast.error(err instanceof Error ? err.message : "Couldn't cancel your auto-renew right now.");
         return;
       }
     }
@@ -155,8 +154,9 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
   const isSubscribed = tier !== "explorer";
   const upgradeAction = useConversionAction(undefined, "billing_tab");
   const nextChargeAt = subscription ? (subscription.next_billing_at ?? subscription.first_billing_at) : null;
-  // A trialling member without auto-renew can add PayPal now; billing starts when the trial ends.
-  const canSetUpAutoRenew = isTrialing && !subscription && paypalAvailable && !isFoundingMember && Boolean(trialEndsAt);
+  // A trialling member without auto-renew can add a card (PayFast) or PayPal
+  // now; nothing is charged before the trial ends (KeepMembershipDialog).
+  const canSetUpAutoRenew = isTrialing && !subscription && !isFoundingMember && Boolean(trialEndsAt);
 
   return (
     <div className="space-y-6">
@@ -175,25 +175,33 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
             <p className="flex basis-full items-start gap-2 text-sm text-muted-foreground sm:order-last">
               <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
               <span>
-                Auto-renews with PayPal — {formatUsd(Number(subscription.amount_charged))} ({formatZar(Number(subscription.amount_zar))})
+                <span className="font-medium text-foreground">Auto-renew on</span> —{" "}
+                {subscription.gateway === "payfast"
+                  ? `${formatZar(Number(subscription.amount_zar))} with PayFast`
+                  : `${formatUsd(Number(subscription.amount_charged))} (${formatZar(Number(subscription.amount_zar))}) with PayPal`}
                 {" "}per {subscription.billing_interval === "annual" ? "year" : "month"}
                 {nextChargeAt ? `, next charge on ${formatBillingDate(nextChargeAt)}` : ""}.
                 {subscription.status === "past_due" && (
-                  <span className="text-destructive"> Your last payment didn't go through — PayPal will retry, or update your card in your PayPal account.</span>
+                  <span className="text-destructive">
+                    {" "}
+                    {subscription.gateway === "payfast"
+                      ? "Your last payment didn't go through — PayFast will retry. Check your card or contact support."
+                      : "Your last payment didn't go through — PayPal will retry, or update your card in your PayPal account."}
+                  </span>
                 )}
               </span>
             </p>
           )}
           {canSetUpAutoRenew && trialEndsAt && (
             <p className="basis-full text-sm text-muted-foreground sm:order-last">
-              Your free trial ends on {formatBillingDate(trialEndsAt)}. Add PayPal or a card to keep your membership
+              Your free trial ends on {formatBillingDate(trialEndsAt)}. Add a card or PayPal to keep your membership
               without interruption — you won't be charged before then.
             </p>
           )}
           <div className="flex flex-wrap gap-2">
             {canSetUpAutoRenew && (
-              <Button size="sm" className="gap-1.5" onClick={() => setAutoRenewOpen(true)}>
-                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Continue after trial
+              <Button size="sm" className="gap-1.5" onClick={() => openKeepMembership({ source: "billing_tab" })}>
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Keep my membership
               </Button>
             )}
             {isSubscribed ? (
@@ -335,16 +343,6 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <MembershipCheckoutDialog
-        open={autoRenewOpen}
-        onOpenChange={setAutoRenewOpen}
-        plan={
-          trialPlan && trialPlan !== "explorer"
-            ? { planId: trialPlan, name: TIER_LABEL[trialPlan as MembershipTier] ?? trialPlan, interval: billingInterval }
-            : null
-        }
-        variantKey={config?.variantKey ?? "control"}
-      />
 
       <PaymentGatewayDialog
         open={!!gatewayPackId}

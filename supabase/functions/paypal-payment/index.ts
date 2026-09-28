@@ -39,6 +39,11 @@ import {
   verifyWebhookSignature,
 } from "../_shared/payments/paypal.ts";
 import type { PurchaseType } from "../_shared/payments/types.ts";
+import {
+  LIVE_SUB_STATUSES,
+  resolveSubscriptionStart,
+  type SubscriptionStart,
+} from "../_shared/payments/subscriptionStart.ts";
 
 type Admin = ReturnType<typeof createClient>;
 
@@ -74,96 +79,6 @@ function safeCallback(url: unknown): string {
 }
 
 const withParam = (url: string, param: string) => (url.includes("?") ? `${url}&${param}` : `${url}?${param}`);
-
-// ---------------------------------------------------------------------------
-// Subscription start date (trial) resolution
-// ---------------------------------------------------------------------------
-
-type StartKind = "new_trial" | "existing_trial" | "immediate";
-
-interface SubscriptionStart {
-  kind: StartKind;
-  /** When PayPal takes the first payment; null = at approval. */
-  firstBillingAt: string | null;
-}
-
-const PAID_STATUSES = new Set(["glow_lite", "insider", "vip", "active", "premium"]);
-const LIVE_SUB_STATUSES = ["pending", "trialing", "active", "past_due"];
-
-/**
- * Mirrors start_free_trial()'s eligibility and length rules (one trial per
- * account, plan must be trial_eligible, trial_days from pricing_plans,
- * extended to pricing_settings.promo_free_trial_until while that's later) so
- * a PayPal-backed trial and a no-card trial always end on the same date.
- */
-async function resolveSubscriptionStart(
-  admin: Admin,
-  userId: string,
-  planId: string,
-  variantKey: string,
-): Promise<SubscriptionStart | { error: string; status: number }> {
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("subscription_status, trial_ends_at, trial_used_at, founding_member")
-    .eq("user_id", userId)
-    .maybeSingle();
-  const status = String(profile?.subscription_status ?? "").toLowerCase();
-
-  const { data: liveSubs } = await admin
-    .from("payment_subscriptions")
-    .select("id, status")
-    .eq("user_id", userId)
-    .in("status", ["trialing", "active", "past_due"]);
-  if (liveSubs && liveSubs.length > 0) {
-    return { error: "You already have an active PayPal subscription. Manage it from your dashboard's Billing tab.", status: 409 };
-  }
-  if (profile?.founding_member) {
-    return { error: "Your Founding Member access already includes this plan.", status: 409 };
-  }
-
-  const trialEndsAt = profile?.trial_ends_at ? new Date(profile.trial_ends_at as string) : null;
-  if (status === "trial" && trialEndsAt && trialEndsAt.getTime() > Date.now() + 5 * 60_000) {
-    return { kind: "existing_trial", firstBillingAt: trialEndsAt.toISOString() };
-  }
-
-  if (!profile?.trial_used_at && !PAID_STATUSES.has(status)) {
-    let { data: plan } = await admin
-      .from("pricing_plans")
-      .select("trial_days, trial_eligible")
-      .eq("plan_id", planId)
-      .eq("variant_key", variantKey)
-      .maybeSingle();
-    if (!plan) {
-      ({ data: plan } = await admin
-        .from("pricing_plans")
-        .select("trial_days, trial_eligible")
-        .eq("plan_id", planId)
-        .eq("variant_key", "control")
-        .maybeSingle());
-    }
-    const trialDays = Number(plan?.trial_days ?? 0);
-    if (plan?.trial_eligible && trialDays > 0) {
-      let { data: settings } = await admin
-        .from("pricing_settings")
-        .select("promo_free_trial_until")
-        .eq("variant_key", variantKey)
-        .maybeSingle();
-      if (!settings) {
-        ({ data: settings } = await admin
-          .from("pricing_settings")
-          .select("promo_free_trial_until")
-          .eq("variant_key", "control")
-          .maybeSingle());
-      }
-      let ends = Date.now() + trialDays * 86_400_000;
-      const promoUntil = settings?.promo_free_trial_until ? new Date(settings.promo_free_trial_until as string).getTime() : 0;
-      if (promoUntil > ends) ends = promoUntil;
-      return { kind: "new_trial", firstBillingAt: new Date(ends).toISOString() };
-    }
-  }
-
-  return { kind: "immediate", firstBillingAt: null };
-}
 
 // ---------------------------------------------------------------------------
 // Subscription state helpers

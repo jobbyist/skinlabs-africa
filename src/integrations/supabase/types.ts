@@ -188,7 +188,9 @@ export type Database = {
         Row: {
           attempts: number
           confidence: string | null
+          consent_snapshot: Json | null
           created_at: string
+          definition_version: string | null
           email_summary: string | null
           engine_version: string | null
           error_message: string | null
@@ -196,16 +198,33 @@ export type Database = {
           generated_at: string | null
           generation_status: string
           id: string
+          intake_attempts: number
+          intake_next_attempt_at: string | null
+          intake_scores: Json | null
+          intake_status: string | null
+          intake_triage: Json | null
+          internal_email_attempts: number
+          internal_email_error: string | null
+          internal_email_last_attempt_at: string | null
+          internal_email_recipient: string | null
+          internal_email_sent_at: string | null
+          internal_email_status: string | null
           locked_at: string | null
           locked_by: string | null
           model: string | null
           models: Json | null
           mst_tier: number | null
+          pdf_error: string | null
+          pdf_generated_at: string | null
+          pdf_status: string | null
+          pdf_storage_path: string | null
           pipeline_stage: string | null
           pipeline_state: Json | null
+          processing_mode: string
           prompt_set: string | null
           prompt_version: string | null
           qa_result: Json | null
+          reference_number: string | null
           released_at: string | null
           rendered_markdown: string | null
           report: Json | null
@@ -215,14 +234,19 @@ export type Database = {
           reviewed_by: string | null
           safety_flags: Json | null
           scores: Json | null
+          scoring_version: string | null
           session_id: string
+          submitted_at: string | null
           triage: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           attempts?: number
           confidence?: string | null
+          consent_snapshot?: Json | null
           created_at?: string
+          definition_version?: string | null
           email_summary?: string | null
           engine_version?: string | null
           error_message?: string | null
@@ -230,16 +254,33 @@ export type Database = {
           generated_at?: string | null
           generation_status?: string
           id?: string
+          intake_attempts?: number
+          intake_next_attempt_at?: string | null
+          intake_scores?: Json | null
+          intake_status?: string | null
+          intake_triage?: Json | null
+          internal_email_attempts?: number
+          internal_email_error?: string | null
+          internal_email_last_attempt_at?: string | null
+          internal_email_recipient?: string | null
+          internal_email_sent_at?: string | null
+          internal_email_status?: string | null
           locked_at?: string | null
           locked_by?: string | null
           model?: string | null
           models?: Json | null
           mst_tier?: number | null
+          pdf_error?: string | null
+          pdf_generated_at?: string | null
+          pdf_status?: string | null
+          pdf_storage_path?: string | null
           pipeline_stage?: string | null
           pipeline_state?: Json | null
+          processing_mode?: string
           prompt_set?: string | null
           prompt_version?: string | null
           qa_result?: Json | null
+          reference_number?: string | null
           released_at?: string | null
           rendered_markdown?: string | null
           report?: Json | null
@@ -249,14 +290,19 @@ export type Database = {
           reviewed_by?: string | null
           safety_flags?: Json | null
           scores?: Json | null
+          scoring_version?: string | null
           session_id: string
+          submitted_at?: string | null
           triage?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           attempts?: number
           confidence?: string | null
+          consent_snapshot?: Json | null
           created_at?: string
+          definition_version?: string | null
           email_summary?: string | null
           engine_version?: string | null
           error_message?: string | null
@@ -264,16 +310,33 @@ export type Database = {
           generated_at?: string | null
           generation_status?: string
           id?: string
+          intake_attempts?: number
+          intake_next_attempt_at?: string | null
+          intake_scores?: Json | null
+          intake_status?: string | null
+          intake_triage?: Json | null
+          internal_email_attempts?: number
+          internal_email_error?: string | null
+          internal_email_last_attempt_at?: string | null
+          internal_email_recipient?: string | null
+          internal_email_sent_at?: string | null
+          internal_email_status?: string | null
           locked_at?: string | null
           locked_by?: string | null
           model?: string | null
           models?: Json | null
           mst_tier?: number | null
+          pdf_error?: string | null
+          pdf_generated_at?: string | null
+          pdf_status?: string | null
+          pdf_storage_path?: string | null
           pipeline_stage?: string | null
           pipeline_state?: Json | null
+          processing_mode?: string
           prompt_set?: string | null
           prompt_version?: string | null
           qa_result?: Json | null
+          reference_number?: string | null
           released_at?: string | null
           rendered_markdown?: string | null
           report?: Json | null
@@ -283,8 +346,11 @@ export type Database = {
           reviewed_by?: string | null
           safety_flags?: Json | null
           scores?: Json | null
+          scoring_version?: string | null
           session_id?: string
+          submitted_at?: string | null
           triage?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -2629,6 +2695,7 @@ export type Database = {
           metadata: Json
           next_billing_at: string | null
           payer_email: string | null
+          payfast_token: string | null
           plan_id: string
           start_kind: string
           status: string
@@ -2653,6 +2720,7 @@ export type Database = {
           metadata?: Json
           next_billing_at?: string | null
           payer_email?: string | null
+          payfast_token?: string | null
           plan_id: string
           start_kind: string
           status?: string
@@ -2677,6 +2745,7 @@ export type Database = {
           metadata?: Json
           next_billing_at?: string | null
           payer_email?: string | null
+          payfast_token?: string | null
           plan_id?: string
           start_kind?: string
           status?: string
@@ -4474,6 +4543,7 @@ export type Database = {
           active_prompt_set: string | null
           active_prompt_version: string
           id: boolean
+          report_mode: string
           rollout_stage: string
           updated_at: string
         }
@@ -4482,6 +4552,7 @@ export type Database = {
           active_prompt_set?: string | null
           active_prompt_version: string
           id?: boolean
+          report_mode?: string
           rollout_stage?: string
           updated_at?: string
         }
@@ -4490,6 +4561,7 @@ export type Database = {
           active_prompt_set?: string | null
           active_prompt_version?: string
           id?: boolean
+          report_mode?: string
           rollout_stage?: string
           updated_at?: string
         }
@@ -4938,7 +5010,17 @@ export type Database = {
       }
     }
     Functions: {
+      _refund_advanced_session_pass: {
+        Args: {
+          p_session: Database["public"]["Tables"]["advanced_assessment_sessions"]["Row"]
+        }
+        Returns: boolean
+      }
       admin_get_advanced_assessment_review: {
+        Args: { p_report_id: string }
+        Returns: Json
+      }
+      admin_get_advanced_intake: {
         Args: { p_report_id: string }
         Returns: Json
       }
@@ -4972,6 +5054,35 @@ export type Database = {
           triage: string
         }[]
       }
+      admin_list_advanced_intake: {
+        Args: {
+          p_from?: string
+          p_limit?: number
+          p_mode?: string
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          access_type: string
+          definition_version: string
+          internal_email_attempts: number
+          internal_email_status: string
+          pass_consumed: boolean
+          pdf_status: string
+          processing_mode: string
+          reference_number: string
+          report_id: string
+          session_id: string
+          status: string
+          submitted_at: string
+          total_count: number
+          updated_at: string
+          user_email: string
+          user_id: string
+        }[]
+      }
       admin_override_entitlement: {
         Args: {
           _reason: string
@@ -4979,6 +5090,10 @@ export type Database = {
           _target_user_id: string
         }
         Returns: undefined
+      }
+      admin_promote_advanced_intake_to_production: {
+        Args: { p_report_ids?: string[] }
+        Returns: number
       }
       admin_record_prompt_signoff: {
         Args: {
@@ -4988,6 +5103,14 @@ export type Database = {
           p_notes?: string
           p_prompt_set: string
         }
+        Returns: undefined
+      }
+      admin_reject_advanced_intake: {
+        Args: { p_notes?: string; p_report_id: string }
+        Returns: Json
+      }
+      admin_retry_advanced_intake: {
+        Args: { p_report_id: string; p_what: string }
         Returns: undefined
       }
       admin_review_advanced_assessment: {
@@ -5030,6 +5153,20 @@ export type Database = {
           pipeline_state: Json
           report_id: string
           session_id: string
+          user_id: string
+        }[]
+      }
+      claim_advanced_intake_jobs: {
+        Args: { p_limit: number; p_worker: string }
+        Returns: {
+          intake_attempts: number
+          internal_email_status: string
+          pdf_status: string
+          pdf_storage_path: string
+          reference_number: string
+          report_id: string
+          session_id: string
+          submitted_at: string
           user_id: string
         }[]
       }
@@ -5152,6 +5289,10 @@ export type Database = {
         Returns: undefined
       }
       deactivate_account: { Args: never; Returns: boolean }
+      delete_advanced_assessment_for_user: {
+        Args: { p_session_id: string; p_user_id: string }
+        Returns: Json
+      }
       enqueue_email: {
         Args: {
           p_category: string
@@ -5208,6 +5349,7 @@ export type Database = {
         Returns: boolean
       }
       formulator_tier: { Args: { _user_id: string }; Returns: string }
+      generate_advanced_report_reference: { Args: never; Returns: string }
       generate_placeholder_username: { Args: never; Returns: string }
       get_advanced_assessment_access: {
         Args: never
@@ -5216,6 +5358,7 @@ export type Database = {
           eligible: boolean
           membership_tier: string
           passes_available: number
+          report_mode: string
           rollout_stage: string
         }[]
       }
@@ -5304,6 +5447,12 @@ export type Database = {
       is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      list_orphan_intake_pdfs: {
+        Args: { p_limit?: number }
+        Returns: {
+          name: string
+        }[]
+      }
       log_advanced_assessment_audit: {
         Args: {
           p_action: string
@@ -5320,6 +5469,18 @@ export type Database = {
         Returns: undefined
       }
       reactivate_account: { Args: never; Returns: boolean }
+      record_advanced_intake_result: {
+        Args: {
+          p_email_error?: string
+          p_email_sent?: boolean
+          p_pdf_error?: string
+          p_pdf_path?: string
+          p_report_id: string
+          p_scores?: Json
+          p_triage?: Json
+        }
+        Returns: Json
+      }
       refund_analysis_pass: {
         Args: { p_transaction_id: string }
         Returns: boolean
@@ -5476,6 +5637,8 @@ export type Database = {
         Args: { p_safety_screen?: Json; p_session_id: string }
         Returns: {
           access_type: string
+          processing_mode: string
+          reference_number: string
           report_id: string
           session_status: string
         }[]

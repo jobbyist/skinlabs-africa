@@ -1,4 +1,5 @@
 import type { MembershipCheckoutPlan } from "@/components/payments/MembershipCheckoutDialog";
+import type { KeepMembershipOptions } from "@/components/payments/KeepMembershipDialog";
 
 /**
  * Tiny event bus between conversion CTAs (useConversionAction) and the one
@@ -10,6 +11,7 @@ import type { MembershipCheckoutPlan } from "@/components/payments/MembershipChe
  */
 const OPEN_SIGNUP_EVENT = "skinlabs:open-signup";
 const OPEN_CHECKOUT_EVENT = "skinlabs:open-membership-checkout";
+const OPEN_KEEP_EVENT = "skinlabs:open-keep-membership";
 
 export interface OpenCheckoutDetail {
   plan: MembershipCheckoutPlan;
@@ -37,4 +39,16 @@ export const onOpenMembershipCheckout = (handler: (detail: OpenCheckoutDetail) =
   const listener = (e: Event) => handler((e as CustomEvent<OpenCheckoutDetail>).detail);
   window.addEventListener(OPEN_CHECKOUT_EVENT, listener);
   return () => window.removeEventListener(OPEN_CHECKOUT_EVENT, listener);
+};
+
+/** "Keep my membership" (KeepMembershipDialog): trial banner, checklist, ?keep=1 links, Billing. */
+export const openKeepMembership = (detail: KeepMembershipOptions = {}) => {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent<KeepMembershipOptions>(OPEN_KEEP_EVENT, { detail }));
+};
+
+export const onOpenKeepMembership = (handler: (detail: KeepMembershipOptions) => void) => {
+  if (typeof window === "undefined") return () => {};
+  const listener = (e: Event) => handler((e as CustomEvent<KeepMembershipOptions>).detail ?? {});
+  window.addEventListener(OPEN_KEEP_EVENT, listener);
+  return () => window.removeEventListener(OPEN_KEEP_EVENT, listener);
 };
