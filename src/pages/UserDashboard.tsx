@@ -27,6 +27,7 @@ import FormulatorTab from "@/components/dashboard/FormulatorTab";
 import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
+import ForYourSkinCard from "@/components/dashboard/ForYourSkinCard";
 import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
 import SectionNav from "@/components/dashboard/SectionNav";
 import { useJourney } from "@/hooks/use-journey";
@@ -679,6 +680,8 @@ const UserDashboard = () => {
                     allowance={allowance}
                     onViewFullAnalysis={() => setActiveTab("analysis")}
                   />
+
+                  <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
 
                   <div id="skin-weather" className="scroll-mt-28">
                     <SkinWeatherCard

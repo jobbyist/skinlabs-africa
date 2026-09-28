@@ -59,6 +59,20 @@ describe("SKYNN AI analytics payload whitelist", () => {
     }
   });
 
+  test("the personalisation events exist and only carry counts and source tokens", () => {
+    for (const e of [
+      "skynn_advanced_prefill_applied", "skynn_smart_routine_locked_viewed", "skynn_smart_routine_viewed",
+      "skynn_smart_routine_generated", "skynn_smart_routine_rebuilt", "skynn_smart_routine_step_checked",
+      "skynn_recommendation_viewed", "skynn_recommendation_clicked",
+    ]) {
+      expect(SKYNN_EVENTS as readonly string[]).toContain(e);
+    }
+    expect(
+      sanitizeSkynnProps({ count: 4, routine_source: "rule_based", climate: "hot_dry", skin_type: "oily", productName: "X", answers: [1] }),
+    ).toEqual({ count: 4, routine_source: "rule_based" });
+    expect(sanitizeSkynnProps({ routine_source: "has spaces and, punctuation" })).toEqual({});
+  });
+
   test("SKYNN UI code never sends events through trackConversionEvent with raw answers or MST values", () => {
     const ui = readFileSync(resolve(import.meta.dir, "../../components/AIFormulator.tsx"), "utf8");
     // Passing the value itself as a property (e.g. `{ mstTone }` or `mst: mstTone,`) is what's banned;

@@ -37,6 +37,7 @@ import { useConversionAction } from "@/hooks/use-conversion-action";
 import { openSignupDialog } from "@/lib/conversionDialogs";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { ADVANCED_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/terminology";
+import { supabase } from "@/integrations/supabase/client";
 
 // Smart Routines Landing Page
 const SmartRoutines = () => {
@@ -65,6 +66,22 @@ const SmartRoutines = () => {
   };
   const vipPrice = monthlyPrice("vip");
   const [activeSeasonTab, setActiveSeasonTab] = useState<"summer" | "winter">("summer");
+  // Smart Routines unlock with a (non-rejected) Advanced AI Dermatology Analysis
+  // submission — the same server check the dashboard uses.
+  const [hasSmartRoutineAccess, setHasSmartRoutineAccess] = useState(false);
+  useEffect(() => {
+    if (!user) {
+      setHasSmartRoutineAccess(false);
+      return;
+    }
+    let active = true;
+    supabase.rpc("get_smart_routine_access").then(({ data }) => {
+      if (active) setHasSmartRoutineAccess(data === true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     trackConversionEvent("smart_routines_page_view", {
@@ -76,15 +93,11 @@ const SmartRoutines = () => {
 
   // Determine primary CTA based on user state
   const getPrimaryCTA = () => {
-    // If user already has Smart Routines access (placeholder for when feature exists)
-    // This would check if user has completed their Advanced AI Dermatology Analysis
-    const hasAdvancedAnalysis = false; // TODO: Check actual advanced report status
-
-    if (hasAdvancedAnalysis) {
+    if (hasSmartRoutineAccess) {
       return {
-        label: "Open My Smart Routine",
-        href: "/dashboard", // Would route to Smart Routines when implemented
-        description: "Your personalized routine is ready",
+        label: "Open my Smart Routine",
+        href: "/dashboard?tab=routine",
+        description: "Build or open your Smart Routine in your dashboard",
       };
     }
 
@@ -140,6 +153,7 @@ const SmartRoutines = () => {
       authenticated: Boolean(user),
       hasAnalysisPass: (analysisPassBalance ?? 0) > 0,
     });
+    if (hasSmartRoutineAccess) trackConversionEvent("smart_routines_accessed", { location });
   };
 
   return (
@@ -350,7 +364,7 @@ const SmartRoutines = () => {
                   icon: Package,
                   title: "Uses what you already own",
                   description:
-                    "Prioritises suitable products already on your shelf instead of automatically encouraging another shopping spree.",
+                    "Keeps products you already use in their step when SkinLabs has reviewed them, instead of pushing new purchases.",
                 },
                 {
                   icon: Calendar,
@@ -828,7 +842,7 @@ const SmartRoutines = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Smart Routines included</span>
+                      <span>Smart Routines unlock with an {ADVANCED_NAME} (Analysis Pass)</span>
                     </li>
                   </ul>
                   {insiderAction.kind ? (
@@ -918,8 +932,8 @@ const SmartRoutines = () => {
                     { feature: "Powers Smart Routines", starter: false, advanced: true },
                     { feature: "Dynamic AM + PM routine", starter: false, advanced: true },
                     { feature: "Seasonal adaptation", starter: false, advanced: true },
-                    { feature: "Budget-aware recommendations", starter: false, advanced: true },
-                    { feature: "Shelf product integration", starter: false, advanced: true },
+                    { feature: "Best-value picks when budget matters", starter: false, advanced: true },
+                    { feature: "Keeps reviewed products you already use", starter: false, advanced: true },
                   ].map((row, i) => (
                     <tr key={i} className="hover:bg-muted/30">
                       <td className="p-4 text-sm text-foreground">{row.feature}</td>
@@ -1019,10 +1033,10 @@ const SmartRoutines = () => {
                   Can Smart Routines use products I already own?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Yes. Smart Routines considers products already on your shelf and helps determine where suitable
-                  products fit into your routine. Not every product will automatically be recommended — it depends on
-                  your skin profile and compatibility — but the system prioritises working with what you have before
-                  suggesting new purchases.
+                  Yes, when SkinLabs has reviewed them. The products you list in your {ADVANCED_NAME} are matched by
+                  name against our reviews; a match that suits your skin keeps its place in your routine (marked
+                  &quot;From your shelf&quot;). Products we haven&apos;t reviewed yet aren&apos;t matched, and anything
+                  containing an ingredient you told us you avoid is left out.
                 </AccordionContent>
               </AccordionItem>
 
@@ -1031,9 +1045,9 @@ const SmartRoutines = () => {
                   Does my routine change?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Smart Routines is designed as a living system that can adapt as your circumstances change. Your
-                  routine may evolve based on seasonal conditions, changes to your shelf, budget adjustments, or updates
-                  to your skin profile.
+                  Yes. When you save a newer Basic or Advanced analysis, your dashboard offers to update your routine,
+                  and once your {ADVANCED_NAME} report is released its own morning and evening steps replace the
+                  rule-based ones. Seasonal notes reflect the season when you build or update it.
                 </AccordionContent>
               </AccordionItem>
 
@@ -1042,8 +1056,8 @@ const SmartRoutines = () => {
                   Can I set a budget?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Yes. Smart Routines allows you to set your skincare budget, and recommendations will work within your
-                  financial constraints while still prioritising your skin needs.
+                  There isn&apos;t a rand budget setting yet. If you told SKYNN AI that budget matters, your Smart Routine
+                  favours the best-value products among those SkinLabs has reviewed for your skin.
                 </AccordionContent>
               </AccordionItem>
 

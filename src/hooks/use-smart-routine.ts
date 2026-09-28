@@ -7,6 +7,7 @@ import { getReportDisplayStatus, type ReportRoutineStep } from "@/lib/assessment
 import { buildMemberSkinProfile, hasSkinProfile, type MemberSkinProfile } from "@/lib/skynn/memberSkinProfile";
 import { buildSmartRoutine, fromReport, type SmartRoutine } from "@/lib/smartRoutine/engine";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { trackConversionEvent } from "@/lib/analytics-events";
 
 export interface SavedSmartRoutine {
   id: string;
@@ -178,6 +179,7 @@ export const useSmartRoutine = () => {
       );
       return false;
     }
+    if (!saved) trackConversionEvent("smart_routines_generated", { source: preview.source });
     trackSkynnEvent(saved ? "skynn_smart_routine_rebuilt" : "skynn_smart_routine_generated", {
       routine_source: preview.source,
       count: preview.am.length + preview.pm.length,

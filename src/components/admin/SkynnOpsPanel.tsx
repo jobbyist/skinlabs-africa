@@ -18,6 +18,8 @@ type OpsRow = {
   advanced_intake_pdf_failed: number;
   advanced_intake_email_failed: number;
   analysis_passes_consumed: number;
+  advanced_started_from_basic?: number;
+  smart_routines_saved?: number;
 };
 
 const WINDOWS = [7, 30] as const;
@@ -63,6 +65,8 @@ const SkynnOpsPanel = () => {
         ["Intake PDF failures", row.advanced_intake_pdf_failed],
         ["Intake email failures", row.advanced_intake_email_failed],
         ["Analysis Passes used", row.analysis_passes_consumed],
+        [`Advanced started from ${BASIC_NAME}`, row.advanced_started_from_basic],
+        ["Smart Routines saved or updated", row.smart_routines_saved],
       ]
     : [];
 

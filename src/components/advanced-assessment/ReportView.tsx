@@ -122,7 +122,10 @@ const ReportView = ({ report, sessionId, releasedAt }: ReportViewProps) => (
       <CardContent className="pt-6 flex items-center justify-between gap-4">
         <div>
           <p className="font-medium text-sm">Turn this into your Smart Routine</p>
-          <p className="text-xs text-muted-foreground">Carry these recommendations into your daily routine tracker.</p>
+          <p className="text-xs text-muted-foreground">
+            Your Smart Routine can now use this report&apos;s own morning and evening steps, matched to products SkinLabs
+            has reviewed. Open it and choose &quot;Update my routine&quot;.
+          </p>
         </div>
         <Button asChild size="sm" className="gap-2 shrink-0" onClick={() => void logRoutineHandoffClicked(sessionId)}>
           <Link to="/dashboard?tab=routine">

@@ -5737,6 +5737,7 @@ export type Database = {
           advanced_intake_pdf_failed: number
           advanced_pending: number
           advanced_submissions: number
+          advanced_started_from_basic: number
           analysis_passes_consumed: number
           basic_analyses_saved: number
           basic_limit_hits: number
@@ -5745,6 +5746,7 @@ export type Database = {
           skynn_results_viewed: number
           skynn_starts: number
           window_days: number
+          smart_routines_saved: number
         }[]
       }
       start_free_trial: {
