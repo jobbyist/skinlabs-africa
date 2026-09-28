@@ -1057,11 +1057,11 @@ const AIFormulator = () => {
                         </button>
                         <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Choose a photo from your device (optional)" className="h-36 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all">
                           <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center"><Upload className="h-7 w-7 text-primary" /></div>
-                          <span className="font-medium text-card-foreground">Upload Image</span>
+                          <span className="font-medium text-card-foreground">Choose Photo</span>
                         </button>
                       </div>
                       <div className="rounded-lg bg-muted/40 p-4">
-                        <p className="text-xs font-medium text-card-foreground mb-2">Image quality tips</p>
+                        <p className="text-xs font-medium text-card-foreground mb-2">For a useful before-and-after reference (it stays on this device and isn't analysed)</p>
                         <ul className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5">
                           {[
                             "Good natural lighting",
@@ -1251,7 +1251,7 @@ const AIFormulator = () => {
                   {/* Skin Snapshot strip */}
                   <div className="flex flex-wrap items-center justify-center gap-3">
                     {skinImage && (
-                      <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
+                      <img src={skinImage} alt="Your photo (kept on this device)" className="h-14 w-14 rounded-full object-cover border border-border" />
                     )}
                     <span className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium capitalize">
                       {derivedSkinType} skin

@@ -48,7 +48,7 @@ function trialPerks(plan: unknown): string {
   if (key === "glow_lite") {
     return "unlimited Shelf Showdown comparisons, full Spotlight brand profiles and the practitioner directory";
   }
-  return "weekly live AI skin analysis, the full podcast library, full-body reviews, and the Active Ingredient Conflict Matcher";
+  return "unlimited Basic AI Skin Analysis, the full podcast library, full-body reviews, and the Active Ingredient Conflict Matcher";
 }
 
 registerTemplate({

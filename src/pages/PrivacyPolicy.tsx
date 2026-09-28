@@ -1,9 +1,9 @@
 import { Helmet } from "react-helmet-async";
-import { Shield, Lock, Eye, Database, Camera, Scale, UserCheck, Globe } from "lucide-react";
+import { Shield, Lock, Eye, Database, Sparkles, Scale, UserCheck, Globe } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
-const EFFECTIVE = "28 August 2026";
+const EFFECTIVE = "28 September 2026";
 
 const PrivacyPolicy = () => {
   return (
@@ -34,7 +34,7 @@ const PrivacyPolicy = () => {
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">Privacy Policy</h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Effective date: {EFFECTIVE} · Version 1.0
+                    Effective date: {EFFECTIVE} · Version 1.1
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Governing law: Republic of South Africa (POPIA, CPA, ECTA, SAHPRA guidance) · Contact: legal@skinlabs.co.za
@@ -66,7 +66,7 @@ const PrivacyPolicy = () => {
                   </p>
                   <p className="text-muted-foreground">
                     This Privacy Policy describes how we collect, use, store, share and protect personal information when you
-                    visit skinlabs.co.za, use SKYNN AI, create an account, subscribe, purchase credit packs, interact with our
+                    visit skinlabs.co.za, use SKYNN AI, create an account, subscribe, purchase Analysis Passes, interact with our
                     content, or use any related services (collectively, the “Platform”). It also explains your rights as a data
                     subject and how you can exercise them.
                   </p>
@@ -103,21 +103,21 @@ const PrivacyPolicy = () => {
                         </ul>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-foreground mb-2">3.2 Special personal information (health-adjacent / biometric-related)</h3>
+                        <h3 className="font-semibold text-foreground mb-2">3.2 Special personal information (health-adjacent)</h3>
                         <p className="mb-2">
                           Under POPIA, information concerning a data subject’s health, and biometric information, is “special
                           personal information”. The following may constitute special personal information:
                         </p>
                         <ul className="list-disc list-inside space-y-1 ml-4">
-                          <li>Photographs or images of your face or skin that you upload or capture for SKYNN AI analysis</li>
-                          <li>AI-derived skin metrics, scores, concerns, skin-type classifications and routine recommendations generated from those images</li>
-                          <li>Self-reported skin concerns, lifestyle factors or product history that you voluntarily provide</li>
+                          <li>Your SKYNN AI questionnaire answers: skin type, concerns, sensitivity, routine, lifestyle and environment, goals, and (for the Advanced AI Dermatology Analysis) any health-adjacent screening answers you choose to give</li>
+                          <li>Your optional, self-reported Monk Skin Tone (MST) selection</li>
+                          <li>Results derived from those answers: skin-type and concern summaries, priorities, routine suggestions and your Smart Routine</li>
                         </ul>
                         <p className="mt-3">
                           We process special personal information only with your <strong className="text-foreground">explicit, informed consent</strong>{" "}
                           (or another lawful ground under section 27 of POPIA where applicable) and only for the limited purposes
-                          described below. We do not use images for facial recognition, identity verification, or any purpose other
-                          than the cosmetic skin assessment and personalisation services you request.
+                          described below. We do not collect photographs of your face or skin, and we do not perform facial recognition,
+                          identity verification or biometric processing of any kind.
                         </p>
                       </div>
                     </div>
@@ -125,46 +125,54 @@ const PrivacyPolicy = () => {
 
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
                     <div className="flex items-start gap-3 mb-4">
-                      <Camera className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                      <h2 className="text-2xl font-bold text-foreground">4. Photographic data and SKYNN AI — specific rules</h2>
+                      <Sparkles className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
+                      <h2 className="text-2xl font-bold text-foreground">4. SKYNN AI — photos, skin tone and your answers</h2>
                     </div>
                     <div className="space-y-4 text-muted-foreground">
                       <p>
-                        <strong className="text-foreground">4.1 Purpose limitation (SAHPRA-aligned).</strong> Images are collected
-                        solely to perform AI-powered cosmetic skin assessment (visible characteristics such as texture, tone
-                        uniformity, hydration indicators, pigmentation patterns, etc.) and to generate personalised routine
-                        suggestions and educational content. The processing is <strong className="text-foreground">not</strong>{" "}
-                        intended to diagnose, treat or prevent any medical condition and is not a medical-device service under
-                        SAHPRA frameworks.
+                        <strong className="text-foreground">4.1 Photos never leave your device.</strong> The Basic AI Skin
+                        Analysis lets you add a photo for your own reference. That photo stays in your browser: it is not
+                        uploaded, stored, shared or analysed by SkinLabs or by any AI or computer-vision provider, and it is
+                        discarded when you leave the page. SKYNN AI's results are based only on your answers.
                       </p>
                       <p>
-                        <strong className="text-foreground">4.2 Consent.</strong> Before any image is captured or uploaded for
-                        analysis, you will be presented with a clear consent mechanism that explains the purpose, the special nature
-                        of the data, retention, and your rights. Consent is specific, voluntary and can be withdrawn.
+                        <strong className="text-foreground">4.2 Skin tone is never inferred.</strong> Monk Skin Tone (MST) is
+                        optional and self-reported. SKYNN AI never estimates your skin tone, Fitzpatrick type or any other
+                        characteristic from an image. If you choose an MST value, it is used only to tailor sunscreen and
+                        pigmentation guidance and is not a diagnosis.
                       </p>
                       <p>
-                        <strong className="text-foreground">4.3 Anonymisation and minimisation.</strong> Where technically feasible
-                        we apply privacy-enhancing techniques (including segmentation or transformation of non-skin regions) so that
-                        the analytical pipeline focuses on skin attributes rather than identifiable facial features. We do not
-                        attempt to re-identify individuals from analysis outputs.
+                        <strong className="text-foreground">4.3 Purpose limitation (SAHPRA-aligned).</strong> Your answers are
+                        used to produce cosmetic skin-care guidance, routine suggestions (including your Smart Routine) and
+                        educational content. This is <strong className="text-foreground">not</strong> intended to diagnose,
+                        treat or prevent any medical condition and is not a medical-device service under SAHPRA frameworks.
                       </p>
                       <p>
-                        <strong className="text-foreground">4.4 Retention of images.</strong> Raw or near-raw images are retained
-                        only for the short period necessary to complete the requested analysis and deliver results to you (typically
-                        measured in hours, not days, unless you explicitly save results to your account). Thereafter images are
-                        securely deleted or irreversibly anonymised. Derived, non-identifying metrics and scores may be retained
-                        longer in your account for progress tracking, subject to your rights of deletion.
+                        <strong className="text-foreground">4.4 Consent.</strong> Before you start either analysis you are
+                        asked for explicit consent to process your answers, including special personal information. The
+                        Advanced AI Dermatology Analysis also asks for separate consent before any processing outside South
+                        Africa. Consent is specific, voluntary and can be withdrawn.
                       </p>
                       <p>
-                        <strong className="text-foreground">4.5 Security.</strong> Images and related special personal information
-                        are transmitted over encrypted channels (TLS) and stored with appropriate technical and organisational
-                        measures (access controls, encryption at rest where applicable, logging, and least-privilege principles).
+                        <strong className="text-foreground">4.5 Basic AI Skin Analysis.</strong> The analysis runs in your
+                        browser. If you save it to your account we store your answers and the derived results so you can see
+                        them again, download them as a PDF, start your Advanced AI Dermatology Analysis from them and build
+                        your Smart Routine. You can delete saved analyses at any time.
                       </p>
                       <p>
-                        <strong className="text-foreground">4.6 Processors.</strong> If we engage a third-party AI or computer-vision
-                        provider to assist with analysis, that provider acts as an operator (processor) under a written agreement that
-                        imposes POPIA-equivalent obligations, purpose limitation, security and deletion duties. Images are not used by
-                        the processor for their own training or commercial purposes without separate lawful basis and transparency.
+                        <strong className="text-foreground">4.6 Advanced AI Dermatology Analysis.</strong> Your submitted
+                        answers are stored in your account together with a reference number. While the analysis is in its
+                        pre-approval stage, a plain-text intake record of your submission is produced for the SkinLabs review
+                        team and stored privately; it is delivered to our internal reports mailbox. You can withdraw and
+                        delete a submission from your dashboard: we delete the stored record and ask the review team to delete
+                        the mailbox copy. If AI processing is later used to prepare your report, the provider acts as an
+                        operator (processor) under a written agreement with POPIA-equivalent obligations and may not use your
+                        data for its own training.
+                      </p>
+                      <p>
+                        <strong className="text-foreground">4.7 Security.</strong> Your answers and results are transmitted over
+                        encrypted channels (TLS) and stored with access controls limited to you and authorised SkinLabs staff,
+                        encryption at rest where applicable, logging and least-privilege principles.
                       </p>
                     </div>
                   </div>
@@ -175,7 +183,7 @@ const PrivacyPolicy = () => {
                       <h2 className="text-2xl font-bold text-foreground">5. Lawful bases for processing (POPIA)</h2>
                     </div>
                     <ul className="list-disc list-inside space-y-2 ml-4 text-muted-foreground">
-                      <li><strong className="text-foreground">Consent</strong> — for special personal information (skin images and derived health-adjacent data) and for non-essential cookies/marketing</li>
+                      <li><strong className="text-foreground">Consent</strong> — for special personal information (your skin-analysis answers and derived health-adjacent data) and for non-essential cookies/marketing</li>
                       <li><strong className="text-foreground">Contract</strong> — to perform our agreement with you (account creation, subscription fulfilment, delivery of paid features)</li>
                       <li><strong className="text-foreground">Legitimate interests</strong> — for ordinary analytics, security, fraud prevention and Platform improvement, balanced against your rights</li>
                       <li><strong className="text-foreground">Legal obligation</strong> — where required by South African law</li>
@@ -190,7 +198,7 @@ const PrivacyPolicy = () => {
                     <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
                       <li>Provide, operate and improve the Platform and SKYNN AI features</li>
                       <li>Generate and deliver personalised skin-assessment results and routine suggestions</li>
-                      <li>Manage accounts, subscriptions, credit packs and payments</li>
+                      <li>Manage accounts, subscriptions, Analysis Passes and payments</li>
                       <li>Communicate with you about your account, service updates and (with consent) marketing</li>
                       <li>Ensure security, prevent abuse and comply with law</li>
                       <li>Conduct aggregated or anonymised research and analytics to improve our models and content (never re-identifying individuals)</li>
@@ -237,7 +245,8 @@ const PrivacyPolicy = () => {
                       <p>We retain personal information only for as long as necessary to fulfil the purposes for which it was collected, or as required by law:</p>
                       <ul className="list-disc list-inside space-y-1 ml-4">
                         <li>Account data: retained while your account is active and for a reasonable period thereafter (or longer if required for legal claims or accounting)</li>
-                        <li>Raw skin images: short retention — deleted or anonymised after analysis completion unless you explicitly save results</li>
+                        <li>Skin photos: not collected — a photo you add stays on your device and is never uploaded</li>
+                        <li>Saved skin analyses, Advanced AI Dermatology Analysis submissions and your Smart Routine: retained in your account until you delete them or close the account</li>
                         <li>Derived metrics and routine history: retained in your account until you delete them or close the account</li>
                         <li>Transaction records: retained for tax and consumer-law periods (typically 5–7 years)</li>
                       </ul>

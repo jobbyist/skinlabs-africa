@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
-const EFFECTIVE = "28 August 2026";
+const EFFECTIVE = "28 September 2026";
 
 const TermsOfService = () => {
   return (
@@ -36,7 +36,7 @@ const TermsOfService = () => {
                   </div>
                   <h1 className="text-4xl md:text-5xl font-heading font-bold text-foreground mb-4">Terms of Service</h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    Effective date: {EFFECTIVE} · Version 1.0
+                    Effective date: {EFFECTIVE} · Version 1.1
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Governing law: Republic of South Africa · Contact: legal@skinlabs.co.za
@@ -82,9 +82,9 @@ const TermsOfService = () => {
                     </p>
                     <ul className="list-disc list-inside space-y-1 ml-4 text-muted-foreground">
                       <li>Editorial content, product reviews, comparisons (“Shelf Showdowns”), rankings and educational briefings</li>
-                      <li>SKYNN AI — an AI-powered cosmetic skin-assessment and routine-suggestion tool (BETA)</li>
+                      <li>SKYNN AI — a cosmetic skin-assessment and routine-suggestion tool (BETA): the free Basic AI Skin Analysis, the Advanced AI Dermatology Analysis and Smart Routines</li>
                       <li>Subscription memberships (Glow Explorer free tier; Glow Insider and Glow VIP paid tiers)</li>
-                      <li>Credit packs for additional AI analyses</li>
+                      <li>Analysis Passes for the Advanced AI Dermatology Analysis</li>
                       <li>Practitioner directory and (when live) booking of virtual consultations with independent HPCSA-registered practitioners</li>
                       <li>Multivendor marketplace features in which SkinLabs may act as a payment-collection agent for listed third-party sellers</li>
                     </ul>
@@ -97,14 +97,14 @@ const TermsOfService = () => {
                     </div>
                     <div className="space-y-3 text-muted-foreground">
                       <p>
-                        Use of SKYNN AI involves the collection and processing of photographic images and derived skin metrics.
-                        Under POPIA these may constitute special personal information. By using SKYNN AI you acknowledge that:
+                        Use of SKYNN AI involves processing your questionnaire answers and the results derived from them. Under
+                        POPIA these may constitute special personal information. By using SKYNN AI you acknowledge that:
                       </p>
                       <ul className="list-disc list-inside space-y-1 ml-4">
                         <li>Processing is limited to cosmetic skin assessment and personalised routine suggestions — not medical diagnosis</li>
-                        <li>Explicit consent is required before image capture or upload</li>
-                        <li>Raw images are retained only for the short period needed to complete analysis (unless you save results)</li>
-                        <li>We do not use images for facial recognition or identity verification</li>
+                        <li>Explicit consent is required before your answers are processed</li>
+                        <li>A photo you add stays on your device: it is never uploaded, stored or analysed, and SKYNN AI never infers your skin tone from it</li>
+                        <li>Monk Skin Tone (MST) is optional and self-reported</li>
                         <li>Full details are set out in our{" "}
                           <Link to="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
                         </li>
@@ -153,7 +153,7 @@ const TermsOfService = () => {
                         covered by a 30-day money-back guarantee. If you start a free trial, you forfeit that guarantee for that plan.
                         See the full{" "}
                         <Link to="/refund-policy" className="text-primary hover:underline">Refund Policy</Link>{" "}
-                        for credit packs, consultation bookings and marketplace rules.
+                        for Analysis Passes, consultation bookings and marketplace rules.
                       </p>
                     </div>
                   </div>
@@ -161,10 +161,10 @@ const TermsOfService = () => {
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
                     <div className="flex items-start gap-3 mb-4">
                       <ShoppingBag className="h-6 w-6 text-primary flex-shrink-0 mt-1" />
-                      <h2 className="text-2xl font-bold text-foreground">7. Credit packs and marketplace</h2>
+                      <h2 className="text-2xl font-bold text-foreground">7. Analysis Passes and marketplace</h2>
                     </div>
                     <p className="text-muted-foreground">
-                      Credit packs for additional SKYNN AI analyses are non-transferable and subject to the Refund Policy. When the
+                      Analysis Passes for the Advanced AI Dermatology Analysis are non-transferable and subject to the Refund Policy. When the
                       multivendor marketplace is live, SkinLabs acts solely as a payment-collection and facilitation agent for listed
                       third-party sellers. Contracts for goods or services sold on the marketplace are between you and the relevant
                       seller. SkinLabs is not the seller of those items unless expressly stated. Seller terms, delivery and product
