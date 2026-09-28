@@ -259,7 +259,9 @@ export const INTAKE_EXPECTED_DELIVERY = "approximately 3–4 weeks";
 /**
  * Smart Routines integration contract (section 35) — the shape an approved
  * Advanced report would hand off to the Smart Routines feature
- * (src/hooks/use-routine.ts). Contract only; no write path consumes it yet.
+ * (src/hooks/use-routine.ts). Since v2.1 the Smart Routine engine
+ * (src/lib/smartRoutine/engine.ts `fromReport()`) reads routineAm/routinePm
+ * from an approved report directly and saves via save_smart_routine().
  */
 export interface AdvancedRoutineContext {
   baumannStyleType: string | null;

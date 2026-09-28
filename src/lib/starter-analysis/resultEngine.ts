@@ -134,6 +134,7 @@ export const assembleStarterAnalysisResult = (input: AssembleStarterAnalysisInpu
     preferences,
     completeness,
     groundedRoutine,
+    answers: { ...answers },
     recommendationText,
     refinementHistory: input.refinementHistory ?? [],
     versions: {

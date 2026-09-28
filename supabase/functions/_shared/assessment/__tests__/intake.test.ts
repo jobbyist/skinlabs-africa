@@ -14,7 +14,7 @@ const { jsPDF } = await import("jspdf");
 import { computeDeterministicScores } from "../scoring/index.ts";
 import { computeDeterministicTriage } from "../safety.ts";
 import {
-  cleanText, formatAnswer, formatResponses, formatSast, summariseScores, summariseTriage, REFERENCE_PATTERN,
+  cleanText, formatAnswer, formatResponses, formatSast, startedFromRow, summariseScores, summariseTriage, REFERENCE_PATTERN,
   type IntakeSection,
 } from "../intake/format.ts";
 import { buildIntakePdf, pdfSafe, INTAKE_DISCLAIMER } from "../intake/intakePdf.ts";
@@ -127,5 +127,17 @@ describe("internal intake email", () => {
 
   test("refuses a reference that isn't server-shaped (no header injection)", () => {
     expect(() => buildInternalIntakeEmail({ referenceNumber: "X\r\nBcc: a@b.c", submittedAt: "", userId: "", userEmail: null, versions: [], access: "" })).toThrow();
+  });
+});
+
+describe("intake record: started from the Basic analysis", () => {
+  test("says how many answers were suggested and that the member could change them", () => {
+    const [label, text] = startedFromRow("Basic AI Skin Analysis", "2026-09-20T08:00:00Z", 3);
+    expect(label).toBe("Started from");
+    expect(text).toContain("Basic AI Skin Analysis of 20 Sept 2026, 10:00 SAST");
+    expect(text).toContain("3 suggested answers");
+    expect(text).toContain("could check and change");
+    expect(text).not.toMatch(/confirmed/i);
+    expect(startedFromRow("Basic AI Skin Analysis", null, 1)[1]).toContain("an earlier date (1 suggested answer,");
   });
 });

@@ -139,6 +139,12 @@ export function summariseTriage(t: DeterministicTriage): string {
 }
 
 /** SAST timestamp for records (the business operates in South Africa). */
+/** The "Started from" row of the intake record (a Basic analysis the session was seeded from). */
+export function startedFromRow(basicName: string, basicCreatedAt: string | null | undefined, count: number): [string, string] {
+  const date = basicCreatedAt ? formatSast(basicCreatedAt) : "an earlier date";
+  return ["Started from", `${basicName} of ${date} (${count} suggested answer${count === 1 ? "" : "s"}, which the member could check and change)`];
+}
+
 export function formatSast(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);

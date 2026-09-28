@@ -9,8 +9,9 @@
 
 ## Core content
 
-- [Skin Analysis (SKYNN AI)](https://skinlabs.co.za/skynn-ai): free AI
-  skin analysis (photo + self-reported Monk Skin Tone + quiz), grounded,
+- [Skin Analysis (SKYNN AI)](https://skinlabs.co.za/skynn-ai): free Basic AI
+  Skin Analysis (questionnaire + optional self-reported Monk Skin Tone; photos
+  are never analysed and skin tone is never inferred), grounded,
   SA-context AM/PM routine recommendations from real reviewed products --
   never a fabricated recommendation.
 - [Reviews](https://skinlabs.co.za/reviews): independently scored South

@@ -111,6 +111,77 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   upload/analysis (now over-describes); `/routines` markets unbuilt "Smart
   Routines".
 
+### v2.1 follow-up (2026-09-28, after PR #161 merged): Basic → Advanced, PDFs, Smart Routines
+
+- **Post-merge steps done**: `skincare-ai` is the deployed 410 stub (v37) and
+  `20260928150000` is applied (clients can't call `consume_/refund_analysis_pass`
+  or `register_ai_analysis_use`; no client INSERT policy on `skincare_recommendations`).
+- **Legal/public copy matches the product**: photos never leave the device and are
+  never analysed; MST is self-reported; there is no image retention. Privacy Policy
+  §4, Terms §3, Refund Policy (Analysis Passes), Cookie Policy, Whitepaper,
+  `public/llms.txt` and the membership email were rewritten; a copy guard in
+  `skynnNoToneInference.test.ts` fails on the old claims ("credit packs", "raw images",
+  "weekly live AI", …). A photo no longer raises the completeness score. The legal
+  text still deserves a human/legal read.
+- **Basic is the starting point of Advanced**: `result_payload.answers` now keeps the
+  raw quiz answers (v2.1+ results). `buildAdvancedPrefill()`
+  (`src/lib/skynn/basicToAdvancedPrefill.ts`) suggests answers for questions with a
+  close equivalent, validated against the pinned definition; **never** consent, safety,
+  QoL or pregnancy. New sessions are seeded and saved at once, each suggested answer is
+  marked in the UI, and `advanced_assessment_sessions.basic_analysis_id` /
+  `prefilled_question_ids` record it (edge action `link_basic_analysis` →
+  `link_basic_analysis_to_advanced_session()`); the intake record shows a
+  "Started from" row. **Security fix**: authenticated could UPDATE every column of an
+  unsubmitted session (default ALL privileges never narrowed by the column grant),
+  including `assessment_definition_id`; now column-limited (probe
+  `supabase/tests/advanced_session_grants.sql`).
+- **Branded PDFs** use `src/lib/pdf/brandPdf.ts` (`BrandDoc`: logo header, brand rule,
+  "Page n of N"). The Basic PDF is built from the saved result and can be re-downloaded
+  from `SavedAnalysisCard`; the member's Advanced submission PDF
+  (`generateAdvancedSubmissionPdf.ts`) is a **submission record, never a report**
+  ("Pending"), listing every answer via `src/lib/assessment/formatAnswers.ts`, a browser
+  copy of `_shared/assessment/intake/format.ts` (parity test in `skynnPdfs.test.ts`).
+  The admin/reports@ intake PDF is unchanged.
+- **Smart Routines** (My Skin › Routine, `SmartRoutinePanel`; Home `ForYourSkinCard`):
+  access = the member has an Advanced submission that wasn't rejected/failed
+  (`has_smart_routine_access()`), i.e. an Analysis Pass was spent. Pure engine
+  `src/lib/smartRoutine/engine.ts` builds it from `MemberSkinProfile`
+  (`memberSkinProfile.ts`: latest Basic result + Advanced answers, Advanced wins) and
+  SkinLabs-**reviewed** products only (avoid list, budget → best value, shelf products
+  matched by exact name, no retinoids/hydroquinone when pregnant/breastfeeding/trying to
+  conceive, cosmetic wording — tested). An approved report's `routineAm/routinePm`
+  replace it (`fromReport()`). Saved only through `save_smart_routine()` into
+  `smart_routines` + `routine_steps` (`source` manual|default|smart); the member's manual
+  steps are never touched. `routine_steps` seeded by the tracker are `source='default'`
+  and **no longer count as activation** (`is_trial_activated()` and `journey` ignore
+  them). Rebuilding never erases check-ins (`…180000`: kept steps are updated in place,
+  ticked starter steps are adopted as `manual`, a routine missing `am`/`pm` is rejected).
+  Probe: `supabase/tests/smart_routines.sql` (20). Pregnancy caution also covers "prefer
+  not to say" (fail safe); `fromReport()` never claims retinoids were left out.
+- **Personalisation reads the member's own submissions, never `analytics_events`** (a
+  member can't read them and payloads carry no skin data by design). Analytics props
+  are counts/tokens only (`count`, `routine_source`). `analytics_events` INSERT now
+  requires `user_id IS NULL OR user_id = auth.uid()` (it was spoofable).
+- `/routines` no longer says Smart Routines are "included" with Insider or lists a
+  rand-budget setting that doesn't exist; its CTA checks real access.
+- Migrations applied live: `20260928160000`, `…170000`, `…171000` (ops summary gains
+  "started from Basic" and "Smart Routines saved"), `…180000` (save_smart_routine hardening).
+- **Edge deploys (2026-09-28)**, all pinned raw-GitHub entrypoints on this branch: `skynn-advanced-assessment` v35 and `email-processor` v39 at `f44c962`, `skynn-advanced-worker` v26 at `587e3e5`. Live check with a throwaway account: Basic row → Advanced session with the link recorded → submit → worker produced the intake PDF and sent the email first time → withdraw refunded the Pass → data deleted. The next deploy must pin a commit containing them. Release PDF: `docs/SKYNN-AI-v2.1-followup-Release.pdf`.
+- **Honest wording rules from the review**: prefilled answers are "suggested… yours to
+  check and change" (nothing forces a change, so never say "confirmed"); the "check it
+  still fits" hint disappears once the answer changes; the Privacy Policy only promises
+  removal on request or via account deletion (there is no delete button for a saved Basic
+  analysis or Smart Routine — Advanced submissions can be withdrawn); results saved before
+  v2.1 are shown without their photo completeness factor (`withoutPhotoFactor()`).
+- **Main was broken when this branch was merged with it**: `src/components/AIFormulator.tsx`
+  on `origin/main` had been replaced by the one-line placeholder
+  `RESTORED_FROM_LOCAL_FILE_SEE_ARTIFACTS` (commits 32b7ce9/5fef60a, which also tried to
+  rename the Advanced CTA to "Get An Advanced AI Dermatology Report"). This branch keeps the
+  working file and the standard CTA "Explore the Advanced AI Dermatology Analysis" (the
+  terminology guard bans "…Dermatology Report" while submissions are pending). If that
+  rename is really wanted it is a product decision that also needs `terminology.ts`, the
+  guard test and the e2e updated together.
+
 ## Major systems
 
 - **Follow-up batch (2026-09-28, evening)** — branch

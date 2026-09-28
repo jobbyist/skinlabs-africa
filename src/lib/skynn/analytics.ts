@@ -58,11 +58,21 @@ export const SKYNN_EVENTS = [
   "skynn_advanced_submission_failed",
   "skynn_advanced_pending",
   "skynn_advanced_reference_created",
+  // Started from the Basic AI Skin Analysis (how many answers were suggested — never which values)
+  "skynn_advanced_prefill_applied",
   // Results
   "skynn_results_viewed",
   "skynn_results_pdf_generated",
   "skynn_results_pdf_downloaded",
   "skynn_results_completed",
+  // Smart Routines (dashboard) and personalised picks
+  "skynn_smart_routine_locked_viewed",
+  "skynn_smart_routine_viewed",
+  "skynn_smart_routine_generated",
+  "skynn_smart_routine_rebuilt",
+  "skynn_smart_routine_step_checked",
+  "skynn_recommendation_viewed",
+  "skynn_recommendation_clicked",
   // Errors
   "skynn_error",
 ] as const;
@@ -95,6 +105,9 @@ export interface SkynnEventProps {
   account_state?: "anonymous" | "free" | "member";
   processing_mode?: "fallback" | "production";
   eligible?: boolean;
+  /** A small count (e.g. how many answers were suggested). Never an answer value. */
+  count?: number;
+  routine_source?: "rule_based" | "advanced_report";
 }
 
 const ALLOWED_KEYS: ReadonlyArray<keyof SkynnEventProps> = [
@@ -109,6 +122,8 @@ const ALLOWED_KEYS: ReadonlyArray<keyof SkynnEventProps> = [
   "account_state",
   "processing_mode",
   "eligible",
+  "count",
+  "routine_source",
 ];
 
 const SAFE_TOKEN = /^[a-z0-9_:/.-]{1,64}$/i;

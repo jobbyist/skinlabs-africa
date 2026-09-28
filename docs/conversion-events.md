@@ -140,6 +140,22 @@ pins this. `skynn_ops_summary()` (Admin → SKYNN Reviews) reads several of thes
 | `skynn_results_pdf_generated` / `_downloaded` | Basic PDF button (only after a successful save) | `mode` |
 | `skynn_error` | Allowance check failure, PDF failure | `error_category` |
 
+#### Personalisation, PDFs and Smart Routines (2026-09-28, follow-up)
+
+Counts and short source tokens only (`count`, `routine_source`, `source`); never answers, skin type, products or MST. Personalisation itself reads the member's own submissions, never these events (a member can't read `analytics_events`, and the payloads carry no skin data by design).
+
+| Event | Fires | Props |
+| --- | --- | --- |
+| `skynn_advanced_prefill_applied` | A new Advanced session was seeded from the member's latest Basic analysis (`use-advanced-assessment.ts`) | `count` = how many answers were suggested |
+| `skynn_results_pdf_downloaded` (existing) | Now also from the dashboard's saved-analysis card and the Advanced submission PDF buttons | `mode`, `source` = `dashboard` / `status_page` / `confirmation` |
+| `skynn_smart_routine_locked_viewed` | `SmartRoutinePanel` shown to a member with no Advanced submission | `source` |
+| `skynn_smart_routine_viewed` | `SmartRoutinePanel` shown to a member with access | `source`, `routine_source` |
+| `skynn_smart_routine_generated` / `skynn_smart_routine_rebuilt` | Routine saved for the first time / updated | `routine_source` = `rule_based` or `advanced_report`, `count` = steps |
+| `skynn_smart_routine_step_checked` | A Smart step was ticked in the tracker | `step` = `am` / `pm` |
+| `skynn_recommendation_viewed` / `skynn_recommendation_clicked` | Dashboard Home "Picked for your skin" / Smart Routine product links | `source`, `count` |
+| `smart_routines_generated` (legacy name, now fired) | First Smart Routine saved | `source` |
+| `smart_routines_accessed` (legacy name, now fired) | `/routines` CTA clicked by a member who has access | `location` |
+
 ### Pricing, trial and checkout
 
 | Event | Where it fires | Props |
@@ -244,8 +260,7 @@ These names are in the `ConversionEvent` union, but no code path calls them. Don
 reports on them until they're wired up:
 
 `subscription_cancelled`, `starter_continue_without_account`,
-`smart_routines_demo_interaction`, `smart_routines_faq_opened`,
-`smart_routines_accessed`, `smart_routines_generated`, `dashboard_entered`.
+`smart_routines_demo_interaction`, `smart_routines_faq_opened`, `dashboard_entered`.
 
 ## Things to know when reading the numbers
 

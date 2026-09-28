@@ -15,8 +15,10 @@ import ProcessingState from "@/components/advanced-assessment/ProcessingState";
 import ReportView from "@/components/advanced-assessment/ReportView";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
+import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
 import { getAdvancedAssessmentReport, listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { BASIC_NAME } from "@/lib/skynn/terminology";
 import {
   getReportDisplayStatus,
   INTAKE_EXPECTED_DELIVERY,
@@ -289,7 +291,10 @@ const ReportStatusView = ({ sessionId, onBack }: { sessionId: string; onBack: ()
       <div className="max-w-xl mx-auto">
         {back}
         <IntakePendingView row={row} />
-        <div className="mt-4 flex justify-center">{del}</div>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <DownloadSubmissionPdfButton sessionId={row.session_id} source="status_page" />
+          {del}
+        </div>
       </div>
     );
   }
@@ -373,8 +378,24 @@ const AssessmentRunner = ({
   onSubmitted: (sessionId: string, submission: { referenceNumber: string | null; processingMode: string | null }) => void;
   onExit: () => void;
 }) => {
-  const { session, definition, responses, currentSectionId, saving, submitting, submission, error, setAnswer, goToSection, submit } =
-    useAdvancedAssessment();
+  const {
+    session,
+    definition,
+    responses,
+    currentSectionId,
+    saving,
+    submitting,
+    submission,
+    error,
+    setAnswer,
+    goToSection,
+    submit,
+    prefill,
+    isPrefilled,
+  } = useAdvancedAssessment();
+  const prefillNote = prefill?.ids.length
+    ? `We've started from your ${BASIC_NAME}${prefill.basicAnalysisDate ? ` of ${new Date(prefill.basicAnalysisDate).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}` : ""}: ${prefill.ids.length} answer${prefill.ids.length === 1 ? " is" : "s are"} filled in and marked. Please check each one — your skin may have changed. Consent and safety questions are always yours to answer.`
+    : null;
 
   useEffect(() => {
     if (submission && session) onSubmitted(session.id, submission);
@@ -421,6 +442,8 @@ const AssessmentRunner = ({
       onGoToSection={goToSection}
       onSubmit={submit}
       intakeMode={reportMode === "fallback"}
+      isPrefilled={isPrefilled}
+      prefillNote={prefillNote}
     />
   );
 };

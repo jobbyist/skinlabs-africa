@@ -365,6 +365,8 @@ export type Database = {
       }
       advanced_assessment_sessions: {
         Row: {
+          basic_analysis_id: string | null
+          prefilled_question_ids: string[] | null
           access_type: string | null
           assessment_definition_id: string
           assessment_version: string
@@ -389,6 +391,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          basic_analysis_id?: string | null
+          prefilled_question_ids?: string[] | null
           access_type?: string | null
           assessment_definition_id: string
           assessment_version: string
@@ -413,6 +417,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          basic_analysis_id?: string | null
+          prefilled_question_ids?: string[] | null
           access_type?: string | null
           assessment_definition_id?: string
           assessment_version?: string
@@ -4362,6 +4368,10 @@ export type Database = {
       }
       routine_steps: {
         Row: {
+          guidance: string | null
+          product_slug: string | null
+          smart_routine_id: string | null
+          source: string
           created_at: string
           id: string
           product_name: string | null
@@ -4371,6 +4381,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          guidance?: string | null
+          product_slug?: string | null
+          smart_routine_id?: string | null
+          source?: string
           created_at?: string
           id?: string
           product_name?: string | null
@@ -4380,12 +4394,55 @@ export type Database = {
           user_id: string
         }
         Update: {
+          guidance?: string | null
+          product_slug?: string | null
+          smart_routine_id?: string | null
+          source?: string
           created_at?: string
           id?: string
           product_name?: string | null
           sort_order?: number
           step_name?: string
           time_of_day?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smart_routines: {
+        Row: {
+          advanced_session_id: string | null
+          basic_analysis_id: string | null
+          created_at: string
+          engine_version: string
+          id: string
+          routine: Json
+          season: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advanced_session_id?: string | null
+          basic_analysis_id?: string | null
+          created_at?: string
+          engine_version: string
+          id?: string
+          routine: Json
+          season?: string | null
+          source: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advanced_session_id?: string | null
+          basic_analysis_id?: string | null
+          created_at?: string
+          engine_version?: string
+          id?: string
+          routine?: Json
+          season?: string | null
+          source?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -5037,6 +5094,23 @@ export type Database = {
       }
     }
     Functions: {
+      get_smart_routine_access: { Args: never; Returns: boolean }
+      link_basic_analysis_to_advanced_session: {
+        Args: {
+          p_basic_analysis_id: string
+          p_prefilled_question_ids?: string[]
+          p_session_id: string
+        }
+        Returns: boolean
+      }
+      save_smart_routine: {
+        Args: {
+          p_advanced_session_id?: string
+          p_basic_analysis_id?: string
+          p_routine: Json
+        }
+        Returns: string
+      }
       _refund_advanced_session_pass: {
         Args: {
           p_session: Database["public"]["Tables"]["advanced_assessment_sessions"]["Row"]
@@ -5663,6 +5737,7 @@ export type Database = {
           advanced_intake_pdf_failed: number
           advanced_pending: number
           advanced_submissions: number
+          advanced_started_from_basic: number
           analysis_passes_consumed: number
           basic_analyses_saved: number
           basic_limit_hits: number
@@ -5671,6 +5746,7 @@ export type Database = {
           skynn_results_viewed: number
           skynn_starts: number
           window_days: number
+          smart_routines_saved: number
         }[]
       }
       start_free_trial: {

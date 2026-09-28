@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useRoutine, type RoutineStep } from "@/hooks/use-routine";
+import SmartRoutinePanel from "@/components/dashboard/SmartRoutinePanel";
 
 const StepRow = ({
   step,
@@ -28,8 +29,9 @@ const StepRow = ({
   <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5">
     <Checkbox checked={checked} disabled={pending} onCheckedChange={onToggle} id={`${step.id}-${slot}`} />
     <label htmlFor={`${step.id}-${slot}`} className="min-w-0 flex-1 cursor-pointer">
-      <p className={`truncate text-sm font-medium ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
-        {step.step_name}
+      <p className={`flex items-center gap-1.5 text-sm font-medium ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
+        <span className="truncate">{step.step_name}</span>
+        {step.source === "smart" && <Badge variant="outline" className="shrink-0 text-[9px] px-1.5 py-0 no-underline">Smart</Badge>}
       </p>
       {step.product_name && <p className="truncate text-xs text-muted-foreground">{step.product_name}</p>}
     </label>
@@ -40,7 +42,8 @@ const StepRow = ({
 );
 
 const RoutineTrackerTab = () => {
-  const { amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin } = useRoutine();
+  const { amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin, refresh } =
+    useRoutine();
   const [draftName, setDraftName] = useState("");
   const [draftProduct, setDraftProduct] = useState("");
   const [draftTime, setDraftTime] = useState<RoutineStep["time_of_day"]>("both");
@@ -68,11 +71,12 @@ const RoutineTrackerTab = () => {
 
   return (
     <div className="space-y-6">
+      <SmartRoutinePanel onSaved={() => void refresh()} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div>
             <CardTitle>Today's routine</CardTitle>
-            <CardDescription>Tick off each step as you go — your own routine, not a fabricated one.</CardDescription>
+            <CardDescription>Tick off each step as you go. Steps marked Smart come from your Smart Routine; the rest are yours.</CardDescription>
           </div>
           {streak > 0 && (
             <Badge variant="secondary" className="gap-1.5">

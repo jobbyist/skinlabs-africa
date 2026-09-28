@@ -59,7 +59,7 @@ export interface MockOptions {
   /** payfast-payment subscription_quote startKind. */
   quoteStartKind?: "new_trial" | "existing_trial" | "immediate";
   /** SKYNN AI v2.1: Analysis Passes held, and the last free Basic AI Skin Analysis. */
-  skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean };
+  skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean; submitted?: boolean };
 }
 
 export interface MockState {
@@ -71,6 +71,12 @@ export interface MockState {
   lastFreeAnalysisAt: string | null;
   passes: number;
   advancedSubmitted: boolean;
+  /** Smart Routine saved through save_smart_routine, and the routine_steps it wrote. */
+  smartRoutine: Record<string, unknown> | null;
+  routineSteps: Record<string, unknown>[];
+  /** Answers the app sent when it seeded an Advanced session from a Basic analysis. */
+  seededResponses: Record<string, unknown> | null;
+  linkedBasicAnalysis: { basicAnalysisId: string; prefilledQuestionIds: string[] } | null;
 }
 
 /** A two-question stand-in for the real Advanced AI Dermatology Analysis definition. */
@@ -84,6 +90,7 @@ export const ADVANCED_DEFINITION = {
       questions: [
         { id: "popia_special_info_consent", type: "single_select", required: true, prompt: "Special personal information consent", options: [{ value: "agree", label: "I agree" }, { value: "decline", label: "I don't agree" }] },
         { id: "popia_cross_border_consent", type: "single_select", required: true, prompt: "Cross-border processing consent", options: [{ value: "agree", label: "I agree to cross-border processing" }, { value: "decline", label: "I don't agree to cross-border processing" }] },
+        { id: "skin_type", type: "single_select", required: false, prompt: "Which best describes your skin type?", options: [{ value: "oily", label: "Oily" }, { value: "dry", label: "Dry" }, { value: "combination", label: "Combination" }, { value: "normal", label: "Normal" }] },
       ],
     },
   ],
@@ -182,7 +189,11 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     basicSaves: [],
     lastFreeAnalysisAt: opts.skynn?.lastFreeAnalysisAt ?? null,
     passes: opts.skynn?.passes ?? 0,
-    advancedSubmitted: false,
+    advancedSubmitted: opts.skynn?.submitted ?? false,
+    smartRoutine: null,
+    routineSteps: [],
+    seededResponses: null,
+    linkedBasicAnalysis: null,
   };
   const unlimited = opts.skynn?.unlimited ?? false;
   const unlockAt = () =>
@@ -265,16 +276,21 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       });
     }
     if (name === "skynn-advanced-assessment") {
-      const session = { id: "sess-e2e", user_id: USER_ID, status: state.advancedSubmitted ? "submitted" : "in_progress", assessment_version: "e2e", responses: {}, current_section_id: "consent", completeness_pct: 0, assessment_definition_id: "def-e2e" };
+      const session = { id: "sess-e2e", user_id: USER_ID, status: state.advancedSubmitted ? "submitted" : "in_progress", assessment_version: "e2e", responses: state.advancedSubmitted ? { popia_special_info_consent: "agree", popia_cross_border_consent: "agree", skin_type: "oily" } : {}, current_section_id: "consent", completeness_pct: 0, assessment_definition_id: "def-e2e", basic_analysis_id: state.linkedBasicAnalysis?.basicAnalysisId ?? null, prefilled_question_ids: state.linkedBasicAnalysis?.prefilledQuestionIds ?? null };
+      const reportRow = { id: "rep-e2e", session_id: "sess-e2e", created_at: new Date().toISOString(), submitted_at: new Date().toISOString(), generation_status: "pending", review_status: null, processing_mode: "fallback", intake_status: "pending", reference_number: ADVANCED_REFERENCE };
       switch (body.action) {
         case "access":
           return r.fulfill({ json: { eligible: state.passes > 0, accessType: state.passes > 0 ? "analysis_pass" : "none", membershipTier: "explorer", passesAvailable: state.passes, rolloutStage: "pass_holders_review", reportMode: "fallback" } });
         case "create_session":
         case "get_session":
           if (state.passes <= 0 && body.action === "create_session") return r.fulfill({ status: 403, json: { error: "You'll need an Analysis Pass.", code: "not_eligible" } });
-          return r.fulfill({ json: { session, definition: ADVANCED_DEFINITION, report: null } });
+          return r.fulfill({ json: { session, definition: ADVANCED_DEFINITION, report: state.advancedSubmitted ? reportRow : null } });
         case "update_session":
+          if (!state.advancedSubmitted && !state.seededResponses) state.seededResponses = (body.responses as Record<string, unknown>) ?? {};
           return r.fulfill({ json: { session: { ...session, responses: body.responses ?? {} }, safetyScreen: { triage: "routine", flags: [] } } });
+        case "link_basic_analysis":
+          state.linkedBasicAnalysis = { basicAnalysisId: String(body.basicAnalysisId), prefilledQuestionIds: (body.prefilledQuestionIds as string[]) ?? [] };
+          return r.fulfill({ json: { linked: true } });
         case "submit":
           if (!state.advancedSubmitted) state.passes -= 1;
           state.advancedSubmitted = true;
@@ -302,7 +318,14 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     const url = new URL(req.url());
     const table = url.pathname.split("/").pop() ?? "";
     const single = (req.headers()["accept"] ?? "").includes("vnd.pgrst.object");
-    const rows = table === "profiles" ? [state.profile] : (tables[table] ?? []);
+    const rows =
+      table === "profiles"
+        ? [state.profile]
+        : table === "smart_routines"
+          ? state.smartRoutine ? [state.smartRoutine] : []
+          : table === "routine_steps" && state.routineSteps.length
+            ? state.routineSteps
+            : (tables[table] ?? []);
     if (req.method() === "HEAD" || (req.headers()["prefer"] ?? "").includes("count=exact")) {
       return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json" }, body: "[]" });
     }
@@ -326,6 +349,24 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       return r.fulfill({ json: true });
     }
     if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
+    if (fn === "get_smart_routine_access") return r.fulfill({ json: state.advancedSubmitted });
+    if (fn === "save_smart_routine") {
+      if (!state.advancedSubmitted) return r.fulfill({ status: 403, json: { code: "42501", message: "smart_routine_locked" } });
+      let body: Record<string, unknown> = {};
+      try {
+        body = (r.request().postDataJSON() as Record<string, unknown>) ?? {};
+      } catch {
+        /* ignore */
+      }
+      const routine = body.p_routine as { source: string; engineVersion: string; season: string; am: Record<string, unknown>[]; pm: Record<string, unknown>[] };
+      const now = new Date().toISOString();
+      state.smartRoutine = { id: "sr-e2e", user_id: USER_ID, source: routine.source, engine_version: routine.engineVersion, basic_analysis_id: body.p_basic_analysis_id ?? null, advanced_session_id: body.p_advanced_session_id ?? null, season: routine.season, routine, created_at: now, updated_at: now };
+      let order = 0;
+      state.routineSteps = (["am", "pm"] as const).flatMap((slot) =>
+        routine[slot].map((st) => ({ id: `step-${slot}-${order}`, step_name: st.step, product_name: st.productName ?? st.productType, time_of_day: slot, sort_order: order++, source: "smart", guidance: st.guidance ?? null, product_slug: st.productSlug ?? null })),
+      );
+      return r.fulfill({ json: "sr-e2e" });
+    }
     if (fn === "get_formulator_allowance") {
       const available = basicAvailable();
       return r.fulfill({

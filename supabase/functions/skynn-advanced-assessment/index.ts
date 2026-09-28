@@ -132,6 +132,26 @@ serve(async (req) => {
         return json(200, { session, definition });
       }
 
+      // SKYNN AI v2.1: record that a new session started from the member's
+      // saved Basic AI Skin Analysis, and which questions were suggested from
+      // it. The RPC checks the caller owns both rows and that the session
+      // isn't submitted; it never stores answer values.
+      case "link_basic_analysis": {
+        const sessionId = body?.sessionId as string | undefined;
+        const basicAnalysisId = body?.basicAnalysisId as string | undefined;
+        if (!sessionId || !basicAnalysisId) return json(400, { error: "sessionId and basicAnalysisId are required" });
+        const prefilled = Array.isArray(body?.prefilledQuestionIds)
+          ? (body.prefilledQuestionIds as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 60)
+          : null;
+        const { data, error } = await supabaseAuth.rpc("link_basic_analysis_to_advanced_session", {
+          p_session_id: sessionId,
+          p_basic_analysis_id: basicAnalysisId,
+          p_prefilled_question_ids: prefilled,
+        });
+        if (error) { const m = mapPostgrestError(error); return json(m.status, { error: m.message, code: m.code }); }
+        return json(200, { linked: data === true });
+      }
+
       case "get_session": {
         const sessionId = body?.sessionId as string | undefined;
         if (!sessionId) return json(400, { error: "sessionId is required" });

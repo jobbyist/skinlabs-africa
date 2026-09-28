@@ -40,13 +40,13 @@ describe("Basic AI Skin Analysis: a photo can never set Monk Skin Tone", () => {
     expect(JSON.stringify(r)).not.toMatch(/"mstTone":\s*\d/);
   });
 
-  test("photo presence does not change anything but input completeness", () => {
+  test("photo presence changes nothing, not even completeness", () => {
     const withPhoto = assemble(null, true);
     const without = assemble(null, false);
     expect(withPhoto.profile).toEqual(without.profile);
     expect(withPhoto.priorities).toEqual(without.priorities);
     expect(withPhoto.groundedRoutine).toEqual(without.groundedRoutine);
-    expect(withPhoto.completeness.overall).toBeGreaterThan(without.completeness.overall);
+    expect(withPhoto.completeness).toEqual(without.completeness);
   });
 
   test("a self-reported MST is carried through exactly as chosen", () => {
@@ -130,5 +130,61 @@ describe("no model prompt asks for skin tone from an image", () => {
       });
     }
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("public and legal copy never claims photos are uploaded or analysed", () => {
+  const surfaces = [
+    "src/pages/PrivacyPolicy.tsx",
+    "src/pages/TermsOfService.tsx",
+    "src/pages/CookiePolicy.tsx",
+    "src/pages/RefundPolicy.tsx",
+    "src/pages/Whitepaper.tsx",
+    "src/data/faq.ts",
+    "public/llms.txt",
+    "supabase/functions/_shared/email/templates/membership.ts",
+    "supabase/functions/_shared/email/templates/skynn.ts",
+  ];
+  const banned: RegExp[] = [
+    /images? (that )?you upload/i,
+    /before (any )?image (capture|is captured)/i,
+    /raw (skin )?images/i,
+    /image[- ]capture state/i,
+    /short (retention of raw images|image retention)/i,
+    /visible-characteristic assessment/i,
+    /generated from those images/i,
+    /photo \+ self-reported/i,
+    /weekly live AI/i,
+    /credit packs?/i,
+  ];
+
+  for (const file of surfaces) {
+    test(file, () => {
+      const text = read(file);
+      for (const pattern of banned) expect(text, `${file} matches ${pattern}`).not.toMatch(pattern);
+    });
+  }
+
+  test("the completeness score doesn't reward a photo", () => {
+    const src = read("src/data/formulaResults.ts");
+    expect(src).not.toContain("Photo provided");
+  });
+
+  test("an analysis saved before v2.1 is shown without its photo factor", async () => {
+    const { withoutPhotoFactor } = await import("@/data/formulaResults");
+    const legacy = {
+      overall: 90,
+      factors: [
+        { label: "Profile completeness", value: 100 },
+        { label: "Photo provided", value: 100 },
+        { label: "Skin tone (MST) provided", value: 60 },
+      ],
+    };
+    const shown = withoutPhotoFactor(legacy);
+    expect(shown.factors.map((f) => f.label)).toEqual(["Profile completeness", "Skin tone (MST) provided"]);
+    expect(shown.overall).toBe(80);
+    // Current results are returned untouched.
+    const current = { overall: 80, factors: shown.factors };
+    expect(withoutPhotoFactor(current)).toBe(current);
   });
 });
