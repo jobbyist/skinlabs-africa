@@ -45,6 +45,7 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
+import { openKeepMembership } from "@/lib/conversionDialogs";
 
 interface Profile {
   subscription_status: string | null;
@@ -119,6 +120,8 @@ const UserDashboard = () => {
     setAuthOpen(true);
   }, [user, loading]);
 
+  const [subscriptionNonce, setSubscriptionNonce] = useState(0);
+
   useEffect(() => {
     if (!user || !isTrialing) {
       setTrialSubscription(undefined);
@@ -144,7 +147,57 @@ const UserDashboard = () => {
     return () => {
       cancelled = true;
     };
-  }, [user, isTrialing]);
+  }, [user, isTrialing, subscriptionNonce]);
+
+  // "Keep my membership" deep links: ?keep=1 (trial emails) opens the dialog;
+  // ?keep=done / ?keep=cancelled are PayFast's return and cancel URLs.
+  useEffect(() => {
+    const keep = searchParams.get("keep");
+    if (!keep || loading || !user) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete("keep");
+    setSearchParams(next, { replace: true });
+    if (keep === "1") {
+      openKeepMembership({ source: "keep_link" });
+      return;
+    }
+    if (keep === "cancelled") {
+      toast("No changes made — your membership continues as before.");
+      return;
+    }
+    if (keep !== "done") return;
+    // PayFast confirms the card server-to-server (ITN), usually within seconds.
+    let cancelled = false;
+    let attempts = 0;
+    toast("Card confirmed on PayFast — switching on auto-renew…");
+    const poll = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      const { data } = await supabase
+        .from("payment_subscriptions")
+        .select("status")
+        .eq("user_id", user.id)
+        .in("status", ["trialing", "active", "past_due"])
+        .limit(1);
+      if (cancelled) return;
+      if (data && data.length > 0) {
+        trackConversionEvent("keep_membership_completed", { gateway: "payfast", source: "payfast_return" });
+        toast.success("Auto-renew is on. Cancel any time in Billing.");
+        setSubscriptionNonce((n) => n + 1);
+        return;
+      }
+      if (attempts < 15) {
+        window.setTimeout(() => void poll(), 3000);
+      } else {
+        toast("PayFast is still confirming your card. Refresh Billing in a minute — contact support if it doesn't show.");
+      }
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user]);
 
   useEffect(() => {
     if (searchParams.get("trial") !== "started") return;
@@ -533,10 +586,15 @@ const UserDashboard = () => {
                       </p>
                     </div>
                   </div>
-                  {/* Prompt 06 replaces this link with a dialog. */}
-                  <Button asChild size="sm">
-                    <Link to="/dashboard?tab=billing">Keep my membership</Link>
-                  </Button>
+                  {trialSubscription ? (
+                    <Button asChild size="sm" variant="outline">
+                      <Link to="/dashboard?tab=billing">Manage in Billing</Link>
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => openKeepMembership({ source: "trial_banner" })}>
+                      Keep my membership
+                    </Button>
+                  )}
                 </div>
               )}
 

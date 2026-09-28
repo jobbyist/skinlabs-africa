@@ -39,6 +39,70 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 06 — "Keep my membership": PayFast ZAR recurring + PayPal (2026-09-28)**
+  - `payfast-payment` gained actions `config`, `subscription_quote`,
+    `initialize_subscription` and `cancel_subscription` (one-off `initialize` kept).
+    A trial (new or existing) tokenises the card at **R0 through 3-D Secure**
+    (`amount=0.00`, `subscription_type=1`, `recurring_amount` = the plan price from
+    `pricing_plans` via `resolveCharge()`, `frequency` 3 monthly / 6 annual,
+    `cycles=0`, `billing_date` = the trial-end day in SAST, so the promo trial
+    ending 2026-10-31T22:00Z bills on **1 November**). **Deliberate deviation from the
+    prompt:** an account that has used its trial pays the first period at checkout
+    and `billing_date` = one period later — PayFast documents `billing_date` as "the
+    date from which FUTURE payments are made", so R0 + today would leave the first
+    period unpaid.
+  - The trial/first-charge rules moved from `paypal-payment` into the shared
+    `_shared/payments/subscriptionStart.ts` (`resolveSubscriptionStart()`, unchanged
+    logic), imported by BOTH gateways, so they can't drift. Keep it in sync with
+    `start_free_trial()`.
+  - **PayFast signing was broken before this** and is now fixed in
+    `_shared/payments/payfast.ts` (unit tested against independently computed MD5s):
+    the checkout form is signed in PayFast's DOCUMENTED field order (it was sorted
+    alphabetically, which PayFast explicitly rejects), an ITN is verified over the
+    fields in the ORDER RECEIVED (it was sorted too, so no genuine ITN could have
+    verified), and the REST API (cancel/fetch) uses alphabetical order with the
+    passphrase, `timestamp` like `2026-09-28T08:00:00+0000`, and `?testing=true`
+    (unsigned) in sandbox. Values use PHP `urlencode()` (`phpUrlencode()`).
+  - ITN for subscriptions (row found by `m_payment_id` = `payment_subscriptions.
+    gateway_subscription_id`, e.g. `sub_<uuid>`): COMPLETE at R0 → store
+    `payfast_token`, status `trialing`, and for a `new_trial` start the trial with the
+    `trial_used_at IS NULL` compare-and-set; COMPLETE with an amount → the charge goes
+    through `completePurchase()` (idempotent on `pf_payment_id`), status `active`,
+    `next_billing_at` advanced; FAILED → `failPurchase()` + `past_due`; CANCELLED →
+    `cancelled` (paid access to period end, then `expire_lapsed_subscriptions()`);
+    a LOCKED/SUSPENDED status → `suspended`.
+  - Migration `20260928090000_payfast_recurring_subscriptions.sql` (**applied live**):
+    `payment_subscriptions.payfast_token` (+ partial unique index). The table's
+    `SELECT` grant for `authenticated` is now a column list WITHOUT the token (a
+    column REVOKE can't override a table grant); verified as `authenticated`.
+  - Frontend: `src/lib/payfast.ts`, `src/components/payments/KeepMembershipDialog.tsx`
+    (rand price + exact first charge date + "cancel any time in Billing" before any
+    payment UI; primary "Pay with PayFast", secondary "Pay with PayPal" → the existing
+    `PayPalButtons`, with a US-dollar note). Opened through
+    `openKeepMembership()` (`src/lib/conversionDialogs.ts`, hosted by
+    `<ConversionDialogs />`) from the dashboard trial banner, BillingTab ("Keep my
+    membership", replacing "Continue after trial" / `MembershipCheckoutDialog`) and
+    `?keep=1` deep links (emails); prompt 08 adds the checklist entry. PayFast returns
+    to `?tab=billing&keep=done` (polls until the ITN lands, then "Auto-renew is on") or
+    `keep=cancelled`. Billing shows "Auto-renew on — R… with PayFast" (or PayPal in
+    USD), and Cancel calls the matching gateway's cancel before `cancel_subscription()`.
+  - **Secrets (Supabase Edge Function secrets, a human must set them)**:
+    `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE` (REQUIRED for
+    subscriptions; without it "Pay with PayFast" is hidden and `initialize_subscription`
+    returns 503) and `PAYFAST_MODE=live` (anything else = sandbox:
+    sandbox.payfast.co.za + `api.payfast.co.za?testing=true`). In the PayFast
+    dashboard set the same passphrase and enable Recurring Billing. ITN URL:
+    `https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/payfast-payment?notify=true`
+    (sent per checkout as `notify_url`). **Not yet exercised end to end: a human must
+    run the sandbox test** — card tokenised at R0, first charge scheduled on the
+    trial-end date, ITN verification passes, cancel works, dashboard shows "Auto-renew
+    on" — before `PAYFAST_MODE=live`.
+  - Deployed: `payfast-payment` **v36** (MCP, `./_shared` inlined for that upload
+    only). Live checks: `config` → `{subscriptionsConfigured:false, mode:"sandbox"}`
+    (secrets not set yet), an authed action without a JWT → 401, a forged ITN → 400.
+    `paypal-payment` was NOT redeployed: live v26 still has its inline copy of the
+    start rules, identical to the shared module except one 409 message; the next
+    deploy of it picks up the shared import.
 - **Onboarding overhaul 05 — one-tap, no-card trial (2026-09-25)**
   - `useStartTrial()` (`src/hooks/use-start-trial.ts`) is the ONLY no-card trial
     path: `startFreeTrial()` + loading/error state + `trial_activation_*` (with

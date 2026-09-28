@@ -20,10 +20,10 @@ export interface CompletePurchaseResult {
   error?: unknown;
 }
 
-function describePurchase(purchaseType: PurchaseType, meta: Record<string, unknown>): string {
+function describePurchase(gateway: Gateway, purchaseType: PurchaseType, meta: Record<string, unknown>): string {
   if (purchaseType === "plan") {
     const base = `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`;
-    return meta.subscription_id ? `${base} — PayPal subscription` : base;
+    return meta.subscription_id ? `${base} — ${gateway === "payfast" ? "PayFast" : "PayPal"} subscription` : base;
   }
   if (purchaseType === "credit_pack") {
     const credits = meta.credits;
@@ -49,7 +49,7 @@ export async function completePurchase(
 ): Promise<CompletePurchaseResult> {
   const { gateway, userId, reference, purchaseType, meta, paidAmount, currency, amountZar } = input;
 
-  const description = describePurchase(purchaseType, meta);
+  const description = describePurchase(gateway, purchaseType, meta);
   const { error: txError } = await admin.from("payment_transactions").upsert(
     {
       user_id: userId,

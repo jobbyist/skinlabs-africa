@@ -143,6 +143,14 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
 
+### "Keep my membership" (onboarding overhaul 06, 2026-09-28)
+
+| Event | Where | Props |
+|---|---|---|
+| `keep_membership_viewed` | `KeepMembershipDialog` opens | `source` (`trial_banner`, `billing_tab`, `keep_link`, …), `plan` |
+| `keep_membership_gateway_selected` | "Pay with PayFast" / "Pay with PayPal" | `gateway`, `source` |
+| `keep_membership_completed` | PayPal approval in the dialog; PayFast once the ITN has landed after `?keep=done` | `gateway`, `source`, `startKind` (PayPal) |
+
 ### Gate CTAs: `useConversionAction` (onboarding overhaul 03, 2026-09-25)
 
 Every paywall/gate CTA runs through `src/hooks/use-conversion-action.ts` and fires one
