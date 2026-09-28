@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Play, Pause, Clock, Lock, SkipBack, SkipForward, Heart } from "lucide-react";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, PODCAST_SCHEDULE_LINE, publishedPodcastEpisodes } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 import { useConversionAction } from "@/hooks/use-conversion-action";
 import { SeeAllPlansLink } from "@/components/GatedOverlay";
@@ -18,7 +18,7 @@ interface PodcastSectionProps {
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
   description =
-    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms.",
+    `Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. ${PODCAST_SCHEDULE_LINE}`,
   showCta = true,
   limit,
 }: PodcastSectionProps) => {

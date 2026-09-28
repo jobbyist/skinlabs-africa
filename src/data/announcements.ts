@@ -16,6 +16,14 @@ export interface Announcement {
 
 export const announcements: Announcement[] = [
   {
+    date: "2026-09-28",
+    tag: "New",
+    icon: "mic",
+    title: "The Skin Deep Podcast: Season 1 is complete, Season 2 starts January 2027",
+    description:
+      "Episode 10, \"Are You Buying Skincare Or Buying The Marketing?\", closes Season 1 — all ten episodes are streaming now on the podcast hub, each with show notes and chapter markers. New episodes will be uploaded when the official Season 2 episode calendar commences in January 2027.",
+  },
+  {
     date: "2026-09-22",
     tag: "New",
     icon: "gift",

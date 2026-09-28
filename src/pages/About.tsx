@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { buildOrganizationJsonLd } from "@/lib/seo-config";
 import { withPromoTrialCopy } from "@/lib/promo";
 import { FUNDING_MODEL_HEADLINE } from "@/lib/editorialIndependence";
+import { PODCAST_SEASON_2_START } from "@/data/podcast";
 
 const About = () => {
   const location = useLocation();
@@ -92,8 +93,8 @@ const About = () => {
     {
       icon: <Mic className="h-6 w-6" />,
       title: "The Skin Deep Podcast",
-      description: "Expert interviews, skincare deep-dives and myth-busting conversations.",
-      highlight: "New episode last Friday of the month",
+      description: "Skincare deep dives and myth-busting conversations, grounded in South African skin.",
+      highlight: `Season 2 starts ${PODCAST_SEASON_2_START}`,
       link: "/podcast"
     },
     {
