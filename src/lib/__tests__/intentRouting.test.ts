@@ -39,8 +39,8 @@ describe("shouldRedirectNewAccount", () => {
     }
   });
 
-  test("welcome path is /dashboard until prompt 07 ships /welcome", () => {
-    expect(WELCOME_PATH).toBe("/dashboard");
+  test("new accounts land on /welcome", () => {
+    expect(WELCOME_PATH).toBe("/welcome");
   });
 });
 
@@ -50,9 +50,9 @@ describe("trialDestination", () => {
     expect(trialDestination("/podcast/ep-3?t=120")).toBe("/podcast/ep-3?t=120");
   });
 
-  test("pricing or home goes to the dashboard trial welcome", () => {
-    expect(trialDestination("/pricing")).toBe("/dashboard?trial=started");
-    expect(trialDestination("/pricing?interval=annual")).toBe("/dashboard?trial=started");
-    expect(trialDestination("/")).toBe("/dashboard?trial=started");
+  test("pricing or home goes to the welcome flow", () => {
+    expect(trialDestination("/pricing")).toBe("/welcome?trial=started");
+    expect(trialDestination("/pricing?interval=annual")).toBe("/welcome?trial=started");
+    expect(trialDestination("/")).toBe("/welcome?trial=started");
   });
 });

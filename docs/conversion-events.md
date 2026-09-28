@@ -143,6 +143,14 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
 
+### /welcome (onboarding overhaul 07, 2026-09-28)
+
+| Event | Where | Props |
+|---|---|---|
+| `welcome_viewed` | `/welcome` loads for an account that hasn't finished onboarding | `trial` (arrived from a trial start) |
+| `welcome_step_completed` | Continue / Skip on a step, or "Take the 2-minute analysis" | `step`, `skipped` or `action` |
+| `welcome_finished` | Finish or "Skip setup" (stamps `onboarding_completed_at`) | `how` (`finished`/`skipped`), `step` |
+
 ### "Keep my membership" (onboarding overhaul 06, 2026-09-28)
 
 | Event | Where | Props |

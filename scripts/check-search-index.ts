@@ -36,6 +36,8 @@ const KNOWN_EXCLUSIONS = new Set([
   "/marketplace/saved",
   // Utility step of the password-recovery email flow, not content.
   "/reset-password",
+  // Signed-in, noindex first-run onboarding (onboarding overhaul 07).
+  "/welcome",
   // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
   "/quote-ss-beauty",
   // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached

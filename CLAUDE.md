@@ -39,6 +39,28 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 07 — `/welcome` first-run onboarding (2026-09-28)**
+  - `src/pages/Welcome.tsx` (`lazyWithRetry`, `noindex`, in `KNOWN_EXCLUSIONS`),
+    signed-in only (signed out → AuthDialog in place, `returnTo=/welcome`). Three
+    skippable screens under the shared `StepperHeader` (now takes an optional
+    `phases` list; SKYNN AI keeps its default four): **Your skin** (the latest
+    delivered analysis via `headlineForSavedAnalysis()`: "Nice. Your skin profile's
+    saved. Two quick things and you're in.", or "Take the 2-minute analysis" →
+    `/skynn-ai`; a pending local SKYNN AI result is attached first, same idempotent
+    `persistStarterResultToAccount()` the dashboard uses), **Your day**
+    (`weather_city_key` from the 10-city `SA_CITIES` list + "use my location"
+    snapped on-device, and `preferred_routine_time`), **Your trial** (one tap via
+    `useStartTrial({ destination: null })` for a free account that hasn't trialled;
+    "{plan} is active until {date}" for a trialist; plans link only for a used
+    trial). Finish or "Skip setup" stamps `profiles.onboarding_completed_at` →
+    `/dashboard`. Anyone already stamped is redirected to `/dashboard`, so
+    returning members never see it. No migration (all three columns already had
+    client UPDATE grants).
+  - `WELCOME_PATH` is now `/welcome`, so `TRIAL_STARTED_PATH` =
+    `/welcome?trial=started` (a returning member who starts a trial on /pricing is
+    bounced to /dashboard after `useStartTrial`'s success toast).
+    `TrialWelcomeModal` and the dashboard's `?trial=started` handling were deleted.
+    Events: `welcome_viewed`, `welcome_step_completed`, `welcome_finished`.
 - **Onboarding overhaul 06 — "Keep my membership": PayFast ZAR recurring + PayPal (2026-09-28)**
   - `payfast-payment` gained actions `config`, `subscription_quote`,
     `initialize_subscription` and `cancel_subscription` (one-off `initialize` kept).
