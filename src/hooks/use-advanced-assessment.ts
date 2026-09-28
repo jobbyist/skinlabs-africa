@@ -9,6 +9,7 @@ import {
   submitAdvancedAssessment,
 } from "@/lib/assessment/client";
 import { computeAssessmentCompleteness } from "@/lib/assessment/completeness";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
 import type {
   AdvancedAssessmentAccess,
   AdvancedAssessmentSession,
@@ -124,7 +125,7 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     } catch (err) {
       // Autosave failures are surfaced quietly — the user's local answers
       // are never lost client-side, and the next successful save catches up.
-      console.warn("Advanced Assessment autosave failed:", err);
+      console.warn("Advanced AI Dermatology Analysis autosave failed:", err);
     } finally {
       setSaving(false);
     }
@@ -158,6 +159,7 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     setSubmitting(true);
     setError(null);
+    trackSkynnEvent("skynn_advanced_submission_started", { mode: "advanced" });
     try {
       await persist();
       const result = await submitAdvancedAssessment(session.id);
@@ -169,9 +171,20 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
       });
       if (result.status === "failed") {
         setError(result.errorMessage ?? "We couldn't generate your report this time.");
+        trackSkynnEvent("skynn_advanced_submission_failed", { mode: "advanced", error_category: "submission_failed" });
+      } else {
+        const processingMode = result.processingMode === "fallback" ? "fallback" : "production";
+        trackSkynnEvent("skynn_advanced_submission_succeeded", { mode: "advanced", processing_mode: processingMode });
+        // Never the reference number itself — only that one was issued.
+        if (result.referenceNumber) trackSkynnEvent("skynn_advanced_reference_created", { mode: "advanced", processing_mode: processingMode });
+        if (processingMode === "fallback") trackSkynnEvent("skynn_advanced_pending", { mode: "advanced", processing_mode: processingMode });
       }
     } catch (err) {
       setError(err instanceof AssessmentApiError ? err.message : "Couldn't submit your assessment.");
+      trackSkynnEvent("skynn_advanced_submission_failed", {
+        mode: "advanced",
+        error_category: err instanceof AssessmentApiError ? "submission_failed" : "network",
+      });
     } finally {
       setSubmitting(false);
     }

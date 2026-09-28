@@ -16,7 +16,7 @@ export interface FormulatorAllowanceStatus {
   lastAnalysisAt: Date | null;
   nextUnlockAt: Date | null;
   passBalance: number;
-  /** Free allowance spent AND no Analysis Pass to fall back on. */
+  /** This week's Basic AI Skin Analysis is used (Passes don't count — they're for the Advanced analysis). */
   locked: boolean;
 }
 
@@ -55,7 +55,9 @@ export const useFormulatorAllowance = () => {
         lastAnalysisAt: toDate(row.last_analysis_at),
         nextUnlockAt: toDate(row.next_unlock_at),
         passBalance: row.pass_balance ?? 0,
-        locked: !unlimited && freeRemaining === 0 && (row.pass_balance ?? 0) <= 0,
+        // A Basic AI Skin Analysis never spends an Analysis Pass (SKYNN AI v2.1),
+        // so holding Passes doesn't unlock it.
+        locked: !unlimited && freeRemaining === 0,
       };
     },
   });

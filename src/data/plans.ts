@@ -47,7 +47,7 @@ export const membershipPlans: MembershipPlan[] = [
     isPurchasable: true,
     cta: "Start free",
     features: [
-      "One full AI starter analysis to see your real skin profile",
+      "One Basic AI Skin Analysis every 7 days to see your real skin profile",
       "Public reviews, scores and Shelf Showdowns",
       `${DAILY_SKINNY_FREE_WEEKLY} full Daily Skinny briefings per week`,
       "Ingredient Combination Checker (limited time)",
@@ -89,7 +89,7 @@ export const membershipPlans: MembershipPlan[] = [
     cta: "Become an Insider",
     features: [
       "7-day free trial — no card required",
-      "A live AI routine that re-analyses your skin every week",
+      "Unlimited Basic AI Skin Analysis — re-analyse whenever your skin changes",
       "Full podcast library and unlimited reviews",
       "Ingredient Combination Checker (limited time)",
       "Full Spotlight brand profiles and practitioner directory",

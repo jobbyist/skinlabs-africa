@@ -58,13 +58,38 @@ export interface MockOptions {
   tables?: Record<string, Record<string, unknown>[]>;
   /** payfast-payment subscription_quote startKind. */
   quoteStartKind?: "new_trial" | "existing_trial" | "immediate";
+  /** SKYNN AI v2.1: Analysis Passes held, and the last free Basic AI Skin Analysis. */
+  skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean };
 }
 
 export interface MockState {
   profile: Profile;
   rpcCalls: string[];
   functionCalls: { name: string; action?: string }[];
+  /** Basic AI Skin Analysis saves the mock accepted. */
+  basicSaves: string[];
+  lastFreeAnalysisAt: string | null;
+  passes: number;
+  advancedSubmitted: boolean;
 }
+
+/** A two-question stand-in for the real Advanced AI Dermatology Analysis definition. */
+export const ADVANCED_DEFINITION = {
+  version: "e2e",
+  title: "Advanced AI Dermatology Analysis",
+  sections: [
+    {
+      id: "consent",
+      title: "Your consent",
+      questions: [
+        { id: "popia_special_info_consent", type: "single_select", required: true, prompt: "Special personal information consent", options: [{ value: "agree", label: "I agree" }, { value: "decline", label: "I don't agree" }] },
+        { id: "popia_cross_border_consent", type: "single_select", required: true, prompt: "Cross-border processing consent", options: [{ value: "agree", label: "I agree to cross-border processing" }, { value: "decline", label: "I don't agree to cross-border processing" }] },
+      ],
+    },
+  ],
+};
+export const ADVANCED_REFERENCE = "SKYNN-ADV-20260928-E2ETST";
+const WINDOW_DAYS = 7;
 
 // Shape copied from the live control rows (2026-09-28), benefits shortened.
 const PLANS = [
@@ -150,11 +175,23 @@ const PLANS = [
 ];
 
 export async function mockSupabase(context: BrowserContext, opts: MockOptions = {}): Promise<MockState> {
-  const state: MockState = { profile: opts.profile ?? freeProfile(), rpcCalls: [], functionCalls: [] };
+  const state: MockState = {
+    profile: opts.profile ?? freeProfile(),
+    rpcCalls: [],
+    functionCalls: [],
+    basicSaves: [],
+    lastFreeAnalysisAt: opts.skynn?.lastFreeAnalysisAt ?? null,
+    passes: opts.skynn?.passes ?? 0,
+    advancedSubmitted: false,
+  };
+  const unlimited = opts.skynn?.unlimited ?? false;
+  const unlockAt = () =>
+    state.lastFreeAnalysisAt ? new Date(new Date(state.lastFreeAnalysisAt).getTime() + WINDOW_DAYS * 86_400_000) : null;
+  const basicAvailable = () => unlimited || !unlockAt() || Date.now() >= unlockAt()!.getTime();
   const tables: Record<string, Record<string, unknown>[]> = {
     pricing_experiment_variants: [{ variant_key: "control", traffic_weight: 100, is_active: true }],
     pricing_plans: PLANS,
-    pricing_settings: [{ variant_key: "control", default_billing_interval: "annual", free_ai_analysis_allowance: 1, free_analysis_window_days: 30, promo_free_trial_until: PROMO_TRIAL_END }],
+    pricing_settings: [{ variant_key: "control", default_billing_interval: "annual", free_ai_analysis_allowance: 1, free_analysis_window_days: WINDOW_DAYS, promo_free_trial_until: PROMO_TRIAL_END }],
     ...opts.tables,
   };
   const user = {
@@ -172,7 +209,19 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     ({ session, signedIn }) => {
       try {
         if (signedIn) localStorage.setItem("sb-gnkpzijxuciiaamakgzm-auth-token", JSON.stringify(session));
-        localStorage.setItem("skinlabs-cookie-consent", "accepted");
+        // A valid record under the real key (src/lib/cookie-consent.ts), so the
+        // banner never covers controls — on phones it sits over the SKYNN consent step.
+        const now = Date.now();
+        localStorage.setItem(
+          "skinlabs_cookie_consent_v1",
+          JSON.stringify({
+            decision: "rejected",
+            timestamp: new Date(now).toISOString(),
+            expiresAt: new Date(now + 80 * 86_400_000).toISOString(),
+            version: "v1",
+            preferences: { analytics: false, personalisation: false, targetedAdvertising: false },
+          }),
+        );
         // Ads are aborted in tests, so the ad-blocker notice would cover bottom-of-page buttons.
         sessionStorage.setItem("skinlabs_adblock_notice_dismissed", "1");
       } catch {
@@ -215,6 +264,29 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
         },
       });
     }
+    if (name === "skynn-advanced-assessment") {
+      const session = { id: "sess-e2e", user_id: USER_ID, status: state.advancedSubmitted ? "submitted" : "in_progress", assessment_version: "e2e", responses: {}, current_section_id: "consent", completeness_pct: 0, assessment_definition_id: "def-e2e" };
+      switch (body.action) {
+        case "access":
+          return r.fulfill({ json: { eligible: state.passes > 0, accessType: state.passes > 0 ? "analysis_pass" : "none", membershipTier: "explorer", passesAvailable: state.passes, rolloutStage: "pass_holders_review", reportMode: "fallback" } });
+        case "create_session":
+        case "get_session":
+          if (state.passes <= 0 && body.action === "create_session") return r.fulfill({ status: 403, json: { error: "You'll need an Analysis Pass.", code: "not_eligible" } });
+          return r.fulfill({ json: { session, definition: ADVANCED_DEFINITION, report: null } });
+        case "update_session":
+          return r.fulfill({ json: { session: { ...session, responses: body.responses ?? {} }, safetyScreen: { triage: "routine", flags: [] } } });
+        case "submit":
+          if (!state.advancedSubmitted) state.passes -= 1;
+          state.advancedSubmitted = true;
+          return r.fulfill({ json: { sessionId: "sess-e2e", reportId: "rep-e2e", referenceNumber: ADVANCED_REFERENCE, processingMode: "fallback", status: "pending", errorMessage: null } });
+        case "list_reports":
+          return r.fulfill({ json: { reports: state.advancedSubmitted ? [{ id: "rep-e2e", session_id: "sess-e2e", created_at: new Date().toISOString(), submitted_at: new Date().toISOString(), generation_status: "pending", review_status: null, processing_mode: "fallback", intake_status: "pending", reference_number: ADVANCED_REFERENCE }] : [] } });
+        case "get_report":
+          return r.fulfill({ json: { report: { id: "rep-e2e", session_id: "sess-e2e", created_at: new Date().toISOString(), submitted_at: new Date().toISOString(), generation_status: "pending", review_status: null, processing_mode: "fallback", intake_status: "pending", reference_number: ADVANCED_REFERENCE } } });
+        default:
+          return r.fulfill({ json: { ok: true } });
+      }
+    }
     if (name === "payfast-payment" && body.action === "initialize_subscription") {
       return r.fulfill({ json: { paymentUrl: "https://sandbox.payfast.co.za/eng/process", paymentData: { merchant_id: "10000100" }, subscriptionId: "sub_test" } });
     }
@@ -249,7 +321,39 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       state.profile = { ...state.profile, subscription_status: "trial", trial_plan: "insider", trial_ends_at: PROMO_TRIAL_END, trial_used_at: new Date().toISOString(), trial_started_at: new Date().toISOString() };
       return r.fulfill({ json: true });
     }
-    if (fn === "available_ai_credits") return r.fulfill({ json: 0 });
+    if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
+    if (fn === "get_formulator_allowance") {
+      const available = basicAvailable();
+      return r.fulfill({
+        json: [{
+          tier: unlimited ? "insider" : "explorer",
+          unlimited,
+          free_remaining: unlimited ? null : available ? 1 : 0,
+          window_days: WINDOW_DAYS,
+          last_free_analysis_at: state.lastFreeAnalysisAt,
+          last_analysis_at: state.lastFreeAnalysisAt,
+          next_unlock_at: available ? null : unlockAt()!.toISOString(),
+          pass_balance: state.passes,
+        }],
+      });
+    }
+    if (fn === "save_starter_analysis") {
+      let body: Record<string, unknown> = {};
+      try {
+        body = (r.request().postDataJSON() as Record<string, unknown>) ?? {};
+      } catch {
+        /* ignore */
+      }
+      const id = String(body.p_client_analysis_id ?? "");
+      if (state.basicSaves.includes(id)) return r.fulfill({ json: [{ recommendation_id: "rec-" + id, source: "existing", next_unlock_at: null }] });
+      if (!basicAvailable()) {
+        // Same shape PostgREST returns for save_starter_analysis's RAISE (and never a Pass fallback).
+        return r.fulfill({ status: 400, json: { code: "P0001", message: "formulator_limit_reached", details: unlockAt()!.toISOString(), hint: "formulator_limit_reached" } });
+      }
+      state.basicSaves.push(id);
+      if (!unlimited) state.lastFreeAnalysisAt = new Date().toISOString();
+      return r.fulfill({ json: [{ recommendation_id: "rec-" + id, source: unlimited ? "membership" : "free_allowance", next_unlock_at: unlimited ? null : unlockAt()!.toISOString() }] });
+    }
     return r.fulfill({ json: null });
   });
 

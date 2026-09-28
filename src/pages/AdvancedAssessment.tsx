@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, CalendarClock, ClipboardCheck, Loader2, Lock, ShieldCheck, Sparkles, XCircle } from "lucide-react";
@@ -16,6 +16,7 @@ import ReportView from "@/components/advanced-assessment/ReportView";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
 import { getAdvancedAssessmentReport, listAdvancedAssessmentReports } from "@/lib/assessment/client";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
 import {
   getReportDisplayStatus,
   INTAKE_EXPECTED_DELIVERY,
@@ -52,6 +53,16 @@ const AdvancedAssessmentPage = () => {
   const [started, setStarted] = useState(false);
   const [confirmation, setConfirmation] = useState<{ sessionId: string; referenceNumber: string | null } | null>(null);
   const reportMode: AdvancedReportMode = access?.reportMode ?? "disabled";
+  const entitlementTrackedRef = useRef(false);
+
+  // SKYNN AI funnel: the server-side entitlement result, once per visit (never the pass count).
+  useEffect(() => {
+    if (!user || accessLoading || !access || entitlementTrackedRef.current) return;
+    entitlementTrackedRef.current = true;
+    trackSkynnEvent("skynn_viewed", { mode: "advanced", account_state: "free" });
+    trackSkynnEvent("skynn_advanced_entitlement_checked", { mode: "advanced", eligible: access.eligible });
+    trackSkynnEvent(access.eligible ? "skynn_analysis_pass_confirmed" : "skynn_analysis_pass_required", { mode: "advanced" });
+  }, [user, accessLoading, access]);
 
   const openSession = useCallback(
     (id: string | null) => {
@@ -99,7 +110,15 @@ const AdvancedAssessmentPage = () => {
     body = (
       <div className="space-y-10">
         {access?.eligible ? (
-          <Landing passesAvailable={access.passesAvailable} reportMode={reportMode} onStart={() => setStarted(true)} />
+          <Landing
+            passesAvailable={access.passesAvailable}
+            reportMode={reportMode}
+            onStart={() => {
+              trackSkynnEvent("skynn_started", { mode: "advanced" });
+              trackSkynnEvent("skynn_assessment_started", { mode: "advanced" });
+              setStarted(true);
+            }}
+          />
         ) : (
           <NotAvailable
             paused={(access?.rolloutStage ?? "disabled") === "disabled" || reportMode === "disabled"}
@@ -114,7 +133,7 @@ const AdvancedAssessmentPage = () => {
   return (
     <>
       <Helmet>
-        <title>Advanced AI Dermatology Report (SKYNN AI) | SkinLabs</title>
+        <title>Advanced AI Dermatology Analysis (SKYNN AI v2.1 — beta) | SkinLabs</title>
         {/* Member-only, personalised flow — nothing here for search engines. */}
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
@@ -133,7 +152,7 @@ const SignInPrompt = ({ onSignIn }: { onSignIn: () => void }) => (
   <div className="max-w-md mx-auto text-center py-24 space-y-4">
     <Lock className="h-8 w-8 mx-auto text-muted-foreground" />
     <p className="text-lg font-heading font-semibold">Sign in to continue</p>
-    <p className="text-sm text-muted-foreground">The Advanced AI Dermatology Report is available to signed-in SkinLabs members.</p>
+    <p className="text-sm text-muted-foreground">The Advanced AI Dermatology Analysis is available to signed-in SkinLabs members with an Analysis Pass.</p>
     <Button onClick={onSignIn}>Sign in</Button>
   </div>
 );
@@ -146,8 +165,8 @@ const NotAvailable = ({ paused, onPurchase }: { paused: boolean; onPurchase: () 
     </p>
     <p className="text-sm text-muted-foreground">
       {paused
-        ? "New Advanced AI Dermatology Report requests are paused at the moment — check back soon."
-        : "During this reviewed beta, each Advanced AI Dermatology Report uses one Analysis Pass. If we can't release your report, the pass is refunded."}
+        ? "New Advanced AI Dermatology Analysis submissions are paused at the moment — check back soon."
+        : "Each Advanced AI Dermatology Analysis uses one Analysis Pass — membership alone doesn't include it. If we can't release your report, the pass is refunded."}
     </p>
     {!paused && <Button onClick={onPurchase}>Get an Analysis Pass</Button>}
   </div>
@@ -157,8 +176,8 @@ const Landing = ({ passesAvailable, reportMode, onStart }: { passesAvailable: nu
   <div className="max-w-2xl mx-auto text-center pt-8 space-y-6">
     <Sparkles className="h-8 w-8 mx-auto text-primary" />
     <div>
-      <p className="text-sm font-semibold uppercase tracking-wide gradient-text">SKYNN AI (beta)</p>
-      <h1 className="text-3xl font-heading font-semibold mt-1">Advanced AI Dermatology Report</h1>
+      <p className="text-sm font-semibold uppercase tracking-wide gradient-text">SKYNN AI v2.1 — beta</p>
+      <h1 className="text-3xl font-heading font-semibold mt-1">Advanced AI Dermatology Analysis</h1>
     </div>
     <p className="text-muted-foreground">
       A deeper, evidence-referenced look at your skin: how it behaves, your breakouts, sun and pigment concerns, and how
@@ -202,7 +221,7 @@ const PastReports = ({ onOpen }: { onOpen: (id: string) => void }) => {
   if (!reports || reports.length === 0) return null;
   return (
     <div className="max-w-2xl mx-auto space-y-3">
-      <p className="font-medium text-sm">Your reports</p>
+      <p className="font-medium text-sm">Your Advanced AI Dermatology Analysis submissions</p>
       {reports.map((r) => {
         const status = getReportDisplayStatus(r);
         return (
@@ -320,7 +339,7 @@ const ReportStatusView = ({ sessionId, onBack }: { sessionId: string; onBack: ()
 const IntakePendingView = ({ row }: { row: AdvancedAssessmentReportRow }) => (
   <div className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-5 shadow-sm">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <p className="font-heading font-semibold">Advanced Dermatology Report</p>
+      <p className="font-heading font-semibold">Advanced AI Dermatology Analysis</p>
       <PendingBadge />
     </div>
     {row.reference_number && <ReferenceBlock referenceNumber={row.reference_number} />}

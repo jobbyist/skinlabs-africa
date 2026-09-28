@@ -10,44 +10,37 @@ import { useAdvancedAssessmentAccess } from "@/hooks/use-advanced-assessment";
 import { listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { getReportDisplayStatus, INTAKE_EXPECTED_DELIVERY, type AdvancedAssessmentReportSummary } from "@/lib/assessment/types";
 import { PendingBadge } from "@/components/advanced-assessment/IntakeConfirmation";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
+import { ADVANCED_NAME, ANALYSIS_PASS, BASIC_NAME, SKYNN_ADVANCED_ROUTE, analysisPassCount } from "@/lib/skynn/terminology";
 
 interface AdvancedAssessmentCardProps {
-  /** Insider/VIP — the same "isMember" semantics used by AIFormulator.tsx (useMembership().isMember). */
+  /** Kept for the caller's API. Membership alone never grants the Advanced AI Dermatology Analysis. */
   isMember?: boolean;
+  /** Kept for the caller's API; the server's own pass count is used instead. */
   balance?: number | null;
   loading?: boolean;
 }
 
 /**
- * Dashboard presence for the Advanced AI Dermatology Report — sits next to
- * "Your AM/PM Routine" in the Overview tab so the funnel (Starter Analysis →
- * Advanced AI Dermatology Report → Smart Routines) reads as one continuous
- * journey rather than a separate product. Reuses the existing Analysis Pass
- * balance (threaded down from UserDashboard.tsx, same source AnalysisPassesCard
- * reads — no second fetch) and membership state; the report itself still runs
- * through the existing SKYNN AI flow at /skynn-ai (or the dashboard's own
- * "Skin Analysis (SKYNN AI)" tab), never a duplicate product surface.
+ * Dashboard presence for the Advanced AI Dermatology Analysis (SKYNN AI v2.1 —
+ * beta). Eligibility and the Analysis Pass count come ONLY from the server-side
+ * get_advanced_assessment_access() check, and every CTA goes to the single
+ * Advanced flow at /skynn-ai/advanced — which handles sign-in, the Pass gate
+ * and the purchase itself. (Before v2.1 this card had a second branch that
+ * treated Insider/VIP membership as access and linked to /skynn-ai, where the
+ * legacy live-AI path ran without a Pass. That path is retired.)
  *
- * SKYNN AI v2 (2026-09-23): when the v2 engine is live (rollout stage
- * 'pass_holders_review'), eligibility and pass balance come from the
- * server-side get_advanced_assessment_access() check and the CTA goes to
- * the human-reviewed report at /skynn-ai/advanced. The props are only a
- * fallback for when the v2 engine is switched off.
- *
- * Pre-approval intake (2026-09-27): a member with a queued submission sees
- * it here as "Advanced Dermatology Report — Pending" with its reference,
- * whatever the current rollout stage — the request exists either way.
+ * A member with a queued pre-approval submission sees it here as
+ * "Advanced AI Dermatology Analysis — Pending" with its reference.
  */
-const AdvancedAssessmentCard = ({ isMember: isMemberProp = false, balance: balanceProp = null, loading: loadingProp = false }: AdvancedAssessmentCardProps) => {
+const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssessmentCardProps) => {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
   const { access, loading: accessLoading } = useAdvancedAssessmentAccess();
-  const v2Live = !!access && access.rolloutStage !== "disabled";
-  const isMember = v2Live ? false : isMemberProp;
-  const balance = v2Live ? access.passesAvailable : balanceProp;
+  const paused = !access || access.rolloutStage === "disabled" || access.reportMode === "disabled";
+  const balance = access?.passesAvailable ?? 0;
   const loading = loadingProp || accessLoading;
-  const hasPasses = (balance ?? 0) > 0;
-  const eligible = v2Live ? access.eligible : isMember || hasPasses;
-  const startHref = v2Live ? "/skynn-ai/advanced" : "/skynn-ai";
+  const hasPasses = balance > 0;
+  const eligible = Boolean(access?.eligible);
   const viewedRef = useRef(false);
   const [pending, setPending] = useState<AdvancedAssessmentReportSummary | null>(null);
 
@@ -67,21 +60,20 @@ const AdvancedAssessmentCard = ({ isMember: isMemberProp = false, balance: balan
     viewedRef.current = true;
     trackConversionEvent("advanced_assessment_upsell_viewed", {
       funnelLocation: "dashboard",
-      accessState: isMember ? "member" : hasPasses ? "pass_holder" : "none",
+      accessState: hasPasses ? "pass_holder" : "none",
     });
-  }, [loading, isMember, hasPasses]);
+    trackSkynnEvent("skynn_advanced_entitlement_checked", { mode: "advanced", source: "dashboard", eligible });
+  }, [loading, hasPasses, eligible]);
 
   const handleCta = () => {
-    if (isMember) {
-      trackConversionEvent("advanced_assessment_membership_cta_clicked", { funnelLocation: "dashboard" });
-      return;
-    }
-    if (hasPasses) {
+    if (eligible) {
       trackConversionEvent("advanced_analysis_cta_clicked", { cta: "use_pass", funnelLocation: "dashboard" });
+      trackSkynnEvent("skynn_mode_selected", { mode: "advanced", source: "dashboard" });
       return;
     }
     trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation: "dashboard" });
     trackConversionEvent("analysis_pass_purchase_viewed", { source: "dashboard_advanced_assessment" });
+    trackSkynnEvent("skynn_analysis_pass_required", { mode: "advanced", source: "dashboard" });
     setPurchaseOpen(true);
   };
 
@@ -91,62 +83,53 @@ const AdvancedAssessmentCard = ({ isMember: isMemberProp = false, balance: balan
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             {eligible ? <Sparkles className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
-            <span className="gradient-text font-bold">SKYNN AI</span> — Advanced AI Dermatology Report
+            <span><span className="gradient-text font-bold">SKYNN AI</span> — {ADVANCED_NAME}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {pending && (
             <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-medium">Advanced Dermatology Report</span>
+                <span className="text-sm font-medium">{ADVANCED_NAME}</span>
                 <PendingBadge />
               </div>
               {pending.reference_number && <p className="font-mono text-xs text-muted-foreground">{pending.reference_number}</p>}
               <p className="text-xs text-muted-foreground">
-                Your submission has been received and securely queued. Expected delivery: {INTAKE_EXPECTED_DELIVERY}. No action needed.
+                Your submission has been received and securely queued. It is not a completed report yet. Expected
+                delivery: {INTAKE_EXPECTED_DELIVERY}. No action needed.
               </p>
-              <Link to={`/skynn-ai/advanced?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
+              <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
                 View submission status
               </Link>
             </div>
           )}
           <p className="text-sm text-muted-foreground">
-            {eligible
-              ? "Go deeper than your Starter Analysis with a comprehensive AI dermatology report built to understand your skin profile in greater detail."
-              : "Unlock a deeper understanding of your skin with SKYNN AI — a more comprehensive AI dermatology report than the free Starter Analysis."}
-            {v2Live && " Every report is checked by the SkinLabs team before it's released."}
+            A longer, more detailed questionnaire than your {BASIC_NAME}. Each submission uses one {ANALYSIS_PASS}.
+            {access?.reportMode === "fallback"
+              ? " During this beta, submissions are received and queued with a reference number while the report workflow is finalised."
+              : " Every report is checked by the SkinLabs team before it's released."}
           </p>
-          {isMember ? (
+          {paused && !loading ? (
+            <p className="text-xs text-muted-foreground">New submissions are paused at the moment — check back soon.</p>
+          ) : eligible ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">Included with your membership</Badge>
+              <Badge variant="secondary">{analysisPassCount(balance)} available</Badge>
               <Button size="sm" className="gap-2" asChild onClick={handleCta}>
-                <Link to={startHref}>
+                <Link to={SKYNN_ADVANCED_ROUTE}>
                   <Sparkles className="h-3.5 w-3.5" />
-                  Start My Dermatology Report
-                </Link>
-              </Button>
-            </div>
-          ) : hasPasses ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{balance} Analysis Pass{balance === 1 ? "" : "es"} available</Badge>
-              <Button size="sm" className="gap-2" asChild onClick={handleCta}>
-                <Link to={startHref}>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Start My Dermatology Report
+                  Start my {ADVANCED_NAME}
                 </Link>
               </Button>
             </div>
           ) : (
-            <Button size="sm" variant="outline" className="gap-2" onClick={handleCta}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={handleCta} disabled={loading}>
               <Lock className="h-3.5 w-3.5" />
-              Explore access
+              Get an {ANALYSIS_PASS}
             </Button>
           )}
-          {v2Live && (
-            <Link to="/skynn-ai/advanced" className="block text-xs text-muted-foreground underline underline-offset-2">
-              View my Advanced reports
-            </Link>
-          )}
+          <Link to={SKYNN_ADVANCED_ROUTE} className="block text-xs text-muted-foreground underline underline-offset-2">
+            View my {ADVANCED_NAME} submissions
+          </Link>
         </CardContent>
       </Card>
       <AnalysisPassPurchaseModal open={purchaseOpen} onOpenChange={setPurchaseOpen} />

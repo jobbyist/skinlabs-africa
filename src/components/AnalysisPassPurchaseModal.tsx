@@ -67,10 +67,10 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5 text-primary" />
-            Unlock Your Advanced AI Dermatology Report
+            Get an Analysis Pass
           </DialogTitle>
           <DialogDescription>
-            Go beyond your Starter Analysis with a deeper, more personalised look at your skin.
+            Each Analysis Pass unlocks one Advanced AI Dermatology Analysis — a deeper, more detailed questionnaire than your Basic AI Skin Analysis.
           </DialogDescription>
         </DialogHeader>
 
@@ -97,8 +97,8 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {pack.credits === 1
-                          ? "One Advanced AI Dermatology Report"
-                          : `${pack.credits} Advanced AI Dermatology Reports`}
+                          ? "One Advanced AI Dermatology Analysis"
+                          : `${pack.credits} Advanced AI Dermatology Analyses`}
                         {pack.pack_id === bestValuePackId && singlePrice
                           ? ` · Save R${Math.max(0, Math.round(singlePrice * pack.credits - Number(pack.price)))}`
                           : ""}

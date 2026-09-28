@@ -1,4 +1,6 @@
--- Server-side tests for the rolling free-analysis allowance
+-- Server-side tests for the Basic AI Skin Analysis rolling allowance (SKYNN AI v2.1:
+-- 1 per rolling 7 days for Explorer / Glow Lite, unlimited for Insider / VIP, never
+-- spends an Analysis Pass)
 -- (save_starter_analysis / get_formulator_allowance / protect_profile_privileged_columns).
 --
 -- Safe to run against any environment, including production: everything runs
@@ -57,7 +59,7 @@ BEGIN
 
   SELECT * INTO r FROM public.get_formulator_allowance();
   IF r.free_remaining <> 0 OR r.next_unlock_at IS NULL
-     OR abs(extract(epoch FROM (r.next_unlock_at - (r.last_free_analysis_at + interval '30 days')))) > 1 THEN
+     OR abs(extract(epoch FROM (r.next_unlock_at - (r.last_free_analysis_at + interval '7 days')))) > 1 THEN
     RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: locked status wrong (%)', row_to_json(r);
   END IF; n := n + 1;
 
@@ -71,34 +73,56 @@ BEGIN
   SELECT * INTO r FROM public.get_formulator_allowance();
   IF r.free_remaining <> 0 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: client managed to reset last_free_analysis_at'; END IF; n := n + 1;
 
-  -- ---------- 5. 30-day boundary ----------
+  -- ---------- 5. 7-day boundary ----------
   -- Setup writes below run as the owner with app.privileged_write on; the JWT
   -- claims are still set, so without it the protect trigger would silently
   -- revert them and the assertions would pass vacuously.
   EXECUTE 'RESET ROLE';
   PERFORM set_config('app.privileged_write', 'on', true);
-  UPDATE public.profiles SET last_free_analysis_at = now() - interval '30 days' + interval '1 minute' WHERE user_id = v_uid;
+  UPDATE public.profiles SET last_free_analysis_at = now() - interval '7 days' + interval '1 minute' WHERE user_id = v_uid;
   PERFORM set_config('app.privileged_write', 'off', true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   SELECT * INTO r FROM public.get_formulator_allowance();
-  IF r.free_remaining <> 0 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: 29d23h59m should still be locked'; END IF; n := n + 1;
+  IF r.free_remaining <> 0 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: 6d23h59m should still be locked'; END IF; n := n + 1;
 
   EXECUTE 'RESET ROLE';
   PERFORM set_config('app.privileged_write', 'on', true);
-  UPDATE public.profiles SET last_free_analysis_at = now() - interval '30 days' WHERE user_id = v_uid;
+  UPDATE public.profiles SET last_free_analysis_at = now() - interval '7 days' WHERE user_id = v_uid;
   PERFORM set_config('app.privileged_write', 'off', true);
   EXECUTE 'SET LOCAL ROLE authenticated';
   SELECT * INTO r FROM public.save_starter_analysis('test-c', 'dry', ARRAY['dryness'], 'rec', '{"x":4}'::jsonb);
-  IF r.source <> 'free_allowance' THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: exactly 30 days should unlock, got %', r.source; END IF; n := n + 1;
+  IF r.source <> 'free_allowance' THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: exactly 7 days should unlock, got %', r.source; END IF; n := n + 1;
 
-  -- ---------- 6. Locked user with a purchased Analysis Pass may spend it ----------
+  -- ---------- 6. A locked user holding an Analysis Pass is still refused, and keeps the Pass ----------
+  -- (Basic AI Skin Analysis never spends an Analysis Pass — Passes are for the
+  -- Advanced AI Dermatology Analysis only.)
   EXECUTE 'RESET ROLE';
   INSERT INTO public.ai_credit_transactions (user_id, delta, reason) VALUES (v_uid, 1, 'test:grant');
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  v_raised := false;
+  BEGIN
+    PERFORM public.save_starter_analysis('test-d', 'combination', ARRAY['pores'], 'rec', '{"x":5}'::jsonb);
+  EXCEPTION WHEN raise_exception THEN
+    GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+    v_raised := v_msg = 'formulator_limit_reached';
+  END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: locked Basic save must not fall back to a Pass'; END IF; n := n + 1;
+  IF public.available_ai_credits(v_uid) <> 1 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: Analysis Pass was spent on a Basic analysis'; END IF; n := n + 1;
+
+  -- ---------- 6b. A failed save (invalid payload) does not use up the allowance ----------
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('app.privileged_write', 'on', true);
+  UPDATE public.profiles SET last_free_analysis_at = now() - interval '8 days' WHERE user_id = v_uid;
   PERFORM set_config('app.privileged_write', 'off', true);
   EXECUTE 'SET LOCAL ROLE authenticated';
-  SELECT * INTO r FROM public.save_starter_analysis('test-d', 'combination', ARRAY['pores'], 'rec', '{"x":5}'::jsonb);
-  IF r.source <> 'analysis_pass' THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: pass should be spent, got %', r.source; END IF; n := n + 1;
-  IF public.available_ai_credits(v_uid) <> 0 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: pass not deducted'; END IF; n := n + 1;
+  BEGIN
+    PERFORM public.save_starter_analysis('test-bad', 'oily', ARRAY['acne'], 'rec', NULL);
+  EXCEPTION WHEN raise_exception THEN NULL;
+  END;
+  SELECT * INTO r FROM public.get_formulator_allowance();
+  IF r.free_remaining <> 1 THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: a failed save consumed the weekly allowance'; END IF; n := n + 1;
+  SELECT * INTO r FROM public.save_starter_analysis('test-d2', 'combination', ARRAY['pores'], 'rec', '{"x":5}'::jsonb);
+  IF r.source <> 'free_allowance' THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: allowance should be available after a failed save'; END IF; n := n + 1;
 
   -- ---------- 7. Glow Lite trial stays on the free allowance ----------
   EXECUTE 'RESET ROLE';
@@ -139,7 +163,29 @@ BEGIN
   END;
   IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: foreign photo path accepted'; END IF; n := n + 1;
 
+  -- ---------- 10. An account with no profiles row cannot save free analyses ----------
   EXECUTE 'RESET ROLE';
+  DELETE FROM public.profiles WHERE user_id = v_uid;
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  v_raised := false;
+  BEGIN
+    PERFORM public.save_starter_analysis('test-h', 'oily', ARRAY['acne'], 'rec', '{"x":8}'::jsonb);
+  EXCEPTION WHEN raise_exception THEN
+    GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+    v_raised := v_msg = 'profile_missing';
+  END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: save without a profile row must be refused'; END IF; n := n + 1;
+
+  -- ---------- 11. MST can only ever be user_reported ----------
+  EXECUTE 'RESET ROLE';
+  v_raised := false;
+  BEGIN
+    INSERT INTO public.skincare_recommendations (user_id, skin_type, concerns, recommendation, status, mst_tone, mst_source)
+    VALUES (v_uid, 'oily', ARRAY['acne'], 'x', 'delivered', 5, 'model_estimated');
+  EXCEPTION WHEN check_violation THEN v_raised := true;
+  END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'FORMULATOR_TEST_FAILED: mst_source model_estimated accepted'; END IF; n := n + 1;
+
   RAISE EXCEPTION 'FORMULATOR_TESTS_PASSED (% assertions)', n;
 END;
 $$;

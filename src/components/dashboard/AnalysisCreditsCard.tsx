@@ -84,7 +84,7 @@ const FreeAllowance = ({ allowance }: { allowance: FormulatorAllowanceStatus }) 
         <p className="text-2xl font-heading font-bold text-foreground">
           {remaining} <span className="text-base font-medium text-secondary-text">of {total} free</span>
         </p>
-        <p className="text-xs text-secondary-text">Free analyses left this period</p>
+        <p className="text-xs text-secondary-text">Free Basic AI Skin Analyses left this week (rolling 7 days)</p>
       </div>
       <Progress
         value={progress}
@@ -113,7 +113,7 @@ const FreeAllowance = ({ allowance }: { allowance: FormulatorAllowanceStatus }) 
       </dl>
       {action.kind && (
         <div className="space-y-1">
-          <p className="text-xs text-secondary-text">Unlimited re-analysis is included with Glow Insider.</p>
+          <p className="text-xs text-secondary-text">Unlimited Basic AI Skin Analysis is included with Glow Insider.</p>
           <Button
             size="sm"
             className="min-h-11 gap-2"

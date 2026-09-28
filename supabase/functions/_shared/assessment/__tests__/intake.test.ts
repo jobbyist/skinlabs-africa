@@ -119,7 +119,7 @@ describe("internal intake email", () => {
       versions: [["Prompt set", "skynn-v2.0.0"]],
       access: "Analysis Pass",
     });
-    expect(e.subject).toBe("SKYNN AI Advanced Report Submission — SKYNN-ADV-20260927-XHZ2EK");
+    expect(e.subject).toBe("SKYNN AI v2.1 — Advanced AI Dermatology Analysis submission — SKYNN-ADV-20260927-XHZ2EK");
     expect(e.filename).toBe("SKYNN-ADV-20260927-XHZ2EK.pdf");
     expect(e.html).not.toContain("<script>");
     expect(e.html).toContain("PDF attached");
