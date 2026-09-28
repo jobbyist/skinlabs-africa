@@ -143,6 +143,14 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
 
+### Card-upfront experiment (onboarding overhaul 11, 2026-09-28)
+
+| Event | Where | Props |
+|---|---|---|
+| `trial_card_upfront_shown` | `useStartTrial()` when the browser is in the `card_upfront` pricing variant (weight 0 until enabled) | `plan`, `source` |
+
+`keep_membership_viewed` then fires with source `card_upfront:{original source}`.
+
 ### Getting Started checklist (onboarding overhaul 08, 2026-09-28)
 
 | Event | Where | Props |

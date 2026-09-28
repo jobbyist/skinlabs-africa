@@ -7,7 +7,8 @@ import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { startFreeTrial } from "@/lib/trial";
 import { TRIAL_STARTED_PATH } from "@/lib/intentRouting";
-import { openMembershipCheckout } from "@/lib/conversionDialogs";
+import { openKeepMembership, openMembershipCheckout } from "@/lib/conversionDialogs";
+import { isCardUpfrontVariant } from "@/lib/cardUpfront";
 import { isTrialAlreadyUsedError } from "@/lib/trialErrors";
 
 export type TrialPlan = "insider" | "glow_lite";
@@ -42,6 +43,14 @@ export const useStartTrial = () => {
 
   const start = useCallback(
     async ({ plan = "insider", source, destination = TRIAL_STARTED_PATH }: StartTrialOptions = {}) => {
+      // Card-upfront experiment (weight 0 until a human enables it): ask for a
+      // card/PayPal first. KeepMembershipDialog quotes the trial and starts it
+      // once the card is tokenised (PayFast ITN / PayPal activation).
+      if (isCardUpfrontVariant(getPersistedPricingVariant())) {
+        trackConversionEvent("trial_card_upfront_shown", { plan, source });
+        openKeepMembership({ planId: plan, source: source ? `card_upfront:${source}` : "card_upfront" });
+        return false;
+      }
       setLoading(true);
       setError(null);
       trackConversionEvent("trial_activation_started", { plan, source });

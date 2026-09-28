@@ -39,6 +39,40 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 11 — admin funnel panel + card-upfront experiment (2026-09-28)**
+  - Admin → Analytics now opens with `ConversionFunnelPanel`
+    (`src/components/admin/`): reads the admin-only `conversion_funnel_daily` view
+    (prompt 00), 7/30/90-day toggle, stage totals (sign-ups → saved analyses →
+    trials → auto-renew → paid) and stage-to-stage rates from the pure, tested
+    `summarizeFunnel()` (`src/lib/conversionFunnelSummary.ts`; SAST windows,
+    zero denominators → "—"). The rates are same-window ratios, not cohorts, and
+    the panel says so. Kept separate from `AnalyticsTab` (Vercel traffic +
+    `analytics_events`, the admin-console analytics work): no duplication. The
+    referenced `claude/admin-console-claude-code-prompts.md` isn't in the repo
+    or on any branch; the closest work is the unmerged
+    `claude/website-perf-admin-dashboard-6t0bpf` branch (analytics events by
+    source, admin user management), which touches `AnalyticsTab`/`AdminDashboard`
+    but not the funnel view.
+  - `pricing_experiment_variants.card_upfront` (migration
+    `20260928130000_card_upfront_experiment.sql`, **applied live**,
+    `traffic_weight = 0`, `is_active = true`, no plan/settings rows of its own so
+    everything falls back to `control` client- and server-side). When a browser is
+    bucketed into it, `useStartTrial()` (the single trial path) opens
+    `KeepMembershipDialog` first (card/PayPal tokenised at R0, first charge on
+    trial end; the trial starts from the PayFast ITN / PayPal activation) instead
+    of the no-card trial, and fires `trial_card_upfront_shown`.
+    `weightedPick()` now skips zero-weight variants (a `Math.random()` of exactly 0
+    could previously pick the first one) — tested. **Stays at weight 0 until a
+    human enables it after 1 Nov 2026** (the promo promises no card):
+    `UPDATE pricing_experiment_variants SET traffic_weight = 10 WHERE variant_key = 'card_upfront';`
+    Browsers already bucketed keep their variant (localStorage), so a weight change
+    only affects new browsers.
+    Verified in a production preview (mocked session): a free account in
+    `card_upfront` gets the Keep dialog ("Nothing to pay today", R0/PayFast) and no
+    `start_free_trial` call; `control` still starts the no-card trial. That test
+    also exposed a real crash — a malformed `subscription_quote` response took the
+    page down via `formatZar(undefined)` — so `quoteMembership()` now validates the
+    response and turns a bad shape into an error the dialog shows.
 - **Onboarding overhaul 10 — honest upsells, CTA hierarchy, mobile chrome (2026-09-28)**
   - `purchasableCapabilities(planIds)` (`entitlements.ts`, unit tested): the union
     of `LADDER_CAPABILITIES` for tiers with `pricing_plans.is_purchasable`, with the

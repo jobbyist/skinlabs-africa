@@ -50,15 +50,24 @@ const storeVariant = (variantKey: string) => {
   }
 };
 
-const weightedPick = (variants: { variant_key: string; traffic_weight: number }[]): string => {
-  const total = variants.reduce((sum, v) => sum + Math.max(v.traffic_weight, 0), 0);
+/**
+ * A zero-weight variant is never picked (it's parked, e.g. card_upfront): it's
+ * skipped outright, because Math.random() can return exactly 0 and a `roll <= 0`
+ * check would otherwise hand it the rare 0 roll.
+ */
+export const weightedPick = (
+  variants: { variant_key: string; traffic_weight: number }[],
+  random: () => number = Math.random,
+): string => {
+  const eligible = variants.filter((v) => v.traffic_weight > 0);
+  const total = eligible.reduce((sum, v) => sum + v.traffic_weight, 0);
   if (total <= 0) return "control";
-  let roll = Math.random() * total;
-  for (const v of variants) {
-    roll -= Math.max(v.traffic_weight, 0);
-    if (roll <= 0) return v.variant_key;
+  let roll = random() * total;
+  for (const v of eligible) {
+    roll -= v.traffic_weight;
+    if (roll < 0) return v.variant_key;
   }
-  return variants[variants.length - 1].variant_key;
+  return eligible[eligible.length - 1].variant_key;
 };
 
 /**
