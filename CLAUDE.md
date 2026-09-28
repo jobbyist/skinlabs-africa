@@ -39,6 +39,40 @@ feature appear operational.
   removed from /reviews at the user's request. Don't reintroduce either claim
   ("we're not a retailer / don't earn a cut" or "we buy every product").
 
+- **Onboarding overhaul 09 — trial lifecycle emails + banners (2026-09-28)**
+  - Migration `20260928120000_trial_lifecycle_emails.sql` (**applied live**):
+    `is_trial_activated()` (mirrors `isActivated()` in `journey.ts`),
+    `trial_lifecycle_email_plan(p_today)` = the single selection logic AND the dry
+    run, `enqueue_trial_lifecycle_emails()` loops it. SAST calendar days; key =
+    template + user + `trial_ends_at` (each email once per trial). Schedule: day 2
+    `trial_activation_nudge` (MARKETING, consent, not activated, not inside T-3),
+    T-7 `trial_week_left`, T-3 `trial_precharge_reminder` (live auto-renew: exact
+    date + rand amount, PayPal shows the USD charge) or `trial_last_chance` (no
+    card), +5 days `trial_winback` (MARKETING, consent, still free, once).
+    `trial_started` / `trial_ended` stay on `notify_subscription_change()`; the
+    hourly T-1 `trial_expiring` is unchanged. Service-role only.
+  - Verified with rolled-back probes on a synthetic trial ending 1 Nov: 28 Sep →
+    nudge (MARKETING, non-transactional), 25 Oct → week left, 29 Oct → last chance
+    (or precharge R79.00 PayFast once a live subscription exists), activated → no
+    nudge, 6 Nov → win-back, no consent → nothing; two enqueue runs → one outbox row.
+    Live dry run for today returned 0 rows (no trials on production yet).
+  - **The daily cron is NOT scheduled** (the prompt asks for a dry-run review
+    first). A human enables it with
+    `SELECT cron.schedule('trial-lifecycle-emails-daily', '5 4 * * *', $$SELECT public.enqueue_trial_lifecycle_emails()$$);`
+    (06:05 SAST). It must be on before 25 Oct 2026 for the promo trials' T-7 email.
+  - Templates in `_shared/email/templates/trialLifecycle.ts` (plan-aware,
+    card-aware, calm copy, the end date stated plainly, marketing ones carry the
+    unsubscribe link); `trial_ended` now offers "Keep my membership" (`?keep=1`) and
+    an Analysis Pass. Send-time guards (`guards.ts`) re-check the same trial is
+    still running, re-read card state (precharge needs a live subscription,
+    last-chance none, a read error never sends charge copy) and re-check consent /
+    activation. **`email-processor` must be redeployed (pinned to this PR's merge
+    commit) before these templates can send** — see the deploy note below.
+  - Dashboard banners use `trialBannerState()` (`src/lib/trialLifecycle.ts`, same
+    SAST windows, unit tested): trialing → week_left (4–7 days) → precharge /
+    last_chance (0–3 days, unknown card state never shows charge copy) → ended
+    ("Keep my membership" + "Get an Analysis Pass", replacing "Upgrade now" →
+    /pricing).
 - **Onboarding overhaul 08 — journey model, Getting Started checklist, dashboard IA (2026-09-28)**
   - `src/lib/journey.ts` (pure, `src/lib/__tests__/journey.test.ts` covers every
     stage): `resolveJourneyStage(facts)` → `visitor | analysed | member | trialing |

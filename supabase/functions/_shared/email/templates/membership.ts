@@ -125,9 +125,14 @@ registerTemplate({
     ${emailHeading("Your trial has ended")}
     ${emailParagraph(
       `Your ${label} trial has ended and your account is back on Glow Explorer (free)` +
-      (noCardOnFile(vars) ? ` — no charge was made.` : `.`)
+      (noCardOnFile(vars) ? ` — no charge was made.` : `.`) +
+      ` Your skin profile, routine and saved items are all still here.`
     )}
-    ${emailButton(`Upgrade to ${label}`, `${BRAND.siteUrl}/pricing`)}
+    ${emailButton(`Keep ${label}`, `${BRAND.siteUrl}/dashboard?tab=billing&keep=1`)}
+    ${emailParagraph(
+      `Just want one more deep dive? A single Analysis Pass unlocks an Advanced AI Dermatology Report from SKYNN AI, ` +
+      `no membership needed. <a href="${BRAND.siteUrl}/dashboard?tab=billing" style="color:${BRAND.text};">Get an Analysis Pass</a>.`
+    )}
   `;
   },
 });

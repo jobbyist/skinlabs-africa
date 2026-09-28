@@ -150,7 +150,7 @@ before the user confirms their email. It counts sign-up **submissions**. Use the
 | `checklist_step_clicked` | A step's action on the dashboard checklist | `step` (`analysis`, `routine`, `weather`, `checkins`, `content`, `mfa`, `keep_membership`) |
 | `checklist_dismissed` | Hiding the completed checklist | — |
 
-`keep_membership_viewed` gains the source `checklist`.
+`keep_membership_viewed` gains the source `checklist`, and (overhaul 09) `trial_ended_banner`.
 
 ### /welcome (onboarding overhaul 07, 2026-09-28)
 

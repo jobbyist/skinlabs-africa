@@ -48,6 +48,7 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
 import { openKeepMembership } from "@/lib/conversionDialogs";
+import { sastDaysUntil, trialBannerState } from "@/lib/trialLifecycle";
 
 interface Profile {
   subscription_status: string | null;
@@ -352,14 +353,20 @@ const UserDashboard = () => {
       : "Auto-renew is on. Cancel any time in Billing."
     : trialSubscription === null
       ? trialEndsLabel
-        ? `Full access until ${trialEndsLabel}. No card on file — your access simply ends unless you upgrade.`
-        : "No card on file. Upgrade any time to keep your access after the trial ends."
+        ? `Full access until ${trialEndsLabel}. No card on file, so nothing is charged — your access simply ends unless you keep your membership.`
+        : "No card on file. Keep your membership any time to stay on after the trial ends."
       : trialEndsLabel
         ? `Full access until ${trialEndsLabel}. Manage your membership any time in Billing.`
         : "Manage your membership any time in Billing.";
-  const trialDaysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : 0;
+  // SAST calendar days, the same measure the trial lifecycle emails use.
+  const trialDaysLeft = trialEndsAt ? Math.max(0, sastDaysUntil(trialEndsAt)) : 0;
+  const trialBanner = trialBannerState({
+    isTrialing,
+    trialEndsAt,
+    hasPaymentOnFile: trialSubscription === undefined ? null : Boolean(trialSubscription),
+    trialUsed,
+    isExplorer: tier === "explorer",
+  });
 
   useEffect(() => {
     if (!user) return;
@@ -574,20 +581,26 @@ const UserDashboard = () => {
                 </div>
               </div>
 
-              {!membershipLoading && isTrialing && (
+              {!membershipLoading && trialBanner !== "none" && trialBanner !== "ended" && (
                 <div
                   className={`mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border p-5 sm:flex-row sm:items-center ${
-                    trialDaysLeft <= 2 ? "border-amber-500/50 bg-amber-500/10" : "border-primary/30 bg-primary/5"
+                    trialBanner === "last_chance" ? "border-amber-500/50 bg-amber-500/10" : "border-primary/30 bg-primary/5"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 shrink-0 text-primary" />
+                    <Clock className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
                     <div>
                       <p className="font-medium text-foreground">
-                        {tierLabel} trial — {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left
+                        {trialBanner === "week_left"
+                          ? `One week left of your ${tierLabel} trial`
+                          : trialBanner === "last_chance" || trialBanner === "precharge"
+                            ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left of your ${tierLabel} trial`
+                            : `${tierLabel} trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {trialBannerCopy}
+                        {trialBanner === "last_chance" && trialEndsLabel
+                          ? `Your trial ends on ${trialEndsLabel}. Keep it now and nothing is charged before then, or do nothing and move back to Glow Explorer (free) without being charged.`
+                          : trialBannerCopy}
                       </p>
                     </div>
                   </div>
@@ -603,26 +616,26 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              {!membershipLoading && !isTrialing && trialUsed && tier === "explorer" && (
+              {!membershipLoading && trialBanner === "ended" && (
                 <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-border bg-muted/40 p-5 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <Clock className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                     <div>
                       <p className="font-medium text-foreground">Your free trial has ended</p>
                       <p className="text-sm text-muted-foreground">
-                        {trialEndsAt
-                          ? `It ended on ${new Date(trialEndsAt).toLocaleDateString("en-ZA", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}. Upgrade to Glow Insider to unlock your routine, reviews and the full podcast library again.`
-                          : "Upgrade to keep full access to routines, reviews and the podcast library."}
+                        {trialEndsLabel ? `It ended on ${trialEndsLabel}. ` : ""}
+                        Your skin profile and routine are still here. Keep your membership, or get a single Analysis Pass for one more deep dive.
                       </p>
                     </div>
                   </div>
-                  <Button asChild size="sm">
-                    <Link to="/pricing">Upgrade now</Link>
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" onClick={() => openKeepMembership({ source: "trial_ended_banner" })}>
+                      Keep my membership
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setActiveTab("billing")}>
+                      Get an Analysis Pass
+                    </Button>
+                  </div>
                 </div>
               )}
 
