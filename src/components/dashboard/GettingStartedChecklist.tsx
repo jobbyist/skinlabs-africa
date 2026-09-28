@@ -71,7 +71,7 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
             </Button>
           )}
         </div>
-        <Progress value={(done / items.length) * 100} className="mt-3 h-1.5" aria-label={`${done} of ${items.length} steps done`} />
+        <Progress value={items.length > 0 ? (done / items.length) * 100 : 0} className="mt-3 h-1.5" aria-label={`${done} of ${items.length} steps done`} />
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-border">
