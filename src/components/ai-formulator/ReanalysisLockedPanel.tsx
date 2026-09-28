@@ -1,35 +1,34 @@
 import { useEffect, useId, useRef } from "react";
-import { Loader2, Lock, RefreshCw, Sparkles } from "lucide-react";
+import { Loader2, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SeeAllPlansLink } from "@/components/GatedOverlay";
 import { cn } from "@/lib/utils";
 import { formatUnlockDate } from "@/lib/formulator/limits";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { useConversionAction } from "@/hooks/use-conversion-action";
+import { BASIC_LIMIT_MESSAGE, BASIC_NAME } from "@/lib/skynn/terminology";
+import { trackSkynnEvent } from "@/lib/skynn/analytics";
 
 interface ReanalysisLockedPanelProps {
   nextUnlockAt: Date | null;
   /** Where the panel is shown, for analytics. */
   source: "formulator_intro" | "formulator_save" | "dashboard";
-  /** Purchased Analysis Passes the user could spend instead of waiting. */
-  passBalance?: number;
-  onUsePass?: () => void;
   /** The formulator intro sits on a dark surface. */
   tone?: "default" | "inverted";
   className?: string;
 }
 
 /**
- * Shown when a Glow Explorer / Lite account has used its free starter analysis
- * for the current rolling window. The Re-analyse button is rendered but
+ * Shown when a Glow Explorer / Lite account has used its Basic AI Skin Analysis
+ * for the current rolling 7-day window. There is deliberately no "use an
+ * Analysis Pass" option: Passes are for the Advanced AI Dermatology Analysis
+ * only, and save_starter_analysis() never spends one. The Re-analyse button is rendered but
  * aria-disabled (not removed), so screen-reader users hear that it exists,
  * that it's locked, and why — via aria-describedby on the unlock date.
  */
 const ReanalysisLockedPanel = ({
   nextUnlockAt,
   source,
-  passBalance = 0,
-  onUsePass,
   tone = "default",
   className,
 }: ReanalysisLockedPanelProps) => {
@@ -42,6 +41,9 @@ const ReanalysisLockedPanel = ({
     if (firedRef.current) return;
     firedRef.current = true;
     trackConversionEvent("reanalysis_blocked", { source });
+    // The formulator reports its own pre-check / save refusals; this covers the
+    // intro and dashboard, where the panel itself is the first signal.
+    if (source !== "formulator_save") trackSkynnEvent("skynn_basic_limit_reached", { mode: "basic", source });
   }, [source]);
 
   const inverted = tone === "inverted";
@@ -67,15 +69,15 @@ const ReanalysisLockedPanel = ({
         </span>
         <div className="space-y-1">
           <h3 className={cn("font-heading font-semibold", inverted ? "text-background" : "text-card-foreground")}>
-            You've used your free analysis
+            You've used this week's {BASIC_NAME}
           </h3>
           <p id={reasonId} className={cn("text-sm", inverted ? "text-background/80" : "text-secondary-text")}>
             {dateText ? (
               <>
-                Your next free analysis is available on <strong className="font-semibold">{dateText}</strong>.
+                {BASIC_LIMIT_MESSAGE} Your next one is available on <strong className="font-semibold">{dateText}</strong>.
               </>
             ) : (
-              "Your next free analysis will be available soon."
+              `${BASIC_LIMIT_MESSAGE} Your next one will be available soon.`
             )}
           </p>
         </div>
@@ -97,13 +99,6 @@ const ReanalysisLockedPanel = ({
           Re-analyse
           <span className="sr-only">(locked)</span>
         </Button>
-
-        {passBalance > 0 && onUsePass && (
-          <Button type="button" variant="secondary" onClick={onUsePass} className="min-h-11 gap-2">
-            <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            Use an Analysis Pass ({passBalance})
-          </Button>
-        )}
 
         {action.kind && (
           <Button
@@ -129,7 +124,7 @@ const ReanalysisLockedPanel = ({
       </div>
       {action.kind && (
         <p className={cn("text-xs", inverted ? "text-background/70" : "text-muted-foreground")}>
-          Unlimited re-analysis is included with Glow Insider. {action.sublabel}
+          Unlimited {BASIC_NAME} re-analysis is included with Glow Insider. {action.sublabel}
         </p>
       )}
       <SeeAllPlansLink

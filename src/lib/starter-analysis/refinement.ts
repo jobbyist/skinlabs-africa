@@ -47,7 +47,7 @@ export const computeRefinementAdjustments = (
     case "too_complicated":
       return { complexityOverride: "minimal" };
     case "doesnt_match_skin":
-      return { note: "This can happen if the photo/MST step was skipped or a couple of answers didn't quite fit — you can always retake the assessment, or try the Advanced SKYNN AI analysis for a result built from your exact photo." };
+      return { note: "This can happen if the photo/MST step was skipped or a couple of answers didn't quite fit — you can always retake the assessment, or try the Advanced AI Dermatology Analysis for a deeper, more detailed questionnaire." };
     case "another_concern":
       return otherConcern ? { addConcern: otherConcern } : {};
     default:

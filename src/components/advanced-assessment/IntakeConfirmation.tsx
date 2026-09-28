@@ -26,7 +26,7 @@ const IntakeConfirmation = ({
         <div className="text-center space-y-3">
           <CheckCircle2 className="h-10 w-10 mx-auto text-primary" />
           <p className="text-xs font-semibold uppercase tracking-wide gradient-text">SKYNN AI</p>
-          <h1 className="text-2xl font-heading font-semibold">Your Advanced Dermatology Report request has been received.</h1>
+          <h1 className="text-2xl font-heading font-semibold">Your Advanced AI Dermatology Analysis submission has been received.</h1>
         </div>
 
         {referenceNumber && <ReferenceBlock referenceNumber={referenceNumber} />}

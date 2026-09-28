@@ -1,9 +1,10 @@
 /**
- * SKYNN AI Formulator — starter-analysis limits per tier.
+ * SKYNN AI — Basic AI Skin Analysis limits per tier (DB identifiers still say "starter").
  *
  * FORMULATOR_LIMITS is the one place to read (and change) the limits in code.
  * The server enforces the same numbers in save_starter_analysis()
- * (supabase/migrations/20260924100000_formulator_rolling_allowance.sql), where
+ * (supabase/migrations/20260924100000_formulator_rolling_allowance.sql, window
+ * changed to 7 days by 20260928140000_skynn_v21_basic_limit_and_hardening.sql), where
  * the free allowance and window come from `pricing_settings`
  * (free_ai_analysis_allowance / free_analysis_window_days) so they stay
  * DB-driven like the rest of pricing. A unit test parses that migration's
@@ -23,8 +24,10 @@ export interface FormulatorLimit {
 }
 
 export const FORMULATOR_LIMITS: Record<MembershipTier, FormulatorLimit> = {
-  explorer: { unlimited: false, freeAnalyses: 1, windowDays: 30 },
-  glow_lite: { unlimited: false, freeAnalyses: 1, windowDays: 30 },
+  // SKYNN AI v2.1 — beta: one Basic AI Skin Analysis per rolling 7 days
+  // (supabase/migrations/20260928140000_skynn_v21_basic_limit_and_hardening.sql).
+  explorer: { unlimited: false, freeAnalyses: 1, windowDays: 7 },
+  glow_lite: { unlimited: false, freeAnalyses: 1, windowDays: 7 },
   insider: { unlimited: true, freeAnalyses: 0, windowDays: 0 },
   vip: { unlimited: true, freeAnalyses: 0, windowDays: 0 },
 };

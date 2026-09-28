@@ -18,17 +18,17 @@ describe("FORMULATOR_LIMITS per tier", () => {
     expect(a).toMatchObject({ unlimited: false, freeRemaining: 1, locked: false, nextUnlockAt: null });
   });
 
-  test("Explorer: locked after using the free one, unlocking 30 days later", () => {
+  test("Explorer: locked after using the free one, unlocking 7 days later", () => {
     const last = daysAgo(3);
     const a = computeFormulatorAllowance("explorer", last, NOW);
     expect(a.locked).toBe(true);
     expect(a.freeRemaining).toBe(0);
-    expect(a.nextUnlockAt?.getTime()).toBe(last.getTime() + 30 * DAY);
+    expect(a.nextUnlockAt?.getTime()).toBe(last.getTime() + 7 * DAY);
   });
 
   test("Glow Lite follows the same rolling allowance as Explorer", () => {
-    expect(computeFormulatorAllowance("glow_lite", daysAgo(10), NOW).locked).toBe(true);
-    expect(computeFormulatorAllowance("glow_lite", daysAgo(31), NOW).locked).toBe(false);
+    expect(computeFormulatorAllowance("glow_lite", daysAgo(4), NOW).locked).toBe(true);
+    expect(computeFormulatorAllowance("glow_lite", daysAgo(8), NOW).locked).toBe(false);
   });
 
   test.each(["insider", "vip"] as const)("%s is unlimited regardless of history", (tier) => {
@@ -42,17 +42,17 @@ describe("FORMULATOR_LIMITS per tier", () => {
   });
 });
 
-describe("30-day rolling boundary", () => {
-  test("29 days 23:59 after the last free analysis is still locked", () => {
-    expect(computeFormulatorAllowance("explorer", daysAgo(30, -60_000), NOW).locked).toBe(true);
+describe("7-day rolling boundary", () => {
+  test("6 days 23:59 after the last free analysis is still locked", () => {
+    expect(computeFormulatorAllowance("explorer", daysAgo(7, -60_000), NOW).locked).toBe(true);
   });
 
-  test("exactly 30 days later unlocks (inclusive boundary, same as the SQL)", () => {
-    expect(computeFormulatorAllowance("explorer", daysAgo(30), NOW).locked).toBe(false);
+  test("exactly 7 days later unlocks (inclusive boundary, same as the SQL)", () => {
+    expect(computeFormulatorAllowance("explorer", daysAgo(7), NOW).locked).toBe(false);
   });
 
   test("boundary is timezone-safe: a SAST-midnight timestamp string behaves the same", () => {
-    const last = "2026-08-25T12:00:00+02:00"; // = 10:00Z, exactly 30 days before NOW
+    const last = "2026-09-17T12:00:00+02:00"; // = 10:00Z, exactly 7 days before NOW
     expect(computeFormulatorAllowance("explorer", last, NOW).locked).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe("30-day rolling boundary", () => {
   });
 
   test("progress bar fills across the window", () => {
-    expect(windowProgress(computeFormulatorAllowance("explorer", daysAgo(15), NOW), NOW)).toBeCloseTo(0.5, 5);
+    expect(windowProgress(computeFormulatorAllowance("explorer", daysAgo(3.5), NOW), NOW)).toBeCloseTo(0.5, 5);
     expect(windowProgress(computeFormulatorAllowance("explorer", null, NOW), NOW)).toBe(1);
   });
 });
@@ -77,12 +77,12 @@ describe("server error recognition", () => {
 
 describe("client config matches the server defaults", () => {
   const sql = readFileSync(
-    resolve(import.meta.dir, "../../../../supabase/migrations/20260924100000_formulator_rolling_allowance.sql"),
+    resolve(import.meta.dir, "../../../../supabase/migrations/20260928140000_skynn_v21_basic_limit_and_hardening.sql"),
     "utf8",
   );
 
   test("window length matches pricing_settings.free_analysis_window_days default", () => {
-    const m = sql.match(/free_analysis_window_days int NOT NULL DEFAULT (\d+)/);
+    const m = sql.match(/ALTER COLUMN free_analysis_window_days SET DEFAULT (\d+)/);
     expect(m).not.toBeNull();
     expect(FORMULATOR_LIMITS.explorer.unlimited).toBe(false);
     expect(FORMULATOR_LIMITS.explorer.windowDays).toBe(Number(m![1]));

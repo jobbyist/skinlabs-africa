@@ -116,7 +116,10 @@ export type ConversionEvent =
   | "formulator_completed_anonymous"
   | "signup_from_formulator"
   | "reanalysis_blocked"
-  | "upgrade_clicked_from_formulator";
+  | "upgrade_clicked_from_formulator"
+  // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
+  // which whitelists the payload, never directly.
+  | import("@/lib/skynn/analytics").SkynnEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

@@ -161,9 +161,9 @@ const vip = getPlan("vip") as MembershipPlan;
 const featureLike = (plan: MembershipPlan, needle: string, fallback: string) =>
   plan.features.find((f) => f.toLowerCase().includes(needle.toLowerCase())) ?? fallback;
 
-const explorerAiLine = featureLike(explorer, "AI skin analysis", "1 basic AI skin analysis per month");
+const explorerAiLine = featureLike(explorer, "AI skin analysis", "one Basic AI Skin Analysis every 7 days");
 const explorerBriefingLine = featureLike(explorer, "Daily Skinny briefing", "3 full Daily Skinny briefings per week");
-const insiderAiLine = featureLike(insider, "AI skincare analysis", "1 standard AI skincare analysis per week");
+const insiderAiLine = featureLike(insider, "AI skin analysis", "unlimited Basic AI Skin Analysis");
 const vipConsultLine = featureLike(vip, "consultation", "1 virtual derm consultation per month");
 const insiderMoneyBack = insider.moneyBackDays ?? MONEY_BACK_GUARANTEE_DAYS;
 
@@ -177,8 +177,9 @@ const membershipSummaryAnswer =
 
 const aiQuotaAnswer =
   `It depends on your plan, and this is the exact entitlement — not a rough estimate. ${explorer.name} (free) includes ${explorerAiLine.toLowerCase()}. ` +
-  `${insider.name} steps that up to ${insiderAiLine.toLowerCase()}, re-analysed as your skin or routine changes. Need a human alongside the AI? ` +
-  `${vip.name} adds ${vipConsultLine.toLowerCase()} on top of everything in Insider. Full feature-by-feature comparison lives on the Pricing page.`;
+  `${insider.name} steps that up to ${insiderAiLine.toLowerCase()}. The deeper Advanced AI Dermatology Analysis is separate: it uses one ` +
+  `Analysis Pass on every plan, and during the SKYNN AI v2.1 beta submissions are received and queued with a reference number while the ` +
+  `report workflow is finalised. Full feature-by-feature comparison lives on the Pricing page.`;
 
 /* -------------------------------------------------------------------------- */
 /* Entries                                                                     */
@@ -226,7 +227,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "how-does-the-ai-formulator-work",
     question: "How does SKYNN AI work?",
     answer:
-      "You work through a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment — can optionally add a photo, and can optionally share your Monk Skin Tone (MST) for fairness testing. SKYNN AI uses that, plus your stated concerns, budget and consistency level, to recommend a routine and the actives that make sense for you. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
+      "SKYNN AI v2.1 (beta) has two parts. The free Basic AI Skin Analysis is a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment. You can optionally add a photo (it stays on your device and isn't analysed) and optionally share your self-reported Monk Skin Tone (MST), which SKYNN AI never infers from a photo. It uses your answers, concerns, budget and consistency level to recommend a routine and the actives that make sense for you, once every 7 days on the free plan. The Advanced AI Dermatology Analysis is a longer questionnaire that uses an Analysis Pass. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
     category: "about",
     tags: ["ai formulator", "skynn ai", "quiz", "how it works"],
     relatedQuestions: ["about-what-is-skinlabs", "routines-basic-routine"],

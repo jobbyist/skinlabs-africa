@@ -41,7 +41,7 @@ const SavedAnalysisCard = ({ rec }: SavedAnalysisCardProps) => {
         <div>
           <div className="flex items-center gap-2">
             <p className="font-medium text-foreground capitalize">{rec.skin_type} Skin</p>
-            <Badge variant="outline" className="text-[10px]">{isStarter ? "Starter Analysis" : "SKYNN AI Advanced"}</Badge>
+            <Badge variant="outline" className="text-[10px]">{isStarter ? "Basic AI Skin Analysis" : "Legacy live AI report"}</Badge>
           </div>
           <div className="flex gap-1 mt-1 flex-wrap">
             {rec.concerns.slice(0, 3).map((c) => <Badge key={c} variant="secondary" className="text-xs">{c}</Badge>)}
