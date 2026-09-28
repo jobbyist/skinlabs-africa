@@ -177,6 +177,10 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
     duplicates from the past 10 days were set to `status = 'duplicate'`
     (reversible, migration `20260928143000_…`), and vercel.json 301s their URLs
     to the originals.
+    **Deployed**: `briefings-sync` **v29** (2026-09-28) is a one-line entry
+    importing the committed source from raw GitHub pinned to `2ebc766` (this
+    branch). If Supabase's GitHub sync redeploys from `main` before merge it
+    reverts to the pre-dedup version — re-check after merge.
   - **Pagination**: `getPageWindow()` (`src/lib/pagination.ts`, tested) —
     first · current±1 · last with ellipses, first · current · last and
     icon-only prev/next on phones, "Page x of y". ReviewsGrid's own
