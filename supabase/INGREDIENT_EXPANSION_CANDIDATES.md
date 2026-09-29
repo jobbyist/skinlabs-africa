@@ -46,7 +46,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [ ] Xylitylglucoside — Xylitylglucoside — humectant — part of the "aquaxyl" moisturizing complex family, supports skin hydration
 - [ ] Glycereth-26 — Glycereth-26 — humectant — polyethylene glycol ether of glycerin, humectant/emulsifier
 - [x] Urea — Urea — humectant — natural moisturizing factor component, also mild keratolytic at higher concentrations
-- [ ] Sodium Lactate — Sodium Lactate — humectant — natural moisturizing factor component, pH-adjusting humectant
+- [x] Sodium Lactate — Sodium Lactate — humectant — natural moisturizing factor component, pH-adjusting humectant
 - [ ] Saccharide Isomerate — Saccharide Isomerate — humectant — plant-sugar-derived humectant studied for sustained hydration
 - [ ] Mel Extract (Honey) — Mel — humectant — long-used natural humectant with documented moisture-retention properties
 - [ ] Pentylene Glycol — Pentylene Glycol — humectant — humectant/solvent, also mild preservative-boosting co-ingredient
@@ -58,7 +58,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [ ] Tartaric Acid — Tartaric Acid — exfoliant-aha — grape-derived AHA
 - [x] Citric Acid — Citric Acid — exfoliant-aha — commonly used as both a pH adjuster and mild AHA exfoliant
 - [x] Gluconolactone — Gluconolactone — exfoliant-aha — polyhydroxy acid (PHA), gentler exfoliation profile than classic AHAs, also humectant
-- [ ] Lactobionic Acid — Lactobionic Acid — exfoliant-aha — polyhydroxy acid (PHA) with antioxidant and humectant properties
+- [x] Lactobionic Acid — Lactobionic Acid — exfoliant-aha — polyhydroxy acid (PHA) with antioxidant and humectant properties
 
 ## Exfoliant — BHA
 
@@ -73,13 +73,13 @@ already represented, and matter for the Ingredient Combination Checker
 ## Antioxidant
 
 - [x] Resveratrol — Resveratrol — antioxidant — polyphenol antioxidant, often paired with ferulic acid/vitamin E in serums
-- [ ] Astaxanthin — Astaxanthin — antioxidant — carotenoid antioxidant derived from algae
+- [x] Astaxanthin — Astaxanthin — antioxidant — carotenoid antioxidant derived from algae
 - [x] Alpha Lipoic Acid — Thioctic Acid — antioxidant — both water- and fat-soluble antioxidant
 - [ ] Idebenone — Idebenone — antioxidant — synthetic antioxidant related to CoQ10
-- [ ] Ergothioneine — Ergothioneine — antioxidant — amino-acid-derived antioxidant, naturally occurring in fungi
-- [ ] Glutathione — Glutathione — antioxidant — tripeptide antioxidant, also marketed for skin brightening
-- [ ] Epigallocatechin Gallate (EGCG) — EGCG / Green Tea Catechins — antioxidant — the primary active catechin in green tea extract, distinct entry from the existing generic "green tea extract" row
-- [ ] Quercetin — Quercetin — antioxidant — flavonoid antioxidant
+- [x] Ergothioneine — Ergothioneine — antioxidant — amino-acid-derived antioxidant, naturally occurring in fungi
+- [x] Glutathione — Glutathione — antioxidant — tripeptide antioxidant, also marketed for skin brightening
+- [x] Epigallocatechin Gallate (EGCG) — EGCG / Green Tea Catechins — antioxidant — the primary active catechin in green tea extract, distinct entry from the existing generic "green tea extract" row
+- [x] Quercetin — Quercetin — antioxidant — flavonoid antioxidant
 - [ ] Grape Seed Extract — Vitis Vinifera Seed Extract — antioxidant — proanthocyanidin-rich antioxidant botanical
 - [ ] Sea Buckthorn Oil — Hippophae Rhamnoides Fruit Oil — antioxidant — carotenoid- and omega-7-rich oil, dual antioxidant/barrier function
 - [ ] Rosemary Extract — Rosmarinus Officinalis Leaf Extract — antioxidant — polyphenol antioxidant, also used as a natural preservative booster
@@ -114,11 +114,11 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Barrier / Lipid
 
-- [ ] Linoleic Acid — Linoleic Acid — barrier-lipid — essential omega-6 fatty acid, key structural lipid for barrier ceramide synthesis
-- [ ] Oleic Acid — Oleic Acid — barrier-lipid — omega-9 fatty acid, common in plant oils
-- [ ] Phytosphingosine — Phytosphingosine — barrier-lipid — a ceramide precursor/component, barrier repair
-- [ ] Dimethicone — Dimethicone — barrier-lipid — silicone-based occlusive, forms a breathable barrier film
-- [ ] Petrolatum — Petrolatum — barrier-lipid — classic, extensively studied occlusive barrier agent
+- [x] Linoleic Acid — Linoleic Acid — barrier-lipid — essential omega-6 fatty acid, key structural lipid for barrier ceramide synthesis
+- [x] Oleic Acid — Oleic Acid — barrier-lipid — omega-9 fatty acid, common in plant oils
+- [x] Phytosphingosine — Phytosphingosine — barrier-lipid — a ceramide precursor/component, barrier repair
+- [x] Dimethicone — Dimethicone — barrier-lipid — silicone-based occlusive, forms a breathable barrier film
+- [x] Petrolatum — Petrolatum — barrier-lipid — classic, extensively studied occlusive barrier agent
 - [ ] Meadowfoam Seed Oil — Limnanthes Alba Seed Oil — barrier-lipid — highly oxidative-stable emollient oil
 - [ ] Sunflower Seed Oil — Helianthus Annuus Seed Oil — barrier-lipid — linoleic-acid-rich emollient, studied for barrier support
 - [ ] Evening Primrose Oil — Oenothera Biennis Oil — barrier-lipid — gamma-linolenic-acid-rich emollient oil
@@ -139,25 +139,25 @@ already represented, and matter for the Ingredient Combination Checker
 - [ ] Mulberry Extract — Morus Alba Root Extract — brightening — botanical tyrosinase inhibitor
 - [ ] Bearberry Extract — Arctostaphylos Uva-Ursi Leaf Extract — brightening — natural source of arbutin, tyrosinase-inhibiting botanical
 - [ ] Ethyl Ascorbic Acid — 3-O-Ethyl Ascorbic Acid — brightening — stable vitamin C derivative, distinct entry from the existing ascorbic acid/L-ascorbic acid rows
-- [ ] Magnesium Ascorbyl Phosphate — Magnesium Ascorbyl Phosphate — brightening — stable, water-soluble vitamin C derivative
+- [x] Magnesium Ascorbyl Phosphate — Magnesium Ascorbyl Phosphate — brightening — stable, water-soluble vitamin C derivative
 - [ ] Ascorbyl Glucoside — Ascorbyl Glucoside — brightening — stable vitamin C derivative that converts to ascorbic acid on the skin
 - [ ] Hexylresorcinol — Hexylresorcinol — brightening — tyrosinase-inhibiting brightening agent, also antioxidant properties
 
 ## Sebum Regulator
 
-- [ ] Sulfur — Sulfur — sebum-regulator — long-used keratolytic/sebum-regulating agent for acne-prone skin
+- [x] Sulfur — Sulfur — sebum-regulator — long-used keratolytic/sebum-regulating agent for acne-prone skin
 - [ ] Bentonite Clay — Bentonite (Montmorillonite) — sebum-regulator — oil-absorbing clay commonly used in masks for oily/acne-prone skin
 - [ ] Sebacic Acid — Sebacic Acid — sebum-regulator — dicarboxylic acid studied alongside azelaic acid for sebum-related concerns
 
 ## Soothing Botanical
 
-- [ ] Bisabolol — Alpha-Bisabolol — soothing-botanical — chamomile-derived anti-inflammatory/soothing compound
+- [x] Bisabolol — Alpha-Bisabolol — soothing-botanical — chamomile-derived anti-inflammatory/soothing compound
 - [x] Allantoin — Allantoin — soothing-botanical — soothing, skin-conditioning agent with long clinical usage history
-- [ ] Colloidal Oatmeal — Avena Sativa (Oat) Kernel Flour — soothing-botanical — FDA-recognized skin-protectant, distinct from the existing "oat bran extract" row
+- [x] Colloidal Oatmeal — Avena Sativa (Oat) Kernel Flour — soothing-botanical — FDA-recognized skin-protectant, distinct from the existing "oat bran extract" row
 - [ ] Madecassoside — Madecassoside — soothing-botanical — Centella asiatica-derived triterpene, soothing/barrier-repair evidence
 - [ ] Beta-Glucan — Beta-Glucan (Oat or Yeast-derived) — soothing-botanical — soothing, barrier-supportive polysaccharide
 - [ ] Feverfew Extract — Tanacetum Parthenium Extract — soothing-botanical — anti-inflammatory botanical extract
-- [ ] Chamomile Extract — Chamomilla Recutita (Matricaria) Flower Extract — soothing-botanical — classic soothing botanical, source of bisabolol
+- [x] Chamomile Extract — Chamomilla Recutita (Matricaria) Flower Extract — soothing-botanical — classic soothing botanical, source of bisabolol
 - [ ] Tea Tree Oil — Melaleuca Alternifolia Leaf Oil — soothing-botanical — antimicrobial/soothing essential oil, well-studied for acne-prone skin use
 - [ ] Willowherb Extract — Epilobium Angustifolium Extract — soothing-botanical — anti-inflammatory botanical, often used in sensitive-skin formulations
 - [ ] Marshmallow Root Extract — Althaea Officinalis Root Extract — soothing-botanical — mucilage-rich soothing botanical
@@ -165,14 +165,14 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Probiotic
 
-- [ ] Bifida Ferment Lysate — Bifida Ferment Lysate — probiotic — fermented probiotic-derived ingredient studied for barrier/microbiome support
+- [x] Bifida Ferment Lysate — Bifida Ferment Lysate — probiotic — fermented probiotic-derived ingredient studied for barrier/microbiome support
 - [ ] Lactobacillus Ferment — Lactobacillus Ferment — probiotic — fermented ingredient studied for skin microbiome support
 - [ ] Saccharomyces Ferment — Saccharomyces Ferment — probiotic — yeast-fermentation-derived ingredient studied for skin-conditioning claims
 - [ ] Lactococcus Ferment Lysate — Lactococcus Ferment Lysate — probiotic — fermented ingredient studied for barrier/microbiome support
 
 ## UV Filter
 
-- [ ] Avobenzone — Avobenzone — uv-filter — broad-spectrum chemical UVA filter
+- [x] Avobenzone — Avobenzone — uv-filter — broad-spectrum chemical UVA filter
 - [ ] Octocrylene — Octocrylene — uv-filter — chemical UV filter, also used to stabilize avobenzone
 - [ ] Homosalate — Homosalate — uv-filter — chemical UVB filter
 - [ ] Titanium Dioxide — Titanium Dioxide — uv-filter — mineral UV filter, distinct from the existing zinc oxide row
@@ -197,7 +197,7 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Preservative (new category)
 
-- [ ] Phenoxyethanol — Phenoxyethanol — preservative — one of the most widely used cosmetic preservatives, extensive safety review history
+- [x] Phenoxyethanol — Phenoxyethanol — preservative — one of the most widely used cosmetic preservatives, extensive safety review history
 - [ ] Potassium Sorbate — Potassium Sorbate — preservative — commonly used preservative, often paired with other systems
 - [ ] Sodium Benzoate — Sodium Benzoate — preservative — commonly used preservative
 - [ ] Ethylhexylglycerin — Ethylhexylglycerin — preservative — preservative-booster/deodorizing co-ingredient, also mild emollient
@@ -215,9 +215,13 @@ already represented, and matter for the Ingredient Combination Checker
 
 ---
 
-**Running total added from this list**: 12 / 123 processed (2026-09-22, Track B
-batch 01 — see `INGREDIENT_CONTENT_STATUS.md` for the live cursor and full batch
-log). This first batch of 123 real candidates comfortably covers the
-122-ingredient expansion milestone and will be supplemented by further append
-rounds (same research/dedupe discipline) as weekly firings consume it,
-continuing indefinitely thereafter.
+**Running total added from this list**: 32 / 123 processed (2026-09-29, weekly
+pipeline firing 1 processed 20 more — Sodium Lactate, Lactobionic Acid,
+Astaxanthin, Ergothioneine, Glutathione, EGCG, Quercetin, Linoleic Acid, Oleic
+Acid, Phytosphingosine, Dimethicone, Petrolatum, Magnesium Ascorbyl Phosphate,
+Sulfur, Bisabolol, Chamomile Extract, Colloidal Oatmeal, Bifida Ferment
+Lysate, Avobenzone, Phenoxyethanol — see `INGREDIENT_CONTENT_STATUS.md` for
+the live cursor and full batch log). This first batch of 123 real candidates
+comfortably covers the 122-ingredient expansion milestone and will be
+supplemented by further append rounds (same research/dedupe discipline) as
+weekly firings consume it, continuing indefinitely thereafter.
