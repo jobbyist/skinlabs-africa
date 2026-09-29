@@ -5,8 +5,10 @@ import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { spotlightRanking } from "@/data/spotlight";
 import { publishedPodcastEpisodes } from "@/data/podcast";
-import { concerns } from "@/data/marketplace/taxonomy";
 import { faqEntries } from "@/data/faq";
+import { isAmpEligible } from "@/lib/webStories/amp";
+import { curatedStories } from "@/lib/webStories/curated";
+import { storyFromRow, WEB_STORY_SELECT, type WebStoryRow } from "@/lib/webStories/stories";
 
 const SITE = "https://skinlabs.co.za";
 
@@ -42,18 +44,26 @@ async function buildSitemapXml(): Promise<string> {
   for (const article of comparisonArticles) add(`/reviews/versus/${article.slug}`, "monthly", "0.8");
   for (const entry of spotlightRanking) add(`/spotlight/${entry.slug}`, "monthly", "0.75");
   for (const episode of publishedPodcastEpisodes) add(`/podcast/${episode.slug}`, "monthly", "0.7");
-  for (const concern of concerns) add(`/marketplace/concern/${concern.slug}`, "weekly", "0.6");
   for (const entry of faqEntries) add(`/knowledge-hub/${entry.slug}`, "monthly", "0.7");
+  for (const story of curatedStories()) add(`/web-stories/${story.slug}`, "weekly", "0.7", story.publishAt.slice(0, 10) || today);
+  // /marketplace/concern/:slug intentionally not added here — see the
+  // STATIC_SITEMAP_ROUTES removal note in src/lib/sitemap/staticRoutes.ts:
+  // every /marketplace/* route is login-gated (MarketplaceGate), so listing
+  // it in the sitemap only sends crawlers/agents to a locked screen.
 
   try {
     const supabase = createSupabaseServerClient();
 
-    const [briefings, mktProducts, mktBrands, ingredientRows, generatedReviews] = await Promise.all([
+    // marketplace_products/marketplace_brands intentionally not queried here
+    // — every /marketplace/* route is login-gated (MarketplaceGate), so a
+    // crawler/agent following these URLs would only ever reach a locked
+    // screen. See the STATIC_SITEMAP_ROUTES removal note in
+    // src/lib/sitemap/staticRoutes.ts for the full reasoning.
+    const [briefings, ingredientRows, generatedReviews, webStories] = await Promise.all([
       supabase.from("news_articles_public").select("slug, publish_date").order("publish_date", { ascending: false }),
-      supabase.from("marketplace_products").select("slug").eq("in_stock", true),
-      supabase.from("marketplace_brands").select("slug"),
       supabase.from("ingredients").select("slug").neq("verification_status", "deprecated"),
       supabase.from("ai_generated_product_reviews").select("id, published_date"),
+      supabase.from("web_stories").select(WEB_STORY_SELECT),
     ]);
 
     for (const article of briefings.data ?? []) {
@@ -61,14 +71,16 @@ async function buildSitemapXml(): Promise<string> {
         add(`/briefings/${article.slug}`, "weekly", "0.85", article.publish_date?.slice(0, 10) || today);
       }
     }
-    for (const product of mktProducts.data ?? []) {
-      if (typeof product.slug === "string") add(`/marketplace/product/${product.slug}`, "weekly", "0.7");
-    }
-    for (const brand of mktBrands.data ?? []) {
-      if (typeof brand.slug === "string") add(`/marketplace/brand/${brand.slug}`, "weekly", "0.6");
-    }
     for (const ingredient of ingredientRows.data ?? []) {
       if (typeof ingredient.slug === "string") add(`/ingredients/${ingredient.slug}`, "monthly", "0.6");
+    }
+    // Only stories that actually have an AMP page; promotional ones are ads
+    // (rendered noindex) so they're kept out of the sitemap too.
+    for (const row of (webStories.data ?? []) as unknown as WebStoryRow[]) {
+      const story = storyFromRow(row);
+      if (story.kind !== "promotional" && isAmpEligible(story)) {
+        add(`/web-stories/${story.slug}`, "weekly", "0.7", story.publishAt.slice(0, 10));
+      }
     }
     for (const review of generatedReviews.data ?? []) {
       if (typeof review.id === "string") {

@@ -15,6 +15,13 @@ interface AssessmentFlowProps {
   onAnswer: (questionId: string, value: unknown) => void;
   onGoToSection: (sectionId: string) => void;
   onSubmit: () => void;
+  /** Pre-approval intake mode submits a request rather than generating a
+   *  report, so the final step must say so. */
+  intakeMode?: boolean;
+  /** Questions suggested from the member's Basic AI Skin Analysis. */
+  isPrefilled?: (questionId: string) => boolean;
+  /** Shown once above the questions when the session started from a Basic analysis. */
+  prefillNote?: string | null;
 }
 
 const questionApplies = (question: AssessmentQuestion, responses: Record<string, unknown>): boolean => {
@@ -33,7 +40,19 @@ const isAnswered = (question: AssessmentQuestion, responses: Record<string, unkn
 /** Discover → Prepare → Assess → Analyse → Reveal (section 27) — this
  *  component owns the "Assess" phase: one section per screen, a review
  *  step, then handoff to submit. */
-const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitting, onAnswer, onGoToSection, onSubmit }: AssessmentFlowProps) => {
+const AssessmentFlow = ({
+  sections,
+  currentSectionId,
+  responses,
+  saving,
+  submitting,
+  onAnswer,
+  onGoToSection,
+  onSubmit,
+  intakeMode = false,
+  isPrefilled,
+  prefillNote,
+}: AssessmentFlowProps) => {
   const [showReview, setShowReview] = useState(false);
   const currentIndex = sections.findIndex((s) => s.id === currentSectionId);
   const currentSection = sections[currentIndex] ?? sections[0];
@@ -44,7 +63,11 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
     [currentSection, responses],
   );
   const requiredUnanswered = applicableQuestions.filter((q) => q.required && !isAnswered(q, responses));
-  const canAdvance = requiredUnanswered.length === 0;
+  // POPIA: SKYNN AI can't process special personal information without
+  // explicit consent, so a "decline" answer stops the flow here — before
+  // any Analysis Pass could be spent (the submit RPC enforces this too).
+  const consentDeclined = applicableQuestions.some((q) => q.id.startsWith("popia_") && responses[q.id] === "decline");
+  const canAdvance = requiredUnanswered.length === 0 && !consentDeclined;
 
   if (!currentSection) return null;
 
@@ -53,7 +76,9 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h2 className="text-xl font-heading font-semibold mb-1">Your Assessment</h2>
-          <p className="text-sm text-muted-foreground">Review your answers, then generate your report.</p>
+          <p className="text-sm text-muted-foreground">
+            {intakeMode ? "Review your answers, then submit your request." : "Review your answers, then generate your report."}
+          </p>
         </div>
         <Card>
           <CardContent className="pt-6 space-y-3">
@@ -78,7 +103,7 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
           </Button>
           <Button onClick={onSubmit} disabled={submitting} className="gap-2 flex-1 gradient-border-anim">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Generate my Advanced Report
+            {intakeMode ? "Submit my request" : "Generate my Advanced AI Dermatology Analysis report"}
           </Button>
         </div>
       </div>
@@ -88,6 +113,10 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
   return (
     <div className="max-w-2xl mx-auto">
       <AssessmentProgress sections={sections} currentSectionId={currentSection.id} responses={responses} />
+
+      {prefillNote && currentIndex <= 1 && (
+        <p className="mb-6 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">{prefillNote}</p>
+      )}
 
       <div className="space-y-8">
         <div>
@@ -100,11 +129,23 @@ const AssessmentFlow = ({ sections, currentSectionId, responses, saving, submitt
             <div>
               <p className="text-sm font-medium">{question.prompt}</p>
               {question.helperText && <p className="text-xs text-muted-foreground mt-1">{question.helperText}</p>}
+              {isPrefilled?.(question.id) && (
+                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  From your Basic AI Skin Analysis — check it still fits
+                </p>
+              )}
             </div>
             <QuestionRenderer question={question} value={responses[question.id]} onChange={(v) => onAnswer(question.id, v)} />
           </div>
         ))}
       </div>
+
+      {consentDeclined && (
+        <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or
+          leave now — no Analysis Pass has been used.
+        </p>
+      )}
 
       <div className="flex items-center justify-between mt-10">
         <Button

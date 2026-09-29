@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import type { PodcastEpisode } from "@/data/podcast";
+import { recordContentRead } from "@/lib/contentReads";
 import { trackConversionEvent } from "@/lib/analytics-events";
 
 const LIKES_KEY = "skinlabs-podcast-likes";
@@ -74,6 +75,7 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
       } catch {
         // non-blocking if table/policy unavailable
       }
+      void recordContentRead(user.id, "episode", episode.slug);
       trackConversionEvent("podcast_played", { episode_slug: episode.slug });
     },
     [user],
@@ -94,14 +96,15 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
         return next;
       });
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (currently) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any)
             .from("podcast_likes")
             .delete()
             .eq("user_id", user.id)
             .eq("episode_slug", episode.slug);
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await (supabase as any).from("podcast_likes").insert({
             user_id: user.id,
             episode_slug: episode.slug,

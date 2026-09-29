@@ -2,14 +2,15 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Clock, Play, Pause, Search, SkipBack, SkipForward, Heart, Rss } from "lucide-react";
+import { CalendarClock, Clock, Play, Pause, Search, SkipBack, SkipForward, Heart, Rss } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePodcastPlayer, formatTime, getSavedPosition } from "@/components/PodcastPlayer";
 import {
-  getNextEpisodeDate,
+  PODCAST_SCHEDULE_LINE,
+  PODCAST_SEASON_2_START,
   latestPublishedEpisode,
   podcastEpisodes,
   podcastTopics,
@@ -60,24 +61,18 @@ const PodcastPage = () => {
       .map((entry) => entry.episode);
   }, [query, topic]);
 
-  const nextDrop = getNextEpisodeDate().toLocaleDateString("en-ZA", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>The Skin Deep Podcast — SA Skincare Conversations | SkinLabs®</title>
         <meta
           name="description"
-          content="Stream The Skin Deep Podcast: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms."
+          content={`Stream all 10 episodes of The Skin Deep Podcast Season 1: evidence-first South African skincare conversations, ingredient science breakdowns and show notes. Season 2 starts ${PODCAST_SEASON_2_START}.`}
         />
         <link rel="canonical" href="https://skinlabs.co.za/podcast" />
         <link rel="alternate" type="application/rss+xml" title="The Skin Deep Podcast" href="https://skinlabs.co.za/podcast.xml" />
         <meta property="og:title" content="The Skin Deep Podcast | SkinLabs®" />
-        <meta property="og:description" content="Evidence-first SA skincare conversations. New episodes every Friday at 12pm SAST." />
+        <meta property="og:description" content={`Evidence-first SA skincare conversations. Season 1 is streaming now; Season 2 starts ${PODCAST_SEASON_2_START}.`} />
         <meta property="og:url" content="https://skinlabs.co.za/podcast" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content={DEFAULT_OG} />
@@ -88,18 +83,17 @@ const PodcastPage = () => {
       <Header />
       <main className="pt-20 pb-28">
         <section className="container mx-auto px-4">
-          <div className="mb-4">
-            <AdSlot placement="podcast-top" compact />
-          </div>
           <div className="mb-8 max-w-2xl">
             <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Audio series</p>
             <h1 className="mb-4 font-heading text-3xl font-bold text-foreground md:text-5xl">The Skin Deep Podcast</h1>
             <p className="text-muted-foreground">
               Skincare without the nonsense. Conversations on ingredient science, culture and routines — grounded in
-              South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming
-              soon to all major podcast streaming platforms.
+              South African skin, climate and shelves. Coming soon to all major podcast streaming platforms.
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">Next drop {nextDrop} at 12pm SAST.</p>
+            <p className="mt-3 inline-flex max-w-full items-start gap-2 rounded-2xl border border-border bg-card px-4 py-2.5 text-sm text-foreground">
+              <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>{PODCAST_SCHEDULE_LINE}</span>
+            </p>
             <a
               href="/podcast.xml"
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
@@ -160,7 +154,7 @@ const PodcastPage = () => {
                 manufacturing, what "clean beauty" actually means here).
               </p>
               <p>
-                New episodes drop every Friday at 12pm SAST, with full show notes and the products or
+                Every episode comes with full show notes and the products or
                 studies discussed linked directly to the relevant{" "}
                 <Link to="/reviews" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
                   SkinLabs review
@@ -174,6 +168,9 @@ const PodcastPage = () => {
               </p>
             </div>
           </section>
+
+          {/* Between the show intro and the episode grid. */}
+          <AdSlot placement="podcast-after-about" compact priority="primary" />
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {episodes.map((episode, index) => {
@@ -311,7 +308,8 @@ const PodcastPage = () => {
                     )}
                   </div>
                 </motion.article>
-                {index < episodes.length - 1 && (
+                {/* One ad break per 3 episodes (a full desktop row), never after the last. */}
+                {(index + 1) % 3 === 0 && index < episodes.length - 1 && (
                   <AdSlot placement={`podcast-list-${index}`} compact className="col-span-full" />
                 )}
                 </Fragment>

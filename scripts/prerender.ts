@@ -74,7 +74,22 @@ const STATIC_ROUTES = [
   "/seasonals/winter",
   "/ingredients",
   "/ingredients/checker",
+  "/whitepapers",
+  "/refund-policy",
+  "/editorial-policy",
+  "/community-guidelines",
 ];
+// NOTE: the sitemap previously also listed /marketplace, /marketplace/brands,
+// /marketplace/categories, /marketplace/shipping-returns and /marketplace/terms
+// as sitemap-but-not-prerendered gaps to close here. They're deliberately NOT
+// added: every /marketplace/* route is wrapped in <MarketplaceGate> (src/
+// components/marketplace/MarketplaceGate.tsx), which checks a real login
+// cookie (MARKETPLACE_USERNAME/PASSWORD via /api/marketplace-auth) before
+// rendering any real content -- an unauthenticated prerender/crawl would only
+// ever capture the "Checking marketplace access…" / locked screen, never the
+// actual marketplace. See the corresponding fix in public/robots.txt and
+// src/lib/sitemap/staticRoutes.ts, which stop advertising these URLs to
+// crawlers/agents at all rather than prerendering a locked wall.
 
 const extractQuoted = (source: string, field: string): string[] => {
   const pattern = new RegExp(`\\n\\s*${field}:\\s*"([a-z0-9-]+)"`, "g");

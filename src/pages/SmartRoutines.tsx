@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Layers,
   Heart,
+  Loader2,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -28,14 +29,59 @@ import { useEntitlements } from "@/hooks/use-entitlements";
 import { useAnalysisPassBalance } from "@/hooks/use-analysis-passes";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { SITE_URL } from "@/lib/seo-config";
+import { usePricingConfig } from "@/lib/pricing-config";
 import { cn } from "@/lib/utils";
+import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { openSignupDialog } from "@/lib/conversionDialogs";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
+import { ADVANCED_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/terminology";
+import { supabase } from "@/integrations/supabase/client";
 
 // Smart Routines Landing Page
 const SmartRoutines = () => {
   const { user } = useAuth();
   const entitlements = useEntitlements();
   const { balance: analysisPassBalance } = useAnalysisPassBalance();
+  // Prices come from pricing_plans (never hardcoded) and only render once loaded.
+  const { data: pricing } = usePricingConfig();
+  const monthlyPrice = (planId: string) => {
+    const plan = pricing?.plans.find((p) => p.plan_id === planId);
+    return plan ? `R${Number(plan.price_monthly)}` : null;
+  };
+  const insiderPrice = monthlyPrice("insider");
+  // Free/Lite members without a pass: the report comes with Glow Insider, so the
+  // primary CTA is the one-tap conversion action (trial in place / subscribe),
+  // not a detour to /pricing. An Analysis Pass stays the pay-per-report option.
+  const insiderAction = useConversionAction("ai_analysis.live_weekly", "smart_routines");
+  const [passModalOpen, setPassModalOpen] = useState(false);
+  const openPassPurchase = () => {
+    if (user) {
+      setPassModalOpen(true);
+      return;
+    }
+    setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
+    openSignupDialog();
+  };
+  const vipPrice = monthlyPrice("vip");
   const [activeSeasonTab, setActiveSeasonTab] = useState<"summer" | "winter">("summer");
+  // Smart Routines unlock with a (non-rejected) Advanced AI Dermatology Analysis
+  // submission — the same server check the dashboard uses.
+  const [hasSmartRoutineAccess, setHasSmartRoutineAccess] = useState(false);
+  useEffect(() => {
+    if (!user) {
+      setHasSmartRoutineAccess(false);
+      return;
+    }
+    let active = true;
+    supabase.rpc("get_smart_routine_access").then(({ data }) => {
+      if (active) setHasSmartRoutineAccess(data === true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     trackConversionEvent("smart_routines_page_view", {
@@ -47,54 +93,58 @@ const SmartRoutines = () => {
 
   // Determine primary CTA based on user state
   const getPrimaryCTA = () => {
-    // If user already has Smart Routines access (placeholder for when feature exists)
-    // This would check if user has completed their Advanced AI Dermatology Report
-    const hasAdvancedAnalysis = false; // TODO: Check actual advanced report status
-
-    if (hasAdvancedAnalysis) {
+    if (hasSmartRoutineAccess) {
       return {
-        label: "Open My Smart Routine",
-        href: "/dashboard", // Would route to Smart Routines when implemented
-        description: "Your personalized routine is ready",
+        label: "Open my Smart Routine",
+        href: "/dashboard?tab=routine",
+        description: "Build or open your Smart Routine in your dashboard",
       };
     }
 
-    // Glow Insider or VIP - Advanced AI Dermatology Report included
-    if (entitlements.isInsider || entitlements.isVip) {
-      return {
-        label: "Start My Dermatology Report",
-        href: "/skynn-ai",
-        description: "Included with your membership",
-      };
-    }
-
-    // Glow Explorer or Lite with Analysis Pass
-    if ((entitlements.isFree || entitlements.isGlowLite) && (analysisPassBalance ?? 0) > 0) {
+    // SKYNN AI v2.1: the Advanced AI Dermatology Analysis always uses an Analysis
+    // Pass (membership alone doesn't grant it — get_advanced_assessment_access()),
+    // and every entry point goes to the one flow at /skynn-ai/advanced.
+    if ((analysisPassBalance ?? 0) > 0) {
       return {
         label: "Use 1 Analysis Pass",
-        href: "/skynn-ai",
-        description: "Your Analysis Pass unlocks your Advanced AI Dermatology Report",
+        href: SKYNN_ADVANCED_ROUTE,
+        description: `Your Analysis Pass unlocks one ${ADVANCED_NAME} submission`,
       };
     }
 
-    // Glow Explorer or Lite without Analysis Pass
-    if (entitlements.isFree || entitlements.isGlowLite) {
-      return {
-        label: "Get My Dermatology Report",
-        href: "/pricing",
-        description: "From R25 with Analysis Pass",
-      };
-    }
-
-    // Anonymous users
     return {
-      label: "Get Your Advanced AI Dermatology Report",
-      href: "/skynn-ai",
-      description: "Start your journey to smarter skincare",
+      label: "Get an Analysis Pass",
+      href: null,
+      onClick: openPassPurchase,
+      description: `One Analysis Pass = one ${ADVANCED_NAME} submission.`,
     };
   };
 
-  const primaryCTA = getPrimaryCTA();
+  const primaryCTA: { label: string; href: string | null; onClick?: () => void; description?: string } = getPrimaryCTA();
+
+  const renderPrimaryCta = (location: string, className: string, label = primaryCTA.label) =>
+    primaryCTA.onClick ? (
+      <Button
+        size="lg"
+        className={className}
+        disabled={insiderAction.busy}
+        onClick={() => {
+          handleCTAClick(location);
+          primaryCTA.onClick?.();
+        }}
+      >
+        {insiderAction.busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {label}
+        <ChevronRight className="ml-2 h-4 w-4" />
+      </Button>
+    ) : (
+      <Button size="lg" asChild onClick={() => handleCTAClick(location)}>
+        <Link to={primaryCTA.href ?? SKYNN_ADVANCED_ROUTE} className={className}>
+          {label}
+          <ChevronRight className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
+    );
 
   const handleCTAClick = (location: string) => {
     trackConversionEvent("smart_routines_cta_clicked", {
@@ -103,6 +153,7 @@ const SmartRoutines = () => {
       authenticated: Boolean(user),
       hasAnalysisPass: (analysisPassBalance ?? 0) > 0,
     });
+    if (hasSmartRoutineAccess) trackConversionEvent("smart_routines_accessed", { location });
   };
 
   return (
@@ -111,7 +162,7 @@ const SmartRoutines = () => {
         <title>Smart Routines | Your skincare routine, finally built around you | SkinLabs®</title>
         <meta
           name="description"
-          content="Smart Routines turns your Advanced AI Dermatology Report from SKYNN AI into a living AM + PM routine that adapts to your skin, the season, your budget and the products already on your shelf."
+          content="Smart Routines turns your Advanced AI Dermatology Analysis from SKYNN AI into a living AM + PM routine that adapts to your skin, the season, your budget and the products already on your shelf."
         />
         <link rel="canonical" href={`${SITE_URL}/routines`} />
         <meta name="robots" content="index,follow" />
@@ -139,7 +190,7 @@ const SmartRoutines = () => {
             <div className="mb-6 flex items-center justify-center">
               <Badge variant="outline" className="gap-2 rounded-full px-4 py-1.5 text-sm">
                 <Sparkles className="h-3.5 w-3.5" />
-                Powered by your Advanced AI Dermatology Report from <span className="gradient-text font-bold">SKYNN AI</span>
+                Powered by your Advanced AI Dermatology Analysis from <span className="gradient-text font-bold">SKYNN AI</span>
               </Badge>
             </div>
 
@@ -148,17 +199,12 @@ const SmartRoutines = () => {
             </h1>
 
             <p className="mx-auto mt-6 max-w-3xl text-center text-lg leading-relaxed text-muted-foreground md:text-xl">
-              Smart Routines turns your Advanced AI Dermatology Report from SKYNN AI into a living AM + PM routine
+              Smart Routines turns your Advanced AI Dermatology Analysis from SKYNN AI into a living AM + PM routine
               that adapts to your skin profile, the season, your budget and the products already on your shelf.
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild onClick={() => handleCTAClick("hero-primary")}>
-                <Link to={primaryCTA.href} className="min-w-[200px]">
-                  {primaryCTA.label}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              {renderPrimaryCta("hero-primary", "min-w-[200px]")}
               <Button
                 size="lg"
                 variant="outline"
@@ -268,7 +314,7 @@ const SmartRoutines = () => {
               </div>
             </div>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              Example routine — yours will be uniquely built around your Advanced AI Dermatology Report
+              Example routine — yours will be uniquely built around your Advanced AI Dermatology Analysis
             </p>
           </div>
         </section>
@@ -312,13 +358,13 @@ const SmartRoutines = () => {
                   icon: FlaskConical,
                   title: "Built around your skin",
                   description:
-                    "Uses your Advanced AI Dermatology Report from SKYNN AI and personal skin profile to create genuinely personalised recommendations.",
+                    "Uses your Advanced AI Dermatology Analysis from SKYNN AI and personal skin profile to create genuinely personalised recommendations.",
                 },
                 {
                   icon: Package,
                   title: "Uses what you already own",
                   description:
-                    "Prioritises suitable products already on your shelf instead of automatically encouraging another shopping spree.",
+                    "Keeps products you already use in their step when SkinLabs has reviewed them, instead of pushing new purchases.",
                 },
                 {
                   icon: Calendar,
@@ -328,9 +374,9 @@ const SmartRoutines = () => {
                 },
                 {
                   icon: Wallet,
-                  title: "Respects your budget",
+                  title: "Favours best value when budget matters",
                   description:
-                    "Routine recommendations account for your selected budget so skincare stays sustainable for your life.",
+                    "If you told SKYNN AI that budget matters, your routine leans towards the best-value reviewed products for your skin.",
                 },
                 {
                   icon: Layers,
@@ -383,7 +429,7 @@ const SmartRoutines = () => {
                   title: "Analyse",
                   subtitle: "SKYNN AI learns your skin",
                   description:
-                    "Your Advanced AI Dermatology Report creates the deeper skin profile Smart Routines needs to build something genuinely personal.",
+                    "Your Advanced AI Dermatology Analysis creates the deeper skin profile Smart Routines needs to build something genuinely personal.",
                   icon: FlaskConical,
                 },
                 {
@@ -443,7 +489,7 @@ const SmartRoutines = () => {
                     </div>
                     <div>
                       <h3 className="font-heading text-lg font-bold text-foreground">Your Smart Routine</h3>
-                      <p className="text-xs text-muted-foreground">Personalized • Seasonal • Budget-aware</p>
+                      <p className="text-xs text-muted-foreground">Personalised • Seasonal • Example</p>
                     </div>
                   </div>
                   <Badge className="gap-1.5">
@@ -677,15 +723,15 @@ const SmartRoutines = () => {
             </Card>
 
             <div className="mt-8 text-center">
-              <p className="font-heading text-xl font-bold text-foreground">Set your budget. We'll work within it.</p>
+              <p className="font-heading text-xl font-bold text-foreground">Budget matters? Tell us once.</p>
               <p className="mt-2 text-muted-foreground">
-                Smart Routines creates recommendations that respect your financial reality.
+                If you say in your analysis that budget matters, Smart Routines favours the best-value products SkinLabs has reviewed for your skin.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Advanced AI Dermatology Report Gate */}
+        {/* Advanced AI Dermatology Analysis Gate */}
         <section className="border-y border-border bg-primary/5 py-16 lg:py-24">
           <div className="container mx-auto max-w-4xl px-4">
             <div className="text-center">
@@ -698,25 +744,24 @@ const SmartRoutines = () => {
               <div className="mx-auto mt-6 max-w-2xl space-y-4 text-lg leading-relaxed text-muted-foreground">
                 <p>
                   Smart Routines is powered by the deeper skin profile created by SKYNN AI's{" "}
-                  <span className="font-semibold text-foreground">Advanced AI Dermatology Report</span>.
+                  <span className="font-semibold text-foreground">Advanced AI Dermatology Analysis</span>.
                 </p>
                 <div className="rounded-xl border-2 border-border bg-background p-6">
                   <p className="font-medium text-foreground">
-                    The free Starter Skin Analysis does not unlock Smart Routines.
+                    The free Basic AI Skin Analysis does not unlock Smart Routines.
                   </p>
                   <p className="mt-3 text-base">
-                    Starter gives you an introduction to your skin. Your Advanced AI Dermatology Report goes deeper,
+                    The Basic AI Skin Analysis gives you an introduction to your skin. Your Advanced AI Dermatology Analysis goes deeper,
                     creating the personalised foundation Smart Routines needs to build your dynamic AM + PM routine.
                   </p>
                 </div>
               </div>
               <div className="mt-8">
-                <Button size="lg" asChild onClick={() => handleCTAClick("gate-primary")}>
-                  <Link to={primaryCTA.href} className="min-w-[240px]">
-                    Get My Advanced AI Dermatology Report
-                    <ChevronRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                {renderPrimaryCta(
+                  "gate-primary",
+                  "min-w-[240px]",
+                  primaryCTA.label,
+                )}
               </div>
             </div>
           </div>
@@ -742,7 +787,7 @@ const SmartRoutines = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Get your Advanced AI Dermatology Report as a once-off service using your Analysis Pass.
+                    Get your Advanced AI Dermatology Analysis as a once-off service using your Analysis Pass.
                   </p>
                   <ul className="space-y-2">
                     <li className="flex items-start gap-2 text-sm">
@@ -751,15 +796,21 @@ const SmartRoutines = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>One Advanced AI Dermatology Report</span>
+                      <span>One Advanced AI Dermatology Analysis</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                       <span>Unlocks Smart Routines</span>
                     </li>
                   </ul>
-                  <Button className="w-full" asChild onClick={() => handleCTAClick("access-pass")}>
-                    <Link to="/pricing">Get Analysis Pass</Link>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      handleCTAClick("access-pass");
+                      openPassPurchase();
+                    }}
+                  >
+                    Get Analysis Pass
                   </Button>
                 </CardContent>
               </Card>
@@ -771,18 +822,19 @@ const SmartRoutines = () => {
                       <Sparkles className="h-3 w-3" />
                       Recommended
                     </Badge>
-                    <span className="text-sm font-semibold text-foreground">R99/mo</span>
+                    {insiderPrice && <span className="text-sm font-semibold text-foreground">{insiderPrice}/mo</span>}
                   </div>
                   <CardTitle className="text-xl">Glow Insider</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Get your Advanced AI Dermatology Report and unlock the wider Glow Insider experience.
+                    Unlimited Basic AI Skin Analysis re-analysis and the wider Glow Insider experience. The{" "}
+                    {ADVANCED_NAME} still uses an Analysis Pass.
                   </p>
                   <ul className="space-y-2">
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Weekly live AI skin re-analysis</span>
+                      <span>Unlimited Basic AI Skin Analysis</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -790,12 +842,34 @@ const SmartRoutines = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Smart Routines included</span>
+                      <span>Smart Routines unlock with an {ADVANCED_NAME} (Analysis Pass)</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>Intelligent Routine Builder</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-sm">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>Ad-light browsing</span>
                     </li>
                   </ul>
-                  <Button className="w-full" asChild onClick={() => handleCTAClick("access-insider")}>
-                    <Link to="/pricing">Become an Insider</Link>
-                  </Button>
+                  {insiderAction.kind ? (
+                    <Button
+                      className="w-full gap-2"
+                      disabled={insiderAction.busy}
+                      onClick={() => {
+                        handleCTAClick("access-insider");
+                        insiderAction.run();
+                      }}
+                    >
+                      {insiderAction.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {insiderAction.label}
+                    </Button>
+                  ) : (
+                    <Button className="w-full" variant="outline" disabled>
+                      {insiderAction.entitled ? "Included in your membership" : "Checking your membership…"}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -803,13 +877,13 @@ const SmartRoutines = () => {
                 <CardHeader>
                   <div className="mb-2 flex items-center justify-between">
                     <Badge variant="secondary">VIP</Badge>
-                    <span className="text-sm text-muted-foreground">R299/mo</span>
+                    {vipPrice && <span className="text-sm text-muted-foreground">{vipPrice}/mo</span>}
                   </div>
                   <CardTitle className="text-xl">Glow VIP</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Your Advanced AI Dermatology Report is part of your Glow VIP membership.
+                    Glow VIP is coming soon. The {ADVANCED_NAME} uses an Analysis Pass on every plan.
                   </p>
                   <ul className="space-y-2">
                     <li className="flex items-start gap-2 text-sm">
@@ -818,16 +892,20 @@ const SmartRoutines = () => {
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Intelligent Routine Builder</span>
+                      <span>Virtual derm consultations — launching soon</span>
                     </li>
                     <li className="flex items-start gap-2 text-sm">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <span>Priority support</span>
+                      <span>Ad-free browsing</span>
                     </li>
                   </ul>
-                  <Button className="w-full" variant="outline" asChild onClick={() => handleCTAClick("access-vip")}>
-                    <Link to="/pricing">Explore VIP</Link>
+                  {/* Glow VIP isn't purchasable yet (pricing_plans.is_purchasable = false). */}
+                  <Button className="w-full" variant="outline" disabled>
+                    Glow VIP — coming soon
                   </Button>
+                  <div className="text-center">
+                    <SeeAllPlansLink />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -851,8 +929,8 @@ const SmartRoutines = () => {
                 <thead className="border-b border-border bg-muted/50">
                   <tr>
                     <th className="p-4 text-left text-sm font-semibold text-foreground">Capability</th>
-                    <th className="p-4 text-center text-sm font-semibold text-muted-foreground">Starter</th>
-                    <th className="p-4 text-center text-sm font-semibold text-primary">Dermatology Report</th>
+                    <th className="p-4 text-center text-sm font-semibold text-muted-foreground">Basic</th>
+                    <th className="p-4 text-center text-sm font-semibold text-primary">Advanced</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -862,8 +940,8 @@ const SmartRoutines = () => {
                     { feature: "Powers Smart Routines", starter: false, advanced: true },
                     { feature: "Dynamic AM + PM routine", starter: false, advanced: true },
                     { feature: "Seasonal adaptation", starter: false, advanced: true },
-                    { feature: "Budget-aware recommendations", starter: false, advanced: true },
-                    { feature: "Shelf product integration", starter: false, advanced: true },
+                    { feature: "Best-value picks when budget matters", starter: false, advanced: true },
+                    { feature: "Keeps reviewed products you already use", starter: false, advanced: true },
                   ].map((row, i) => (
                     <tr key={i} className="hover:bg-muted/30">
                       <td className="p-4 text-sm text-foreground">{row.feature}</td>
@@ -888,7 +966,7 @@ const SmartRoutines = () => {
             </div>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Starter Analysis provides an introduction to your skin. Your Advanced AI Dermatology Report creates the
+              The Basic AI Skin Analysis provides an introduction to your skin. Your Advanced AI Dermatology Analysis creates the
               foundation for personalised routines.
             </p>
           </div>
@@ -910,7 +988,7 @@ const SmartRoutines = () => {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Smart Routines is a living AM and PM skincare routine system built around your Advanced AI
-                  Dermatology Report from SKYNN AI. It creates personalised morning and evening routines that adapt
+                  Dermatology Analysis from SKYNN AI. It creates personalised morning and evening routines that adapt
                   to your skin profile, seasonal conditions, budget and the products you already own.
                 </AccordionContent>
               </AccordionItem>
@@ -920,41 +998,41 @@ const SmartRoutines = () => {
                   What do I need to use Smart Routines?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Smart Routines requires an Advanced AI Dermatology Report from SKYNN AI. This can be accessed
-                  through an Analysis Pass (from R25), Glow Insider membership, or Glow VIP membership.
+                  Smart Routines builds on the {ADVANCED_NAME} from SKYNN AI, which uses one Analysis Pass (from
+                  R25) on every plan.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="starter-included" className="rounded-xl border border-border bg-card px-6">
                 <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-                  Is Smart Routines included with the free Starter Skin Analysis?
+                  Is Smart Routines included with the free Basic AI Skin Analysis?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  No. Smart Routines is powered by the Advanced AI Dermatology Report from SKYNN AI. The free Starter
-                  Skin Analysis provides an introduction to your skin, but does not create the deeper personalised
+                  No. Smart Routines is powered by the {ADVANCED_NAME} from SKYNN AI. The free Basic AI Skin
+                  Analysis provides an introduction to your skin, but does not create the deeper personalised
                   profile needed to generate genuinely personalised routines.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="cost" className="rounded-xl border border-border bg-card px-6">
                 <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-                  How much does the Advanced AI Dermatology Report cost?
+                  How much does the {ADVANCED_NAME} cost?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Glow Explorer and Glow Lite members can access the Advanced AI Dermatology Report using an Analysis
-                  Pass, starting from R25. It's also included with Glow Insider (R99/month) and Glow VIP (R299/month)
-                  memberships.
+                  Each {ADVANCED_NAME} uses one Analysis Pass, starting from R25, whatever your plan. During
+                  this beta, submissions are received and queued with a reference number while the report workflow is
+                  finalised; if a report can't be released, the pass is refunded.
                 </AccordionContent>
               </AccordionItem>
 
               <AccordionItem value="membership-included" className="rounded-xl border border-border bg-card px-6">
                 <AccordionTrigger className="text-left text-base font-semibold hover:no-underline">
-                  Is the Advanced AI Dermatology Report included with membership?
+                  Is the {ADVANCED_NAME} included with membership?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Yes. The Advanced AI Dermatology Report is included with both Glow Insider and Glow VIP
-                  memberships. Glow Insider members also get weekly live AI re-analysis, meaning your routine can
-                  stay current as your skin changes.
+                  No. It uses an Analysis Pass on every plan. Glow Insider members get unlimited Basic AI Skin
+                  Analysis re-analysis (instead of once every 7 days), so the basics can stay current as your skin
+                  changes.
                 </AccordionContent>
               </AccordionItem>
 
@@ -963,10 +1041,10 @@ const SmartRoutines = () => {
                   Can Smart Routines use products I already own?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Yes. Smart Routines considers products already on your shelf and helps determine where suitable
-                  products fit into your routine. Not every product will automatically be recommended — it depends on
-                  your skin profile and compatibility — but the system prioritises working with what you have before
-                  suggesting new purchases.
+                  Yes, when SkinLabs has reviewed them. The products you list in your {ADVANCED_NAME} are matched by
+                  name against our reviews; a match that suits your skin keeps its place in your routine (marked
+                  &quot;From your shelf&quot;). Products we haven&apos;t reviewed yet aren&apos;t matched, and anything
+                  containing an ingredient you told us you avoid is left out.
                 </AccordionContent>
               </AccordionItem>
 
@@ -975,9 +1053,9 @@ const SmartRoutines = () => {
                   Does my routine change?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Smart Routines is designed as a living system that can adapt as your circumstances change. Your
-                  routine may evolve based on seasonal conditions, changes to your shelf, budget adjustments, or updates
-                  to your skin profile.
+                  Yes. When you save a newer Basic or Advanced analysis, your dashboard offers to update your routine,
+                  and once your {ADVANCED_NAME} report is released its own morning and evening steps replace the
+                  rule-based ones. Seasonal notes reflect the season when you build or update it.
                 </AccordionContent>
               </AccordionItem>
 
@@ -986,8 +1064,8 @@ const SmartRoutines = () => {
                   Can I set a budget?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Yes. Smart Routines allows you to set your skincare budget, and recommendations will work within your
-                  financial constraints while still prioritising your skin needs.
+                  There isn&apos;t a rand budget setting yet. If you told SKYNN AI that budget matters, your Smart Routine
+                  favours the best-value products among those SkinLabs has reviewed for your skin.
                 </AccordionContent>
               </AccordionItem>
 
@@ -996,7 +1074,7 @@ const SmartRoutines = () => {
                   Is this medical advice?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  No. Despite its name, the Advanced AI Dermatology Report is an AI-generated skincare analysis, not a
+                  No. Despite its name, the Advanced AI Dermatology Analysis is an AI-generated skincare analysis, not a
                   clinical diagnosis or treatment plan from a dermatologist. SKYNN AI and Smart Routines provide
                   skincare information and personalised recommendations only. If you have persistent, severe or
                   concerning skin problems, please consult a qualified healthcare professional or dermatologist.
@@ -1016,16 +1094,11 @@ const SmartRoutines = () => {
               Your skin is personal. Your routine should be too.
             </h2>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Start with your Advanced AI Dermatology Report from SKYNN AI. Then let Smart Routines turn what it
+              Start with your Advanced AI Dermatology Analysis from SKYNN AI. Then let Smart Routines turn what it
               learns into a routine built around your real skin, your real shelf and your real life.
             </p>
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild onClick={() => handleCTAClick("final-primary")}>
-                <Link to={primaryCTA.href} className="min-w-[200px]">
-                  {primaryCTA.label}
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+              {renderPrimaryCta("final-primary", "min-w-[200px]")}
               <Button
                 size="lg"
                 variant="outline"
@@ -1041,6 +1114,7 @@ const SmartRoutines = () => {
           </div>
         </section>
 
+        <AnalysisPassPurchaseModal open={passModalOpen} onOpenChange={setPassModalOpen} />
         <Footer />
       </div>
     </>

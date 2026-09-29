@@ -194,7 +194,7 @@ const DermatologistDirectory = () => {
       );
       if ((index + 1) % 3 === 0 && index < pageItems.length - 1) {
         nodes.push(
-          <div key={`ad-${index}`} className="my-2">
+          <div key={`ad-${index}`}>
             <AdSlot placement="consult-directory-inline" compact />
           </div>,
         );

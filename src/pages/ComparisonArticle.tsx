@@ -6,6 +6,7 @@ import SEO from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
+import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { canReadComparison, recordComparisonRead } from "@/lib/access-quotas";
 import GatedOverlay from "@/components/GatedOverlay";
@@ -20,6 +21,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import AdSlot from "@/components/AdSlot";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const EDITORIAL_DISCLAIMER =
   "SKINLABS's views and opinions are independent. This article is not paid or sponsored content. Product information is assessed using publicly available information, ingredient analysis, editorial research and, where applicable, product testing. Prices, availability and formulations may change.";
@@ -30,7 +33,8 @@ const ComparisonArticle = () => {
   // free/Explorer accounts) is still tracked via canReadComparison/access-quotas.
   const { can } = useEntitlements();
   const isMember = can("comparisons.unlimited");
-  const article = getComparison(slug ?? "");
+  const { data: generatedComparisons } = useGeneratedComparisons();
+  const article = getComparison(slug ?? "") ?? generatedComparisons?.find((c) => c.slug === slug);
   const locked = Boolean(article) && !isMember && !canReadComparison(slug ?? "");
 
   useEffect(() => {
@@ -165,7 +169,8 @@ const ComparisonArticle = () => {
           locked={locked}
           title="Monthly free comparison limit reached"
           message="Glow Explorer and signed-out visitors can open 2 Shelf Showdowns per month. Upgrade for unlimited access."
-          ctaLabel="View membership plans"
+          feature="comparisons.unlimited"
+          source="shelf_showdown_limit"
         >
         <article className="container mx-auto max-w-3xl px-4">
           <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">
@@ -294,6 +299,8 @@ const ComparisonArticle = () => {
             <BriefingBody body={article.bodyMarkdown} insertAds={false} />
           </div>
 
+          <AdSlot placement="comparison-before-verdicts" compact priority="primary" />
+
           <section className="mt-10" aria-labelledby="verdicts-heading">
             <h2
               id="verdicts-heading"
@@ -310,6 +317,8 @@ const ComparisonArticle = () => {
               ))}
             </div>
           </section>
+
+          <AdSlotAutorelaxed placement="comparison-after-verdicts" compact />
 
           <RelatedKnowledgeHub
             keywords={[article.saContext, ...article.productsCompared.flatMap((p) => [p.brand, p.name])]}

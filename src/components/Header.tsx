@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
   X,
@@ -44,13 +44,18 @@ import AuthDialog from "@/components/AuthDialog";
 import SiteSearch from "@/components/SiteSearch";
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
-import PromoAnnouncementBar from "@/components/PromoAnnouncementBar";
+import PromoAnnouncementBar, { PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import { showStoryRail } from "@/lib/mobileChrome";
+import WebStoriesBar from "@/components/WebStoriesBar";
 import { useAuth } from "@/hooks/use-auth";
 import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/newskinlabs.png";
+// Served from public/ (not a Vite-bundled src/assets import) — real light/
+// dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
+// than a CSS filter on one file, so the actual PNG that's "live" for each
+// theme is directly verifiable from a network request, not a filter effect.
 
 type NavIcon = typeof Home;
 
@@ -131,7 +136,14 @@ const ResourceRow = ({ item, onClick }: { item: NavItem; onClick?: () => void })
   </Link>
 );
 
-const DesktopMenuPanel = ({ onNavigate }: { onNavigate?: () => void }) => (
+const DesktopMenuPanel = ({
+  onNavigate,
+  onSignUp,
+}: {
+  onNavigate?: () => void;
+  /** Opens AuthDialog in sign-up mode. Omitted when signed in, which hides the footer CTA. */
+  onSignUp?: () => void;
+}) => (
   <div className="w-[min(92vw,720px)] p-1">
     {/* Primary links */}
     <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-2 py-2">
@@ -186,14 +198,14 @@ const DesktopMenuPanel = ({ onNavigate }: { onNavigate?: () => void }) => (
       ))}
     </div>
 
-    <div className="mt-2 border-t border-border px-2 pt-3 pb-1">
-      <Button asChild className="w-full justify-between" size="sm">
-        <Link to="/" onClick={onNavigate}>
+    {onSignUp && (
+      <div className="mt-2 border-t border-border px-2 pt-3 pb-1">
+        <Button type="button" className="w-full justify-between" size="sm" onClick={onSignUp}>
           Sign Up / Log In
           <ChevronRight className="h-4 w-4" />
-        </Link>
-      </Button>
-    </div>
+        </Button>
+      </div>
+    )}
   </div>
 );
 
@@ -207,6 +219,8 @@ const Header = () => {
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
+  const { pathname } = useLocation();
+  const storyRail = showStoryRail(pathname);
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -224,20 +238,49 @@ const Header = () => {
       {/* Non-fixed flow spacer matching the promo bar's h-9 — this is what actually
           pushes every page's <main> down by the bar's height. Editing each page's own
           pt-* class isn't needed: Header renders in place of <Header /> in each page's
-          JSX, so this spacer's flow height applies right there, before <main>. */}
-      {promoBarVisible && <div className="h-9" aria-hidden="true" />}
+          JSX, so this spacer's flow height applies right there, before <main>.
+          Below md the bar is hidden and its message sits in the header row instead
+          (PromoHeaderChip), so the spacer is md-and-up only. */}
+      {promoBarVisible && <div className="hidden h-9 md:block" aria-hidden="true" />}
+      {/* Mobile-only Instagram-style story rail, stacked directly above the nav
+          header. WebStoriesBar is md:hidden itself; this flow spacer matches its
+          h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
+      {storyRail && (
+        <>
+          <WebStoriesBar top="top-0" />
+          <div className="h-24 md:hidden" aria-hidden="true" />
+        </>
+      )}
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
-          promoBarVisible ? "top-9" : "top-0",
+          // Mobile: below the story rail (96px) when it shows. md+: below the promo bar (36px).
+          storyRail ? "top-24" : "top-0",
+          promoBarVisible ? "md:top-9" : "md:top-0",
         )}
       >
         <ScrollProgressBar />
-        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 md:h-20">
+        <div className="container mx-auto flex h-16 items-center justify-between gap-2 px-4 sm:gap-3 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex shrink-0 items-center gap-2" onClick={closeMenu}>
-            <img src={logo} alt="SkinLabs" className="h-8 w-auto md:h-9 dark:brightness-0 dark:invert" />
+            <img
+              src="/logosvg.png"
+              alt="SkinLabs"
+              width={804}
+              height={261}
+              className="h-8 w-auto max-[399px]:h-7 md:h-9 dark:hidden"
+            />
+            <img
+              src="/logosvgwhite.png"
+              alt="SkinLabs"
+              width={804}
+              height={261}
+              className="hidden h-8 w-auto max-[399px]:h-7 md:h-9 dark:block"
+            />
           </Link>
+          {/* Below md the promo message lives here, in the header row, instead of its own bar
+              (hidden under 370px, where the row has no room for it). */}
+          {promoBarVisible && <PromoHeaderChip />}
 
           {/* Desktop Menu button (replaces individual primary links) */}
           <div className="hidden lg:flex items-center">
@@ -262,7 +305,18 @@ const Header = () => {
                 sideOffset={8}
                 className="w-auto max-w-[min(92vw,760px)] rounded-2xl border bg-popover p-0 shadow-lg"
               >
-                <DesktopMenuPanel onNavigate={closeDesktopMenu} />
+                <DesktopMenuPanel
+                  onNavigate={closeDesktopMenu}
+                  onSignUp={
+                    user
+                      ? undefined
+                      : () => {
+                          closeDesktopMenu();
+                          setAuthMode("signup");
+                          setAuthOpen(true);
+                        }
+                  }
+                />
               </PopoverContent>
             </Popover>
           </div>

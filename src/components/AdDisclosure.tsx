@@ -1,3 +1,5 @@
+import { useViewerContext } from "@/hooks/use-viewer-context";
+
 /**
  * Renders the standard "free, ad-supported" fine print without putting a literal
  * text node in the DOM — the copy is identical on every ad unit across the site,
@@ -8,15 +10,21 @@
  * every page. `aria-label` keeps it available to assistive tech.
  */
 export const AD_DISCLOSURE_TEXT =
-  "This is a free, ad-supported version of SkinLabs. Upgrade to our premium plans for an ad-free browsing experience";
+  "This is the free, ad-supported version of SkinLabs. Glow Insider members get ad-light browsing.";
+export const AD_LIGHT_DISCLOSURE_TEXT = "Ad-light browsing: as a Glow Insider member you see far fewer ads.";
 
-const AdDisclosure = ({ className = "" }: { className?: string }) => (
-  <p
-    className={`ad-disclosure mt-2 text-center text-[11px] leading-snug text-muted-foreground/90 ${className}`}
-    data-text={AD_DISCLOSURE_TEXT}
-    aria-label={AD_DISCLOSURE_TEXT}
-    role="note"
-  />
-);
+/** Context-aware: an ad-light member is told why they still see this one unit, not asked to upgrade. */
+const AdDisclosure = ({ className = "" }: { className?: string }) => {
+  const { adPolicy } = useViewerContext();
+  const text = adPolicy === "light" ? AD_LIGHT_DISCLOSURE_TEXT : AD_DISCLOSURE_TEXT;
+  return (
+    <p
+      className={`ad-disclosure mt-2 text-center text-[11px] leading-snug text-muted-foreground/90 ${className}`}
+      data-text={text}
+      aria-label={text}
+      role="note"
+    />
+  );
+};
 
 export default AdDisclosure;

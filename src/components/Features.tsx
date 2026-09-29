@@ -1,4 +1,5 @@
 import { Atom, Newspaper, Star, Mic } from "lucide-react";
+import { PODCAST_SEASON_2_START } from "@/data/podcast";
 
 const features = [
   {
@@ -14,12 +15,12 @@ const features = [
   {
     icon: Star,
     title: "Independent Reviews",
-    description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. No affiliate deals, no gifted samples.",
+    description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. Advertisers and sponsors can't buy a score.",
   },
   {
     icon: Mic,
     title: "The Skin Deep Podcast",
-    description: "Dermatologist interviews and ingredient deep-dives that don't take themselves too seriously. New episode every Friday at 12pm SAST.",
+    description: `Ingredient-science deep dives that don't take themselves too seriously. Season 1 is streaming now; Season 2 starts ${PODCAST_SEASON_2_START}.`,
   },
 ];
 
@@ -40,7 +41,7 @@ const Features = () => {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-card p-6 rounded-2xl border border-border hover:shadow-md transition-shadow"
+              className="bg-card p-6 rounded-2xl border border-border"
             >
               <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mb-4">
                 <feature.icon className="h-6 w-6 text-accent-foreground" />

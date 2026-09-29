@@ -23,11 +23,22 @@ export type ConversionEvent =
   | "signup_completed"
   | "upgrade_viewed"
   | "upgrade_click"
+  | "adblock_wall_shown"
+  | "adblock_wall_cleared"
   | "pricing_view"
   | "plan_selected"
   | "trial_started"
   | "checkout_started"
   | "checkout_completed"
+  | "keep_membership_viewed"
+  | "keep_membership_gateway_selected"
+  | "keep_membership_completed"
+  | "trial_card_upfront_shown"
+  | "welcome_viewed"
+  | "welcome_step_completed"
+  | "welcome_finished"
+  | "checklist_step_clicked"
+  | "checklist_dismissed"
   | "subscription_started"
   | "subscription_cancelled"
   | "credit_pack_viewed"
@@ -101,7 +112,16 @@ export type ConversionEvent =
   | "site_search_result_clicked"
   | "account_deactivated"
   | "account_deletion_requested"
-  | "routine_checkin_completed";
+  | "routine_checkin_completed"
+  // Free-first SKYNN AI formulator + rolling free-analysis allowance (2026-09-24).
+  | "formulator_started"
+  | "formulator_completed_anonymous"
+  | "signup_from_formulator"
+  | "reanalysis_blocked"
+  | "upgrade_clicked_from_formulator"
+  // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
+  // which whitelists the payload, never directly.
+  | import("@/lib/skynn/analytics").SkynnEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

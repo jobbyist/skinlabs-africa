@@ -5,6 +5,45 @@ import type { BillingInterval, PlanId } from "@/data/plans";
 
 export type MembershipTier = "explorer" | "glow_lite" | "insider" | "vip";
 
+/**
+ * useMembership() is per-component state, not a shared context, so a trial
+ * started in one gate wouldn't unlock the others on the page. Anything that
+ * changes the signed-in member's plan (useStartTrial, checkout success) calls
+ * this, and every mounted useMembership() re-reads the profile.
+ */
+const MEMBERSHIP_UPDATED_EVENT = "skinlabs:membership-updated";
+
+export const notifyMembershipUpdated = () => {
+  profileCache = null;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(MEMBERSHIP_UPDATED_EVENT));
+};
+
+/**
+ * Many components call useMembership() at once (every gate, and every ad slot
+ * via useViewerContext()), so the profile read is shared: concurrent and
+ * back-to-back mounts for the same user reuse one request for a few seconds.
+ * notifyMembershipUpdated() drops it so a plan change is always re-read.
+ */
+const PROFILE_CACHE_MS = 15_000;
+let profileCache: { userId: string; at: number; promise: Promise<ProfileMembershipRow | null> } | null = null;
+
+const MEMBERSHIP_COLUMNS =
+  "subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at, founding_member, is_professional";
+
+const fetchMembershipRow = (userId: string): Promise<ProfileMembershipRow | null> => {
+  if (profileCache && profileCache.userId === userId && Date.now() - profileCache.at < PROFILE_CACHE_MS) {
+    return profileCache.promise;
+  }
+  const promise = Promise.resolve(
+    supabase.from("profiles").select(MEMBERSHIP_COLUMNS).eq("user_id", userId).maybeSingle(),
+  ).then(({ data, error }) => {
+    if (error) profileCache = null; // don't pin a failed read
+    return (data as ProfileMembershipRow | null) ?? null;
+  });
+  profileCache = { userId, at: Date.now(), promise };
+  return promise;
+};
+
 interface ProfileMembershipRow {
   subscription_status: string | null;
   billing_interval: string | null;
@@ -50,6 +89,12 @@ export const useMembership = () => {
   const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
+    const onUpdated = () => setNonce((n) => n + 1);
+    window.addEventListener(MEMBERSHIP_UPDATED_EVENT, onUpdated);
+    return () => window.removeEventListener(MEMBERSHIP_UPDATED_EVENT, onUpdated);
+  }, []);
+
+  useEffect(() => {
     let active = true;
     const load = async () => {
       if (!user) {
@@ -66,15 +111,8 @@ export const useMembership = () => {
         }
         return;
       }
-      const { data } = await supabase
-        .from("profiles")
-        .select(
-          "subscription_status, billing_interval, trial_plan, trial_ends_at, trial_used_at, founding_member, is_professional",
-        )
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const row = await fetchMembershipRow(user.id);
       if (!active) return;
-      const row = data as ProfileMembershipRow | null;
       const resolved = resolveTier(row);
       setTier(resolved.tier);
       setIsTrialing(resolved.isTrialing);

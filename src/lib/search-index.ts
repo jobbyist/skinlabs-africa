@@ -40,7 +40,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "Brand Ambassador Programme", description: "Apply to become a SkinLabs TikTok or Instagram Brand Ambassador", href: "/brand-ambassadors", keywords: "brand ambassador creator programme tiktok instagram affiliate commission apply" },
   { title: "About Us", description: "SkinLabs' story, science and sustainability", href: "/about", keywords: "our science sustainability" },
   { title: "Knowledge Hub", description: "Evidence-backed skincare answers, searchable by ingredient, concern or routine", href: "/knowledge-hub", keywords: "faq frequently asked questions shipping returns track order help" },
-  { title: "Smart Routines", description: "Your skincare routine, finally built around you — a living AM and PM routine powered by your Advanced AI Dermatology Report from SKYNN AI that adapts to your skin, the season, your budget and your shelf", href: "/routines", keywords: "smart routines am pm personalised personalized dynamic seasonal budget advanced dermatology report analysis skynn ai" },
+  { title: "Smart Routines", description: "Your skincare routine, finally built around you — a living AM and PM routine powered by your Advanced AI Dermatology Analysis from SKYNN AI that adapts to your skin, the season, your budget and your shelf", href: "/routines", keywords: "smart routines am pm personalised personalized dynamic seasonal budget advanced dermatology report analysis skynn ai" },
   { title: "SkinLabs Academy", description: "Self-paced skincare business and formulation learning platform — coming soon", href: "/learn", keywords: "academy learn courses coming soon" },
   { title: "Ingredients Hub", description: "Skincare ingredient science and a clash/compatibility analyser — coming soon", href: "/ingredients", keywords: "ingredients hub analyser coming soon" },
   { title: "Whitepapers", description: "SkinLabs' research and industry whitepapers", href: "/whitepapers", keywords: "whitepapers research reports" },
@@ -51,4 +51,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "Privacy Policy", description: "How SkinLabs handles your data", href: "/privacy-policy" },
   { title: "Terms of Service", description: "SkinLabs' terms of service", href: "/terms-of-service" },
   { title: "Cookie Policy", description: "SkinLabs' cookie policy", href: "/cookie-policy" },
+  { title: "Advertising & Sponsored Content Policy", description: "How SkinLabs handles commercial relationships, disclosures and advertising standards", href: "/advertising-policy", keywords: "advertising sponsored content disclosure policy" },
+  { title: "Correction & Removal Requests", description: "Request a correction or removal of reviews, directory listings, brand profiles or editorial content", href: "/corrections-removals", keywords: "corrections removal request takedown" },
+  { title: "Ingredient Combination Checker", description: "Check whether two skincare ingredients are safe to combine, backed by cited sources", href: "/ingredients/checker", keywords: "ingredient checker combine compatibility conflict" },
 ];

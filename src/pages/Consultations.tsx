@@ -40,17 +40,17 @@ const Consultations = () => {
                 Talk to a real South African practitioner
               </h1>
               <p className="text-muted-foreground">
-                Your AI routine gives you a plan. A virtual consultation confirms it. Book a video session with
-                HPCSA-registered dermatologists and aesthetic practitioners — available to Glow Insider and Glow VIP
-                members (booking priority and included sessions for VIP).
+                Your AI routine gives you a plan; a real practitioner can confirm it. Browse HPCSA-registered
+                dermatologists and aesthetic practitioners — available to Glow Lite members and above. Virtual
+                consultations are launching soon.
               </p>
             </div>
 
             <FeatureGate
               feature="practitioner_directory"
-              title="Consultations are for Glow Insider & VIP"
-              message="Browse is reserved for members. Glow Insider unlocks the directory; Glow VIP includes a monthly virtual consult."
-              ctaLabel="View membership plans"
+              title="The practitioner directory is for members"
+              message="Glow Lite and above unlock the full practitioner directory. Virtual consultations are launching soon."
+              source="consultations_directory"
             >
               <div className="grid gap-6 md:grid-cols-2">
                 {practitioners.map((practitioner, index) => (

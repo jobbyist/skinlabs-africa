@@ -11,9 +11,9 @@ import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
-import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
@@ -238,15 +238,7 @@ const NewsroomArticle = () => {
               </div>
             )}
 
-            <div className="my-8">
-              <AdSlot placement="briefing-top" compact />
-            </div>
-
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
-
-            <div className="my-8">
-              <FaithfulToNature placement="briefing-shop" />
-            </div>
 
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (
@@ -285,9 +277,7 @@ const NewsroomArticle = () => {
                       ? "You've reached your weekly briefing limit. Check back in a few days for fresh intelligence."
                       : `Free accounts get ${DAILY_SKINNY_FREE_WEEKLY} full briefings every 7 days. Upgrade for unlimited daily briefings, or check back next week.`}
                   </p>
-                  <Button asChild className="mt-5">
-                    <Link to="/pricing">See membership plans</Link>
-                  </Button>
+                  {!isMember && <ConversionCta source="briefing_weekly_limit" className="mt-5" />}
                 </div>
               ) : (
                 <div className="rounded-3xl border border-border bg-card p-8 text-center">
@@ -295,16 +285,14 @@ const NewsroomArticle = () => {
                   <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
                     Free accounts get {DAILY_SKINNY_FREE_WEEKLY} full briefings every week, no card required. Members get unlimited daily briefings.
                   </p>
-                  <Button asChild className="mt-5">
-                    <Link to="/pricing">See membership plans</Link>
-                  </Button>
+                  <ConversionCta source="briefing_signed_out" className="mt-5" />
                 </div>
               )}
             </div>
 
-            <div className="my-8">
-              <AdSlot placement="briefing-bottom" compact />
-            </div>
+            {/* Ads never precede the article: in-body breaks come from BriefingBody's
+                ad markers, then one partner unit after the body. */}
+            <FaithfulToNature placement="briefing-shop" />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
               <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
@@ -338,9 +326,7 @@ const NewsroomArticle = () => {
               )}
             </div>
 
-            <div className="mt-8">
-              <AdSlotAutorelaxed placement="briefing-footer" compact />
-            </div>
+            <AdSlotAutorelaxed placement="briefing-footer" compact />
 
             {disclaimer && (
               <div className="mt-8">

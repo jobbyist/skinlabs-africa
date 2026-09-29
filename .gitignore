@@ -44,3 +44,7 @@ scripts/generated/
 .vercel-output-staging/
 src/routeTree.gen.ts
 *.tsbuildinfo
+
+# Playwright
+test-results/
+playwright-report/

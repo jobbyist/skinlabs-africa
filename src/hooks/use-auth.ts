@@ -30,19 +30,18 @@ export const useAuth = () => {
     return { data, error };
   };
 
-  const signUp = async (
-    email: string,
-    password: string,
-    username?: string,
-    redirectTo?: string,
-    marketingConsent?: boolean,
-  ) => {
+  /**
+   * Email + password only. The profile trigger (handle_new_user) assigns a
+   * glow_xxxxxx placeholder username; the member picks a real handle the
+   * first time they comment.
+   */
+  const signUp = async (email: string, password: string, redirectTo?: string, marketingConsent?: boolean) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectTo ?? window.location.origin,
-        data: username || marketingConsent ? { username, marketing_consent: marketingConsent ?? false } : undefined,
+        data: marketingConsent ? { marketing_consent: true } : undefined,
       },
     });
     return { data, error };

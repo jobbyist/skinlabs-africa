@@ -2,7 +2,7 @@
  * Grounds SKYNN AI's starter-analysis product recommendations in SkinLabs' own
  * reviewed product catalogue (`src/data/reviews.ts`) instead of generic category
  * descriptions — the same real review data `RoutineBuilder.tsx` already uses for
- * Glow VIP's routine builder, applied here to the free/starter formulator flow.
+ * the Routine Builder (Glow Insider and above), applied here to the free/starter formulator flow.
  *
  * Never fabricates a product: every pick is a product SkinLabs has actually
  * reviewed and scored. When nothing in the catalogue is a reasonable match, the

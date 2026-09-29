@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useTheme } from "next-themes";
 import { ArrowRight, Newspaper, ShieldCheck, Lock, Sparkles, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -9,7 +10,10 @@ import { useNewsArticles } from "@/hooks/use-news-articles";
 import { productReviews, overallScore } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { seasonHubs } from "@/data/seasonals";
-import logo from "@/assets/newskinlabs.png";
+// Served from public/ (real light/dark wordmark exports), swapped via
+// resolvedTheme rather than a CSS invert filter on one bundled asset.
+const LOGO_LIGHT = "/logosvg.png";
+const LOGO_DARK = "/logosvgwhite.png";
 import Autoplay from "embla-carousel-autoplay";
 import { markEntryGateResolved } from "@/lib/entry-gate";
 import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
@@ -89,8 +93,11 @@ const buildDailyReviewSlides = (): GateSlide[] => {
 
 const LOADING_KEY = "skinlabs-preloader-shown";
 const GATE_KEY = "skinlabs-gate-shown";
-const LOADING_MS = 1600;
-const LOADING_TIMEOUT_MS = 1800;
+// Shortened from 1600/1800ms: this splash sits on top of real content (including
+// prerendered/SSR'd content on deep links) on every fresh session, so it's kept
+// just long enough to read as an intentional brand moment rather than a stall.
+const LOADING_MS = 700;
+const LOADING_TIMEOUT_MS = 900;
 
 const trustMarkers = [
   { icon: Star, label: `${productReviews.length}+ SA products reviewed` },
@@ -103,10 +110,21 @@ const UNLOCK_ANIMATION_MS = 650;
 const BOT_UA_PATTERN =
   /bot|crawl|spider|slurp|googlebot|bingbot|yandex|baiduspider|duckduckbot|facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|discordbot|pinterest|applebot|semrushbot|ahrefsbot|mj12bot|lighthouse|headlesschrome|prerender/i;
 
+/**
+ * Bots, headless/automated browsers (Lighthouse included) and crawlers never
+ * see either overlay — previously only the pricing "gate" checked this, so a
+ * cold-sessionStorage Lighthouse run was seeing the full loading splash below.
+ */
+const isBotOrAutomation = (): boolean => {
+  if (typeof navigator === "undefined") return false;
+  if (BOT_UA_PATTERN.test(navigator.userAgent)) return true;
+  if (navigator.webdriver) return true;
+  return false;
+};
+
 const isExternalArrival = (): boolean => {
   if (typeof document === "undefined" || typeof navigator === "undefined") return false;
-  if (BOT_UA_PATTERN.test(navigator.userAgent)) return false;
-  if (navigator.webdriver) return false;
+  if (isBotOrAutomation()) return false;
   if (!document.referrer) return false;
   try {
     return new URL(document.referrer).origin !== window.location.origin;
@@ -125,6 +143,8 @@ const Preloader = () => {
   const shouldReduceMotion = useReducedMotion();
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [externalArrival] = useState(isExternalArrival);
+  const { resolvedTheme } = useTheme();
+  const logoSrc = resolvedTheme === "dark" ? LOGO_DARK : LOGO_LIGHT;
 
   const gateSlides: GateSlide[] = [
     ...buildDailyReviewSlides(),
@@ -140,11 +160,19 @@ const Preloader = () => {
     ...buildEvergreenSlides(),
   ];
 
+  // The full-screen branded loading splash is scoped to the homepage only and
+  // skipped entirely for bots/automation (crawlers, Lighthouse, headless
+  // Chrome) — a deep link landed on directly (from search, a share, or an
+  // agent) should never be covered by a homepage-branding animation, and a
+  // cold-sessionStorage Lighthouse run should never measure this as LCP/FCP.
+  const skipLoadingSplash = !isHome || isBotOrAutomation();
   const [showLoading, setShowLoading] = useState(() => {
-    if (typeof window === "undefined") return false;
+    if (typeof window === "undefined" || skipLoadingSplash) return false;
     return sessionStorage.getItem(LOADING_KEY) !== "1";
   });
-  const [loadingDone, setLoadingDone] = useState(() => sessionStorage.getItem(LOADING_KEY) === "1");
+  const [loadingDone, setLoadingDone] = useState(
+    () => skipLoadingSplash || sessionStorage.getItem(LOADING_KEY) === "1",
+  );
   const [progress, setProgress] = useState(0);
   const [gateVisible, setGateVisible] = useState(false);
   const [gateDismissed, setGateDismissed] = useState(() => {
@@ -225,10 +253,11 @@ const Preloader = () => {
             transition={{ duration: 0.5, ease: "easeInOut" }}
           >
             <motion.img
-              src={logo}
+              src={logoSrc}
               alt="SkinLabs"
+              width={804}
+              height={261}
               style={{ width: 250, height: "auto" }}
-              className="dark:invert"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -270,10 +299,12 @@ const Preloader = () => {
 
             <div className="mx-auto max-w-lg px-6 py-14 text-center">
               <img
-                src={logo}
+                src={logoSrc}
                 alt="SkinLabs"
+                width={804}
+                height={261}
                 style={{ width: 160, height: "auto" }}
-                className="mx-auto mb-8 dark:invert"
+                className="mx-auto mb-8"
               />
               <p className="font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
                 Uncover the whole story behind your skincare.

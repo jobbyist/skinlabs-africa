@@ -4,7 +4,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ReviewsGrid from "@/components/ReviewsGrid";
 import AffiliateBanner from "@/components/AffiliateBanner";
-import AdSlot from "@/components/AdSlot";
 
 const Reviews = () => {
   const { page } = useParams<{ page?: string }>();
@@ -22,13 +21,13 @@ const Reviews = () => {
         </title>
         <meta
           name="description"
-          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. No paid placement."
+          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. Scores can't be bought."
         />
         <link rel="canonical" href={canonical} />
         <meta property="og:title" content="SA Skincare Product Reviews — Independent Scores | SkinLabs®" />
         <meta
           property="og:description"
-          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. No paid placement."
+          content="Independent skincare product reviews scored for South African conditions — efficacy, value, texture and climate fit. Scores can't be bought."
         />
         <meta property="og:url" content={canonical} />
         <meta property="og:type" content="website" />
@@ -40,9 +39,6 @@ const Reviews = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pt-20 pb-24">
-          <div className="container mx-auto px-4 mb-4">
-            <AdSlot placement="reviews-top" compact />
-          </div>
           <ReviewsGrid paginate />
 
           <div className="container mx-auto px-4 mt-14">
@@ -58,10 +54,11 @@ const Reviews = () => {
                   rating is the average, not a marketing-friendly round number.
                 </p>
                 <p>
-                  We buy the products we review. Where a brand sends a sample instead, that's disclosed on the
-                  review itself and it doesn't change the score — a gifted product held to a lower bar isn't a
-                  review, it's an advertisement. There's no paid placement anywhere on this page: brands can't buy a
-                  higher score, a better position in the grid or a more flattering write-up.
+                  Where a brand sends us a product or sample, that's disclosed on the review itself and it doesn't
+                  change the score — a gifted product held to a lower bar isn't a review, it's an advertisement. SkinLabs® is partly ad-supported, so this page carries ads and some
+                  reviews are marked Sponsored, where we earn from a disclosed brand or marketplace partner. That label
+                  never changes the verdict: brands can't buy a higher score, a better position in the grid or a more
+                  flattering write-up.
                 </p>
                 <p>
                   New reviews are added continuously as we work through the South African skincare shelf — from
@@ -80,7 +77,7 @@ const Reviews = () => {
             </section>
           </div>
 
-          <div className="container mx-auto px-4 mt-8">
+          <div className="container mx-auto px-4">
             <AffiliateBanner placement="reviews-bottom" />
           </div>
         </main>

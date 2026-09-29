@@ -15,6 +15,8 @@ import { usePricingConfig } from "@/lib/pricing-config";
 import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
+import { notifyAnalysisPassesUpdated } from "@/hooks/use-analysis-passes";
+import { toast } from "sonner";
 
 interface AnalysisPassPurchaseModalProps {
   open: boolean;
@@ -52,6 +54,7 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
     const { error } = await startCreditPackCheckout(gateway, selectedPack.pack_id, config?.variantKey ?? "control");
     if (error) {
       setSubmitting(false);
+      toast.error(error.message);
     } else {
       setGatewayDialogOpen(false);
     }
@@ -64,10 +67,10 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5 text-primary" />
-            Unlock Your Advanced AI Dermatology Report
+            Get an Analysis Pass
           </DialogTitle>
           <DialogDescription>
-            Go beyond your Starter Analysis with a deeper, more personalised look at your skin.
+            Each Analysis Pass unlocks one Advanced AI Dermatology Analysis — a deeper, more detailed questionnaire than your Basic AI Skin Analysis.
           </DialogDescription>
         </DialogHeader>
 
@@ -94,8 +97,8 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {pack.credits === 1
-                          ? "One Advanced AI Dermatology Report"
-                          : `${pack.credits} Advanced AI Dermatology Reports`}
+                          ? "One Advanced AI Dermatology Analysis"
+                          : `${pack.credits} Advanced AI Dermatology Analyses`}
                         {pack.pack_id === bestValuePackId && singlePrice
                           ? ` · Save R${Math.max(0, Math.round(singlePrice * pack.credits - Number(pack.price)))}`
                           : ""}
@@ -118,6 +121,23 @@ const AnalysisPassPurchaseModal = ({ open, onOpenChange }: AnalysisPassPurchaseM
         open={gatewayDialogOpen}
         onOpenChange={(next) => !submitting && setGatewayDialogOpen(next)}
         onSelect={handleGatewaySelect}
+        paypal={
+          selectedPack
+            ? { purchaseType: "credit_pack", packId: selectedPack.pack_id, variantKey: config?.variantKey ?? "control" }
+            : undefined
+        }
+        onPaypalApproved={() => {
+          // Captured and granted server-side already — stay on the page.
+          if (selectedPack) {
+            trackConversionEvent("credit_pack_purchased", { packId: selectedPack.pack_id });
+            toast.success(
+              `Payment confirmed — ${selectedPack.credits} Analysis Pass${selectedPack.credits === 1 ? " is" : "es are"} ready to use.`,
+            );
+          }
+          notifyAnalysisPassesUpdated();
+          setGatewayDialogOpen(false);
+          onOpenChange(false);
+        }}
       />
     </Dialog>
   );

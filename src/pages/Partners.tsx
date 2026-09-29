@@ -1,7 +1,18 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
+import { useTheme } from "next-themes";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { buildOrganizationJsonLd } from "@/lib/seo-config";
 import PartnerHero from "@/components/partners/PartnerHero";
 import PartnerBenefits from "@/components/partners/PartnerBenefits";
 import PartnershipModels from "@/components/partners/PartnershipModels";
@@ -19,6 +30,7 @@ const SITE = "https://skinlabs.co.za";
 
 const Partners = () => {
   const [selectedModel, setSelectedModel] = useState<PartnershipModel["id"] | null>(null);
+  const { resolvedTheme } = useTheme();
 
   const scrollToId = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -34,14 +46,7 @@ const Partners = () => {
   };
 
   const jsonLd = [
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      name: "SkinLabs®",
-      url: SITE,
-      logo: `${SITE}/favicon.svg`,
-      sameAs: ["https://instagram.com/skinlabsza", "http://facebook.com/skinlabs.co.za/", "https://tiktok.com/@skinlabsza"],
-    },
+    buildOrganizationJsonLd(resolvedTheme),
     {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -100,6 +105,24 @@ const Partners = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main>
+          {/* Makes the page's own BreadcrumbList JSON-LD (above) accurate —
+              it previously described a breadcrumb that had no visible
+              on-page counterpart. */}
+          <div className="container mx-auto px-4 pt-6">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/">Home</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Partner Program</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
           <PartnerHero onBookCall={handleBookCall} onExploreModels={handleExploreModels} />
           <PartnerBenefits />
           <PartnershipModels onSelectModel={handleSelectModel} />

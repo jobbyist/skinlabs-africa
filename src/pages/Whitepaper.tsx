@@ -91,7 +91,7 @@ const Whitepaper = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
                   <h2 className="text-2xl font-bold text-foreground mb-4">Key AI technologies in beauty</h2>
                   <ul className="space-y-3 text-muted-foreground">
-                    <li className="flex gap-3"><Cpu className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Computer vision</strong> — image-based detection of visible skin characteristics (texture, tone uniformity, pigmentation patterns, etc.).</span></li>
+                    <li className="flex gap-3"><Cpu className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Computer vision</strong> — image-based detection of visible skin characteristics (texture, tone uniformity, pigmentation patterns, etc.). An industry technique we deliberately do not use in SKYNN AI: it never analyses photos or infers skin tone.</span></li>
                     <li className="flex gap-3"><Cpu className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Machine learning</strong> — personalised routine suggestion, demand forecasting and ingredient insight.</span></li>
                     <li className="flex gap-3"><Cpu className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Generative AI & NLP</strong> — content assistance, conversational guidance and creative workflows (always under human editorial oversight for published claims).</span></li>
                     <li className="flex gap-3"><Cpu className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">AR/VR</strong> — virtual try-on and interactive diagnostics (global benchmarks show strong conversion lifts).</span></li>
@@ -118,8 +118,8 @@ const Whitepaper = () => {
                     <div className="space-y-3">
                       <h3 className="font-semibold text-foreground">Design principles</h3>
                       <ul className="list-disc list-inside space-y-1.5 text-sm text-muted-foreground ml-1">
-                        <li>Privacy-first: explicit consent for special personal information; short retention of raw images</li>
-                        <li>No facial recognition or identity use</li>
+                        <li>Privacy-first: explicit consent for special personal information; photos stay on the device and are never uploaded or analysed</li>
+                        <li>No facial recognition, image analysis or skin-tone inference; Monk Skin Tone (MST) is optional and self-reported</li>
                         <li>Climate- and skin-of-colour-aware logic</li>
                         <li>Local brand and Rand-price awareness</li>
                         <li>Clear non-medical disclaimer on every output</li>
@@ -128,10 +128,10 @@ const Whitepaper = () => {
                     <div className="space-y-3">
                       <h3 className="font-semibold text-foreground">What it delivers</h3>
                       <ul className="list-disc list-inside space-y-1.5 text-sm text-muted-foreground ml-1">
-                        <li>Visible-characteristic assessment (texture, tone, hydration indicators, etc.)</li>
+                        <li>Answer-based skin assessment: the free Basic AI Skin Analysis and the Advanced AI Dermatology Analysis</li>
                         <li>Personalised routine suggestions matched to SA climate and budget</li>
                         <li>Integration with SkinLabs editorial intelligence and product database</li>
-                        <li>Freemium access with paid depth (Glow Insider / VIP)</li>
+                        <li>Freemium access: the Basic analysis is free; the Advanced analysis and Smart Routines use an Analysis Pass</li>
                       </ul>
                     </div>
                   </div>
@@ -179,7 +179,7 @@ const Whitepaper = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
                   <h2 className="text-2xl font-bold text-foreground mb-4">Regulatory & compliance posture</h2>
                   <div className="space-y-3 text-muted-foreground text-sm">
-                    <p><strong className="text-foreground">POPIA:</strong> Health-adjacent and biometric data are special personal information. Explicit consent, purpose limitation, short image retention and a clear deletion policy are built into SKYNN AI and our Privacy Policy.</p>
+                    <p><strong className="text-foreground">POPIA:</strong> Health-adjacent data is special personal information. Explicit consent, purpose limitation, no photo collection and a clear deletion policy are built into SKYNN AI and our Privacy Policy.</p>
                     <p><strong className="text-foreground">SAHPRA:</strong> All recommendations stay on the cosmetic side of the cosmetic/medicinal line. No disease-treatment claims.</p>
                     <p><strong className="text-foreground">HPCSA:</strong> Virtual consultations (when live) are delivered by independent registered practitioners. SkinLabs acts only as facilitator and payment agent.</p>
                     <p><strong className="text-foreground">CPA / ECTA:</strong> Transparent terms, refund rights and cooling-off where applicable.</p>

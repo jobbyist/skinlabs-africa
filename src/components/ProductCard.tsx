@@ -24,7 +24,7 @@ const ProductCard = ({
 }: ProductCardProps) => {
   const { formatPrice } = useCurrency();
   return (
-    <div className="group bg-card rounded-2xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300">
+    <div className="group bg-card rounded-2xl overflow-hidden border border-border card-interactive">
       {/* Image container */}
       <div className="relative aspect-square overflow-hidden bg-secondary">
         <img

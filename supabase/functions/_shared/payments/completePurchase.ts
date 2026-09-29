@@ -20,8 +20,11 @@ export interface CompletePurchaseResult {
   error?: unknown;
 }
 
-function describePurchase(purchaseType: PurchaseType, meta: Record<string, unknown>): string {
-  if (purchaseType === "plan") return `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`;
+function describePurchase(gateway: Gateway, purchaseType: PurchaseType, meta: Record<string, unknown>): string {
+  if (purchaseType === "plan") {
+    const base = `${meta.plan_id ?? "membership"} membership (${meta.interval ?? "monthly"})`;
+    return meta.subscription_id ? `${base} — ${gateway === "payfast" ? "PayFast" : "PayPal"} subscription` : base;
+  }
   if (purchaseType === "credit_pack") {
     const credits = meta.credits;
     return `${credits ?? ""} AI analysis credit${credits === 1 ? "" : "s"}`.trim();
@@ -46,7 +49,7 @@ export async function completePurchase(
 ): Promise<CompletePurchaseResult> {
   const { gateway, userId, reference, purchaseType, meta, paidAmount, currency, amountZar } = input;
 
-  const description = describePurchase(purchaseType, meta);
+  const description = describePurchase(gateway, purchaseType, meta);
   const { error: txError } = await admin.from("payment_transactions").upsert(
     {
       user_id: userId,
@@ -73,14 +76,21 @@ export async function completePurchase(
   let entitlementNeedsReview = false;
 
   if (purchaseType === "plan") {
-    const { error } = await admin
+    const update: Record<string, unknown> = {
+      subscription_status: meta.plan_id,
+      billing_interval: meta.interval,
+    };
+    // A recurring renewal (PayPal subscription) keeps the original start
+    // date; only the first paid charge on a plan starts the clock.
+    const { data: current } = await admin
       .from("profiles")
-      .update({
-        subscription_status: meta.plan_id,
-        subscription_started_at: new Date().toISOString(),
-        billing_interval: meta.interval,
-      })
-      .eq("user_id", userId);
+      .select("subscription_status")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!meta.subscription_id || current?.subscription_status !== meta.plan_id) {
+      update.subscription_started_at = new Date().toISOString();
+    }
+    const { error } = await admin.from("profiles").update(update).eq("user_id", userId);
     if (error) entitlementError = error;
   } else if (purchaseType === "credit_pack") {
     // p_reference is the idempotency key: grant_ai_credits() no-ops on a

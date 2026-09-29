@@ -68,9 +68,11 @@ async function main() {
     for (const slug of extractQuoted(block, "slug")) add(`/podcast/${slug}`, "monthly", "0.7");
   }
 
-  const marketplaceDataSource = readFileSync(resolve(root, "src/pages/marketplace/marketplaceData.ts"), "utf-8");
-  const concernsBlock = marketplaceDataSource.split("export const concerns")[1]?.split("export const categories")[0] ?? "";
-  for (const slug of extractQuoted(concernsBlock, "slug")) add(`/marketplace/concern/${slug}`, "weekly", "0.6");
+  // /marketplace/concern/:slug intentionally not added here — every
+  // /marketplace/* route is wrapped in <MarketplaceGate> (a real login-cookie
+  // check via /api/marketplace-auth), so an unauthenticated crawl only ever
+  // reaches a locked screen. See the removal note in
+  // src/lib/sitemap/staticRoutes.ts for the full reasoning.
 
   // Every deep-linked Knowledge Hub answer is a real canonical URL and should
   // be discoverable independently, not only through the accordion hub page.
@@ -95,26 +97,8 @@ async function main() {
       }
     }
 
-    const { data: mktProducts, error: mktProductsError } = await supabase
-      .from("marketplace_products")
-      .select("slug")
-      .eq("in_stock", true);
-    if (mktProductsError) {
-      console.warn("generate-sitemap: could not fetch marketplace products:", mktProductsError.message);
-    } else {
-      for (const product of mktProducts ?? []) {
-        if (typeof product.slug === "string") add(`/marketplace/product/${product.slug}`, "weekly", "0.7");
-      }
-    }
-
-    const { data: mktBrands, error: mktBrandsError } = await supabase.from("marketplace_brands").select("slug");
-    if (mktBrandsError) {
-      console.warn("generate-sitemap: could not fetch marketplace brands:", mktBrandsError.message);
-    } else {
-      for (const brand of mktBrands ?? []) {
-        if (typeof brand.slug === "string") add(`/marketplace/brand/${brand.slug}`, "weekly", "0.6");
-      }
-    }
+    // marketplace_products/marketplace_brands intentionally not queried here
+    // — see the removal note above and in src/lib/sitemap/staticRoutes.ts.
 
     const { data: ingredientRows, error: ingredientsError } = await supabase
       .from("ingredients")

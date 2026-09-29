@@ -64,13 +64,13 @@ const AnalysisPassesCard = ({ balance, loading, error, onRetry }: AnalysisPasses
               <p className="text-2xl font-bold text-foreground">{balance ?? 0} available</p>
               <p className="text-xs text-muted-foreground mb-3">
                 {hasPasses
-                  ? "Use a pass to unlock your Advanced AI Dermatology Report."
+                  ? "Each pass unlocks one Advanced AI Dermatology Analysis."
                   : "Unlock deeper insights into your skin whenever you need them."}
               </p>
               <div className="flex flex-wrap gap-2">
                 {hasPasses && (
                   <Button size="sm" variant="outline" asChild>
-                    <a href="/skynn-ai">Use a Pass</a>
+                    <a href="/skynn-ai/advanced">Use a Pass</a>
                   </Button>
                 )}
                 <Button size="sm" onClick={openPurchase}>

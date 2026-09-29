@@ -8,13 +8,13 @@ import type { IngredientSummary } from "@/hooks/use-ingredients";
 const IngredientCard = ({ ingredient }: { ingredient: IngredientSummary }) => (
   <Link
     to={`/ingredients/${ingredient.slug}`}
-    className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+    className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
   >
     <div className="flex items-start justify-between gap-3">
       <div>
-        <h3 className="font-heading text-lg font-bold text-foreground">
+        <h2 className="font-heading text-lg font-bold text-foreground">
           {ingredient.common_name || ingredient.inci_name}
-        </h3>
+        </h2>
         {ingredient.common_name && ingredient.common_name !== ingredient.inci_name && (
           <p className="text-xs italic text-muted-foreground">{ingredient.inci_name}</p>
         )}
@@ -30,7 +30,7 @@ const IngredientCard = ({ ingredient }: { ingredient: IngredientSummary }) => (
 
     <div className="mt-auto flex items-center justify-between pt-2">
       <EvidenceBadge level={ingredient.evidence_level} />
-      <span className="inline-flex items-center gap-1 text-sm font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
+      <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
         View profile <ArrowRight className="h-3.5 w-3.5" />
       </span>
     </div>

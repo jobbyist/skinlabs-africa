@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import AdDisclosure from "@/components/AdDisclosure";
+import AdFrame from "@/components/ads/AdFrame";
+import { useShouldShowAd } from "@/hooks/use-viewer-context";
+import type { AdPriority } from "@/lib/viewerContext";
 
 const AFFILIATE_HREF = "https://c.trackmytarget.com/?a=s1d2fa&i=r344bf";
 const IMPRESSION_SRC = "https://i.trackmytarget.com/?a=s1d2fa&i=r344bf";
@@ -29,6 +31,7 @@ interface FaithfulToNatureProps {
    * 50% visible in the viewport. When false, fire on mount.
    */
   trackWhenVisible?: boolean;
+  priority?: AdPriority;
 }
 
 /**
@@ -36,12 +39,12 @@ interface FaithfulToNatureProps {
  * Tracks viewable impressions via the trackmytarget pixel and routes clicks
  * through the affiliate URL. Clearly labelled as an advertisement.
  */
-const FaithfulToNature = ({
+const FaithfulToNatureBanner = ({
   placement = "default",
-  className = "",
+  className,
   compact = false,
   trackWhenVisible = true,
-}: FaithfulToNatureProps) => {
+}: Omit<FaithfulToNatureProps, "priority">) => {
   const containerRef = useRef<HTMLElement>(null);
   const impressionFired = useRef(false);
 
@@ -91,20 +94,20 @@ const FaithfulToNature = ({
   }, [trackWhenVisible, placement]);
 
   return (
-    <aside
+    <AdFrame
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${className}`}
-      data-ad-placement={placement}
-      data-affiliate-placement={placement}
-      data-affiliate-partner="faithful-to-nature"
-      aria-label="Advertisement — Faithful to Nature"
+      placement={placement}
+      label="Sponsored"
+      ariaLabel="Advertisement — Faithful to Nature"
+      className={className}
+      dataAttributes={{ "data-affiliate-placement": placement, "data-affiliate-partner": "faithful-to-nature" }}
     >
-      <div className={`mx-auto max-w-4xl ${compact ? "min-h-[90px]" : "min-h-[140px]"}`}>
+      <div className={compact ? "min-h-[90px]" : "min-h-[140px]"}>
         <a
           href={AFFILIATE_HREF}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md"
+          className="block overflow-hidden rounded-2xl border border-border bg-card card-interactive"
           data-affiliate-click="faithful-to-nature"
           data-placement={placement}
         >
@@ -117,10 +120,13 @@ const FaithfulToNature = ({
             height={400}
           />
         </a>
-        <AdDisclosure />
       </div>
-    </aside>
+    </AdFrame>
   );
 };
+
+/** Sponsored partner banner, subject to the viewer's ad policy (see viewerContext.ts). */
+const FaithfulToNature = ({ priority = "secondary", ...props }: FaithfulToNatureProps) =>
+  useShouldShowAd(priority) ? <FaithfulToNatureBanner {...props} /> : null;
 
 export default FaithfulToNature;

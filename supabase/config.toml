@@ -6,6 +6,15 @@ verify_jwt = false
 [functions.skynn-advanced-assessment]
 verify_jwt = false
 
+# SKYNN AI v2 async worker: called by pg_cron (x-cron-secret checked against
+# Vault), by skynn-advanced-assessment (service-role bearer) or an admin JWT.
+[functions.skynn-advanced-worker]
+verify_jwt = false
+
+# Public, city-level weather (no personal data); validates a city allow-list itself.
+[functions.skin-weather]
+verify_jwt = false
+
 [functions.payfast-payment]
 verify_jwt = false
 
@@ -50,4 +59,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.briefings-sync]
+verify_jwt = false
+
+[functions.shelf-showdown-sync]
 verify_jwt = false

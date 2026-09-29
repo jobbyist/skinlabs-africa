@@ -25,15 +25,10 @@
  * single default constant.
  */
 
-export type AssessmentTask =
-  | "report_generation"
-  | "complex_reasoning"
-  | "evidence_synthesis"
-  | "safety_review"
-  | "report_regeneration"
-  | "routine_transformation"
-  | "classification"
-  | "chat";
+// The task union lives in types.ts (no Deno globals) so Bun-tested modules
+// can import it; re-exported here for existing callers.
+import type { AssessmentTask } from "./types.ts";
+export type { AssessmentTask };
 
 const TASK_MODELS: Record<AssessmentTask, string> = {
   report_generation: "claude-opus-5",
@@ -44,6 +39,12 @@ const TASK_MODELS: Record<AssessmentTask, string> = {
   routine_transformation: "claude-sonnet-5",
   classification: "claude-haiku-4-5",
   chat: "claude-sonnet-5",
+  intake_normalisation: "claude-haiku-4-5",
+  safety_triage: "claude-haiku-4-5",
+  fairness_calibration: "claude-sonnet-5",
+  assessment_reasoning: "claude-sonnet-5",
+  report_writing: "claude-sonnet-5",
+  qa_review: "claude-opus-5",
 };
 
 /**

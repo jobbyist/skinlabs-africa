@@ -9,11 +9,12 @@ import ArticleComments from "@/components/ArticleComments";
 import PodcastEngagementBar from "@/components/PodcastEngagementBar";
 import AdSlot from "@/components/AdSlot";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { latestPublishedEpisode, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, PODCAST_SEASON_2_LINE, podcastEpisodes, publishedPodcastEpisodes } from "@/data/podcast";
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { SITE_URL } from "@/lib/seo-config";
+import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const EpisodePage = () => {
   const { slug } = useParams();
@@ -59,7 +60,7 @@ const EpisodePage = () => {
           </h1>
           <p className="mt-2 text-muted-foreground">
             {episode?.comingSoon
-              ? "We’re still recording. New episodes drop every Friday at 12pm SAST."
+              ? PODCAST_SEASON_2_LINE
               : "That episode doesn’t exist or has been moved."}
           </p>
           <Button asChild className="mt-6">
@@ -146,7 +147,7 @@ const EpisodePage = () => {
               </ul>
             </section>
 
-            <AdSlot placement="episode-mid-1" compact />
+            <AdSlot placement="episode-mid-1" compact priority="primary" />
 
             <section>
               <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Chapters</h2>
@@ -177,7 +178,7 @@ const EpisodePage = () => {
               </div>
             </section>
 
-            <AdSlot placement="episode-mid-2" compact />
+            {episode.productsMentioned.length > 0 && <AdSlot placement="episode-mid-2" compact />}
 
             {episode.productsMentioned.length > 0 && (
               <section>
@@ -206,6 +207,8 @@ const EpisodePage = () => {
                 locked={!isMember}
                 title="Transcripts are member-only"
                 message="Glow Insider and Glow VIP members get full transcripts and searchable show notes for every episode."
+                feature="podcast.full_library"
+                source="podcast_transcript_gate"
               >
                 <div className="space-y-1">
                   {episode.transcript.map((line, index) => {
@@ -237,6 +240,8 @@ const EpisodePage = () => {
                 </div>
               </GatedOverlay>
             </section>
+
+            <AdSlotAutorelaxed placement="episode-before-discussion" compact />
 
             <ArticleComments heading="Listener discussion" comments={podcastComments[episode.slug] ?? []} />
           </div>

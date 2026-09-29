@@ -1,17 +1,10 @@
-import { useEffect, useRef } from "react";
-import AdDisclosure from "@/components/AdDisclosure";
+import AdFrame from "@/components/ads/AdFrame";
+import { ADSENSE_CLIENT, useAdSenseUnit } from "@/components/ads/useAdSenseUnit";
+import { useShouldShowAd } from "@/hooks/use-viewer-context";
+import type { AdPriority } from "@/lib/viewerContext";
 
-declare global {
-  interface Window {
-    adsbygoogle?: unknown[];
-  }
-}
-
-/**
- * Google AdSense in-page ad unit for SkinLabs free (ad-supported) experience.
- * Renders the official AdSense unit and a short disclosure about the free plan.
- */
-export const ADSENSE_CLIENT = "ca-pub-1237323355260727";
+/** Google AdSense in-page ad unit for the free (ad-supported) SkinLabs experience. */
+export { ADSENSE_CLIENT };
 export const ADSENSE_SLOT = "2940635869";
 
 export const AD_SLOTS = {
@@ -30,37 +23,25 @@ interface AdSlotProps {
   /** Kept for API compatibility; affiliate fallback is no longer used. */
   showAffiliateFallback?: boolean;
   compact?: boolean;
+  /**
+   * "primary" = the one unit per page an ad-light (Glow Insider) viewer still
+   * sees. Default "secondary": full-ad viewers only. VIP sees none.
+   */
+  priority?: AdPriority;
 }
 
-const AdSlot = ({
-  placement,
-  adSlot = ADSENSE_SLOT,
-  format = "auto",
-  className = "",
-  compact = false,
-}: AdSlotProps) => {
-  const pushed = useRef(false);
+/** Renders nothing for viewers whose plan hides this unit (see viewerContext.ts). */
+const AdSlot = ({ priority = "secondary", ...props }: AdSlotProps) =>
+  useShouldShowAd(priority) ? <AdSlotUnit {...props} /> : null;
 
-  useEffect(() => {
-    if (pushed.current) return;
-    try {
-      if (typeof window !== "undefined") {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        pushed.current = true;
-      }
-    } catch {
-      // Ad blockers or missing script
-    }
-  }, []);
+const AdSlotUnit = ({ placement, adSlot = ADSENSE_SLOT, format = "auto", className, compact = false }: Omit<AdSlotProps, "priority">) => {
+  const { insRef, collapsed } = useAdSenseUnit();
 
   return (
-    <aside
-      className={`w-full overflow-hidden ${className}`}
-      data-ad-placement={placement}
-      aria-label="Advertisement"
-    >
-      <div className={`mx-auto max-w-4xl ${compact ? "min-h-[90px]" : "min-h-[120px]"}`}>
+    <AdFrame placement={placement} label="Advertisement" collapsed={collapsed} className={className}>
+      <div className={compact ? "min-h-[90px]" : "min-h-[120px]"}>
         <ins
+          ref={insRef}
           className="adsbygoogle"
           style={{ display: "block" }}
           data-ad-client={ADSENSE_CLIENT}
@@ -68,9 +49,8 @@ const AdSlot = ({
           data-ad-format={format}
           data-full-width-responsive="true"
         />
-        <AdDisclosure />
       </div>
-    </aside>
+    </AdFrame>
   );
 };
 

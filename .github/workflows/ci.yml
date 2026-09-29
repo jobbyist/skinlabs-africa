@@ -1,0 +1,62 @@
+name: CI
+
+# Typecheck, lint, unit tests, the Playwright onboarding journeys (mocked
+# Supabase, production build) and the rolled-back SQL probes. The SQL job
+# needs the SUPABASE_DB_URL repository secret and skips cleanly without it.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: oven-sh/setup-bun@v2
+      - run: npm install --legacy-peer-deps
+      # tsc needs src/routeTree.gen.ts, which the TanStack build generates.
+      - run: NITRO_PRESET=vercel npx vite build --config vite.tanstack-start.config.ts
+      - run: npx tsc -p tsconfig.app.json --noEmit
+      - run: npm run lint
+      - run: bun test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+      - run: npx vite build
+      - run: npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+
+  sql-probes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+      - name: Run rolled-back SQL probes
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: scripts/run-sql-probes.sh

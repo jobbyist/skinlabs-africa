@@ -8,6 +8,7 @@ import "./skynn.ts";
 import "./forms.ts";
 import "./admin.ts";
 import "./marketing.ts";
+import "./trialLifecycle.ts";
 
 export { getTemplate, allTemplates, missingRequiredVars } from "./registry.ts";
 export type { EmailTemplateDefinition, EmailCategory, TemplateVars } from "./registry.ts";

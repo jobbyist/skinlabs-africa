@@ -14,29 +14,39 @@ export interface BrandBanner {
 /**
  * Brand name to banner image mapping
  * Normalized brand names for case-insensitive matching
+ *
+ * NOTE: these previously pointed at ".jpg" paths that never existed on disk
+ * — the real files in public/brandbanners/ were always uppercase ".PNG".
+ * That's a case-sensitive-filesystem 404 in production (Vercel/Linux), not
+ * just a dev-machine quirk, and getAbsoluteBrandBanner() feeds these URLs
+ * into JSON-LD/OG image tags too, so it was a real broken-image link in
+ * structured data. Fixed alongside converting the source files to WebP
+ * (photographic/logo PNGs re-encoded ~88% smaller with no visible quality
+ * loss — see scripts/compress-images.ts's header comment for why public/
+ * assets need this done as real files, not a runtime transform).
  */
 export const brandBannerMap: Record<string, string> = {
-  "down to earth": "/brandbanners/downtoearth.jpg",
-  "lelive": "/brandbanners/lelive.jpg",
-  "haus of aura": "/brandbanners/hausofaura.jpg",
-  "ftn": "/brandbanners/ftn.jpg",
-  "nky beauty": "/brandbanners/nkybeauty.jpg",
-  "skin functional": "/brandbanners/skinfunctional.jpg",
-  "simply bee": "/brandbanners/simplybee.jpg",
-  "esse": "/brandbanners/esse.jpg",
-  "cor": "/brandbanners/cor.jpg",
-  "cor skincare": "/brandbanners/cor.jpg",
-  "standard beauty": "/brandbanners/standard.jpg",
-  "gene": "/brandbanners/gene.jpg",
-  "hey gorgeous": "/brandbanners/heygorgeous.jpg",
-  "the ordinary": "/brandbanners/ordinary.jpg",
-  "optiphi": "/brandbanners/optiphi.jpg",
-  "skin creamery": "/brandbanners/skincreamery.jpg",
-  "nimue": "/brandbanners/nimue.jpg",
-  "timeless": "/brandbanners/timeless.jpg",
-  "cerave": "/brandbanners/cerave.jpg",
-  "portia m": "/brandbanners/portia.jpg",
-  "skoon": "/brandbanners/skoon.jpg",
+  "down to earth": "/brandbanners/downtoearth.webp",
+  "lelive": "/brandbanners/lelive.webp",
+  "haus of aura": "/brandbanners/hausofaura.webp",
+  "ftn": "/brandbanners/ftn.webp",
+  "nky beauty": "/brandbanners/nkybeauty.webp",
+  "skin functional": "/brandbanners/skinfunctional.webp",
+  "simply bee": "/brandbanners/simplybee.webp",
+  "esse": "/brandbanners/esse.webp",
+  "cor": "/brandbanners/cor.webp",
+  "cor skincare": "/brandbanners/cor.webp",
+  "standard beauty": "/brandbanners/standard.webp",
+  "gene": "/brandbanners/gene.webp",
+  "hey gorgeous": "/brandbanners/heygorgeous.webp",
+  "the ordinary": "/brandbanners/ordinary.webp",
+  "optiphi": "/brandbanners/optiphi.webp",
+  "skin creamery": "/brandbanners/skincreamery.webp",
+  "nimue": "/brandbanners/nimue.webp",
+  "timeless": "/brandbanners/timeless.webp",
+  "cerave": "/brandbanners/cerave.webp",
+  "portia m": "/brandbanners/portia.webp",
+  "skoon": "/brandbanners/skoon.webp",
 };
 
 /**

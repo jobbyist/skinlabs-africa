@@ -182,9 +182,9 @@ const CookiePolicy = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
                   <h2 className="text-2xl font-bold text-foreground mb-4">6. Cookies and local storage used by SKYNN AI</h2>
                   <p className="text-muted-foreground">
-                    The SKYNN AI skin-analysis feature may use local storage or session storage to temporarily hold
-                    image-capture state, quality-check results and consent flags during an active analysis session. These items
-                    are cleared when the session ends or after a short period. Any longer-term storage of analysis results
+                    The SKYNN AI skin-analysis feature uses local storage or session storage to hold your consent choices, your
+                    in-progress answers and your latest result on your own device, so you can continue where you left off. A
+                    photo you add is never written to storage and never leaves your device. Any longer-term storage of analysis results
                     occurs only after you create an account or explicitly save results, and is governed by our Privacy Policy
                     (including special personal information rules under POPIA).
                   </p>

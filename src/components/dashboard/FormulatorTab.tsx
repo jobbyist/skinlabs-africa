@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
 import { Link } from "react-router-dom";
 import { Crown, UserCog, Sparkles, FileText, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { supabase } from "@/integrations/supabase/client";
+import { trialNoun } from "@/lib/promo";
 
 interface FormulatorTabProps {
   /** Switches the dashboard to the Profile tab so the member can fill the gaps. */
@@ -18,7 +21,7 @@ interface FormulatorTabProps {
 }
 
 /** Previous skin assessments — real history from skincare_recommendations, most recent first. */
-const AnalysisHistory = () => {
+const AnalysisHistory = ({ emptyMessage }: { emptyMessage?: string }) => {
   const { user } = useAuth();
   const [recs, setRecs] = useState<SavedRecommendationRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +42,7 @@ const AnalysisHistory = () => {
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>;
 
   if (recs.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">No previous assessments yet — start your first analysis above.</p>;
+    return <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage ?? "No previous assessments yet — start your first analysis above."}</p>;
   }
 
   return (
@@ -61,6 +64,7 @@ const AnalysisHistory = () => {
 const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
   const { tier, isTrialing, trialEndsAt, loading: membershipLoading } = useMembership();
   const { isComplete, missing, loading: profileLoading } = useProfileComplete();
+  const action = useConversionAction("ai_analysis.live_weekly", "dashboard_formulator_tab");
 
   if (membershipLoading || profileLoading) {
     return (
@@ -72,25 +76,42 @@ const FormulatorTab = ({ onGoToProfile }: FormulatorTabProps) => {
 
   if (tier === "explorer") {
     return (
-      <Card className="border-primary/30 bg-primary/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-primary" /> Members only
-          </CardTitle>
-          <CardDescription>
-            The full AI skin profile — selfie analysis, AM/PM routine, actives schedule and PDF export — is
-            included with Glow Insider and Glow VIP. Start the 7-day Insider trial free, no card needed.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button asChild>
-            <Link to="/pricing">See membership plans</Link>
-          </Button>
-          <Button variant="outline" asChild>
-            <Link to="/skynn-ai">Try the free starter version</Link>
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-primary" /> Unlimited re-analysis is for members
+            </CardTitle>
+            <CardDescription>
+              You can save one free Basic AI Skin Analysis every 7 days at /skynn-ai. Running it inside your dashboard,
+              with unlimited re-analysis, is included with Glow Insider and Glow VIP.
+              {action.kind === "trial" ? ` Start the Insider ${trialNoun()}, no card needed.` : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-3">
+            {action.kind && (
+              <Button className="gap-2" onClick={action.run} disabled={action.busy}>
+                {action.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                {action.label}
+              </Button>
+            )}
+            <Button variant="outline" asChild>
+              <Link to="/skynn-ai">Start your free Basic AI Skin Analysis</Link>
+            </Button>
+            <SeeAllPlansLink />
+          </CardContent>
+        </Card>
+        {/* Your own saved analyses (and their PDFs) are always yours, on any plan. */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" /> Your saved analyses</CardTitle>
+            <CardDescription>Open one to read it again or download it as a PDF.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AnalysisHistory emptyMessage="You haven't saved a Basic AI Skin Analysis yet." />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 

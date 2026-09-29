@@ -79,6 +79,39 @@ Deno.serve(async (req) => {
     }
   }
 
+  // SKYNN AI Advanced Report intake records: the DB rows cascade with the
+  // user, but the private PDFs in storage and any copies already emailed to
+  // reports@ don't. Remove the files and ask the team to purge the mailbox
+  // copies. Best-effort, like the email above — never blocks deletion.
+  try {
+    const { data: intakeRows } = await admin
+      .from("advanced_assessment_reports")
+      .select("id, reference_number, pdf_storage_path, internal_email_status")
+      .eq("user_id", userId);
+    const paths = (intakeRows ?? []).map((r: { pdf_storage_path: string | null }) => r.pdf_storage_path).filter(Boolean) as string[];
+    if (paths.length) {
+      const { error: rmErr } = await admin.storage.from("skynn-advanced-intake").remove(paths);
+      if (rmErr) console.warn("account-delete: failed to remove intake PDFs", rmErr.message);
+    }
+    for (const r of intakeRows ?? []) {
+      if (r.internal_email_status === "sent" && r.reference_number) {
+        await admin.rpc("enqueue_email", {
+          p_event_type: "ADMIN_SKYNN_INTAKE_WITHDRAWN",
+          p_event_idempotency_key: `admin_skynn_intake_withdrawn:${r.id}`,
+          p_template_id: "admin_skynn_intake_withdrawn",
+          p_category: "ADMIN",
+          p_user_id: null,
+          p_recipient_email: null,
+          p_payload: { reference_number: r.reference_number },
+          p_source: "edge:account-delete",
+          p_transactional: false,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("account-delete: intake cleanup failed", err instanceof Error ? err.message : err);
+  }
+
   const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
   if (deleteError) {
     console.error("account-delete: failed to delete user", deleteError);

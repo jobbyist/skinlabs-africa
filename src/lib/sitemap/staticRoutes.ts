@@ -39,11 +39,16 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   { path: "/knowledge-hub", changefreq: "weekly", priority: "0.9" },
   { path: "/ingredients", changefreq: "weekly", priority: "0.85" },
   { path: "/ingredients/checker", changefreq: "monthly", priority: "0.7" },
-  { path: "/marketplace", changefreq: "daily", priority: "0.9" },
-  { path: "/marketplace/brands", changefreq: "weekly", priority: "0.7" },
-  { path: "/marketplace/categories", changefreq: "weekly", priority: "0.7" },
-  { path: "/marketplace/shipping-returns", changefreq: "monthly", priority: "0.3" },
-  { path: "/marketplace/terms", changefreq: "yearly", priority: "0.2" },
+  // /marketplace/* was previously listed here (including live product/brand
+  // slugs queried in src/routes/sitemap[.]xml.ts) despite every /marketplace/*
+  // route being wrapped in <MarketplaceGate>, which requires a real login
+  // cookie (MARKETPLACE_USERNAME/PASSWORD) before rendering anything beyond a
+  // "Checking marketplace access…" screen or a locked-access page. Advertising
+  // gated, unauthenticated-dead-end URLs to crawlers/agents wastes crawl
+  // budget at best and, per this project's own "never make an unfinished
+  // feature appear operational" principle, risks surfacing a private-beta
+  // feature as if it were public content. Removed until marketplace access
+  // itself is public.
   { path: "/whitepapers", changefreq: "monthly", priority: "0.5" },
   { path: "/editorial-policy", changefreq: "yearly", priority: "0.3" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3" },

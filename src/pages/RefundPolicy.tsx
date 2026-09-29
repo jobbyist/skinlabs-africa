@@ -2,15 +2,16 @@ import { Helmet } from "react-helmet-async";
 import { RotateCcw, CreditCard, Calendar, ShoppingBag } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { isPromoActive, PROMO_END_DATE_LABEL, STANDARD_TRIAL_DAYS } from "@/lib/promo";
 
-const EFFECTIVE = "28 August 2026";
+const EFFECTIVE = "28 September 2026";
 
 const RefundPolicy = () => {
   return (
     <>
       <Helmet>
         <title>Refund Policy | SkinLabs®</title>
-        <meta name="description" content="SkinLabs refund rules for subscriptions, credit packs, virtual consultations and marketplace transactions under South African law." />
+        <meta name="description" content="SkinLabs refund rules for subscriptions, Analysis Passes, virtual consultations and marketplace transactions under South African law." />
         <link rel="canonical" href="https://skinlabs.co.za/refund-policy" />
       </Helmet>
       <div className="min-h-screen bg-background">
@@ -30,7 +31,7 @@ const RefundPolicy = () => {
                 <div className="bg-card border border-border rounded-3xl p-8 md:p-12 mb-8">
                   <h2 className="text-2xl font-bold text-foreground mb-4">1. Scope</h2>
                   <p className="text-muted-foreground">
-                    This Refund Policy applies to paid subscriptions (Glow Insider, Glow VIP), credit packs for SKYNN AI analyses,
+                    This Refund Policy applies to paid subscriptions (Glow Insider, Glow VIP), Analysis Passes for the SKYNN AI Advanced AI Dermatology Analysis,
                     virtual dermatologist consultation bookings facilitated through the Platform, and marketplace transactions where
                     SkinLabs acts as a payment-collection agent. It should be read with our Terms of Service. Nothing here limits your
                     mandatory rights under the Consumer Protection Act 68 of 2008 (CPA) or the Electronic Communications and Transactions Act 25 of 2002 (ECTA).
@@ -46,7 +47,7 @@ const RefundPolicy = () => {
                     <div className="space-y-4 text-muted-foreground">
                       <p>If you subscribe to a paid membership <strong className="text-foreground">without</strong> first starting a free trial, you may request a full refund within 30 days of the initial charge.</p>
                       <p className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 text-sm">
-                        <strong className="text-foreground">Important:</strong> Starting the free trial of Glow Insider (currently 7 days, no card required) forfeits the 30-day money-back guarantee. After the trial converts to a paid subscription, ordinary cancellation rights apply (access until the end of the paid period) but the full-refund guarantee does not.
+                        <strong className="text-foreground">Important:</strong> Starting the free trial of Glow Insider (currently {isPromoActive() ? `free until ${PROMO_END_DATE_LABEL} under a limited-time promotion` : `${STANDARD_TRIAL_DAYS} days`}, no card required) forfeits the 30-day money-back guarantee. After the trial converts to a paid subscription, ordinary cancellation rights apply (access until the end of the paid period) but the full-refund guarantee does not.
                       </p>
                       <p>Refunds are processed to the original payment method within a reasonable period (typically 5–15 business days).</p>
                     </div>
@@ -60,9 +61,9 @@ const RefundPolicy = () => {
                   </div>
 
                   <div className="bg-card border border-border rounded-3xl p-8 md:p-12">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">4. Credit Packs for AI Analyses</h2>
+                    <h2 className="text-2xl font-bold text-foreground mb-4">4. Analysis Passes</h2>
                     <p className="text-muted-foreground">
-                      Once a credit has been used to run an analysis it is consumed and non-refundable. Unused credits in an unexpired pack may be refunded within 14 days of purchase if no credit from that pack has been used. Expired or partially used packs are non-refundable except where required by law or in cases of clear service failure attributable to SkinLabs.
+                      An Analysis Pass is used when you submit an Advanced AI Dermatology Analysis. It is returned to your balance automatically if the submission fails, if SkinLabs does not release it, or if you withdraw it before a report is released. Unused Passes may be refunded within 14 days of purchase. Once a report has been released, the Pass used for it is non-refundable except where required by law or in cases of clear service failure attributable to SkinLabs. The Basic AI Skin Analysis never uses a Pass.
                     </p>
                   </div>
 

@@ -3,14 +3,16 @@ const cover = {
   ep1: "/podcast/ep1-weird-skincare.jpg",
   ep2: "/podcast/ep2-skincare-fails.jpg",
   // Swapped per editorial request: ep4's cover art now runs on ep3, and vice versa.
-  ep3: "/podcast/ep4-ingredient-drama.png",
-  ep4: "/podcast/ep3-glass-skin.png",
-  ep5: "/podcast/ep5-spf-is-not-optional.png",
-  ep6: "/podcast/ep6-dark-spots-hyperpigmentation.png",
-  ep7: "/podcast/ep7-retinoid-rabbit-hole.png",
-  ep8: "/podcast/ep8-skin-barrier.png",
-  ep9: "/podcast/ep9-melanin-rich-skin.png",
-  ep10: "/podcast/ep10-skincare-or-marketing.png",
+  // (ep3-ep10 re-encoded PNG -> WebP: same filenames, ~93% smaller, no visible
+  // quality loss — see scripts/compress-images.ts's header comment.)
+  ep3: "/podcast/ep4-ingredient-drama.webp",
+  ep4: "/podcast/ep3-glass-skin.webp",
+  ep5: "/podcast/ep5-spf-is-not-optional.webp",
+  ep6: "/podcast/ep6-dark-spots-hyperpigmentation.webp",
+  ep7: "/podcast/ep7-retinoid-rabbit-hole.webp",
+  ep8: "/podcast/ep8-skin-barrier.webp",
+  ep9: "/podcast/ep9-melanin-rich-skin.webp",
+  ep10: "/podcast/ep10-skincare-or-marketing.webp",
   soon: "/podcast/ep-coming-soon.jpg",
 } as const;
 
@@ -60,6 +62,7 @@ const engagementSeed: Record<number, { plays: number; likes: number; shares: num
   7: { plays: 4945, likes: 540, shares: 179 },
   8: { plays: 4341, likes: 554, shares: 178 },
   9: { plays: 4565, likes: 455, shares: 247 },
+  10: { plays: 4693, likes: 526, shares: 191 },
 };
 
 export const podcastEpisodes: PodcastEpisode[] = [
@@ -233,7 +236,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     duration: "18 min",
     durationSeconds: 1109,
     topics: ["Sun Protection", "Ingredient Science"],
-    publishedAt: "2026-09-18",
+    publishedAt: "2026-09-13",
     showNotes: [
       "Why \"I don't burn\" isn't the same as \"I'm protected\" — the physics of UVA (deep, silent, ageing) vs UVB (surface, burns)",
       "Chemical sunscreen molecules degrade as they absorb UV — why reapplication after about two hours isn't optional",
@@ -273,7 +276,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     duration: "23 min",
     durationSeconds: 1399,
     topics: ["Hyperpigmentation", "Ingredient Science"],
-    publishedAt: "2026-09-25",
+    publishedAt: "2026-09-13",
     showNotes: [
       "Post-inflammatory hyperpigmentation (a localized injury response) vs. melasma (often hormonally driven) — why they need different approaches",
       "The \"kitchen sink\" approach backfires: stacking acids and retinoids damages the barrier, and inflammation itself triggers more pigment",
@@ -315,7 +318,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     duration: "19 min",
     durationSeconds: 1130,
     topics: ["Retinoids 101", "Barrier Repair"],
-    publishedAt: "2026-10-02",
+    publishedAt: "2026-09-13",
     showNotes: [
       "Why the skin only has receptors for retinoic acid — and why retinol/retinal's extra conversion steps are a safety buffer, not a weaker version of tretinoin",
       "Stacking a retinoid with an exfoliating acid dissolves the barrier's lipid \"mortar\" faster than it can rebuild — and the resulting inflammation makes hyperpigmentation worse, especially on melanin-rich skin",
@@ -357,7 +360,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     duration: "17 min",
     durationSeconds: 1038,
     topics: ["Barrier Repair", "Routine Building"],
-    publishedAt: "2026-10-09",
+    publishedAt: "2026-09-13",
     showNotes: [
       "Stinging or burning from a product is an inflammatory response, not proof an active is \"working\" — a sudden reaction to a moisturiser you've used for years means the barrier is already compromised",
       "How to tell a normal, localized \"purge\" apart from real barrier collapse (widespread redness, heat, and stinging with basic products)",
@@ -399,7 +402,7 @@ export const podcastEpisodes: PodcastEpisode[] = [
     duration: "20 min",
     durationSeconds: 1180,
     topics: ["Melanin-Rich Skin", "Ingredient Science"],
-    publishedAt: "2026-10-16",
+    publishedAt: "2026-09-13",
     showNotes: [
       "Decades of dermatology research centred on the lighter end of the Fitzpatrick scale — melanin-rich skin was treated as an afterthought, not the baseline",
       "Melanocytes in darker skin are larger, denser and more reactive, so a harsh exfoliant calibrated for lighter skin can trigger more pigment, not less — and physical scrubbing makes it worse",
@@ -435,19 +438,48 @@ export const podcastEpisodes: PodcastEpisode[] = [
     thumbnail: cover.ep10,
     audioFile: "/ep10skinlabs.mp3",
     description:
-      "Cute packaging. Big promises. A suspiciously expensive serum. We look at skincare marketing, ingredient lists, “clean” beauty, celebrity products and the difference between good formulation and clever advertising.",
-    audioScript: "",
-    duration: "Coming soon",
+      "Cute packaging. Big promises. A suspiciously expensive serum. The Season 1 finale separates the science from the theatre: what a high price actually pays for, why \"clean\" isn't a scientific term, how to read the back of the bottle, and why the fix for a damaged barrier is usually doing less.",
+    audioScript:
+      "A deep dive into SkinLabs' \"Are you buying skincare or buying the marketing?\" breakdown: the paradox of choice in the beauty aisle, why the base of a R200 and a R2,000 serum is often nearly identical, why \"clean\" and \"edible\" are marketing rather than science (and why large molecules can't get through the skin barrier), how to read an ingredient list, preservatives and the retinoid family, over-exfoliation, and why formulas and sun advice have to fit a South African climate and melanin-rich skin.",
+    duration: "25 min",
+    durationSeconds: 1519,
     topics: ["Trends", "Ingredient Science"],
-    publishedAt: "",
-    showNotes: [],
-    timestamps: [],
-    transcript: [],
+    publishedAt: "2026-09-28",
+    showNotes: [
+      "A higher price mostly pays for packaging, fragrance, celebrity licensing and marketing — the base of most serums (water, glycerin, emulsifiers) is much the same at R200 or R2,000",
+      "\"Clean\" is a marketing term, not a scientific classification, and food-grade isn't the same as effective: many botanical molecules are too large (above roughly 500 daltons) to get through the skin barrier",
+      "Retinol, retinaldehyde and tretinoin are all vitamin A, but each needs a different number of conversion steps to become retinoic acid — which is why their strength, speed and irritation differ",
+      "If your routine stings, peels or flares, the fix is subtraction: stop the actives and go back to a gentle cleanser, a basic moisturiser and sunscreen",
+    ],
+    timestamps: [
+      { time: "00:00", seconds: 0, label: "Intro — more science, less theatre" },
+      { time: "01:31", seconds: 91, label: "The beauty aisle and the paradox of choice" },
+      { time: "03:02", seconds: 182, label: "Are expensive serums actually better?" },
+      { time: "05:33", seconds: 333, label: "\"Clean\" beauty and edible serums" },
+      { time: "07:04", seconds: 424, label: "The 500 dalton rule: what can get through your skin" },
+      { time: "09:05", seconds: 545, label: "Glass skin: hydration layering and peptides" },
+      { time: "10:36", seconds: 636, label: "Dark marks and the 28-day turnover" },
+      { time: "11:06", seconds: 666, label: "Reading the back of the bottle" },
+      { time: "12:07", seconds: 727, label: "Why \"preservative-free\" isn't a selling point" },
+      { time: "13:07", seconds: 787, label: "Retinoids decoded" },
+      { time: "15:38", seconds: 938, label: "Over-exfoliation and the damaged barrier" },
+      { time: "18:40", seconds: 1120, label: "Formulas built for the wrong hemisphere" },
+      { time: "19:40", seconds: 1180, label: "UVA vs UVB, and \"I don't burn\"" },
+      { time: "21:11", seconds: 1271, label: "Melanin-rich skin and pigmentation" },
+      { time: "23:42", seconds: 1422, label: "Your toolkit for the next shopping trip" },
+    ],
+    transcript: [
+      { text: "Strip away the science and much of what we experience as consumers in the beauty industry is an incredibly well-funded performance.", seconds: 60 },
+      { text: "Whether it costs twenty or two hundred, the base of almost every lotion or serum — water, glycerin, emulsifiers — is practically the same; the markup pays for the licensing, the glass and the marketing.", seconds: 243 },
+      { text: "For an ingredient to change your skin it has to be small enough to get through the barrier — above about 500 daltons, it simply sits on top.", seconds: 424 },
+      { text: "Preservatives are one of cosmetic science's great successes: without them, a cream you open every day in a warm bathroom becomes a petri dish.", seconds: 727 },
+      { text: "The cure for an over-exfoliated barrier isn't another expensive serum — it's putting the acids down and going back to a gentle cleanser, moisturiser and sunscreen.", seconds: 1029 },
+      { text: "\"I don't burn\" is not the same as \"I'm protected\": UVA keeps causing long-term damage and uneven tone even when UVB doesn't burn.", seconds: 1241 },
+    ],
     productsMentioned: [],
-    seedPlays: 0,
-    seedLikes: 0,
-    seedShares: 0,
-    comingSoon: true,
+    seedPlays: engagementSeed[10].plays,
+    seedLikes: engagementSeed[10].likes,
+    seedShares: engagementSeed[10].shares,
   },
 ];
 
@@ -463,19 +495,13 @@ export const podcastTopics = Array.from(
 );
 
 /**
- * New episodes publish every Friday at 12:00 SAST (10:00 UTC, SAST = UTC+2,
- * no daylight saving). Returns the next upcoming Friday 10:00 UTC slot.
+ * Release status of the show, in one place so every surface (hub, homepage
+ * teaser, episode pages, About, SEO) says the same thing. Season 1 (episodes
+ * 1-10) is complete; the weekly Friday cadence ended with it. New episodes
+ * return with the official Season 2 episode calendar in January 2027 — update
+ * these when that calendar is published.
  */
-export const getNextEpisodeDate = () => {
-  const now = new Date();
-  const PUBLISH_HOUR_UTC = 10;
-  const FRIDAY = 5;
-  const next = new Date(now);
-  next.setUTCHours(PUBLISH_HOUR_UTC, 0, 0, 0);
-  let daysUntilFriday = (FRIDAY - next.getUTCDay() + 7) % 7;
-  if (daysUntilFriday === 0 && next.getTime() <= now.getTime()) {
-    daysUntilFriday = 7;
-  }
-  next.setUTCDate(next.getUTCDate() + daysUntilFriday);
-  return next;
-};
+export const PODCAST_SEASON_2_START = "January 2027";
+export const PODCAST_SEASON_1_COMPLETE_LINE = "Season 1 is complete — all 10 episodes are streaming now.";
+export const PODCAST_SEASON_2_LINE = `New episodes will be uploaded when the official Season 2 episode calendar commences in ${PODCAST_SEASON_2_START}.`;
+export const PODCAST_SCHEDULE_LINE = `${PODCAST_SEASON_1_COMPLETE_LINE} ${PODCAST_SEASON_2_LINE}`;

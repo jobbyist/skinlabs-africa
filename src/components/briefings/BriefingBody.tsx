@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
+import { splitBriefingForAds } from "@/lib/briefingAdBreaks";
 import {
   Accordion,
   AccordionContent,
@@ -151,7 +152,8 @@ interface BriefingBodyProps {
  * GFM tables render as responsive comparison tables.
  */
 function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
-  const parts = insertAds ? body.split(/<!--\s*ad:mid-\d+\s*-->/i) : [body];
+  // Hand-placed <!-- ad:mid-N --> markers, or every 2nd section for pipeline bodies.
+  const parts = insertAds ? splitBriefingForAds(body) : [body];
 
   const renderMarkdownSegment = (segment: string, key: string | number) => {
     const faqMatch = segment.match(/(^|\n)##\s+FAQ\s*\n([\s\S]*?)(?=\n##\s+|$)/i);
@@ -219,9 +221,9 @@ function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
         <div key={i}>
           {segment.trim() ? renderMarkdownSegment(segment, i) : null}
           {insertAds && i < parts.length - 1 && (
-            <div className="not-prose my-8">
+            <div className="not-prose">
               {i % 2 === 0 ? (
-                <AdSlot placement={`briefing-mid-${i + 1}`} />
+                <AdSlot placement={`briefing-mid-${i + 1}`} priority={i === 0 ? "primary" : "secondary"} />
               ) : (
                 <AdSlotAutorelaxed placement={`briefing-mid-${i + 1}`} />
               )}

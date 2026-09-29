@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { useTheme } from "next-themes";
 import {
   Heart, Users, Award, Target, Newspaper, Mic, Sparkles, Star, BookOpen,
   Microscope, Beaker, Brain, Leaf, Recycle, Package, Check, Crown, Sun, ShoppingBag,
@@ -11,9 +12,15 @@ import { Button } from "@/components/ui/button";
 import { membershipPlans } from "@/data/plans";
 import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { cn } from "@/lib/utils";
+import { buildOrganizationJsonLd } from "@/lib/seo-config";
+import { withPromoTrialCopy } from "@/lib/promo";
+import { FUNDING_MODEL_HEADLINE } from "@/lib/editorialIndependence";
+import { PODCAST_SEASON_2_START } from "@/data/podcast";
 
 const About = () => {
   const location = useLocation();
+  const { resolvedTheme } = useTheme();
+  const organizationLd = buildOrganizationJsonLd(resolvedTheme);
 
   useEffect(() => {
     if (!location.hash) return;
@@ -28,7 +35,7 @@ const About = () => {
     {
       icon: <Heart className="h-8 w-8" />,
       title: "Independent, actually",
-      description: "No affiliate deals, no gifted samples — our reviews and briefings answer to readers, full stop"
+      description: "Ads and sponsorships help keep SkinLabs free, but our reviews and briefings answer to readers — editorial that can't be bought"
     },
     {
       icon: <Award className="h-8 w-8" />,
@@ -58,7 +65,7 @@ const About = () => {
     {
       icon: <Star className="h-6 w-6" />,
       title: "Independent Product Reviews",
-      description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. No affiliate deals, no gifted samples.",
+      description: "We tell you what's actually in the bottle, not what the marketing wants you to believe. Advertisers and sponsors can't buy a score.",
       highlight: "Scored for local conditions",
       link: "/reviews"
     },
@@ -86,8 +93,8 @@ const About = () => {
     {
       icon: <Mic className="h-6 w-6" />,
       title: "The Skin Deep Podcast",
-      description: "Expert interviews, skincare deep-dives and myth-busting conversations.",
-      highlight: "New episode last Friday of the month",
+      description: "Skincare deep dives and myth-busting conversations, grounded in South African skin.",
+      highlight: `Season 2 starts ${PODCAST_SEASON_2_START}`,
       link: "/podcast"
     },
     {
@@ -108,7 +115,7 @@ const About = () => {
       icon: <Users className="h-6 w-6" />,
       title: "Community-First",
       description: "Join 3.7K+ members in our growing skincare community.",
-      highlight: "Member-funded platform",
+      highlight: "Member-funded, partly ad-supported",
       link: "/pricing"
     }
   ];
@@ -183,7 +190,7 @@ const About = () => {
     {
       icon: <Leaf className="h-8 w-8" />,
       title: "Editorial Independence",
-      description: "No affiliate deals or gifted samples influence a score — our members fund the work, not brands",
+      description: "Advertisers and sponsors never decide a score — paid placements are labelled, and our editorial can't be bought",
       stats: "100% Independent"
     },
     {
@@ -225,13 +232,7 @@ const About = () => {
           "name": "About SkinLabs",
           "url": "https://skinlabs.co.za/about",
           "description": "Independent skin science platform built for South Africa with daily briefings, product reviews, our research methodology, sustainability commitments, AI routines, and membership plans.",
-          "mainEntity": {
-            "@type": "Organization",
-            "name": "SkinLabs",
-            "url": "https://skinlabs.co.za",
-            "foundingDate": "2023",
-            "description": "Content and community-first skincare platform for South Africa"
-          }
+          "mainEntity": { ...organizationLd, foundingDate: "2023" },
         })}</script>
       </Helmet>
 
@@ -261,10 +262,10 @@ const About = () => {
                       So we rebuilt skincare intelligence from the ground up for South Africa. What started as a small AI-powered e-commerce experiment in 2023 has evolved into something far more ambitious: an independent, evidence-based skincare intelligence platform that puts editorial integrity and community value above everything else.
                     </p>
                     <p>
-                      We're not a beauty retailer with a blog attached. We're a content and community-first platform with a clear mission: to deliver research-grounded skincare guidance that's actually useful for South African skin, climate, and budget — with no affiliate deals, no gifted samples, and no pressure to sell you anything you don't need.
+                      We're not a beauty retailer with a blog attached. We're a content and community-first platform with a clear mission: to deliver research-grounded skincare guidance that's actually useful for South African skin, climate, and budget — with editorial that can't be bought and no pressure to sell you anything you don't need.
                     </p>
                     <p>
-                      Our members fund the work, which means the work answers to them — not to brands, not to advertisers, and not to anyone trying to game our scores. Every briefing is summarized from credible global sources and translated into what it actually means here: seasonal UV, Highveld dryness, coastal humidity, hard municipal water, local pricing, and the realities of melanin-rich skin.
+                      Our members fund most of the work, with advertising and clearly labelled sponsored placements covering part of the cost — but the work answers to readers, not to brands, advertisers or anyone trying to game our scores. Every briefing is summarized from credible global sources and translated into what it actually means here: seasonal UV, Highveld dryness, coastal humidity, hard municipal water, local pricing, and the realities of melanin-rich skin.
                     </p>
                     <p>
                       Today, SkinLabs serves over 3,700 community members across South Africa with daily science briefings (The Daily Skinny), independent product reviews scored for local conditions, a monthly brand ranking (Spotlight), seasonal skincare guides, podcast episodes, and SKYNN AI — our flagship skin assessment and routine-building tool that stays firmly on the cosmetic side of medical advice.
@@ -284,7 +285,7 @@ const About = () => {
                     <div>
                       <h3 className="text-xl font-semibold text-foreground mb-2">Truly independent reviews</h3>
                       <p className="text-muted-foreground">
-                        No affiliate commissions. No gifted samples. No brand partnerships that influence scores. If a product gets a high score, it's because the formulation, value, texture, and SA climate fit genuinely earned it — not because a brand paid for placement or sent us free product.
+                        Brands can't buy a score, a ranking or a verdict, and advertisers and sponsors aren't part of how we assess a product. If a product gets a high score, it's because the formulation, value, texture, and SA climate fit genuinely earned it — not because a brand paid for placement or sent us free product. Any commercial relationship is disclosed on the review itself.
                       </p>
                     </div>
                     <div>
@@ -294,9 +295,10 @@ const About = () => {
                       </p>
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-foreground mb-2">Member-funded, not ad-funded</h3>
+                      <h3 className="text-xl font-semibold text-foreground mb-2">{FUNDING_MODEL_HEADLINE}</h3>
                       <p className="text-muted-foreground">
-                        Our business model is simple: members pay for access to premium features (AI routines, full briefings, unlimited reviews), and that subscription revenue funds everything we do. No banner ads, no sponsored content, no pressure to recommend products that don't deserve it.
+                        Members pay for premium features (AI routines, full briefings, unlimited reviews), and that subscription revenue funds most of what we do. SkinLabs® is also partly ad-supported, so you may see ads and sponsored content or placements — always labelled Advertisement or Sponsored. Our editorial content can't be bought and isn't directly influenced by advertisers or sponsors. See our{" "}
+                        <Link to="/advertising-policy" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">Advertising &amp; Sponsored Content Policy</Link>.
                       </p>
                     </div>
                     <div>
@@ -339,7 +341,7 @@ const About = () => {
                   <h2 className="text-3xl font-bold text-foreground mb-8 text-center">Platform Features</h2>
                   <div className="grid md:grid-cols-2 gap-6">
                     {keyFeatures.map((feature, index) => (
-                      <div key={index} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition-shadow">
+                      <div key={index} className="bg-card border border-border rounded-2xl p-6">
                         <div className="flex items-start gap-4 mb-4">
                           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
                             {feature.icon}
@@ -512,8 +514,8 @@ const About = () => {
                     </div>
                     <h2 className="text-3xl font-bold text-foreground mb-3">Become a Member</h2>
                     <p className="text-muted-foreground max-w-2xl mx-auto">
-                      SkinLabs is funded by members, not brands — that independence is what keeps every
-                      score honest. Choose the tier that matches how deep you want to go.
+                      Membership is what funds SkinLabs, alongside some labelled advertising — and our editorial
+                      can't be bought, which is what keeps every score honest. Choose the tier that matches how deep you want to go.
                     </p>
                   </div>
 
@@ -532,7 +534,7 @@ const About = () => {
                           </span>
                         )}
                         <h3 className="font-heading text-xl font-bold text-foreground">{plan.name}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{withPromoTrialCopy(plan.tagline)}</p>
                         <div className="mt-6 flex items-end gap-1">
                           <span className="font-heading text-4xl font-extrabold text-foreground">R{plan.priceMonthly}</span>
                           <span className="pb-1 text-sm text-muted-foreground">/month</span>
@@ -541,7 +543,7 @@ const About = () => {
                           {plan.features.map((feature) => (
                             <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
                               <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                              {linkifyMoneyBackGuarantee(feature)}
+                              {linkifyMoneyBackGuarantee(withPromoTrialCopy(feature))}
                             </li>
                           ))}
                         </ul>

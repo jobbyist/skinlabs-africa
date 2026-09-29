@@ -17,7 +17,9 @@ import { PAID_SUBSCRIPTION_STATUSES } from "@/lib/entitlements";
 import { useAdminGate } from "@/hooks/use-admin-gate";
 import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
+import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import UsersTab from "@/components/admin/UsersTab";
+import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 
 type Submission = {
   id: string;
@@ -349,6 +351,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="users">Users</TabsTrigger>
                 <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length + intelInteractions.length})</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
+                <TabsTrigger value="skynn-reviews">SKYNN Reviews</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -572,7 +575,12 @@ const AdminDashboard = () => {
               </TabsContent>
 
               {/* Analytics Tab — live Vercel Web Analytics, see api/admin-analytics.ts */}
-              <TabsContent value="analytics">
+              <TabsContent value="skynn-reviews">
+                <SkynnReviewsTab />
+              </TabsContent>
+
+              <TabsContent value="analytics" className="space-y-6">
+                <ConversionFunnelPanel />
                 <AnalyticsTab />
               </TabsContent>
             </Tabs>

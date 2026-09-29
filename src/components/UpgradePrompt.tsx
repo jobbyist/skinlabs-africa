@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { TIER_LABELS, minimumTierFor, type FeatureKey } from "@/lib/entitlements";
 import { trackConversionEvent } from "@/lib/analytics-events";
@@ -11,20 +12,23 @@ interface UpgradePromptProps {
   headline?: string;
   body?: string;
   className?: string;
+  /** Analytics source for `upgrade_click`; defaults to `upgrade_prompt:<feature>`. */
+  source?: string;
 }
 
 /**
  * A non-blocking inline upgrade nudge — for surfaces where hiding content
  * outright (FeatureGate) would be too aggressive, e.g. a dashboard banner or
  * an end-of-article CTA. Renders nothing once the account already has the
- * feature. Fires the same `upgrade_prompt_view` event as FeatureGate (tagged
- * `style: "inline"`) so both gating styles roll up into one funnel metric,
- * and `upgrade_click` when the CTA itself is used.
+ * feature. Fires the same `upgrade_viewed` event as FeatureGate (tagged
+ * `style: "inline"`). The CTA comes from useConversionAction (sign up / start
+ * a trial in place / subscribe); "See all plans" is a secondary link.
  */
-const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProps) => {
-  const { can, loading, accountState } = useEntitlements();
+const UpgradePrompt = ({ feature, headline, body, className, source }: UpgradePromptProps) => {
+  const { accountState } = useEntitlements();
+  const action = useConversionAction(feature, source ?? `upgrade_prompt:${feature}`);
   const firedRef = useRef(false);
-  const show = !loading && !can(feature);
+  const show = !action.entitled && (action.kind !== null || action.unavailable);
 
   useEffect(() => {
     if (show && !firedRef.current) {
@@ -44,21 +48,21 @@ const UpgradePrompt = ({ feature, headline, body, className }: UpgradePromptProp
     >
       <div>
         <p className="font-heading text-sm font-bold text-foreground">{headline ?? `Unlock this with ${tierLabel}`}</p>
-        <p className="text-sm text-muted-foreground">
-          {body ?? "Upgrade any time — cancel or change plans from your dashboard."}
-        </p>
+        <p className="text-sm text-muted-foreground">{body ?? action.sublabel ?? "Cancel or change plans any time from your dashboard."}</p>
       </div>
-      <Button
-        asChild
-        size="sm"
-        className="shrink-0 gap-2"
-        onClick={() => trackConversionEvent("upgrade_click", { feature, accountState })}
-      >
-        <Link to="/pricing">
-          <Sparkles className="h-4 w-4" />
-          View plans
-        </Link>
-      </Button>
+      <div className="flex shrink-0 flex-col items-start gap-1.5 sm:items-end">
+        {action.unavailable ? (
+          <Button size="sm" variant="outline" disabled>
+            {action.label}
+          </Button>
+        ) : (
+          <Button size="sm" className="gap-2" onClick={action.run} disabled={action.busy}>
+            {action.busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {action.label}
+          </Button>
+        )}
+        <SeeAllPlansLink className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" />
+      </div>
     </div>
   );
 };

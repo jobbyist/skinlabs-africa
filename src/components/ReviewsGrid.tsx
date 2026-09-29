@@ -1,22 +1,22 @@
 import { useMemo, useState, Fragment } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Heart, MapPin, Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Heart, MapPin, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
-import { getMemberRatingStats } from "@/lib/memberRatings";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import AdSlot from "@/components/AdSlot";
-import AffiliateBanner from "@/components/AffiliateBanner";
+import PaginationControls from "@/components/PaginationControls";
 import FaithfulToNature from "@/components/FaithfulToNature";
 
 const PAGE_SIZE = 6;
+const REVIEWS_PER_AD_BREAK = 3;
 
 const ScoreBar = ({ label, value }: { label: string; value: number }) => (
   <div className="space-y-1">
@@ -46,7 +46,7 @@ interface ReviewsGridProps {
 const ReviewsGrid = ({
   limit,
   heading = "Independent SA product scores",
-  description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. No affiliate deals, no gifted samples.",
+  description = "Every product scored on efficacy, value, texture and how it actually performs in South African heat, sun and dryness. Brands can't buy a score.",
   paginate = false,
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
@@ -149,6 +149,8 @@ const ReviewsGrid = ({
                 src={productImage.url}
                 alt={`${review.category} product photography — ${productImage.alt}`}
                 loading="lazy"
+                width={400}
+                height={160}
                 className="h-40 w-full object-cover"
               />
               {productImage.creditUrl !== "#" && (
@@ -182,23 +184,17 @@ const ReviewsGrid = ({
               </div>
             </div>
 
-            {(() => {
-              const members = getMemberRatingStats(review);
-              return (
-                <p className="mb-3 text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">{members.average}</span>
-                  <span className="text-muted-foreground">/5 from </span>
-                  <span className="font-medium text-foreground">{members.count.toLocaleString("en-ZA")}</span>
-                  <span className="text-muted-foreground"> members</span>
-                </p>
-              );
-            })()}
 
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                 <MapPin className="h-3 w-3" /> {review.where_to_buy}
               </span>
+              {review.is_sponsored && (
+                <span className="rounded-full bg-muted px-2.5 py-1 font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sponsored
+                </span>
+              )}
               {review.isNew && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 font-semibold text-primary">
                   <Star className="h-3 w-3" /> New
@@ -230,7 +226,9 @@ const ReviewsGrid = ({
 
             <div className="mt-auto flex items-center justify-between">
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/reviews/${review.id}`}>Full breakdown</Link>
+                <Link to={`/reviews/${review.id}`} aria-label={`Full breakdown: ${review.brand} ${review.product_name}`}>
+                  Full breakdown
+                </Link>
               </Button>
               <button
                 onClick={() => toggleLike(review.id)}
@@ -244,17 +242,18 @@ const ReviewsGrid = ({
         </motion.div>,
       );
 
-      if ((index + 1) % 3 === 0 && index < pageItems.length - 1) {
-        const adIndex = Math.floor(index / 3);
+      // A single unit mid-page (after the first row of 3 on desktop), never a
+      // stack of several — alternating AdSense and the Faithful to Nature
+      // partner banner from one page to the next.
+      if ((index + 1) % REVIEWS_PER_AD_BREAK === 0 && index < pageItems.length - 1) {
+        const adIndex = Math.floor(index / REVIEWS_PER_AD_BREAK);
         nodes.push(
-          <div key={`ad-row-${adIndex}`} className="col-span-full space-y-4 py-4">
-            {adIndex % 2 === 0 ? (
-              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact />
+          <div key={`ad-row-${adIndex}`} className="col-span-full">
+            {(page + adIndex) % 2 === 1 ? (
+              <AdSlot placement={`reviews-grid-${adIndex}`} compact priority={adIndex === 0 ? "primary" : "secondary"} />
             ) : (
-              <AffiliateBanner placement={`reviews-grid-${adIndex}`} compact />
+              <FaithfulToNature placement={`reviews-grid-${adIndex}`} compact priority={adIndex === 0 ? "primary" : "secondary"} />
             )}
-            <AdSlot placement={`reviews-grid-slot-a-${adIndex}`} compact />
-            <AdSlot placement={`reviews-grid-slot-b-${adIndex}`} compact />
           </div>,
         );
       }
@@ -375,39 +374,11 @@ const ReviewsGrid = ({
           <p className="py-16 text-center text-muted-foreground">No reviews match that search yet.</p>
         )}
 
+        {/* End-of-page unit: the grid above, pagination + page below. */}
+        {paginate && !limit && pageItems.length >= 3 && <AdSlot placement={`reviews-grid-end-${page}`} compact />}
+
         {paginate && !limit && totalPages > 1 && (
-          <nav className="mt-12 flex flex-wrap items-center justify-center gap-2" aria-label="Reviews pagination">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => goToPage(page - 1)}
-              className="gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <Button
-                key={p}
-                variant={p === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(p)}
-                aria-current={p === page ? "page" : undefined}
-                className="min-w-9"
-              >
-                {p}
-              </Button>
-            ))}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => goToPage(page + 1)}
-              className="gap-1"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </Button>
-          </nav>
+          <PaginationControls page={page} totalPages={totalPages} onPageChange={goToPage} className="mt-12" />
         )}
       </div>
     </section>

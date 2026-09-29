@@ -17,8 +17,1004 @@ social proof, scarcity, product data, reviews, ratings or performance
 claims; never expose sensitive user data; never make an unfinished
 feature appear operational.
 
+## Onboarding & conversion overhaul (2026-09-24 → 2026-09-28) — standing rules
+
+Prompts 00–12 (PRs #144–#146, #149–#151, #154–#160). The per-prompt dated
+bullets under "Major systems" have the detail; these are the rules to keep.
+
+- **New gates use `useConversionAction(feature, source)`; never make `/pricing`
+  the primary action.** It returns the one right CTA for the viewer (sign-up →
+  one-tap no-card trial for a Glow Explorer → Subscribe; VIP-only → disabled
+  "coming soon"). `/pricing` is only ever a secondary `SeeAllPlansLink`
+  (with `?returnTo=`) or a navigation link.
+- **The only no-card trial path is `useStartTrial()`** (Hero, /pricing, /welcome,
+  gates, IntentResolver). Only an Explorer is offered a trial (it overwrites
+  `subscription_status`). In the `card_upfront` pricing variant (weight 0 until a
+  human enables it after 1 Nov 2026) it opens `KeepMembershipDialog` instead.
+  Trial wording always goes through `src/lib/promo.ts`.
+- **Pending intent + `IntentResolver`**: anything a visitor was doing when asked to
+  sign up (`trial | subscribe | save_analysis | unlock`, validated `returnTo`) is
+  recorded with `setPendingIntent()` and resumed by `IntentResolver` (mounted once
+  in `App.tsx`; SSR routes use `SsrConversionShell`) when the session appears. A
+  brand-new account with no intent goes to `/welcome` once. Never authorization.
+- **Journey model** (`src/lib/journey.ts`, pure + tested): `resolveJourneyStage()`
+  (visitor → analysed → member → trialing → activated → payment_on_file → paid →
+  lapsed), `isActivated()` (2nd analysis / a routine / 3 check-ins / 3 saves —
+  mirrored in SQL by `is_trial_activated()`), `nextBestAction()` (ONE action) and
+  `gettingStartedChecklist()`. Use `useJourney()`; don't re-derive stages in
+  components.
+- **Trial lifecycle**: banners (`trialBannerState()`) and emails
+  (`trial_lifecycle_email_plan()`) share SAST calendar-day windows; card copy is
+  never shown when the payment state is unknown. The daily email cron is NOT
+  enabled yet (see overhaul 09).
+- **Money**: "Keep my membership" = PayFast ZAR recurring (card tokenised at R0,
+  first charge on the trial-end day) or PayPal; both use the shared
+  `resolveSubscriptionStart()`. Prices are always resolved server-side.
+- **Tests**: `bun test` (pure rules), `npx playwright test` (the journeys, mocked
+  Supabase, 4 projects: desktop/mobile × light/dark; build first), and
+  `scripts/run-sql-probes.sh` (`supabase/tests/*.sql`, rolled back, needs
+  `SUPABASE_DB_URL`). `.github/workflows/ci.yml` runs all three.
+- **Human actions still open** (as of 2026-09-28): set `PAYFAST_MERCHANT_ID` /
+  `PAYFAST_MERCHANT_KEY` / `PAYFAST_PASSPHRASE` and run the PayFast sandbox test
+  before `PAYFAST_MODE=live`; review a trial-email dry run and schedule
+  `trial-lifecycle-emails-daily` before 25 Oct 2026; add the `SUPABASE_DB_URL`
+  GitHub secret for the SQL probes; enable `card_upfront` (if wanted) only
+  after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
+  it is now an Insider capability.)
+
+## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
+
+Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
+`docs/conversion-events.md` (skynn_* section), the release PDF
+`docs/SKYNN-AI-v2.1-beta-Release.pdf`.
+
+- **Names** come from `src/lib/skynn/terminology.ts` (edge mirror
+  `supabase/functions/_shared/skynn/terminology.ts`): **SKYNN AI v2.1 — beta**,
+  **Basic AI Skin Analysis**, **Advanced AI Dermatology Analysis** (fallback =
+  "submission" / "— Pending", never "report ready/reviewed"), **Analysis Pass**,
+  **Monk Skin Tone (MST)**. `skynnTerminology.test.ts` fails on retired names
+  (Starter Analysis, AI Formulator, Advanced Assessment, (Advanced) Dermatology
+  Report, SKYNN AI (beta)…). DB/analytics identifiers keep their old names.
+- **Basic**: deterministic for every tier; Explorer/Glow Lite 1 per rolling
+  **7 days** (`pricing_settings.free_analysis_window_days`), Insider/VIP
+  unlimited; enforced only by `save_starter_analysis()`, which **never spends an
+  Analysis Pass** and raises `profile_missing` without a profile row. The full
+  result + PDF render only after that save succeeds; anonymous visitors see a
+  preview; no automatic PDF. Basic PDF must never claim dermatologist/specialist
+  review.
+- **Photos never leave the device and are never analysed; MST is never inferred.**
+  `mst_source` CHECK = `user_reported` only. `skynnNoToneInference.test.ts`
+  scans SKYNN edge code for image-to-model calls and tone-estimation prompts.
+- **One Advanced flow**: every Advanced CTA → `/skynn-ai/advanced`; membership
+  never grants it (`assessment.advanced` is in no ladder tier); the server
+  (`get_advanced_assessment_access`) is the only gate. Production is
+  `rollout_stage = pass_holders_review`, `report_mode = fallback` (it already was
+  before v2.1 — older notes below saying "left disabled" are stale).
+- **Legacy live-AI path retired**: `skincare-ai` repo source is a 410 stub; the
+  deployed function is an interim no-photo/no-tone version (v36) until merge.
+  **After merge**: deploy the stub (pinned raw-GitHub entry) and apply
+  `20260928150000_skynn_v21_retire_legacy_ai.sql` (revokes client EXECUTE on
+  consume/refund_analysis_pass + register_ai_analysis_use, drops the client
+  INSERT policy on `skincare_recommendations`).
+- **Pass safety**: `consume_analysis_pass`/`refund_analysis_pass` take a per-user
+  advisory lock; a client refund of a Pass linked to an Advanced session (or older
+  than 15 min) is refused — this was an exploitable bypass (reproduced live, 0
+  real sessions affected), fixed in `20260928141000`.
+- Analytics: only via `trackSkynnEvent()` (payload whitelist). Admin → SKYNN
+  Reviews shows `SkynnOpsPanel` (`skynn_ops_summary()`, admin-gated counts).
+- Probes (rolled back, pass live): `supabase/tests/formulator_allowance.sql`
+  (19), `supabase/tests/advanced_pass_gate.sql` (22). e2e: `e2e/skynn.e2e.ts`.
+- Edge deploys 2026-09-28 pinned to `e7e3389` (branch): `email-processor` v38,
+  `skynn-advanced-worker` v24, `skynn-advanced-assessment` v34. Next deploy must
+  pin a commit containing them.
+- Left for a human: Privacy Policy / Terms / Whitepaper still describe photo
+  upload/analysis (now over-describes); `/routines` markets unbuilt "Smart
+  Routines".
+
+### v2.1 follow-up (2026-09-28, after PR #161 merged): Basic → Advanced, PDFs, Smart Routines
+
+- **Post-merge steps done**: `skincare-ai` is the deployed 410 stub (v37) and
+  `20260928150000` is applied (clients can't call `consume_/refund_analysis_pass`
+  or `register_ai_analysis_use`; no client INSERT policy on `skincare_recommendations`).
+- **Legal/public copy matches the product**: photos never leave the device and are
+  never analysed; MST is self-reported; there is no image retention. Privacy Policy
+  §4, Terms §3, Refund Policy (Analysis Passes), Cookie Policy, Whitepaper,
+  `public/llms.txt` and the membership email were rewritten; a copy guard in
+  `skynnNoToneInference.test.ts` fails on the old claims ("credit packs", "raw images",
+  "weekly live AI", …). A photo no longer raises the completeness score. The legal
+  text still deserves a human/legal read.
+- **Basic is the starting point of Advanced**: `result_payload.answers` now keeps the
+  raw quiz answers (v2.1+ results). `buildAdvancedPrefill()`
+  (`src/lib/skynn/basicToAdvancedPrefill.ts`) suggests answers for questions with a
+  close equivalent, validated against the pinned definition; **never** consent, safety,
+  QoL or pregnancy. New sessions are seeded and saved at once, each suggested answer is
+  marked in the UI, and `advanced_assessment_sessions.basic_analysis_id` /
+  `prefilled_question_ids` record it (edge action `link_basic_analysis` →
+  `link_basic_analysis_to_advanced_session()`); the intake record shows a
+  "Started from" row. **Security fix**: authenticated could UPDATE every column of an
+  unsubmitted session (default ALL privileges never narrowed by the column grant),
+  including `assessment_definition_id`; now column-limited (probe
+  `supabase/tests/advanced_session_grants.sql`).
+- **Branded PDFs** use `src/lib/pdf/brandPdf.ts` (`BrandDoc`: logo header, brand rule,
+  "Page n of N"). The Basic PDF is built from the saved result and can be re-downloaded
+  from `SavedAnalysisCard`; the member's Advanced submission PDF
+  (`generateAdvancedSubmissionPdf.ts`) is a **submission record, never a report**
+  ("Pending"), listing every answer via `src/lib/assessment/formatAnswers.ts`, a browser
+  copy of `_shared/assessment/intake/format.ts` (parity test in `skynnPdfs.test.ts`).
+  The admin/reports@ intake PDF is unchanged.
+- **Smart Routines** (My Skin › Routine, `SmartRoutinePanel`; Home `ForYourSkinCard`):
+  access = the member has an Advanced submission that wasn't rejected/failed
+  (`has_smart_routine_access()`), i.e. an Analysis Pass was spent. Pure engine
+  `src/lib/smartRoutine/engine.ts` builds it from `MemberSkinProfile`
+  (`memberSkinProfile.ts`: latest Basic result + Advanced answers, Advanced wins) and
+  SkinLabs-**reviewed** products only (avoid list, budget → best value, shelf products
+  matched by exact name, no retinoids/hydroquinone when pregnant/breastfeeding/trying to
+  conceive, cosmetic wording — tested). An approved report's `routineAm/routinePm`
+  replace it (`fromReport()`). Saved only through `save_smart_routine()` into
+  `smart_routines` + `routine_steps` (`source` manual|default|smart); the member's manual
+  steps are never touched. `routine_steps` seeded by the tracker are `source='default'`
+  and **no longer count as activation** (`is_trial_activated()` and `journey` ignore
+  them). Rebuilding never erases check-ins (`…180000`: kept steps are updated in place,
+  ticked starter steps are adopted as `manual`, a routine missing `am`/`pm` is rejected).
+  Probe: `supabase/tests/smart_routines.sql` (20). Pregnancy caution also covers "prefer
+  not to say" (fail safe); `fromReport()` never claims retinoids were left out.
+- **Personalisation reads the member's own submissions, never `analytics_events`** (a
+  member can't read them and payloads carry no skin data by design). Analytics props
+  are counts/tokens only (`count`, `routine_source`). `analytics_events` INSERT now
+  requires `user_id IS NULL OR user_id = auth.uid()` (it was spoofable).
+- `/routines` no longer says Smart Routines are "included" with Insider or lists a
+  rand-budget setting that doesn't exist; its CTA checks real access.
+- Migrations applied live: `20260928160000`, `…170000`, `…171000` (ops summary gains
+  "started from Basic" and "Smart Routines saved"), `…180000` (save_smart_routine hardening).
+- **Edge deploys (2026-09-28)**, all pinned raw-GitHub entrypoints on this branch: `skynn-advanced-assessment` v35 and `email-processor` v39 at `f44c962`, `skynn-advanced-worker` v26 at `587e3e5`. Live check with a throwaway account: Basic row → Advanced session with the link recorded → submit → worker produced the intake PDF and sent the email first time → withdraw refunded the Pass → data deleted. The next deploy must pin a commit containing them. Release PDF: `docs/SKYNN-AI-v2.1-followup-Release.pdf`.
+- **Honest wording rules from the review**: prefilled answers are "suggested… yours to
+  check and change" (nothing forces a change, so never say "confirmed"); the "check it
+  still fits" hint disappears once the answer changes; the Privacy Policy only promises
+  removal on request or via account deletion (there is no delete button for a saved Basic
+  analysis or Smart Routine — Advanced submissions can be withdrawn); results saved before
+  v2.1 are shown without their photo completeness factor (`withoutPhotoFactor()`).
+- **Main was broken when this branch was merged with it**: `src/components/AIFormulator.tsx`
+  on `origin/main` had been replaced by the one-line placeholder
+  `RESTORED_FROM_LOCAL_FILE_SEE_ARTIFACTS` (commits 32b7ce9/5fef60a, which also tried to
+  rename the Advanced CTA to "Get An Advanced AI Dermatology Report"). This branch keeps the
+  working file and the standard CTA "Explore the Advanced AI Dermatology Analysis" (the
+  terminology guard bans "…Dermatology Report" while submissions are pending). If that
+  rename is really wanted it is a product decision that also needs `terminology.ts`, the
+  guard test and the e2e updated together.
+
 ## Major systems
 
+- **Follow-up batch (2026-09-28, evening)** — branch
+  `claude/skinlabs-platform-updates-vl8d16` restarted from `main` after PR #166 merged.
+  - **PayFast is temporarily OFF** (`PAYFAST_ENABLED = false` in
+    `src/lib/payments.ts`, with `isGatewayEnabled()`): every checkout offers
+    PayPal / debit or credit card only; `PaymentGatewayDialog` shows PayFast as a
+    disabled "Temporarily unavailable" card; `KeepMembershipDialog` hides "Pay with
+    PayFast" even when the server says it's configured; `invokeCheckout()` and
+    `startPayfastMembership()` refuse PayFast. Existing PayFast subscriptions still
+    show and cancel in Billing. The `payfast-payment` edge function was not
+    changed. Flip the one constant to bring it back (and revert the e2e assertion
+    in `onboarding.e2e.ts`).
+  - **PaymentGatewayDialog redesign** (from the user's mock-up): left-aligned title,
+    option cards as real `<button>`s (a shadcn `Button` is `whitespace-nowrap`,
+    which is what made the old dialog overflow phones), outline icon, wrapping
+    title/subtitle, accepted-payment marks (`src/components/payments/PaymentMarks.tsx`,
+    inline SVG on white chips, only marks the gateway accepts; the mock-up's
+    "Instant EFT" and "Apple Pay" on PayPal were not added, PayPal doesn't take
+    them). Inset `w-[calc(100%-2rem)]` rounded card, viewport-capped and
+    scrollable. Verified at 320/375/390/1280 in all 4 Playwright projects: no
+    overflow. `/pricing` plan cards also overflowed 320px (the long promo trial
+    CTA couldn't wrap) — fixed with `min-w-0` + wrapping CTAs.
+  - **Podcast Season 1 complete**: episode 10 published 2026-09-28 from its real
+    audio (ffmpeg + Vosk transcript in the scratchpad only, timestamps from word
+    timings; the audio's "no affiliate deals" claim and the retired "AI formulator"
+    name were deliberately NOT repeated in show notes). Episodes 5–9 `publishedAt`
+    moved from the never-enforced weekly drip dates (up to 16 Oct) to 2026-09-13,
+    the day they actually went live. The weekly-Friday promise and
+    `getNextEpisodeDate()` are gone; all copy uses `PODCAST_SCHEDULE_LINE` /
+    `PODCAST_SEASON_2_LINE` / `PODCAST_SEASON_2_START` ("January 2027") from
+    `src/data/podcast.ts` — update those when the Season 2 calendar is published.
+    About/Features no longer claim "expert/dermatologist interviews". Episode 10
+    got an `engagementSeed` entry per the standing (user-requested) seed rule.
+  - **ICYMI: September 2026 story is live** (`ICYMI_SEPTEMBER_2026_VIDEO_READY =
+    true`): video compressed 11.6 MB → 1.2 MB (720×1280, 30 fps, H.264 CRF 26,
+    faststart, audio track dropped — the source was silent). The video page has no
+    overlay text (every frame carries its own); text pages use a blurred photo
+    background (`icymi-september-2026-bg.jpg`). The video itself says "All members
+    can reanalyse their skin anytime" — true only for Insider/VIP (Explorer/Lite
+    are 1 per 7 days); it can't be edited in code.
+  - **`main` was broken and was repaired here**: commits `32b7ce9`/`5fef60a`
+    replaced `src/components/AIFormulator.tsx` with a one-line placeholder and
+    emptied `e2e/skynn.e2e.ts`. Both were restored from `e7e3389`, with the
+    intended change applied: Advanced CTAs read "Get an Advanced AI Dermatology
+    Analysis" and wrap on phones. The commit message asked for "…Dermatology
+    Report", which the v2.1 naming rules (and their tests) forbid — awaiting the
+    user's call.
+
+- **Platform updates: viewer context, ad policy + ad-block wall, dedup, copy audit (2026-09-28)**
+  — branch `claude/skinlabs-platform-updates-vl8d16`.
+  - **Viewer-context layer** (standing rule for new UI): `src/lib/viewerContext.ts`
+    (pure, tested) + `useViewerContext()` / `<ForViewer when={…}>` /
+    `useShouldShowAd()` in `src/hooks/use-viewer-context.tsx`. One object for
+    login state, ladder tier, trial, ad policy and ad-block status. Use it
+    instead of combining useAuth/useMembership/ad checks ad hoc. Presentation
+    only, never authorization. `useMembership()` now shares one profile read
+    per user for 15 s (`fetchMembershipRow`), cleared by
+    `notifyMembershipUpdated()`, because every ad slot reads the context.
+  - **Ad policy**: visitors / Explorer / Glow Lite `full`; Glow Insider and
+    founding members `light` (only `priority="primary"` units render, one per
+    page); VIP `none`. Every ad component (AdSlot, AdSlotAutorelaxed,
+    AffiliateBanner, FaithfulToNature, AffiliateAdSlot) takes `priority`
+    (default `secondary`) and renders nothing when the policy hides it. This
+    makes the live "Ad-light browsing" (Insider) / "Ad-free browsing" (VIP)
+    plan copy true; before, ads ignored membership. `AdDisclosure` text is
+    audience-aware.
+  - **Ad-block wall** (`src/components/AdBlockWall.tsx`, replaces the
+    dismissible `AdBlockNotice`; mounted in App.tsx and `SsrConversionShell`):
+    detection is a shared store (`src/lib/adBlockDetection.ts`: bait element +
+    AdSense request that fails while a same-origin control succeeds, so offline
+    ≠ blocked; re-checks on focus and on "I've turned it off"). Blocks content
+    only for `full`-policy viewers, never for crawlers/headless/webdriver
+    (`isAutomatedAgent`, so prerender, SEO and Playwright never see it) and
+    never on `AD_BLOCK_WALL_EXEMPT_PREFIXES` (pricing, legal pages, dashboard,
+    welcome, reset-password, admin). Content stays in the DOM but `inert`.
+    z-[62]: above fixed bars, below modals so AuthDialog ("Sign in") opens over
+    it (`openSignupDialog("signin")` is new). Events `adblock_wall_shown/cleared`.
+  - **Ad density (~2–3×)**: product reviews (both renderings) +2, briefing
+    bodies now get automatic breaks every 2nd `##` section when the pipeline
+    body has no `<!-- ad:mid-N -->` markers (`splitBriefingForAds`, tested; they
+    previously got none), feeds get an end-of-page unit, ingredient profiles
+    (SPA + SSR), Shelf Showdown articles, seasonal hubs, the ingredients
+    directory (all had 0) +2/+1, and one more on Knowledge Hub, Compare,
+    Spotlight, brand profiles, Seasonals, Podcast, Episode and Home. Placement
+    rules above (never adjacent, never before an article body) still apply.
+  - **Routine Builder is Glow Insider** (`ai_analysis.routine_builder` added to
+    the insider ladder), so the live Insider benefit is now true; RoutineBuilder
+    gates via `useEntitlements().can()`. Side effect: Insiders now also see
+    named product matches in SKYNN AI results (same capability).
+  - **Plan copy matches code**: migration
+    `20260928160000_plan_benefits_match_code.sql` (**applied live**, after
+    v2.1's `20260928142000_skynn_v21_plan_copy.sql`) rewrote
+    `pricing_plans.benefits`; `src/data/plans.ts` mirrors it. Removed perks
+    nothing implements (Lite "priority briefings", Insider "member-only
+    ingredient deep dives", VIP "exclusive OpenHaus access", "offline browsing",
+    "VIP badge", /routines "Priority support"). Consultations copy no longer
+    offers bookable sessions (not launched); gate titles name the right tier.
+  - **Fabricated social proof removed**: `/reviews` cards no longer show the
+    hash-generated `getMemberRatingStats()` rating/member count; review pages
+    no longer fall back to `seededRatings`/`seededComments` (invented reviewer
+    names and comments). Real `review_ratings`/comments only. briefings-sync no
+    longer seeds a random `view_count`. The podcast `engagementSeed` play counts
+    were an earlier explicit user request and were left alone.
+  - **Briefings dedup**: `_shared/pipelines/briefingSimilarity.ts` (tested with
+    the real Sept titles): source URLs compared canonically (Google `srsltid`
+    and utm params stripped; that bug let one barbeauty.ca page produce three
+    "The Pigment Puzzle" briefings); title/content/excerpt similarity against
+    the last 45 days before generation (lead page) and before insert; the
+    recent titles are also given to Gemini as "already covered". Three
+    duplicates from the past 10 days were set to `status = 'duplicate'`
+    (reversible, migration `20260928143000_…`), and vercel.json 301s their URLs
+    to the originals.
+    **Deployed**: `briefings-sync` **v29** (2026-09-28) is a one-line entry
+    importing the committed source from raw GitHub pinned to `2ebc766` (this
+    branch). If Supabase's GitHub sync redeploys from `main` before merge it
+    reverts to the pre-dedup version — re-check after merge.
+  - **Pagination**: `getPageWindow()` (`src/lib/pagination.ts`, tested) —
+    first · current±1 · last with ellipses, first · current · last and
+    icon-only prev/next on phones, "Page x of y". ReviewsGrid's own
+    every-page-number pagination now uses `PaginationControls` too.
+  - **Continue listening / mini-player**: long titles truncate (the link was
+    inline, so `truncate` did nothing and the card overflowed on phones).
+  - **"ICYMI: September 2026" story** (`icymiSeptember2026Story()` in
+    `curated.ts`): the recap video, then each September announcement verbatim
+    from the new `src/data/announcements.ts` (shared with /announcements).
+    Live since the evening follow-up (see above); a test fails if the flag is
+    true while the media files are missing.
+  - The promo bar/chip hides for trialists, paying members and used trials.
+
+- **Funding + editorial-independence wording (2026-09-27)** — SkinLabs® is
+  member-funded and **partly ad-supported** (AdSense, labelled sponsored
+  placements, sponsored story ads, OpenHaus-sourced "Sponsored" reviews). The
+  approved copy lives in `src/lib/editorialIndependence.ts`
+  (`EDITORIAL_TAGLINE` "editorial that can't be bought",
+  `FUNDING_MODEL_HEADLINE`, `FUNDING_STATEMENT`, `EDITORIAL_INDEPENDENCE_LINE`).
+  Never write "no ads", "no sponsored content", "no affiliate deals" or
+  "member-funded, not ad-funded" anywhere. The old claims were replaced on
+  About, Hero, Features, ReviewsGrid, /reviews (copy + meta), the home SEO
+  description, the Editorial Policy, the FAQ (new `about-ads-sponsored` entry)
+  and the podcast RSS description. Per-item statements that are still true
+  (Spotlight/Shelf Showdown outcomes aren't paid, the podcast takes no paid
+  mentions) were left as they are.
+  **Follow-up (same day):** the FAQ "Do you sell skincare products?" (and
+  "Where can I buy…") now say that some product links go to OpenHaus or partner
+  retailers, that SkinLabs may earn a commission or margin on those sales, and
+  that such links are labelled Sponsored. "We buy the products we review" was
+  removed from /reviews at the user's request. Don't reintroduce either claim
+  ("we're not a retailer / don't earn a cut" or "we buy every product").
+
+- **Onboarding overhaul 12 — end-to-end QA, trial SQL probe, docs (2026-09-28)**
+  - Playwright (`@playwright/test` 1.56.1, `playwright.config.ts`, specs
+    `e2e/*.e2e.ts` so `bun test` never picks them up): analysis → account → trial
+    (new account lands on /welcome once, one-tap trial), returning member skips
+    /welcome, pricing → trial, gate → trial → unlocked in place, trial → Keep
+    membership (price, 1 Nov first charge, cancel terms before payment; the live
+    PayFast sandbox leg is `test.skip` unless `PAYFAST_SANDBOX_E2E` is set),
+    lapsed → subscribe (billed today), legacy `?tab=` links. Four projects
+    (desktop/mobile × light/dark): **28 passed, 4 skipped** locally against a
+    production build. `e2e/support/mockSupabase.ts` fakes the session and an
+    in-memory Supabase (mutable profile, RPC/function call log, live plan rows'
+    shape); it pre-dismisses the ad-block notice because ads are aborted. Run:
+    `npx vite build && npx playwright test` (set `PLAYWRIGHT_CHROMIUM_PATH` to a
+    preinstalled Chromium in the sandbox).
+  - `supabase/tests/start_free_trial.sql`: a rolled-back probe with one throwaway
+    account per purchasable, trial-eligible plan (read from `pricing_plans`):
+    starts, profile is a trial, length ≥ trial_days / the promo date, a second
+    trial is refused, the member can't write `subscription_status`, a plan-aware
+    `trial_started` email is queued, VIP is refused. **Passed live: 13 assertions
+    (glow_lite, insider).** `scripts/run-sql-probes.sh` runs every
+    `supabase/tests/*.sql` (needs `SUPABASE_DB_URL`, skips without it).
+  - `.github/workflows/ci.yml` (new; the repo had no test CI): checks (TanStack
+    build for the route tree → tsc → lint → bun test), e2e (Playwright Chromium),
+    sql-probes (psql, secret-gated).
+- **Onboarding overhaul 11 — admin funnel panel + card-upfront experiment (2026-09-28)**
+  - Admin → Analytics now opens with `ConversionFunnelPanel`
+    (`src/components/admin/`): reads the admin-only `conversion_funnel_daily` view
+    (prompt 00), 7/30/90-day toggle, stage totals (sign-ups → saved analyses →
+    trials → auto-renew → paid) and stage-to-stage rates from the pure, tested
+    `summarizeFunnel()` (`src/lib/conversionFunnelSummary.ts`; SAST windows,
+    zero denominators → "—"). The rates are same-window ratios, not cohorts, and
+    the panel says so. Kept separate from `AnalyticsTab` (Vercel traffic +
+    `analytics_events`, the admin-console analytics work): no duplication. The
+    referenced `claude/admin-console-claude-code-prompts.md` isn't in the repo
+    or on any branch; the closest work is the unmerged
+    `claude/website-perf-admin-dashboard-6t0bpf` branch (analytics events by
+    source, admin user management), which touches `AnalyticsTab`/`AdminDashboard`
+    but not the funnel view.
+  - `pricing_experiment_variants.card_upfront` (migration
+    `20260928130000_card_upfront_experiment.sql`, **applied live**,
+    `traffic_weight = 0`, `is_active = true`, no plan/settings rows of its own so
+    everything falls back to `control` client- and server-side). When a browser is
+    bucketed into it, `useStartTrial()` (the single trial path) opens
+    `KeepMembershipDialog` first (card/PayPal tokenised at R0, first charge on
+    trial end; the trial starts from the PayFast ITN / PayPal activation) instead
+    of the no-card trial, and fires `trial_card_upfront_shown`.
+    `weightedPick()` now skips zero-weight variants (a `Math.random()` of exactly 0
+    could previously pick the first one) — tested. **Stays at weight 0 until a
+    human enables it after 1 Nov 2026** (the promo promises no card):
+    `UPDATE pricing_experiment_variants SET traffic_weight = 10 WHERE variant_key = 'card_upfront';`
+    Browsers already bucketed keep their variant (localStorage), so a weight change
+    only affects new browsers.
+    Verified in a production preview (mocked session): a free account in
+    `card_upfront` gets the Keep dialog ("Nothing to pay today", R0/PayFast) and no
+    `start_free_trial` call; `control` still starts the no-card trial. That test
+    also exposed a real crash — a malformed `subscription_quote` response took the
+    page down via `formatZar(undefined)` — so `quoteMembership()` now validates the
+    response and turns a bad shape into an error the dialog shows.
+- **Onboarding overhaul 10 — honest upsells, CTA hierarchy, mobile chrome (2026-09-28)**
+  - `purchasableCapabilities(planIds)` (`entitlements.ts`, unit tested): the union
+    of `LADDER_CAPABILITIES` for tiers with `pricing_plans.is_purchasable`, with the
+    cheapest purchasable tier per perk. `PremiumUpsellSection` (SKYNN AI results)
+    now lists only those perks that build on an analysis and that the visitor
+    lacks (weekly live AI, Conflict Matcher, full breakdowns, practitioner
+    directory), each "Included from {tier}". The VIP-only items it used to show
+    (named product matches, Routine Builder, priority/discounted bookings,
+    quarterly audits) are gone while VIP is "Coming soon"; they reappear by
+    themselves if VIP becomes purchasable. CTA still `useConversionAction`.
+  - Home `Hero.tsx`: "Get Your Free AI Skin Analysis" is the ONLY primary button;
+    the trial is a text link under it ("Or try Glow Insider free {trialLength()}",
+    same `useStartTrial` / intent logic; "See membership plans" link for a used
+    trial; nothing for a paying member). The link stays rendered (disabled) while
+    auth loads, in a fixed-height slot, so the prerendered hero doesn't shift.
+  - Mobile chrome: `showStoryRail(pathname)` (`src/lib/mobileChrome.ts`, tested)
+    hides the `WebStoriesBar` AND its h-24 spacer on `/pricing`, `/welcome`,
+    `/skynn-ai*` and `/dashboard` (the header then sits at `top-0` on phones).
+    Below md the promo bar is hidden and its message is `PromoHeaderChip` ("Free
+    until 1 Nov", from `PROMO_END_AT`, links to /announcements) in the header row;
+    the fixed bar + its spacer are md-and-up only. The header row tightens below
+    `sm` (gap-2, logo h-7 under 400px) and the chip is hidden under 370px, where
+    the row has no room: verified no horizontal overflow at 360/375/390/414/768px.
+- **Onboarding overhaul 09 — trial lifecycle emails + banners (2026-09-28)**
+  - Migration `20260928120000_trial_lifecycle_emails.sql` (**applied live**):
+    `is_trial_activated()` (mirrors `isActivated()` in `journey.ts`),
+    `trial_lifecycle_email_plan(p_today)` = the single selection logic AND the dry
+    run, `enqueue_trial_lifecycle_emails()` loops it. SAST calendar days; key =
+    template + user + `trial_ends_at` (each email once per trial). Schedule: day 2
+    `trial_activation_nudge` (MARKETING, consent, not activated, not inside T-3),
+    T-7 `trial_week_left`, T-3 `trial_precharge_reminder` (live auto-renew: exact
+    date + rand amount, PayPal shows the USD charge) or `trial_last_chance` (no
+    card), +5 days `trial_winback` (MARKETING, consent, still free, once).
+    `trial_started` / `trial_ended` stay on `notify_subscription_change()`; the
+    hourly T-1 `trial_expiring` is unchanged. Service-role only.
+  - Verified with rolled-back probes on a synthetic trial ending 1 Nov: 28 Sep →
+    nudge (MARKETING, non-transactional), 25 Oct → week left, 29 Oct → last chance
+    (or precharge R79.00 PayFast once a live subscription exists), activated → no
+    nudge, 6 Nov → win-back, no consent → nothing; two enqueue runs → one outbox row.
+    Live dry run for today returned 0 rows (no trials on production yet).
+  - **The daily cron is NOT scheduled** (the prompt asks for a dry-run review
+    first). A human enables it with
+    `SELECT cron.schedule('trial-lifecycle-emails-daily', '5 4 * * *', $$SELECT public.enqueue_trial_lifecycle_emails()$$);`
+    (06:05 SAST). It must be on before 25 Oct 2026 for the promo trials' T-7 email.
+  - Templates in `_shared/email/templates/trialLifecycle.ts` (plan-aware,
+    card-aware, calm copy, the end date stated plainly, marketing ones carry the
+    unsubscribe link); `trial_ended` now offers "Keep my membership" (`?keep=1`) and
+    an Analysis Pass. Send-time guards (`guards.ts`) re-check the same trial is
+    still running, re-read card state (precharge needs a live subscription,
+    last-chance none, a read error never sends charge copy) and re-check consent /
+    activation. **Deployed**: `email-processor` **v37** (2026-09-28) pins its entry
+    file to merge commit `685857e` (same raw-GitHub pattern as before; v36 was
+    `12aed4d`, which already carried the SKYNN v2 templates, so nothing needs
+    inlining any more). The next deploy must pin a commit that contains
+    `trialLifecycle.ts`.
+  - Dashboard banners use `trialBannerState()` (`src/lib/trialLifecycle.ts`, same
+    SAST windows, unit tested): trialing → week_left (4–7 days) → precharge /
+    last_chance (0–3 days, unknown card state never shows charge copy) → ended
+    ("Keep my membership" + "Get an Analysis Pass", replacing "Upgrade now" →
+    /pricing).
+- **Onboarding overhaul 08 — journey model, Getting Started checklist, dashboard IA (2026-09-28)**
+  - `src/lib/journey.ts` (pure, `src/lib/__tests__/journey.test.ts` covers every
+    stage): `resolveJourneyStage(facts)` → `visitor | analysed | member | trialing |
+    activated | payment_on_file | paid | lapsed`, `isActivated()` (a 2nd saved
+    analysis, a saved routine (≥1 `routine_steps`), 3 routine check-ins or 3 saved
+    briefings), `nextBestAction(stage, facts)` (ONE action) and
+    `gettingStartedChecklist(facts)`. `src/hooks/use-journey.ts` gathers the facts
+    (head counts on existing tables, `payment_subscriptions` live rows,
+    `auth.mfa.listFactors()`, `useMembership()`). Never authorization.
+  - `GettingStartedChecklist` (dashboard Home, first): Do your skin analysis · Save
+    your routine · Set your Skin Weather city · Check in on your routine twice ·
+    Read one full review or episode · Secure your account with two-step
+    verification (MFA), plus "Keep my membership" (opens `KeepMembershipDialog`,
+    source `checklist`) for an ACTIVATED trialist with no payment method.
+    Completion is real data only; the X appears only once everything is done and
+    stamps `profiles.checklist_dismissed_at`.
+  - Migration `20260928110000_journey_checklist.sql` (**applied live**):
+    `profiles.checklist_dismissed_at` (+ column UPDATE grant) and
+    `member_content_reads` (`user_id, content_type review|episode, slug`, unique,
+    owner SELECT/INSERT only) — written insert-once by `recordContentRead()`
+    (`src/lib/contentReads.ts`) when a member views an unlocked review
+    (`ProductReview.tsx` + SSR `reviews.$slug.tsx`) or plays an episode
+    (`use-podcast-engagement.ts`). Verified with a rolled-back probe as
+    `authenticated`: duplicate insert → 1 row, another user's insert → 42501,
+    another user's dismiss → 0 rows, `subscription_status` still refused.
+  - **Dashboard IA**: tabs are Home · My Skin (Analysis / Routine / Journey) ·
+    Saved · Inbox · Settings (Profile / Billing / Security / Account), second level
+    via `SectionNav`. `?tab=` always holds a LEAF section, so every existing link
+    (`?tab=billing`, `?tab=routine`, …) is unchanged; `src/lib/dashboardTabs.ts`
+    `resolveDashboardSection()` + `LEGACY_TAB_ALIASES` (`overview`→home,
+    `skin`→analysis, `settings`→profile, …) handle the rest (unit tested). Home is
+    checklist → `SkinProfileHero` → `SkinWeatherCard` → one row (analysis
+    allowance, plan, Analysis Passes). Moved: Advanced assessment card → My Skin ›
+    Analysis; Daily Skinny feed + activity → Saved; pre-orders → Settings › Billing.
+    `RoutineSnapshot` was deleted (the Routine section is the full tracker).
+- **Onboarding overhaul 07 — `/welcome` first-run onboarding (2026-09-28)**
+  - `src/pages/Welcome.tsx` (`lazyWithRetry`, `noindex`, in `KNOWN_EXCLUSIONS`),
+    signed-in only (signed out → AuthDialog in place, `returnTo=/welcome`). Three
+    skippable screens under the shared `StepperHeader` (now takes an optional
+    `phases` list; SKYNN AI keeps its default four): **Your skin** (the latest
+    delivered analysis via `headlineForSavedAnalysis()`: "Nice. Your skin profile's
+    saved. Two quick things and you're in.", or "Take the 2-minute analysis" →
+    `/skynn-ai`; a pending local SKYNN AI result is attached first, same idempotent
+    `persistStarterResultToAccount()` the dashboard uses), **Your day**
+    (`weather_city_key` from the 10-city `SA_CITIES` list + "use my location"
+    snapped on-device, and `preferred_routine_time`), **Your trial** (one tap via
+    `useStartTrial({ destination: null })` for a free account that hasn't trialled;
+    "{plan} is active until {date}" for a trialist; plans link only for a used
+    trial). Finish or "Skip setup" stamps `profiles.onboarding_completed_at` →
+    `/dashboard`. Anyone already stamped is redirected to `/dashboard`, so
+    returning members never see it. No migration (all three columns already had
+    client UPDATE grants).
+  - `WELCOME_PATH` is now `/welcome`, so `TRIAL_STARTED_PATH` =
+    `/welcome?trial=started` (a returning member who starts a trial on /pricing is
+    bounced to /dashboard after `useStartTrial`'s success toast).
+    `TrialWelcomeModal` and the dashboard's `?trial=started` handling were deleted.
+    Events: `welcome_viewed`, `welcome_step_completed`, `welcome_finished`.
+- **Onboarding overhaul 06 — "Keep my membership": PayFast ZAR recurring + PayPal (2026-09-28)**
+  - `payfast-payment` gained actions `config`, `subscription_quote`,
+    `initialize_subscription` and `cancel_subscription` (one-off `initialize` kept).
+    A trial (new or existing) tokenises the card at **R0 through 3-D Secure**
+    (`amount=0.00`, `subscription_type=1`, `recurring_amount` = the plan price from
+    `pricing_plans` via `resolveCharge()`, `frequency` 3 monthly / 6 annual,
+    `cycles=0`, `billing_date` = the trial-end day in SAST, so the promo trial
+    ending 2026-10-31T22:00Z bills on **1 November**). **Deliberate deviation from the
+    prompt:** an account that has used its trial pays the first period at checkout
+    and `billing_date` = one period later — PayFast documents `billing_date` as "the
+    date from which FUTURE payments are made", so R0 + today would leave the first
+    period unpaid.
+  - The trial/first-charge rules moved from `paypal-payment` into the shared
+    `_shared/payments/subscriptionStart.ts` (`resolveSubscriptionStart()`, unchanged
+    logic), imported by BOTH gateways, so they can't drift. Keep it in sync with
+    `start_free_trial()`.
+  - **PayFast signing was broken before this** and is now fixed in
+    `_shared/payments/payfast.ts` (unit tested against independently computed MD5s):
+    the checkout form is signed in PayFast's DOCUMENTED field order (it was sorted
+    alphabetically, which PayFast explicitly rejects), an ITN is verified over the
+    fields in the ORDER RECEIVED (it was sorted too, so no genuine ITN could have
+    verified), and the REST API (cancel/fetch) uses alphabetical order with the
+    passphrase, `timestamp` like `2026-09-28T08:00:00+0000`, and `?testing=true`
+    (unsigned) in sandbox. Values use PHP `urlencode()` (`phpUrlencode()`).
+  - ITN for subscriptions (row found by `m_payment_id` = `payment_subscriptions.
+    gateway_subscription_id`, e.g. `sub_<uuid>`): COMPLETE at R0 → store
+    `payfast_token`, status `trialing`, and for a `new_trial` start the trial with the
+    `trial_used_at IS NULL` compare-and-set; COMPLETE with an amount → the charge goes
+    through `completePurchase()` (idempotent on `pf_payment_id`), status `active`,
+    `next_billing_at` advanced; FAILED → `failPurchase()` + `past_due`; CANCELLED →
+    `cancelled` (paid access to period end, then `expire_lapsed_subscriptions()`);
+    a LOCKED/SUSPENDED status → `suspended`.
+  - Migration `20260928090000_payfast_recurring_subscriptions.sql` (**applied live**):
+    `payment_subscriptions.payfast_token` (+ partial unique index). The table's
+    `SELECT` grant for `authenticated` is now a column list WITHOUT the token (a
+    column REVOKE can't override a table grant); verified as `authenticated`.
+  - Frontend: `src/lib/payfast.ts`, `src/components/payments/KeepMembershipDialog.tsx`
+    (rand price + exact first charge date + "cancel any time in Billing" before any
+    payment UI; primary "Pay with PayFast", secondary "Pay with PayPal" → the existing
+    `PayPalButtons`, with a US-dollar note). Opened through
+    `openKeepMembership()` (`src/lib/conversionDialogs.ts`, hosted by
+    `<ConversionDialogs />`) from the dashboard trial banner, BillingTab ("Keep my
+    membership", replacing "Continue after trial" / `MembershipCheckoutDialog`) and
+    `?keep=1` deep links (emails); prompt 08 adds the checklist entry. PayFast returns
+    to `?tab=billing&keep=done` (polls until the ITN lands, then "Auto-renew is on") or
+    `keep=cancelled`. Billing shows "Auto-renew on — R… with PayFast" (or PayPal in
+    USD), and Cancel calls the matching gateway's cancel before `cancel_subscription()`.
+  - **Secrets (Supabase Edge Function secrets, a human must set them)**:
+    `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE` (REQUIRED for
+    subscriptions; without it "Pay with PayFast" is hidden and `initialize_subscription`
+    returns 503) and `PAYFAST_MODE=live` (anything else = sandbox:
+    sandbox.payfast.co.za + `api.payfast.co.za?testing=true`). In the PayFast
+    dashboard set the same passphrase and enable Recurring Billing. ITN URL:
+    `https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/payfast-payment?notify=true`
+    (sent per checkout as `notify_url`). **Not yet exercised end to end: a human must
+    run the sandbox test** — card tokenised at R0, first charge scheduled on the
+    trial-end date, ITN verification passes, cancel works, dashboard shows "Auto-renew
+    on" — before `PAYFAST_MODE=live`.
+  - Deployed: `payfast-payment` **v36** (MCP, `./_shared` inlined for that upload
+    only). Live checks: `config` → `{subscriptionsConfigured:false, mode:"sandbox"}`
+    (secrets not set yet), an authed action without a JWT → 401, a forged ITN → 400.
+    `paypal-payment` was NOT redeployed: live v26 still has its inline copy of the
+    start rules, identical to the shared module except one 409 message; the next
+    deploy of it picks up the shared import.
+- **Onboarding overhaul 05 — one-tap, no-card trial (2026-09-25)**
+  - `useStartTrial()` (`src/hooks/use-start-trial.ts`) is the ONLY no-card trial
+    path: `startFreeTrial()` + loading/error state + `trial_activation_*` (with
+    `source`) + `notifyMembershipUpdated()`, then `navigate(TRIAL_STARTED_PATH)`
+    (router, never `window.location`). `TRIAL_STARTED_PATH` =
+    `${WELCOME_PATH}?trial=started` in `src/lib/intentRouting.ts`, so it is
+    `/dashboard?trial=started` today and becomes `/welcome?trial=started` when
+    prompt 07 flips `WELCOME_PATH` (the `/welcome` route doesn't exist yet, so it
+    wasn't hardcoded). `destination: null` stays on the page (gates, IntentResolver).
+    A used trial (`isTrialAlreadyUsedError()`) shows a friendly toast with a
+    Subscribe action (`openMembershipCheckout`) instead of an error.
+  - `/pricing`: the trial CTA is one tap for a signed-in free account, or records a
+    `trial` intent + opens AuthDialog for a visitor (IntentResolver starts it after
+    sign-up, so anon → trial is 2 interactions). The interval toggle doesn't apply
+    to trials. Trial-used accounts see Subscribe plus a short explanation. The
+    Explorer CTA uses `navigate`. **Supersedes the 2026-09-24 note** that the trial
+    CTA opens `MembershipCheckoutDialog`: that dialog is now subscribe-only (trial
+    mode and `onStartTrialWithoutCard` removed; its title still follows the
+    server's quote). Adding PayPal/a card to continue after a trial stays in the
+    Billing tab ("Continue after trial").
+  - Home `Hero.tsx`: the trial button runs the same hook for Glow Insider (anon →
+    trial intent + sign-up dialog). Only a genuinely free account is offered it;
+    Glow Lite (paying or trialling) and used trials get "See membership plans".
+    Glow Lite stays selectable on /pricing. The button stays rendered (disabled)
+    while auth/membership load, so the prerendered hero doesn't shift.
+- **Onboarding overhaul 04 — lighter sign-up (2026-09-25)**
+  - AuthDialog sign-up is **email + password only** (Google stays first, marketing
+    consent stays unchecked). `useAuth().signUp(email, password, redirectTo?,
+    marketingConsent?)` no longer takes a username. The tab opens via the pure
+    `initialAuthTab()` (`src/lib/authDialogCopy.ts`): an explicit `mode`/`defaultTab`
+    wins (e.g. "Already have an account? Sign in"), otherwise a pending intent opens
+    sign-up. Title/description come from `authDialogCopy()`: trial → "Create your
+    account to start {plan} free", save_analysis → "Save your SKYNN AI results",
+    unlock → "Create a free account to keep reading" (log-in tab keeps its title).
+  - Migration `20260925090000_generated_usernames.sql` (**applied live**):
+    `handle_new_user()` gives accounts with no metadata username a `glow_` + 6-char
+    placeholder (`generate_placeholder_username()`, retried until unique, and the
+    insert retries on a concurrent `unique_violation`) with the new
+    `profiles.username_generated = true`. A BEFORE UPDATE OF username trigger clears
+    the flag when the member picks a name; clients have no grant on the flag itself.
+    Existing usernames untouched (flag defaults false; metadata usernames still
+    win). Verified with rolled-back probes, including as the `authenticated` role.
+  - The live comment forms are the review discussion in `ProductReview.tsx` + SSR
+    `reviews.$slug.tsx` (`ArticleComments.tsx` is read-only seed content). They use
+    `useCommentHandle()` + `CommentHandleDialog`: no handle yet (placeholder or null,
+    `needsCommentHandle()` in `src/lib/commentHandle.ts`) → ask once, check with
+    `is_username_available()`, save to `profiles.username`, then post. `glow_`
+    handles are reserved for placeholders. Comments now show the handle instead of
+    `full_name`/the email prefix (the old fallback leaked part of the email).
+    Signed-out "Post comment" records an `unlock` intent and opens sign-up.
+- **Onboarding overhaul 03 — `useConversionAction` behind every gate (2026-09-25)**
+  - `src/hooks/use-conversion-action.ts` (`feature?, source`) → `{ label, sublabel,
+    kind: 'signup'|'trial'|'subscribe'|null, entitled, unavailable, busy, run }`; rules in
+    the pure, tested `src/lib/conversionAction.ts`. Anonymous → "Create free account"
+    (records an `unlock` intent for the current path, opens AuthDialog in sign-up mode);
+    free Explorer with no trial used → `Start free trial — ${trialCtaLabel()}` (Insider,
+    no card, started IN PLACE by `useStartTrial()`); otherwise → "Subscribe" (opens
+    `MembershipCheckoutDialog`); entitled → null. **Only an Explorer is ever offered a
+    trial** — `start_free_trial()` overwrites `subscription_status`, so offering one to a
+    paying Glow Lite member would downgrade them. **A VIP-only feature shows a disabled
+    "Glow VIP — coming soon"**, never a CTA, while VIP is `is_purchasable = false`.
+    Every click fires `upgrade_click { source, kind, feature }` (source list in
+    `docs/conversion-events.md`).
+  - Plumbing: `src/lib/conversionDialogs.ts` (window-event bus: `openSignupDialog()`,
+    `openMembershipCheckout()`) + `<ConversionDialogs />` mounted once in `App.tsx`
+    (IntentResolver's subscribe path now uses it too). The TanStack SSR routes
+    (`reviews.$slug`, `spotlight.$slug`) live outside App.tsx, so they mount
+    `<SsrConversionShell />` (dialogs with full-page navigation, IntentResolver, toaster)
+    inside their MemoryRouter. `notifyMembershipUpdated()` (`use-membership.ts`) makes
+    every `useMembership()` instance refetch, which is how a gate unlocks right after a
+    trial starts. `useStartTrial()` (`src/hooks/use-start-trial.ts`) landed here ahead of
+    prompt 05, which should move Pricing/Hero/IntentResolver onto it.
+  - Refactored: `GatedOverlay` (now takes `feature` + `source`; `ctaHref`/`ctaLabel`/
+    `onSignIn` are gone), `FeatureGate`, `UpgradePrompt`, `PremiumUpsellSection`,
+    `ReanalysisLockedPanel`, `AnalysisCreditsCard`, `FormulatorTab`, `PodcastSection`,
+    `ProductReview` + `routes/reviews.$slug.tsx`, `NewsroomArticle` (new `ConversionCta`),
+    `SmartRoutines` (Analysis Pass card opens `AnalysisPassPurchaseModal` in place, VIP
+    card is "coming soon"), `BillingTab` (non-members; members keep "Change plan"), plus
+    the other GatedOverlay callers. "See all plans" is a secondary `SeeAllPlansLink`
+    carrying `?returnTo=` (set after mount to avoid a hydration mismatch). No gate uses
+    `/pricing` as its primary action. The remaining `/pricing` links are navigation or
+    plan-management links rather than gates: Footer, About, FAQ, Hero, AdBlockNotice,
+    Openhaus, Whitepaper, ComingSoon, the SKYNN AI intro chip, "Change plan", the
+    dashboard trial-ENDED banner (prompt 06) and the unused SSR `briefings.$slug` text.
+    The SSR review HTML still contains the body (verdict, ingredient breakdown) under
+    the blurred gate.
+- **SEO audit fixes: language markup + review structured data (2026-09-25)**
+  - **Language markup**: `SEO.tsx` emitted `<meta name="language" content="English">`
+    on every Helmet page (baked into prerendered HTML) — not an ISO code, flagged
+    by the SEO audit. Now `content="en"`, and `SEO.tsx` also pins `<html lang="en">`
+    via Helmet. `index.html`, `src/routes/__root.tsx`, the AMP story template and
+    email layouts already used `lang="en"`. Left as-is on purpose (valid BCP 47,
+    not HTML language markup): JSON-LD `inLanguage: "en-ZA"` in the briefing
+    pipelines, `public/podcast.xml` `<language>en-za</language>` (RSS format),
+    and `toLocaleDateString("en-ZA")` formatting.
+  - **GSC "Review has multiple aggregate ratings" (in "review" and in
+    "aggregateRating")** — confirmed live on `/reviews/:slug` before the fix:
+    `productReviewJsonLd()` emitted `aggregateRating` as an ARRAY of two: an
+    "editorial" aggregate built from our own single review (`reviewCount: 1`,
+    self-serving) plus a 1–5 "member" rating from `getMemberRatingStats()`
+    (`src/lib/memberRatings.ts`), which is **hash-generated** (363–890 fake
+    members), i.e. fabricated social proof in structured data. Also,
+    `SitewideSEO.tsx` injected a SECOND Product node (with its own aggregate) on
+    SPA-rendered review pages, and `ProductReview.tsx` could fall back to the
+    seeded `getSeededAverageRating()` and counted comments instead of ratings.
+  - **Rule now (unit-tested in `src/lib/__tests__/productReviewJsonLd.test.ts`)**:
+    a review page emits exactly ONE Product node with ONE editorial `review`
+    (0–10) and AT MOST ONE `aggregateRating` (1–5, `ratingCount`), present only
+    when real `review_ratings` rows exist. The SSR route now loads that aggregate
+    server-side (`communityRating` in `fetchReview()`); `ProductReview.tsx` uses
+    only real rows; `SitewideSEO` no longer emits review JSON-LD. Never pass
+    `getMemberRatingStats()`/seeded values into structured data. Verified with
+    a local node-server SSR build against live data: rated review → one
+    `aggregateRating`, unrated → none. GSC needs a "Validate fix" + recrawl.
+  - **Open, not changed (UI, needs a product decision)**: `ReviewsGrid.tsx`
+    still DISPLAYS the hash-generated `getMemberRatingStats()` average and member
+    count on `/reviews` cards, and pages show seeded like/rating fallbacks
+    (`getSeededLikeCount`/`getSeededAverageRating`). These conflict with the
+    "never fabricate ratings" principle and should be replaced with real
+    `review_ratings` data or removed.
+- **Onboarding overhaul 02 — unified pending intent (2026-09-24)**
+  - `src/lib/pendingIntent.ts` replaces the plan-only `pendingPlan.ts` (now a
+    deprecated re-export shim): `{ action: 'trial'|'subscribe'|'save_analysis'|
+    'unlock', plan?, interval?, variantKey?, returnTo, ts }`, same
+    sessionStorage + URL channels (params `pi_action/plan/interval/variant/
+    return/ts`), 30-minute max age now applied to the URL channel too (`ts`
+    travels in the link), strict validation in the pure
+    `parsePendingIntent()` — `returnTo` must pass `isSafeReturnTo()`
+    (same-origin relative path, no `//`, backslash or control-char tricks),
+    otherwise the whole intent is dropped. Never authorization.
+  - `src/components/IntentResolver.tsx`, mounted once in `App.tsx` inside the
+    router, runs when the user id goes from none to set (in-page auth, OAuth
+    or email-confirmation return): read-and-clear the intent, then trial →
+    `startFreeTrial()` (TODO prompt 05: `useStartTrial`) and land on
+    `trialDestination(returnTo)`; subscribe → `MembershipCheckoutDialog`
+    (lazy); unlock/save_analysis → `returnTo`. No intent + account created
+    < 10 min ago + `profiles.onboarding_completed_at` null → `WELCOME_PATH`
+    (`/dashboard` until prompt 07 adds `/welcome`), once per browser session,
+    never from `/dashboard`, `/welcome`, `/reset-password`, `/admin` or
+    `/skynn-ai*`. Rules live in `src/lib/intentRouting.ts` (unit tested).
+  - Pricing's resume `useEffect` is gone; its trial/subscribe intents carry a
+    validated `?returnTo=`. A locked review's overlay now has "Sign up / Log
+    in" (records `unlock` → back to the review) and its pricing links pass
+    `returnTo`, so a trial started from a review lands back on it, unlocked.
+    AuthDialog's OAuth/email redirects use `withPendingIntentParams()` with
+    the intent's `returnTo`. SKYNN AI's save gate records `save_analysis`, and
+    NewsroomFeed's signed-out Save records `unlock`, so neither is pulled to
+    the new-account landing.
+  - Migration `20260924140000_profiles_onboarding_completed_at.sql` (**applied
+    live**): nullable `timestamptz` + column-level UPDATE grant to
+    `authenticated` (owner-only via the existing RLS policy). Verified with a
+    rolled-back probe: owner can set it, another user's row → 0 rows,
+    `subscription_status` still refused.
+  - Verified in a real browser against a production build (fake local
+    session, no real accounts): locked review → Google carries the intent in
+    `redirect_to`; returning signed in on another page lands on the review
+    with `pi_*` params stripped; a tampered `returnTo` falls back to /pricing.
+- **Onboarding overhaul 01 — P0 fixes and trial-email hygiene (2026-09-24)**
+  - Header menu footer "Sign Up / Log In" was a `<Link to="/">`; it now opens
+    AuthDialog in sign-up mode and is hidden when signed in. Signed-out
+    `/dashboard` opens AuthDialog in place (new `returnTo` prop, same-origin
+    paths only) instead of redirecting home.
+  - Dashboard trial banner reads the member's live `payment_subscriptions` row:
+    card-backed → "Auto-renew is on — first charge R… (US$… via PayPal) on …";
+    no card → the old copy. Its CTA is "Keep my membership" → `?tab=billing`
+    (prompt 06 replaces it with a dialog). The trial-ENDED banner still says
+    "Upgrade now".
+  - Deleted the never-imported `SubscriptionPaywallModal.tsx`. `plans.ts`
+    fallback now matches live `pricing_plans` (Lite R39, Insider R79, VIP R199);
+    /pricing meta/OG and `seo-config` carry no prices; `/routines`
+    (`SmartRoutines.tsx`) was also showing stale R99/R299 and now reads prices
+    from `usePricingConfig()` (hidden until loaded).
+  - **Trial emails** (`_shared/email/templates/membership.ts`): `trial_started`,
+    `trial_expiring`, `trial_ended` take `plan` + `has_payment_method`, use
+    `planLabel()`, and only say "no surprise charges" / "you won't be charged" /
+    "no charge was made" when `has_payment_method` is explicitly false (unknown
+    → neutral). Missing `plan` (old queued jobs) → "Glow Insider". Email
+    `formatDate()` now formats in SAST — it was UTC, so the 1 Nov promo trial
+    end rendered as "31 October". The `trial_expiring` guard accepts any trial
+    plan and re-reads the payment state at send time. Tests pin all of this.
+  - Migration `20260924130000_trial_emails_plan_and_payment_method.sql`
+    (**applied live**): `notify_subscription_change()` and
+    `enqueue_trial_expiring_events()` now cover every trial plan and pass
+    `plan` + `has_payment_method` (new internal helper
+    `has_live_payment_subscription()`). Before this a Glow Lite trial start
+    sent `membership_activated` ("membership is now active") and Glow Lite
+    trials got no expiring/ended email. Verified with a rolled-back probe.
+  - **`email-processor` deploy (v35) — read before redeploying it.** Its entry
+    file imports the committed source from raw GitHub pinned to commit
+    `90e071f` (this PR). The previous deploy was pinned to unmerged commit
+    `0a05714` (SKYNN AI v2), whose three templates — `advanced_report_ready`,
+    `advanced_report_not_released`, `admin_skynn_review_needed` — are live
+    (their SQL is applied) but are **not on `main`**. They are copied verbatim
+    into the v35 entry file so they keep working. Any future email-processor
+    deploy must keep them until SKYNN v2 merges, and a SKYNN v2 deploy must
+    include this PR's template/guard changes.
+- **Onboarding overhaul 00 — conversion baseline (2026-09-24)** — measure before
+  changing behaviour; no UI change. New admin-only view
+  `public.conversion_funnel_daily` (migration
+  `20260924120000_conversion_funnel_daily.sql`, **applied live**): one row per SAST
+  day for the last 365 days, counts only (sign-ups from `auth.users`, saved starter
+  analyses = delivered `skincare_recommendations` with `result_payload`, trials via
+  `profiles.trial_used_at`, live `payment_subscriptions`, paid profiles via the
+  `PAID_SUBSCRIPTION_STATUSES` list — pinned to `entitlements.ts` by
+  `src/lib/__tests__/conversionFunnel.test.ts`). It is a `security_invoker` view over
+  the SECURITY DEFINER `conversion_funnel_daily_rows()`, which is needed because
+  `authenticated` can't read `auth.users`; the function returns nothing unless
+  `has_role(auth.uid(),'admin')`. Verified live in a rolled-back probe: admin → 365
+  rows, non-admin → 0 rows, anon → permission denied. `docs/conversion-events.md`
+  catalogues every `trackConversionEvent` call (where it fires, its props), the 7
+  declared-but-never-fired names, and double-count caveats. Note that
+  `signup_completed` fires on sign-up submission, before email confirmation; use the
+  view for real sign-ups.
+  Separately, **`npm run lint` exits 0 again** (it failed on the base commit): 9
+  older ESLint errors were fixed without behaviour changes (edge functions only got
+  `eslint-disable-next-line` comments next to their existing `deno-lint-ignore`
+  comments, so no redeploy was needed), and `search-index:check` now passes.
+  `/reset-password` and `/quote-ss-beauty` were added to `KNOWN_EXCLUSIONS`, and
+  `/advertising-policy`, `/corrections-removals` and `/ingredients/checker` got
+  site-search entries. `tsc` needs `src/routeTree.gen.ts`, which is gitignored and
+  generated by the TanStack build, so run `npm run build:tanstack-start` once in a
+  fresh checkout before typechecking.
+- **Free-first SKYNN AI formulator, rolling free analysis, "Today's skin weather" (2026-09-24)**
+  — branch `feat/free-first-formulator-weather`, plan + open items in `PLAN.md`.
+  - **Anonymous flow**: visitors finish the whole quiz with no account and see
+    skin type + top 2 concerns (`src/lib/formulator/summary.ts`); the full
+    on-screen analysis is unlocked by a free sign-up ("Save your results — free")
+    that attaches the SAME result (localStorage snapshot → `save_starter_analysis`).
+    The starter PDF still auto-downloads for anonymous users (explicit decision —
+    value before the ask). Email confirmation now returns to `/skynn-ai`, and the
+    dashboard also attaches a pending local result on arrival.
+  - **Limits**: `FORMULATOR_LIMITS` in `src/lib/formulator/limits.ts` — Explorer
+    and Glow Lite get 1 free starter analysis per ROLLING 30 days counted from the
+    last FREE analysis (`profiles.last_free_analysis_at`; spending an Analysis Pass
+    doesn't move the window); Insider/VIP unlimited. Server values live in
+    `pricing_settings.free_ai_analysis_allowance` / `free_analysis_window_days`
+    (a unit test pins the TS config to the migration). **The only write path for
+    starter rows is `save_starter_analysis()`** (checks + stamps atomically,
+    falls back to a purchased pass, idempotent on `client_analysis_id`);
+    `get_formulator_allowance()` is the read. `formulator_tier()` deliberately
+    differs from `is_member()` — a Glow Lite *trial* stays limited.
+    Server tests: `supabase/tests/formulator_allowance.sql` (runs in a DO block
+    that always rolls back — safe on prod; 15 assertions passing live).
+  - **Cutover not yet applied**: `20260924100100_formulator_allowance_cutover.sql`
+    (removes direct client INSERT/UPDATE of starter rows on
+    `skincare_recommendations`, makes `claim_starter_analysis()` read-only) must be
+    applied right AFTER this frontend deploys — the old frontend upserts directly.
+    The new frontend never calls `claim_starter_analysis()` (pre-cutover it still
+    consumes credits).
+  - Insider/VIP whose weekly live-AI quota is spent now fall back to an unlimited
+    starter re-analysis instead of an error.
+  - **Skin weather**: `supabase/functions/skin-weather` (city-key allow-list, never
+    coordinates; per-city cache in `skin_weather_cache`, 45-min TTL, stale-serve up
+    to 6h) → `SkinWeatherCard`; cache TTL raised 45 → **60 min** on 2026-09-24 because
+    the default provider is now **One Call 4.0** (`OpenWeatherV4Provider` —
+    new OpenWeather accounts are only offered 4.0; it needs 3 calls per refresh:
+    `current`, `timeline/1h`, `timeline/1day`, so worst case 10 × 24 × 3 = 720
+    calls/day, inside the free 1,000). 4.0 responses are reshaped into the 3.0
+    shape and parsed by the same `normaliseOneCallV3()`; the 3.0 provider stays
+    available via the optional `OPENWEATHER_ONECALL_VERSION=3.0` secret. tip logic is the pure, tested
+    `getSkinWeatherTip()` in `src/lib/skinWeather/tips.ts` (WHO UV bands,
+    humidity <30 / >70, profile-aware, cosmetic wording only — a test scans every
+    output for claim/medical terms). Provider is OpenWeather One Call (4.0 default, 3.0 optional) behind
+    `SkinWeatherProvider` (`_shared/weather/`) — **Open-Meteo's free API is
+    non-commercial only and counts ad-supported sites as commercial, so don't
+    switch to it without a paid licence**. City is `profiles.weather_city_key`
+    (separate from the free-text ADDRESS `profiles.city`, which is only a
+    fallback when it names one of the 10 cities); "Use my location" snaps to the
+    nearest city on-device. Needs `OPENWEATHER_API_KEY` as an Edge Function
+    secret. **Deployed 2026-09-24** (`skin-weather` v1, `verify_jwt=false`, via the
+    MCP tool with same-root `./_shared/weather/` imports for that upload only —
+    the committed source keeps `../_shared/`). Verified live: unknown city and
+    raw-coordinate requests → 400, CORS preflight → 200. The first real request
+    returned 502 because OpenWeather answered **401** — the secret is set but the
+    key wasn't accepted yet (new keys can take ~2h to activate, or the 4.0
+    subscription isn't attached to that key). **Re-checked 12:10 UTC (~2h
+    later): still 401** (logged on `timeline/1day`). The URLs/params/response
+    shape were re-checked against OpenWeather's 4.0 docs and match; the docs
+    define 401 as "key missing or doesn't grant access to this API", so it's the
+    key/subscription (4.0 is a separate subscription from 3.0), not code. A
+    human must confirm in the OpenWeather dashboard that the One Call 4.0
+    subscription is active on the same key stored as `OPENWEATHER_API_KEY`
+    (then re-set the secret if needed). **Working 2026-09-24 13:50 UTC** after
+    the user reset the key: Johannesburg → 200 (uvMax 9.4, humidity 42%, high
+    26°C, provider `openweather-v4`), cache row written. Note: the "OpenWeather"
+    MCP connector is OpenWeather's separate Bot Forum platform
+    (data.openweathermap.org, its own accounts/keys) — its key is not the
+    `api.openweathermap.org` appid this function uses, so a connector 401 says
+    nothing about `OPENWEATHER_API_KEY`. Only on this branch, not `main`:
+    if Supabase's GitHub sync redeploys from `main` before merge, re-check the
+    function still exists.
+  - Brand palette tokens (`brand-slate/cream/ink/canvas/gold`, `secondary-text`)
+    were ADDED next to the shadcn tokens — `--primary` is already #262626 and
+    drives every primary button, so it was deliberately not renamed to the brief's
+    "Primary #9CA3AF" (which also fails AA as text).
+  - **Found while testing (2026-09-24)**: (1) `start_free_trial()` fails for every
+    plan on production — `notify_subscription_change()` builds an email
+    idempotency key from `trial_started_at`, which is never set → NULL key →
+    NOT NULL violation aborts the trial. No profile has ever recorded a trial.
+    Fixed by `20260924100200_fix_trial_start_email_idempotency_key.sql`
+    (`start_free_trial()` now stamps `trial_started_at`; the trigger falls back
+    to `trial_used_at`/`now()`), **applied live 2026-09-24 at the user's
+    request** and verified with a rolled-back probe: Insider and Glow Lite
+    trials both start (ending 2026-10-31T22:00Z = 1 Nov SAST via the promo), a
+    repeat is refused, and TRIAL_STARTED / MEMBERSHIP_ACTIVATED emails queue.
+    (2) `20260919100000` had redefined `protect_profile_privileged_columns()` from
+    an old copy, dropping founding_member/is_professional/starter_analyses_used/
+    account_status/deactivated_at — restored. Column-level UPDATE grants on
+    `profiles` already blocked clients from those columns, so this was a
+    defence-in-depth gap, not an exploitable hole. (3) `src/data/plans.ts`'s static
+    fallback still lists Insider R99 / VIP R299; live DB is R79 / R199 — the new
+    upgrade CTAs only show a price once `pricing_plans` has loaded.
+  - `skincare_recommendations` was empty on production at the time — no user had
+    ever saved an analysis, so the backfill was a no-op.
+
+- **Deploy-skew resilience, ad placement system, Web Stories (2026-09-23)**
+  - **Page hangs / broken-after-tab-switch, root causes and fixes** — this
+    project redeploys many times a day and ~60 routes are lazy chunks. A tab
+    on an old build requesting a replaced chunk used to fall through to the
+    SSR catch-all (`/__server`), which cold-started and returned index.html,
+    so the import hung/failed with no error boundary. Now:
+    `scripts/assemble-vercel-output.ts` 404s missing `/assets/*` before the
+    catch-all; every route uses `lazyWithRetry()` (`src/lib/chunkRecovery.ts`,
+    one guarded reload per 30s) — **use it instead of `React.lazy` for any
+    new lazy import**; `main.tsx` handles `vite:preloadError` the same way;
+    `AppErrorBoundary` wraps the app and the routes (resets on navigation);
+    `use-deployment-skew-guard.ts` detects a newer deploy on tab return and
+    hard-loads the next navigation; `BrowserRouter` uses
+    `v7_startTransition`. For tab-return breakage: `src/lib/domResilience.ts`
+    (facebook/react#11538 patch — third-party DOM mutation from AdSense auto
+    ads / auto-translate no longer crashes React) and React Query defaults
+    (staleTime 5 min, `refetchOnWindowFocus: false`). Verified against a real
+    production build by deleting a chunk mid-session.
+  - **Ad placement** — every ad/sponsored unit renders inside
+    `src/components/ads/AdFrame.tsx` (owns vertical spacing, the
+    Advertisement/Sponsored label, disclosure); AdSense units use
+    `useAdSenseUnit` which collapses unfilled/blocked slots. Call sites must
+    NOT add their own vertical margin/padding around ads. Rules: one unit per
+    break, never two adjacent, nothing under a hero or above a page title,
+    no ads before article bodies, content on both sides.
+    `AffiliateBanner` is just an AdSlot alias (it was always the same
+    AdSense slot). If AdSense "Auto ads" is on in the dashboard it bypasses
+    all of this — recommended off.
+  - **Web Stories** — `web_stories` / `web_story_pages` / `web_story_events`
+    tables + public `web-stories` bucket (migration
+    `20260923090000_web_stories.sql`; admin-only writes, public reads of
+    published in-window stories, anonymous insert-only events). Shared model
+    in `src/lib/webStories/stories.ts` (`arrangeRail()` spaces sponsored
+    stories at slots 3/7/11 unless `rail_position` is set — unit tested);
+    briefings top up the rail in-app only. `WebStoriesBar` opens the lazy
+    `StoryViewer`. `/web-stories/:slug` serves validated AMP (amp-story +
+    amp-story-auto-ads + amp-analytics beaconing back to the same route's
+    POST) for authored stories with ≥2 pages; promotional ones are `noindex`
+    and excluded from the sitemap. No admin UI yet — stories are inserted
+    directly.
+    **Rail content (2026-09-24)**, in order (`use-web-stories.ts`): authored
+    DB stories → the 3 newest briefings → curated stories. Product review
+    stories were in the rail briefly and were **removed at the user's request
+    (2026-09-24)** along with `reviewStories.ts` — don't re-add them.
+    Curated stories (`src/lib/webStories/curated.ts`) are built in code from
+    site data, not stored in the DB: "The Skin Deep Podcast — Season 1"
+    (cover + episodes 1–10; an unreleased episode is labelled "Coming soon"
+    and linked to `/podcast`, never to a non-existent episode page) and
+    "The Spring Reset" (verbatim excerpts from `seasonHubs.spring`). They get
+    AMP pages and sitemap entries. Podcast story frames are 1080×1920 JPEGs
+    in `public/stories-media/podcast-s1/` (original art over a blurred
+    extension, art kept in the top ~half so text never covers it) —
+    regenerate the same way if an episode cover changes. Do NOT put static
+    media under `public/web-stories/` — that prefix is routed to the SSR
+    function. Titles ≤120 / bodies
+    ≤400 chars via `clipText()`. AMP story ads run through
+    `amp-story-auto-ads` with the dedicated AdSense slot `5315163514`; a
+    literal in-page `<amp-ad>` inside a story page is rejected by the AMP
+    validator, so it must never be added there.
+  - **Typecheck is clean — keep it that way (2026-09-24)** — `npx tsc -p
+    tsconfig.app.json --noEmit` now exits 0 (was 35 errors). Two standing
+    changes: `tsconfig.app.json` sets **`strictNullChecks: true`** (TanStack
+    Router requires it; everything else stays `strict: false`), and
+    `src/integrations/supabase/types.ts` is **regenerated from the live DB**
+    (`mcp__Supabase__generate_typescript_types`), not hand-edited — regenerate
+    after any migration instead of hand-extending it. Real bugs this surfaced
+    and fixed: the dashboard rendered `<AdvancedAssessmentCard />` with no
+    props (every member was shown as a non-member with 0 passes);
+    `SitewideSEO` built review titles without the brand. When an RPC arg is
+    optional (`DEFAULT NULL`), pass `undefined`, not `null`.
+  - **Overlay z-index tiers (2026-09-24, header menu bug)** — the mobile
+    menu Sheet opened *under* its own dark overlay (panel z-50, overlay
+    z-[65]): the `/motion` pass rewrote `sheetVariants` from a pre-fix copy
+    and the merge kept its `z-50`, so taps hit the overlay and closed the
+    menu. The shared scale is now: fixed bars ≤ z-[60] (story rail z-[55],
+    promo/cookie/podcast z-[60]) → **modals z-[65]** (Sheet, Dialog,
+    AlertDialog, Drawer — overlay AND panel; Dialog was z-50, so the promo
+    bar and rail painted over the full-screen AuthDialog's header on phones)
+    → **floating layers z-[70]** (Popover, Select, DropdownMenu, Tooltip,
+    HoverCard, ContextMenu, Menubar — must sit above a modal they open
+    inside) → SiteSearch z-[75] → StoryViewer z-[80] → toasts/Preloader
+    z-[100]. When editing any `ui/` overlay primitive, keep overlay and
+    panel on the same tier; never reintroduce shadcn's default `z-50`.
+
+- **Site-wide `/polish` pass + promo-aware trial copy (2026-09-23)** — ran the
+  repo's own `.claude/skills/polish/SKILL.md` over Home, /briefings,
+  /skynn-ai, /seasonals, /ingredients, /shop, /spotlight, /compare, /pricing
+  and /knowledge-hub. Standing decisions from the user that came out of it:
+  - **/pricing paid plans have the free trial as their ONLY CTA** — the
+    direct-subscribe button was removed from plan cards at the user's explicit
+    request. Explorer keeps its own free sign-up CTA; a paid plan that can't be
+    trialled shows a disabled status ("Your current plan" / "Coming soon" /
+    "Free trial already used"). Consequence to be aware of: `/pricing` no
+    longer offers a direct paid checkout for plans, so an account that has
+    already used its trial can't subscribe from there (`BillingTab.tsx` still
+    says "resubscribe any time from the pricing page", and
+    `SubscriptionPaywallModal.tsx` had its own subscribe button — that modal
+    was never imported and was deleted on 2026-09-24). The
+    `pendingPlan` "subscribe" intent path in `Pricing.tsx` was left intact.
+  - **All trial wording goes through `src/lib/promo.ts`** (`trialCtaLabel()`,
+    `trialNoun()`, `trialLength()`, `withPromoTrialCopy()` for DB/static plan
+    copy) — during the promo it reads "free until 1 November 2026", and it
+    switches back to the standard "7-day free trial" wording automatically once
+    `PROMO_END_AT` passes. Don't hardcode "7-day"/"7 days" trial copy anywhere
+    new; use these helpers. Covers Hero, Pricing, About, FAQ (`faq.ts`), Terms,
+    Refund Policy, ProductReview + its SSR twin, AuthDialog, TrialWelcomeModal,
+    FormulatorTab and /shop (SubscriptionPaywallModal was deleted 2026-09-24).
+  - **Home hero stats ("3.7K+ Community Members", "4.75/5 Member Rating") are
+    confirmed authentic by the user** — not fabricated social proof.
+  - **SKYNN AI claims (user-confirmed)**: the Advanced AI Dermatology Report is
+    dermatologist reviewed; the free Starter Analysis is based on verified,
+    dermatologist-grounded research. The Starter intro chip therefore reads
+    "Dermatologist-grounded research", not "Dermatologist reviewed".
+  - **Current season is derived from the date** (`getCurrentSeason()` in
+    `src/data/seasonals.ts`, SA southern-hemisphere months, SAST) instead of a
+    hardcoded `"spring"` on `/seasonals` and the homepage teaser.
+  - Briefing cards (`NewsroomFeed.tsx`) carry `.gradient-border-anim` on every
+    card — briefly removed during this pass, then **reapplied at the user's
+    explicit request (2026-09-23)**, so treat it as a deliberate exception to
+    the "one gradient accent per screen" guidance, not drift. Each card's
+    action row is Like / Save / Share: Save is visible to everyone (signed-out
+    visitors get the `AuthDialog` in place, since saves are account-bound in
+    `news_article_engagement`); Share uses the Web Share API with a
+    copy-link fallback, same pattern as `NewsroomArticle.tsx`. Page-level cards
+    stay `rounded-3xl` (the established majority); the shared `ui/card.tsx`
+    primitive stays `rounded-2xl`.
+  - framer-motion entrance animations on /pricing and the briefing grid now
+    check `useReducedMotion()` — the CSS `prefers-reduced-motion` block in
+    `index.css` can't stop JS-driven animations.
 - **Briefing article page cleanup + live SSR sitemap (2026-09-22)** —
   four related fixes to `/briefings/:slug` (`src/pages/NewsroomArticle.tsx`,
   the real production page for that route — `src/routes/briefings.$slug.tsx`
@@ -300,6 +1296,35 @@ feature appear operational.
     solve here (that trick targets SSR/hydration mismatches, not a
     pre-JS static snapshot). Not worth solving further unless it's
     actually reported as a visible problem.
+  - **Motion system + `/motion` skill (2026-09-23)** — the project's motion
+    principles live in `.claude/skills/motion/SKILL.md` (invoke with
+    `/motion`); read it before any animation/transition work. First pass
+    applied at the shared-primitive level, not per usage: `ui/button.tsx`
+    now gives every Button a 150ms ease-out transition (colour, shadow and
+    transform, so existing `hover:scale-*` overrides now ease instead of
+    snapping) plus `active:scale-[0.98]` press feedback (`link` variant opts
+    out via `active:scale-100`); `ui/sheet.tsx` entrance shortened from 500ms
+    to 300ms ease-out, and exit to 200ms ease-in; `FloatingBottomNav.tsx`
+    tabs share a `NAV_ITEM` class with `active:scale-95` press feedback and a
+    `focus-visible` ring (they had none). The global
+    `prefers-reduced-motion` block in `src/index.css` now also collapses all
+    transitions, accordions and skeleton pulse (spinners are kept because
+    they communicate state). No dependency was added, and none of the
+    existing `framer-motion` usages were changed.
+    **Second pass, same day**: SKYNN AI step content in `AIFormulator.tsx`
+    is wrapped in one `key={step}` div with a short `animate-in` fade + rise
+    (200ms, or 300ms for the results reveal); stepper/progress/footer sit
+    outside it so they don't re-animate. The analysis state fades between
+    loading/exhausted/error, carries `role="status"`, and its processing
+    halo uses `.gradient-bg-soft`. Clickable cards share one
+    `.card-interactive` utility (`src/index.css`: 2px lift + `--shadow-md`,
+    200ms ease-out, `@media (hover: hover)` only) instead of 4 different
+    `hover:shadow-*` sizes; static informational cards (Features,
+    PartnerBenefits, About, SpotlightMethodology) lost their hover shadow
+    since it implied a click that doesn't exist. Two exceptions: cards whose
+    transform framer-motion owns (inline style beats CSS — `NewsroomFeed`,
+    `AffiliateAdSlot`) keep framer but match the same values, and `Hero.tsx`'s
+    stat cards were left as a prior deliberate choice.
   - **`docs/SkinLabs-Design-System.pdf`** — a generated, versioned
     snapshot reference of the whole visual design system (brand logo
     usage, color tokens in both modes, the brand gradient and everywhere
@@ -506,6 +1531,203 @@ feature appear operational.
       product-catalogue search for the `product_list` question type
       (currently name-only entries); true async/background generation;
       end-to-end QA with a real (non-placeholder) prompt.
+    - **SKYNN AI v2 — Advanced AI Dermatology Report framework live
+      (2026-09-23)** — implements the "SKYNN AI v2 – Dermatologist-Approved,
+      POPIA- and SAHPRA-Aligned Skin Assessment Framework" master reference
+      on top of the engine above (most of the "deferred" list directly above
+      is now done). SkinLabs confirmed the framework's prompts are
+      dermatologist-approved; the sign-off RECORD (name, HPCSA no., date) was
+      not supplied, so it sits at `pending_details` and **SQL refuses to
+      release any report until an admin records it** (admin dashboard →
+      SKYNN Reviews). User decisions: access = anyone holding an Analysis
+      Pass (rollout_stage `pass_holders_review`; membership alone doesn't
+      qualify; one pass per submission; refunded on failure or rejection);
+      **every report is held for manual admin review before the member can
+      read it**; questions are SkinLabs-authored (no DLQI — licensed — and no
+      Baumann BSTI items — proprietary; outputs are labelled "Baumann-style"
+      and "not the DLQI"); generation is async.
+      - **Pipeline** (`supabase/functions/_shared/assessment/pipeline/run.ts`,
+        pure + bun-tested with a mocked model): consent gate → deterministic
+        scores (`../scoring/`: Baumann-style 4-axis, GAGS/IGA-style, Glogau-
+        style, mMASI-style tracker, QoL bands, MST tier/groups 1-3/4-6/7-10)
+        → Haiku intake → Haiku safety (final triage = stricter of model and
+        the deterministic floor `computeDeterministicTriage()` in
+        `safety.ts`) → Sonnet fairness (MST always the member's own answer)
+        → Sonnet reasoner (only PubMed-verified evidence codes; unknown codes
+        stripped) → Sonnet writer → deterministic regulatory term scan
+        (`scanRegulatoryFlags`) → Opus QA, one redline rewrite, then reject.
+        Every stage is persisted so a run resumes after a timeout. User data
+        only ever reaches a model inside `<user_data-{SALT}>` tags (random
+        per session, PII-scrubbed, tag-forging neutralised —
+        `pipeline/userData.ts`). Structured output is a single tool with
+        `tool_choice: auto` (forced only on Haiku) because forced tool use
+        doesn't combine with Opus 5's default adaptive thinking.
+      - **Prompts** — six role prompts transcribed verbatim from the PDF's
+        §5 A–F into `assessment_prompt_versions` (prompt set `skynn-v2.0.0`,
+        new `prompt_set`/`role` columns; md5 of each verified against the
+        source after seeding). Still service-role only.
+      - **Worker** — `supabase/functions/skynn-advanced-worker` runs from
+        pg_cron every minute (only when a pending report exists), responds
+        202 and processes in `EdgeRuntime.waitUntil`. Auth: `x-cron-secret`
+        verified IN THE DATABASE against Vault `skynn_worker_cron_secret` via
+        `verify_skynn_worker_secret()` using the auto-injected service-role
+        key — so, unlike the briefings/openhaus crons, **no `supabase secrets
+        set` step is needed**. Also accepts the service-role bearer (the
+        post-submit kick) or an admin JWT.
+      - **Schema** — `20260923100000_skynn_v2_framework.sql` (+`…100100_seed`,
+        `…100200_retire_v1_completion`): `assessment_prompt_signoffs`,
+        `advanced_assessment_audit_log` (append-only, no content), review
+        columns + resumable `pipeline_state` + lease on reports, column-level
+        SELECT grants so owners see status only; content comes from
+        `get_my_advanced_assessment_report()` once approved. Admin RPCs:
+        `admin_list_/admin_get_/admin_review_advanced_assessment`,
+        `admin_get_prompt_signoffs`, `admin_record_prompt_signoff`. The v1
+        `complete_advanced_assessment_session()` is revoked from
+        service_role so a stale v1 deploy can't bypass review.
+      - **Evidence** — 16 efficacy citations (C1–C16) + 8 methodology refs
+        (M1–M8) in `advanced_assessment_evidence`, every PMID/DOI resolved
+        live via the PubMed MCP; `verified` = bibliographically verified.
+      - **Emails** — `advanced_report_ready`, `advanced_report_not_released`
+        (SKYNN) and `admin_skynn_review_needed` (ADMIN, no member details);
+        failures reuse `analysis_failed`.
+      - **Deploy mechanism used** — edge functions were deployed via the MCP
+        tool as a one-line entrypoint that imports the committed source from
+        `raw.githubusercontent.com/jobbyist/skinlabs-africa/<commit-sha>/…`
+        (repo is public; pinned sha = immutable, and avoids the MCP bundler's
+        `../` import bug). The seed migration was applied the same way via
+        `pg_net` + an md5 guard. A later GitHub-sync deploy from `main`
+        replaces these with the same source once the branch is merged.
+      - **Live E2E (2026-09-23) and the one blocker left**: a synthetic,
+        fully-answered 2026.2 session on the admin account was run through
+        the deployed worker via the real pg_cron job. Everything up to the
+        first model call worked (cron fired, Vault auth, claim/lease,
+        deterministic scores persisted, audit rows). The model calls did
+        not: `AI_GATEWAY_API_KEY` is not set as a Supabase Edge Function
+        secret, and `ANTHROPIC_API_KEY` contained a stray non-ASCII
+        character and, once stripped, was rejected by Anthropic (401 "API
+        key is invalid"). The test data was deleted. A rejected or missing
+        key now leaves jobs queued as `blocked_not_configured` without using
+        up retries. **So rollout_stage was left at `disabled`**; no member
+        can submit yet. To go live: (1) set a valid `ANTHROPIC_API_KEY` (or
+        `AI_GATEWAY_API_KEY`) Edge Function secret; (2) `UPDATE
+        skynn_advanced_assessment_config SET rollout_stage =
+        'pass_holders_review' WHERE id;`; (3) record the dermatologist
+        sign-off in the admin SKYNN Reviews tab before approving the first
+        report. The real multi-model run (prompt quality, QA pass rate,
+        latency per stage) has not been observed yet. Check it on the first
+        real submission.
+        **Update (same day):** you set `AI_GATEWAY_API_KEY` and a second
+        synthetic run reached the gateway. The key authenticates, but
+        Vercel AI Gateway returned 403 `no_providers_available`: "Free tier
+        users do not have access to this model. Upgrade to paid credits."
+        The Vercel team needs paid AI Gateway credits (Vercel dashboard →
+        AI → top up) before Claude models can be called. The job stayed
+        queued as `blocked_not_configured` as designed, the test data was
+        deleted, and rollout_stage is still `disabled`. 401/403 errors now
+        log the provider's reason (the body never contains the key).
+        **Follow-up (2026-09-24):** `claudeTransport.ts` now falls back to
+        `ANTHROPIC_API_KEY` when the gateway returns 401/403, so an unfunded
+        gateway key no longer blocks a valid direct key (worker redeployed
+        pinned at 1e6a9ce). A new Anthropic key has to be created by a
+        human in the Claude Console: the Admin API cannot create keys, and
+        no tool here can set Supabase Edge secrets. Vercel doesn't need the
+        key, because nothing on Vercel calls Anthropic.
+      - **Pre-approval intake ("fallback") mode (2026-09-27)** — lets pass
+        holders submit now while the sign-off record and a working AI key are
+        pending. It is a MODE of the v2 model, not a parallel system:
+        - **Flag**: `skynn_advanced_assessment_config.report_mode`
+          (`disabled` / `fallback` / `production`, default `fallback`).
+          `rollout_stage` still decides WHO may submit. The frontend reads
+          the mode from `get_advanced_assessment_access()` (`reportMode`) and
+          never hardcodes it.
+        - **Submission**: the same `submit_advanced_assessment_session()`
+          (consent gate, completeness recomputed server-side, one pass
+          consumed, idempotent on retry). In fallback mode it also writes a
+          server-generated `reference_number` (`SKYNN-ADV-YYYYMMDD-XXXXXX`,
+          Crockford alphabet, unique index), `processing_mode = 'fallback'`,
+          `intake_status = 'pending'`, a version snapshot (prompt set,
+          definition, scoring, evidence) and a consent snapshot, and enqueues
+          `advanced_intake_received` to the member. It refuses a second open
+          fallback submission (`duplicate_pending`) BEFORE charging.
+        - **Worker**: `claim_advanced_assessment_jobs()` now requires
+          `processing_mode = 'production'`, so a fallback row can never reach
+          a model. The worker's intake pass (`_shared/assessment/intake/`,
+          no AI, no Anthropic key) claims fallback rows
+          (`claim_advanced_intake_jobs()`), computes the deterministic scores
+          and triage floor, renders the intake PDF (jsPDF via esm.sh; plain
+          text, "STATUS: PENDING", not report-like), stores it in the private
+          `skynn-advanced-intake` bucket (no storage policies, service role
+          only), and emails it to reports@skinlabs.co.za through `send-email`
+          (which now accepts validated PDF attachments). Each step records
+          its outcome via `record_advanced_intake_result()`, with backoff at
+          1/5/15/60/180 min. After 6 attempts the admin alert
+          `admin_skynn_intake_failed` goes to support@ + reports@. The
+          submission itself is never lost.
+        - **Member**: a confirmation screen and the "Advanced Dermatology
+          Report — Pending" status (reference, date, approx. 3–4 weeks),
+          plus a dashboard card block. `getReportDisplayStatus()` in
+          `src/lib/assessment/types.ts` is the single status mapper for both
+          lifecycles. **Delete**: members can withdraw/delete any submission
+          (`delete_session` → `delete_advanced_assessment_for_user()`, which
+          is service-role only and takes the JWT-verified id). An unreleased
+          submission is refunded, the PDF is removed, and if the intake email
+          was already sent, `admin_skynn_intake_withdrawn` asks reports@ to
+          delete the mailbox copy. The consent question had promised this
+          delete ability; it didn't exist before. `list_orphan_intake_pdfs()`
+          plus a worker sweep removes any PDF whose row is gone. account-delete
+          removes PDFs and sends the same withdrawn alert.
+        - **Admin**: SKYNN Reviews → "Advanced Reports"
+          (`AdvancedReportsPanel.tsx`) offers search (reference, email, user
+          id), status/mode/date filters, full answers, delivery state, a
+          60-second signed-URL PDF (`admin_intake_pdf_url`, audited
+          `admin_downloaded`), retry, reject + refund, and "Send to
+          production" (`admin_promote_advanced_intake_to_production()`, which
+          refuses unless `report_mode = 'production'`; release is still gated
+          by the sign-off check).
+        - **Go live (fallback)**: merge the branch (the `/skynn-ai/advanced`
+          route was only registered in `App.tsx` on this branch; it never
+          existed before), then `UPDATE skynn_advanced_assessment_config SET
+          rollout_stage = 'pass_holders_review' WHERE id;`. **Later,
+          production**: record the sign-off, set a working AI key,
+          `report_mode = 'production'`, then Admin → Send to production.
+        - **Known limits**: the reports@ mailbox copy sits outside in-app
+          deletion (a user decision: attach the PDF), and the withdrawn alert
+          is the mitigation. Resend delivery couldn't be checked from here
+          (the Resend connector needs re-authorisation), only that
+          `send-email` returned OK.
+        - **Bug found on the way**: `enqueue_email()`'s priority parameter
+          is smallint, so a bare `50` fails with 42883. This broke the
+          exhaustion and withdrawn alerts and the v2 "review needed" alert
+          (`complete_advanced_assessment_for_review`, never run live). All
+          three are fixed in `20260927110000_skynn_enqueue_priority_casts.sql`.
+          Always write `50::smallint`.
+        - **Live E2E (2026-09-27)**: on the admin account, a synthetic
+          2026.2 submission went through the real submit RPC and got a
+          reference. The cron worker then produced a 30 KB PDF and the
+          reports@ email on the first attempt. Also verified live:
+          - idempotent resubmit (same reference, no charge)
+          - `duplicate_pending` blocks a second submission without charging
+          - forced PDF + email failure, recovered by the worker on the next
+            backoff
+          - retries exhausted: row kept, alert queued (checked inside a
+            rolled-back transaction)
+          - admin retry and reject with refund (rolled back)
+          - member delete: refund, withdrawn alert sent, orphan sweep
+            removed the PDF
+          - RLS/privilege probes: non-admin denied the admin/service RPCs,
+            the PDF path column and storage; owner sees status only
+
+          All test data was removed. `rollout_stage` was left `disabled`.
+      - **Dermatologist sign-off pack** — `docs/SKYNN-AI-v2-Dermatologist-
+        Signoff.pdf` (29 pp). It contains the six prompts verbatim (text
+        checked against the live DB by md5), all 73 questions, the scoring
+        rules, the red flags and escalation messages, the disclaimer, the
+        regulatory scan and the 24 references, each with an approval line.
+        The sign-off page maps to `admin_record_prompt_signoff`. It is a
+        snapshot generated from the seed migration plus the scoring/safety
+        modules (the script wasn't kept). Regenerate it after any prompt,
+        question or safety-rule change, since that needs a new sign-off
+        anyway.
   - **MST (Monk Skin Tone)** — a self-reported, OPTIONAL 1–10 scale
     (`src/data/mstScale.ts`, official Google/Ellis Monk hex values, plus
     `mstBand()` bucketing into light 1-3/medium 4-7/deep 8-10). It is a
@@ -707,7 +1929,7 @@ feature appear operational.
       New `src/components/PaymentGatewayDialog.tsx` (PayFast vs PayPal
       picker) is the one place gateway choice happens — wired into
       `Pricing.tsx` (plan subscribe, credit packs, founding-member offer),
-      `SubscriptionPaywallModal.tsx`, `AnalysisPassPurchaseModal.tsx` and
+      `AnalysisPassPurchaseModal.tsx` and
       `BillingTab.tsx`'s Analysis Pass purchases. Gateway choice isn't
       persisted through an unauthenticated visitor's sign-up redirect
       (`src/lib/pendingPlan.ts` only ever stored plan/interval/variant) —
@@ -733,6 +1955,80 @@ feature appear operational.
       environment (no credentials to test with) — the ITN/webhook
       signature-verification code paths are implemented per each
       provider's own documented contract but unverified end-to-end.
+  - **PayPal recurring subscriptions + inline card/PayPal checkout
+    (2026-09-24)** — paid plans on PayPal are now real PayPal
+    **Subscriptions** (auto-billed monthly/annually), no longer one-off
+    orders (`paypal-payment`'s `initialize` now rejects `purchaseType:
+    'plan'`). Free trial + recurring: the subscription is created with a
+    future `start_time` = trial end, so PayPal's first charge lands exactly
+    when the trial ends — 7 days (`pricing_plans.trial_days`), extended to
+    `pricing_settings.promo_free_trial_until` (1 Nov 2026) while the promo
+    runs, or the member's existing `trial_ends_at` if already trialling;
+    an account that already used its trial is billed at approval.
+    `resolveSubscriptionStart()` in `paypal-payment/index.ts` mirrors
+    `start_free_trial()`'s rules — **keep the two in sync**. Each
+    subscriber's USD price is locked to the live ZAR→USD conversion at
+    signup via a per-subscription `plan` override; PayPal billing plans
+    (one per plan×interval×env) are created lazily and cached in
+    `paypal_billing_plans` (service-role only), so no PayPal-dashboard setup
+    is needed. New `payment_subscriptions` table (owner SELECT only; all
+    writes via the edge function) + migration
+    `20260924100000_paypal_recurring_subscriptions.sql`, which also gives
+    `expire_finished_trials()` a 3-day grace for trials backed by a live
+    subscription (first charge/webhook lag) and adds hourly
+    `expire_lapsed_subscriptions()` (ends paid access after a
+    cancelled/suspended subscription's paid period). Webhook handles
+    `PAYMENT.SALE.COMPLETED/DENIED`, `BILLING.SUBSCRIPTION.*` plus the
+    existing order capture events. **FX**: `_shared/payments/fx.ts`
+    fetches a live Frankfurter rate at checkout, falling back to
+    `marketplace_fx_rates` only if <48h old — never invents a rate. PayPal
+    does not support ZAR, so USD is the only PayPal currency.
+    - **Frontend**: `src/lib/paypal.ts` (edge-function client + JS SDK
+      loader, one namespaced script per mode: `intent=capture` vs
+      `intent=subscription&vault=true`), `components/payments/
+      PayPalButtons.tsx` (inline Smart Buttons: PayPal balance + "Debit or
+      Credit Card", popup — no redirect), `PaypalQuote.tsx` (ZAR ≈ USD at
+      the live rate), `MembershipCheckoutDialog.tsx` (trial/subscribe).
+      `PaymentGatewayDialog` takes an optional `paypal` one-off purchase
+      and renders the inline buttons; Analysis Pass purchases
+      (`AnalysisPassPurchaseModal`, `BillingTab`, `/pricing`) now complete
+      in place and fire `notifyAnalysisPassesUpdated()` to refresh every
+      `useAnalysisPassBalance()`. The redirect flows remain as fallback
+      (`capturePendingPaypalOrder`, new
+      `activatePendingPaypalSubscription` on `/dashboard`).
+    - **/pricing CTA change (supersedes part of the 2026-09-23 note)**:
+      the trial CTA opens `MembershipCheckoutDialog` — PayPal/card
+      auto-renew as primary, the original no-card trial as a secondary
+      "Start without a payment method" (so the promo's "no card required"
+      copy stays true); a trial-used account now gets a "Subscribe" button
+      (billed today) instead of the disabled "Free trial already used".
+      Billing tab shows auto-renew status, offers "Continue after trial" to
+      no-card trialists, and cancels the PayPal subscription before
+      `cancel_subscription()`.
+    - **Required secrets (Supabase Edge Function secrets, not settable
+      from this environment)**: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`,
+      `PAYPAL_WEBHOOK_ID`, `PAYPAL_ENV=live` (sandbox otherwise). Webhook
+      URL: `https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/paypal-payment?webhook=true`.
+      Without secrets the UI hides PayPal and falls back to PayFast / the
+      no-card trial. **Unverified end-to-end.** Migration applied live;
+      function MCP-deployed as **version 20** (2026-09-24) by inlining the
+      `_shared/payments/*` files under `./_shared/...` for that one call (the
+      MCP deployer can't bundle `../` imports — the repo keeps `../`). Live
+      checks at deploy: `config` → 200 `configured: true, env: sandbox`;
+      authed actions without a JWT → 401; bad webhook → 400. Function logs
+      showed two credential problems for a human to fix: `PAYPAL_WEBHOOK_ID`
+      is **not set**, and PayPal OAuth fails with `btoa ... characters
+      outside of the Latin1 range` — the stored `PAYPAL_CLIENT_SECRET`
+      (client id checked clean ASCII) contains a non-ASCII/invisible
+      character from copy-paste and must be re-entered. **Resolved same day
+      (13:56 UTC)**: the user re-entered the credentials and set
+      `PAYPAL_ENV=live`; `config` now reports `env: live`, and a probe
+      webhook got past `PAYPAL_WEBHOOK_ID` and PayPal OAuth (only the
+      fake signature was rejected, as expected) — so **real charges are
+      now possible**. Still not exercised with a genuine payment or a
+      genuine PayPal-signed webhook. Card-button
+      availability depends on PayPal's guest-checkout eligibility for the
+      merchant country.
   - **Temporary free-access promo, through 2026-11-01 (2026-09-22)** —
     business decision to make paid plans free to try for a limited window
     while the rest of the platform's features finish rolling out. Deliberately
@@ -1134,6 +2430,129 @@ feature appear operational.
     insert. If this file changes again via another external merge, check
     for exactly this pattern — `grep -n "queueUnresolvedIngredients"
     api/product-review-sync.ts` should never come back empty.
+  - **Deterministic fields + Google Rich Results structured-data fields +
+    Sponsored flagging (2026-09-22, third follow-up)** — three explicit
+    asks against the live pipeline and its 37 already-published reviews:
+    - **Deterministic fields** (`currency`, `date_published`, `skin_types`)
+      were already being set correctly by the orchestrator for every new
+      review — confirmed 0 rows missing any of the three across all 37
+      live rows. The only real gap was historical: a small number of
+      pre-existing rows had `skin_types` unset even though
+      `skin_type_match` (the column actually driving the UI's skin-type
+      filter chips) was populated — fixed with a one-time backfill UPDATE
+      (`skin_types = to_jsonb(skin_type_match)` where null/empty),
+      confirmed 0 missing after. No schema or pipeline-logic change was
+      needed for this part — the orchestrator was already correct going
+      forward.
+    - **Structured-data / Google Rich Results fields** — deliberately
+      reverses an earlier architectural call from the same day's second
+      follow-up (turn 2 of that session), which left `seo_title`,
+      `seo_description`, `key_ingredients_structured`,
+      `related_ingredients_slugs`, `primary_image`, `related_reviews`,
+      `related_knowledge_articles`, `community_rating`/
+      `community_rating_count` null on the reasoning that live
+      client-side computation avoided a second source of truth — the
+      user explicitly asked for these to be DB-persisted instead (needed
+      for the values to actually appear in server-rendered JSON-LD for
+      Rich Results, not just client-side React state). Implemented in
+      `supabase/functions/product-review-sync/index.ts`:
+      `computeSeoTitleDescription()` (exact mirror of
+      `src/lib/seo-config.ts`'s title/description formula — keep both in
+      sync if that formula changes), `resolveKeyIngredients()` (reuses
+      the same ingredient-matching path as `queueUnresolvedIngredients()`
+      — an unresolved ingredient gets `slug: null, resolved: false`
+      rather than a guessed slug), `computeRelatedReviews()` (real SQL,
+      same category, 3 most recent, excluding self),
+      `computeCommunityRating()` (real aggregate from `review_ratings`,
+      null with `count: 0` when no community ratings exist yet — never
+      fabricated), `resolvePrimaryImage()` (checks the pre-existing
+      `review_images` table first, falls back to a `PEXELS_API_KEY`
+      search and writes the result back if configured, else null), and
+      `computeRelatedKnowledgeArticles()` (keyword-overlap match against
+      a 54-entry index extracted from `src/data/faq.ts` — **86% coverage
+      only (54/63 real FAQ entries)**, a Python-regex extraction limit
+      documented as an accepted gap since schema.org has no checked
+      "related articles" property for Product/Review anyway). Both the
+      normal daily-generation path (new reviews get these fields at
+      publish time) and a new Gemini/Firecrawl-independent backfill
+      route (`?backfillStructuredData=true`, batch 15, selects
+      `seo_title IS NULL`) were added and deployed live (function
+      version 15). Ran the backfill to completion against all 37
+      existing rows (3 invocations, batches of 15/15/7, `updated: 37,
+      skipped: []` across all three) and spot-checked the results
+      directly against the live table:
+      - `seo_title`/`seo_description`/`key_ingredients_structured`:
+        **37/37 (100%)**.
+      - `related_ingredients_slugs`: 32/37 — the 5 gaps are genuine
+        (a review whose `key_ingredients` names don't all resolve to a
+        published `ingredients` row, e.g. "Cocoa Butter" on the Renew
+        Your Dew Ceramide Butter review), never a fabricated slug.
+      - `related_reviews`/`related_knowledge_articles`: 35/37 each —
+        the 2 gaps are reviews with no other same-category review yet /
+        no significant keyword overlap with the FAQ index.
+      - `community_rating`: 1/37 has a real value (the rest are
+        correctly `null` with `community_rating_count = 0`, since almost
+        no review has a real community rating yet — this is accurate,
+        not a bug).
+      - `primary_image`: **only 19/37** — every populated row already
+        had a pre-existing `review_images` table row from an earlier
+        process; the fallback Pexels path had never fired for any of the
+        remaining 18 (zero new `review_images` rows written by any of the
+        three initial backfill invocations).
+        **Root cause pinned down (2026-09-22, fourth follow-up)** —
+        added a dedicated `?backfillPrimaryImage=true` route
+        (`runPrimaryImageBackfillPass()`, selects on `primary_image IS
+        NULL` rather than `seo_title IS NULL` so it can re-target these
+        18 rows specifically without recomputing every other structured-
+        data field) plus a non-secret-leaking `?pexelsDiagnostic=true`
+        route (does one real Pexels search with the configured key and
+        reports `configured`/`fetchStatus`/`fetchOk`/`resultCount` — never
+        the key itself) once told the key had since been set. Result: the
+        backfill route processed all 18 and updated 0; the diagnostic
+        route then confirmed exactly why — **`PEXELS_API_KEY` IS present
+        as a Supabase Edge Function secret (`configured: true`), but
+        Pexels itself rejects it: `fetchStatus: 401`, `errorFromPexels:
+        "Unauthorized"`**. So this is not a missing-secret gap or a code
+        bug — the configured key value itself is invalid, expired, or
+        malformed. **A human needs to generate a fresh key at
+        pexels.com/api and reset the `PEXELS_API_KEY` Supabase Edge
+        Function secret to it** — no tool in this environment can obtain
+        or validate a real Pexels API key. Once fixed, re-run
+        `?backfillPrimaryImage=true` (batch 25, so one call covers all 18
+        remaining rows) to pick up the images — no code change needed.
+        Both new routes are permanent, idempotent, and safe to re-invoke.
+    - **Sponsored flagging** — every review sourced from OpenHaus
+      Marketplace (`source_type = 'openhaus_marketplace'`) now carries
+      `is_sponsored = true`, set going forward in the orchestrator's
+      insert and backfilled once for existing rows
+      (`UPDATE ... WHERE source_type = 'openhaus_marketplace' AND
+      is_sponsored = false`). Confirmed live: **34 sponsored** (31
+      OpenHaus + 3 pre-existing Timeless Skincare placements, which were
+      already disclosed sponsored placements per this section's own
+      opening paragraph) vs. **3 unsponsored** (Geve + 2 Faithful to
+      Nature rows — correctly excluded, since SkinLabs has no commercial
+      relationship with those sources). Rendered visibly, not just
+      stored: a "Sponsored" `Badge` + one-line disclosure paragraph near
+      the H1 on `src/pages/ProductReview.tsx` and its SSR twin
+      `src/routes/reviews.$slug.tsx`, and a "Sponsored" pill in the tag
+      row of `src/components/ReviewsGrid.tsx`'s card grid — so the
+      disclosure is present everywhere a review can be read, matching
+      standard sponsored-content disclosure practice (and this file's
+      own standing principle against ever misrepresenting a commercial
+      relationship).
+    - While wiring this in, fixed two unrelated latent bugs surfaced by
+      running the correct `tsc -p tsconfig.app.json` typecheck (not the
+      no-op `tsconfig.json`, see this repo's own established gotcha):
+      `EnhancedProductReviewJsonLdInput`/`FAQJsonLdInput` were imported
+      in `src/lib/seo/jsonLd.ts` but never defined in `src/lib/seo/
+      types.ts` (added); `reviews.$slug.tsx`'s own `productReviewTitle()`
+      call site was still on that function's pre-turn-1 two-argument
+      signature, silently producing a garbled SSR title (fixed to the
+      current three-argument call). Also fixed a real syntax-broken
+      duplicate block in `enhancedProductReviewJsonLd()` introduced by 3
+      remote commits (not authored by Claude) that landed on this branch
+      mid-session via a `git merge` — the duplication was removed while
+      keeping the remote commits' legitimate `worstRating: 1` addition.
   - **Research cache** (`public.pipeline_source_cache`, service-role only,
     migration `20260913040000_pipeline_cache_and_quota.sql`) — every real
     Firecrawl result is cached by source (a stable URL for the FTN scrape,
@@ -1478,6 +2897,263 @@ feature appear operational.
       (next real cron firing, 04:00 UTC for briefings / 07:00 UTC for
       product reviews) or a human needs to trigger it after that reset
       for a real test.
+    - **Stale-deploy incident: two parallel sessions redeploying the same
+      shared edge function file (2026-09-23)** — a scheduled routine woke
+      this session to resume the SEO/structured-data backfill (9 rows left
+      from the day before). The very first `?backfillMissingFields=true`
+      call returned a response shaped like the *daily-generation* handler
+      (`created`/`target`/`modelUsage`/`backfillDate`), not the backfill
+      handler's own shape (`mode`/`processed`/`updated`/`skipped`) — a
+      signal the deployed code didn't match what this session expected.
+      Fetching the live source directly via `mcp__Supabase__get_edge_function`
+      confirmed it: the deployed function was **version 31**, a completely
+      different, older snapshot with none of that day's structured-data
+      fields, `SPONSORED_BRAND_BANNERS`, or the `backfillMissingFields`/
+      `backfillStructuredData`/`backfillPrimaryImage`/`pexelsDiagnostic`
+      routes — instead it had a `runBackfillFullReviews()`/`review_details`
+      full-review-backfill feature this session had never seen. Root cause:
+      a **second, parallel Claude Code session** (working on
+      `claude/manual-briefings-job-trigger-fz0aef`, the briefings-sync/
+      Shelf-Showdown/full_review-backfill work documented elsewhere in this
+      section) had been developing its own independent changes to this same
+      shared `product-review-sync/index.ts` file, and deployed straight
+      from its own branch state — which hadn't yet incorporated this
+      session's PR #133 merge — rather than from `main` after merging.
+      That branch's own PR (#130) was merged into `main` shortly after via
+      a real, correct three-way merge (`git diff` confirmed `main`'s
+      resulting file is a clean, complete superset of both sessions' work,
+      only two trivial line replacements, nothing lost) — so **the git
+      history was never actually broken**, only the live Supabase deployment
+      briefly lagged behind it. Fixed by fast-forwarding this session's
+      local `main` to `origin/main` and redeploying verbatim from there
+      (version 31 → 32), confirmed live via both an unauthenticated-401
+      check and grepping the live source for `SPONSORED_BRAND_BANNERS`/
+      `runBackfillFullReviews` (both present). **Real, if minor, fallout**:
+      before the mismatch was caught, two `?backfillMissingFields=true`
+      calls against the stale v31 code went through its (also legitimate,
+      real) daily-generation path instead and published 2 genuine OpenHaus
+      reviews (`standard-beauty-moisture-bomb`, `standard-beauty-2-
+      salicylic-acid-toner`) using the OLD insert shape — missing
+      `is_sponsored=true` (old code hardcoded `isSponsored: false` for the
+      marketplace candidate pool, since the "flip openhaus_marketplace to
+      sponsored" logic was this session's own addition), and missing every
+      structured-data field. Both were real, ungrounded-in-nothing product
+      reviews (not fabricated data, just incompletely enriched) — fixed
+      with a direct one-time SQL UPDATE (`is_sponsored = true`,
+      `skin_types` backfilled from `skin_type_match`, brand banner
+      `primary_image`/`review_images` set directly since the brand -
+      Standard Beauty - was already known) plus a `?backfillStructuredData
+      =true` call once the correct code was live. **Lesson for future
+      sessions**: when multiple sessions may be touching this same shared
+      edge function file, a response shape that doesn't match what the
+      current source on disk would produce is a strong, fast signal to
+      check `mcp__Supabase__get_edge_function` directly before assuming the
+      deploy tooling is broken or retrying blindly — don't trust that the
+      last version number you personally deployed is still what's live.
+    - **Shelf Showdown weekly comparison pipeline added
+      (2026-09-22, sixth follow-up)** — a new sibling pipeline,
+      `supabase/functions/shelf-showdown-sync/index.ts`, gives the
+      previously-static "Shelf Showdown" comparison-article franchise
+      (`src/data/comparisons-part*.ts`, rendered at `/compare` and
+      `/reviews/versus/:slug`) the same DB-backed-generated-content
+      treatment as product reviews and briefings: a new
+      `public.ai_generated_comparisons` table (migration `supabase/
+      migrations/20260922060000_shelf_showdown_pipeline.sql`), merged
+      client-side with the static catalogue via a new `src/hooks/
+      use-generated-comparisons.ts` (same pattern as `use-generated-
+      reviews.ts`) wired into `Compare.tsx`, `ComparisonArticle.tsx` and
+      `SiteSearch.tsx`. **Sourcing is deliberately narrower than the
+      other two pipelines**: pairs are drawn only from
+      `ai_generated_product_reviews` (a real DB table this edge function
+      can query) — never from the static `src/data/reviews.ts` catalogue,
+      which is bundled into the Vite app and unreachable from Deno at
+      runtime. Two same-category, never-before-compared products (tracked
+      via a stable `pair_key`, `[id_a, id_b].sort().join('::')`, unique-
+      constrained) are handed to Gemini with an explicit "better for X,
+      never a universal winner" instruction matching the franchise's
+      existing editorial voice (`Compare.tsx`'s own "How Shelf Showdown
+      works" copy). Thumbnails reuse a small hardcoded pool of real,
+      already-credited Unsplash photos lifted from the existing static
+      catalogue (picked by category) rather than calling an unconfigured
+      photo API — this pipeline was given no Pexels/Unsplash secret, only
+      `GOOGLE_API_KEY_COMPARE`. Scheduled Thursdays 17:00 SAST (15:00 UTC,
+      `0 15 * * 4`) via pg_cron; auth follows the exact Vault-secret
+      pattern established for the other two pipelines
+      (`shelf_showdown_cron_secret` in Vault, `SHELF_SHOWDOWN_CRON_SECRET`
+      as the matching Edge Function secret — generated and rotated at the
+      user's explicit request the same way as the other two, and
+      confirmed set).
+      **Live-verified, with two real findings from doing so**:
+      1. A manual trigger right after deploying published one real,
+         genuine comparison — "Geve Earthmoss Serum vs Timeless Skin Care
+         Hyaluronic Acid" (`sa_context: "Premium vs budget hydration"`,
+         `generated_by: gemini-3.1-flash-lite`) — then the same run hit
+         `WORKER_RESOURCE_LIMIT` (the edge function ran out of compute
+         budget) trying to process the rest of the weekly target of 5 in
+         one invocation. Fixed by adding `MAX_SHOWDOWNS_PER_RUN = 2`,
+         separate from `WEEKLY_SHOWDOWN_CAP = 5` — a single run now always
+         finishes cleanly, and the weekly cron firing plus any manual
+         re-trigger tops up toward the weekly target across multiple
+         invocations, the same "small per-run cap, bigger cumulative
+         target" pattern `MAX_FIRECRAWL_SOURCES_PER_RUN` already uses in
+         `product-review-sync`. Redeployed with the fix (`shelf-showdown-
+         sync` version 4, confirmed `ACTIVE`).
+      2. **`GEMINI_DAILY_LIMIT`'s quota check in both `product-review-
+         sync` and `briefings-sync` is effectively site-wide, not
+         per-pipeline** — `withinDailyQuota()` in both functions filters
+         `pipeline_api_usage` by `provider = 'gemini'` only, with no
+         `purpose`/pipeline filter, so it counts every row any of the
+         three Gemini-using pipelines have ever logged that day
+         (`shelf-showdown-sync`'s own `withinDailyQuota` correctly scopes
+         to `purpose = 'shelf-showdown-sync'`, but that doesn't stop the
+         *other* two pipelines' unscoped checks from seeing its rows too).
+         Confirmed live: by the time backfill work below was attempted,
+         `pipeline_api_usage` already had 118 `provider = 'gemini'` rows
+         for the day (product-review-sync + briefings-sync's own earlier
+         real runs, plus this pipeline's), so every subsequent
+         `product-review-sync` call — including the unrelated backfill
+         work below — immediately reported "Gemini daily quota (100)
+         reached" with zero progress, despite `GEMINI_API_KEY_REVIEWS`
+         and `GOOGLE_API_KEY_COMPARE` being distinct keys. **Not fixed in
+         this pass** — deliberately left as-is rather than guessing
+         whether it's a bug or an intentional shared-account safety net
+         (Google AI Studio quotas can be per-project rather than
+         per-key, so a single shared daily ceiling across all three
+         pipelines may well be the correct conservative behaviour); worth
+         a human confirming which it's meant to be before anyone "fixes"
+         it by adding a `purpose` filter to the older two pipelines'
+         quota checks.
+    - **`product-review-sync` gains `full_review` generation + a
+      backfill mode for the existing catalogue (2026-09-22, same
+      follow-up)** — separately, asked to verify the product-review
+      pipeline actually produces "the complete ingredient deep-dive,
+      long-form verdict and skin-type match notes" it's supposed to.
+      Investigation found this promise already existed in the UI
+      (`ProductReview.tsx`: "Glow Insider unlocks the complete ingredient
+      analysis, long-form verdict and skin-type match notes for every
+      product we've reviewed", reading a `review_details.full_review`
+      text column, migration `20260816154034_...sql`) but **the automated
+      pipeline never wrote to it** — only 6 of the (then) 198 reviews (161
+      static `src/data/reviews.ts` + 37 `ai_generated_product_reviews`)
+      had a `review_details` row at all, all 6 hand-seeded on 2026-08-16
+      when the table was created. Fixed going forward: `REVIEW_SCHEMA`/
+      `REVIEW_INSTRUCTIONS` in `product-review-sync/index.ts` gained a
+      `full_review` field (one ~90-180 word paragraph covering the
+      ingredient deep-dive, an expanded verdict and skin-type-match notes,
+      generated in the *same* Gemini call as the existing short `verdict`
+      — not a second API call) with its own QA checks (min word count,
+      superlative/compliance scan), written to `review_details` right
+      after every successful `ai_generated_product_reviews` insert.
+      Added a new `?action=backfill_full_reviews` mode (`
+      runBackfillFullReviews()`) to fill in the 192 pre-existing reviews
+      missing this field, idempotent per review (always re-checks
+      `review_details` immediately before generating, so a stale caller-
+      side exclusion list or a concurrent run can't double-write) and
+      batchable via a `limit` param (default 20, max 40/call) — two input
+      modes: omit `reviews` in the POST body to pull straight from
+      `ai_generated_product_reviews` (this function can query that
+      directly), or supply `{ reviews: [...] }` with each review's own
+      already-published fields for the 161 *static* catalogue reviews,
+      which this edge function has no way to read at runtime (same
+      "can't import `src/data/*.ts` from Deno" constraint as the Shelf
+      Showdown sourcing decision above) — extracted via a one-off local
+      `bun` script that imports `productReviews` from `src/data/
+      reviews.ts` directly and writes the needed fields to JSON (160 real
+      rows, not 161 — the file has one fewer entry than an earlier `grep`
+      estimate suggested), then split into 8 batches of 20 and POSTed
+      with `curl` (not `net.http_post` — a 160-review JSON body is
+      awkward to construct as a SQL `jsonb` literal, and `curl` respects
+      this environment's `HTTPS_PROXY` natively per the existing
+      Playwright-vs-curl precedent elsewhere in this file). **Real
+      progress, but incomplete**: only got through a connectivity/wiring
+      test (`limit: 1`) before hitting the shared Gemini-quota exhaustion
+      documented above — `review_details` is still at 6 rows as of this
+      writing. Resume with the same batched-`curl` approach (files were
+      only written to this session's scratchpad, not committed — re-run
+      the extraction script, a few lines, against `productReviews` to
+      regenerate them) once the shared daily quota resets (next UTC
+      midnight) or a human raises `GEMINI_DAILY_LIMIT`/adds a per-pipeline
+      purpose filter per the finding above.
+    - **A real, separate operational hazard found while doing this work:
+      a direct MCP `deploy_edge_function` gets silently overwritten by
+      Supabase's own GitHub sync integration** — `product-review-sync`
+      was manually deployed (version 10, with the `full_review`/backfill
+      changes above) but had jumped to version 16 with those changes
+      **gone** by the time it was next invoked, some minutes later, with
+      no `apply_migration`/`deploy_edge_function` call from this session
+      in between. The only explanation consistent with the evidence: this
+      project has Supabase's native GitHub integration connected (visible
+      elsewhere in this file as the "Supabase Preview" PR check), and it
+      appears to redeploy edge functions from whatever is currently
+      committed to `main` on some cadence/webhook trigger independent of
+      this session's own actions — silently reverting a live MCP deploy
+      back to stale git-tracked source if the corresponding commit hasn't
+      been pushed yet. **Practical consequence for future sessions**:
+      never trust that a `deploy_edge_function` call stays live — commit
+      and push the exact same source to git as soon as possible after
+      deploying it directly, and re-verify live content (`get_edge_
+      function`, or a cheap real invocation) before depending on a
+      function's behaviour, especially if any time has passed or other
+      GitHub activity (a PR merge, other pushes) happened in between.
+    - **Backfill resumed 2026-09-22 (same day, continuation)** — user asked
+      to retry the backfill after updating `GEMINI_API_KEY_REVIEWS`. Fixed
+      the two interlocking bugs left open above first: applied migration
+      `20260922161359_widen_pipeline_check_constraints_and_retag_quota`
+      (widens `pipeline_model_calls_pipeline_check` to allow
+      `product-review-sync-backfill`/`shelf-showdown-sync`, widens
+      `pipeline_api_usage_provider_check` to allow `shelf-showdown-gemini`,
+      retags shelf-showdown-sync's 17 historical rows out of
+      product-review-sync's quota bucket), redeployed both
+      `product-review-sync` (now `GEMINI_DAILY_LIMIT` 600, plus a new
+      per-candidate `attemptDetails` array in the backfill response so a
+      QA rejection is distinguishable from a write failure going forward)
+      and `shelf-showdown-sync` (now records usage under the dedicated
+      `shelf-showdown-gemini` provider via its own `GEMINI_PROVIDER`
+      constant) with the CHECK-constraint fix live.
+      **New operational hazard found while redeploying, separate from the
+      GitHub-sync one above**: this session's `mcp__Supabase__
+      deploy_edge_function` tool reliably fails to bundle a `../` parent-
+      directory relative import (`Module not found`, tested repeatedly,
+      live, both with placeholder and real file content) but reliably
+      succeeds on a same-root `./` import. The actual repo source for all
+      three Gemini pipelines correctly uses `../_shared/pipelines/...`
+      (matching the real `supabase/functions/<name>/index.ts` +
+      `supabase/functions/_shared/...` directory layout, which is what a
+      real `supabase functions deploy` CLI run or Supabase's own GitHub
+      sync integration both need) — so this is purely a quirk of this
+      MCP tool's own bundler, not a real repo bug. **Practical
+      consequence**: a redeploy of any of these three functions through
+      this MCP tool needs its own local `./_shared/pipelines/...` copy of
+      the two shared files alongside `index.ts` in that one
+      `deploy_edge_function` call (with `index.ts`'s two import lines
+      changed to match, only for that call) — never commit that `./`
+      version to git, since the committed repo source must keep the
+      correct `../_shared/...` path for CLI/GitHub-sync deploys to work.
+      Confirmed both redeploys landed correctly via a live invocation
+      each (see below) before moving on.
+      **The actual blocker is still open, and is NOT what the user's key
+      update fixed**: a live `?action=backfill_full_reviews` test call
+      (`limit: 1`, generated mode) immediately returned `ALERT (Gemini
+      config, backfill stopped): Gemini authentication failed (HTTP 403)
+      on model gemini-3.6-flash` — confirmed in both the response body and
+      a real `pipeline_model_calls` row (`outcome: auth_error,
+      http_status: 403`), i.e. `GEMINI_API_KEY_REVIEWS` is still rejecting
+      requests as of this test, run immediately after the redeploy above.
+      This is a different failure mode than the "28 successful calls, zero
+      writes" mystery from earlier the same day (those showed
+      `success=true`, this shows an immediate auth failure on the very
+      first attempt) — the two are not necessarily the same root cause;
+      the earlier mystery's real explanation (QA rejection vs. a write
+      bug) is now unknown and moot until a working key is confirmed, since
+      the diagnostic `attemptDetails` array added above has not yet fired
+      on a real success to distinguish them. **`review_details` remained
+      at exactly 6 rows after this test — no progress on the backfill
+      itself was possible this session.** A human needs to re-check
+      `GEMINI_API_KEY_REVIEWS` directly in the Supabase dashboard (Edge
+      Functions → Secrets) — confirm the value actually saved, matches a
+      real, enabled Google AI Studio key with the Generative Language API
+      turned on for its project, and that no typo/whitespace was
+      introduced — before the backfill can be retried again.
 - **Spotlight editions** (`public.spotlight_editions` table,
   `src/hooks/use-spotlight-edition.ts`) — tracks Spotlight's edition label
   and methodology version live (seeded from the prior hardcoded

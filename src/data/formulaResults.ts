@@ -1,15 +1,12 @@
 /**
- * Predetermined "starter analysis" results for free-tier SKYNN AI users.
+ * The Basic AI Skin Analysis content engine (SKYNN AI v2.1 — beta).
  *
- * These are NOT live AI output — they're a curated 4×4 matrix (skin type ×
- * primary concern, both already derived from the quiz answers) written in
- * the same markdown-ish shape `formatRecommendation` in AIFormulator.tsx
- * expects, so the same rendering works for both this and the real
- * `skincare-ai` output. Shown in full, unlocked, to every visitor — nothing
- * here is hidden behind a paywall — keeping free-tier results genuinely
- * useful (not a teaser fake-out) while reserving the live, dermatology-
- * grounded, weekly-refreshed, photo-aware report for paying members as a
- * separate, honest upsell (see UpgradePrompt in AIFormulator.tsx).
+ * Deterministic, not live AI output: a curated 4×4 matrix (skin type ×
+ * primary concern, both derived from the quiz answers) written in the
+ * markdown-ish shape `formatRecommendation` in AIFormulator.tsx renders.
+ * The same engine serves every tier; answers are the only input (a photo is
+ * never analysed). The deeper product is the Advanced AI Dermatology
+ * Analysis at /skynn-ai/advanced.
  */
 
 import { overallScore } from "@/data/reviews";
@@ -242,8 +239,7 @@ export interface StarterAnalysisOptions {
 
 /**
  * Builds a full markdown-shaped recommendation for the given skin type +
- * primary concern — the free-tier "starter analysis" equivalent of the
- * live `skincare-ai` edge function's output. Deterministic: same inputs
+ * primary concern — the Basic AI Skin Analysis. Deterministic: same inputs
  * always produce the same result. `answers` (the full quiz response set)
  * is optional for backward compatibility but should always be passed —
  * it's what personalises the result beyond skin type and top concern.
@@ -322,7 +318,7 @@ ${routine && (amCleanser || amSerum) ? `Real picks from SkinLabs' reviewed catal
 Key actives for your priority: ${c.keyActives}. ${c.ingredientStrategy}
 ${personalisedNotes ? `\n## Notes From Your Other Answers\n${personalisedNotes}\n` : ""}
 ## About Your Skin Analysis
-Your personalised SkinLabs Starter Analysis has been created from the information you shared about your skin, concerns, goals and preferences. We've used these insights to create a practical starting point for your skincare journey, with recommendations selected around your priorities, preferred routine complexity and budget. Want to explore your skin in greater depth? Unlock an Advanced Skin Analysis whenever you need one with an Analysis Pass. For an even more connected experience, SkinLabs Insider and VIP members unlock deeper AI-powered analysis, more personalised recommendations and ongoing skin intelligence designed to evolve with your skin over time.`;
+Your personalised Basic AI Skin Analysis has been created from the information you shared about your skin, concerns, goals and preferences. It is a rule-based analysis of your answers — your photo is not analysed, and it has not been reviewed by a dermatologist. We've used these insights to create a practical starting point for your skincare journey, with recommendations selected around your priorities, preferred routine complexity and budget. Want to explore your skin in greater depth? The Advanced AI Dermatology Analysis is available with an Analysis Pass. Glow Insider members can re-run their Basic AI Skin Analysis whenever their skin changes, instead of once every 7 days.`;
 };
 
 export interface CompletenessFactor {
@@ -341,19 +337,29 @@ export interface CompletenessBreakdown {
  * labelled honestly (see ConfidencePanel) to avoid implying a fabricated performance
  * claim: this reflects "how much we had to work with," nothing more.
  */
+/**
+ * Analyses saved before v2.1 include a photo factor. A photo never
+ * leaves the device and is never analysed, so it must not count: drop it and
+ * average what's left (same mean computeCompleteness() uses).
+ */
+export const withoutPhotoFactor = (c: CompletenessBreakdown): CompletenessBreakdown => {
+  const factors = c.factors.filter((f) => !/photo/i.test(f.label));
+  if (factors.length === c.factors.length || factors.length === 0) return c;
+  return { overall: Math.round(factors.reduce((sum, f) => sum + f.value, 0) / factors.length), factors };
+};
+
 export const computeCompleteness = (params: {
   answeredCount: number;
   totalQuestions: number;
-  hasPhoto: boolean;
+  /** Ignored: a photo stays on the device and is never analysed, so it can't add to completeness. */
+  hasPhoto?: boolean;
   hasMstTone: boolean;
 }): CompletenessBreakdown => {
-  const { answeredCount, totalQuestions, hasPhoto, hasMstTone } = params;
+  const { answeredCount, totalQuestions, hasMstTone } = params;
   const profilePct = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
-  const photoPct = hasPhoto ? 100 : 40;
   const mstPct = hasMstTone ? 100 : 60;
   const factors: CompletenessFactor[] = [
     { label: "Profile completeness", value: profilePct },
-    { label: "Photo provided", value: photoPct },
     { label: "Skin tone (MST) provided", value: mstPct },
   ];
   const overall = Math.round(factors.reduce((sum, f) => sum + f.value, 0) / factors.length);

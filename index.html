@@ -4,10 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Disable Browser Caching -->
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
+    <!--
+      Real HTTP caching is governed by vercel.json's Cache-Control response
+      headers (s-maxage/stale-while-revalidate for SSR routes, immutable for
+      hashed /assets/ files) — that's the actual, working caching contract.
+      A meta http-equiv Cache-Control/Pragma/Expires trio was previously set
+      here too; modern browsers largely ignore it for real network caching,
+      and it directly contradicted the real headers' intent, so it's removed
+      rather than kept as dead, confusing weight.
+    -->
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
 
     <!--
@@ -25,7 +30,15 @@
     <!-- Performance: connect early to the origins every page depends on -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
+    <!--
+      Lora was requested here historically but is not applied anywhere in the
+      UI (grep-confirmed: its only reference is its own unused CSS variable
+      in src/index.css) — dropped to remove 4 unnecessary font-file fetches
+      from this render-blocking request. Space Mono keeps both weights: 400
+      and 700 are both genuinely used (e.g. DermatologistDirectory.tsx,
+      MarketplaceRestrictedAccess.tsx combine font-mono with font-bold).
+    -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
     <link rel="preconnect" href="https://gnkpzijxuciiaamakgzm.supabase.co">
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 

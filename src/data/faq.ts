@@ -14,7 +14,9 @@
  *  - Claims use conservative verbs ("may help", "can support") rather than
  *    guarantees, and higher-risk topics carry an explicit safety boundary.
  */
+import { STANDARD_TRIAL_DAYS, trialNoun } from "@/lib/promo";
 import { getPlan, MONEY_BACK_GUARANTEE_DAYS, PODCAST_FREE_MONTHLY, COMPARE_FREE_MONTHLY, type MembershipPlan } from "./plans";
+import { FUNDING_STATEMENT } from "@/lib/editorialIndependence";
 
 export type FAQCategoryId =
   | "about"
@@ -159,9 +161,9 @@ const vip = getPlan("vip") as MembershipPlan;
 const featureLike = (plan: MembershipPlan, needle: string, fallback: string) =>
   plan.features.find((f) => f.toLowerCase().includes(needle.toLowerCase())) ?? fallback;
 
-const explorerAiLine = featureLike(explorer, "AI skin analysis", "1 basic AI skin analysis per month");
+const explorerAiLine = featureLike(explorer, "AI skin analysis", "one Basic AI Skin Analysis every 7 days");
 const explorerBriefingLine = featureLike(explorer, "Daily Skinny briefing", "3 full Daily Skinny briefings per week");
-const insiderAiLine = featureLike(insider, "AI skincare analysis", "1 standard AI skincare analysis per week");
+const insiderAiLine = featureLike(insider, "AI skin analysis", "unlimited Basic AI Skin Analysis");
 const vipConsultLine = featureLike(vip, "consultation", "1 virtual derm consultation per month");
 const insiderMoneyBack = insider.moneyBackDays ?? MONEY_BACK_GUARANTEE_DAYS;
 
@@ -169,14 +171,15 @@ const membershipSummaryAnswer =
   `Yes — three tiers. ${explorer.name} is free forever: ${explorerAiLine.toLowerCase()}, ${explorerBriefingLine.toLowerCase()}, ` +
   `limited product review access, ${PODCAST_FREE_MONTHLY} free podcast episode a month and ${COMPARE_FREE_MONTHLY} free comparison articles a month. ` +
   `${insider.name} (R${insider.priceMonthly}/month or R${insider.priceAnnual}/year) unlocks a custom AI routine, ${insiderAiLine.toLowerCase()}, ` +
-  `the full podcast library, unlimited product reviews and full Spotlight brand profiles — it starts with a 7-day free trial, no card required, ` +
+  `the full podcast library, unlimited product reviews and full Spotlight brand profiles — it starts with a ${trialNoun(insider.trialDays ?? STANDARD_TRIAL_DAYS)}, no card required, ` +
   `and carries a ${insiderMoneyBack}-day money-back guarantee once you subscribe. ${vip.name} (R${vip.priceMonthly}/month) adds everything in ${insider.name} ` +
   `plus ${vipConsultLine.toLowerCase()} and priority booking with SA practitioners.`;
 
 const aiQuotaAnswer =
   `It depends on your plan, and this is the exact entitlement — not a rough estimate. ${explorer.name} (free) includes ${explorerAiLine.toLowerCase()}. ` +
-  `${insider.name} steps that up to ${insiderAiLine.toLowerCase()}, re-analysed as your skin or routine changes. Need a human alongside the AI? ` +
-  `${vip.name} adds ${vipConsultLine.toLowerCase()} on top of everything in Insider. Full feature-by-feature comparison lives on the Pricing page.`;
+  `${insider.name} steps that up to ${insiderAiLine.toLowerCase()}. The deeper Advanced AI Dermatology Analysis is separate: it uses one ` +
+  `Analysis Pass on every plan, and during the SKYNN AI v2.1 beta submissions are received and queued with a reference number while the ` +
+  `report workflow is finalised. Full feature-by-feature comparison lives on the Pricing page.`;
 
 /* -------------------------------------------------------------------------- */
 /* Entries                                                                     */
@@ -189,7 +192,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "what-is-skinlabs",
     question: "What is SkinLabs?",
     answer:
-      "SkinLabs is South Africa's independent skincare intelligence platform. Tell us your skin, your concerns, your lifestyle and your climate, and SKYNN AI builds a routine around it — grounded in dermatological science and local market knowledge, not guesswork. We also publish independent product reviews, daily skin science briefings and brand rankings, funded by members rather than brand deals.",
+      "SkinLabs is South Africa's independent skincare intelligence platform. Tell us your skin, your concerns, your lifestyle and your climate, and SKYNN AI builds a routine around it — grounded in dermatological science and local market knowledge, not guesswork. We also publish independent product reviews, daily skin science briefings and brand rankings. We're funded by members and partly supported by advertising, but our editorial content can't be bought.",
     category: "about",
     tags: ["skinlabs", "platform", "overview"],
     relatedQuestions: ["about-ai-formulator-works", "about-is-free", "membership-subscription-service"],
@@ -224,7 +227,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "how-does-the-ai-formulator-work",
     question: "How does SKYNN AI work?",
     answer:
-      "You work through a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment — can optionally add a photo, and can optionally share your Monk Skin Tone (MST) for fairness testing. SKYNN AI uses that, plus your stated concerns, budget and consistency level, to recommend a routine and the actives that make sense for you. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
+      "SKYNN AI v2.1 (beta) has two parts. The free Basic AI Skin Analysis is a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment. You can optionally add a photo (it stays on your device and isn't analysed) and optionally share your self-reported Monk Skin Tone (MST), which SKYNN AI never infers from a photo. It uses your answers, concerns, budget and consistency level to recommend a routine and the actives that make sense for you, once every 7 days on the free plan. The Advanced AI Dermatology Analysis is a longer questionnaire that uses an Analysis Pass. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
     category: "about",
     tags: ["ai formulator", "skynn ai", "quiz", "how it works"],
     relatedQuestions: ["about-what-is-skinlabs", "routines-basic-routine"],
@@ -257,11 +260,28 @@ export const faqEntries: FAQEntry[] = [
     slug: "does-skinlabs-sell-products",
     question: "Do you sell skincare products?",
     answer:
-      "No — we're not a retailer. SkinLabs gives you independent recommendations and links you to trusted South African retailers where you can actually buy the products we cover. That separation is deliberate: it's what lets us score honestly instead of steering you toward whatever we'd earn a cut on.",
+      "Not as a traditional retailer, but some products we cover link to the SkinLabs® OpenHaus marketplace or to partner retailers, and we may earn a commission or margin when you buy through those links. Those links are labelled Sponsored, and they never affect a product's score, ranking or verdict: our editorial content can't be bought.",
     category: "about",
     tags: ["retailer", "independence", "commercial relationships"],
     relatedQuestions: ["products-where-to-buy", "products-authentic-brands"],
     relatedPages: [{ label: "Our scoring methodology", href: "/spotlight/methodology" }],
+    evidence: [],
+    lastReviewed: KNOWLEDGE_HUB_REVIEW_DATE,
+    reviewedBy: REVIEWER,
+    riskLevel: "low",
+  },
+  {
+    id: "about-ads-sponsored",
+    slug: "is-skinlabs-ad-supported",
+    question: "Is SkinLabs ad-supported? Can brands pay for coverage?",
+    answer: `${FUNDING_STATEMENT} Ads are labelled "Advertisement" and paid placements are labelled "Sponsored". Members on Glow Insider and above see fewer ads.`,
+    category: "about",
+    tags: ["advertising", "sponsored content", "independence", "commercial relationships"],
+    relatedQuestions: ["about-do-you-sell", "about-is-free"],
+    relatedPages: [
+      { label: "Advertising & Sponsored Content Policy", href: "/advertising-policy" },
+      { label: "Editorial Policy", href: "/editorial-policy" },
+    ],
     evidence: [],
     lastReviewed: KNOWLEDGE_HUB_REVIEW_DATE,
     reviewedBy: REVIEWER,
@@ -896,7 +916,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "where-can-i-buy-the-products-you-recommend",
     question: "Where can I buy the products you recommend?",
     answer:
-      "Most of what we recommend is available at Clicks, Dis-Chem, Woolworths, Takealot and specialist retailers like Dermastore. Every product review links directly to where you can buy it — retailer availability and stock levels shift, so treat those links as the current source of truth rather than anything we state generally here.",
+      "Most of what we recommend is available at Clicks, Dis-Chem, Woolworths, Takealot and specialist retailers like Dermastore. Every product review links directly to where you can buy it — retailer availability and stock levels shift, so treat those links as the current source of truth rather than anything we state generally here. Some links go to the SkinLabs® OpenHaus marketplace or partner retailers, where we may earn a commission or margin; those are labelled Sponsored.",
     category: "products",
     tags: ["retailers", "where to buy"],
     relatedQuestions: ["south-africa-authentic-brands", "about-do-you-sell"],
@@ -1097,7 +1117,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "are-there-any-hidden-costs",
     question: "Are there any hidden costs?",
     answer:
-      "None from us — Glow Explorer is free to use, permanently, with no card required. Glow Insider's 7-day trial also needs no card upfront. Once you do subscribe to a paid plan, the price shown at checkout is what you pay — no surprise add-ons. When you're buying a physical product from a retailer we've linked to, just watch for that retailer's own shipping costs and check whether their displayed price already includes VAT (it usually does).",
+      `None from us — Glow Explorer is free to use, permanently, with no card required. Glow Insider's ${trialNoun()} also needs no card upfront. Once you do subscribe to a paid plan, the price shown at checkout is what you pay — no surprise add-ons. When you're buying a physical product from a retailer we've linked to, just watch for that retailer's own shipping costs and check whether their displayed price already includes VAT (it usually does).`,
     category: "membership",
     tags: ["hidden costs", "free trial", "pricing transparency"],
     relatedQuestions: ["membership-subscription-service"],

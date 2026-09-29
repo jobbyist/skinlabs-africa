@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { Play, Pause, Clock, Lock, SkipBack, SkipForward, Heart } from "lucide-react";
 import { usePodcastPlayer, formatTime } from "@/components/PodcastPlayer";
-import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
+import { latestPublishedEpisode, PODCAST_SCHEDULE_LINE, publishedPodcastEpisodes } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import ContinueListeningRail from "@/components/ContinueListeningRail";
 
@@ -16,13 +18,14 @@ interface PodcastSectionProps {
 const PodcastSection = ({
   heading = "The Skin Deep Podcast",
   description =
-    "Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. New episodes every Friday at 12pm SAST. Coming soon to all major podcast platforms.",
+    `Skincare without the nonsense. Evidence-first conversations on ingredient science, culture and routines — grounded in South African skin, climate and shelves. ${PODCAST_SCHEDULE_LINE}`,
   showCta = true,
   limit,
 }: PodcastSectionProps) => {
   const { playEpisode, current, isPlaying, toggle, progress, duration, speed, skip, cycleSpeed, seek } =
     usePodcastPlayer();
   const { isMember } = useMembership();
+  const action = useConversionAction("podcast.full_library", "podcast_section");
   const list = limit ? publishedPodcastEpisodes.slice(0, limit) : publishedPodcastEpisodes;
   const { isAuthenticated, getPlays, getLikes, isLiked, recordPlay, toggleLike } = usePodcastEngagement(list);
 
@@ -56,11 +59,24 @@ const PodcastSection = ({
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/50 rounded-full text-sm">
               <Lock className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-muted-foreground">
-                Free tier: 1 free episode per month ·{" "}
-                <Link to="/pricing" className="text-primary hover:underline">
-                  Upgrade to Glow Insider or VIP for full access
-                </Link>
+                Free tier: 1 free episode per month
+                {action.kind && (
+                  <>
+                    {" "}·{" "}
+                    <button
+                      type="button"
+                      onClick={action.run}
+                      disabled={action.busy}
+                      className="font-medium text-primary hover:underline disabled:opacity-60"
+                    >
+                      {action.label}
+                    </button>
+                  </>
+                )}
               </span>
+            </div>
+            <div className="mt-2">
+              <SeeAllPlansLink className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground" />
             </div>
           </div>
         )}
@@ -75,7 +91,7 @@ const PodcastSection = ({
             return (
               <article
                 key={episode.id}
-                className={`group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm transition-all hover:shadow-lg ${
+                className={`group flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm card-interactive ${
                   isCurrent ? "border-foreground/30" : "border-border"
                 }`}
               >

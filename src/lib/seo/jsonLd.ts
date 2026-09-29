@@ -2,6 +2,8 @@ import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
 import type {
   ArticleJsonLdInput,
   BreadcrumbItem,
+  EnhancedProductReviewJsonLdInput,
+  FAQJsonLdInput,
   IngredientJsonLdInput,
   ProductReviewJsonLdInput,
   SpotlightBrandJsonLdInput,
@@ -75,30 +77,22 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
     },
   };
 
-  // Editorial aggregate rating (0-10 scale)
-  const editorialRating = {
-    "@type": "AggregateRating",
-    ratingValue: input.ratingValue,
-    bestRating: 10,
-    worstRating: 1,
-    reviewCount: input.reviewCount,
-  };
-
-  // If member ratings are available, include them as a second aggregateRating
-  // (1-5 scale, representing community voice)
-  if (input.memberRating) {
-    product.aggregateRating = [
-      editorialRating,
-      {
+  // At most ONE aggregateRating, and only from real community ratings.
+  // Google Search Console flagged "Review has multiple aggregate ratings" (in
+  // "review" and in "aggregateRating") when this emitted an array of two: an
+  // "editorial" aggregate built from our own single review (reviewCount 1 --
+  // self-serving, not an aggregate) plus a hash-generated member count from
+  // getMemberRatingStats(). Neither is allowed. The editorial verdict lives in
+  // `review` above; aggregateRating is community-only.
+  const community = input.communityRating;
+  if (community && community.count > 0 && Number.isFinite(community.average)) {
+    product.aggregateRating = {
       "@type": "AggregateRating",
-        ratingValue: input.memberRating.average,
-        bestRating: 5,
+      ratingValue: Number(community.average.toFixed(1)),
+      bestRating: 5,
       worstRating: 1,
-        reviewCount: input.memberRating.count,
-      },
-    ];
-  } else {
-    product.aggregateRating = editorialRating;
+      ratingCount: community.count,
+    };
   }
 
   if (!input.paywallCssSelector) {
@@ -123,6 +117,91 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
   return {
     "@context": "https://schema.org",
     "@graph": [product, webPage],
+  };
+}
+
+/**
+ * Enhanced Product Review JSON-LD following Schema.org and Google guidelines.
+ *
+ * Key improvements:
+ * 1. Separates editorial Review from community AggregateRating
+ * 2. Editorial review uses Organization author (SkinLabs)
+ * 3. AggregateRating only included when community ratings exist
+ * 4. Editorial score is 0-10, community is 0-5 (different scales clearly marked)
+ * 5. Never fabricates data - all fields from real database content
+ * 
+ * Per Google's product review guidelines:
+ * - Review must be from the reviewing organization (SkinLabs)
+ * - AggregateRating should reflect actual customer/community ratings
+ * - Never use editorial score as if it's aggregate customer rating
+ */
+export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdInput) {
+  const productData: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "@id": `${input.canonicalUrl}#product`,
+    name: input.productName,
+    brand: { "@type": "Brand", name: input.brand },
+    category: input.category,
+    ...(input.description ? { description: input.description } : {}),
+    ...(input.image ? { image: [input.image] } : {}),
+    ...(input.size ? { size: input.size } : {}),
+    ...(input.countryOfOrigin ? { countryOfOrigin: input.countryOfOrigin } : {}),
+  };
+
+  // Add offers if available
+  if (input.offers) {
+    productData.offers = {
+      "@type": "AggregateOffer",
+      priceCurrency: "ZAR",
+      lowPrice: input.offers.lowPrice,
+      highPrice: input.offers.highPrice,
+      offerCount: input.offers.offerCount,
+    };
+  }
+
+  // Editorial review (always present)
+  productData.review = {
+    "@type": "Review",
+    reviewRating: {
+      "@type": "Rating",
+      ratingValue: input.editorialScore,
+      bestRating: 10,
+      worstRating: 1,
+    },
+    author: { "@type": "Organization", name: BRAND },
+    reviewBody: input.reviewBody,
+    ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
+  };
+
+  // Community rating (only if it exists)
+  if (input.communityRating !== undefined && input.communityReviewCount !== undefined && input.communityReviewCount > 0) {
+    productData.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: Number(input.communityRating.toFixed(1)),
+      bestRating: 5, // Community uses 5-star scale
+      worstRating: 1,
+      // Star ratings without review text are counted by ratingCount, not reviewCount.
+      ratingCount: input.communityReviewCount,
+    };
+  }
+
+  return productData;
+}
+
+/**
+ * FAQ JSON-LD for a product review page.
+ * Only include this when genuine product-specific FAQs exist.
+ */
+export function faqJsonLd(input: FAQJsonLdInput) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: input.faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: { "@type": "Answer", text: faq.answer },
+    })),
   };
 }
 

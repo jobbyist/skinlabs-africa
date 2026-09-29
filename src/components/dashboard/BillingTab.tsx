@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CreditCard, Download, Loader2, Receipt, ShieldCheck, XCircle } from "lucide-react";
+import { CreditCard, Download, Loader2, Receipt, RefreshCw, ShieldCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +17,17 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership, type MembershipTier } from "@/hooks/use-membership";
 import { usePricingConfig } from "@/lib/pricing-config";
-import { startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
+import { PAYFAST_ENABLED, startCreditPackCheckout, type PaymentGateway } from "@/lib/payments";
 import PaymentGatewayDialog from "@/components/PaymentGatewayDialog";
+import { notifyAnalysisPassesUpdated } from "@/hooks/use-analysis-passes";
+import { cancelPaypalSubscriptions, formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
+import { cancelPayfastSubscriptions } from "@/lib/payfast";
+import { openKeepMembership } from "@/lib/conversionDialogs";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadInvoicePdf } from "@/lib/generateInvoicePdf";
 import { toast } from "sonner";
+import { SeeAllPlansLink } from "@/components/GatedOverlay";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 
 interface Transaction {
   id: string;
@@ -40,34 +46,63 @@ const TIER_LABEL: Record<MembershipTier, string> = {
   vip: "Glow VIP",
 };
 
+interface PaymentSubscription {
+  gateway: "paypal" | "payfast";
+  gateway_subscription_id: string;
+  plan_id: string;
+  billing_interval: "monthly" | "annual";
+  status: string;
+  first_billing_at: string | null;
+  next_billing_at: string | null;
+  current_period_end: string | null;
+  amount_zar: number;
+  amount_charged: number;
+  currency: string;
+}
+
+const LIVE_SUBSCRIPTION_STATUSES = ["trialing", "active", "past_due"];
+
 interface BillingTabProps {
   aiCredits: number | null;
 }
 
 const BillingTab = ({ aiCredits }: BillingTabProps) => {
   const { user } = useAuth();
-  const { tier, isTrialing, isSignedIn } = useMembership();
+  const { tier, isTrialing, isSignedIn, trialPlan, trialEndsAt, billingInterval, isFoundingMember } = useMembership();
   const { data: config, isLoading: configLoading } = usePricingConfig();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [txLoading, setTxLoading] = useState(true);
   const [buyingPack, setBuyingPack] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [subscription, setSubscription] = useState<PaymentSubscription | null>(null);
 
-  useEffect(() => {
+  const loadTransactions = async () => {
     if (!user) {
       setTxLoading(false);
       return;
     }
-    supabase
+    const { data } = await supabase
       .from("payment_transactions")
       .select("id, reference, description, amount_zar, purchase_type, created_at, gateway")
       .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    setTransactions((data ?? []) as Transaction[]);
+    setTxLoading(false);
+  };
+
+  useEffect(() => {
+    void loadTransactions();
+    if (!user) return;
+    supabase
+      .from("payment_subscriptions")
+      .select("gateway, gateway_subscription_id, plan_id, billing_interval, status, first_billing_at, next_billing_at, current_period_end, amount_zar, amount_charged, currency")
+      .eq("user_id", user.id)
+      .in("status", LIVE_SUBSCRIPTION_STATUSES)
       .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        setTransactions((data ?? []) as Transaction[]);
-        setTxLoading(false);
-      });
+      .limit(1)
+      .then(({ data }) => setSubscription(((data ?? []) as PaymentSubscription[])[0] ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const [gatewayPackId, setGatewayPackId] = useState<string | null>(null);
@@ -91,6 +126,20 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
 
   const handleCancel = async () => {
     setCancelling(true);
+    // Stop the gateway's recurring billing first (PayFast's subscription
+    // cancel API / PayPal's) — never tell a member they're cancelled while a
+    // charge is still scheduled.
+    if (subscription) {
+      try {
+        if (subscription.gateway === "payfast") await cancelPayfastSubscriptions();
+        else await cancelPaypalSubscriptions();
+      } catch (err) {
+        setCancelling(false);
+        setCancelOpen(false);
+        toast.error(err instanceof Error ? err.message : "Couldn't cancel your auto-renew right now.");
+        return;
+      }
+    }
     const { error } = await supabase.rpc("cancel_subscription");
     setCancelling(false);
     setCancelOpen(false);
@@ -103,6 +152,11 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
   };
 
   const isSubscribed = tier !== "explorer";
+  const upgradeAction = useConversionAction(undefined, "billing_tab");
+  const nextChargeAt = subscription ? (subscription.next_billing_at ?? subscription.first_billing_at) : null;
+  // A trialling member without auto-renew can add a card (PayFast) or PayPal
+  // now; nothing is charged before the trial ends (KeepMembershipDialog).
+  const canSetUpAutoRenew = isTrialing && !subscription && !isFoundingMember && Boolean(trialEndsAt);
 
   return (
     <div className="space-y-6">
@@ -117,10 +171,52 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
               {TIER_LABEL[tier]}{isTrialing ? " (trial)" : ""}
             </Badge>
           </div>
+          {subscription && (
+            <p className="flex basis-full items-start gap-2 text-sm text-muted-foreground sm:order-last">
+              <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <span>
+                <span className="font-medium text-foreground">Auto-renew on</span> —{" "}
+                {subscription.gateway === "payfast"
+                  ? `${formatZar(Number(subscription.amount_zar))} with PayFast`
+                  : `${formatUsd(Number(subscription.amount_charged))} (${formatZar(Number(subscription.amount_zar))}) with PayPal`}
+                {" "}per {subscription.billing_interval === "annual" ? "year" : "month"}
+                {nextChargeAt ? `, next charge on ${formatBillingDate(nextChargeAt)}` : ""}.
+                {subscription.status === "past_due" && (
+                  <span className="text-destructive">
+                    {" "}
+                    {subscription.gateway === "payfast"
+                      ? "Your last payment didn't go through — PayFast will retry. Check your card or contact support."
+                      : "Your last payment didn't go through — PayPal will retry, or update your card in your PayPal account."}
+                  </span>
+                )}
+              </span>
+            </p>
+          )}
+          {canSetUpAutoRenew && trialEndsAt && (
+            <p className="basis-full text-sm text-muted-foreground sm:order-last">
+              Your free trial ends on {formatBillingDate(trialEndsAt)}. Add a card or PayPal to keep your membership
+              without interruption — you won't be charged before then.
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button asChild size="sm">
-              <Link to="/pricing">{isSubscribed ? "Change plan" : "Upgrade"}</Link>
-            </Button>
+            {canSetUpAutoRenew && (
+              <Button size="sm" className="gap-1.5" onClick={() => openKeepMembership({ source: "billing_tab" })}>
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Keep my membership
+              </Button>
+            )}
+            {isSubscribed ? (
+              <Button asChild size="sm" variant={canSetUpAutoRenew ? "outline" : "default"}>
+                <Link to="/pricing">Change plan</Link>
+              </Button>
+            ) : upgradeAction.kind ? (
+              <Button size="sm" className="gap-1.5" onClick={upgradeAction.run} disabled={upgradeAction.busy}>
+                {upgradeAction.busy && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                {upgradeAction.label}
+              </Button>
+            ) : null}
+            {!isSubscribed && (
+              <SeeAllPlansLink className="self-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground" />
+            )}
             {isSubscribed && (
               <Button variant="outline" size="sm" className="gap-1.5 text-muted-foreground hover:text-destructive" onClick={() => setCancelOpen(true)}>
                 <XCircle className="h-3.5 w-3.5" /> Cancel membership
@@ -148,7 +244,7 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                   <div>
                     <p className="font-medium text-foreground">{pack.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {pack.credits} advanced AI Skin Analys{pack.credits === 1 ? "is" : "es"}
+                      {pack.credits} Advanced AI Dermatology Analys{pack.credits === 1 ? "is" : "es"}
                     </p>
                   </div>
                   <div className="text-right">
@@ -174,9 +270,11 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Payments are processed securely by PayFast or PayPal, whichever you choose at checkout. SkinLabs never
-            stores your card details — to update a card, simply pay again at checkout and your chosen provider will
-            prompt you for fresh details.
+            {PAYFAST_ENABLED
+              ? "Payments are processed securely by PayFast (in Rand) or PayPal (PayPal balance or any debit/credit card, charged in USD at the live exchange rate)."
+              : "Payments are processed securely by PayPal (PayPal balance or any debit/credit card, charged in USD at the live exchange rate). Rand payments through PayFast are temporarily unavailable."}{" "}
+            SkinLabs never stores your card details. Recurring PayPal
+            memberships can also be viewed or updated from your PayPal account's automatic payments settings.
           </p>
         </CardContent>
       </Card>
@@ -216,9 +314,9 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
                           gateway: tx.gateway,
                         })
                       }
-                      aria-label="Download invoice"
+                      aria-label={`Download invoice: ${tx.description} (ref ${tx.reference})`}
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -233,8 +331,9 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel your membership?</AlertDialogTitle>
             <AlertDialogDescription>
-              You'll move back to Glow Explorer immediately — no more charges, and you keep everything you've
-              already saved. You can resubscribe any time from the pricing page.
+              You'll move back to Glow Explorer immediately{subscription ? " and your PayPal auto-renewal is stopped" : ""} —
+              no more charges, and you keep everything you've already saved. You can resubscribe any time from the
+              pricing page.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -246,10 +345,22 @@ const BillingTab = ({ aiCredits }: BillingTabProps) => {
         </AlertDialogContent>
       </AlertDialog>
 
+
       <PaymentGatewayDialog
         open={!!gatewayPackId}
         onOpenChange={(next) => !buyingPack && !next && setGatewayPackId(null)}
         onSelect={handleGatewaySelect}
+        paypal={
+          gatewayPackId
+            ? { purchaseType: "credit_pack", packId: gatewayPackId, variantKey: config?.variantKey ?? "control" }
+            : undefined
+        }
+        onPaypalApproved={() => {
+          toast.success("Payment confirmed — your Analysis Passes are ready.");
+          setGatewayPackId(null);
+          notifyAnalysisPassesUpdated();
+          void loadTransactions();
+        }}
       />
     </div>
   );

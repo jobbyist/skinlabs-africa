@@ -5,10 +5,15 @@ import { ArrowLeft, Heart, Loader2, MapPin, Star } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
-import { ScoreBar } from "@/components/ScoreBar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import GatedOverlay from "@/components/GatedOverlay";
+import GatedOverlay, { SeeAllPlansLink } from "@/components/GatedOverlay";
+import CommentHandleDialog from "@/components/comments/CommentHandleDialog";
+import { useCommentHandle } from "@/hooks/use-comment-handle";
+import { openSignupDialog } from "@/lib/conversionDialogs";
+import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
+import { useConversionAction } from "@/hooks/use-conversion-action";
+import { recordContentRead } from "@/lib/contentReads";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -17,6 +22,12 @@ import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
+import { QuickVerdict } from "@/components/product-review/QuickVerdict";
+import { AtAGlanceCard } from "@/components/product-review/AtAGlanceCard";
+import { productReviewTitle, productReviewDescription, SITE_URL } from "@/lib/seo-config";
+import { enhancedProductReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/jsonLd";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { findMarketplaceMatch, type MarketplaceMatch } from "@/lib/marketplaceCrossLink";
 import { useIngredientBreakdown } from "@/hooks/use-ingredient-breakdown";
 import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
@@ -24,10 +35,6 @@ import { useMembership } from "@/hooks/use-membership";
 import {
   overallScore,
   productReviews,
-  seededComments,
-  seededRatings,
-  getSeededAverageRating,
-  getSeededLikeCount,
 } from "@/data/reviews";
 import { spotlightRanking } from "@/data/spotlight";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
@@ -35,6 +42,7 @@ import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { trialLength } from "@/lib/promo";
 
 interface CommentRow {
   id: string;
@@ -46,7 +54,7 @@ interface CommentRow {
 const ProductReview = () => {
   const { slug } = useParams();
   const { user } = useAuth();
-  const { isMember, isVip } = useMembership();
+  const { isMember } = useMembership();
   const { data: generatedReviews } = useGeneratedReviews();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
@@ -61,9 +69,12 @@ const ProductReview = () => {
   const { data: ingredientBreakdown } = useIngredientBreakdown(review?.key_ingredients ?? []);
 
   const [rating, setRating] = useState(0);
+  const reviewAction = useConversionAction("reviews.full_body", "product_review_cta");
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [avgRating, setAvgRating] = useState<number | null>(null);
+  // Real `review_ratings` rows only.
+  const [realRatingStats, setRealRatingStats] = useState<{ average: number; count: number } | null>(null);
   const [comments, setComments] = useState<CommentRow[]>([]);
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
@@ -100,10 +111,12 @@ const ProductReview = () => {
         .maybeSingle();
       if (active) setFullReview(data?.full_review ?? null);
     })();
+    // A member sees the unlocked body: counts as a full read (Getting Started checklist).
+    void recordContentRead(user?.id, "review", review.id);
     return () => {
       active = false;
     };
-  }, [review, isMember]);
+  }, [review, isMember, user?.id]);
 
   useEffect(() => {
     if (!review) return;
@@ -121,8 +134,10 @@ const ProductReview = () => {
       ]);
       if (!active) return;
       const rows = ratings ?? [];
-      setLikeCount(rows.length > 0 ? rows.filter((r) => r.liked).length : getSeededLikeCount(review.id));
-      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : getSeededAverageRating(review.id));
+      setLikeCount(rows.filter((r) => r.liked).length);
+      setAvgRating(rows.length > 0 ? rows.reduce((sum, r) => sum + (r.rating ?? 0), 0) / rows.length : null);
+      const rated = rows.map((r) => r.rating).filter((n): n is number => typeof n === "number" && n >= 1 && n <= 5);
+      setRealRatingStats(rated.length > 0 ? { average: rated.reduce((a, b) => a + b, 0) / rated.length, count: rated.length } : null);
       const mine = user ? rows.find((r) => r.user_id === user.id) : undefined;
       setRating(mine?.rating ?? 0);
       setLiked(Boolean(mine?.liked));
@@ -134,6 +149,9 @@ const ProductReview = () => {
       active = false;
     };
   }, [review, user]);
+
+  const commentHandle = useCommentHandle(user?.id);
+  const [handleDialogOpen, setHandleDialogOpen] = useState(false);
 
   if (!review) {
     return (
@@ -168,21 +186,24 @@ const ProductReview = () => {
     setLiked(nextLiked);
   };
 
-  const postComment = async () => {
+  // Sign-up doesn't ask for a username, so the first comment asks for a
+  // public handle once (CommentHandleDialog), then posts with it.
+  const postComment = async (chosenHandle?: string) => {
     if (!body.trim()) return;
     if (!user) {
-      toast.error("Sign in to join the discussion.");
+      setPendingIntent({ action: "unlock", returnTo: currentReturnTo() });
+      openSignupDialog();
+      return;
+    }
+    const displayName = chosenHandle ?? commentHandle.handle;
+    if (!displayName) {
+      setHandleDialogOpen(true);
       return;
     }
     setPosting(true);
     const { data, error } = await supabase
       .from("review_comments")
-      .insert({
-        user_id: user.id,
-        review_id: review.id,
-        display_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Member",
-        body: body.trim(),
-      })
+      .insert({ user_id: user.id, review_id: review.id, display_name: displayName, body: body.trim() })
       .select("id, display_name, body, created_at")
       .single();
     setPosting(false);
@@ -196,59 +217,78 @@ const ProductReview = () => {
   };
 
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
-  const displayComments = comments.length === 0 ? (seededComments[review.id] || []).map((c, i) => ({ ...c, id: `seeded-${i}` })) : comments;
+  // Real comments only — the seeded placeholder discussion was fabricated social proof.
+  const displayComments = comments;
   const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
   const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
   const seasonalFeature = allSeasons
     .map((season) => seasonHubs[season])
     .find((hub) => hub.productEdit.picks.some((pick) => pick.reviewId === review.id));
   const score = overallScore(review);
-  const canonical = `https://skinlabs.co.za/reviews/${review.id}`;
+  const canonical = `${SITE_URL}/reviews/${review.id}`;
 
+  // Generate enhanced JSON-LD with proper separation of editorial (0-10) and community (0-5) ratings
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "Product",
-        name: review.product_name,
-        brand: { "@type": "Brand", name: review.brand },
+      enhancedProductReviewJsonLd({
+        canonicalUrl: canonical,
+        productName: review.product_name,
+        brand: review.brand,
         category: review.category,
         ...(productImage ? { image: productImage.url } : {}),
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "ZAR",
-          lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
-          highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
-          offerCount: review.retailers.length,
-        },
-        review: {
-          "@type": "Review",
-          reviewRating: { "@type": "Rating", ratingValue: score, bestRating: 10 },
-          author: { "@type": "Organization", name: "SkinLabs" },
-          reviewBody: review.verdict,
-        },
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: score,
-          bestRating: 10,
-          reviewCount: Math.max(1, displayComments.length),
-        },
-      },
-      {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: "Reviews", item: "https://skinlabs.co.za/reviews" },
-          { "@type": "ListItem", position: 2, name: review.product_name, item: canonical },
-        ],
-      },
+        ...(review.retailers.length > 0
+          ? {
+              offers: {
+                lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
+                highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
+                offerCount: review.retailers.length,
+              },
+            }
+          : {}),
+        editorialScore: score,
+        // Prefer the pipeline's expanded review_body (grounded second Gemini call, see
+        // supabase/functions/product-review-sync/index.ts's generateSupplementalFields())
+        // when the pipeline has populated it -- falls back to the short verdict for the
+        // static catalogue and for any AI review not yet backfilled.
+        reviewBody: review.review_body ?? review.verdict,
+        // Single aggregateRating from REAL review_ratings rows only -- never the
+        // seeded display average, and counted by ratings (not comments).
+        ...(realRatingStats
+          ? {
+              communityRating: realRatingStats.average,
+              communityReviewCount: realRatingStats.count,
+            }
+          : {}),
+      }),
+      breadcrumbJsonLd([
+        { name: "Reviews", url: `${SITE_URL}/reviews` },
+        { name: review.product_name, url: canonical },
+      ]),
+      ...(review.faq && review.faq.length > 0 ? [faqJsonLd({ faqs: review.faq })] : []),
     ],
   };
+
+  // Prefer the pipeline's stored seo_title/seo_description (the identical formula,
+  // computed server-side at publish/backfill time -- see
+  // supabase/functions/product-review-sync/index.ts's computeSeoTitleDescription())
+  // so a crawler reading the row directly (or the SSR route) sees the same title/
+  // description without needing this client computation. Falls back to computing it
+  // here for the static catalogue and for any AI review not yet backfilled.
+  const seoTitle = review.seo_title ?? productReviewTitle(review.product_name, review.brand);
+  const seoDescription =
+    review.seo_description ??
+    productReviewDescription(review.product_name, review.brand, {
+      score,
+      keyIngredients: review.key_ingredients.slice(0, 2),
+      skinTypes: review.skin_type_match.slice(0, 2),
+    });
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title={`${review.brand} ${review.product_name} Review — SA Score & Price`}
-        description={`${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`}
+        title={seoTitle}
+        description={seoDescription}
         canonical={canonical}
         ogType="article"
         {...(productImage ? { ogImage: productImage.url } : {})}
@@ -261,14 +301,19 @@ const ProductReview = () => {
             <ArrowLeft className="h-4 w-4" /> All reviews
           </Link>
 
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
-          <div className="mt-1 flex items-start justify-between gap-4">
-            <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
-            <div className="flex shrink-0 flex-col items-center rounded-2xl bg-primary px-4 py-2 text-primary-foreground">
-              <span className="font-heading text-2xl font-extrabold leading-none">{score}</span>
-              <span className="text-[10px] uppercase tracking-wide opacity-80">/ 10</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
+            {review.is_sponsored && (
+              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Sponsored</Badge>
+            )}
           </div>
+          <h1 className="mt-1 font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
+          {review.is_sponsored && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              This review discloses a sponsored placement — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.
+            </p>
+          )}
+          {review.seo_intro && <p className="mt-3 text-base leading-relaxed text-muted-foreground">{review.seo_intro}</p>}
 
           {productImage && (
             <figure className="mt-6">
@@ -290,14 +335,88 @@ const ProductReview = () => {
             </figure>
           )}
 
-          <p className="mt-6 text-lg leading-relaxed text-foreground">{review.verdict}</p>
-
-          <div className="mt-6 grid gap-2.5 rounded-3xl border border-border bg-card p-6 sm:grid-cols-2">
-            <ScoreBar label="Efficacy" value={review.score_efficacy} />
-            <ScoreBar label="Value for money" value={review.score_value} />
-            <ScoreBar label="Texture" value={review.score_texture} />
-            <ScoreBar label="SA climate fit" value={review.score_climate} />
+          <div className="mt-6">
+            <QuickVerdict
+              verdict={review.verdict}
+              overallScore={score}
+              scoreBreakdown={{
+                efficacy: review.score_efficacy,
+                value: review.score_value,
+                texture: review.score_texture,
+                climate: review.score_climate,
+              }}
+            />
           </div>
+
+          <div className="mt-6">
+            <AtAGlanceCard
+              brand={review.brand}
+              productName={review.product_name}
+              category={review.category}
+              priceZAR={Math.min(...review.retailers.map((r) => r.price_zar))}
+              whereAvailable={review.retailers.map((r) => r.retailer).join(", ")}
+              size={review.product_size ?? undefined}
+              countryOfOrigin={review.country_of_origin ?? undefined}
+              amPmUsage={review.am_pm_usage ?? undefined}
+            />
+          </div>
+
+          {(review.review_body || (review.skin_concerns && review.skin_concerns.length > 0) || (review.benefits && review.benefits.length > 0) || (review.cautions && review.cautions.length > 0)) && (
+            <div className="mt-6 space-y-4 rounded-3xl border border-border bg-card p-6">
+              <h2 className="font-heading text-lg font-bold text-foreground">Editorial deep dive</h2>
+              {review.review_body && <p className="text-sm leading-relaxed text-foreground">{review.review_body}</p>}
+
+              {review.skin_concerns && review.skin_concerns.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {review.skin_concerns.map((concern) => (
+                    <Badge key={concern} variant="secondary">{concern}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {((review.benefits && review.benefits.length > 0) || (review.cautions && review.cautions.length > 0)) && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {review.benefits && review.benefits.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-foreground">Benefits</h3>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        {review.benefits.map((benefit) => (
+                          <li key={benefit}>• {benefit}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {review.cautions && review.cautions.length > 0 && (
+                    <div>
+                      <h3 className="mb-2 text-sm font-semibold text-foreground">Cautions</h3>
+                      <ul className="space-y-1 text-sm text-muted-foreground">
+                        {review.cautions.map((caution) => (
+                          <li key={caution}>• {caution}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Only when the FAQ follows, so it never sits directly above product-review-top. */}
+          {review.faq && review.faq.length > 0 && <AdSlot placement="product-review-deep-dive" compact />}
+
+          {review.faq && review.faq.length > 0 && (
+            <div className="mt-6">
+              <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Frequently asked questions</h2>
+              <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-4">
+                {review.faq.map((item, index) => (
+                  <AccordionItem key={item.question} value={`faq-${index}`}>
+                    <AccordionTrigger className="text-left text-sm font-medium">{item.question}</AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground">{item.answer}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-1">
@@ -316,9 +435,7 @@ const ProductReview = () => {
 
           <SkinLabsPromiseBadge className="mt-6" />
 
-          <div className="my-8">
-            <AdSlot placement="product-review-top" compact />
-          </div>
+          <AdSlot placement="product-review-top" compact priority="primary" />
 
           <div className="mt-8">
             <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
@@ -360,17 +477,13 @@ const ProductReview = () => {
             </Link>
           )}
 
-          <div className="my-8">
-            <FaithfulToNature placement="product-review-shop" />
-          </div>
+          {/* Partner banner sits after the routine builder, not straight after
+              "Where to buy" + the OpenHaus link, so commercial units never cluster. */}
+          <RoutineBuilder anchor={review} />
 
-          <RoutineBuilder anchor={review} isVip={isVip} />
+          <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
-
-          <div className="my-8">
-            <AdSlot placement="product-review-mid" />
-          </div>
 
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">
@@ -398,6 +511,8 @@ const ProductReview = () => {
               locked={!isMember}
               title="Unlock the full lab breakdown"
               message="Glow Insider unlocks the complete ingredient analysis, long-form verdict and skin-type match notes for every product we've reviewed."
+              feature="reviews.full_body"
+              source="product_review_gate"
             >
               <div className="space-y-4 rounded-3xl border border-border bg-card p-6">
                 <h2 className="font-heading text-lg font-bold text-foreground">The full breakdown</h2>
@@ -439,34 +554,46 @@ const ProductReview = () => {
             </GatedOverlay>
           </div>
 
-          {!isMember && (
+          {!isMember && reviewAction.kind && (
             <div className="mt-6 rounded-3xl border border-primary/30 bg-primary/5 p-6 text-center">
               <p className="font-heading text-lg font-bold text-foreground">Get every full breakdown, ingredient deep-dive included</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Glow Insider members read every product's full lab breakdown, not just the score. Try it free for 7 days — no card required.
+                Glow Insider members read every product's full lab breakdown, not just the score.
+                {reviewAction.kind === "trial" ? ` Try it free ${trialLength()} — no card required.` : ""}
               </p>
-              <Button asChild className="mt-4">
-                <Link to="/pricing">Start my 7-day free trial</Link>
-              </Button>
+              <div className="mt-4 flex flex-col items-center gap-2">
+                <Button onClick={reviewAction.run} disabled={reviewAction.busy} className="gap-2">
+                  {reviewAction.busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {reviewAction.label}
+                </Button>
+                <SeeAllPlansLink />
+              </div>
             </div>
           )}
 
-          <div className="my-8">
-            <AdSlotAutorelaxed placement="product-review-discussion" compact />
-          </div>
+          <AdSlotAutorelaxed placement="product-review-discussion" compact />
 
           <div className="mt-10 space-y-3">
             <h2 className="font-heading text-lg font-bold text-foreground">Member discussion</h2>
             <Textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              placeholder={user ? "Share your experience with this product…" : "Sign in to join the discussion"}
+              placeholder={user ? "Share your experience with this product…" : "Create a free account to join the discussion"}
               maxLength={2000}
               rows={3}
             />
-            <Button size="sm" onClick={postComment} disabled={posting || !body.trim()}>
+            <Button size="sm" onClick={() => void postComment()} disabled={posting || !body.trim() || commentHandle.loading}>
               {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post comment"}
             </Button>
+            <CommentHandleDialog
+              open={handleDialogOpen}
+              onOpenChange={setHandleDialogOpen}
+              saveHandle={commentHandle.saveHandle}
+              onSaved={(handle) => {
+                setHandleDialogOpen(false);
+                void postComment(handle);
+              }}
+            />
 
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading discussion…</p>
@@ -486,6 +613,8 @@ const ProductReview = () => {
               </ul>
             )}
           </div>
+
+          <AdSlotAutorelaxed placement="product-review-related" compact />
 
           {relatedReviews.length > 0 && (
             <div className="mt-12">

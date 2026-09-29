@@ -9,16 +9,17 @@ interface FeatureGateProps {
   feature: FeatureKey;
   title?: string;
   message?: string;
-  ctaLabel?: string;
-  onSignIn?: () => void;
+  /** Analytics source for `upgrade_click`; defaults to `feature_gate:<feature>`. */
+  source?: string;
   children: ReactNode;
 }
 
 /**
  * The standard soft-gate for a single feature: blurs `children` behind an
  * upgrade prompt (via GatedOverlay) when the signed-in account's entitlements
- * don't cover `feature`, and copy/CTA are derived automatically from the
- * capability model instead of being hand-written per page. Fires an
+ * don't cover `feature`. Copy comes from the capability model and the CTA from
+ * useConversionAction (sign up / start trial in place / subscribe), instead of
+ * being hand-written per page. Fires an
  * `upgrade_prompt_view` conversion event the first time a visitor sees the
  * lock, so funnel drop-off at each feature can be measured later.
  *
@@ -28,7 +29,7 @@ interface FeatureGateProps {
  * Formulator's rolling usage quota) can stay as they are; this component
  * doesn't model quotas, only static feature access.
  */
-const FeatureGate = ({ feature, title, message, ctaLabel, onSignIn, children }: FeatureGateProps) => {
+const FeatureGate = ({ feature, title, message, source, children }: FeatureGateProps) => {
   const { can, loading, accountState } = useEntitlements();
   const locked = !loading && !can(feature);
   const firedRef = useRef(false);
@@ -54,8 +55,8 @@ const FeatureGate = ({ feature, title, message, ctaLabel, onSignIn, children }: 
       locked={locked}
       title={title ?? defaultTitle}
       message={message ?? defaultMessage}
-      ctaLabel={ctaLabel ?? "View membership plans"}
-      onSignIn={onSignIn}
+      feature={feature}
+      source={source ?? `feature_gate:${feature}`}
     >
       {children}
     </GatedOverlay>

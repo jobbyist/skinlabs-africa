@@ -1,20 +1,18 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, BookOpen, Package, Sparkles } from "lucide-react";
-import { seasonHubs } from "@/data/seasonals";
+import { getCurrentSeason, seasonHubs, seasonTransitionPhrase, type Season } from "@/data/seasonals";
 
-const spring = seasonHubs.spring;
-
-const cards = [
+const buildCards = (season: Season) => [
   {
-    title: "The Spring Reset",
-    description: "A practical routine guide for the transition into spring.",
-    href: "/seasonals/spring",
+    title: seasonHubs[season].h1,
+    description: `A practical routine guide for ${seasonTransitionPhrase(season)}.`,
+    href: `/seasonals/${season}`,
     icon: Sparkles,
   },
   {
     title: "What Your Skin Needs",
     description: "Current guides and advice for the season you're actually living in.",
-    href: "/seasonals/spring#the-edit",
+    href: `/seasonals/${season}#the-edit`,
     icon: BookOpen,
   },
   {
@@ -26,6 +24,9 @@ const cards = [
 ];
 
 const SeasonalsTeaser = () => {
+  const season = getCurrentSeason();
+  const hub = seasonHubs[season];
+  const cards = buildCards(season);
   return (
     <section id="seasonals" className="bg-secondary/30 py-20">
       <div className="container mx-auto px-4">
@@ -35,7 +36,7 @@ const SeasonalsTeaser = () => {
             <h2 className="mb-3 font-heading text-3xl font-bold text-foreground md:text-4xl">
               Your skin changes with the seasons. So should your routine.
             </h2>
-            <p className="text-muted-foreground">{spring.heroIntro}</p>
+            <p className="text-muted-foreground">{hub.heroIntro}</p>
           </div>
           <Link to="/seasonals" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
             Explore the season

@@ -14,6 +14,39 @@ export interface ProductReview {
   key_ingredients: string[];
   retailers: RetailerListing[];
   isNew?: boolean;
+  /** SEO/structured fields from supabase/migrations/20260922120000_add_seo_review_schema_fields.sql
+   *  -- populated by the product-review-sync pipeline's second, best-effort Gemini call
+   *  (generateSupplementalFields()) for AI-generated reviews only. Always undefined for
+   *  the static catalogue below and for any AI review the pipeline hasn't backfilled yet
+   *  -- every consumer must render these as optional, gradually-populated content. */
+  seo_intro?: string | null;
+  review_body?: string | null;
+  product_size?: string | null;
+  product_format?: string | null;
+  country_of_origin?: string | null;
+  am_pm_usage?: string | null;
+  skin_concerns?: string[];
+  benefits?: string[];
+  cautions?: string[];
+  faq?: { question: string; answer: string }[];
+  /** Structured-data / Rich-Results fields (2026-09-22 follow-up) -- same migration,
+   *  same "AI-generated reviews only, gradually populated" caveat as above. seo_title/
+   *  seo_description are a deterministic formula (never Gemini output); the rest are
+   *  live SQL/RPC snapshots refreshed at each publish/backfill pass -- see
+   *  supabase/functions/product-review-sync/index.ts's own header comment. */
+  seo_title?: string | null;
+  seo_description?: string | null;
+  key_ingredients_structured?: { name: string; slug: string | null; resolved: boolean }[];
+  related_ingredients_slugs?: string[];
+  primary_image?: string | null;
+  related_reviews?: { id: string; product_name: string; brand: string }[];
+  related_knowledge_articles?: { title: string; url: string }[];
+  community_rating?: number | null;
+  community_rating_count?: number;
+  /** true for every review sourced from OpenHaus (SkinLabs' own marked-up in-app
+   *  marketplace) as well as the existing disclosed Timeless placements -- see
+   *  supabase/functions/product-review-sync/index.ts's 2026-09-22 header note. */
+  is_sponsored?: boolean;
 }
 
 export interface SeededComment {
