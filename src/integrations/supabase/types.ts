@@ -2559,6 +2559,36 @@ export type Database = {
         }
         Relationships: []
       }
+      consult_survey_responses: {
+        Row: {
+          booking_priority: number
+          created_at: string
+          feedback_text: string | null
+          id: string
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features: string[]
+          user_id: string | null
+        }
+        Insert: {
+          booking_priority: number
+          feedback_text?: string | null
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features?: string[]
+        }
+        Update: {
+          booking_priority?: number
+          feedback_text?: string | null
+          primary_use?: string
+          sentiment?: number
+          trust_score?: number
+          useful_features?: string[]
+        }
+        Relationships: []
+      }
       notify_me_requests: {
         Row: {
           contact_method: string

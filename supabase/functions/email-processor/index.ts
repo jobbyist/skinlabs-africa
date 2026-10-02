@@ -28,6 +28,8 @@ const BATCH_SIZE = 20;
 // monitored inbox every admin lead must always reach.
 const ADMIN_TEMPLATE_EXTRA_RECIPIENTS: Record<string, string[]> = {
   admin_form_notification_partner: ["partners@skinlabs.co.za"],
+  // /consult directory survey responses go to the consult@ inbox as well.
+  admin_consult_survey_response: ["consult@skinlabs.co.za"],
   // SKYNN pre-approval intake: the team that owns reports@ must see these.
   admin_skynn_intake_failed: ["reports@skinlabs.co.za"],
   admin_skynn_intake_withdrawn: ["reports@skinlabs.co.za"],
