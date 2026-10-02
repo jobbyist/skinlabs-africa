@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseServerClient } from '@/lib/content/supabaseServerClient'
 import { buildHeadTags } from '@/lib/seo/head'
 import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
+import { AUTHOR_NAME } from '@/lib/seo-config'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { articleTitle } from '@/lib/seo-config'
@@ -179,6 +180,7 @@ function BriefingPage() {
         <img src={a.cover_image_url} alt={a.cover_image_alt || ''} width={1200} height={630} />
       )}
       <h1>{a.title}</h1>
+      <p>By {AUTHOR_NAME} · Written and reviewed by {AUTHOR_NAME}</p>
       <p>
         <em>{a.sa_context_tag}</em> · Published {a.publish_date} · {a.reading_time} ·{' '}
         {a.word_count} words

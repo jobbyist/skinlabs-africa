@@ -61,6 +61,7 @@
       "destination": "/briefings",
       "permanent": true
     },
+    { "source": "/consultations", "destination": "/consult", "permanent": true },
     {
       "source": "/faq",
       "destination": "/knowledge-hub",

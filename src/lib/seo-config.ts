@@ -5,6 +5,9 @@ import type { ProductReview } from "@/data/reviews";
  */
 export const BRAND = "SkinLabs®";
 export const SITE_URL = "https://skinlabs.co.za";
+/** Named author and reviewer for reviews and briefings. Name only: no credentials are claimed. */
+export const AUTHOR_NAME = "Michael C.";
+export const AUTHOR_URL = `${SITE_URL}/about`;
 export const DEFAULT_OG = `${SITE_URL}/og-image.png`;
 
 /**

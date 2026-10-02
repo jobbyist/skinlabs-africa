@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AUTHOR_NAME } from "@/lib/seo-config";
 import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Heart, Loader2, MapPin, Star } from "lucide-react";
@@ -308,6 +309,7 @@ const ProductReview = () => {
             )}
           </div>
           <h1 className="mt-1 font-heading text-3xl font-bold text-foreground md:text-4xl">{review.product_name}</h1>
+          <p className="mt-1 text-xs text-muted-foreground">Reviewed by {AUTHOR_NAME}</p>
           {review.is_sponsored && (
             <p className="mt-1 text-xs text-muted-foreground">
               This review discloses a sponsored placement — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.

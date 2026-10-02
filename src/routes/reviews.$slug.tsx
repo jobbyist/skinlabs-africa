@@ -12,6 +12,7 @@ import { productReviewJsonLd, breadcrumbJsonLd, faqJsonLd } from '@/lib/seo/json
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl, absoluteUrl } from '@/lib/seo/canonical'
 import { productReviewTitle } from '@/lib/seo-config'
+import { AUTHOR_NAME } from '@/lib/seo-config'
 import {
   productReviews,
   overallScore,
@@ -416,6 +417,7 @@ function ReviewPageContent() {
         <h1>
           {review.product_name} <span>{score} / 10</span>
         </h1>
+        <p>Reviewed by {AUTHOR_NAME}</p>
         {review.is_sponsored && (
           <p>
             <em>Sponsored — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.</em>

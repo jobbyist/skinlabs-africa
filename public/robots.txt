@@ -116,6 +116,25 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /marketplace
 
+# User-triggered fetchers (an assistant reading a page because a person asked it to).
+User-agent: Claude-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: Applebot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
 # Catch-all for every other crawler, including AI crawlers not named above.
 User-agent: *
 Allow: /

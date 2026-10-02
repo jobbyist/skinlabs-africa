@@ -61,7 +61,6 @@ const STATIC_ROUTES = [
   "/briefings",
   "/reviews",
   "/compare",
-  "/consultations",
   "/consult",
   "/announcements",
   "/spotlight",

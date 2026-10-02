@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
-import { pageSeo, SITE_URL, productReviewTitle, productReviewDescription, brandProfileTitle, articleTitle, podcastEpisodeTitle, BRAND } from "@/lib/seo-config";
+import { pageSeo, SITE_URL, productReviewTitle, productReviewDescription, brandProfileTitle, articleTitle, podcastEpisodeTitle, BRAND, AUTHOR_NAME, AUTHOR_URL } from "@/lib/seo-config";
 import { productReviews } from "@/data/reviews";
 import { podcastEpisodes } from "@/data/podcast";
 import { getSpotlightBrand } from "@/data/spotlight";
@@ -47,7 +47,8 @@ const SitewideSEO = () => {
       return { title, description, canonical, ogType: "article", ogImage: image, jsonLd: {
         "@context": "https://schema.org", "@type": "Article", headline: article.title, description,
         ...(image ? { image } : {}), datePublished: article.publish_date, dateModified: article.publish_date,
-        author: { "@type": "Organization", name: BRAND, url: SITE_URL }, publisher: { "@type": "Organization", name: BRAND, url: SITE_URL, logo: { "@type": "ImageObject", url: `${SITE_URL}/pwa-512.png` } },
+        author: { "@type": "Person", name: AUTHOR_NAME, url: AUTHOR_URL, worksFor: { "@type": "Organization", name: BRAND, url: SITE_URL } },
+        editor: { "@type": "Person", name: AUTHOR_NAME, url: AUTHOR_URL }, publisher: { "@type": "Organization", name: BRAND, url: SITE_URL, logo: { "@type": "ImageObject", url: `${SITE_URL}/pwa-512.png` } },
         mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` },
       }};
     }
