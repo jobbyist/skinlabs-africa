@@ -33,7 +33,6 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   { path: "/seasonals/summer", changefreq: "monthly", priority: "0.7" },
   { path: "/seasonals/autumn", changefreq: "monthly", priority: "0.7" },
   { path: "/seasonals/winter", changefreq: "monthly", priority: "0.7" },
-  { path: "/consultations", changefreq: "monthly", priority: "0.8" },
   { path: "/consult", changefreq: "weekly", priority: "0.85" },
   { path: "/announcements", changefreq: "monthly", priority: "0.6" },
   { path: "/knowledge-hub", changefreq: "weekly", priority: "0.9" },

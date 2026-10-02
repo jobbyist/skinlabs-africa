@@ -3,6 +3,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { createSupabaseServerClient } from '@/lib/content/supabaseServerClient'
 import { buildHeadTags } from '@/lib/seo/head'
 import { articleJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
+import { AUTHOR_NAME } from '@/lib/seo-config'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { articleTitle } from '@/lib/seo-config'
@@ -12,6 +13,7 @@ import AdSlotAutorelaxed from '@/components/AdSlotAutorelaxed'
 import FaithfulToNature from '@/components/FaithfulToNature'
 import BriefingBody from '@/components/briefings/BriefingBody'
 import EditorialDisclaimer from '@/components/briefings/EditorialDisclaimer'
+import { clampAtWord } from '@/lib/seo/text'
 
 // Production SSR route for /briefings/:slug (Briefings is the first content
 // type migrated to TanStack Start -- see
@@ -117,7 +119,7 @@ export const Route = createFileRoute('/briefings/$slug')({
     const a = loaderData.article
     const path = `/briefings/${a.slug}`
     const title = a.seo_title || articleTitle(a.title)
-    const description = (a.seo_description || a.excerpt).replace(/\s+/g, ' ').trim().slice(0, 160)
+    const description = clampAtWord(a.seo_description || a.excerpt, 160)
     const datePublished = a.publish_date
     // Real fix vs. the DB's own json_ld column pattern (confirmed via direct
     // inspection of a live row): that column hardcodes dateModified to equal
@@ -133,6 +135,7 @@ export const Route = createFileRoute('/briefings/$slug')({
       datePublished,
       dateModified,
       articleSection: 'The Daily Skinny',
+      isPaywalled: a.is_premium,
     })
 
     const breadcrumb = breadcrumbJsonLd(
@@ -177,6 +180,7 @@ function BriefingPage() {
         <img src={a.cover_image_url} alt={a.cover_image_alt || ''} width={1200} height={630} />
       )}
       <h1>{a.title}</h1>
+      <p>By {AUTHOR_NAME} · Written and reviewed by {AUTHOR_NAME}</p>
       <p>
         <em>{a.sa_context_tag}</em> · Published {a.publish_date} · {a.reading_time} ·{' '}
         {a.word_count} words
@@ -224,10 +228,12 @@ function BriefingPage() {
           {disclaimer && <EditorialDisclaimer text={disclaimer} />}
         </>
       ) : a.is_premium ? (
-        <p>
-          This is a premium briefing. <a href="/pricing">Sign in or see membership plans</a> to read the full
-          article -- free accounts get several full briefings every week.
-        </p>
+        <div className="premium-body">
+          <p>
+            This is a premium briefing. <a href="/pricing">Sign in or see membership plans</a> to read the full
+            article -- free accounts get several full briefings every week.
+          </p>
+        </div>
       ) : null}
 
       <FaithfulToNature placement="briefing-shop" />

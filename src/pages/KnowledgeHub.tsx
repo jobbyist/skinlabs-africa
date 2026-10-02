@@ -33,6 +33,7 @@ import { linkifyMoneyBackGuarantee } from "@/lib/moneyBackLink";
 import { scoreTextItem } from "@/lib/search-engine";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
+import { clampAtWord } from "@/lib/seo/text";
 import {
   CATEGORIES,
   faqEntries,
@@ -158,7 +159,6 @@ const KnowledgeHub = () => {
       entryRefs.current[entry.slug]?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 150);
     return () => clearTimeout(timeout);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugParam]);
 
   const scored = useMemo(() => {
@@ -203,23 +203,49 @@ const KnowledgeHub = () => {
     }
   };
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@graph": [
-      buildFaqJsonLd(),
-      {
-        "@type": "BreadcrumbList",
-        itemListElement: [{ "@type": "ListItem", position: 1, name: "Knowledge Hub", item: "https://skinlabs.co.za/knowledge-hub" }],
-      },
-    ],
-  };
+  // One page, one set of metadata. A /knowledge-hub/:slug page carries ONLY its own
+  // question (single FAQPage + a 3-level breadcrumb); the hub index carries the full
+  // FAQPage. These used to be emitted together (here and again from SitewideSEO), which
+  // left two conflicting FAQPage/BreadcrumbList sets and the generic hub title on every
+  // question page.
+  const activeEntry = slugParam ? getEntryBySlug(slugParam) : undefined;
+  const hubUrl = "https://skinlabs.co.za/knowledge-hub";
+  const seoTitle = activeEntry ? activeEntry.question : "SkinLabs Knowledge Hub — Evidence-Backed Skincare Answers";
+  const seoDescription = activeEntry
+    ? clampAtWord(`${activeEntry.answer}`, 155)
+    : "Short, evidence-backed answers to common skincare questions on ingredients, routines, sun protection and the South African market.";
+  const jsonLd = activeEntry
+    ? [
+        buildFaqJsonLd([activeEntry]),
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "SkinLabs", item: "https://skinlabs.co.za" },
+            { "@type": "ListItem", position: 2, name: "Knowledge Hub", item: hubUrl },
+            { "@type": "ListItem", position: 3, name: activeEntry.question, item: `${hubUrl}/${activeEntry.slug}` },
+          ],
+        },
+      ]
+    : [
+        buildFaqJsonLd(),
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "SkinLabs", item: "https://skinlabs.co.za" },
+            { "@type": "ListItem", position: 2, name: "Knowledge Hub", item: hubUrl },
+          ],
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="SkinLabs Knowledge Hub — Evidence-Backed Skincare Answers"
-        description="Real answers, evidence-backed guidance, built for South African skin, climate and routines. Search skincare questions on ingredients, routines, skin types and the SA market."
-        canonical={slugParam ? `https://skinlabs.co.za/knowledge-hub/${slugParam}` : "https://skinlabs.co.za/knowledge-hub"}
+        title={seoTitle}
+        description={seoDescription}
+        canonical={activeEntry ? `${hubUrl}/${activeEntry.slug}` : hubUrl}
+        ogType={activeEntry ? "article" : "website"}
         jsonLd={jsonLd}
       />
       <Header />

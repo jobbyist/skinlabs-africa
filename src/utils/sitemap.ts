@@ -20,7 +20,6 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: "/ingredients/checker", changefreq: "monthly", priority: 0.7 },
   { loc: "/pricing", changefreq: "weekly", priority: 0.9 },
   { loc: "/about", changefreq: "monthly", priority: 0.8 },
-  { loc: "/consultations", changefreq: "monthly", priority: 0.8 },
   { loc: "/knowledge-hub", changefreq: "weekly", priority: 0.8 },
   { loc: "/shop", changefreq: "monthly", priority: 0.6 },
   { loc: "/routines", changefreq: "monthly", priority: 0.4 },

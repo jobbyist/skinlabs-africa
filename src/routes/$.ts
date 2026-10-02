@@ -7,6 +7,7 @@ import { createFileRoute } from "@tanstack/react-router";
 // `build:tanstack-start` in `npm run build` (see package.json), so this file
 // exists by the time this import is resolved.
 import spaIndexHtml from "../../dist/index.html?raw";
+import { isKnownSpaPath } from "@/lib/routing/spaRoutes";
 
 /**
  * Root splat/catch-all server route: the function-based replacement for
@@ -35,9 +36,17 @@ import spaIndexHtml from "../../dist/index.html?raw";
 export const Route = createFileRoute("/$")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
+        // Real SPA routes boot the app with a 200. Anything else still gets the SPA
+        // shell (so the in-app NotFound page renders for humans) but with a genuine
+        // 404 status and noindex, so crawlers don't treat junk URLs as live pages.
+        const known = isKnownSpaPath(new URL(request.url).pathname);
         return new Response(spaIndexHtml, {
-          headers: { "content-type": "text/html; charset=utf-8" },
+          status: known ? 200 : 404,
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            ...(known ? {} : { "x-robots-tag": "noindex" }),
+          },
         });
       },
     },

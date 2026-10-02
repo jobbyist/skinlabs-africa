@@ -1,4 +1,11 @@
-import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
+import { BRAND, SITE_URL, DEFAULT_OG, AUTHOR_NAME, AUTHOR_URL } from "@/lib/seo-config";
+
+const authorPerson = () => ({
+  "@type": "Person",
+  name: AUTHOR_NAME,
+  url: AUTHOR_URL,
+  worksFor: { "@type": "Organization", name: BRAND, url: SITE_URL },
+});
 import type {
   ArticleJsonLdInput,
   BreadcrumbItem,
@@ -26,13 +33,24 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
     ...(input.images && input.images.length > 0 ? { image: input.images } : {}),
     datePublished: input.datePublished,
     dateModified: input.dateModified,
-    author: { "@type": "Organization", name: BRAND, url: SITE_URL },
+    author: authorPerson(),
+    editor: authorPerson(),
     publisher: {
       "@type": "Organization",
       name: BRAND,
       logo: { "@type": "ImageObject", url: DEFAULT_OG },
     },
     ...(input.articleSection ? { articleSection: input.articleSection } : {}),
+    ...(input.isPaywalled
+      ? {
+          isAccessibleForFree: false,
+          hasPart: {
+            "@type": "WebPageElement",
+            isAccessibleForFree: false,
+            cssSelector: input.paywallCssSelector ?? ".premium-body",
+          },
+        }
+      : {}),
   };
 }
 
@@ -66,7 +84,7 @@ export function productReviewJsonLd(input: ProductReviewJsonLdInput) {
       : {}),
     review: {
       "@type": "Review",
-      author: { "@type": "Organization", name: BRAND },
+      author: authorPerson(),
       reviewRating: {
         "@type": "Rating",
         ratingValue: String(input.ratingValue),
@@ -169,7 +187,7 @@ export function enhancedProductReviewJsonLd(input: EnhancedProductReviewJsonLdIn
       bestRating: 10,
       worstRating: 1,
     },
-    author: { "@type": "Organization", name: BRAND },
+    author: authorPerson(),
     reviewBody: input.reviewBody,
     ...(input.reviewDatePublished ? { datePublished: input.reviewDatePublished } : {}),
   };

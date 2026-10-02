@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import { clampAtWord } from "@/lib/seo/text";
 import { Button } from "@/components/ui/button";
 import BrandLogo from "@/components/BrandLogo";
 import BrandRequestModal from "@/components/BrandRequestModal";
@@ -89,7 +90,7 @@ const SpotlightBrandProfile = () => {
     <div className="min-h-screen bg-background">
       <SEO
         title={`${entry.brand} — Spotlight by SkinLabs`}
-        description={editorial.whyTheyMadeTheList.slice(0, 155)}
+        description={clampAtWord(editorial.whyTheyMadeTheList, 155)}
         canonical={canonical}
         ogType="article"
         jsonLd={jsonLd}
