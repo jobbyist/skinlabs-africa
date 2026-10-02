@@ -112,12 +112,13 @@ const PrivacyPolicy = () => {
                           <li>Your SKYNN AI questionnaire answers: skin type, concerns, sensitivity, routine, lifestyle and environment, goals, and (for the Advanced AI Dermatology Analysis) any health-adjacent screening answers you choose to give</li>
                           <li>Your optional, self-reported Monk Skin Tone (MST) selection</li>
                           <li>Results derived from those answers: skin-type and concern summaries, priorities, routine suggestions and your Smart Routine</li>
+                          <li>Photos you choose to save to PhotoJournal, including your baseline photo from Basic AI Skin Analysis and later progress photos</li>
                         </ul>
                         <p className="mt-3">
                           We process special personal information only with your <strong className="text-foreground">explicit, informed consent</strong>{" "}
                           (or another lawful ground under section 27 of POPIA where applicable) and only for the limited purposes
-                          described below. We do not collect photographs of your face or skin, and we do not perform facial recognition,
-                          identity verification or biometric processing of any kind.
+                          described below. Photos are not analysed by SKYNN AI for diagnosis, facial recognition, identity verification
+                          or biometric identification. A photo may be stored only when you choose to save it to your private PhotoJournal.
                         </p>
                       </div>
                     </div>
@@ -130,10 +131,7 @@ const PrivacyPolicy = () => {
                     </div>
                     <div className="space-y-4 text-muted-foreground">
                       <p>
-                        <strong className="text-foreground">4.1 Photos never leave your device.</strong> The Basic AI Skin
-                        Analysis lets you add a photo for your own reference. That photo stays in your browser: it is not
-                        uploaded, stored, shared or analysed by SkinLabs or by any AI or computer-vision provider, and it is
-                        discarded when you leave the page. SKYNN AI's results are based only on your answers.
+                        <strong className="text-foreground">4.1 PhotoJournal and baseline photos.</strong> Basic AI Skin Analysis can use a photo as part of the member&apos;s analysis experience. If you choose to save that photo to PhotoJournal, SkinLabs stores it in your private PhotoJournal so you can use it as a baseline for future progress tracking. Later weekly or monthly progress photos are also stored when you choose to add them. Photo uploads are limited to 5 MB per image. PhotoJournal images are not analysed by SKYNN AI, are not used for facial recognition or biometric identification, and are not shared with other members. If you do not save a photo to PhotoJournal, it is not retained by SkinLabs as a PhotoJournal image.
                       </p>
                       <p>
                         <strong className="text-foreground">4.2 Skin tone is never inferred.</strong> Monk Skin Tone (MST) is
@@ -245,7 +243,7 @@ const PrivacyPolicy = () => {
                       <p>We retain personal information only for as long as necessary to fulfil the purposes for which it was collected, or as required by law:</p>
                       <ul className="list-disc list-inside space-y-1 ml-4">
                         <li>Account data: retained while your account is active and for a reasonable period thereafter (or longer if required for legal claims or accounting)</li>
-                        <li>Skin photos: not collected — a photo you add stays on your device and is never uploaded</li>
+                        <li>PhotoJournal images: retained in your private PhotoJournal until you delete them, request deletion, or close your account, subject to lawful retention requirements</li>
                         <li>Saved skin analyses, Advanced AI Dermatology Analysis submissions and your Smart Routine: retained in your account until you ask us to remove them (an Advanced submission can also be withdrawn from your dashboard) or close the account</li>
                         <li>Derived metrics and routine history: retained in your account until you ask us to remove them or close the account</li>
                         <li>Transaction records: retained for tax and consumer-law periods (typically 5–7 years)</li>
