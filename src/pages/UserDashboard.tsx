@@ -29,6 +29,7 @@ import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
 import ForYourSkinCard from "@/components/dashboard/ForYourSkinCard";
+import ForYourProfileFeed from "@/components/dashboard/ForYourProfileFeed";
 import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
 import JourneyMomentumCard from "@/components/dashboard/JourneyMomentumCard";
 import SectionNav from "@/components/dashboard/SectionNav";
@@ -735,6 +736,8 @@ const UserDashboard = () => {
                   />
 
                   <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
+
+                  <ForYourProfileFeed />
 
                   <div id="skin-weather" className="scroll-mt-28">
                     <SkinWeatherCard
