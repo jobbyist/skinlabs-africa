@@ -77,9 +77,9 @@ const ForYourProfileFeed = () => {
             <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><FlaskConical className="h-3.5 w-3.5" /> Ingredients to read up on</p>
             <div className="flex flex-wrap gap-2">
               {ingredients.map((i) => (
-                <Badge key={i} variant="outline" asChild>
-                  <Link to={`/ingredients?q=${encodeURIComponent(i)}`}>{i}</Link>
-                </Badge>
+                <Link key={i} to={`/ingredients?q=${encodeURIComponent(i)}`}>
+                  <Badge variant="outline">{i}</Badge>
+                </Link>
               ))}
             </div>
           </section>
