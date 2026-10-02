@@ -938,7 +938,7 @@ Deno.serve(async (req) => {
           const feedback =
             attempt === 0
               ? ""
-              : `\n\n=== REVISION REQUIRED ===\nYour previous draft was rejected for: ${qaReasons.join("; ")}.\nWrite the column again from the research. Never name a skin condition or disease as something the reader has (use plain descriptions such as "dry, itchy, inflamed skin" and say "see a dermatologist or GP" instead of naming eczema, psoriasis, rosacea, acne vulgaris, dermatitis and the like), include at least one "- " bullet list and one "1. " numbered list, and put every heading, paragraph and list on its own lines separated by a blank line.`;
+              : `\n\n=== REVISION REQUIRED ===\nYour previous draft was rejected for: ${qaReasons.join("; ")}.\nWrite the column again from the research. Never name a skin condition or disease as something the reader has (use plain descriptions such as "dry, itchy, inflamed skin" and say "see a dermatologist or GP" instead of naming eczema, psoriasis, rosacea, acne vulgaris, dermatitis and the like), include at least one "- " bullet list or "1. " numbered list, and put every heading, paragraph and list on its own lines separated by a blank line.`;
           const res = await callGeminiWithFallback({
             apiKey: geminiKey as string,
             models: modelChain,

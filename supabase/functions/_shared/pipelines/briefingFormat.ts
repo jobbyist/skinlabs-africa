@@ -246,8 +246,7 @@ export function checkBriefingFormat(body: string, opts: { requireLists?: boolean
     reasons.push("a numbered list is flattened onto one line");
   }
   if (requireLists) {
-    if (!/^- .+/m.test(text)) reasons.push("no bulleted list");
-    if (!/^1\. .+/m.test(text)) reasons.push("no numbered list");
+    if (!/^(?:- |1\. ).+/m.test(text)) reasons.push("no bulleted or numbered list");
   }
 
   return { ok: reasons.length === 0, reasons };
