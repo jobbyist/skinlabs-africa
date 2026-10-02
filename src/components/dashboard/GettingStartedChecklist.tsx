@@ -129,7 +129,7 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
           <div className="rounded-2xl border border-border bg-muted/30 p-4 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex min-w-0 items-start gap-3">
-                {(() => { const Icon = META[firstIncomplete.id].icon; return <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-[var(--shadow-xs)]"><Icon className="h-4.5 w-4.5" aria-hidden="true" /></span>; })()}
+                {(() => { const Icon = META[firstIncomplete.id].icon; return <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background text-primary shadow-[var(--shadow-xs)]"><Icon className="h-5 w-5" aria-hidden="true" /></span>; })()}
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Next up</p>
                   <p className="mt-1 font-medium text-foreground">{firstIncomplete.label}</p>
