@@ -13,8 +13,10 @@ session.** Nothing below is derived from it. Targets quoted come from the direct
   routes into HTML. Failure degrades to plain SPA.
 - TanStack Start + Nitro (Vercel preset) SSR covers only: `/briefings/$slug`, `/reviews/$slug`,
   `/ingredients/$slug`, `/spotlight/$slug`, `/web-stories/$slug`, `/sitemap.xml`.
-  `scripts/assemble-vercel-output.ts` merges both. `/briefings/$slug` SSR is a bare page;
-  the SPA page is what users see.
+  `scripts/assemble-vercel-output.ts` merges both. `/briefings/$slug` SSR is unstyled but does
+  fetch and render the article body (via `get_article_body`) and the editorial disclaimer for free
+  briefings; premium briefings are withheld from anonymous requests by the RPC (verified in
+  `src/routes/briefings.$slug.tsx`).
 - Knowledge Hub (`/knowledge-hub[/:slug]`), podcast episodes, compare/versus, seasonals,
   ingredient directory, spotlight index are SPA + prerender only (client-rendered if prerender fails).
 - Supabase `gnkpzijxuciiaamakgzm`; content in `news_articles`, `ai_generated_product_reviews`,
@@ -47,11 +49,13 @@ session.** Nothing below is derived from it. Targets quoted come from the direct
 | G5 | **SA availability/pricing wedge has no data model.** Retail availability/price exists only in OpenHaus (private-beta, `/marketplace` is disallowed in robots) and `retailer_products`/`product_prices` in the intelligence schema, which CLAUDE.md says is unseeded beyond reviews. No public "where to buy in SA" surface. | `supabase/SCHEMA.md`, robots.txt |
 | G6 | **Melanin-rich skin wedge is scattered.** Mentions exist in faq/seasonals/briefings/spotlight, but there is no hub, no tagged content set, and MST (self-reported) isn't used for content discovery. | grep: ~10 data files, no route |
 | G7 | Knowledge Hub and several SEO-critical pages depend on prerender succeeding (SPA fallback otherwise). | `scripts/prerender.ts` degrade path |
-| G8 | `/briefings/$slug` SSR route doesn't render the body (documented POC), so crawlers that don't run JS may see an excerpt only unless prerender covers it. Needs verification, not assumption. | CLAUDE.md infra notes |
+| G8 | *(Corrected after review.)* Earlier draft claimed the briefing SSR route omits the body; it does not. Remaining question to measure, not assume: how many published briefings are `is_premium` and therefore show crawlers only the teaser, since that limits indexable evergreen text. | `src/routes/briefings.$slug.tsx` lines ~83-231 |
 
 ## 4. Proposed task order (needs approval, see questions)
 
-1. **Subscriber engine core** (G1, G2): new `newsletter_signups`-style capture with source,
+1. **Subscriber engine core** (G1, G2): extend the existing `newsletter_subscribers` table
+   (additive columns: source, consent text/version, confirmed_at, unsubscribe token) rather than
+   adding a parallel table, so the admin list and the FORM_SUBMITTED trigger keep working; capture with source,
    consent text/version, double opt-in via the existing email outbox, extend digest recipients to
    confirmed subscribers, unsubscribe parity, inline + end-of-article form (ad-safe placement),
    events, RLS probe, tests.
