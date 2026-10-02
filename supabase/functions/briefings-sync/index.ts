@@ -169,12 +169,18 @@ const SOURCE_CHANNELS: SourceChannel[] = [
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-const slugify = (value: string) =>
-  value
+const SLUG_MAX = 100;
+const slugify = (value: string) => {
+  const full = value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 70);
+    .replace(/^-+|-+$/g, "");
+  if (full.length <= SLUG_MAX) return full;
+  // Never cut mid-word: back up to the last hyphen inside the limit.
+  const cut = full.slice(0, SLUG_MAX);
+  const lastHyphen = cut.lastIndexOf("-");
+  return (lastHyphen > 40 ? cut.slice(0, lastHyphen) : cut).replace(/-+$/, "");
+};
 
 const stripMarkdownSyntax = (value: string) =>
   value
