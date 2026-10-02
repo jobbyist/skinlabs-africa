@@ -11,6 +11,7 @@ interface JourneyMomentumCardProps {
   nextAction: NextBestAction;
   onAction: () => void;
   onSeeSteps: () => void;
+  actionLoading?: boolean;
 }
 
 const STAGE_COPY: Record<JourneyStage, { eyebrow: string; title: string; body: string }> = {
@@ -24,7 +25,7 @@ const STAGE_COPY: Record<JourneyStage, { eyebrow: string; title: string; body: s
   lapsed: { eyebrow: "Welcome back", title: "Pick your skin journey back up.", body: "Your profile and routine are still here. Continue from where you left off." },
 };
 
-const JourneyMomentumCard = ({ stage, facts, checklist, nextAction, onAction, onSeeSteps }: JourneyMomentumCardProps) => {
+const JourneyMomentumCard = ({ stage, facts, checklist, nextAction, onAction, onSeeSteps, actionLoading = false }: JourneyMomentumCardProps) => {
   const done = checklist.filter((item) => item.done).length;
   const total = checklist.length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -55,8 +56,8 @@ const JourneyMomentumCard = ({ stage, facts, checklist, nextAction, onAction, on
             </div>
 
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Button size="lg" className="min-h-11 gap-2" onClick={onAction}>
-                {nextAction.label}
+              <Button size="lg" className="min-h-11 gap-2" onClick={onAction} disabled={actionLoading}>
+                {actionLoading ? "Getting things ready…" : nextAction.label}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Button>
               <Button type="button" variant="ghost" className="min-h-11 justify-start px-0 text-sm sm:px-3" onClick={onSeeSteps}>
