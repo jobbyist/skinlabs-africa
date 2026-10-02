@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
 import { Sparkles, X } from "lucide-react";
+import PromoOfferDialog from "@/components/PromoOfferDialog";
 import { PROMO_END_AT, PROMO_END_DATE_LABEL } from "@/lib/promo";
 
 interface PromoAnnouncementBarProps {
@@ -24,9 +24,11 @@ const PromoAnnouncementBar = ({ onDismiss }: PromoAnnouncementBarProps) => (
     <p className="min-w-0 truncate text-center text-xs font-medium sm:text-sm">
       <span className="hidden sm:inline">Limited time: </span>
       All paid plans are free to try until {PROMO_END_DATE_LABEL}.{" "}
-      <Link to="/announcements" className="underline underline-offset-2 hover:no-underline">
-        See details
-      </Link>
+      <PromoOfferDialog source="promo_bar">
+        <button type="button" className="underline underline-offset-2 hover:no-underline">
+          See details
+        </button>
+      </PromoOfferDialog>
     </p>
     <button
       type="button"
@@ -51,11 +53,13 @@ const promoEndShort = () => {
 
 /** The promo message as a compact pill in the mobile header row (below md). */
 export const PromoHeaderChip = () => (
-  <Link
-    to="/announcements"
-    className="ml-0.5 mr-auto inline-flex min-h-7 max-[369px]:hidden shrink-0 items-center whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-2 text-[10px] tracking-tight font-semibold text-white md:hidden"
-    aria-label={`All paid plans are free to try until ${PROMO_END_DATE_LABEL}. See details`}
-  >
-    Free until {promoEndShort()}
-  </Link>
+  <PromoOfferDialog source="promo_header_chip">
+    <button
+      type="button"
+      className="ml-0.5 mr-auto inline-flex min-h-7 max-[369px]:hidden shrink-0 items-center whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-2 text-[10px] tracking-tight font-semibold text-white md:hidden"
+      aria-label={`All paid plans are free to try until ${PROMO_END_DATE_LABEL}. See details`}
+    >
+      Free until {promoEndShort()}
+    </button>
+  </PromoOfferDialog>
 );

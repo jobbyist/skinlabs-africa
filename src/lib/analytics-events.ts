@@ -26,6 +26,8 @@ export type ConversionEvent =
   | "skynn_cta_clicked"
   | "adblock_wall_shown"
   | "adblock_wall_cleared"
+  | "promo_modal_opened"
+  | "promo_modal_cta_clicked"
   | "pricing_view"
   | "plan_selected"
   | "trial_started"

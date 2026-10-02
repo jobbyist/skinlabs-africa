@@ -300,7 +300,7 @@ const ComparisonArticle = () => {
           )}
 
           <div className="mt-10">
-            <BriefingBody body={article.bodyMarkdown} insertAds={false} />
+            <BriefingBody body={article.bodyMarkdown} insertAds={false} skynnCta />
           </div>
 
           <AdSlot placement="comparison-before-verdicts" compact priority="primary" />
