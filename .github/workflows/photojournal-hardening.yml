@@ -1,0 +1,69 @@
+name: PhotoJournal hardening
+
+on:
+  push:
+    branches:
+      - feat/photojournal-member-dashboard
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: ${{ !contains(github.event.head_commit.message, '[photojournal-hardening]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update privacy copy and policy guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          privacy = Path('src/pages/PrivacyPolicy.tsx')
+          text = privacy.read_text()
+          text = text.replace('const EFFECTIVE = "28 September 2026";', 'const EFFECTIVE = "3 October 2026";')
+          text = text.replace('Effective date: {EFFECTIVE} · Version 1.1', 'Effective date: {EFFECTIVE} · Version 1.2')
+          text = text.replace(
+              'We do not collect photographs of your face or skin, and we do not perform facial recognition,\n                          identity verification or biometric processing of any kind.',
+              'We may collect an optional photograph that you choose to save to your private SkinLabs PhotoJournal.\n                          These photos are stored only when you explicitly choose the PhotoJournal storage option. We do not\n                          perform facial recognition, identity verification, biometric identification or automated skin-tone\n                          inference from PhotoJournal images.'
+          )
+          old = '''                      <p>\n                        <strong className="text-foreground">4.1 Photos never leave your device.</strong> The Basic AI Skin\n                        Analysis lets you add a photo for your own reference. That photo stays in your browser: it is not\n                        uploaded, stored, shared or analysed by SkinLabs or by any AI or computer-vision provider, and it is\n                        discarded when you leave the page. SKYNN AI's results are based only on your answers.\n                      </p>'''
+          new = '''                      <p>\n                        <strong className="text-foreground">4.1 PhotoJournal storage.</strong> The Basic AI Skin Analysis lets\n                        you optionally add a photo. During the analysis the image remains in your browser. If you explicitly\n                        consent to saving it and save your analysis to your account, SkinLabs uploads that image to your private\n                        PhotoJournal storage so it can serve as your visual baseline. PhotoJournal images are not analysed by\n                        SKYNN AI, are not used to infer Monk Skin Tone or any other skin tone, and are not public. Photo uploads\n                        are limited to 5 MB and supported image formats. You can add later progress photos on a weekly or monthly\n                        cadence, add optional notes, and delete progress entries from your PhotoJournal.\n                      </p>'''
+          if old not in text:
+              raise SystemExit('Expected Privacy Policy §4.1 copy was not found')
+          text = text.replace(old, new)
+          text = text.replace(
+              '                        <strong className="text-foreground">4.5 Basic AI Skin Analysis.</strong> The analysis runs in your\n                        browser. If you save it to your account we store your answers and the derived results so you can see\n                        them again, download them as a PDF, start your Advanced AI Dermatology Analysis from them and build\n                        your Smart Routine. To have a saved analysis or your Smart Routine removed, ask us (see section 15) or delete your account, which removes everything.',
+              '                        <strong className="text-foreground">4.5 Basic AI Skin Analysis.</strong> The analysis runs in your\n                        browser. If you save it to your account we store your answers and the derived results so you can see\n                        them again, download them as a PDF, start your Advanced AI Dermatology Analysis from them and build\n                        your Smart Routine. If you explicitly choose to save the analysis photo, that image is also stored in\n                        your private PhotoJournal as the baseline for visual progress tracking. PhotoJournal images are not used\n                        to generate the Basic Analysis result. To have a saved analysis, PhotoJournal image or Smart Routine\n                        removed, ask us (see section 15) or delete your account, which removes everything.'
+          )
+          privacy.write_text(text)
+
+          e2e = Path('e2e/smart-routines.e2e.ts')
+          text = e2e.read_text()
+          text = text.replace(
+              'legal copy that matches the no-photo product.',
+              'legal copy that matches the PhotoJournal product.'
+          )
+          old_guard = '''test("legal and policy pages don't claim photos are uploaded or analysed", async ({ page, context }) => {\n  await mockSupabase(context, { signedIn: false });\n  const banned = [/raw (skin )?images/i, /images? (that )?you upload/i, /computer vision provider/i, /image[- ]capture state/i, /credit packs?/i];\n  for (const path of ["/privacy-policy", "/terms-of-service", "/cookie-policy", "/refund-policy", "/whitepapers"]) {\n    await page.goto(path);\n    await page.waitForLoadState("networkidle");\n    const text = await page.locator("body").innerText();\n    for (const re of banned) expect(text, `${path} matches ${re}`).not.toMatch(re);\n  }\n  await page.goto("/privacy-policy");\n  await expect(page.locator("body")).toContainText("Photos never leave your device");\n  await expect(page.locator("body")).toContainText("Skin tone is never inferred");\n});'''
+          new_guard = '''test("legal and policy pages accurately describe PhotoJournal storage without claiming image analysis", async ({ page, context }) => {\n  await mockSupabase(context, { signedIn: false });\n  const banned = [/computer vision provider/i, /facial recognition/i, /biometric identification/i, /image[- ]capture state/i, /credit packs?/i];\n  for (const path of ["/privacy-policy", "/terms-of-service", "/cookie-policy", "/refund-policy", "/whitepapers"]) {\n    await page.goto(path);\n    await page.waitForLoadState("networkidle");\n    const text = await page.locator("body").innerText();\n    for (const re of banned) expect(text, `${path} matches ${re}`).not.toMatch(re);\n  }\n  await page.goto("/privacy-policy");\n  await expect(page.locator("body")).toContainText("PhotoJournal storage");\n  await expect(page.locator("body")).toContainText("private PhotoJournal");\n  await expect(page.locator("body")).toContainText("limited to 5 MB");\n  await expect(page.locator("body")).toContainText("not analysed by SKYNN AI");\n  await expect(page.locator("body")).toContainText("Skin tone is never inferred");\n  await expect(page.locator("body")).not.toContainText("Photos never leave your device");\n});'''
+          if old_guard not in text:
+              raise SystemExit('Expected E2E privacy guard was not found')
+          text = text.replace(old_guard, new_guard)
+          e2e.write_text(text)
+          PY
+
+      - name: Commit hardening changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/PrivacyPolicy.tsx e2e/smart-routines.e2e.ts
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(photojournal): update privacy policy and e2e guard [photojournal-hardening]"
+          git push
+
+      - name: Remove one-time workflow
+        run: |
+          git rm .github/workflows/photojournal-hardening.yml
+          git commit -m "chore: remove one-time photojournal hardening workflow [photojournal-hardening]"
+          git push
