@@ -734,7 +734,17 @@ Deno.serve(async (req) => {
     Deno.env.get("GEMINI_MODEL_BRIEFINGS_FALLBACK_2") || "gemini-3.5-flash-lite",
   ];
 
-  const today = new Date().toISOString().slice(0, 10);
+  // ?backfill_date=YYYY-MM-DD publishes that day's single briefing (same 1/day cap,
+  // counted for that date) -- for filling gaps left by an outage. Past dates only.
+  const realToday = new Date().toISOString().slice(0, 10);
+  const backfillParam = new URL(req.url).searchParams.get("backfill_date");
+  if (backfillParam && (!/^\d{4}-\d{2}-\d{2}$/.test(backfillParam) || backfillParam > realToday || backfillParam < "2026-01-01")) {
+    return new Response(JSON.stringify({ error: "backfill_date must be a past YYYY-MM-DD date" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const today = backfillParam || realToday;
   const runId = crypto.randomUUID();
   const errors: string[] = [];
   const modelUsage: Record<string, number> = {};
