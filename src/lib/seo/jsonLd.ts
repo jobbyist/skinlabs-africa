@@ -33,6 +33,16 @@ export function articleJsonLd(input: ArticleJsonLdInput) {
       logo: { "@type": "ImageObject", url: DEFAULT_OG },
     },
     ...(input.articleSection ? { articleSection: input.articleSection } : {}),
+    ...(input.isPaywalled
+      ? {
+          isAccessibleForFree: false,
+          hasPart: {
+            "@type": "WebPageElement",
+            isAccessibleForFree: false,
+            cssSelector: input.paywallCssSelector ?? ".premium-body",
+          },
+        }
+      : {}),
   };
 }
 

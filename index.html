@@ -38,14 +38,29 @@
       and 700 are both genuinely used (e.g. DermatologistDirectory.tsx,
       MarketplaceRestrictedAccess.tsx combine font-mono with font-bold).
     -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap">
+    <!-- Non-blocking: media=print swaps to all once loaded, so fonts no longer hold up first paint. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Montserrat:wght@400;500;600;700;800&display=swap"></noscript>
     <link rel="preconnect" href="https://gnkpzijxuciiaamakgzm.supabase.co">
     <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 
     <meta name="twitter:site" content="@SkinLabsZA" />
 
     <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1237323355260727" crossorigin="anonymous"></script>
+    <!-- Loaded after the page is idle so ad JS stays off the critical path. Slots push into window.adsbygoogle, which the script drains when it arrives. -->
+    <script>
+      window.addEventListener("load", function () {
+        var go = function () {
+          var s = document.createElement("script");
+          s.async = true;
+          s.crossOrigin = "anonymous";
+          s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1237323355260727";
+          document.head.appendChild(s);
+        };
+        if ("requestIdleCallback" in window) requestIdleCallback(go, { timeout: 4000 });
+        else setTimeout(go, 2500);
+      });
+    </script>
 
     <!-- PWA Theme: also set per-page by SEO.tsx via Helmet; kept here as the pre-hydration fallback -->
     <meta name="theme-color" content="#000000" />

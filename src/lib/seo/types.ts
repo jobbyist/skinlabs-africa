@@ -33,6 +33,10 @@ export interface ArticleJsonLdInput {
   dateModified: string;
   /** Real content section label, e.g. "The Daily Skinny". */
   articleSection?: string;
+  /** Set true for members-only articles so Google's paywalled-content markup is emitted. */
+  isPaywalled?: boolean;
+  /** CSS selector of the gated block. Defaults to ".premium-body". */
+  paywallCssSelector?: string;
 }
 
 export interface ProductReviewJsonLdInput {

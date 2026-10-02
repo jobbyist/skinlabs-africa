@@ -63,7 +63,7 @@ const BAHero = ({ onApply, status }: BAHeroProps) => {
         </div>
 
         <p className="mt-6 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Applications open {BA_APPLICATIONS_OPEN} — close {BA_APPLICATIONS_CLOSE}
+          {status === "after" ? "Applications ran" : "Applications open"} {BA_APPLICATIONS_OPEN} — {status === "after" ? "closed" : "close"} {BA_APPLICATIONS_CLOSE}
         </p>
       </div>
     </section>

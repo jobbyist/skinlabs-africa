@@ -41,6 +41,7 @@ import { recordContentRead } from '@/lib/contentReads'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { trialLength } from '@/lib/promo'
+import { clampAtWord, endsMidSentence } from '@/lib/seo/text'
 
 // Production SSR route for /reviews/:slug -- the second content type
 // migrated to TanStack Start after Briefings (see
@@ -202,9 +203,14 @@ export const Route = createFileRoute('/reviews/$slug')({
     // server-side at publish/backfill time) so this SSR route's initial HTML matches
     // what ProductReview.tsx renders after hydration.
     const title = review.seo_title ?? productReviewTitle(review.product_name, review.brand)
-    const description =
-      review.seo_description ??
-      `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict.slice(0, 100)}`
+    // Rows written before the word-boundary fix hold descriptions cut mid-word at 160
+    // characters ("...though the isoceteth-for"), so those are rebuilt rather than reused.
+    const description = !endsMidSentence(review.seo_description)
+      ? (review.seo_description as string)
+      : clampAtWord(
+          `${review.product_name} by ${review.brand}, independently scored ${score}/10 for SA conditions. ${review.verdict}`,
+          155,
+        )
 
     const product = productReviewJsonLd({
       canonicalUrl: canonicalUrl(path),
@@ -253,7 +259,20 @@ interface CommentRow {
   created_at: string
 }
 
+// MemoryRouter must sit ABOVE every hook that reads router context
+// (useConversionAction -> useStartTrial -> useNavigate). It used to wrap only
+// the returned JSX, so SSR threw "useNavigate() may be used only in the context
+// of a <Router>" and crawlers got the client-render fallback with no body.
 function ReviewPage() {
+  const { review } = Route.useLoaderData()
+  return (
+    <MemoryRouter initialEntries={[`/reviews/${review.id}`]}>
+      <ReviewPageContent />
+    </MemoryRouter>
+  )
+}
+
+function ReviewPageContent() {
   const { review, image, relatedReviews, ingredientBreakdown } = Route.useLoaderData()
   const score = overallScore(review)
   const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar)
@@ -382,7 +401,7 @@ function ReviewPage() {
   const displayComments = comments
 
   return (
-    <MemoryRouter initialEntries={[`/reviews/${review.id}`]}>
+    <>
       <SsrConversionShell />
       <main>
         <nav aria-label="Breadcrumb">
@@ -589,6 +608,6 @@ function ReviewPage() {
           </div>
         )}
       </main>
-    </MemoryRouter>
+    </>
   )
 }

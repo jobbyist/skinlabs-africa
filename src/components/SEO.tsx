@@ -1,5 +1,6 @@
 import { Helmet } from "react-helmet-async";
 import { BRAND, SITE_URL, DEFAULT_OG } from "@/lib/seo-config";
+import { clampAtWord } from "@/lib/seo/text";
 
 interface SEOProps {
   /** Search-facing title. The brand is appended automatically unless already present. */
@@ -17,7 +18,6 @@ interface SEOProps {
   author?: string;
 }
 
-const clamp = (value: string, max: number) => value.replace(/\s+/g, " ").trim().slice(0, max);
 
 const SEO = ({
   title,
@@ -33,7 +33,7 @@ const SEO = ({
   author = "SkinLabs®",
 }: SEOProps) => {
   const fullTitle = /skinlabs/i.test(title) ? title : `${title} | ${BRAND}`;
-  const safeDescription = clamp(description, 160);
+  const safeDescription = clampAtWord(description, 160);
 
   // Canonical URLs are always rooted at the production domain. This prevents
   // Vercel preview/staging hosts and query-string variants becoming canonicals.
@@ -56,7 +56,7 @@ const SEO = ({
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={safeDescription} />
-      {keywords && <meta name="keywords" content={keywords} />}
+      {/* meta keywords is ignored by Google and Bing, so it is no longer emitted. */}
       <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"} />
       <link rel="canonical" href={url} />
 

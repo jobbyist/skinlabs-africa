@@ -74,6 +74,19 @@ const Hero = () => {
     if (videoSrc !== heroVideoAsset) setVideoSrc(heroVideoAsset);
   };
 
+  // Don't start streaming a hero clip until the page has loaded: the poster is the LCP
+  // paint target, and an early multi-MB video fetch competes with the JS/CSS the page needs.
+  // Also skipped on Save-Data / slow connections, where the poster alone is the better trade.
+  const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (conn?.saveData || conn?.effectiveType === "2g" || conn?.effectiveType === "slow-2g") return;
+    const start = () => setTimeout(() => setVideoReady(true), 300);
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start, { once: true });
+    return () => window.removeEventListener("load", start);
+  }, []);
+
   // Respect prefers-reduced-motion and skip forcing an autoplaying background video onto that traffic.
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches && videoRef.current) {
@@ -99,14 +112,14 @@ const Hero = () => {
         <video
           key={videoSrc}
           ref={videoRef}
-          src={videoSrc}
+          src={videoReady ? videoSrc : undefined}
           poster={heroPosterImage}
           onError={handleVideoError}
           autoPlay
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />

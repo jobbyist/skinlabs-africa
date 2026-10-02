@@ -85,6 +85,86 @@
       "source": "/briefings/the-daily-skinny-decoding-your-face-s-hidden-history",
       "destination": "/briefings/the-skin-on-your-arms-a-practical-guide-to-monitoring-flat-spots",
       "permanent": true
+    },
+    {
+      "source": "/reviews/standard-beauty-salicylic-acid-face-wash",
+      "destination": "/reviews/sb-salicylic-face-wash",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/standard-beauty-renew-your-dew-ceramide-butter",
+      "destination": "/reviews/sb-renew-dew-ceramide-butter",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/standard-beauty-moisture-bomb",
+      "destination": "/reviews/sb-moisture-bomb",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/standard-beauty-mild-face-wash",
+      "destination": "/reviews/sb-mild-face-wash",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/standard-beauty-2-alpha-arbutin-serum",
+      "destination": "/reviews/sb-alpha-arbutin-2",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-all-the-shade-marula-tinted-spf-30-moisturiser",
+      "destination": "/reviews/lelive-all-the-shade-spf30",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-cleaner-colada-coconut-pineapple-african-oil-cleanser",
+      "destination": "/reviews/lelive-cleaner-colada-oil-cleanser",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-cleaner-colada-coconut-pineapple-african-oil-cleanser-2503",
+      "destination": "/reviews/lelive-cleaner-colada-oil-cleanser",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-rooibos-aloe-jelly-splash-cleanser",
+      "destination": "/reviews/lelive-jelly-splash-cleanser",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-rooibos-aloe-jelly-splash-cleanser-6694",
+      "destination": "/reviews/lelive-jelly-splash-cleanser",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/aigen-lelive-all-glow-d-up-vitamin-c-turmeric-hyaluronic-acid-brig",
+      "destination": "/reviews/lelive-all-glowd-up-serum",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-save-our-skin-peach-aloe-aha-bha-exfoliator",
+      "destination": "/reviews/lelive-save-our-skin-exfoliating",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-the-du-pont-shea-butter-lush-moisturiser",
+      "destination": "/reviews/lelive-dupont-shea-moisturiser",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/aigen-lelive-cr-me-de-la-cream-african-mahogany-everyday-moisturis",
+      "destination": "/reviews/lelive-creme-de-la-cream",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-eye-conic-peptide-coffee-arabica-eye-cream",
+      "destination": "/reviews/lelive-eye-conic-eye-cream",
+      "permanent": true
+    },
+    {
+      "source": "/reviews/lelive-body-glow-up-mini-edition-6415",
+      "destination": "/reviews/lelive-body-glow-up-mini-edition",
+      "permanent": true
     }
   ]
 }
