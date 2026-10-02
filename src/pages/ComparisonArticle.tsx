@@ -3,6 +3,8 @@ import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import { authorPerson } from "@/lib/seo/jsonLd";
+import { AUTHOR_NAME } from "@/lib/seo-config";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
@@ -121,7 +123,8 @@ const ComparisonArticle = () => {
         headline: article.title,
         description: article.seoDescription,
         image: { "@type": "ImageObject", url: article.thumbnail.url },
-        author: { "@type": "Organization", name: "SkinLabs", url: "https://skinlabs.co.za" },
+        author: authorPerson(),
+        editor: authorPerson(),
         publisher: {
           "@type": "Organization",
           name: "SkinLabs",
@@ -207,6 +210,7 @@ const ComparisonArticle = () => {
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{article.dek}</p>
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <span>By {AUTHOR_NAME}</span>
             <time dateTime={article.publishDate}>
               {new Date(article.publishDate).toLocaleDateString("en-ZA", {
                 day: "numeric",

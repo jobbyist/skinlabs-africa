@@ -34,7 +34,8 @@ import { SITE_URL } from "@/lib/seo-config";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 6;
-const LAUNCH_DATE = new Date("2026-09-25T00:00:00+02:00");
+const LAUNCH_DATE = new Date("2026-11-01T00:00:00+02:00");
+const LAUNCH_DATE_LABEL = "1 November 2026";
 const provinces = Array.from(new Set(dermatologists.map((d) => d.province))).sort();
 type CategoryFilter = "all" | DirectoryCategory;
 
@@ -49,11 +50,11 @@ interface RoadmapItem {
 
 const ROADMAP: RoadmapItem[] = [
   { id: "directory-v1", title: "Public directory prototype", description: "Browseable listings with Medical / Cosmetic filters and profile cards.", status: "completed", icon: Search },
-  { id: "ratings", title: "Dermatologist profile rating system", description: "Verified patient ratings and review counts on every listing.", status: "in_progress", eta: "Sep 2026", icon: Star },
+  { id: "ratings", title: "Dermatologist profile rating system", description: "Verified patient ratings and review counts on every listing.", status: "in_progress", eta: "Nov 2026", icon: Star },
   { id: "messaging", title: "Encrypted in-app messaging", description: "End-to-end encrypted chat between members and practitioners.", status: "planned", eta: "Oct 2026", icon: MessageSquare },
   { id: "booking", title: "Booking calendars + secure payments", description: "Real-time availability, deposits and online payment support.", status: "planned", eta: "Oct 2026", icon: CalendarDays },
   { id: "video", title: "Remote / virtual video consultations", description: "In-platform video consult interface for Glow Insider & VIP.", status: "planned", eta: "Nov 2026", icon: Video },
-  { id: "claim", title: "Profile claim / removal request form", description: "Unverified listing claim flow and removal requests for practitioners.", status: "planned", eta: "Sep 2026", icon: Shield },
+  { id: "claim", title: "Profile claim / removal request form", description: "Unverified listing claim flow and removal requests for practitioners.", status: "planned", eta: "Nov 2026", icon: Shield },
   { id: "ai-summaries", title: "AI-generated consultation summaries", description: "Post-consult summaries and follow-up recommendations powered by SKYNN AI.", status: "planned", eta: "Dec 2026", icon: Brain },
 ];
 
@@ -398,7 +399,7 @@ const DermatologistDirectory = () => {
                   <h2 className="font-heading text-2xl font-bold text-foreground md:text-3xl">Directory launch plan</h2>
                   <p className="mt-2 max-w-xl text-muted-foreground">
                     Phased rollout of the live practitioner directory. Overall target launch:{" "}
-                    <strong className="text-foreground">25 September 2026</strong>.
+                    <strong className="text-foreground">{LAUNCH_DATE_LABEL}</strong>.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-background px-5 py-4 text-center">
