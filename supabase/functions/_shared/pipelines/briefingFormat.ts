@@ -83,8 +83,11 @@ const NUMBERED_ITEM = /(?:^|\s)(\d{1,2})\.\s+(?=[A-Z“"'(])/g;
  * line, partially formatted, or already fine. Idempotent: running it on its
  * own output returns the same string.
  */
-export function normaliseBriefingMarkdown(input: string): string {
-  let text = stripForbiddenMarkup(input ?? "").replace(/\r\n?/g, "\n");
+export function normaliseBriefingMarkdown(input: string, opts: { stripMarkup?: boolean } = {}): string {
+  // Repairs of already-published, hand-authored rows keep their markup
+  // (ad-slot comments, bold); only freshly generated bodies are stripped.
+  const base = (input ?? "").replace(/\u00a0/g, " ");
+  let text = (opts.stripMarkup === false ? base : stripForbiddenMarkup(base)).replace(/\r\n?/g, "\n");
 
   // 1. Any "## " that is not at the start of a line starts a new line.
   //    (Only H2: "###"+ are not part of the house style and are demoted.)
@@ -249,3 +252,7 @@ export function checkBriefingFormat(body: string, opts: { requireLists?: boolean
 
   return { ok: reasons.length === 0, reasons };
 }
+
+/** True for the "whole body on one line / headings run inline" defect. */
+export const isFlattenedBody = (body: string): boolean =>
+  !/\n/.test((body ?? "").trim()) || /(?<=\S)[ \t]+##[ \t]+\S/.test(body ?? "");

@@ -71,7 +71,7 @@ import {
 } from "../_shared/pipelines/geminiFallback.ts";
 import { scanComplianceFlags } from "../_shared/pipelines/complianceTerms.ts";
 import { canonicalSourceUrl, findDuplicate } from "../_shared/pipelines/briefingSimilarity.ts";
-import { checkBriefingFormat, normaliseBriefingMarkdown } from "../_shared/pipelines/briefingFormat.ts";
+import { checkBriefingFormat, isFlattenedBody, normaliseBriefingMarkdown } from "../_shared/pipelines/briefingFormat.ts";
 
 /** How far back the near-duplicate check looks. Topics may come back after this. */
 const DEDUP_LOOKBACK_DAYS = 45;
@@ -640,10 +640,12 @@ async function repairFormatting(admin: SupabaseAdmin, dryRun: boolean): Promise<
   const report: Array<Record<string, unknown>> = [];
   for (const row of rows ?? []) {
     const body = String(row.body_markdown ?? "");
+    // Scope: only the flattened-body defect. Hand-authored rows with ad-slot
+    // comments, bold or short paragraphs are intentionally left untouched.
+    if (!isFlattenedBody(body)) continue;
     const before = checkBriefingFormat(body, { requireLists: false });
-    if (before.ok) continue;
 
-    let fixed = normaliseBriefingMarkdown(body);
+    let fixed = normaliseBriefingMarkdown(body, { stripMarkup: false });
     // Photos that were meant to be woven in but couldn't be (no block breaks) get placed now.
     const images = Array.isArray(row.inline_images) ? (row.inline_images as InlineImage[]) : [];
     if (images.length > 0 && !/!\[/.test(fixed)) fixed = weaveImages(fixed, images).markdown;
@@ -709,7 +711,7 @@ Deno.serve(async (req) => {
 
   // ---- Formatting repair (no Gemini/Firecrawl needed) ----
   // ?repair_formatting=true[&dry_run=true]: re-formats every published briefing
-  // whose markdown fails the format QA (flattened one-line bodies etc.). Idempotent.
+  // whose body is flattened onto one line / has inline "##" headings. Idempotent.
   const earlyUrl = new URL(req.url);
   if (earlyUrl.searchParams.get("repair_formatting") === "true") {
     return await repairFormatting(admin, earlyUrl.searchParams.get("dry_run") === "true");

@@ -94,3 +94,18 @@ describe("checkBriefingFormat", () => {
     expect(checkBriefingFormat(body, { requireLists: false }).ok).toBe(true);
   });
 });
+
+describe("repair scope", () => {
+  test("isFlattenedBody detects the broken shape only", async () => {
+    const { isFlattenedBody } = await import("../../../supabase/functions/_shared/pipelines/briefingFormat");
+    expect(isFlattenedBody(flattened)).toBe(true);
+    expect(isFlattenedBody("## A\n\ntext\n\n## B\n\ntext")).toBe(false);
+    expect(isFlattenedBody("## A\n\ntext <!-- ad:mid-1 -->\n\n**bold** ok")).toBe(false);
+  });
+
+  test("stripMarkup:false preserves ad markers and bold", () => {
+    const out = normaliseBriefingMarkdown("## A\n\ntext **bold**\n\n<!-- ad:mid-1 -->\n\n## B\n\nmore", { stripMarkup: false });
+    expect(out).toContain("**bold**");
+    expect(out).toContain("<!-- ad:mid-1 -->");
+  });
+});
