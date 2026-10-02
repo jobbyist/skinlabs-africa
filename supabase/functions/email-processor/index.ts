@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getTemplate, missingRequiredVars } from "../_shared/email/templates/index.ts";
 import { getGuard } from "../_shared/email/guards.ts";
 import { renderEmailLayout } from "../_shared/email/layout.ts";
+import { loadRecipientContext } from "../_shared/email/context.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -123,20 +124,46 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
     return;
   }
 
+  // Recipient context: unsubscribe link, marketing consent, ad policy.
+  // Staff (ADMIN) notifications are internal and carry no unsubscribe link.
+  const internal = job.category === "ADMIN";
+  const ctx = internal ? null : await loadRecipientContext(supabaseAdmin, SUPABASE_URL, job.user_id);
+  if (job.category === "MARKETING") {
+    // Consent is re-checked for EVERY marketing job at send time, so an
+    // unsubscribe between enqueue and send always wins.
+    if (!ctx) {
+      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "marketing recipient has no profile" });
+      return;
+    }
+    if (!ctx.marketingConsent) {
+      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "unsubscribed from marketing before send" });
+      return;
+    }
+    vars = { ...vars, show_ads: ctx.showAds, has_analysis: ctx.hasAnalysis };
+  }
+  const unsubscribeUrl =
+    ctx?.unsubscribeUrl ?? (typeof vars.unsubscribe_url === "string" ? (vars.unsubscribe_url as string) : null);
+  if (job.category === "MARKETING" && !unsubscribeUrl) {
+    await supabaseAdmin.rpc("fail_email_job", {
+      p_job_id: job.id,
+      p_processing_token: job.processing_token,
+      p_error: "Marketing email has no unsubscribe URL",
+    });
+    return;
+  }
+
   const subject = template.subject(vars);
   const preheader = template.preheader(vars);
   const bodyHtml = template.render(vars);
-  const html = renderEmailLayout({ preheader, bodyHtml });
+  const html = renderEmailLayout({ preheader, bodyHtml, unsubscribeUrl, internal });
 
   // Gmail/Yahoo's 2024 bulk-sender requirements make one-click
   // List-Unsubscribe mandatory for marketing mail — required here, not
-  // optional polish. unsubscribe_url is always present on a MARKETING job
-  // (set by enqueue_weekly_newsletter_digest()); mailto falls back to the
-  // one confirmed-monitored inbox rather than a guessed address.
+  // optional polish. mailto falls back to the one confirmed-monitored inbox.
   let resendHeaders: Record<string, string> | undefined;
-  if (job.category === "MARKETING" && typeof vars.unsubscribe_url === "string") {
+  if (job.category === "MARKETING" && unsubscribeUrl) {
     resendHeaders = {
-      "List-Unsubscribe": `<mailto:support@skinlabs.co.za?subject=unsubscribe>, <${vars.unsubscribe_url}>`,
+      "List-Unsubscribe": `<mailto:support@skinlabs.co.za?subject=unsubscribe>, <${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     };
   }
