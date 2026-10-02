@@ -184,6 +184,23 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
 
 ## Major systems
 
+- **Briefings pipeline repair (2026-10-02)** — `briefings-sync` had published nothing since 25 Sep:
+  its committed `index.ts` was a stub assembling gzip+base64 parts (`bs.b64.*`) that were
+  corrupt (gunzip CRC error), so every 04:00 UTC cron run crashed. Restored as plain TypeScript
+  (last complete source, 922c460, plus changes below); the stub files are deleted. **Cap is 1
+  published briefing/day** (counted per `publish_date`, published rows only). New
+  `_shared/pipelines/briefingFormat.ts` (tested in `src/lib/__tests__/briefingFormat.test.ts`):
+  `normaliseBriefingMarkdown()` repairs flattened one-line bodies (inline `##`, merged
+  "Heading. Prose", flattened numbered lists, long paragraphs) and `checkBriefingFormat()` is a QA
+  gate (headings, blank lines, paragraph length, a list, no bold) applied before and after image
+  weaving. A failed QA gets ONE guided regeneration with the reasons. Source channels rotate by
+  day. `?repair_formatting=true[&dry_run=true]` re-formats published flattened rows (only that
+  defect; ad-slot comments/bold are preserved); it fixed 22–25 Sep. `?backfill_date=YYYY-MM-DD`
+  fills a missed day (still 1/day); 26 Sep–2 Oct were backfilled. Deploys are a one-line entrypoint
+  importing `index.ts` from raw GitHub pinned to a commit (v42 at de86faa) — pin a commit
+  containing these changes on any redeploy. Known: 22–24 Sep still have 2 published/day (pre-cap);
+  27 and 28 Sep got near-identical "The DNA Repair Gap" titles (dedup didn't catch them).
+
 - **Follow-up batch (2026-09-28, evening)** — branch
   `claude/skinlabs-platform-updates-vl8d16` restarted from `main` after PR #166 merged.
   - **PayFast is temporarily OFF** (`PAYFAST_ENABLED = false` in
