@@ -4,6 +4,8 @@ import remarkGfm from "remark-gfm";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { splitBriefingForAds } from "@/lib/briefingAdBreaks";
+import { findSkynnCtaSlot } from "@/lib/briefingSkynnBreak";
+import SkynnMiniCta from "@/components/briefings/SkynnMiniCta";
 import {
   Accordion,
   AccordionContent,
@@ -144,6 +146,8 @@ interface BriefingBodyProps {
   body: string;
   /** When false, skip mid-body ad markers (Shelf Showdowns). Default true. */
   insertAds?: boolean;
+  /** Mini SKYNN AI card between two paragraphs. Defaults to `insertAds` (briefings yes, Shelf Showdowns no). */
+  skynnCta?: boolean;
 }
 
 /**
@@ -151,9 +155,10 @@ interface BriefingBodyProps {
  * FAQ sections render as an accordion; all ## / ### become styled H2/H3.
  * GFM tables render as responsive comparison tables.
  */
-function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
+function BriefingBody({ body, insertAds = true, skynnCta = insertAds }: BriefingBodyProps) {
   // Hand-placed <!-- ad:mid-N --> markers, or every 2nd section for pipeline bodies.
   const parts = insertAds ? splitBriefingForAds(body) : [body];
+  const ctaSlot = skynnCta ? findSkynnCtaSlot(parts) : null;
 
   const renderMarkdownSegment = (segment: string, key: string | number) => {
     const faqMatch = segment.match(/(^|\n)##\s+FAQ\s*\n([\s\S]*?)(?=\n##\s+|$)/i);
@@ -219,7 +224,15 @@ function BriefingBody({ body, insertAds = true }: BriefingBodyProps) {
     <div className="prose prose-neutral max-w-none dark:prose-invert">
       {parts.map((segment, i) => (
         <div key={i}>
-          {segment.trim() ? renderMarkdownSegment(segment, i) : null}
+          {ctaSlot && ctaSlot.index === i ? (
+            <>
+              {renderMarkdownSegment(ctaSlot.before, `${i}-a`)}
+              <SkynnMiniCta />
+              {renderMarkdownSegment(ctaSlot.after, `${i}-b`)}
+            </>
+          ) : segment.trim() ? (
+            renderMarkdownSegment(segment, i)
+          ) : null}
           {insertAds && i < parts.length - 1 && (
             <div className="not-prose">
               {i % 2 === 0 ? (
