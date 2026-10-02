@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useRoutine, type RoutineStep } from "@/hooks/use-routine";
+import LayeringGuide from "@/components/dashboard/LayeringGuide";
 import SmartRoutinePanel from "@/components/dashboard/SmartRoutinePanel";
 
 const StepRow = ({
@@ -165,6 +166,7 @@ const RoutineTrackerTab = () => {
           </Button>
         </CardContent>
       </Card>
+      <LayeringGuide amSteps={amSteps} pmSteps={pmSteps} />
     </div>
   );
 };
