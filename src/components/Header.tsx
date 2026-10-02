@@ -70,7 +70,7 @@ const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
   { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Business Suite", href: "/business", icon: TrendingUp, badge: "NEW" },
+  { label: "Practice Suite", href: "/practice-suite", icon: TrendingUp, badge: "Coming Soon" },
 ];
 
 /** The "Explore" grid — SkinLabs' editorial + platform sections. */

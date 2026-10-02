@@ -35,6 +35,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "OpenHaus Shipping & Returns", description: "Shipping and returns policy for the OpenHaus marketplace", href: "/marketplace/shipping-returns", keywords: "openhaus shipping returns delivery marketplace" },
   { title: "OpenHaus Terms", description: "Terms of sale for the OpenHaus marketplace", href: "/marketplace/terms", keywords: "openhaus terms marketplace" },
   { title: "For Business", description: "SkinLabs for salons, clinics and retailers", href: "/business" },
+  { title: "Practice Suite", description: "Practice management for private practitioners and clinics (early access)", href: "/practice-suite" },
   { title: "Partner Program", description: "Affiliate, editorial and strategic commerce partnerships with SkinLabs", href: "/partners", keywords: "partners partnerships affiliate editorial strategic commerce book a call" },
   { title: "Brand Ambassador Programme", description: "Apply to become a SkinLabs TikTok or Instagram Brand Ambassador", href: "/brand-ambassadors", keywords: "brand ambassador creator programme tiktok instagram affiliate commission apply" },
   { title: "About Us", description: "SkinLabs' story, science and sustainability", href: "/about", keywords: "our science sustainability" },

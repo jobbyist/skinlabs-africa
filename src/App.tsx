@@ -37,6 +37,7 @@ const QuoteSSBeauty = lazyWithRetry(() => import("./pages/QuoteSSBeauty"));
 const About = lazyWithRetry(() => import("./pages/About"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
 const Business = lazyWithRetry(() => import("./pages/Business"));
+const PracticeSuite = lazyWithRetry(() => import("./pages/PracticeSuite"));
 const Partners = lazyWithRetry(() => import("./pages/Partners"));
 const BrandAmbassadors = lazyWithRetry(() => import("./pages/BrandAmbassadors"));
 const KnowledgeHub = lazyWithRetry(() => import("./pages/KnowledgeHub"));
@@ -134,6 +135,7 @@ const AppContent = () => {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/business" element={<Business />} />
+            <Route path="/practice-suite" element={<PracticeSuite />} />
             <Route path="/partners" element={<Partners />} />
             <Route path="/brand-ambassadors" element={<BrandAmbassadors />} />
             <Route path="/brand-ambassadors/apply" element={<BrandAmbassadors />} />

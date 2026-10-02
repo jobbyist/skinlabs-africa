@@ -2619,6 +2619,45 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_suite_waitlist: {
+        Row: {
+          admin_pain: string | null
+          contact_consent: boolean
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          practice_type: string
+          practitioner_count: string
+          province: string
+          role: string
+        }
+        Insert: {
+          admin_pain?: string | null
+          contact_consent: boolean
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          practice_type: string
+          practitioner_count: string
+          province: string
+          role: string
+        }
+        Update: {
+          admin_pain?: string | null
+          contact_consent?: boolean
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          practice_type?: string
+          practitioner_count?: string
+          province?: string
+          role?: string
+        }
+        Relationships: []
+      }
       partner_enquiries: {
         Row: {
           audience_size: string | null
