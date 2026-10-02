@@ -864,8 +864,13 @@ Deno.serve(async (req) => {
     // ---- Research phase: fetch and cache channel search results ----
     const channelResults: ChannelResult[] = [];
 
-    for (const channel of SOURCE_CHANNELS) {
-      if (channelResults.length >= target * 3) break;
+    // Rotate the channel order by calendar day so one stubborn channel (e.g. one that
+    // keeps tripping the named-diagnosis scan) can't be the only candidate every day.
+    const dayNumber = Math.floor(Date.parse(`${today}T00:00:00Z`) / 86400000);
+    const rotation = dayNumber % SOURCE_CHANNELS.length;
+    const orderedChannels = [...SOURCE_CHANNELS.slice(rotation), ...SOURCE_CHANNELS.slice(0, rotation)];
+    for (const channel of orderedChannels) {
+      if (channelResults.length >= target * 4) break;
       try {
         const result = await researchChannel(admin, channel, firecrawlKey as string, firecrawlCallsThisRun < MAX_FIRECRAWL_CALLS_PER_RUN);
         if (result.madeRealCall) firecrawlCallsThisRun += 1;
