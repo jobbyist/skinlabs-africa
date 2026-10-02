@@ -922,37 +922,54 @@ Deno.serve(async (req) => {
       }
 
       try {
-        const { data: briefing, modelUsed } = await callGeminiWithFallback({
-          apiKey: geminiKey as string,
-          models: modelChain,
-          systemInstruction: BRIEFING_INSTRUCTIONS,
+        const baseUserContent =
           // The "already covered" list steers the model away from repeating a
           // recent angle; the similarity check below is what actually enforces it.
-          userContent:
-            recentBriefings.length > 0
-              ? `ALREADY PUBLISHED IN THE LAST ${DEDUP_LOOKBACK_DAYS} DAYS -- do not repeat these topics, titles or angles; pick a clearly different angle from the research or the output will be rejected:\n${recentTitlesForPrompt()}\n\n=== RESEARCH ===\n\n${compositeSource}`
-              : compositeSource,
-          responseSchema: BRIEFING_SCHEMA,
-          temperature: 0.6,
-          maxOutputTokens: 8192,
-          parse: parseBriefingResponse,
-          onAttempt: logModelAttempt(channel.id),
-        });
-        modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
+          recentBriefings.length > 0
+            ? `ALREADY PUBLISHED IN THE LAST ${DEDUP_LOOKBACK_DAYS} DAYS -- do not repeat these topics, titles or angles; pick a clearly different angle from the research or the output will be rejected:\n${recentTitlesForPrompt()}\n\n=== RESEARCH ===\n\n${compositeSource}`
+            : compositeSource;
 
-        if (!briefing.title || !briefing.body_markdown) continue;
+        // One guided regeneration: if the first draft fails QA (named-diagnosis wording,
+        // formatting, length), tell the model exactly what to fix before giving up.
+        let briefing!: GeneratedBriefing;
+        let modelUsed = "";
+        let qaReasons: string[] = [];
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const feedback =
+            attempt === 0
+              ? ""
+              : `\n\n=== REVISION REQUIRED ===\nYour previous draft was rejected for: ${qaReasons.join("; ")}.\nWrite the column again from the research. Never name a skin condition or disease as something the reader has (use plain descriptions such as "dry, itchy, inflamed skin" and say "see a dermatologist or GP" instead of naming eczema, psoriasis, rosacea, acne vulgaris, dermatitis and the like), include at least one "- " bullet list and one "1. " numbered list, and put every heading, paragraph and list on its own lines separated by a blank line.`;
+          const res = await callGeminiWithFallback({
+            apiKey: geminiKey as string,
+            models: modelChain,
+            systemInstruction: BRIEFING_INSTRUCTIONS,
+            userContent: baseUserContent + feedback,
+            responseSchema: BRIEFING_SCHEMA,
+            temperature: attempt === 0 ? 0.6 : 0.4,
+            maxOutputTokens: 8192,
+            parse: parseBriefingResponse,
+            onAttempt: logModelAttempt(channel.id),
+          });
+          briefing = res.data;
+          modelUsed = res.modelUsed;
+          modelUsage[modelUsed] = (modelUsage[modelUsed] ?? 0) + 1;
 
-        // ---- Formatting: repair flattened/one-line markdown BEFORE QA ----
-        briefing.body_markdown = normaliseBriefingMarkdown(briefing.body_markdown);
+          if (!briefing.title || !briefing.body_markdown) {
+            qaReasons = ["empty title or body"];
+            continue;
+          }
 
-        // ---- Editorial/factual QA gate -- reject incomplete or non-compliant output ----
-        const wc = countWords(briefing.body_markdown);
-        const minWordCount = modelUsed === modelChain[0] ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_MODEL;
-        const qa = qaBriefing(briefing, wc, minWordCount);
-        if (!qa.passed) {
-          errors.push(`QA rejected ${channel.id}: ${qa.reasons.join("; ")}`);
-          continue;
+          // ---- Formatting: repair flattened/one-line markdown BEFORE QA ----
+          briefing.body_markdown = normaliseBriefingMarkdown(briefing.body_markdown);
+
+          // ---- Editorial/factual QA gate -- reject incomplete or non-compliant output ----
+          const minWordCount = modelUsed === modelChain[0] ? MIN_BODY_WORD_COUNT_PRIMARY_MODEL : MIN_BODY_WORD_COUNT_FALLBACK_MODEL;
+          const qa = qaBriefing(briefing, countWords(briefing.body_markdown), minWordCount);
+          qaReasons = qa.reasons;
+          if (qa.passed) break;
+          errors.push(`QA rejected ${channel.id} (attempt ${attempt + 1}): ${qa.reasons.join("; ")}`);
         }
+        if (qaReasons.length > 0) continue;
 
         // ---- Near-duplicate gate: never publish a topic we covered recently ----
         const duplicate = findDuplicate(
