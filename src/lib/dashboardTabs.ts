@@ -1,17 +1,19 @@
 /**
- * Dashboard information architecture:
- *   Home · My Skin (Analysis / Routine / PhotoJournal / Journey) · Saved · Inbox ·
+ * Dashboard information architecture (onboarding overhaul 08):
+ *   Home · My Skin (Analysis / Routine / Journey) · Saved · Inbox ·
  *   Settings (Profile / Billing / Security / Account)
  *
  * `?tab=` always holds a LEAF section, so every deep link that existed before
- * keeps working unchanged.
+ * (emails, notifications, in-app links: ?tab=billing, ?tab=routine, …) keeps
+ * working unchanged; the top-level group is derived from it. Group names and
+ * older/alternative spellings resolve through LEGACY_TAB_ALIASES. Pure and
+ * unit tested (src/lib/__tests__/dashboardTabs.test.ts).
  */
 
 export const DASHBOARD_SECTIONS = [
   "home",
   "analysis",
   "routine",
-  "photojournal",
   "journey",
   "saved",
   "inbox",
@@ -28,7 +30,6 @@ export const SECTION_GROUP: Record<DashboardSection, DashboardGroup> = {
   home: "home",
   analysis: "skin",
   routine: "skin",
-  photojournal: "skin",
   journey: "skin",
   saved: "saved",
   inbox: "inbox",
@@ -38,6 +39,7 @@ export const SECTION_GROUP: Record<DashboardSection, DashboardGroup> = {
   account: "settings",
 };
 
+/** First section shown when a group is chosen. */
 export const GROUP_DEFAULT_SECTION: Record<DashboardGroup, DashboardSection> = {
   home: "home",
   skin: "analysis",
@@ -46,6 +48,7 @@ export const GROUP_DEFAULT_SECTION: Record<DashboardGroup, DashboardSection> = {
   settings: "profile",
 };
 
+/** Every ?tab= value that isn't itself a section. `overview` was Home's id before 08. */
 export const LEGACY_TAB_ALIASES: Record<string, DashboardSection> = {
   overview: "home",
   skin: "analysis",
@@ -56,9 +59,6 @@ export const LEGACY_TAB_ALIASES: Record<string, DashboardSection> = {
   "skin-analysis": "analysis",
   "skynn-ai": "analysis",
   "skin-journey": "journey",
-  "photo-journal": "photojournal",
-  "photo_journal": "photojournal",
-  "photojournal": "photojournal",
   settings: "profile",
   notifications: "inbox",
   mfa: "security",
