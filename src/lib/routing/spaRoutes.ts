@@ -7,7 +7,7 @@
  */
 const EXACT = new Set([
   "/", "/get-started", "/skynn-ai", "/skynn-ai/advanced", "/ai-formulator", "/quote-ss-beauty",
-  "/about", "/contact", "/business", "/partners", "/brand-ambassadors", "/brand-ambassadors/apply",
+  "/about", "/contact", "/business", "/practice-suite", "/partners", "/brand-ambassadors", "/brand-ambassadors/apply",
   "/our-science", "/sustainability", "/knowledge-hub", "/faq", "/privacy-policy", "/terms-of-service",
   "/cookie-policy", "/refund-policy", "/advertising-policy", "/corrections-removals", "/editorial-policy",
   "/community-guidelines", "/whitepapers", "/whitepaper", "/admin", "/shop", "/routines", "/learn",

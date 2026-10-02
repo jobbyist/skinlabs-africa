@@ -18,6 +18,7 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   { path: "/pricing", changefreq: "weekly", priority: "0.9" },
   { path: "/contact", changefreq: "monthly", priority: "0.6" },
   { path: "/business", changefreq: "monthly", priority: "0.6" },
+  { path: "/practice-suite", changefreq: "monthly", priority: "0.6" },
   { path: "/partners", changefreq: "monthly", priority: "0.8" },
   { path: "/brand-ambassadors", changefreq: "weekly", priority: "0.8" },
   { path: "/skynn-ai", changefreq: "weekly", priority: "0.95" },
