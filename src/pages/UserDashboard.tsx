@@ -622,8 +622,8 @@ const UserDashboard = () => {
               </div>
 
               {!journey.loading && (
-
-              <JourneyMomentumCard
+                <div className="mb-6">
+                  <JourneyMomentumCard
                 stage={journey.stage}
                 facts={journey.facts}
                 checklist={journey.checklist}
@@ -631,7 +631,8 @@ const UserDashboard = () => {
                 onAction={handleJourneyAction}
                 onSeeSteps={scrollToSetup}
                 actionLoading={trialLoading}
-              />
+                  />
+                </div>
               )}
 
               {!membershipLoading && trialBanner !== "none" && trialBanner !== "ended" && (
