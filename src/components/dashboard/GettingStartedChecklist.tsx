@@ -89,7 +89,7 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
   };
 
   return (
-    <Card className="overflow-hidden border-border/80 shadow-[var(--shadow-sm)]">
+    <Card id="getting-started" className="scroll-mt-28 overflow-hidden border-border/80 shadow-[var(--shadow-sm)]">
       <CardHeader className="border-b border-border/70 bg-gradient-to-br from-background to-muted/35 p-5 sm:p-6">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="max-w-2xl">
