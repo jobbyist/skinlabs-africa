@@ -89,6 +89,7 @@ These names predate SKYNN AI v2.1 and are kept for historical reporting. New fun
 | `reanalysis_blocked` | `ReanalysisLockedPanel.tsx` / `SkinProfileHero.tsx`: rolling window locks a re-run | `source` |
 | `upgrade_clicked_from_formulator` | `ReanalysisLockedPanel.tsx` / `AnalysisCreditsCard.tsx` upgrade CTA | `source` |
 | `upgrade_click` | `useConversionAction().run()` (see "Gate CTAs" below). Here: `PremiumUpsellSection` (`starter_results_upsell`), `ReanalysisLockedPanel` (`reanalysis_locked:<source>`), `AnalysisCreditsCard` (`dashboard_credits`), `FormulatorTab` (`dashboard_formulator_tab`) | `source`, `kind`, `feature` |
+| `skynn_cta_clicked` | `briefings/SkynnMiniCta.tsx`: mini SKYNN AI card inside a briefing body | `source: "briefing_article"`, `kind: "briefing_mini_cta"` |
 | `skynn_video_opened` / `skynn_video_completed` | `skynn/SkynnVideoModal.tsx` | `source: "ai_formulator_intro"` |
 | `starter_dashboard_arrived` | `UserDashboard.tsx`: a pending local starter result was saved on arrival at the dashboard | none |
 

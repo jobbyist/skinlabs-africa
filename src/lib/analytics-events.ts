@@ -23,6 +23,7 @@ export type ConversionEvent =
   | "signup_completed"
   | "upgrade_viewed"
   | "upgrade_click"
+  | "skynn_cta_clicked"
   | "adblock_wall_shown"
   | "adblock_wall_cleared"
   | "pricing_view"
