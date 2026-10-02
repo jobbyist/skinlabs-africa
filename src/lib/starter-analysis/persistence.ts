@@ -2,10 +2,10 @@
  * Anonymous persistence + account linking (Sections 16-19).
  *
  * Basic Analysis photos remain out of localStorage. When a member chooses a
- * photo and completes the Basic AI Skin Analysis, the selected image is
- * captured from the analysis file input and, after authentication, uploaded to
- * the member's private PhotoJournal bucket. The server-side storage bucket is
- * capped at 5 MB and image MIME types only.
+ * photo and completes the Basic AI Skin Analysis, the selected image is read
+ * directly from the two dedicated analysis photo inputs at save time and,
+ * after authentication and photo consent, uploaded to the member's private
+ * PhotoJournal bucket. The server-side storage bucket is capped at 5 MB.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -15,24 +15,33 @@ import { isFormulatorLimitError } from "@/lib/formulator/limits";
 
 const DRAFT_KEY = "skynn_starter_draft_v1";
 const RESULT_KEY = "skynn_starter_result_v1";
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const PHOTO_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 
-// AIFormulator intentionally keeps photo bytes in component memory only. This
-// capture lets the persistence layer move that same File into private storage
-// once the member has authenticated and the Basic result has passed the server
-// save gate. It is scoped to the Basic SKYNN route and image file inputs only.
-let pendingBasicPhoto: File | null = null;
+const isSupportedPhoto = (file: File): boolean =>
+  PHOTO_MIME_TYPES.includes(file.type as (typeof PHOTO_MIME_TYPES)[number]) && file.size <= MAX_PHOTO_BYTES;
 
-if (typeof document !== "undefined") {
-  document.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement) || target.type !== "file") return;
-    if (!window.location.pathname.startsWith("/skynn-ai")) return;
-    const file = target.files?.[0];
-    if (!file || !file.type.startsWith("image/") || file.size > MAX_PHOTO_BYTES) return;
-    pendingBasicPhoto = file;
-  }, true);
-}
+/**
+ * The Basic Analysis UI owns these two inputs. Reading them at save time avoids
+ * a global document listener and guarantees a removed/replaced photo is not
+ * accidentally retained as a stale baseline.
+ */
+const getCurrentBasicPhoto = (): File | null => {
+  if (typeof document === "undefined" || !window.location.pathname.startsWith("/skynn-ai")) return null;
+
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>(
+    'input[type="file"][accept="image/jpeg,image/png,image/webp,image/heic"]',
+  ));
+  const file = inputs.map((input) => input.files?.[0]).find(Boolean) ?? null;
+  return file && isSupportedPhoto(file) ? file : null;
+};
+
+const hasPhotoConsent = (): boolean => {
+  if (typeof document === "undefined") return false;
+  const consent = document.getElementById("photo-consent");
+  if (!consent) return false;
+  return consent.getAttribute("data-state") === "checked" || consent.getAttribute("aria-checked") === "true";
+};
 
 const safeParse = <T,>(raw: string | null): T | null => {
   if (!raw) return null;
@@ -117,24 +126,23 @@ export const clearCompletedState = (): void => {
 export const clearAllStarterAnalysisState = (): void => {
   clearDraftState();
   clearCompletedState();
-  pendingBasicPhoto = null;
 };
 
-const uploadPendingBasicPhoto = async (analysisId: string): Promise<string | null> => {
-  if (!pendingBasicPhoto || pendingBasicPhoto.size > MAX_PHOTO_BYTES || !pendingBasicPhoto.type.startsWith("image/")) return null;
+const uploadCurrentBasicPhoto = async (analysisId: string): Promise<string | null> => {
+  const photo = getCurrentBasicPhoto();
+  if (!photo || !hasPhotoConsent()) return null;
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) return null;
 
-  const extension = pendingBasicPhoto.name.split(".").pop()?.toLowerCase() || "jpg";
+  const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${uid}/journal/baseline-${analysisId}.${extension}`;
-  const { error } = await supabase.storage.from("skin-analysis-photos").upload(path, pendingBasicPhoto, {
+  const { error } = await supabase.storage.from("skin-analysis-photos").upload(path, photo, {
     cacheControl: "3600",
-    contentType: pendingBasicPhoto.type,
+    contentType: photo.type,
     upsert: true,
   });
   if (error) throw new Error(`Could not save your PhotoJournal baseline: ${error.message}`);
-  pendingBasicPhoto = null;
   return path;
 };
 
@@ -169,8 +177,8 @@ export interface StarterSaveOutcome {
 }
 
 /**
- * Saves a starter result and, when the member selected a photo during this
- * Basic Analysis, persists that photo as the private PhotoJournal baseline.
+ * Saves a starter result and, when the member explicitly consented to storing
+ * the selected photo, persists that photo as the private PhotoJournal baseline.
  * The authoritative analysis entitlement/allowance check remains the RPC.
  */
 export const persistStarterResultToAccount = async (params: {
@@ -184,7 +192,7 @@ export const persistStarterResultToAccount = async (params: {
   let uploadedPath: string | null = null;
   try {
     if (!photoStoragePath) {
-      uploadedPath = await uploadPendingBasicPhoto(params.result.analysisId);
+      uploadedPath = await uploadCurrentBasicPhoto(params.result.analysisId);
       photoStoragePath = uploadedPath;
     }
 
@@ -194,25 +202,28 @@ export const persistStarterResultToAccount = async (params: {
       if (isFormulatorLimitError(error)) {
         const detail = (error as { details?: string }).details;
         const unlock = detail ? new Date(detail) : null;
-        return { error: null, limitReached: true, nextUnlockAt: unlock && !Number.isNaN(unlock.getTime()) ? unlock : null, source: null };
+        return {
+          error: null,
+          limitReached: true,
+          nextUnlockAt: unlock && !Number.isNaN(unlock.getTime()) ? unlock : null,
+          source: null,
+        };
       }
       return { error: new Error(error.message), limitReached: false, nextUnlockAt: null, source: null };
     }
     const row = Array.isArray(data) ? data[0] : data;
 
-    // The journal entry is intentionally best-effort here. The dashboard can
-    // backfill it from skincare_recommendations.photo_storage_path if an
-    // interrupted network request happens between the two writes.
     if (photoStoragePath) {
       const { data: currentUser } = await supabase.auth.getUser();
       if (currentUser.user?.id) {
-        await (supabase as any).from("skin_photo_journal_entries").upsert({
+        const { error: journalError } = await (supabase as any).from("skin_photo_journal_entries").upsert({
           user_id: currentUser.user.id,
           storage_path: photoStoragePath,
           entry_type: "baseline",
           source_analysis_id: params.result.analysisId,
           captured_at: new Date().toISOString(),
         }, { onConflict: "user_id,source_analysis_id" });
+        if (journalError) console.error("PhotoJournal baseline save failed", journalError);
       }
     }
 
