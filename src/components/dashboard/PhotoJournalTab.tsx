@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Clock3, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
@@ -73,7 +72,6 @@ const PhotoJournalTab = () => {
 
   useEffect(() => { void load(); }, [load]);
 
-  const baseline = entries.find((entry) => entry.entry_type === "baseline") ?? entries[0] ?? null;
   const latest = entries[entries.length - 1] ?? null;
   const nextDue = latest ? addInterval(new Date(latest.captured_at), frequency) : null;
   const isDue = nextDue ? nextDue.getTime() <= Date.now() : false;
@@ -255,6 +253,7 @@ const PhotoJournalTab = () => {
       <Card className="border-border bg-muted/20">
         <CardContent className="p-4 sm:p-5">
           <p className="text-xs leading-relaxed text-muted-foreground"><strong className="text-foreground">Keep it consistent:</strong> take your photos in similar lighting, from a similar distance and angle, without filters. PhotoJournal is a visual record, not a diagnostic tool.</p>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground"><strong className="text-foreground">Privacy:</strong> PhotoJournal images are private to your account, stored securely and never used to estimate your skin tone.</p>
         </CardContent>
       </Card>
     </div>
