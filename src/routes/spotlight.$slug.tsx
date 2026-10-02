@@ -6,6 +6,7 @@ import { ExternalLink, ShieldCheck } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/content/supabaseServerClient'
 import { buildHeadTags } from '@/lib/seo/head'
 import { spotlightBrandJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
+import { AUTHOR_NAME } from '@/lib/seo-config'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
 import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from '@/data/spotlight'
@@ -153,6 +154,7 @@ function SpotlightBrandPage() {
               {entry.rank !== null ? <span>#{entry.rank} in the full ranking</span> : <span>New on the Radar</span>}
               <h1>{entry.brand}</h1>
               <p>{editorial.positioningStatement}</p>
+              <p>Profile by {AUTHOR_NAME}</p>
             </div>
           </div>
 

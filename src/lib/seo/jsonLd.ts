@@ -1,6 +1,6 @@
 import { BRAND, SITE_URL, DEFAULT_OG, AUTHOR_NAME, AUTHOR_URL } from "@/lib/seo-config";
 
-const authorPerson = () => ({
+export const authorPerson = () => ({
   "@type": "Person",
   name: AUTHOR_NAME,
   url: AUTHOR_URL,
@@ -260,7 +260,8 @@ export function spotlightBrandJsonLd(input: SpotlightBrandJsonLdInput) {
     "@id": `${input.canonicalUrl}#article`,
     headline: input.headline,
     description: input.description,
-    author: { "@type": "Organization", name: BRAND, url: SITE_URL },
+    author: authorPerson(),
+    editor: authorPerson(),
     publisher: {
       "@type": "Organization",
       name: BRAND,
