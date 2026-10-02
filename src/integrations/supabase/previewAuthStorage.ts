@@ -35,8 +35,6 @@ export function brokeredPreviewStorage() {
     new Promise((resolve) => {
       const requestId = newId();
       let done = false;
-      // Assigned once, after `finish` is defined; `finish` must close over it first.
-      // eslint-disable-next-line prefer-const
       let timer: ReturnType<typeof setTimeout>;
       const finish = (r: { ok: boolean; value?: string | null } | null) => {
         if (done) return;
@@ -80,7 +78,12 @@ export function brokeredPreviewStorage() {
     },
     setItem: (key: string, value: string) => {
       localStorage.setItem(key, value);
-      return request('lovable-preview-auth:set', key, value).then(() => undefined);
+      return request('lovable-preview-auth:set', key, value).then((res) => {
+        if (res && res.ok && typeof res.value === 'string' && localStorage.getItem(key) === value) {
+          if (res.value === '') localStorage.removeItem(key);
+          else localStorage.setItem(key, res.value);
+        }
+      });
     },
     removeItem: (key: string) => {
       localStorage.removeItem(key);
