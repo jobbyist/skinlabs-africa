@@ -3500,6 +3500,7 @@ export type Database = {
         Row: {
           currency: string
           id: string
+          in_stock: boolean | null
           price_zar: number
           recorded_at: string
           recorded_by: string | null
@@ -3511,6 +3512,7 @@ export type Database = {
         Insert: {
           currency?: string
           id?: string
+          in_stock?: boolean | null
           price_zar: number
           recorded_at?: string
           recorded_by?: string | null
@@ -3522,6 +3524,7 @@ export type Database = {
         Update: {
           currency?: string
           id?: string
+          in_stock?: boolean | null
           price_zar?: number
           recorded_at?: string
           recorded_by?: string | null
@@ -4077,13 +4080,53 @@ export type Database = {
         }
         Relationships: []
       }
+      retailer_price_runs: {
+        Row: {
+          finished_at: string | null
+          id: string
+          mode: string
+          retailer: string
+          started_at: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          finished_at?: string | null
+          id?: string
+          mode: string
+          retailer: string
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          finished_at?: string | null
+          id?: string
+          mode?: string
+          retailer?: string
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       retailer_products: {
         Row: {
+          consecutive_failures: number
           created_at: string
+          discovery_checked_at: string | null
           id: string
           is_available: boolean
+          last_attempt_at: string | null
           last_checked_at: string | null
+          last_error: string | null
           last_verified_at: string | null
+          listing_size_ml: number | null
+          listing_title: string | null
+          match_confidence: number | null
+          match_reasons: Json | null
+          match_status: string
+          pending_price_zar: number | null
           product_variant_id: string
           retailer_id: string
           retailer_sku: string | null
@@ -4092,11 +4135,21 @@ export type Database = {
           verification_status: Database["public"]["Enums"]["data_quality_status"]
         }
         Insert: {
+          consecutive_failures?: number
           created_at?: string
+          discovery_checked_at?: string | null
           id?: string
           is_available?: boolean
+          last_attempt_at?: string | null
           last_checked_at?: string | null
+          last_error?: string | null
           last_verified_at?: string | null
+          listing_size_ml?: number | null
+          listing_title?: string | null
+          match_confidence?: number | null
+          match_reasons?: Json | null
+          match_status?: string
+          pending_price_zar?: number | null
           product_variant_id: string
           retailer_id: string
           retailer_sku?: string | null
@@ -4105,11 +4158,21 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["data_quality_status"]
         }
         Update: {
+          consecutive_failures?: number
           created_at?: string
+          discovery_checked_at?: string | null
           id?: string
           is_available?: boolean
+          last_attempt_at?: string | null
           last_checked_at?: string | null
+          last_error?: string | null
           last_verified_at?: string | null
+          listing_size_ml?: number | null
+          listing_title?: string | null
+          match_confidence?: number | null
+          match_reasons?: Json | null
+          match_status?: string
+          pending_price_zar?: number | null
           product_variant_id?: string
           retailer_id?: string
           retailer_sku?: string | null
@@ -5182,6 +5245,21 @@ export type Database = {
         }
         Relationships: []
       }
+      sa_retail_prices: {
+        Row: {
+          checked_at: string | null
+          in_stock: boolean | null
+          listing_size_ml: number | null
+          listing_title: string | null
+          listing_url: string | null
+          price_since: string | null
+          price_zar: number | null
+          product_slug: string | null
+          retailer_name: string | null
+          retailer_slug: string | null
+        }
+        Relationships: []
+      }
       skynn_fairness_summary: {
         Row: {
           avg_completeness: number | null
@@ -5587,6 +5665,26 @@ export type Database = {
         Returns: Json
       }
       get_preorder_count: { Args: { p_product_type: string }; Returns: number }
+      get_price_discovery_batch: {
+        Args: { p_limit: number; p_retailer: string }
+        Returns: {
+          brand: string
+          product_name: string
+          product_slug: string
+          size_ml: number
+          variant_id: string
+        }[]
+      }
+      get_price_refresh_batch: {
+        Args: { p_limit: number; p_retailer: string }
+        Returns: {
+          last_price_at: string
+          last_price_zar: number
+          listing_url: string
+          pending_price_zar: number
+          retailer_product_id: string
+        }[]
+      }
       get_routine_conflicts: {
         Args: { p_ingredient_ids: string[] }
         Returns: {
@@ -5668,6 +5766,10 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: undefined
       }
+      mark_price_discovery_miss: {
+        Args: { p_note: string; p_retailer_slug: string; p_variant_id: string }
+        Returns: undefined
+      }
       reactivate_account: { Args: never; Returns: boolean }
       record_advanced_intake_result: {
         Args: {
@@ -5680,6 +5782,20 @@ export type Database = {
           p_triage?: Json
         }
         Returns: Json
+      }
+      record_price_failure: {
+        Args: { p_error: string; p_retailer_product_id: string }
+        Returns: undefined
+      }
+      record_price_observation: {
+        Args: {
+          p_action: string
+          p_in_stock: boolean
+          p_price_zar: number
+          p_retailer_product_id: string
+          p_source_url: string
+        }
+        Returns: undefined
       }
       refund_analysis_pass: {
         Args: { p_transaction_id: string }
@@ -5735,6 +5851,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_listing_candidate: {
+        Args: {
+          p_confidence: number
+          p_reasons: Json
+          p_retailer_slug: string
+          p_size_ml: number
+          p_status: string
+          p_title: string
+          p_url: string
+          p_variant_id: string
+        }
+        Returns: string
       }
       save_smart_routine: {
         Args: {
@@ -5895,6 +6024,7 @@ export type Database = {
       }
       unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
       unsubscribe_newsletter: { Args: { p_token: string }; Returns: boolean }
+      verify_price_sync_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }
         Returns: boolean

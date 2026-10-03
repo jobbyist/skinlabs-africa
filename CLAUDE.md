@@ -184,6 +184,33 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
 
 ## Major systems
 
+- **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
+  product page (Firecrawl). Full detail: `docs/sa-retail-prices.md`. Owner decisions: use Firecrawl/retailer feeds, no Google
+  Shopping scraping (needs a licensed API they don't have), AdSense figures entered by hand for now.
+  - **Standing rule: a price is shown only if its page was read, the product matched with confidence, and it was checked in
+    the last 14 days; otherwise nothing.** Never show `product_variants`/editorial prices as live. Found on the way: every
+    review page showed hard-coded editorial prices marked "In stock" (homepage links, never checked) in the table,
+    JSON-LD `offers` and the At-a-Glance card; the 241 seeded `product_prices`/`retailer_products` rows were editorial and
+    publicly readable. Public read is now `match_status='matched'` / `source_type='retailer_listing'` only; the review pages
+    use live rows (`SaPricesPanel`, view `sa_retail_prices`), else a dated "at review time, not live" snapshot only when the
+    review kept a real product-page URL + publish date (`reviewTimeSnapshot()`); static-catalogue prices are no longer shown.
+  - **Pure tested library** `supabase/functions/_shared/pricing/` (32 tests on real retailer markup/search results) + I/O-only
+    edge function `retailer-price-sync` (modes refresh|discover; `retailer_price_runs` logs each run). Deterministic parsers (no
+    model reads prices); strict matcher (brand words required, strengths count, size mismatch rejects, **no variant has a pack
+    size**, so unsized products auto-match only with exactly one plausible listing, else Admin > SA Prices review).
+  - **Retailer rules from robots.txt**: Clicks 10 s crawl delay + 04:00-08:45 UTC window; Dis-Chem no query strings (strip
+    `?srsltid=`), named AI crawlers blocked, behind a Cloudflare challenge on direct fetch (never bypass it); Takealot PLID
+    pages. Run ONE retailer at a time (Firecrawl concurrency 429 stops the run, by design). Daily budget 250 credits.
+  - **Live 2026-10-03**: migrations `20261003120000` (schema/RPCs/view; probe `supabase/tests/retailer_price_pipeline.sql`
+    passes 25 assertions on the live schema) and `...130000` (6 pg_cron jobs, Vault-secret auth verified in the DB) applied;
+    `retailer-price-sync` v3 pinned to a commit on branch `claude/sa-retail-prices` (**re-pin after merge**). Verified end to
+    end: Takealot discovery (conservative, mostly needs_review), Dis-Chem discovery -> 1 auto-match at R165 recorded, refresh
+    -> `skip:unchanged`. **Clicks was not run live** (outside its window when built) - unit-tested on real markup only; check
+    `retailer_price_runs` after the first 04:00 UTC run.
+  - **Supabase SQL tool gotcha (again)**: `execute_sql`/`apply_migration` hang on `DROP` (and I avoid `DELETE` in probes).
+  - Open: admin has to work the needs_review queue (many Standard Beauty/Skin Functional candidates); backfill
+    `product_variants.size_ml`; re-match a page on refresh; the SSR `/reviews/:slug` and SPA both updated, other pages that
+    quote editorial prices (ReviewsGrid cards, comparisons) were not audited.
 - **Growth engine: weekly-digest double opt-in (2026-10-03)** — first task of the Organic Growth
   & Revenue Engine directive (audit: `docs/growth-engine-audit-2026-10-02.md`; the strategy
   document itself was never supplied, so targets come from the directive only). Decisions from
