@@ -182,6 +182,20 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
+## Growth engine rollout (2026-10-03) — standing notes
+
+- PRs #174 (audit), #178 (double opt-in digest), #179 (SA retail prices) are merged. Deployed edge functions are
+  pinned to main commit `1b7ee11`: `email-processor` v41, `retailer-price-sync` v5 (`email-unsubscribe` carries
+  its source inline). Re-pin to a commit containing any later change to those files.
+- **Firecrawl limits (owner instruction)**: the price sync must never run the account down. It reads the real
+  balance (`/v2/team/credit-usage`), keeps a 150-credit reserve, caps at 30 credits/day, fails closed when the
+  balance is unknown (`_shared/pricing/budget.ts`, tested). Raise only after a plan upgrade.
+- **Takealot price checks are paused** (`DISABLED_RETAILERS`, no cron jobs). Four jobs remain: Clicks refresh +
+  discover, Dis-Chem refresh + discover. Detail: `docs/sa-retail-prices.md`.
+- Main had no `photo_journal_*` analytics event names (PhotoJournalTab failed typecheck); declared in the merge.
+- Still open: check the first Clicks run in `retailer_price_runs`; work Admin > SA Prices; backfill
+  `product_variants.size_ml`; GitHub Actions has no runner assigned (CI never runs).
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
