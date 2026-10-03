@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useSmartRoutine } from "@/hooks/use-smart-routine";
 import { buildSmartRoutine } from "@/lib/smartRoutine/engine";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
-import { ADVANCED_NAME, BASIC_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/terminology";
+import { ADVANCED_NAME, BASIC_NAME, SKYNN_ROUTE } from "@/lib/skynn/terminology";
 
 /**
  * Dashboard Home, personalised from the member's own submissions (never from
@@ -96,7 +96,7 @@ const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
         ) : (
           <p className="text-xs text-muted-foreground">
             Want a full morning and evening routine with a weekly plan?{" "}
-            <Link to={SKYNN_ADVANCED_ROUTE} className="underline underline-offset-2">Smart Routines come with the {ADVANCED_NAME}</Link>.
+            <Link to={SKYNN_ROUTE} className="underline underline-offset-2">Smart Routines are free with your {BASIC_NAME}</Link>.
           </p>
         )}
       </CardContent>

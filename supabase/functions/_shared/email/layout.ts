@@ -12,11 +12,12 @@ export const BRAND = {
   logoUrl: "https://skinlabs.co.za/email/skinlabs-logo.png",
   instagramUrl: "https://www.instagram.com/skinlabsza",
   tiktokUrl: "https://www.tiktok.com/@skinlabsza",
-  // A single accent (emerald, the first stop of the site's brand gradient —
-  // see CLAUDE.md's design-system notes) on an otherwise neutral/greyscale
-  // layout, matching the site's "monochrome base + rare accent" rule.
-  accent: "#16a34a",
-  accentDark: "#15803d",
+  // Buttons follow the site's design system: the brand gradient (the same
+  // four stops as --gradient-brand in src/index.css) over a monochrome ink
+  // fallback colour, which is what Outlook (no CSS gradients) renders.
+  ink: "#18181b",
+  gradient: "linear-gradient(135deg,#22c55e,#3b82f6,#a855f7,#ec4899)",
+  gradientStops: ["#22c55e", "#3b82f6", "#a855f7", "#ec4899"],
   text: "#18181b",
   muted: "#71717a",
   border: "#e4e4e7",
@@ -64,11 +65,30 @@ export function renderSignature(): string {
 export interface EmailLayoutOptions {
   preheader: string;
   bodyHtml: string;
+  /**
+   * One-click marketing unsubscribe URL for this recipient. When absent the
+   * footer falls back to an unsubscribe-by-email link, so every recipient-facing
+   * email always carries one. Pass `internal: true` for staff notifications.
+   */
+  unsubscribeUrl?: string | null;
+  /** Staff/admin notifications don't carry an unsubscribe link. */
+  internal?: boolean;
+}
+
+export const UNSUBSCRIBE_MAILTO = `mailto:${BRAND.supportEmail}?subject=Unsubscribe`;
+
+/** Footer line shown under every recipient-facing email. */
+export function renderFooterNotice({ unsubscribeUrl, internal }: Pick<EmailLayoutOptions, "unsubscribeUrl" | "internal">): string {
+  if (internal) return "This is an internal SkinLabs® notification.";
+  const href = escapeHtml(unsubscribeUrl || UNSUBSCRIBE_MAILTO);
+  return `You're receiving this because you have a SkinLabs® account or contacted us directly.<br/>
+    Don't want marketing emails? <a href="${href}" style="color:${BRAND.muted};text-decoration:underline;">Unsubscribe</a>.
+    You'll still get essential emails about your account, payments and analyses.`;
 }
 
 // The hidden preheader span is the standard trick for controlling the
 // preview-text Gmail/Apple Mail show next to the subject line.
-export function renderEmailLayout({ preheader, bodyHtml }: EmailLayoutOptions): string {
+export function renderEmailLayout({ preheader, bodyHtml, unsubscribeUrl, internal }: EmailLayoutOptions): string {
   return `<!DOCTYPE html>
 <html lang="en">
   <head>
@@ -86,6 +106,9 @@ export function renderEmailLayout({ preheader, bodyHtml }: EmailLayoutOptions): 
         <td align="center" style="padding:32px 16px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:${BRAND.surface};border-radius:16px;border:1px solid ${BRAND.border};overflow:hidden;">
             <tr>
+              <td style="height:4px;line-height:4px;font-size:0;background-color:${BRAND.ink};background-image:${BRAND.gradient};">&nbsp;</td>
+            </tr>
+            <tr>
               <td style="padding:32px 32px 8px 32px;">
                 <a href="${BRAND.siteUrl}" target="_blank" rel="noopener noreferrer">
                   <img src="${BRAND.logoUrl}" alt="SkinLabs" width="140" style="display:block;height:auto;border:0;outline:none;text-decoration:none;" />
@@ -102,7 +125,7 @@ export function renderEmailLayout({ preheader, bodyHtml }: EmailLayoutOptions): 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
             <tr>
               <td align="center" style="padding:16px 8px;color:${BRAND.muted};font-size:12px;line-height:18px;">
-                You're receiving this because you have a SkinLabs® account or contacted us directly.
+                ${renderFooterNotice({ unsubscribeUrl, internal })}
               </td>
             </tr>
           </table>

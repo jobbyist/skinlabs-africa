@@ -9,6 +9,7 @@ import "./forms.ts";
 import "./admin.ts";
 import "./marketing.ts";
 import "./trialLifecycle.ts";
+import "./marketingAutomations.ts";
 
 export { getTemplate, allTemplates, missingRequiredVars } from "./registry.ts";
 export type { EmailTemplateDefinition, EmailCategory, TemplateVars } from "./registry.ts";

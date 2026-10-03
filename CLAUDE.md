@@ -182,19 +182,17 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
-## Growth engine rollout (2026-10-03) — standing notes
+## Roadmap batch (2026-10-03) — standing notes
 
-- PRs #174 (audit), #178 (double opt-in digest), #179 (SA retail prices) are merged. Deployed edge functions are
-  pinned to main commit `1b7ee11`: `email-processor` v41, `retailer-price-sync` v5 (`email-unsubscribe` carries
-  its source inline). Re-pin to a commit containing any later change to those files.
-- **Firecrawl limits (owner instruction)**: the price sync must never run the account down. It reads the real
-  balance (`/v2/team/credit-usage`), keeps a 150-credit reserve, caps at 30 credits/day, fails closed when the
-  balance is unknown (`_shared/pricing/budget.ts`, tested). Raise only after a plan upgrade.
-- **Takealot price checks are paused** (`DISABLED_RETAILERS`, no cron jobs). Four jobs remain: Clicks refresh +
-  discover, Dis-Chem refresh + discover. Detail: `docs/sa-retail-prices.md`.
-- Main had no `photo_journal_*` analytics event names (PhotoJournalTab failed typecheck); declared in the merge.
-- Still open: check the first Clicks run in `retailer_price_runs`; work Admin > SA Prices; backfill
-  `product_variants.size_ml`; GitHub Actions has no runner assigned (CI never runs).
+Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applied live**; edge functions are **not deployed** (deploy `email-processor` + `email-unsubscribe` with the whole `_shared/email/` tree). Details of the email audit: `docs/email-trigger-audit-2026-10-03.md`.
+
+- **Smart Routines run on the free Basic AI Skin Analysis** (supersedes the "Advanced submission required" rule in the v2.1 follow-up above): `has_smart_routine_access()` is true for a saved delivered Basic analysis OR a non-rejected Advanced submission (`20261003100000`). Advanced stays an optional upgrade that adds shelf products, the avoid list and an approved report's own steps. Page/dashboard/search/whitepaper copy updated; keep it honest about what only Advanced adds.
+- Mini SKYNN AI card (`briefings/SkynnMiniCta`, optional `headline`) now also on `/reviews`, `/compare` and Shelf Showdown articles. The "Free until 1 Nov" chip and bar "See details" open `PromoOfferDialog` (CTA → `/pricing`, explicit user request; the earlier "never make /pricing the primary action" rule is for feature gates).
+- **Email**: every recipient-facing email has a footer unsubscribe link (per-recipient token resolved by `email-processor` via `_shared/email/context.ts`; mailto fallback; none for ADMIN mail); the processor re-checks marketing consent for EVERY MARKETING job and sets `show_ads` (only Explorer/Glow Lite see the Faithful to Nature block, same as the site ad policy) and `has_analysis`. Buttons are the brand gradient over a monochrome `#18181b` fallback (`emailButton`, `variant="mono"` for solid). New MARKETING templates in `templates/marketingAutomations.ts`: `daily_briefing_digest`, `weekly_top_brands`, `welcome_series_1-4` (days 1/3/5/8, category MEMBERSHIP), `weekly_analysis_reminder` (ROUTINES), each with the mini SKYNN card + FtN block. SQL + crons in `20261003110000` (daily briefing 05:30 UTC, top brands Fri 07:00, welcome 06:00, reminders 07:00). Top brands = one rotating category per week, top 3 by score from the NON-sponsored static catalogue, from the `weekly_featured_brands` table filled by `scripts/generate-weekly-featured-brands.ts` (20 weeks from 2026-10-05; regenerate before it runs out; the send skips quietly with no row). The daily briefing and top-brands emails are opt-in MARKETING. **The welcome series and weekly reminder go to every member (owner decision, 2026-10-03)** except those who explicitly unsubscribed (`marketing_consent` false AND `marketing_consent_at` set; `BULK_LIFECYCLE_TEMPLATES` in `_shared/email/context.ts`, re-checked at send time). Only 1 of 14 members had opted in at audit time.
+- `/consult`: the "Help shape the directory" survey used to discard answers. It now inserts into `consult_survey_responses` (`20261003130000`); a trigger emails admin template `admin_consult_survey_response` to **consult@ only** (`ADMIN_TEMPLATE_RECIPIENT_OVERRIDE`, owner decision). Only the first page (6) of profiles is shown, no pagination.
+- Admin → Analytics: `EventsAnalyticsPanel` charts everything in `analytics_events` via the admin-gated `admin_events_overview(p_days)` (`20261003140000`; aggregates only; validated live in a rolled-back transaction).
+- Shelf Showdown: 32 generated comparisons in `data/comparisons-part5.ts` from `scripts/generate-comparisons.ts` (real scores/prices/ingredients/verdicts of non-sponsored reviews only; re-run, don't hand-edit). 53 static + DB-generated. `ComparedProduct.officialBrandUrl` is now optional (never guessed).
+- Connector gotcha: the "Resend for Skinlabs" MCP connector points at the CannaPlug Resend account; use the plain "Resend" connector for SkinLabs. Resend domain skinlabs.co.za showed `failed` on 2026-10-03.
 
 ## Major systems
 

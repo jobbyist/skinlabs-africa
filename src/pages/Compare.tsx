@@ -9,6 +9,7 @@ import AffiliateBanner from "@/components/AffiliateBanner";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
+import SkynnMiniCta from "@/components/briefings/SkynnMiniCta";
 import AdSlot from "@/components/AdSlot";
 
 const SHOWDOWN_PAGE_SIZE = 5;
@@ -130,6 +131,9 @@ const Compare = () => {
               )}
             </div>
             <PaginationControls page={currentPage} totalPages={totalPages} onPageChange={setPage} className="mt-8" />
+            <div className="mx-auto max-w-3xl">
+              <SkynnMiniCta source="shelf_showdown" headline="Not sure which side of the showdown you're on?" />
+            </div>
           </section>
 
           <div className="container mx-auto px-4">
