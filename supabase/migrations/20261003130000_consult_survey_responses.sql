@@ -32,7 +32,7 @@ CREATE POLICY "Admins can read consult survey responses"
 -- Anonymous visitors can't be identified, so cap the whole table instead:
 -- at most 30 submissions a minute keeps a script from flooding the inbox.
 CREATE OR REPLACE FUNCTION public.enforce_consult_survey_rate_limit()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
   IF (SELECT count(*) FROM public.consult_survey_responses WHERE created_at > now() - interval '1 minute') >= 30 THEN
     RAISE EXCEPTION 'Too many responses submitted recently. Please try again shortly.';
@@ -47,7 +47,7 @@ CREATE TRIGGER consult_survey_rate_limit BEFORE INSERT ON public.consult_survey_
 
 -- Admin-only email (no confirmation: anonymous survey, nothing to confirm to).
 CREATE OR REPLACE FUNCTION public.notify_consult_survey_response()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
   PERFORM public.enqueue_email(
     'FORM_SUBMITTED', 'form_submitted:consult_survey:' || NEW.id::text,
@@ -58,7 +58,7 @@ BEGIN
       'trust_score', NEW.trust_score, 'feedback_text', NEW.feedback_text,
       'signed_in', NEW.user_id IS NOT NULL
     ),
-    'trigger:notify_consult_survey_response', false, 50,
+    'trigger:notify_consult_survey_response', false, 50::smallint,
     'admin_form_notice:consult_survey:' || NEW.id::text
   );
   RETURN NEW;

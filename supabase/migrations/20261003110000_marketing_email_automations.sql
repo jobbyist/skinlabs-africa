@@ -23,7 +23,7 @@ CREATE OR REPLACE FUNCTION public.enqueue_daily_briefing_email()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_today date := (now() AT TIME ZONE 'Africa/Johannesburg')::date;
@@ -91,7 +91,7 @@ CREATE OR REPLACE FUNCTION public.enqueue_weekly_top_brands_email()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_week text := to_char(now() AT TIME ZONE 'Africa/Johannesburg', 'IYYY-"W"IW');
@@ -138,7 +138,7 @@ CREATE OR REPLACE FUNCTION public.enqueue_welcome_series_emails(p_today date DEF
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_today date := coalesce(p_today, (now() AT TIME ZONE 'Africa/Johannesburg')::date);
@@ -180,7 +180,7 @@ CREATE OR REPLACE FUNCTION public.enqueue_weekly_analysis_reminders()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
 DECLARE
   v_window integer;
