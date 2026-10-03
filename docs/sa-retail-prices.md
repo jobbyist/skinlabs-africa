@@ -99,3 +99,15 @@ live rows only.
 
 Each job posts with `wait` off (the function answers 202 and works in the background). Clicks has only been exercised
 by unit tests on real markup so far; confirm the first morning run in `retailer_price_runs`.
+
+
+## Update 2026-10-03: no-Firecrawl price paths
+
+- **Clicks refresh is a plain HTTP read** (`directFetch`): identified User-Agent (`SkinLabsPriceBot/1.0`), the same crawl delay and
+  04:00-08:45 UTC window, no credits. Clicks' plain response builds its Product JSON-LD in an inline script (not an ld+json block), so
+  `parseClicks` falls back to reading that Offer block (fixture `clicks-inline-script-niacinamide-30ml.html`). A bot challenge stops
+  the run (`retailer_challenge`, status `error`) and is never bypassed.
+- **Dis-Chem and Faithful to Nature** serve a Cloudflare challenge to plain requests; **Takealot**'s plain response is a client-rendered
+  shell without the buy-box. Those stay Firecrawl-only (Takealot paused) or have no live price.
+- **OpenHaus products** (59 of the 65 generated reviews): the price is first-party and fresh (`openhaus-price-sync`, daily), exposed per
+  review by `review_live_prices` and copied into `local_price_zar` daily by `sync_openhaus_review_prices()`.

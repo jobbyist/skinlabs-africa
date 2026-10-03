@@ -222,6 +222,17 @@ PR #185 and follow-ups. Detail lives in the code; these are the rules to keep.
   for another user's id when called as anon/authenticated (service role and internal callers unchanged). Probe:
   `supabase/tests/restricted_status_functions.sql`. `has_role` still takes any id (left alone: RLS hot path).
 - **Admin reads the dermatologist-messaging waitlist** via `admin_list_feature_waitlist()` (Admin > Leads > Messaging waitlist).
+- **Review prices without Firecrawl (2026-10-03)**: cards and comparisons now show a price only if it is LIVE
+  (`useLiveReviewPrices()`: view `review_live_prices` = the OpenHaus price that `openhaus-price-sync` reads straight from the
+  supplier page, plus view `sa_retail_prices`); price bands/sorting use live prices only and unknown prices sort last. A daily
+  cron (`sync-openhaus-review-prices`, 06:30 UTC) writes the live OpenHaus price into `ai_generated_product_reviews.local_price_zar`
+  (59/59 OpenHaus reviews covered; first run corrected one stale R477.99 -> R381.99). `retailer-price-sync` v6 refreshes
+  **Clicks listings with a plain, identified HTTP request** (`RetailerPolicy.directFetch`, parser fallback for Clicks' inline
+  script JSON-LD, zero credits, runs even when the Firecrawl budget is spent; a bot challenge stops the run, never bypassed).
+  **Checked 2026-10-03 from this sandbox: Dis-Chem and Faithful to Nature answer plain requests with a Cloudflare challenge (not
+  bypassed); Takealot returns a client-rendered shell with no price.** Discovery (finding Clicks listings) still uses Firecrawl
+  search; static-catalogue reviews have no live price until a listing is matched. Edge runtime of the direct fetch is not yet
+  observed live (no matched Clicks listing existed to refresh).
 - **Combination Checker covers every pair** (`get_ingredient_pair_note(a,b)`): 1) cited row in `ingredient_interactions`,
   2) category-pair rule in `ingredient_class_pair_rules` (labelled "class guidance", never "tested"), 3) "nothing on record".
   Live: 13,366 pairs = 18 cited, 2,940 class guidance, 10,408 nothing-on-record. A new ingredient is covered the moment it has a
