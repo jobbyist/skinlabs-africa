@@ -52,6 +52,7 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import MobileContentRail from "@/components/MobileContentRail";
 // Served from public/ (not a Vite-bundled src/assets import) — real light/
 // dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
 // than a CSS filter on one file, so the actual PNG that's "live" for each
@@ -420,6 +421,8 @@ const Header = () => {
           </div>
         </div>
       </header>
+
+      <MobileContentRail storyRail={storyRail} />
 
       {/* Mobile sheet — kept for small screens */}
       <Sheet open={open} onOpenChange={setOpen}>
