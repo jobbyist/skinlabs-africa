@@ -206,6 +206,14 @@ Branch `claude/ui-ux-launchpad-rail-feedback`. Builds on PRs #183/#184 (first la
 - **Applied live 2026-10-03** (after the follow-up below): `feedback_survey_responses` (+ rate-limit and email triggers; probed rolled-back as a member/anon: insert ok, duplicate 23505, user_id spoof 42501, bad surface/long comment rejected, members can't read rows back, exactly one email enqueued) and `email-processor` v42 (one-line entry pinned to a commit on this branch; **re-pin to a commit on main after merge**).
 - The homepage height wobbles ~70px while ad slots settle (pre-existing), which makes Playwright's "element is stable" check slow on phones: use `click({ force: true })` in e2e where it bites.
 
+## TikTok Pixel + Events API (2026-10-03)
+
+Details and human steps: `docs/tiktok-pixel.md`.
+
+- **Consent-gated, not in `index.html`**: `src/lib/tiktok/pixel.ts` injects TikTok's snippet only while `targetedAdvertising` cookie consent is on (banner, preference panel and profile sync all fire `COOKIE_CONSENT_CHANGED_EVENT`); withdrawing stops it. Never paste the snippet into `index.html` (a test fails).
+- `trackConversionEvent()` forwards only the events in `src/lib/tiktok/events.ts`; the same `event_id` goes to the browser pixel and the `tiktok-events` edge function (Events API v1.3), which whitelists events, requires `consent: true`, hashes email/account id from the verified JWT, strips URL queries.
+- **Not live until a human** sets `TIKTOK_EVENTS_ACCESS_TOKEN` and deploys `tiktok-events`. Cookie Policy copy now names the TikTok Pixel; Privacy Policy still needs a legal read.
+
 ## Admin: manual Analysis Pass issuing (2026-10-03)
 
 - **Admin → Analysis Passes** (`AnalysisPassesTab`): look a member up by email, issue 1–25 passes with NO payment, a required reason, a confirm step, and a per-attempt `p_request_id` so a double click/retry can't issue twice. Passes unlock the Advanced AI Dermatology Analysis and use the same ledger as a purchase (`ai_credit_transactions`, reason `admin_grant`; spent/refunded exactly like a bought pass).

@@ -1,6 +1,7 @@
 import AdBlockWall from "@/components/AdBlockWall";
 import ConversionDialogs from "@/components/ConversionDialogs";
 import IntentResolver from "@/components/IntentResolver";
+import TikTokPixel from "@/components/TikTokPixel";
 import { Toaster } from "@/components/ui/sonner";
 
 /**
@@ -14,6 +15,7 @@ import { Toaster } from "@/components/ui/sonner";
 const SsrConversionShell = () => (
   <>
     <IntentResolver />
+    <TikTokPixel />
     <ConversionDialogs fullPageNavigation />
     <Toaster />
     <AdBlockWall />

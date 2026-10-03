@@ -26,6 +26,7 @@ import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
 import MobileFeedbackSurvey from "./components/MobileFeedbackSurvey";
 import CookieConsent from "./components/CookieConsent";
+import TikTokPixel from "./components/TikTokPixel";
 import AdBlockWall from "./components/AdBlockWall";
 import SitewideSEO from "./components/SitewideSEO";
 import { CartProvider } from "./contexts/CartContext";
@@ -124,6 +125,7 @@ const AppContent = () => {
       <ConversionDialogs />
       <MobileFeedbackSurvey />
       <CookieConsent />
+      <TikTokPixel />
       <AdBlockWall />
       <AppErrorBoundary resetKey={pathname}>
         <Suspense fallback={<RouteFallback />}>

@@ -15,6 +15,11 @@ verify_jwt = false
 [functions.skin-weather]
 verify_jwt = false
 
+# Server side of the TikTok Pixel. Public (anonymous visitors convert too); it
+# refuses anything without consent, whitelists events and verifies any JWT itself.
+[functions.tiktok-events]
+verify_jwt = false
+
 [functions.payfast-payment]
 verify_jwt = false
 

@@ -37,8 +37,8 @@ const CookiePolicy = () => {
       icon: <Settings className="h-6 w-6 text-purple-500" />,
       required: false,
       description:
-        "Used only if activated to deliver relevant advertising on our Platform or third-party sites, measure ad effectiveness and limit ad frequency. Currently limited; any activation is reflected in the preference centre.",
-      examples: ["Ad-measurement cookies", "Frequency capping"],
+        "Used only if you switch it on, to deliver relevant advertising on our Platform or third-party sites, measure ad effectiveness and limit ad frequency. When on, the TikTok Pixel loads and shares page views and key actions (such as signing up or starting a trial) with TikTok, together with a hashed email address if you are signed in. Photos and skin-analysis answers are never shared. Switch it off in the preference centre and the pixel stops immediately.",
+      examples: ["TikTok Pixel (_ttp)", "Ad-measurement cookies", "Frequency capping"],
     },
   ];
 
