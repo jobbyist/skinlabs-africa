@@ -53,6 +53,8 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 | `signup_started` | `AIFormulator.tsx`: "Save your results" sign-up opened from results | `source: "ai_formulator_results"` |
 | `signup_completed` | `AuthDialog.tsx`: `signUp()` returned no error | none |
 | `signup_completed` | `AIFormulator.tsx`: account created from the results gate | `source: "ai_formulator_results"` |
+| `signup_completed` | `IntentResolver.tsx`: a brand-new Google account (< 10 min old) returns from OAuth, once per account | `method: "google"` |
+| `campaign_landing` | `AttributionCapture.tsx`: a visit with `utm_*` / `ttclid` in the URL, once per campaign per session | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `attr_sid` |
 | `signin_completed` | `AuthDialog.tsx`: password sign-in succeeded | none |
 | `password_reset_started` | `AuthDialog.tsx`: "Forgot password" submitted | none |
 | `password_reset_completed` | `ResetPassword.tsx`: new password saved | none |
@@ -61,6 +63,10 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 `signup_completed` fires when `signUp()` returns without an error, which can happen
 before the user confirms their email. It counts sign-up **submissions**. Use the
 `signups` column of `conversion_funnel_daily` for real accounts.
+
+**Campaign attribution (2026-10-04).** When a session landed with UTMs/`ttclid`, every event's payload (Vercel Analytics and
+`analytics_events`) also carries `utm_*` and a random `attr_sid`. Never sent to TikTok. Admin → Ads → Campaigns counts distinct
+sessions per stage via `admin_campaign_attribution()`.
 
 ### SKYNN AI — Basic AI Skin Analysis (legacy event names): `AIFormulator.tsx` unless noted
 

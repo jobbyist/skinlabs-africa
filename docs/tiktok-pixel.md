@@ -49,10 +49,25 @@ outside the whitelist.
 ## Admin → Ads tab
 
 `TikTokAdsPanel` reads `admin_tiktok_events_overview()` (admin-gated) over `public.tiktok_event_log`, which the `tiktok-events`
-function fills (event, page, status; no personal data; migration `20261004120000_tiktok_event_log.sql`, **not applied live**
-until a human/session applies it). It shows homepage vs SKYNN AI events, per-day volume, delivery status and the latest events.
+function fills (event, page, status; no personal data; migration `20261004120000_tiktok_event_log.sql`, applied live 2026-10-03). It shows homepage vs SKYNN AI events, per-day volume, delivery status and the latest events.
 It is OUR delivery log, not TikTok's attribution or spend. Events that arrive before the access token is set are logged as
 "Awaiting token" and the tab says so.
+
+### Campaigns report (UTM attribution, 2026-10-04)
+
+The same tab opens with a **Campaigns** table (`CampaignAttribution`, `admin_campaign_attribution(p_days)`, migration
+`20261004130000_campaign_attribution.sql`). It is the FIRST-PARTY count: it reads `analytics_events` (not consent-gated), so it
+shows every campaign visitor, while TikTok only sees visitors who accepted advertising cookies. Expect TikTok's numbers to be lower.
+
+- Tag ad links: `https://skinlabs.co.za/skynn-ai?utm_source=tiktok&utm_medium=paid_social&utm_campaign=<campaign>&utm_content=<ad>`.
+  Lowercase letters, digits and `_ - . ~` only. A bare `ttclid` (no UTMs) is credited as `tiktok / paid_social / ttclid_only`.
+- `src/lib/attribution.ts` keeps the labels in `sessionStorage` with a random per-session id (`attr_sid`), logs one
+  `campaign_landing` per campaign per session, and merges the labels into every `trackConversionEvent` payload that goes to
+  Vercel Analytics and `analytics_events`. **They are never forwarded to TikTok** (the Events API function strips queries by design).
+- Stages (distinct sessions): landings → analysis started → analysis completed → sign-ups (`signup_completed`) → trials.
+- `CompleteRegistration` also fires for Google sign-ups (`IntentResolver`, once per new account via `oauthRegistration.ts`);
+  email sign-ups fire it at form submit, as before.
+- Probe: `supabase/tests/campaign_attribution.sql` (rolled back).
 
 ## Where the access token goes
 
