@@ -126,6 +126,10 @@ export type ConversionEvent =
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"
+  // Contextual mobile feedback survey lifecycle.
+  | "feedback_survey_shown"
+  | "feedback_survey_dismissed"
+  | "feedback_survey_submitted"
   // Free-first SKYNN AI formulator + rolling free-analysis allowance (2026-09-24).
   | "formulator_started"
   | "formulator_completed_anonymous"
