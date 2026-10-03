@@ -1,23 +1,14 @@
-import { Suspense } from "react";
-import { lazyWithRetry } from "@/lib/chunkRecovery";
-import { Loader2 } from "lucide-react";
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import NewsroomFeed from "@/components/NewsroomFeed";
 import SeasonalsTeaser from "@/components/SeasonalsTeaser";
 import Editorials from "@/components/Editorials";
 import SpotlightTeaser from "@/components/SpotlightTeaser";
-// Lazy: this below-the-fold widget alone pulls recharts (ConfidencePanel) and
-// jspdf (generateSkincarePdf) into whatever bundles it — since Index.tsx is
-// the one route App.tsx doesn't React.lazy(), an eager import here used to
-// force ~360KB gzip of chart/PDF code to be modulepreloaded on every route
-// sitewide, including static legal pages. The real /skynn-ai route already
-// dynamically imports this same module, so the fetched chunk is shared.
-const AIFormulator = lazyWithRetry(() => import("@/components/AIFormulator"));
 import BrandAmbassadorTeaser from "@/components/BrandAmbassadorTeaser";
 import Newsletter from "@/components/Newsletter";
 import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
+import SkyNNLaunchpadCard from "@/components/SkyNNLaunchpadCard";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
@@ -80,18 +71,10 @@ const Index = () => {
 
           <SpotlightTeaser />
 
-          <Suspense
-            fallback={
-              <section className="py-20 bg-background">
-                <div className="container mx-auto flex justify-center px-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
-                  <span className="sr-only">Loading SKYNN AI skin analysis…</span>
-                </div>
-              </section>
-            }
-          >
-            <AIFormulator />
-          </Suspense>
+          {/* The full SKYNN AI questionnaire lives on /skynn-ai; the homepage only
+              exposes a lightweight launchpad so the heavy analysis dependencies
+              are not requested on initial homepage render. */}
+          <SkyNNLaunchpadCard />
 
           {/* Show 3 published podcast episodes */}
           <PodcastSection limit={3} />
