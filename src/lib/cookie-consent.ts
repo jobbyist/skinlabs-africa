@@ -9,6 +9,17 @@ export const CONSENT_DURATION_MS = 90 * 24 * 60 * 60 * 1000;
 
 export type ConsentDecision = "accepted" | "rejected";
 
+/** Fired on window whenever the stored consent record changes (accept, reject, reset, profile sync). */
+export const COOKIE_CONSENT_CHANGED_EVENT = "skinlabs:cookie-consent-changed";
+
+function notifyConsentChanged(): void {
+  try {
+    if (typeof window !== "undefined") window.dispatchEvent(new Event(COOKIE_CONSENT_CHANGED_EVENT));
+  } catch {
+    /* ignore */
+  }
+}
+
 // A type alias (not an interface) so it stays assignable to Supabase's `Json`
 // column type when written to profiles.cookie_preferences.
 export type CookiePreferences = {
@@ -157,6 +168,7 @@ export const isCookieConsentFresh = (record: CookieConsentRecord | null = readCo
 
 export const writeCookieConsentRecord = (record: CookieConsentRecord): void => {
   safeSet(COOKIE_CONSENT_KEY, JSON.stringify(record));
+  notifyConsentChanged();
 };
 
 export const writeCookieConsent = (preferences: CookiePreferences): CookieConsentRecord => {
@@ -174,6 +186,7 @@ export const getStoredCookiePreferences = (): CookiePreferences | null => {
 export const clearCookieConsent = (): void => {
   safeRemove(COOKIE_CONSENT_KEY);
   safeRemove(LEGACY_COOKIE_CONSENT_KEY);
+  notifyConsentChanged();
 };
 
 export function recordFromProfile(profile: {

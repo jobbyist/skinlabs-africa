@@ -1,5 +1,6 @@
 import { track } from "@vercel/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { forwardConversionToTikTok } from "@/lib/tiktok/pixel";
 
 /**
  * Central conversion-event vocabulary for SkinLabs' free -> paid funnel.
@@ -152,6 +153,9 @@ export const trackConversionEvent = (event: ConversionEvent, payload: Conversion
   } catch {
     // Never let analytics failures affect the feature they're instrumenting.
   }
+  // TikTok Pixel + Events API: consent-gated and limited to a few standard events
+  // (src/lib/tiktok/events.ts); a no-op for everyone who hasn't accepted advertising cookies.
+  forwardConversionToTikTok(event, payload);
   // Best-effort server-side mirror (see supabase/migrations/20260921120000_
   // analytics_events_core.sql) so the admin dashboard's Analytics tab has a
   // queryable/segmentable record independent of Vercel's own API — never

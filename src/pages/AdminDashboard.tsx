@@ -19,6 +19,7 @@ import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
+import TikTokAdsPanel from "@/components/admin/TikTokAdsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
@@ -373,6 +374,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="sa-prices">SA Prices</TabsTrigger>
                 <TabsTrigger value="leads">Leads</TabsTrigger>
                 <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
+                <TabsTrigger value="ads">Ads</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -619,6 +621,12 @@ const AdminDashboard = () => {
                   supabase/migrations/20261004110000_admin_issue_analysis_passes.sql. */}
               <TabsContent value="analysis-passes">
                 <AnalysisPassesTab />
+              </TabsContent>
+
+              {/* Ads — TikTok pixel + Events API delivery log. See TikTokAdsPanel, docs/tiktok-pixel.md
+                  and supabase/migrations/20261004120000_tiktok_event_log.sql. */}
+              <TabsContent value="ads">
+                <TikTokAdsPanel />
               </TabsContent>
 
               <TabsContent value="sa-prices">
