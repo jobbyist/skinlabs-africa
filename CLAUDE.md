@@ -182,6 +182,35 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
+## Audit fixes (2026-10-03) — standing rules
+
+PR #185 and follow-ups. Detail lives in the code; these are the rules to keep.
+
+- **Return URLs use `getSiteOrigin()`** (`src/lib/siteOrigin.ts`): `*.vercel.app` maps to `https://skinlabs.co.za`.
+  Never use `window.location.origin` for auth/payment redirects. Supabase Auth Site URL / allow-list must also be
+  `https://skinlabs.co.za` (human step, not visible from here).
+- **/welcome resume**: step 1 hands off to SKYNN AI; `src/lib/welcomeResume.ts` marks setup in progress, the saved
+  result shows "Continue setup", `/welcome` resumes at step 2. `IntentResolver` sets the marker for a new account that
+  signs up on `/skynn-ai*` (it is not redirected away).
+- **Routine step**: seeded steps are `source='default'` and do not count as a saved routine. `RoutineTrackerTab`
+  shows "Save my routine" (default -> manual); the checklist click scrolls to `#routine-tracker`.
+- **Checklist**: the "Read one full review or episode" step only appears for trialists/paid members (free accounts
+  cannot open one, so it could never be completed).
+- **PhotoJournal**: its migrations had never been applied live (applied 2026-10-03). Photos ARE stored (private bucket
+  `skin-analysis-photos`, `<uid>/journal/…`); this conflicts with the older "photos never leave the device" wording in
+  the SKYNN v2.1 notes above, but the Privacy Policy already describes PhotoJournal. Treat PhotoJournal as the one
+  deliberate exception; photos are still never analysed and MST is never inferred.
+- **Founding Member is withdrawn**: no UI, no client checkout, `resolveCharge` refuses it, live offer `is_active=false`.
+  Existing holders (`profiles.founding_member`) keep their benefits and ad policy.
+- **Admin gate cookie** is `<expiry>.<hmac>` at `Path=/` (`api/_lib/adminGateToken.ts`, shared by `admin-auth` and
+  `admin-analytics`). It used to be `Path=/admin`, so neither endpoint ever received it: the gate re-locked on reload and
+  Analytics always 401'd. Admin has a **Leads** tab for the public-form tables that had no screen.
+- `src/integrations/supabase/types.ts` keeps being reverted by Lovable commits; restore the last good generated copy
+  (`git show <good-sha>:src/integrations/supabase/types.ts`) when `tsc` suddenly fails on missing columns.
+- RLS policies now use `(select auth.uid())` everywhere in `public`; `rls_auto_enable()` is not callable by API roles.
+- CI on `main` was red since 28 Sep; lint is now 0 errors. Still needs: the `SUPABASE_DB_URL` secret for `sql-probes`.
+- `PromoTrialModal` primary action is `useConversionAction` (source `promo_modal`); `/pricing` is secondary.
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own

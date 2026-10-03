@@ -216,7 +216,8 @@ export const persistStarterResultToAccount = async (params: {
     if (photoStoragePath) {
       const { data: currentUser } = await supabase.auth.getUser();
       if (currentUser.user?.id) {
-        const { error: journalError } = await (supabase as any).from("skin_photo_journal_entries").upsert({
+        const { error: journalError } = // eslint-disable-next-line @typescript-eslint/no-explicit-any -- types predate the PhotoJournal tables
+        await (supabase as any).from("skin_photo_journal_entries").upsert({
           user_id: currentUser.user.id,
           storage_path: photoStoragePath,
           entry_type: "baseline",

@@ -128,7 +128,11 @@ export const gettingStartedChecklist = (f: JourneyFacts): ChecklistItem[] => {
     { id: "checkins", label: "Check in on your routine twice", done: f.routineCheckins >= 2 },
     { id: "content", label: "Read one full review or episode", done: f.contentReads >= 1 },
     { id: "mfa", label: "Secure your account with two-step verification", done: f.mfaEnabled },
-  ];
+  ].filter(
+    // Full reviews and episodes are a membership perk: a free account can't open one, so the step
+    // would be impossible and the checklist could never finish (or be hidden).
+    (item) => item.id !== "content" || item.done || f.isTrialing || f.isPaid,
+  ) as ChecklistItem[];
   if (resolveJourneyStage(f) === "activated") {
     items.push({ id: "keep_membership", label: "Keep my membership", done: false });
   }

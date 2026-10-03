@@ -174,9 +174,9 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `checkout_completed` | `UserDashboard.tsx`: `?payment=success` poll confirms the grant | `purchaseType` |
 | `subscription_started` | `UserDashboard.tsx`: poll sees a paid status | `plan`, `interval` (from the query string) |
 | `credit_pack_purchased` | `UserDashboard.tsx` poll, `AnalysisPassPurchaseModal.tsx` and `Pricing.tsx` inline PayPal approval | `packId` |
-| `founding_member_purchased` | `UserDashboard.tsx` poll, `Pricing.tsx` inline PayPal approval | `offerId` |
+| `founding_member_purchased` | Retired 2026-10-03 (the Founding Member offer was withdrawn); never fires | `offerId` |
 | `upgrade_viewed` | `FeatureGate.tsx` (overlay), `UpgradePrompt.tsx` (inline) | `feature`, `accountState`, `style` |
-| `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership) |
+| `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership); includes `promo_modal` (`PromoTrialModal`) |
 
 ### Engagement and other site-wide events
 

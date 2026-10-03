@@ -46,7 +46,7 @@
  * labels every chart with which of these two independent sources it came
  * from, so nothing on the page is ambiguous about its provenance.
  */
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { readGateCookie, verifyGateToken } from "./_lib/adminGateToken";
 import { createClient } from "@supabase/supabase-js";
 
 type VercelReq = {
@@ -60,43 +60,14 @@ type VercelRes = {
   json: (body: unknown) => void;
 };
 
-const COOKIE_NAME = "skinlabs_admin_gate";
 const DEFAULT_PROJECT_ID = "prj_QiDafIkNxgVHBnDuepg4EvxNsH8J";
 const DEFAULT_TEAM_ID = "team_SsKFiB8H2aVoVKQAchiFleRR";
 const API_BASE = "https://api.vercel.com/v1/query/web-analytics";
 
-function expectedToken(secret: string): string {
-  return createHmac("sha256", secret).update("skinlabs-admin-gate-v1").digest("hex");
-}
-
-function safeEqual(a: string, b: string): boolean {
-  try {
-    const ba = Buffer.from(a);
-    const bb = Buffer.from(b);
-    if (ba.length !== bb.length) return false;
-    return timingSafeEqual(ba, bb);
-  } catch {
-    return false;
-  }
-}
-
-function readCookie(req: VercelReq, name: string): string | null {
-  if (req.cookies && typeof req.cookies[name] === "string") return req.cookies[name];
-  const raw = req.headers.cookie;
-  if (!raw || Array.isArray(raw)) return null;
-  for (const part of raw.split(";").map((p) => p.trim())) {
-    const i = part.indexOf("=");
-    if (i === -1) continue;
-    if (part.slice(0, i) === name) return decodeURIComponent(part.slice(i + 1));
-  }
-  return null;
-}
-
 function isGateValid(req: VercelReq): boolean {
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminPassword) return false;
-  const cookie = readCookie(req, COOKIE_NAME);
-  return Boolean(cookie && safeEqual(cookie, expectedToken(adminPassword)));
+  return verifyGateToken(adminPassword, readGateCookie(req));
 }
 
 interface CountResponse {

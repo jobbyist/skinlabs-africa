@@ -79,8 +79,12 @@ describe("nextBestAction", () => {
 });
 
 describe("gettingStartedChecklist", () => {
+  test("a free account isn't asked to read a members-only review", () => {
+    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1 }));
+    expect(items.map((i) => i.id)).toEqual(["analysis", "routine", "weather", "checkins", "mfa"]);
+  });
   test("six steps, completion from data", () => {
-    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1, weatherCitySet: true }));
+    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1, weatherCitySet: true, isTrialing: true }));
     expect(items.map((i) => i.id)).toEqual(["analysis", "routine", "weather", "checkins", "content", "mfa"]);
     expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["analysis", "weather"]);
   });

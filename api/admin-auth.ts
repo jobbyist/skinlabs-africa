@@ -33,7 +33,14 @@
  * GET                               -> { ok: true } if the gate cookie is valid
  * DELETE                            -> clears the gate cookie (logout)
  */
-import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  clearGateCookieHeaders,
+  gateCookieHeader,
+  mintGateToken,
+  readGateCookie,
+  safeEqual,
+  verifyGateToken,
+} from "./_lib/adminGateToken";
 
 type VercelReq = {
   method?: string;
@@ -49,8 +56,6 @@ type VercelRes = {
 };
 
 const ADMIN_EMAIL = "admin@skinlabs.co.za";
-const COOKIE_NAME = "skinlabs_admin_gate";
-const COOKIE_MAX_AGE = 60 * 60 * 12; // 12 hours -- short-lived by design, re-checked server-side on every load.
 // Deliberately no hardcoded fallback here (unlike api/product-review-sync.ts's non-security-critical
 // use of the same env var): silently defaulting a security-sensitive admin-session bridge to a
 // baked-in project URL risks talking to the wrong project on a misconfigured deployment. If this is
@@ -58,46 +63,7 @@ const COOKIE_MAX_AGE = 60 * 60 * 12; // 12 hours -- short-lived by design, re-ch
 // key) rather than the whole login failing, since GET/DELETE never need it at all.
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 
-function expectedToken(secret: string): string {
-  return createHmac("sha256", secret).update("skinlabs-admin-gate-v1").digest("hex");
-}
-
-function safeEqual(a: string, b: string): boolean {
-  try {
-    const ba = Buffer.from(a);
-    const bb = Buffer.from(b);
-    if (ba.length !== bb.length) return false;
-    return timingSafeEqual(ba, bb);
-  } catch {
-    return false;
-  }
-}
-
-function readCookie(req: VercelReq, name: string): string | null {
-  if (req.cookies && typeof req.cookies[name] === "string") return req.cookies[name];
-  const raw = req.headers.cookie;
-  if (!raw || Array.isArray(raw)) return null;
-  for (const part of raw.split(";").map((p) => p.trim())) {
-    const i = part.indexOf("=");
-    if (i === -1) continue;
-    if (part.slice(0, i) === name) return decodeURIComponent(part.slice(i + 1));
-  }
-  return null;
-}
-
-function setGateCookie(res: VercelRes, token: string) {
-  const secure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-  const flags = [`${COOKIE_NAME}=${encodeURIComponent(token)}`, "Path=/admin", "HttpOnly", "SameSite=Lax", `Max-Age=${COOKIE_MAX_AGE}`];
-  if (secure) flags.push("Secure");
-  res.setHeader("Set-Cookie", flags.join("; "));
-}
-
-function clearGateCookie(res: VercelRes) {
-  const secure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
-  const flags = [`${COOKIE_NAME}=`, "Path=/admin", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
-  if (secure) flags.push("Secure");
-  res.setHeader("Set-Cookie", flags.join("; "));
-}
+const isSecure = () => process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
 function parseBody(req: VercelReq): { password?: string } {
   if (!req.body) return {};
@@ -139,15 +105,13 @@ export default async function handler(req: VercelReq, res: VercelRes) {
       res.status(503).json({ ok: false, error: "Admin login is not configured." });
       return;
     }
-    const cookie = readCookie(req, COOKIE_NAME);
-    res.status(cookie && safeEqual(cookie, expectedToken(adminPassword)) ? 200 : 401).json({
-      ok: Boolean(cookie && safeEqual(cookie, expectedToken(adminPassword))),
-    });
+    const valid = verifyGateToken(adminPassword, readGateCookie(req));
+    res.status(valid ? 200 : 401).json({ ok: valid });
     return;
   }
 
   if (req.method === "DELETE") {
-    clearGateCookie(res);
+    res.setHeader("Set-Cookie", clearGateCookieHeaders(isSecure()));
     res.status(200).json({ ok: true });
     return;
   }
@@ -173,7 +137,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     return;
   }
 
-  setGateCookie(res, expectedToken(adminPassword));
+  res.setHeader("Set-Cookie", gateCookieHeader(mintGateToken(adminPassword), isSecure()));
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const tokenHash =

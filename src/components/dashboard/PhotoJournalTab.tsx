@@ -22,6 +22,8 @@ type JournalEntry = {
   signedUrl?: string;
 };
 
+// The generated Supabase types predate the PhotoJournal tables; loosen only these calls.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const asDb = () => supabase as any;
 
 const formatDate = (value: string) => new Intl.DateTimeFormat("en-ZA", {
