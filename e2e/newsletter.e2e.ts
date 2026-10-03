@@ -21,6 +21,8 @@ test("the emailed link only confirms after the button is pressed", async ({ page
   await page.waitForTimeout(500);
   expect(calls).toHaveLength(0);
 
+  // The token is taken out of the address bar but still used for the confirmation.
+  await expect.poll(() => new URL(page.url()).search).toBe("");
   await page.getByRole("button", { name: "Confirm my subscription" }).click();
   await expect(page.getByRole("heading", { name: "You're subscribed" })).toBeVisible();
   expect(calls).toHaveLength(1);

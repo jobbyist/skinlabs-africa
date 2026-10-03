@@ -184,18 +184,23 @@ BEGIN
   END IF;
   -- 'confirmed' (or a recently re-sent 'pending'): nothing to do, say nothing.
 
-  IF v_send AND (SELECT count(*) FROM public.newsletter_subscribers
-                  WHERE digest_confirmation_sent_at > now() - interval '1 hour') < 300 THEN
-    UPDATE public.newsletter_subscribers SET digest_confirmation_sent_at = now() WHERE id = v_row.id;
-    PERFORM public.enqueue_email(
-      'NEWSLETTER_DIGEST_CONFIRM', 'newsletter_digest_confirm:' || v_row.id::text || ':' || v_token::text,
-      'newsletter_digest_confirm', 'FORMS', NULL, v_row.email,
-      jsonb_build_object(
-        'subscriber_id', v_row.id,
-        'confirm_url', 'https://skinlabs.co.za/newsletter/confirm?token=' || v_token::text
-      ),
-      'rpc:subscribe_newsletter'
-    );
+  IF v_send THEN
+    -- Serialise only this short check-and-stamp so concurrent signups can't all read
+    -- "299 sent" and each pass the global cap (the lock is released at commit).
+    PERFORM pg_advisory_xact_lock(hashtext('newsletter_digest_confirm_cap'));
+    IF (SELECT count(*) FROM public.newsletter_subscribers
+         WHERE digest_confirmation_sent_at > now() - interval '1 hour') < 300 THEN
+      UPDATE public.newsletter_subscribers SET digest_confirmation_sent_at = now() WHERE id = v_row.id;
+      PERFORM public.enqueue_email(
+        'NEWSLETTER_DIGEST_CONFIRM', 'newsletter_digest_confirm:' || v_row.id::text || ':' || v_token::text,
+        'newsletter_digest_confirm', 'FORMS', NULL, v_row.email,
+        jsonb_build_object(
+          'subscriber_id', v_row.id,
+          'confirm_url', 'https://skinlabs.co.za/newsletter/confirm?token=' || v_token::text
+        ),
+        'rpc:subscribe_newsletter'
+      );
+    END IF;
   END IF;
 
   RETURN true;

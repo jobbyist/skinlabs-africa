@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import Header from "@/components/Header";
@@ -14,7 +15,13 @@ import { confirmDigest, type ConfirmResult } from "@/lib/newsletter";
  */
 const NewsletterConfirm = () => {
   const [params] = useSearchParams();
-  const token = params.get("token") ?? "";
+  // Read the token once, then take it out of the address bar (history, copied URLs)
+  // and send no Referer from this page. The token only ever confirms the subscription
+  // it was issued for, but there's no reason to leave it lying around.
+  const [token] = useState(() => params.get("token") ?? "");
+  useEffect(() => {
+    if (window.location.search) window.history.replaceState(window.history.state, "", window.location.pathname);
+  }, []);
   const [state, setState] = useState<"idle" | "working" | ConfirmResult>("idle");
 
   const confirm = async () => {
@@ -26,6 +33,9 @@ const NewsletterConfirm = () => {
 
   return (
     <>
+      <Helmet>
+        <meta name="referrer" content="no-referrer" />
+      </Helmet>
       <SEO title="Confirm your subscription" description="Confirm your SkinLabs weekly digest subscription." canonical="/newsletter/confirm" noindex />
       <div className="min-h-screen bg-background">
         <Header />
