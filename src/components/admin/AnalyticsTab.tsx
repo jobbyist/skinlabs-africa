@@ -1,3 +1,4 @@
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ResponsiveContainer,
@@ -51,7 +52,11 @@ const AnalyticsTab = () => {
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    fetch(`/api/admin-analytics?days=${range}`)
+    supabaseClient.auth
+      .getSession()
+      .then(({ data }) =>
+        fetch(`/api/admin-analytics?days=${range}`, { headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` } }),
+      )
       .then(async (res) => ({ status: res.status, body: (await res.json().catch(() => null)) as AnalyticsPayload | { ok: false; error: string; message?: string } | null }))
       .then(({ status, body }) => {
         if (cancelled) return;

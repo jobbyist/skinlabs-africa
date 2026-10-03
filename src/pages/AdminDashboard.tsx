@@ -5,8 +5,6 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,8 +12,7 @@ import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PAID_SUBSCRIPTION_STATUSES } from "@/lib/entitlements";
-import { useAdminGate } from "@/hooks/use-admin-gate";
-import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
+import AuthDialog from "@/components/AuthDialog";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
@@ -117,11 +114,10 @@ type IntelInteraction = {
 };
 
 const AdminDashboard = () => {
-  const { user, loading: authLoading, signIn } = useAuth();
-  const gate = useAdminGate();
-  const [bridgePassword, setBridgePassword] = useState("");
-  const [bridgeLoading, setBridgeLoading] = useState(false);
-  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const { user, loading: authLoading, signOut } = useAuth();
+  // Admin sign-in is a second instance of the regular Supabase auth UI. Access is decided only
+  // by the admin role (has_role) on whichever account signs in, not by a fixed email/password.
+  const [authOpen, setAuthOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("submissions");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -147,10 +143,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user) checkAdmin();
-    // Pre-existing gap, surfaced while adding the ADMIN_PASSWORD gate above this: for a
-    // signed-out visitor, checkAdmin() (which resolves both `loading` and `isAdmin`) never
-    // ran at all, leaving this page spinning on "Checking access" forever instead of
-    // reaching the "Access Denied"/sign-in state below.
+    // A signed-out visitor never runs checkAdmin(), so resolve both flags here or the page
+    // would spin on "Checking access" instead of reaching the sign-in state below.
     else if (!authLoading) {
       setIsAdmin(false);
       setLoading(false);
@@ -243,15 +237,6 @@ const AdminDashboard = () => {
     delivered: submissions.filter((s) => s.status === "delivered").length,
   };
 
-  // The ADMIN_PASSWORD gate (api/admin-auth.ts) comes first — nothing about the
-  // dashboard, its data, or even the "checking access" spinner below is reachable
-  // until this server-verified check passes. See src/hooks/use-admin-gate.ts.
-  if (gate.status !== "unlocked") {
-    return (
-      <AdminLoginScreen status={gate.status} error={gate.error} submitting={gate.submitting} onSubmit={gate.submit} />
-    );
-  }
-
   if (authLoading || loading || isAdmin === null) {
     return (
       <div className="min-h-screen bg-background">
@@ -267,53 +252,39 @@ const AdminDashboard = () => {
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Admin Sign In | SkinLabs®</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Header />
         <main className="pt-20 flex items-center justify-center min-h-[60vh]">
-          <div className="w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <div className="w-full max-w-sm px-4 text-center">
+            <ShieldCheck className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">{user ? "Access Denied" : "Admin sign in"}</h1>
             <p className="text-muted-foreground mb-6">
               {user
-                ? "This SkinLabs® account doesn't hold the admin role."
-                : "The admin password was correct, but no admin session could be started automatically."}
+                ? "This SkinLabs® account doesn't hold the admin role. Sign out and use an admin account."
+                : "Sign in with your SkinLabs® admin account to continue."}
             </p>
-            {!user && (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setBridgeError(null);
-                  setBridgeLoading(true);
-                  const { error } = await signIn("admin@skinlabs.co.za", bridgePassword);
-                  setBridgeLoading(false);
-                  if (error) setBridgeError("Invalid SkinLabs® admin credentials.");
-                }}
-                className="space-y-3 text-left"
-              >
-                <div className="space-y-1.5">
-                  <Label htmlFor="bridge-password" className="text-xs">
-                    SkinLabs® admin account password
-                  </Label>
-                  <Input
-                    id="bridge-password"
-                    type="password"
-                    value={bridgePassword}
-                    onChange={(e) => setBridgePassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-                {bridgeError && <p role="alert" className="text-xs font-medium text-destructive">{bridgeError}</p>}
-                <Button type="submit" className="w-full" disabled={bridgeLoading || !bridgePassword}>
-                  {bridgeLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign in
-                </Button>
-              </form>
+            {user ? (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => void signOut()}>
+                <LogOut className="h-3.5 w-3.5" /> Sign out
+              </Button>
+            ) : (
+              <Button onClick={() => setAuthOpen(true)}>Sign in</Button>
             )}
-            <Button variant="ghost" size="sm" className="mt-4 gap-1.5" onClick={() => void gate.logout()}>
-              <LogOut className="h-3.5 w-3.5" /> Log out
-            </Button>
           </div>
         </main>
         <Footer />
+        {!user && (
+          <AuthDialog
+            open={authOpen}
+            onOpenChange={setAuthOpen}
+            mode="signin"
+            onModeChange={() => {}}
+            returnTo="/admin"
+          />
+        )}
       </div>
     );
   }
@@ -334,7 +305,7 @@ const AdminDashboard = () => {
                 <h1 className="text-3xl font-heading font-bold text-foreground mb-2">Admin Dashboard</h1>
                 <p className="text-muted-foreground mb-8">Manage submissions, waitlist, subscribers & pre-orders</p>
               </div>
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => void gate.logout()}>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => void signOut()}>
                 <LogOut className="h-3.5 w-3.5" /> Log out
               </Button>
             </div>

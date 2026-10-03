@@ -117,12 +117,9 @@ const { data, error } = await supabase.auth.signInWithOAuth({
 
 ### Admin Access
 
-Admin gate uses **dual authentication**:
-
-1. HMAC cookie (`ADMIN_PASSWORD` verified, HttpOnly, 12h TTL)
-2. Supabase Auth user with `admin` role (`user_roles` table)
-
-**Both required** for admin access.
+Admin access = a normal Supabase Auth session (the regular sign-in UI, embedded on `/admin`)
+for a user holding the `admin` role (`user_roles` / `has_role()`). `api/admin-analytics.ts`
+verifies the bearer token and the role server-side.
 
 ## Authorization (RLS)
 
