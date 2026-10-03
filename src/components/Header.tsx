@@ -281,10 +281,16 @@ const Header = () => {
       {/* Mobile-only Instagram-style story rail, stacked directly above the nav
           header. WebStoriesBar is md:hidden itself; this flow spacer matches its
           h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
-      {showStories && (
+      {storyRail && (
         <>
-          <WebStoriesBar top="top-0" />
-          <div className="h-24 md:hidden" aria-hidden="true" />
+          {showStories && <WebStoriesBar top="top-0" />}
+          <div
+            className={cn(
+              "h-24 md:hidden transition-[height] duration-200 ease-out",
+              !showStories && "h-0",
+            )}
+            aria-hidden="true"
+          />
         </>
       )}
       <header
