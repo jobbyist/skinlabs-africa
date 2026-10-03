@@ -36,6 +36,8 @@ const KNOWN_EXCLUSIONS = new Set([
   "/marketplace/saved",
   // Utility step of the password-recovery email flow, not content.
   "/reset-password",
+  // Utility step of the newsletter double opt-in email, not content.
+  "/newsletter/confirm",
   // Signed-in, noindex first-run onboarding (onboarding overhaul 07).
   "/welcome",
   // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).

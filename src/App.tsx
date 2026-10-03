@@ -73,6 +73,7 @@ const DermatologistDirectory = lazyWithRetry(() => import("./pages/Dermatologist
 const Announcements = lazyWithRetry(() => import("./pages/Announcements"));
 const UserDashboard = lazyWithRetry(() => import("./pages/UserDashboard"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazyWithRetry(() => import("./pages/marketplace/MarketplaceLanding"));
@@ -199,6 +200,7 @@ const AppContent = () => {
             <Route path="/seasonals/:season" element={<SeasonalHub />} />
             <Route path="/dashboard" element={<UserDashboard />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
             <Route path="/welcome" element={<Welcome />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

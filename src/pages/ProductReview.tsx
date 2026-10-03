@@ -20,6 +20,7 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
@@ -486,6 +487,8 @@ const ProductReview = () => {
           <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+
+          <NewsletterSignup source="review-end" />
 
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">

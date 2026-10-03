@@ -2507,18 +2507,30 @@ export type Database = {
       }
       newsletter_subscribers: {
         Row: {
+          consultation_waitlist: boolean
+          digest_confirmation_sent_at: string | null
+          digest_confirmed_at: string | null
+          digest_consent_version: string | null
+          digest_source: string | null
+          digest_source_path: string | null
+          digest_status: string
+          digest_unsubscribed_at: string | null
           email: string
           id: string
           is_active: boolean
           subscribed_at: string
         }
         Insert: {
+          consultation_waitlist?: boolean
+          digest_status?: string
           email: string
           id?: string
           is_active?: boolean
           subscribed_at?: string
         }
         Update: {
+          consultation_waitlist?: boolean
+          digest_status?: string
           email?: string
           id?: string
           is_active?: boolean
@@ -5133,6 +5145,12 @@ export type Database = {
       }
     }
     Functions: {
+      confirm_newsletter: { Args: { p_token: string }; Returns: string }
+      join_consultation_waitlist: { Args: { p_email: string }; Returns: string }
+      subscribe_newsletter: {
+        Args: { p_email: string; p_source?: string; p_source_path?: string }
+        Returns: boolean
+      }
       get_smart_routine_access: { Args: never; Returns: boolean }
       link_basic_analysis_to_advanced_session: {
         Args: {
