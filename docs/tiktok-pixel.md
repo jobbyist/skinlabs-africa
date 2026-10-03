@@ -46,6 +46,20 @@ outside the whitelist.
   call site supplies them; nothing is invented.
 - Not wired (no honest trigger exists): AddToWishlist, PlaceAnOrder.
 
+## Admin → Ads tab
+
+`TikTokAdsPanel` reads `admin_tiktok_events_overview()` (admin-gated) over `public.tiktok_event_log`, which the `tiktok-events`
+function fills (event, page, status; no personal data; migration `20261004120000_tiktok_event_log.sql`, **not applied live**
+until a human/session applies it). It shows homepage vs SKYNN AI events, per-day volume, delivery status and the latest events.
+It is OUR delivery log, not TikTok's attribution or spend. Events that arrive before the access token is set are logged as
+"Awaiting token" and the tab says so.
+
+## Where the access token goes
+
+Supabase dashboard → project `gnkpzijxuciiaamakgzm` → Edge Functions → Secrets → add `TIKTOK_EVENTS_ACCESS_TOKEN`
+(or `supabase secrets set TIKTOK_EVENTS_ACCESS_TOKEN=<token>`). Never in `.env`, Vercel or the repo (it must not reach the browser).
+Generate it in TikTok Events Manager → your web pixel → Settings → Events API → Generate access token.
+
 ## Human steps still needed
 
 1. Events Manager → your pixel → **Settings → Generate Access Token** (Events API), then

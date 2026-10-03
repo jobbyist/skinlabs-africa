@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildTrackBody,
   isValidIp,
+  pageKeyForUrl,
   isTikTokStandardEvent,
   sha256Hex,
   validateIncomingEvent,
@@ -175,5 +176,16 @@ describe("key event pages", () => {
     expect((body.data[0] as { properties: Record<string, unknown> }).properties.contents).toEqual([
       { content_id: "home", content_type: "product_group", content_name: "Home" },
     ]);
+  });
+});
+
+describe("pageKeyForUrl", () => {
+  test("classifies the tracked pages and drops query strings", () => {
+    expect(pageKeyForUrl("https://skinlabs.co.za/?ttclid=x")).toEqual({ pageKey: "home", path: "/" });
+    expect(pageKeyForUrl("https://skinlabs.co.za/skynn-ai/")).toEqual({ pageKey: "skynn-ai", path: "/skynn-ai" });
+    expect(pageKeyForUrl("https://skinlabs.co.za/skynn-ai/advanced?x=1").pageKey).toBe("skynn-ai-advanced");
+    expect(pageKeyForUrl("https://skinlabs.co.za/pricing")).toEqual({ pageKey: "other", path: "/pricing" });
+    expect(pageKeyForUrl("not a url")).toEqual({ pageKey: "other", path: null });
+    expect(pageKeyForUrl(undefined)).toEqual({ pageKey: "other", path: null });
   });
 });

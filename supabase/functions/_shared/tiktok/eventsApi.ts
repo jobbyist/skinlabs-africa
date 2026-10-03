@@ -69,6 +69,23 @@ export const isValidIp = (value: string | undefined): value is string => {
   return groups.length === 2 ? count <= 7 : parts.length === 8 && count === 8;
 };
 
+export type PageKey = "home" | "skynn-ai" | "skynn-ai-advanced" | "other";
+
+/** Which tracked page an event came from (pathname only). Used for the admin "Ads" tab. */
+export const pageKeyForUrl = (url: string | undefined): { pageKey: PageKey; path: string | null } => {
+  try {
+    if (!url) return { pageKey: "other", path: null };
+    const raw = new URL(url).pathname;
+    const path = raw.length > 1 ? raw.replace(/\/+$/, "") : raw;
+    if (path === "/") return { pageKey: "home", path };
+    if (path === "/skynn-ai") return { pageKey: "skynn-ai", path };
+    if (path === "/skynn-ai/advanced") return { pageKey: "skynn-ai-advanced", path };
+    return { pageKey: "other", path: path.slice(0, 200) };
+  } catch {
+    return { pageKey: "other", path: null };
+  }
+};
+
 export const sha256Hex = async (input: string): Promise<string> => {
   const bytes = new TextEncoder().encode(input.trim().toLowerCase());
   const digest = await crypto.subtle.digest("SHA-256", bytes);

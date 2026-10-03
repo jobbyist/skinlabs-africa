@@ -20,8 +20,12 @@
  *                               "Test events" in Events Manager (remove after testing)
  * Without the access token the function answers 503 `not_configured` and the
  * browser pixel keeps working on its own.
+ *
+ * Every accepted request is also written to public.tiktok_event_log (event, page, status — no personal data)
+ * for the admin "Ads" tab. Logging is best effort and never changes the response.
  */
-import { buildTrackBody, validateIncomingEvent } from "../_shared/tiktok/eventsApi.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
+import { buildTrackBody, pageKeyForUrl, validateIncomingEvent } from "../_shared/tiktok/eventsApi.ts";
 import { resolveAuthedUser } from "../_shared/payments/authedUser.ts";
 
 const DEFAULT_PIXEL_CODE = "DB0DGNBC77U1FE0MB8Q0";
@@ -41,9 +45,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  const accessToken = Deno.env.get("TIKTOK_EVENTS_ACCESS_TOKEN");
-  if (!accessToken) return json({ error: "not_configured" }, 503);
-
   const text = await req.text();
   if (text.length > 8_000) return json({ error: "payload_too_large" }, 413);
   let raw: unknown;
@@ -56,6 +57,35 @@ Deno.serve(async (req) => {
   const parsed = validateIncomingEvent(raw);
   if (!parsed.ok) return json({ error: parsed.reason }, 400);
 
+  const { pageKey, path } = pageKeyForUrl(parsed.event.url);
+  let identified = false;
+  const log = async (status: "sent" | "not_configured" | "rejected" | "error", upstreamCode?: number) => {
+    try {
+      const url = Deno.env.get("SUPABASE_URL");
+      const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!url || !key) return;
+      const db = createClient(url, key, { auth: { persistSession: false } });
+      await db.from("tiktok_event_log").insert({
+        event_name: parsed.event.event,
+        event_id: parsed.event.eventId,
+        page_key: pageKey,
+        path,
+        content_id: parsed.event.contentId ?? null,
+        identified,
+        status,
+        upstream_code: upstreamCode ?? null,
+      });
+    } catch {
+      /* table not migrated yet, or a transient error: never affects delivery */
+    }
+  };
+
+  const accessToken = Deno.env.get("TIKTOK_EVENTS_ACCESS_TOKEN");
+  if (!accessToken) {
+    await log("not_configured");
+    return json({ error: "not_configured" }, 503);
+  }
+
   // Optional: a signed-in caller's email comes from the verified JWT, never the body.
   let email: string | undefined;
   let userId: string | undefined;
@@ -66,6 +96,7 @@ Deno.serve(async (req) => {
       if (user) {
         email = user.email || undefined;
         userId = user.userId;
+        identified = true;
       }
     } catch {
       /* anonymous is fine */
@@ -90,11 +121,14 @@ Deno.serve(async (req) => {
     if (!res.ok || (typeof result.code === "number" && result.code !== 0)) {
       // The token is never logged; TikTok's own message is safe to.
       console.error("tiktok-events upstream error", { status: res.status, code: result.code, message: result.message });
+      await log("rejected", result.code ?? res.status);
       return json({ error: "upstream_error", code: result.code ?? res.status }, 502);
     }
+    await log("sent", 0);
     return json({ ok: true });
   } catch (err) {
     console.error("tiktok-events fetch failed", (err as Error).message);
+    await log("error");
     return json({ error: "upstream_unreachable" }, 502);
   }
 });
