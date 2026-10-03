@@ -55,6 +55,9 @@ type Subscriber = {
   email: string;
   subscribed_at: string;
   is_active: boolean;
+  consultation_waitlist?: boolean;
+  digest_status?: "none" | "pending" | "confirmed" | "unsubscribed";
+  digest_source?: string | null;
 };
 
 type Preorder = {
@@ -162,7 +165,7 @@ const AdminDashboard = () => {
       // keeps this page load bounded as each table grows.
       supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }).limit(200),
       supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }).limit(200),
+      supabase.from("newsletter_subscribers").select("id,email,subscribed_at,is_active,consultation_waitlist,digest_status,digest_source").order("subscribed_at", { ascending: false }).limit(200),
       supabase.from("preorders").select("*").order("created_at", { ascending: false }).limit(200),
       // Count-only (head: true fetches zero rows) — the full user directory now
       // lives behind admin_search_profiles via the Users tab, never a bare
@@ -422,9 +425,19 @@ const AdminDashboard = () => {
                         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                           <div className="space-y-1">
                             <span className="font-medium text-card-foreground">{sub.email}</span>
-                            <p className="text-xs text-muted-foreground">Subscribed {new Date(sub.subscribed_at).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Joined {new Date(sub.subscribed_at).toLocaleDateString()}
+                              {sub.digest_source ? ` · via ${sub.digest_source}` : ""}
+                            </p>
                           </div>
-                          <Badge variant={sub.is_active ? "default" : "secondary"}>{sub.is_active ? "Active" : "Inactive"}</Badge>
+                          <div className="flex flex-wrap gap-2">
+                            {sub.consultation_waitlist && <Badge variant="secondary">Consult waitlist</Badge>}
+                            {sub.digest_status && sub.digest_status !== "none" && (
+                              <Badge variant={sub.digest_status === "confirmed" ? "default" : "secondary"}>
+                                Digest: {sub.digest_status}
+                              </Badge>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}

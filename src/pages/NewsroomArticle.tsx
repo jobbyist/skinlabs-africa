@@ -12,6 +12,7 @@ import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
@@ -241,6 +242,8 @@ const NewsroomArticle = () => {
             )}
 
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
+
+            <NewsletterSignup source="briefing-end" />
 
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (

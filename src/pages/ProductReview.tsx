@@ -24,6 +24,7 @@ import SaPricesPanel from "@/components/SaPricesPanel";
 import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
 import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
 import { formatRand } from "@/lib/pricing/saRetailPrices";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
@@ -473,6 +474,8 @@ const ProductReview = () => {
           <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+
+          <NewsletterSignup source="review-end" />
 
           {(spotlightEntry || seasonalFeature) && (
             <div className="mt-4 flex flex-wrap gap-2">

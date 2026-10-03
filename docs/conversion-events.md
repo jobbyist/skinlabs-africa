@@ -186,7 +186,10 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `smart_routines_cta_clicked` | `SmartRoutines.tsx` CTAs | `location`, `tier`, `authenticated`, `hasAnalysisPass` |
 | `routine_checkin_completed` | `use-routine.ts` | `slot` |
 | `sa_price_link_clicked` | `SaPricesPanel` (a live retailer price link) | `retailer`, `product` (slug) |
-| `newsletter_subscribed` | `Newsletter.tsx` | none |
+| `newsletter_subscribed` | `Newsletter.tsx` (consultation waitlist, not the digest) | none |
+| `newsletter_signup_submitted` | `NewsletterSignup` via `subscribeToDigest()` (confirmation email requested, NOT yet subscribed) | `source` (placement id, e.g. `briefing-end`, `review-end`) |
+| `newsletter_signup_failed` | same | `source` |
+| `newsletter_confirmed` | `/newsletter/confirm` after the button press | none |
 | `brand_request_submitted` | `BrandRequestModal.tsx` | `mode` |
 | `partner_enquiry_submitted` | `partners/PartnerEnquiryForm.tsx` | `partnership_model` |
 | `consultation_booking_requested` | `Consultations.tsx` | `practitioner_id` |

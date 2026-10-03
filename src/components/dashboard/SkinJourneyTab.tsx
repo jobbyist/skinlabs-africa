@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import PhotoJournalTab from "@/components/dashboard/PhotoJournalTab";
 
 interface Entry {
   id: string;
@@ -56,6 +57,8 @@ const SkinJourneyTab = () => {
 
   return (
     <div className="space-y-6">
+      <PhotoJournalTab />
+
       <Card>
         <CardHeader>
           <CardTitle>Weekly Check-in</CardTitle>
@@ -67,7 +70,7 @@ const SkinJourneyTab = () => {
             <div><Label>Skin rating (1–10)</Label><Input type="number" min={1} max={10} value={draft.skin_condition_rating} onChange={(e) => setDraft({ ...draft, skin_condition_rating: parseInt(e.target.value) || 1 })} /></div>
           </div>
           <div><Label>Notes</Label><Textarea rows={3} value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} placeholder="What did you notice? Products used, weather, etc." /></div>
-          <Button onClick={add} disabled={saving}><Plus className="h-4 w-4 mr-1" />Add entry</Button>
+          <Button onClick={add} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}Add entry</Button>
         </CardContent>
       </Card>
 
@@ -87,7 +90,7 @@ const SkinJourneyTab = () => {
                     </div>
                     {e.notes && <p className="text-sm text-muted-foreground mt-1">{e.notes}</p>}
                   </div>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(e.id)}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(e.id)} aria-label="Delete journey entry">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
