@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getTemplate } from "../templates/index.ts";
+import { renderEmailLayout } from "../layout.ts";
 
 describe("newsletter_weekly_digest template", () => {
   const def = getTemplate("newsletter_weekly_digest")!;
@@ -21,7 +22,11 @@ describe("newsletter_weekly_digest template", () => {
     expect(html).toContain("Sunscreen myths");
     expect(html).toContain("Esse Probiotic Serum");
     expect(html).toContain("20% off Analysis Passes");
-    expect(html).toContain("https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/email-unsubscribe?token=abc");
+    // The unsubscribe link now comes from the shared layout footer, built per recipient by the processor.
+    const wrapped = renderEmailLayout({ preheader: "p", bodyHtml: html, unsubscribeUrl: "https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/email-unsubscribe?token=abc" });
+    expect(wrapped).toContain("email-unsubscribe?token=abc");
+    expect(html).toContain("SKYNN AI");
+    expect(html).toContain("Sponsored");
   });
 
   test("escapes HTML in story titles and review verdicts", () => {

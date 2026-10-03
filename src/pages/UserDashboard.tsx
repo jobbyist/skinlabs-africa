@@ -724,10 +724,6 @@ const UserDashboard = () => {
                     onViewFullAnalysis={() => setActiveTab("analysis")}
                   />
 
-                  <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
-
-                  <ForYourProfileFeed />
-
                   <div id="skin-weather" className="scroll-mt-28">
                     <SkinWeatherCard
                       weatherCityKey={profile?.weather_city_key ?? null}
@@ -740,6 +736,10 @@ const UserDashboard = () => {
                       }}
                     />
                   </div>
+
+                  <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
+
+                  <ForYourProfileFeed />
 
                   {/* One row of secondary cards. */}
                   <div className="grid gap-6 md:grid-cols-3">

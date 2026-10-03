@@ -175,7 +175,7 @@ export const useSmartRoutine = (options: { withReport?: boolean } = {}) => {
     if (rpcError) {
       setError(
         rpcError.message?.includes("smart_routine_locked")
-          ? "Smart Routines unlock once you've submitted an Advanced AI Dermatology Analysis."
+          ? "Smart Routines unlock once you've saved your Basic AI Skin Analysis."
           : "Couldn't save your Smart Routine. Please try again.",
       );
       return false;

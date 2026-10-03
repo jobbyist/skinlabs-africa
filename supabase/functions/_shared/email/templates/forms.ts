@@ -129,3 +129,32 @@ registerTemplate({
     )}
   `,
 });
+
+// /consult survey: admin-only (anonymous visitors, nothing to confirm to).
+registerTemplate({
+  id: "admin_consult_survey_response",
+  category: "ADMIN",
+  internalName: "Consult directory survey — admin notification",
+  transactional: false,
+  requiredVars: [],
+  subject: (vars: TemplateVars) =>
+    `New consult survey response${vars.sentiment ? ` (usefulness ${escapeHtml(String(vars.sentiment))}/5)` : ""}`,
+  preheader: () => "A visitor completed the /consult directory survey on skinlabs.co.za.",
+  render: (vars: TemplateVars) => {
+    const features = Array.isArray(vars.useful_features) ? (vars.useful_features as unknown[]).map(String).join(", ") : "";
+    const rows: Array<[string, string]> = [
+      ["Directory usefulness (1-5)", String(vars.sentiment ?? "")],
+      ["First use", String(vars.primary_use ?? "")],
+      ["Booking importance (1-5)", String(vars.booking_priority ?? "")],
+      ["Features to ship first", features],
+      ["Trust in unverified listings (1-5)", String(vars.trust_score ?? "")],
+      ["Other feedback", String(vars.feedback_text ?? "")],
+      ["Signed in", vars.signed_in ? "Yes" : "No"],
+    ];
+    return `
+      ${emailHeading("New consult survey response")}
+      ${emailKeyValueTable(rows.filter(([, v]) => v !== ""))}
+      ${emailParagraph(`Submitted via ${escapeHtml(BRAND.siteUrl)}/consult.`)}
+    `;
+  },
+});

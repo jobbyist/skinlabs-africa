@@ -6,6 +6,8 @@ import { BASIC_NAME, SKYNN_PRODUCT } from "@/lib/skynn/terminology";
 interface SkynnMiniCtaProps {
   /** Where the card sits, for analytics (e.g. "briefing_article"). */
   source?: string;
+  /** Headline override for pages where "this" isn't an article. */
+  headline?: string;
 }
 
 /**
@@ -14,7 +16,7 @@ interface SkynnMiniCtaProps {
  * analysis is a free quiz-based skin profile, nothing about it is a diagnosis,
  * and nothing here implies dermatologist review.
  */
-const SkynnMiniCta = ({ source = "briefing_article" }: SkynnMiniCtaProps) => (
+const SkynnMiniCta = ({ source = "briefing_article", headline = "Curious how this applies to your skin?" }: SkynnMiniCtaProps) => (
   <aside
     aria-label={`${SKYNN_PRODUCT} skin analysis`}
     className="not-prose my-8 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5"
@@ -27,7 +29,7 @@ const SkynnMiniCta = ({ source = "briefing_article" }: SkynnMiniCtaProps) => (
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{SKYNN_PRODUCT} · Free</p>
           <p className="mt-0.5 font-heading text-base font-semibold leading-snug text-foreground">
-            Curious how this applies to your skin?
+            {headline}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
             Take the free {BASIC_NAME}: a short quiz, about two minutes, and a skin profile and routine matched to your

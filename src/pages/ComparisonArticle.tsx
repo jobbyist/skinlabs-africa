@@ -277,9 +277,11 @@ const ComparisonArticle = () => {
                         Full SkinLabs review <ExternalLink className="h-3 w-3" />
                       </Link>
                     )}
-                    <a href={product.officialBrandUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                      Official {product.brand} site <ExternalLink className="h-3 w-3" />
-                    </a>
+                    {product.officialBrandUrl && (
+                      <a href={product.officialBrandUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                        Official {product.brand} site <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
                     {product.retailer && (
                       <a href={product.retailer.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
                         {product.retailer.label} <ExternalLink className="h-3 w-3" />
@@ -308,7 +310,7 @@ const ComparisonArticle = () => {
           )}
 
           <div className="mt-10">
-            <BriefingBody body={article.bodyMarkdown} insertAds={false} />
+            <BriefingBody body={article.bodyMarkdown} insertAds={false} skynnCta />
           </div>
 
           <AdSlot placement="comparison-before-verdicts" compact priority="primary" />

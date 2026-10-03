@@ -182,63 +182,17 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
-## Audit fixes (2026-10-03) — standing rules
+## Roadmap batch (2026-10-03) — standing notes
 
-PR #185 and follow-ups. Detail lives in the code; these are the rules to keep.
+Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applied live**; edge functions are **not deployed** (deploy `email-processor` + `email-unsubscribe` with the whole `_shared/email/` tree). Details of the email audit: `docs/email-trigger-audit-2026-10-03.md`.
 
-- **Return URLs use `getSiteOrigin()`** (`src/lib/siteOrigin.ts`): `*.vercel.app` maps to `https://skinlabs.co.za`.
-  Never use `window.location.origin` for auth/payment redirects. Supabase Auth Site URL / allow-list must also be
-  `https://skinlabs.co.za` (human step, not visible from here).
-- **/welcome resume**: step 1 hands off to SKYNN AI; `src/lib/welcomeResume.ts` marks setup in progress, the saved
-  result shows "Continue setup", `/welcome` resumes at step 2. `IntentResolver` sets the marker for a new account that
-  signs up on `/skynn-ai*` (it is not redirected away).
-- **Routine step**: seeded steps are `source='default'` and do not count as a saved routine. `RoutineTrackerTab`
-  shows "Save my routine" (default -> manual); the checklist click scrolls to `#routine-tracker`.
-- **Checklist**: the "Read one full review or episode" step only appears for trialists/paid members (free accounts
-  cannot open one, so it could never be completed).
-- **PhotoJournal**: its migrations had never been applied live (applied 2026-10-03). Photos ARE stored (private bucket
-  `skin-analysis-photos`, `<uid>/journal/…`); this conflicts with the older "photos never leave the device" wording in
-  the SKYNN v2.1 notes above, but the Privacy Policy already describes PhotoJournal. Treat PhotoJournal as the one
-  deliberate exception; photos are still never analysed and MST is never inferred.
-- **Founding Member is withdrawn**: no UI, no client checkout, `resolveCharge` refuses it, live offer `is_active=false`.
-  Existing holders (`profiles.founding_member`) keep their benefits and ad policy.
-- **Admin gate cookie** is `<expiry>.<hmac>` at `Path=/` (`api/_lib/adminGateToken.ts`, shared by `admin-auth` and
-  `admin-analytics`). It used to be `Path=/admin`, so neither endpoint ever received it: the gate re-locked on reload and
-  Analytics always 401'd. Admin has a **Leads** tab for the public-form tables that had no screen.
-- `src/integrations/supabase/types.ts` keeps being reverted by Lovable commits; restore the last good generated copy
-  (`git show <good-sha>:src/integrations/supabase/types.ts`) when `tsc` suddenly fails on missing columns.
-- RLS policies now use `(select auth.uid())` everywhere in `public`; `rls_auto_enable()` is not callable by API roles.
-- CI on `main` was red since 28 Sep; lint is now 0 errors. Still needs: the `SUPABASE_DB_URL` secret for `sql-probes`.
-- `PromoTrialModal` primary action is `useConversionAction` (source `promo_modal`); `/pricing` is secondary.
-- **types.ts guard (2026-10-03)**: `scripts/check-supabase-types.ts` compares `src/integrations/supabase/types.ts` with the
-  committed `supabase/types.baseline.ts` (anything the baseline has must still be there). Runs in `npm run lint`/CI, as
-  `npm run types:fix` at the start of `npm run build`, in `.githooks/pre-commit`, and in `.github/workflows/types-guard.yml`
-  (repairs and commits a regressed file on `main`). After a real schema change: regenerate from the live DB
-  (`mcp__Supabase__generate_typescript_types`), then `npm run types:baseline`. Lovable project knowledge also tells it not
-  to touch the file. It cannot be made read-only to Lovable; the guard detects and repairs.
-- **Daily trial-email cron is LIVE** (`trial-lifecycle-emails-daily`, `5 4 * * *` UTC = 06:05 SAST, jobid 31), scheduled 2026-10-03
-  after a dry run. One real trialist then: nudge 5 Oct, week-left 25 Oct, last-chance 29 Oct.
-- **Status lookups are self-only for client roles**: `is_member`, `is_professional_account`, `is_profile_complete` return false
-  for another user's id when called as anon/authenticated (service role and internal callers unchanged). Probe:
-  `supabase/tests/restricted_status_functions.sql`. `has_role` still takes any id (left alone: RLS hot path).
-- **Admin reads the dermatologist-messaging waitlist** via `admin_list_feature_waitlist()` (Admin > Leads > Messaging waitlist).
-- **Review prices without Firecrawl (2026-10-03)**: cards and comparisons now show a price only if it is LIVE
-  (`useLiveReviewPrices()`: view `review_live_prices` = the OpenHaus price that `openhaus-price-sync` reads straight from the
-  supplier page, plus view `sa_retail_prices`); price bands/sorting use live prices only and unknown prices sort last. A daily
-  cron (`sync-openhaus-review-prices`, 06:30 UTC) writes the live OpenHaus price into `ai_generated_product_reviews.local_price_zar`
-  (59/59 OpenHaus reviews covered; first run corrected one stale R477.99 -> R381.99). `retailer-price-sync` v6 refreshes
-  **Clicks listings with a plain, identified HTTP request** (`RetailerPolicy.directFetch`, parser fallback for Clicks' inline
-  script JSON-LD, zero credits, runs even when the Firecrawl budget is spent; a bot challenge stops the run, never bypassed).
-  **Checked 2026-10-03 from this sandbox: Dis-Chem and Faithful to Nature answer plain requests with a Cloudflare challenge (not
-  bypassed); Takealot returns a client-rendered shell with no price.** Discovery (finding Clicks listings) still uses Firecrawl
-  search; static-catalogue reviews have no live price until a listing is matched. Edge runtime of the direct fetch is not yet
-  observed live (no matched Clicks listing existed to refresh).
-- **Combination Checker covers every pair** (`get_ingredient_pair_note(a,b)`): 1) cited row in `ingredient_interactions`,
-  2) category-pair rule in `ingredient_class_pair_rules` (labelled "class guidance", never "tested"), 3) "nothing on record".
-  Live: 13,366 pairs = 18 cited, 2,940 class guidance, 10,408 nothing-on-record. A new ingredient is covered the moment it has a
-  `category`; `admin_ingredient_pair_note_coverage()` (Admin > Data Quality) lists any without one. `get_ingredient_interaction`
-  and the Conflict Matcher stay cited-only. Probe: `supabase/tests/ingredient_pair_notes.sql`. The checker itself still
-  requires sign-in (existing product decision); its CTA now opens the sign-up dialog.
+- **Smart Routines run on the free Basic AI Skin Analysis** (supersedes the "Advanced submission required" rule in the v2.1 follow-up above): `has_smart_routine_access()` is true for a saved delivered Basic analysis OR a non-rejected Advanced submission (`20261003100000`). Advanced stays an optional upgrade that adds shelf products, the avoid list and an approved report's own steps. Page/dashboard/search/whitepaper copy updated; keep it honest about what only Advanced adds.
+- Mini SKYNN AI card (`briefings/SkynnMiniCta`, optional `headline`) now also on `/reviews`, `/compare` and Shelf Showdown articles. The "Free until 1 Nov" chip and bar "See details" open `PromoOfferDialog` (CTA → `/pricing`, explicit user request; the earlier "never make /pricing the primary action" rule is for feature gates).
+- **Email**: every recipient-facing email has a footer unsubscribe link (per-recipient token resolved by `email-processor` via `_shared/email/context.ts`; mailto fallback; none for ADMIN mail); the processor re-checks marketing consent for EVERY MARKETING job and sets `show_ads` (only Explorer/Glow Lite see the Faithful to Nature block, same as the site ad policy) and `has_analysis`. Buttons are the brand gradient over a monochrome `#18181b` fallback (`emailButton`, `variant="mono"` for solid). New MARKETING templates in `templates/marketingAutomations.ts`: `daily_briefing_digest`, `weekly_top_brands`, `welcome_series_1-4` (days 1/3/5/8, category MEMBERSHIP), `weekly_analysis_reminder` (ROUTINES), each with the mini SKYNN card + FtN block. SQL + crons in `20261003110000` (daily briefing 05:30 UTC, top brands Fri 07:00, welcome 06:00, reminders 07:00). Top brands = one rotating category per week, top 3 by score from the NON-sponsored static catalogue, from the `weekly_featured_brands` table filled by `scripts/generate-weekly-featured-brands.ts` (20 weeks from 2026-10-05; regenerate before it runs out; the send skips quietly with no row). The daily briefing and top-brands emails are opt-in MARKETING. **The welcome series and weekly reminder go to every member (owner decision, 2026-10-03)** except those who explicitly unsubscribed (`marketing_consent` false AND `marketing_consent_at` set; `BULK_LIFECYCLE_TEMPLATES` in `_shared/email/context.ts`, re-checked at send time). Only 1 of 14 members had opted in at audit time.
+- `/consult`: the "Help shape the directory" survey used to discard answers. It now inserts into `consult_survey_responses` (`20261003130000`); a trigger emails admin template `admin_consult_survey_response` to **consult@ only** (`ADMIN_TEMPLATE_RECIPIENT_OVERRIDE`, owner decision). Only the first page (6) of profiles is shown, no pagination.
+- Admin → Analytics: `EventsAnalyticsPanel` charts everything in `analytics_events` via the admin-gated `admin_events_overview(p_days)` (`20261003140000`; aggregates only; validated live in a rolled-back transaction).
+- Shelf Showdown: 32 generated comparisons in `data/comparisons-part5.ts` from `scripts/generate-comparisons.ts` (real scores/prices/ingredients/verdicts of non-sponsored reviews only; re-run, don't hand-edit). 53 static + DB-generated. `ComparedProduct.officialBrandUrl` is now optional (never guessed).
+- Connector gotcha: the "Resend for Skinlabs" MCP connector points at the CannaPlug Resend account; use the plain "Resend" connector for SkinLabs. Resend domain skinlabs.co.za showed `failed` on 2026-10-03.
 
 ## Major systems
 

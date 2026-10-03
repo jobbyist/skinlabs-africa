@@ -18,6 +18,7 @@ import { useAdminGate } from "@/hooks/use-admin-gate";
 import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
+import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
@@ -618,6 +619,7 @@ const AdminDashboard = () => {
 
               <TabsContent value="analytics" className="space-y-6">
                 <ConversionFunnelPanel />
+                <EventsAnalyticsPanel />
                 <AnalyticsTab />
               </TabsContent>
             </Tabs>

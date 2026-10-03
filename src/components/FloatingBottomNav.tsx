@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import AuthDialog from "@/components/AuthDialog";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { cn } from "@/lib/utils";
+import "@/styles/skinlabs-experience.css";
 
 const tabs = [
   { label: "Home", href: "/", icon: Home, match: (p: string) => p === "/" },
@@ -14,123 +15,45 @@ const tabs = [
   { label: "Compare", href: "/compare", icon: ArrowLeftRight, match: (p: string) => p.startsWith("/compare") },
 ];
 
-// Shared by every tab: immediate press feedback (nav should feel faster than
-// content) and a visible keyboard focus ring, which the pill previously lacked.
-const NAV_ITEM =
-  "group relative flex flex-col items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-2 min-[360px]:px-2 min-[380px]:px-2.5 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
-
-// Contrast: muted-foreground at 10px over a translucent pill read too faint,
-// especially in dark mode. Idle tabs use foreground at 80% (≈6:1 on the pill
-// in both themes); the active tab is full foreground + semibold, so "active"
-// never relies on colour alone (it also gets the gradient tint and icon scale).
+const NAV_ITEM = "group relative flex flex-col items-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-2 min-[360px]:px-2 min-[380px]:px-2.5 text-[10px] font-medium transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-4";
 const TAB_IDLE = "text-foreground/80 hover:text-foreground";
 const TAB_ACTIVE = "font-semibold text-foreground";
+const hasOwnBottomBar = (pathname: string) => pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors");
 
-/**
- * Routes that render their own primary bottom bar (Openhaus marketplace's
- * sticky nav/cart bar, the Brand Ambassador page's sticky Apply CTA). This
- * floating nav must never stack on top of those — hide it there instead of
- * trying to keep two bottom bars' offsets in sync.
- */
-const hasOwnBottomBar = (pathname: string) =>
-  pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors");
-
-/**
- * Shown to every visitor, signed in or not — five of these six destinations
- * (everything but the account tab) are free, public content, so gating the
- * whole nav behind login worked against the free-acquisition/SEO-discovery
- * product principle for the majority of first-time mobile traffic. The last
- * tab adapts instead: "Profile" -> /dashboard when signed in, "Sign In" ->
- * opens AuthDialog in place when not, rather than sending a logged-out
- * visitor to a dashboard route that would just bounce them back out.
- */
 const FloatingBottomNav = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
-  // PodcastPlayer renders its own fixed bar flush against bottom-0 whenever an
-  // episode is loaded (whether playing or paused) — at a higher z-index than
-  // this nav, so without this it visually covers/overlaps the floating pill.
-  // Shifting the pill up above the player's height (see PodcastPlayer.tsx's
-  // py-3/md:py-4 + h-14/md:h-16 artwork, ~80-96px tall) keeps both usable.
   const { current: currentEpisode } = usePodcastPlayer();
-
-  // Never hide the whole bar while auth is resolving — that caused a missing
-  // bottom nav flash (and a stuck-empty bar if the session check hung). Show
-  // the public tabs immediately; only the account tab depends on user.
   if (hasOwnBottomBar(location.pathname)) return null;
-
   const accountActive = location.pathname.startsWith("/dashboard");
 
   return (
     <>
-      <nav
-        aria-label="Primary"
-        className={cn(
-          "fixed inset-x-0 z-40 flex justify-center px-2 min-[360px]:px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out",
-          currentEpisode ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6",
-        )}
-      >
-        <div
-          className={cn(
-            // Animated brand-gradient ring (.gradient-border-anim draws it as a
-            // 2px ::before, so no CSS border here). The glass fill is kept
-            // fairly opaque so icon labels stay legible over any page content
-            // scrolling underneath, in both themes.
-            "gradient-border-anim flex max-w-full items-center gap-0 min-[380px]:gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150",
-            "supports-[backdrop-filter]:bg-background/85",
-          )}
-        >
+      <nav aria-label="Primary" className={cn("fixed inset-x-0 z-40 flex justify-center px-2 min-[360px]:px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out", currentEpisode ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6")}>
+        <div className={cn("gradient-border-anim flex max-w-full items-center gap-0 min-[380px]:gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150", "supports-[backdrop-filter]:bg-background/85")}>
           {tabs.map((tab) => {
             const active = tab.match(location.pathname);
-            return (
-              <Link
-                key={tab.label}
-                to={tab.href}
-                aria-label={tab.label}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  NAV_ITEM,
-                  active ? TAB_ACTIVE : TAB_IDLE,
-                )}
-              >
-                {active && <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />}
-                <tab.icon className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", active && "scale-110")} />
-                <span className="relative leading-none">{tab.label}</span>
-              </Link>
-            );
+            return <Link key={tab.label} to={tab.href} aria-label={tab.label} aria-current={active ? "page" : undefined} className={cn(NAV_ITEM, active ? TAB_ACTIVE : TAB_IDLE)}>
+              {active && <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />}
+              <tab.icon className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", active && "scale-110")} />
+              <span className="relative leading-none">{tab.label}</span>
+            </Link>;
           })}
-
           {user ? (
-            <Link
-              to="/dashboard"
-              aria-label="Profile"
-              aria-current={accountActive ? "page" : undefined}
-              className={cn(
-                NAV_ITEM,
-                accountActive ? TAB_ACTIVE : TAB_IDLE,
-              )}
-            >
-              {accountActive && (
-                <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />
-              )}
+            <Link to="/dashboard" aria-label="Profile" aria-current={accountActive ? "page" : undefined} className={cn(NAV_ITEM, accountActive ? TAB_ACTIVE : TAB_IDLE)}>
+              {accountActive && <span className="gradient-bg-soft absolute inset-0 rounded-full opacity-30" aria-hidden="true" />}
               <User className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", accountActive && "scale-110")} />
               <span className="relative leading-none">Profile</span>
             </Link>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAuthOpen(true)}
-              aria-label="Sign in"
-              className={cn(NAV_ITEM, TAB_IDLE)}
-            >
+            <button type="button" onClick={() => setAuthOpen(true)} aria-label="Sign in" className={cn(NAV_ITEM, TAB_IDLE)}>
               <LogIn className="relative h-5 w-5" />
               <span className="relative leading-none">Sign In</span>
             </button>
           )}
         </div>
       </nav>
-
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} defaultTab="signin" />
     </>
   );

@@ -178,12 +178,12 @@ const Hero = () => {
               {/* Stays rendered (disabled) while auth/membership load, so the prerendered hero doesn't shift.
                   A paying member gets nothing here — a trial they can't use would be misleading. */}
               <div className="min-h-6 text-sm">
-                {!(!statusLoading && isMember) &&
-                  (statusLoading || canTrial ? (
+                {!authLoading && !user && (
+                  canTrial ? (
                     <button
                       type="button"
                       onClick={handleTrialClick}
-                      disabled={statusLoading || trialStarting}
+                      disabled={trialStarting}
                       className="inline-flex items-center gap-1.5 font-medium text-foreground/80 underline underline-offset-4 transition-colors hover:text-foreground disabled:opacity-60"
                     >
                       Or try Glow Insider free {trialLength()}
@@ -196,7 +196,8 @@ const Hero = () => {
                     >
                       See membership plans
                     </Link>
-                  ))}
+                  )
+                )}
               </div>
             </div>
 

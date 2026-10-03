@@ -26,6 +26,25 @@ interface SkinWeatherCardProps {
  * precise coordinates are never sent or stored) → Johannesburg by default.
  * Errors stay inside this card — the rest of the dashboard is unaffected.
  */
+const HIGHVELD_CITIES = new Set(["johannesburg", "pretoria", "bloemfontein", "polokwane", "kimberley"]);
+const COASTAL_CITIES = new Set(["cape-town", "durban", "gqeberha", "east-london"]);
+
+const getClimateCue = (cityKey: string) => {
+  if (HIGHVELD_CITIES.has(cityKey)) {
+    return {
+      label: "Highveld / inland",
+      text: "Drier inland air can make moisture loss more noticeable. Keep hydration and moisturiser layers simple and consistent.",
+    };
+  }
+  if (COASTAL_CITIES.has(cityKey)) {
+    return {
+      label: "Coastal",
+      text: "Coastal humidity can make richer layers feel heavier. Keep hydration in, but lighter textures may feel more comfortable.",
+    };
+  }
+  return null;
+};
+
 const SkinWeatherCard = ({ weatherCityKey, addressCity, skinProfile, onSaveCity }: SkinWeatherCardProps) => {
   const headingId = useId();
   const savedCity = cityByKey(weatherCityKey) ?? cityFromProfile(addressCity);
@@ -83,7 +102,14 @@ const SkinWeatherCard = ({ weatherCityKey, addressCity, skinProfile, onSaveCity 
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={headingId} className="font-heading text-base font-semibold">Today's skin weather</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id={headingId} className="font-heading text-base font-semibold">Today's skin weather &amp; UV</h2>
+            {getClimateCue(city.key) && (
+              <span className="rounded-full border border-brand-ink-foreground/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-brand-ink-foreground/65">
+                {getClimateCue(city.key)?.label}
+              </span>
+            )}
+          </div>
           <p className="mt-0.5 flex items-center gap-1 text-sm text-brand-ink-foreground/75">
             <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
             {city.label}
@@ -202,7 +228,15 @@ const SkinWeatherCard = ({ weatherCityKey, addressCity, skinProfile, onSaveCity 
               </div>
             </dl>
 
-            <p className="text-sm leading-relaxed">{tip.tip}</p>
+            <div className="space-y-2">
+              <p className="text-sm leading-relaxed">{tip.tip}</p>
+              {getClimateCue(city.key) && (
+                <div className="rounded-xl border border-brand-ink-foreground/10 bg-brand-ink-foreground/5 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-ink-foreground/60">Barrier cue</p>
+                  <p className="mt-1 text-xs leading-relaxed text-brand-ink-foreground/85">{getClimateCue(city.key)?.text}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

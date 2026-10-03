@@ -56,7 +56,7 @@ const toGrounded = (am: SmartStep[], pm: SmartStep[]): GroundedRoutine | null =>
  * the tracker below so check-ins and streaks work as before.
  */
 const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
-  const { access, saved, preview, stale, loading, building, error, build } = useSmartRoutine();
+  const { access, saved, preview, stale, sources, loading, building, error, build } = useSmartRoutine();
   const viewed = useRef(false);
 
   useEffect(() => {
@@ -97,9 +97,9 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
             <Lock className="h-4 w-4 text-muted-foreground" /> Smart Routine
           </CardTitle>
           <CardDescription>
-            Smart Routines come with the {ADVANCED_NAME}. Once you&apos;ve submitted yours, we build a morning and evening
-            routine from your {BASIC_NAME} and Advanced answers, with products SkinLabs has reviewed, a weekly plan and
-            notes for your climate and the season.
+            Smart Routines are free with your {BASIC_NAME}. Save one and we build a morning and evening routine from
+            your answers, with products SkinLabs has reviewed, a weekly plan and notes for your climate and the season.
+            An optional {ADVANCED_NAME} adds the products you own and ingredients you avoid.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -121,7 +121,7 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
             <Sparkles className="h-4 w-4 text-primary" /> Your Smart Routine is ready to build
           </CardTitle>
           <CardDescription>
-            Built from your {BASIC_NAME} and your {ADVANCED_NAME} answers
+            Built from your {BASIC_NAME}{sources?.advanced ? ` and your ${ADVANCED_NAME} answers` : ""}
             {preview ? ` — ${preview.am.length} morning and ${preview.pm.length} evening steps` : ""}. It replaces the
             starter steps below; anything you added yourself stays.
           </CardDescription>

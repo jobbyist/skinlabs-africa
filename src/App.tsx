@@ -24,6 +24,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
+import MobileFeedbackSurvey from "./components/MobileFeedbackSurvey";
 import CookieConsent from "./components/CookieConsent";
 import AdBlockWall from "./components/AdBlockWall";
 import SitewideSEO from "./components/SitewideSEO";
@@ -121,6 +122,7 @@ const AppContent = () => {
       <IntentResolver />
       {/* Sign-up + membership checkout dialogs opened by conversion CTAs (useConversionAction). */}
       <ConversionDialogs />
+      <MobileFeedbackSurvey />
       <CookieConsent />
       <AdBlockWall />
       <AppErrorBoundary resetKey={pathname}>

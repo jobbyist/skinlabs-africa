@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -18,6 +18,7 @@ import {
   Target,
   FlaskConical,
   TrendingUp,
+  Stethoscope,
   Megaphone,
   BookOpenCheck,
   Compass,
@@ -52,6 +53,7 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import MobileContentRail from "@/components/MobileContentRail";
 // Served from public/ (not a Vite-bundled src/assets import) — real light/
 // dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
 // than a CSS filter on one file, so the actual PNG that's "live" for each
@@ -69,8 +71,8 @@ interface NavItem {
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
-  { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Practice Suite", href: "/practice-suite", icon: TrendingUp, badge: "Coming Soon" },
+  { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
 ];
 
 /** The "Explore" grid — SkinLabs' editorial + platform sections. */
@@ -221,6 +223,41 @@ const Header = () => {
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
+  const [storyRailVisible, setStoryRailVisible] = useState(true);
+
+  useEffect(() => {
+    if (!storyRail) {
+      setStoryRailVisible(false);
+      return;
+    }
+    const media = window.matchMedia("(max-width: 767px)");
+    const syncViewport = () => setStoryRailVisible(media.matches && window.scrollY <= 8);
+    syncViewport();
+
+    let lastY = window.scrollY;
+    const handleScroll = () => {
+      const y = window.scrollY;
+      if (!media.matches) {
+        setStoryRailVisible(false);
+      } else if (y <= 8) {
+        setStoryRailVisible(true);
+      } else if (y > lastY + 4) {
+        setStoryRailVisible(false);
+      } else if (y < lastY - 4) {
+        setStoryRailVisible(true);
+      }
+      lastY = y;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    media.addEventListener?.("change", syncViewport);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      media.removeEventListener?.("change", syncViewport);
+    };
+  }, [storyRail, pathname]);
+
+  const showStories = storyRail && storyRailVisible;
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -247,15 +284,21 @@ const Header = () => {
           h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
       {storyRail && (
         <>
-          <WebStoriesBar top="top-0" />
-          <div className="h-24 md:hidden" aria-hidden="true" />
+          {showStories && <WebStoriesBar top="top-0" />}
+          <div
+            className={cn(
+              "h-24 md:hidden transition-[height] duration-200 ease-out",
+              !showStories && "h-0",
+            )}
+            aria-hidden="true"
+          />
         </>
       )}
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
           // Mobile: below the story rail (96px) when it shows. md+: below the promo bar (36px).
-          storyRail ? "top-24" : "top-0",
+          showStories ? "top-24" : "top-0",
           promoBarVisible ? "md:top-9" : "md:top-0",
         )}
       >
@@ -420,6 +463,8 @@ const Header = () => {
           </div>
         </div>
       </header>
+
+      <MobileContentRail storyRail={storyRail} />
 
       {/* Mobile sheet — kept for small screens */}
       <Sheet open={open} onOpenChange={setOpen}>
