@@ -4,7 +4,7 @@ import { ADVANCED_REFERENCE, freeProfile, mockSupabase, USER_ID } from "./suppor
 /**
  * SKYNN AI v2.1 follow-up journeys: the Advanced analysis starting from the
  * Basic analysis, branded PDFs, Smart Routines in the dashboard, /routines,
- * and legal copy that matches the no-photo product. Supabase is mocked
+ * and legal copy that matches the PhotoJournal product. Supabase is mocked
  * (e2e/support/mockSupabase.ts).
  */
 
@@ -59,11 +59,9 @@ test("a new Advanced analysis starts from the member's Basic analysis, marked an
   await expect(page.getByText(/We've started from your Basic AI Skin Analysis/)).toBeVisible();
   await expect(page.getByText(/check it still fits/).first()).toBeVisible();
   await expect(page.getByRole("radio", { name: "Oily" })).toBeChecked();
-  // Suggested answers were saved and the session records where they came from — never consent.
   expect(state.seededResponses).toEqual({ skin_type: "oily" });
   expect(state.linkedBasicAnalysis).toEqual({ basicAnalysisId: "rec-basic-1", prefilledQuestionIds: ["skin_type"] });
   expect(state.seededResponses).not.toHaveProperty("popia_special_info_consent");
-  // The member can change any of them.
   await page.getByRole("radio", { name: "Dry" }).click();
   await expect(page.getByRole("radio", { name: "Dry" })).toBeChecked();
 });
@@ -91,7 +89,6 @@ test("the member can download a branded PDF of their Advanced submission", async
 test("the member can re-download their Basic analysis PDF from the dashboard", async ({ page, context }) => {
   await mockSupabase(context, { profile: freeProfile(), tables: { skincare_recommendations: [BASIC_ROW] } });
   await page.goto("/dashboard?tab=analysis");
-  // A free member's own saved analyses are reachable too (no members-only wall in front of them).
   await page.getByRole("button", { name: /oily Skin/i }).click();
   const [download] = await Promise.all([
     page.waitForEvent("download"),
@@ -119,7 +116,6 @@ test("a member who has submitted builds a Smart Routine that lands in the tracke
   const routine = state.smartRoutine as { routine: { am: { step: string }[]; pm: { step: string }[]; source: string } };
   expect(routine.routine.source).toBe("rule_based");
   expect(routine.routine.am.map((s) => s.step)).toContain("Protect");
-  // The steps are in the tracker, marked Smart, and can be ticked off.
   await expect(page.getByText("Smart", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/steps done today/)).toBeVisible();
 });
@@ -128,7 +124,6 @@ test("/routines opens the member's Smart Routine once they have access", async (
   await mockSupabase(context, { profile: freeProfile(), skynn: { submitted: true }, tables: SUBMISSION_TABLES });
   await page.goto("/routines");
   await expect(page.getByRole("link", { name: /Open my Smart Routine/ }).first()).toBeVisible();
-  // No claim that Smart Routines are simply "included" with a membership, or that a budget can be set.
   await expect(page.getByText("Smart Routines unlock with an Advanced AI Dermatology Analysis (Analysis Pass)")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Smart Routines included in your membership");
   await expect(page.locator("body")).not.toContainText("Set your budget");
@@ -141,9 +136,9 @@ test("/routines without access still points to the Analysis Pass flow", async ({
   await expect(page.getByRole("link", { name: /Open my Smart Routine/ })).toHaveCount(0);
 });
 
-test("legal and policy pages don't claim photos are uploaded or analysed", async ({ page, context }) => {
+test("legal and policy pages accurately describe PhotoJournal storage without claiming image analysis", async ({ page, context }) => {
   await mockSupabase(context, { signedIn: false });
-  const banned = [/raw (skin )?images/i, /images? (that )?you upload/i, /computer vision provider/i, /image[- ]capture state/i, /credit packs?/i];
+  const banned = [/computer vision provider/i, /facial recognition/i, /biometric identification/i, /image[- ]capture state/i, /credit packs?/i];
   for (const path of ["/privacy-policy", "/terms-of-service", "/cookie-policy", "/refund-policy", "/whitepapers"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
@@ -151,6 +146,10 @@ test("legal and policy pages don't claim photos are uploaded or analysed", async
     for (const re of banned) expect(text, `${path} matches ${re}`).not.toMatch(re);
   }
   await page.goto("/privacy-policy");
-  await expect(page.locator("body")).toContainText("Photos never leave your device");
+  await expect(page.locator("body")).toContainText("PhotoJournal storage");
+  await expect(page.locator("body")).toContainText("private PhotoJournal");
+  await expect(page.locator("body")).toContainText("limited to 5 MB");
+  await expect(page.locator("body")).toContainText("not analysed by SKYNN AI");
   await expect(page.locator("body")).toContainText("Skin tone is never inferred");
+  await expect(page.locator("body")).not.toContainText("Photos never leave your device");
 });

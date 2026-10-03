@@ -11,10 +11,10 @@ interface AtAGlanceCardProps {
   category: string;
   /** Product size/volume (e.g., "50ml", "30ml x 2") */
   size?: string;
-  /** Price in ZAR */
-  priceZAR: number;
-  /** Where the product is available */
-  whereAvailable: string;
+  /** Lowest LIVE price in ZAR (from a verified retailer listing); omit when none is verified. */
+  priceZAR?: number;
+  /** Retailers with a verified live listing; omit when none is verified. */
+  whereAvailable?: string;
   /** Country of manufacture/origin */
   countryOfOrigin?: string;
   /** AM/PM/Both usage recommendation */
@@ -51,16 +51,24 @@ export function AtAGlanceCard({
           },
         ]
       : []),
-    {
-      icon: DollarSign,
-      label: "Price",
-      value: `R${priceZAR.toFixed(2)} ZAR`,
-    },
-    {
-      icon: ShoppingBag,
-      label: "Available",
-      value: whereAvailable,
-    },
+    ...(priceZAR !== undefined
+      ? [
+          {
+            icon: DollarSign,
+            label: "Lowest verified price",
+            value: `R${priceZAR.toFixed(2)} ZAR`,
+          },
+        ]
+      : []),
+    ...(whereAvailable
+      ? [
+          {
+            icon: ShoppingBag,
+            label: "Available at",
+            value: whereAvailable,
+          },
+        ]
+      : []),
     ...(countryOfOrigin
       ? [
           {
@@ -101,7 +109,7 @@ export function AtAGlanceCard({
         })}
       </div>
       <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
-        Product information accurate as of review date. Prices and availability may vary.
+        Product information accurate as of review date. Prices are read from retailers' product pages and may change.
       </p>
     </Card>
   );

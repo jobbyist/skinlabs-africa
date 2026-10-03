@@ -183,6 +183,20 @@ const guards: Record<string, GuardFn> = {
   // between the weekly cron's fan-out and the processor actually sending —
   // re-check it rather than trusting the snapshot at enqueue time.
   newsletter_weekly_digest: async (supabase, job) => {
+    // Double-opted-in subscribers (no account) carry subscriber_id instead of a user_id.
+    const subscriberId = job.payload?.subscriber_id;
+    if (typeof subscriberId === "string") {
+      const { data, error } = await supabase
+        .from("newsletter_subscribers")
+        .select("digest_status")
+        .eq("id", subscriberId)
+        .maybeSingle();
+      if (error || !data) return { send: false, reason: "subscriber not found" };
+      if (data.digest_status !== "confirmed") {
+        return { send: false, reason: "unsubscribed from the digest before send" };
+      }
+      return { send: true };
+    }
     if (!job.user_id) return { send: false, reason: "no user_id on job" };
     const { data, error } = await supabase
       .from("profiles")
@@ -192,6 +206,27 @@ const guards: Record<string, GuardFn> = {
     if (error || !data) return { send: false, reason: "profile not found" };
     if (!data.marketing_consent) {
       return { send: false, reason: "unsubscribed from marketing before send" };
+    }
+    return { send: true };
+  },
+
+  // A resend issues a new token; only the newest confirmation email may go out,
+  // and nothing is sent once the address is already confirmed or unsubscribed.
+  newsletter_digest_confirm: async (supabase, job) => {
+    const subscriberId = job.payload?.subscriber_id;
+    const confirmUrl = job.payload?.confirm_url;
+    if (typeof subscriberId !== "string" || typeof confirmUrl !== "string") {
+      return { send: false, reason: "missing subscriber_id or confirm_url" };
+    }
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .select("digest_status, digest_confirm_token")
+      .eq("id", subscriberId)
+      .maybeSingle();
+    if (error || !data) return { send: false, reason: "subscriber not found" };
+    if (data.digest_status !== "pending") return { send: false, reason: `already ${data.digest_status}` };
+    if (!confirmUrl.endsWith(`token=${data.digest_confirm_token}`)) {
+      return { send: false, reason: "superseded by a newer confirmation email" };
     }
     return { send: true };
   },

@@ -24,7 +24,7 @@ describe("email template registry", () => {
       "form_confirmation_newsletter", "admin_form_notification_newsletter",
       "admin_notify_me_request", "admin_consult_survey_response",
       "admin_payment_needs_review", "admin_delivery_failed",
-      "newsletter_weekly_digest",
+      "newsletter_weekly_digest", "newsletter_digest_confirm",
       "trial_activation_nudge", "trial_week_left", "trial_precharge_reminder", "trial_last_chance", "trial_winback",
       "daily_briefing_digest", "weekly_top_brands", "weekly_analysis_reminder",
       "welcome_series_1", "welcome_series_2", "welcome_series_3", "welcome_series_4",

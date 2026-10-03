@@ -111,3 +111,31 @@ describe("templates with no guard", () => {
     expect(getGuard("membership_activated")).toBeUndefined();
   });
 });
+
+describe("newsletter digest guards (double opt-in)", () => {
+  const TOKEN = "11111111-1111-1111-1111-111111111111";
+  const confirmUrl = `https://skinlabs.co.za/newsletter/confirm?token=${TOKEN}`;
+
+  test("confirmation email goes out only for a pending subscriber and the newest token", async () => {
+    const guard = getGuard("newsletter_digest_confirm")!;
+    const payload = { subscriber_id: "s1", confirm_url: confirmUrl };
+    const send = (row: Record<string, unknown> | null) => guard(fakeSupabase(row), { user_id: null, payload });
+
+    expect((await send({ digest_status: "pending", digest_confirm_token: TOKEN })).send).toBe(true);
+    expect((await send({ digest_status: "pending", digest_confirm_token: "other" })).send).toBe(false);
+    expect((await send({ digest_status: "confirmed", digest_confirm_token: TOKEN })).send).toBe(false);
+    expect((await send({ digest_status: "unsubscribed", digest_confirm_token: TOKEN })).send).toBe(false);
+    expect((await send(null)).send).toBe(false);
+    expect((await guard(fakeSupabase(null), { user_id: null, payload: {} })).send).toBe(false);
+  });
+
+  test("weekly digest to a subscriber re-checks digest_status; member path is unchanged", async () => {
+    const guard = getGuard("newsletter_weekly_digest")!;
+    const sub = { user_id: null, payload: { subscriber_id: "s1" } };
+    expect((await guard(fakeSupabase({ digest_status: "confirmed" }), sub)).send).toBe(true);
+    expect((await guard(fakeSupabase({ digest_status: "unsubscribed" }), sub)).send).toBe(false);
+    expect((await guard(fakeSupabase({ marketing_consent: true }), { user_id: "u1", payload: {} })).send).toBe(true);
+    expect((await guard(fakeSupabase({ marketing_consent: false }), { user_id: "u1", payload: {} })).send).toBe(false);
+    expect((await guard(fakeSupabase(null), { user_id: null, payload: {} })).send).toBe(false);
+  });
+});

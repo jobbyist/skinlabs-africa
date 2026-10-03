@@ -196,6 +196,81 @@ Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applie
 
 ## Major systems
 
+- **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
+  product page (Firecrawl). Full detail: `docs/sa-retail-prices.md`. Owner decisions: use Firecrawl/retailer feeds, no Google
+  Shopping scraping (needs a licensed API they don't have), AdSense figures entered by hand for now.
+  - **Standing rule: a price is shown only if its page was read, the product matched with confidence, and it was checked in
+    the last 14 days; otherwise nothing.** Never show `product_variants`/editorial prices as live. Found on the way: every
+    review page showed hard-coded editorial prices marked "In stock" (homepage links, never checked) in the table,
+    JSON-LD `offers` and the At-a-Glance card; the 241 seeded `product_prices`/`retailer_products` rows were editorial and
+    publicly readable. Public read is now `match_status='matched'` / `source_type='retailer_listing'` only; the review pages
+    use live rows (`SaPricesPanel`, view `sa_retail_prices`), else a dated "at review time, not live" snapshot only when the
+    review kept a real product-page URL + publish date (`reviewTimeSnapshot()`); static-catalogue prices are no longer shown.
+  - **Pure tested library** `supabase/functions/_shared/pricing/` (32 tests on real retailer markup/search results) + I/O-only
+    edge function `retailer-price-sync` (modes refresh|discover; `retailer_price_runs` logs each run). Deterministic parsers (no
+    model reads prices); strict matcher (brand words required, strengths count, size mismatch rejects, **no variant has a pack
+    size**, so unsized products auto-match only with exactly one plausible listing, else Admin > SA Prices review).
+  - **Retailer rules from robots.txt**: Clicks 10 s crawl delay + 04:00-08:45 UTC window; Dis-Chem no query strings (strip
+    `?srsltid=`), named AI crawlers blocked, behind a Cloudflare challenge on direct fetch (never bypass it); Takealot PLID
+    pages. Run ONE retailer at a time (Firecrawl concurrency 429 stops the run, by design). Daily budget 250 credits.
+  - **Live 2026-10-03**: migrations `20261003120000` (schema/RPCs/view; probe `supabase/tests/retailer_price_pipeline.sql`
+    passes 25 assertions on the live schema) and `...130000` (6 pg_cron jobs, Vault-secret auth verified in the DB) applied;
+    `retailer-price-sync` v3 pinned to a commit on branch `claude/sa-retail-prices` (**re-pin after merge**). Verified end to
+    end: Takealot discovery (conservative, mostly needs_review), Dis-Chem discovery -> 1 auto-match at R165 recorded, refresh
+    -> `skip:unchanged`. **Clicks was not run live** (outside its window when built) - unit-tested on real markup only; check
+    `retailer_price_runs` after the first 04:00 UTC run.
+  - **Supabase SQL tool gotcha (again)**: `execute_sql`/`apply_migration` hang on `DROP` (and I avoid `DELETE` in probes).
+  - Open: admin has to work the needs_review queue (many Standard Beauty/Skin Functional candidates); backfill
+    `product_variants.size_ml`; re-match a page on refresh; the SSR `/reviews/:slug` and SPA both updated, other pages that
+    quote editorial prices (ReviewsGrid cards, comparisons) were not audited.
+- **Growth engine: weekly-digest double opt-in (2026-10-03)** — first task of the Organic Growth
+  & Revenue Engine directive (audit: `docs/growth-engine-audit-2026-10-02.md`; the strategy
+  document itself was never supplied, so targets come from the directive only). Decisions from
+  the owner: double opt-in; SA pricing via Firecrawl/retailer feeds (not built yet); AdSense
+  figures entered by hand until an AdSense API is connected.
+  - **Model**: additive columns on `newsletter_subscribers` (`digest_status` none|pending|
+    confirmed|unsubscribed, source, consent text+version, tokens). `consultation_waitlist`
+    keeps the old early-access list separate. **No client role can write or read tokens on the
+    table** — all writes go through SECURITY DEFINER RPCs: `subscribe_newsletter()` (pending +
+    confirmation email, never reveals if an address exists, 1 resend/hour/address, 300
+    confirmations/hour globally), `confirm_newsletter(token)` (7-day token), `unsubscribe_newsletter()`
+    (service role, called by `email-unsubscribe` after the member token fails), and
+    `join_consultation_waitlist()` (the old form, now an RPC). Consent wording is owned by the SQL
+    function (`digest-2026-10`); `NEWSLETTER_CONSENT_TEXT` must match (a test reads the migration).
+  - **Email**: template `newsletter_digest_confirm` (FORMS, transactional) + send-time guards
+    (only the newest token, only while pending). `enqueue_weekly_newsletter_digest()` now also
+    emails confirmed subscribers (member row wins if the address is also an opted-in member;
+    per-week job keys prevent double sends).
+  - **UI**: `NewsletterSignup` (briefing end, review end) → `/newsletter/confirm` has a BUTTON,
+    not confirm-on-load, so link-scanning mail filters can't subscribe anyone. Events:
+    `newsletter_signup_submitted|failed`, `newsletter_confirmed` (source only, never the email).
+    Admin → Newsletter shows digest status/source (explicit column list; tokens aren't selectable).
+  - **Tests**: `bun test` (helpers, templates, guards), `e2e/newsletter.e2e.ts`, and the
+    rolled-back probe `supabase/tests/newsletter_double_opt_in.sql` (31 assertions, run against a
+    local Postgres with a stubbed schema; NOT yet run against the real project).
+  - **Applied live 2026-10-03** (project `gnkpzijxuciiaamakgzm`, history row `20261003090000
+    newsletter_double_opt_in`): schema, RPCs, trigger, digest function; the probe passed **31/31 on the
+    real schema** (rolled back; nothing left behind); `types.ts` regenerated from the live DB;
+    `email-processor` **v40** (raw-GitHub entry pinned to `20cdf33`) and `email-unsubscribe` **v26**
+    (inline source) deployed; verified through the real public API as `anon` (confirm → "invalid",
+    bad waitlist email → 22023, direct SELECT/token read/pre-confirmed INSERT → 42501).
+    **Re-pin `email-processor` to a commit on `main` after PR #178 merges.**
+  - **Live differs from the repo migration file in two harmless ways** (the SQL tool can't run
+    `DROP`, see below): the original AFTER INSERT trigger `trg_notify_newsletter_subscriber` and the
+    INSERT policy were kept, with a second trigger `trg_notify_newsletter_subscriber_update` for the
+    UPDATE case; and API roles keep `INSERT (email)` only (so the previously deployed waitlist form
+    still works; every other column takes its safe default).
+  - **Found while applying**: the live `enqueue_weekly_newsletter_digest()` was missing the full
+    `unsubscribe_url` (migration `20260919100100` was never applied), so digests carried no working
+    unsubscribe link; this migration supersedes it.
+  - **Tool gotcha (Supabase MCP)**: `execute_sql` / `apply_migration` **hang until the 60 s timeout
+    on any statement containing `DROP`** (it waits for a destructive-statement confirmation nobody
+    sees; nothing is applied). Reads and `CREATE`/`ALTER`/`GRANT`/`REVOKE`/`INSERT` are fine. Work
+    around it with non-DROP equivalents (a new trigger, `ALTER POLICY`, `CREATE OR REPLACE`) and record
+    the migration in `supabase_migrations.schema_migrations` by hand.
+  - Not done: signup in the SSR review/briefing routes and the footer; subscriber counts on the
+    admin funnel panel; a digest preview/send-test tool.
+
 - **Briefings pipeline repair (2026-10-02)** — `briefings-sync` had published nothing since 25 Sep:
   its committed `index.ts` was a stub assembling gzip+base64 parts (`bs.b64.*`) that were
   corrupt (gunzip CRC error), so every 04:00 UTC cron run crashed. Restored as plain TypeScript
@@ -3534,10 +3609,9 @@ Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applie
   `src/routes/briefings.$slug.tsx`) — each of those four files previously
   had at most one ad slot and zero `FaithfulToNature` placements.
   `src/routes/briefings.$slug.tsx` in particular is a genuinely bare-bones
-  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element,
-  and — separately, not touched in this pass — it never actually queries
-  or renders the briefing's `body` content, only excerpt/key-takeaways/
-  source) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
+  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element;
+  **corrected 2026-10-03:** it does fetch and render the body via `get_article_body` for free
+  briefings, premium ones are withheld from anonymous requests) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
   ad components were still added there in plain, unstyled form consistent
   with the rest of that file, since fixing that page's missing body
   content is a separate, larger, undocumented gap outside this task's

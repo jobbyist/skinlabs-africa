@@ -37,6 +37,7 @@ async function fetchGeneratedReviews(): Promise<ProductReview[]> {
     key_ingredients: row.key_ingredients ?? [],
     retailers: (row.retailers as unknown as RetailerListing[] | null) ?? [],
     isNew: new Date(row.published_date).getTime() >= cutoff,
+    published_date: row.published_date,
     seo_intro: row.seo_intro,
     review_body: row.review_body,
     product_size: row.product_size,

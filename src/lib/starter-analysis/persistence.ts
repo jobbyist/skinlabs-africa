@@ -1,16 +1,11 @@
 /**
- * Anonymous persistence + account linking (Sections 16-19). Before this,
- * SKYNN AI held every bit of quiz/result state in plain React `useState` —
- * confirmed by audit to have zero localStorage/sessionStorage usage anywhere
- * in AIFormulator.tsx — so a refresh at any point discarded everything.
+ * Anonymous persistence + account linking (Sections 16-19).
  *
- * Deliberate scope decision: the uploaded photo's base64 bytes are NEVER
- * written to localStorage. A face photo sitting in unencrypted browser
- * storage indefinitely is itself a privacy exposure (Section 36), so the
- * draft only remembers *that* a photo was attached, not the photo itself —
- * a refresh loses the image but keeps every answer, context response and
- * generated result. This is documented as a known limitation in the final
- * implementation summary.
+ * Basic Analysis photos remain out of localStorage. When a member chooses a
+ * photo and completes the Basic AI Skin Analysis, the selected image is read
+ * directly from the two dedicated analysis photo inputs at save time and,
+ * after authentication and photo consent, uploaded to the member's private
+ * PhotoJournal bucket. The server-side storage bucket is capped at 5 MB.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -20,20 +15,33 @@ import { isFormulatorLimitError } from "@/lib/formulator/limits";
 
 const DRAFT_KEY = "skynn_starter_draft_v1";
 const RESULT_KEY = "skynn_starter_result_v1";
+export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const PHOTO_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 
-export interface StarterDraftState {
-  analysisId: string;
-  step: number;
-  answers: Record<string, number>;
-  mstTone: number | null;
-  changeContext: ChangeContext;
-  priorityPreference: PriorityPreference | null;
-  hasPhotoPending: boolean;
-  contactName: string;
-  contactEmail: string;
-  contactWhatsApp: string;
-  savedAt: string;
-}
+const isSupportedPhoto = (file: File): boolean =>
+  PHOTO_MIME_TYPES.includes(file.type as (typeof PHOTO_MIME_TYPES)[number]) && file.size <= MAX_PHOTO_BYTES;
+
+/**
+ * The Basic Analysis UI owns these two inputs. Reading them at save time avoids
+ * a global document listener and guarantees a removed/replaced photo is not
+ * accidentally retained as a stale baseline.
+ */
+const getCurrentBasicPhoto = (): File | null => {
+  if (typeof document === "undefined" || !window.location.pathname.startsWith("/skynn-ai")) return null;
+
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>(
+    'input[type="file"][accept="image/jpeg,image/png,image/webp,image/heic"]',
+  ));
+  const file = inputs.map((input) => input.files?.[0]).find(Boolean) ?? null;
+  return file && isSupportedPhoto(file) ? file : null;
+};
+
+const hasPhotoConsent = (): boolean => {
+  if (typeof document === "undefined") return false;
+  const consent = document.getElementById("photo-consent");
+  if (!consent) return false;
+  return consent.getAttribute("data-state") === "checked" || consent.getAttribute("aria-checked") === "true";
+};
 
 const safeParse = <T,>(raw: string | null): T | null => {
   if (!raw) return null;
@@ -67,6 +75,20 @@ export const clearDraftState = (): void => {
     // ignore
   }
 };
+
+export interface StarterDraftState {
+  analysisId: string;
+  step: number;
+  answers: Record<string, number>;
+  mstTone: number | null;
+  changeContext: ChangeContext;
+  priorityPreference: PriorityPreference | null;
+  hasPhotoPending: boolean;
+  contactName: string;
+  contactEmail: string;
+  contactWhatsApp: string;
+  savedAt: string;
+}
 
 export interface StarterCompletedState {
   analysisId: string;
@@ -106,7 +128,25 @@ export const clearAllStarterAnalysisState = (): void => {
   clearCompletedState();
 };
 
-/** Arguments for the save_starter_analysis() RPC — pure, so the anonymous→account handoff is unit-testable. */
+const uploadCurrentBasicPhoto = async (analysisId: string): Promise<string | null> => {
+  const photo = getCurrentBasicPhoto();
+  if (!photo || !hasPhotoConsent()) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return null;
+
+  const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${uid}/journal/baseline-${analysisId}.${extension}`;
+  const { error } = await supabase.storage.from("skin-analysis-photos").upload(path, photo, {
+    cacheControl: "3600",
+    contentType: photo.type,
+    upsert: true,
+  });
+  if (error) throw new Error(`Could not save your PhotoJournal baseline: ${error.message}`);
+  return path;
+};
+
+/** Arguments for the save_starter_analysis() RPC. */
 export const buildStarterSavePayload = (params: {
   result: StarterAnalysisResult;
   contactName: string | null;
@@ -120,8 +160,6 @@ export const buildStarterSavePayload = (params: {
   p_recommendation: params.result.recommendationText,
   p_result_payload: params.result as unknown as Json,
   p_analysis_completeness: params.result.completeness.overall,
-  // Optional args default to NULL server-side, so an absent value is omitted
-  // (undefined) rather than sent as null — the RPC sees NULL either way.
   p_mst_tone: params.result.profile.mstTone ?? undefined,
   p_contact_name: params.contactName ?? undefined,
   p_contact_whatsapp: params.contactWhatsApp ?? undefined,
@@ -133,18 +171,15 @@ export type StarterSaveSource = "existing" | "membership" | "free_allowance" | "
 
 export interface StarterSaveOutcome {
   error: Error | null;
-  /** The server refused because the free allowance is spent and no Analysis Pass is held. */
   limitReached: boolean;
   nextUnlockAt: Date | null;
   source: StarterSaveSource | null;
 }
 
 /**
- * Saves (or re-saves) a starter result to the signed-in account through
- * save_starter_analysis() — the only write path the server accepts for starter
- * rows. The RPC checks and stamps the rolling free allowance in the same
- * transaction as the insert, and is idempotent on `analysisId`: a refinement
- * re-save, retry or double click updates the same row and is never charged twice.
+ * Saves a starter result and, when the member explicitly consented to storing
+ * the selected photo, persists that photo as the private PhotoJournal baseline.
+ * The authoritative analysis entitlement/allowance check remains the RPC.
  */
 export const persistStarterResultToAccount = async (params: {
   result: StarterAnalysisResult;
@@ -153,9 +188,17 @@ export const persistStarterResultToAccount = async (params: {
   photoStoragePath?: string | null;
   variantKey: string;
 }): Promise<StarterSaveOutcome> => {
+  let photoStoragePath = params.photoStoragePath ?? null;
+  let uploadedPath: string | null = null;
   try {
-    const { data, error } = await supabase.rpc("save_starter_analysis", buildStarterSavePayload(params));
+    if (!photoStoragePath) {
+      uploadedPath = await uploadCurrentBasicPhoto(params.result.analysisId);
+      photoStoragePath = uploadedPath;
+    }
+
+    const { data, error } = await supabase.rpc("save_starter_analysis", buildStarterSavePayload({ ...params, photoStoragePath }));
     if (error) {
+      if (uploadedPath) await supabase.storage.from("skin-analysis-photos").remove([uploadedPath]);
       if (isFormulatorLimitError(error)) {
         const detail = (error as { details?: string }).details;
         const unlock = detail ? new Date(detail) : null;
@@ -169,6 +212,21 @@ export const persistStarterResultToAccount = async (params: {
       return { error: new Error(error.message), limitReached: false, nextUnlockAt: null, source: null };
     }
     const row = Array.isArray(data) ? data[0] : data;
+
+    if (photoStoragePath) {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (currentUser.user?.id) {
+        const { error: journalError } = await (supabase as any).from("skin_photo_journal_entries").upsert({
+          user_id: currentUser.user.id,
+          storage_path: photoStoragePath,
+          entry_type: "baseline",
+          source_analysis_id: params.result.analysisId,
+          captured_at: new Date().toISOString(),
+        }, { onConflict: "user_id,source_analysis_id" });
+        if (journalError) console.error("PhotoJournal baseline save failed", journalError);
+      }
+    }
+
     return {
       error: null,
       limitReached: false,
@@ -176,12 +234,7 @@ export const persistStarterResultToAccount = async (params: {
       source: (row?.source as StarterSaveSource) ?? null,
     };
   } catch (e) {
-    return {
-      error: e instanceof Error ? e : new Error("Unknown error saving analysis"),
-      limitReached: false,
-      nextUnlockAt: null,
-      source: null,
-    };
+    if (uploadedPath) await supabase.storage.from("skin-analysis-photos").remove([uploadedPath]);
+    return { error: e instanceof Error ? e : new Error("Unknown error saving analysis"), limitReached: false, nextUnlockAt: null, source: null };
   }
 };
-

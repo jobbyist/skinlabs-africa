@@ -68,9 +68,17 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const { data: success, error } = await admin.rpc("unsubscribe_marketing", { p_token: token });
-  if (error) {
-    console.error("email-unsubscribe: RPC failed", error);
+  // The token belongs either to a member's profile or to a double-opt-in
+  // newsletter subscriber (no account); try the member first, then the subscriber.
+  const member = await admin.rpc("unsubscribe_marketing", { p_token: token });
+  if (member.error) {
+    console.error("email-unsubscribe: RPC failed", member.error);
+  }
+  let success: boolean | null = member.data;
+  if (!success) {
+    const sub = await admin.rpc("unsubscribe_newsletter", { p_token: token });
+    if (sub.error) console.error("email-unsubscribe: newsletter RPC failed", sub.error);
+    success = sub.data;
   }
 
   if (isPost) {

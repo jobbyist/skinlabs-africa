@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, Atom, Loader2, Users, Newspaper, Star } from "lucide-react";
+import { ArrowRight, Atom, BookOpen, Headphones, Loader2, Users, Newspaper, Star } from "lucide-react";
+import { useHeroCtas } from "@/hooks/use-hero-ctas";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import heroVideoAsset from "@/assets/hero-video.mp4";
@@ -57,6 +58,8 @@ const Hero = () => {
   // plan, so a paying Glow Lite member gets the plans link instead.
   const statusLoading = authLoading || (Boolean(user) && membershipLoading);
   const canTrial = !user || (tier === "explorer" && !isTrialing && !trialUsed);
+  const ctas = useHeroCtas();
+  const trackCta = (id: string, slot: string) => trackConversionEvent("upgrade_click", { source: "home_hero", kind: id, feature: slot });
 
   const handleTrialClick = () => {
     trackConversionEvent("membership_plan_selected", { plan: "insider", kind: "trial", source: "home_hero" });
@@ -152,14 +155,26 @@ const Hero = () => {
             <div className="flex flex-col items-center gap-3 lg:items-start">
               <Button
                 size="lg"
-                className="gap-2 text-base px-8 shadow-lg shadow-primary/10 transition-transform motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] hover:shadow-xl hover:shadow-primary/15"
+                className="h-auto min-h-11 gap-2 whitespace-normal text-base px-8 py-3 shadow-lg shadow-primary/10 transition-transform motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] hover:shadow-xl hover:shadow-primary/15"
                 asChild
               >
-                <a href="/skynn-ai">
-                  Get Your Free Basic AI Skin Report
-                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </a>
+                <Link to={ctas.primary.href} onClick={() => trackCta(ctas.primary.id, "primary")}>
+                  {ctas.primary.label}
+                  <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+                </Link>
               </Button>
+              {ctas.secondary.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
+                  {ctas.secondary.map((c) => (
+                    <Button key={c.id} variant="outline" size="sm" className="gap-1.5 bg-background/60 backdrop-blur" asChild>
+                      <Link to={c.href} onClick={() => trackCta(c.id, "secondary")}>
+                        {c.id === "podcast" ? <Headphones className="h-3.5 w-3.5" aria-hidden /> : <BookOpen className="h-3.5 w-3.5" aria-hidden />}
+                        {c.label}
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
+              )}
               {/* Stays rendered (disabled) while auth/membership load, so the prerendered hero doesn't shift.
                   A paying member gets nothing here — a trial they can't use would be misleading. */}
               <div className="min-h-6 text-sm">

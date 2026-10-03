@@ -1,10 +1,8 @@
+import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
 import PromoOfferDialog from "@/components/PromoOfferDialog";
 import { PROMO_END_AT, PROMO_END_DATE_LABEL } from "@/lib/promo";
-
-interface PromoAnnouncementBarProps {
-  onDismiss: () => void;
-}
+import PromoTrialModal from "@/components/PromoTrialModal";
 
 /**
  * Fixed, single-line promo bar above the main nav. Header.tsx renders this
@@ -13,33 +11,43 @@ interface PromoAnnouncementBarProps {
  * above a fixed header without editing every page's own pt-* class).
  * md and up only: on phones the same message is PromoHeaderChip, inside the
  * header row, so it doesn't stack another fixed bar above the nav.
+ * Both open the conversion-focused PromoTrialModal instead of navigating to
+ * /announcements; the announcement stays reachable from the modal itself.
  */
-const PromoAnnouncementBar = ({ onDismiss }: PromoAnnouncementBarProps) => (
-  <div
-    className="fixed inset-x-0 top-0 z-[60] hidden h-9 md:flex items-center justify-center gap-2 bg-[image:var(--gradient-brand)] px-3 text-white"
-    role="region"
-    aria-label="Site announcement"
-  >
-    <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-    <p className="min-w-0 truncate text-center text-xs font-medium sm:text-sm">
-      <span className="hidden sm:inline">Limited time: </span>
-      All paid plans are free to try until {PROMO_END_DATE_LABEL}.{" "}
-      <PromoOfferDialog source="promo_bar">
-        <button type="button" className="underline underline-offset-2 hover:no-underline">
-          See details
+const PromoAnnouncementBar = ({ onDismiss }: { onDismiss: () => void }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div
+        className="fixed inset-x-0 top-0 z-[60] hidden h-9 md:flex items-center justify-center gap-2 bg-[image:var(--gradient-brand)] px-3 text-white"
+        role="region"
+        aria-label="Site announcement"
+      >
+        <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <p className="min-w-0 truncate text-center text-xs font-medium sm:text-sm">
+          <span className="hidden sm:inline">Limited time: </span>
+          All paid plans are free to try until {PROMO_END_DATE_LABEL}.{" "}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="underline underline-offset-2 hover:no-underline"
+          >
+            See details
+          </button>
+        </p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss announcement"
+          className="ml-1 shrink-0 rounded-full p-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+        >
+          <X className="h-3.5 w-3.5" />
         </button>
-      </PromoOfferDialog>
-    </p>
-    <button
-      type="button"
-      onClick={onDismiss}
-      aria-label="Dismiss announcement"
-      className="ml-1 shrink-0 rounded-full p-1 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
-    >
-      <X className="h-3.5 w-3.5" />
-    </button>
-  </div>
-);
+      </div>
+      <PromoTrialModal open={open} onOpenChange={setOpen} />
+    </>
+  );
+};
 
 export default PromoAnnouncementBar;
 
@@ -51,15 +59,21 @@ const promoEndShort = () => {
   return `${sast.getUTCDate()} ${MONTHS[sast.getUTCMonth()]}`;
 };
 
-/** The promo message as a compact pill in the mobile header row (below md). */
-export const PromoHeaderChip = () => (
-  <PromoOfferDialog source="promo_header_chip">
-    <button
-      type="button"
-      className="ml-0.5 mr-auto inline-flex min-h-7 max-[369px]:hidden shrink-0 items-center whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-2 text-[10px] tracking-tight font-semibold text-white md:hidden"
-      aria-label={`All paid plans are free to try until ${PROMO_END_DATE_LABEL}. See details`}
-    >
-      Free until {promoEndShort()}
-    </button>
-  </PromoOfferDialog>
-);
+/** The promo message as a compact pill in the mobile header row (below md).
+    Opens the PromoTrialModal instead of navigating to /announcements. */
+export const PromoHeaderChip = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="ml-0.5 mr-auto inline-flex min-h-7 max-[369px]:hidden shrink-0 items-center whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-2 text-[10px] tracking-tight font-semibold text-white md:hidden"
+        aria-label={`All paid plans are free to try until ${PROMO_END_DATE_LABEL}. See details`}
+      >
+        Free until {promoEndShort()}
+      </button>
+      <PromoTrialModal open={open} onOpenChange={setOpen} />
+    </>
+  );
+};

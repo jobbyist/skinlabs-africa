@@ -108,7 +108,16 @@ export type ConversionEvent =
   // Broader site-wide gap-fill (2026-09-22) — key actions across the app
   // that had no analytics instrumentation at all before this pass.
   | "newsletter_subscribed"
+  | "sa_price_link_clicked"
+  // Weekly-digest double opt-in funnel (growth engine). Payloads: source only, never the email.
+  | "newsletter_signup_submitted"
+  | "newsletter_signup_failed"
+  | "newsletter_confirmed"
   | "brand_request_submitted"
+  // Photo journal (declared here because PhotoJournalTab fires them; main was missing these)
+  | "photo_journal_frequency_changed"
+  | "photo_journal_entry_added"
+  | "photo_journal_entry_deleted"
   | "partner_enquiry_submitted"
   | "ingredient_checker_checked"
   | "consultation_booking_requested"
