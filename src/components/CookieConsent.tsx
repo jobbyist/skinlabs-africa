@@ -54,7 +54,7 @@ const CookieConsent = () => {
       aria-label="Cookie consent settings"
       aria-live="polite"
     >
-      <div className="relative rounded-t-3xl border border-border bg-background p-6 shadow-2xl sm:rounded-3xl">
+      <div className="relative rounded-t-3xl border border-border bg-background p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl">
         <button
           type="button"
           onClick={handleRejectNonEssential}
