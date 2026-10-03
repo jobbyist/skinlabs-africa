@@ -60,7 +60,9 @@ test("signing up from a review asks for confirmation and never says 'subscribed'
   await expect(form).toContainText("You'll get a confirmation email first");
 
   await form.getByLabel("Email address").fill("Reader@Example.com");
-  await form.getByRole("button", { name: "Subscribe" }).click();
+  // Submit from the field: the review page shifts while ad slots settle, so a pointer
+  // click on the button can land on the fixed header or bottom nav instead.
+  await form.getByLabel("Email address").press("Enter");
 
   await expect(form.getByRole("status")).toContainText("Check your inbox");
   await expect(form).not.toContainText("You're subscribed");
@@ -79,7 +81,9 @@ test("a bad address is caught before anything is sent", async ({ page, context }
   await page.goto("/reviews/sb-glow-glaze-serum");
   const form = page.getByRole("region", { name: "The SkinLabs weekly digest" });
   await form.getByLabel("Email address").fill("nope");
-  await form.getByRole("button", { name: "Subscribe" }).click();
+  // Submit from the field: the review page shifts while ad slots settle, so a pointer
+  // click on the button can land on the fixed header or bottom nav instead.
+  await form.getByLabel("Email address").press("Enter");
   await expect(form.getByRole("alert")).toContainText("doesn't look right");
   expect(called).toBe(false);
 });

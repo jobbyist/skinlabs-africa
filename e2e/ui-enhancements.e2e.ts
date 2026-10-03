@@ -92,7 +92,8 @@ test.describe("hero trial link", () => {
 });
 
 test.describe("members' content rail (phones)", () => {
-  test.beforeEach((_fixtures, testInfo) => {
+  // eslint-disable-next-line no-empty-pattern -- Playwright requires a destructuring pattern here.
+  test.beforeEach(({}, testInfo) => {
     test.skip(!testInfo.project.name.startsWith("mobile"), "phone chrome only");
   });
 
@@ -136,7 +137,8 @@ test.describe("members' content rail (phones)", () => {
 });
 
 test.describe("contextual feedback survey (phones, members)", () => {
-  test.beforeEach((_fixtures, testInfo) => {
+  // eslint-disable-next-line no-empty-pattern -- Playwright requires a destructuring pattern here.
+  test.beforeEach(({}, testInfo) => {
     test.skip(!testInfo.project.name.startsWith("mobile"), "mobile only by design");
   });
 
