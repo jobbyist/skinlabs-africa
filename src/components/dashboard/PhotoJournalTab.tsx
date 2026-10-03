@@ -87,7 +87,10 @@ const PhotoJournalTab = () => {
 
   const handleUpload = async (file: File) => {
     if (!user) return;
-    if (!file.type.startsWith("image/")) {
+    // Some browsers report an empty type for HEIC/HEIF files.
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const looksLikeImage = file.type.startsWith("image/") || ["heic", "heif"].includes(ext);
+    if (!looksLikeImage) {
       toast.error("Please choose an image file");
       return;
     }
@@ -101,7 +104,7 @@ const PhotoJournalTab = () => {
       const path = `${user.id}/journal/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage.from("skin-analysis-photos").upload(path, file, {
         cacheControl: "3600",
-        contentType: file.type,
+        contentType: file.type || (ext === "heif" ? "image/heif" : ext === "heic" ? "image/heic" : "image/jpeg"),
         upsert: false,
       });
       if (uploadError) throw uploadError;

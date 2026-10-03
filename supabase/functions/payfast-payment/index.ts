@@ -488,7 +488,7 @@ Deno.serve(async (req) => {
       return json({ ok: true, cancelled: (rows ?? []).length });
     }
 
-    // ---- One-off checkout (Analysis Passes, founding member) ----
+    // ---- One-off checkout (Analysis Passes) ----
     if (action !== "initialize") return json({ error: "Unknown action" }, 400);
     if (!env.merchantId || !env.merchantKey) {
       return json({ error: "PayFast isn't available right now. Please choose another payment method." }, 503);

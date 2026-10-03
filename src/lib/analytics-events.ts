@@ -44,8 +44,6 @@ export type ConversionEvent =
   | "subscription_cancelled"
   | "credit_pack_viewed"
   | "credit_pack_purchased"
-  | "founding_member_viewed"
-  | "founding_member_purchased"
   // Starter Analysis 2.0 — per-question funnel + refinement/conversion detail
   // not covered by the events above (see Section 24 of the implementation spec).
   | "starter_question_viewed"
@@ -123,6 +121,7 @@ export type ConversionEvent =
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"
+  | "routine_saved"
   // Free-first SKYNN AI formulator + rolling free-analysis allowance (2026-09-24).
   | "formulator_started"
   | "formulator_completed_anonymous"

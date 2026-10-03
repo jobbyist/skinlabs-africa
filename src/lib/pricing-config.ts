@@ -21,7 +21,6 @@ import type { Tables } from "@/integrations/supabase/types";
 
 export type PricingPlan = Tables<"pricing_plans">;
 export type CreditPack = Tables<"credit_packs">;
-export type FoundingMemberOffer = Tables<"founding_member_offers">;
 export type PricingSettings = Tables<"pricing_settings">;
 
 const VARIANT_STORAGE_KEY = "skinlabs-pricing-variant";
@@ -99,7 +98,6 @@ export interface PricingConfig {
   variantKey: string;
   plans: PricingPlan[];
   creditPacks: CreditPack[];
-  foundingOffer: FoundingMemberOffer | null;
   settings: PricingSettings;
 }
 
@@ -133,15 +131,10 @@ async function fetchPricingConfig(): Promise<PricingConfig> {
   const activeVariants = variantRows && variantRows.length > 0 ? variantRows : [{ variant_key: "control", traffic_weight: 100, is_active: true }];
   const variantKey = resolvePricingVariant(activeVariants);
 
-  const [{ data: plans }, { data: packs }, { data: offers }, { data: settingsRows }] = await withTimeout(
+  const [{ data: plans }, { data: packs }, { data: settingsRows }] = await withTimeout(
     Promise.all([
       supabase.from("pricing_plans").select("*").in("variant_key", [variantKey, "control"]),
       supabase.from("credit_packs").select("*").eq("is_active", true).in("variant_key", [variantKey, "control"]),
-      supabase
-        .from("founding_member_offers")
-        .select("*")
-        .eq("is_active", true)
-        .in("variant_key", [variantKey, "control"]),
       supabase.from("pricing_settings").select("*").in("variant_key", [variantKey, "control"]),
     ]),
     CONFIG_FETCH_TIMEOUT_MS,
@@ -149,16 +142,12 @@ async function fetchPricingConfig(): Promise<PricingConfig> {
 
   const mergedPlans = mergeByVariant(plans ?? [], "plan_id", variantKey).sort((a, b) => a.sort_order - b.sort_order);
   const mergedPacks = mergeByVariant(packs ?? [], "pack_id", variantKey).sort((a, b) => a.sort_order - b.sort_order);
-  const foundingOffer =
-    (offers ?? []).find((o) => o.variant_key === variantKey) ??
-    (offers ?? []).find((o) => o.variant_key === "control") ??
-    null;
   const settings =
     (settingsRows ?? []).find((s) => s.variant_key === variantKey) ??
     (settingsRows ?? []).find((s) => s.variant_key === "control") ??
     FALLBACK_SETTINGS;
 
-  return { variantKey, plans: mergedPlans, creditPacks: mergedPacks, foundingOffer, settings };
+  return { variantKey, plans: mergedPlans, creditPacks: mergedPacks, settings };
 }
 
 export const usePricingConfig = () =>

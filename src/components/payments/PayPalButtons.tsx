@@ -1,3 +1,4 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
@@ -50,7 +51,7 @@ const PayPalButtons = ({ purchase, onApproved, onError, onBusyChange }: PayPalBu
     setLoadError(null);
 
     const isSubscription = purchase.purchaseType === "plan";
-    const callbackUrl = `${window.location.origin}/dashboard?payment=success`;
+    const callbackUrl = `${getSiteOrigin()}/dashboard?payment=success`;
 
     const setBusy = (busy: boolean) => {
       setConfirming(busy);

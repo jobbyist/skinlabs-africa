@@ -299,17 +299,6 @@ const UserDashboard = () => {
         }
         return false;
       }
-      if (purchaseType === "founding_member") {
-        const { data } = await supabase.from("profiles").select("founding_member").eq("user_id", user.id).maybeSingle();
-        if (data?.founding_member) {
-          refreshMembership();
-          trackConversionEvent("checkout_completed", { purchaseType });
-          trackConversionEvent("founding_member_purchased", { offerId: searchParams.get("offer_id") ?? undefined });
-          toast.success("Welcome — you're a SkinLabs Founding Member.");
-          return true;
-        }
-        return false;
-      }
       const { data } = await supabase
         .from("profiles")
         .select("subscription_status, trial_ends_at")

@@ -4,14 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
  * Client for the paypal-payment edge function + PayPal JS SDK loader.
  *
  * Every price is resolved server-side from the ZAR list price (pricing_plans /
- * credit_packs / founding_member_offers) and converted to USD at a live rate —
+ * credit_packs) and converted to USD at a live rate —
  * PayPal doesn't support ZAR as a transaction currency. Nothing here ever
  * sends an amount.
  */
 
 export type PaypalOrderPurchase =
   | { purchaseType: "credit_pack"; packId: string; variantKey?: string }
-  | { purchaseType: "founding_member"; offerId: string };
 
 export interface PaypalSubscriptionPurchase {
   purchaseType: "plan";

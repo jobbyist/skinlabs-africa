@@ -1,5 +1,6 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -28,6 +29,7 @@ import {
   Leaf,
   Play,
   Download,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
@@ -64,6 +66,7 @@ import { CHANGE_QUESTION } from "@/data/starter-analysis/contextQuestions";
 import { type CompletenessBreakdown } from "@/data/formulaResults";
 import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { logFairnessEvent } from "@/lib/skynnFairness";
+import { isWelcomeInProgress } from "@/lib/welcomeResume";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { getPendingIntent, setPendingIntent, withPendingIntentParams } from "@/lib/pendingIntent";
@@ -554,7 +557,7 @@ const AIFormulator = () => {
         ? await signUp(
             contactEmail,
             authPassword,
-            withPendingIntentParams(`${window.location.origin}/skynn-ai`, getPendingIntent()),
+            withPendingIntentParams(`${getSiteOrigin()}/skynn-ai`, getPendingIntent()),
           )
         : await signIn(contactEmail, authPassword);
     const { error } = response;
@@ -1231,6 +1234,14 @@ const AIFormulator = () => {
 
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
+                  {resultsSaved && isWelcomeInProgress() && (
+                    <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-muted/45 p-4 sm:flex-row">
+                      <p className="text-sm text-secondary-text">Your skin profile is saved. Two quick steps left to finish setting up.</p>
+                      <Button asChild className="min-h-11 gap-2">
+                        <Link to="/welcome">Continue setup <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+                      </Button>
+                    </div>
+                  )}
                   <div className="text-center">
                     <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
                       {showFullResult ? `Your ${BASIC_NAME}` : "Your skin at a glance"}

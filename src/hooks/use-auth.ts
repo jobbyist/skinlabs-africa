@@ -1,3 +1,4 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -40,7 +41,7 @@ export const useAuth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectTo ?? window.location.origin,
+        emailRedirectTo: redirectTo ?? getSiteOrigin(),
         data: marketingConsent ? { marketing_consent: true } : undefined,
       },
     });
@@ -50,7 +51,7 @@ export const useAuth = () => {
   const signInWithGoogle = async (redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
+      options: { redirectTo: redirectTo ?? `${getSiteOrigin()}${window.location.pathname}` },
     });
     return { data, error };
   };
@@ -64,7 +65,7 @@ export const useAuth = () => {
   const signInWithMagicLink = async (email: string, redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
+      options: { emailRedirectTo: redirectTo ?? `${getSiteOrigin()}${window.location.pathname}` },
     });
     return { data, error };
   };
@@ -82,7 +83,7 @@ export const useAuth = () => {
    */
   const sendPasswordReset = async (email: string) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${getSiteOrigin()}/reset-password`,
     });
     return { data, error };
   };
@@ -110,7 +111,7 @@ export const useAuth = () => {
     const { data, error } = await supabase.auth.resend({
       type: "signup",
       email: user.email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: { emailRedirectTo: `${getSiteOrigin()}/dashboard` },
     });
     return { data, error };
   };
