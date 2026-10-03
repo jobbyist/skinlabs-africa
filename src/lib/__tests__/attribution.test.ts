@@ -62,4 +62,8 @@ describe("attributionSignature", () => {
     expect(attributionSignature(a)).toBe(attributionSignature({ ...a }));
     expect(attributionSignature(a)).not.toBe(attributionSignature({ ...a, utm_content: "v2" }));
   });
+  test("links that differ only by utm_term are different landings", () => {
+    const a = { utm_source: "tiktok", utm_medium: "paid_social", utm_campaign: "c", utm_content: "v1", utm_term: "t1" };
+    expect(attributionSignature(a)).not.toBe(attributionSignature({ ...a, utm_term: "t2" }));
+  });
 });

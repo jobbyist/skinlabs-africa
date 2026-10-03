@@ -60,9 +60,13 @@ export const parseAttribution = (search: string): Attribution | null => {
   return found;
 };
 
-/** Stable label for "this campaign + ad", used to log one landing per campaign per session. */
+/**
+ * Stable label for "this campaign + ad + keyword", used to log one landing per campaign per session.
+ * `utm_term` is included so two links that differ only by term aren't collapsed into one landing. (The Admin report
+ * groups by source / medium / campaign / content, so term-only variants still roll up into the same ad row there.)
+ */
 export const attributionSignature = (a: Attribution): string =>
-  [a.utm_source, a.utm_medium, a.utm_campaign, a.utm_content].map((v) => v ?? "").join("|");
+  [a.utm_source, a.utm_medium, a.utm_campaign, a.utm_content, a.utm_term].map((v) => v ?? "").join("|");
 
 const newSessionId = (): string => {
   const c = typeof crypto !== "undefined" ? crypto : undefined;
