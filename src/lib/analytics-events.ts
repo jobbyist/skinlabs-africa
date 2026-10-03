@@ -1,6 +1,7 @@
 import { track } from "@vercel/analytics";
 import { supabase } from "@/integrations/supabase/client";
 import { forwardConversionToTikTok } from "@/lib/tiktok/pixel";
+import { readAttribution } from "@/lib/attribution";
 
 /**
  * Central conversion-event vocabulary for SkinLabs' free -> paid funnel.
@@ -14,6 +15,8 @@ import { forwardConversionToTikTok } from "@/lib/tiktok/pixel";
  * site stays the same.
  */
 export type ConversionEvent =
+  // Paid-traffic landing (utm_* / ttclid) — one per campaign per session, fired by <AttributionCapture />.
+  | "campaign_landing"
   | "analysis_started"
   | "consent_completed"
   | "profile_completed"
@@ -148,8 +151,11 @@ type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
 export const trackConversionEvent = (event: ConversionEvent, payload: ConversionPayload = {}) => {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
+  // Campaign labels (utm_*, session id) ride along on our own analytics only. They are deliberately NOT
+  // part of the payload handed to TikTok below. Explicit payload keys win over attribution keys.
+  const attributed: ConversionPayload = { ...readAttribution(), ...payload };
   try {
-    track(event, { ...payload, path });
+    track(event, { ...attributed, path });
   } catch {
     // Never let analytics failures affect the feature they're instrumenting.
   }
@@ -168,7 +174,7 @@ export const trackConversionEvent = (event: ConversionEvent, payload: Conversion
       .then(({ data }) =>
         supabase.from("analytics_events").insert({
           event_name: event,
-          payload,
+          payload: attributed,
           path,
           user_id: data.session?.user.id ?? null,
         }),

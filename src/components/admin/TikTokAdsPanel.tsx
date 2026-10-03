@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import CampaignAttribution from "./CampaignAttribution";
 
 type RangeDays = 7 | 30 | 90;
 type PageKey = "home" | "skynn-ai" | "skynn-ai-advanced" | "other";
@@ -114,6 +115,8 @@ const TikTokAdsPanel = () => {
           </Button>
         </div>
       </div>
+
+      <CampaignAttribution range={range} />
 
       {loading && !data && (
         <div className="flex justify-center py-12">

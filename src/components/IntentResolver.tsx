@@ -8,6 +8,12 @@ import { WELCOME_PATH, isNewAccount, shouldRedirectNewAccount, trialDestination 
 import { useStartTrial } from "@/hooks/use-start-trial";
 import { markWelcomeInProgress } from "@/lib/welcomeResume";
 import { openMembershipCheckout } from "@/lib/conversionDialogs";
+import { trackConversionEvent } from "@/lib/analytics-events";
+import {
+  hasTrackedOAuthRegistration,
+  markOAuthRegistrationTracked,
+  shouldTrackOAuthRegistration,
+} from "@/lib/oauthRegistration";
 
 /** Once per browser session per account, so a reload never re-routes a new member. */
 const ROUTED_KEY_PREFIX = "skinlabs_intent_routed:";
@@ -55,6 +61,19 @@ const IntentResolver = () => {
     const previous = lastUserId.current;
     lastUserId.current = userId;
     if (!userId || userId === previous) return;
+
+    // A Google sign-up returns here already signed in, so AuthDialog's email path never fired for it.
+    // Counts once per brand-new Google account (see src/lib/oauthRegistration.ts).
+    if (
+      shouldTrackOAuthRegistration({
+        provider: user?.app_metadata?.provider,
+        createdAt: user?.created_at,
+        alreadyTracked: hasTrackedOAuthRegistration(userId),
+      })
+    ) {
+      markOAuthRegistrationTracked(userId);
+      trackConversionEvent("signup_completed", { method: "google" });
+    }
 
     const go = (to: string) => {
       if (to !== here) navigate(to);

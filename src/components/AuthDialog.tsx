@@ -195,7 +195,7 @@ const AuthDialog = ({
       setFormError(error.message);
       toast.error(error.message);
     } else {
-      trackConversionEvent("signup_completed");
+      trackConversionEvent("signup_completed", { method: "email" });
       toast.success("You're in. Skincare without the nonsense starts here.");
       onOpenChange(false);
       onAuthenticated?.();
