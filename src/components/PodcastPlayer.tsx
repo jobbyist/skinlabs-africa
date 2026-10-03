@@ -8,9 +8,20 @@ import { publishedPodcastEpisodes, type PodcastEpisode } from "@/data/podcast";
 import { useMembership } from "@/hooks/use-membership";
 import { canPlayPodcastEpisode, recordPodcastPlay } from "@/lib/access-quotas";
 import { useAuth } from "@/hooks/use-auth";
+import { getSavedPosition, readPositions, saveLocalPosition, syncProgressToAccount } from "@/lib/pwa/playbackProgress";
+import { getDownloadedObjectUrl, isDownloaded, loadDownloads } from "@/lib/pwa/podcastCache";
+import { trackPwaEvent } from "@/lib/pwa/analytics";
+import {
+  SEEK_SECONDS,
+  bindMediaSessionHandlers,
+  setMediaMetadata,
+  setPlaybackState,
+  setPositionState,
+} from "@/lib/pwa/mediaSession";
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
-const POSITION_KEY = "skinlabs-podcast-positions";
+/** Resume positions are written locally at most this often while playing (and always on pause/end/hide). */
+const POSITION_SAVE_INTERVAL_MS = 2000;
 
 interface PlayerContextValue {
   current: PodcastEpisode | null;
@@ -34,16 +45,8 @@ export const usePodcastPlayer = () => {
   return ctx;
 };
 
-const readPositions = (): Record<string, number> => {
-  try {
-    return JSON.parse(localStorage.getItem(POSITION_KEY) || "{}");
-  } catch {
-    return {};
-  }
-};
-
 /** Saved resume position for an episode, in seconds, or undefined if never played. */
-export const getSavedPosition = (slug: string) => readPositions()[slug];
+export { getSavedPosition };
 
 export const formatTime = (value: number) => {
   if (!Number.isFinite(value) || value < 0) return "0:00";
@@ -64,6 +67,17 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
   const [speed, setSpeed] = useState(1);
   const currentRef = useRef<PodcastEpisode | null>(null);
   currentRef.current = current;
+  const blobUrlRef = useRef<string | null>(null);
+  const lastSaveAt = useRef(0);
+  const lastPositionStateAt = useRef(0);
+
+  // Knows which episodes are downloaded before the first play (isDownloaded is synchronous).
+  useEffect(() => {
+    void loadDownloads();
+    return () => {
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    };
+  }, []);
 
   const playEpisode = useCallback(
     (episode: PodcastEpisode, startSeconds?: number) => {
@@ -78,7 +92,8 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
         return;
       }
 
-      if (!isMember && !canPlayPodcastEpisode(episode.slug)) {
+      // A downloaded episode was already allowed when it was saved, so it stays playable offline.
+      if (!isMember && !canPlayPodcastEpisode(episode.slug) && !isDownloaded(episode.slug)) {
         toast.message("You've used this month's free episode. Upgrade for the full library.", {
           action: { label: "See plans", onClick: () => { window.location.href = "/pricing"; } },
         });
@@ -87,21 +102,44 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
 
       const isSame = currentRef.current?.id === episode.id;
       const target = startSeconds ?? (isSame ? undefined : readPositions()[episode.slug] ?? 0);
+      const begin = () => {
+        audio.playbackRate = speed;
+        void audio
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      };
       if (!isSame) {
+        const downloaded = isDownloaded(episode.slug);
+        // The service worker serves downloads (with Range support). Where it isn't controlling the page
+        // (first load after install, unsupported browsers) play the cached bytes through a blob: URL instead.
+        const needsBlob = downloaded && typeof navigator !== "undefined" && !navigator.serviceWorker?.controller;
+        if (blobUrlRef.current) {
+          URL.revokeObjectURL(blobUrlRef.current);
+          blobUrlRef.current = null;
+        }
         audio.src = episode.audioFile;
         audio.currentTime = target ?? 0;
         setCurrent(episode);
         setProgress(target ?? 0);
         if (!isMember) recordPodcastPlay(episode.slug);
+        if (downloaded) trackPwaEvent("podcast_offline_play", { episode: episode.slug, online: typeof navigator === "undefined" ? true : navigator.onLine });
+        if (needsBlob) {
+          void getDownloadedObjectUrl(episode.slug).then((url) => {
+            if (url && currentRef.current?.id === episode.id) {
+              blobUrlRef.current = url;
+              audio.src = url;
+              audio.currentTime = target ?? 0;
+            }
+            begin();
+          });
+          return;
+        }
       } else if (target !== undefined) {
         audio.currentTime = target;
         setProgress(target);
       }
-      audio.playbackRate = speed;
-      void audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false));
+      begin();
     },
     [isMember, isSignedIn, speed],
   );
@@ -156,20 +194,44 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
     const audio = audioRef.current;
     if (!audio) return;
 
+    const persist = (force: boolean) => {
+      const ep = currentRef.current;
+      if (!ep || !isSignedIn || !Number.isFinite(audio.currentTime)) return;
+      const now = Date.now();
+      if (!force && now - lastSaveAt.current < POSITION_SAVE_INTERVAL_MS) return;
+      lastSaveAt.current = now;
+      saveLocalPosition(ep.slug, audio.currentTime, now);
+      // Account sync (offline writes queue and replay in order; the server keeps the newest timestamp).
+      if (user) void syncProgressToAccount(user.id, ep.slug, audio.currentTime, audio.duration || null, force);
+    };
+
     const onTime = () => {
       setProgress(audio.currentTime);
-      const ep = currentRef.current;
-      if (ep && isSignedIn) {
-        const positions = readPositions();
-        positions[ep.slug] = audio.currentTime;
-        localStorage.setItem(POSITION_KEY, JSON.stringify(positions));
+      persist(false);
+      const now = performance.now();
+      if (now - lastPositionStateAt.current > 1000) {
+        lastPositionStateAt.current = now;
+        setPositionState(audio.duration, audio.currentTime, audio.playbackRate);
       }
     };
 
-    const onMeta = () => setDuration(audio.duration || 0);
+    const onMeta = () => {
+      setDuration(audio.duration || 0);
+      setPositionState(audio.duration, audio.currentTime, audio.playbackRate);
+    };
+    // Keep UI state honest when the OS pauses/resumes (headset unplug, lock-screen, another app taking audio).
+    const onPause = () => {
+      setIsPlaying(false);
+      persist(true);
+    };
+    const onPlay = () => setIsPlaying(true);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") persist(true);
+    };
 
     const onEnded = () => {
       setIsPlaying(false);
+      persist(true);
       const ep = currentRef.current;
       if (!ep || !isMember) return;
       const ordered = [...publishedPodcastEpisodes].sort((a, b) => a.id - b.id);
@@ -183,12 +245,56 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    document.addEventListener("visibilitychange", onHide);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+      document.removeEventListener("visibilitychange", onHide);
     };
-  }, [isMember, isSignedIn, playEpisode]);
+  }, [isMember, isSignedIn, playEpisode, user]);
+
+  // Media Session: now-playing metadata + lock-screen / headset / Bluetooth controls (feature-detected).
+  const orderedEpisodes = useMemo(() => publishedPodcastEpisodes.slice().sort((a, b) => a.id - b.id), []);
+  const currentIndex = current ? orderedEpisodes.findIndex((e) => e.id === current.id) : -1;
+  const previousEpisode = currentIndex > 0 ? orderedEpisodes[currentIndex - 1] : null;
+  const upNext = currentIndex >= 0 ? orderedEpisodes[currentIndex + 1] ?? null : null;
+
+  useEffect(() => {
+    setMediaMetadata(current ? { title: current.title, image: current.image } : null);
+  }, [current]);
+
+  useEffect(() => {
+    setPlaybackState(isPlaying);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!current) return;
+    return bindMediaSessionHandlers({
+      play: () => {
+        const audio = audioRef.current;
+        if (audio?.paused) toggle();
+      },
+      pause: () => {
+        const audio = audioRef.current;
+        if (audio && !audio.paused) toggle();
+      },
+      seekBy: (delta) => skip(delta || SEEK_SECONDS),
+      seekTo: (seconds) => seek(seconds),
+      // Back: restart the episode if we're past the first few seconds, else go to the previous one.
+      previous: () => {
+        const audio = audioRef.current;
+        if (audio && (audio.currentTime > 5 || !previousEpisode)) seek(0);
+        else if (previousEpisode) playEpisode(previousEpisode, 0);
+      },
+      next: upNext ? () => playEpisode(upNext, 0) : null,
+      stop: close,
+    });
+  }, [current, previousEpisode, upNext, toggle, skip, seek, playEpisode, close]);
 
   const value = useMemo(
     () => ({ current, isPlaying, progress, duration, speed, playEpisode, toggle, close, skip, cycleSpeed, seek }),
@@ -210,7 +316,7 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-background/95 backdrop-blur-xl shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl shadow-2xl"
           >
             <div className="container mx-auto flex items-center gap-3 px-4 py-3 md:gap-5 md:px-6 md:py-4">
               <Link to={`/podcast/${current.slug}`} className="shrink-0">

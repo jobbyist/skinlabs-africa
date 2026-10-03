@@ -30,7 +30,7 @@ const FloatingBottomNav = () => {
 
   return (
     <>
-      <nav aria-label="Primary" className={cn("fixed inset-x-0 z-40 flex justify-center px-2 min-[360px]:px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out", currentEpisode ? "bottom-24 sm:bottom-28" : "bottom-4 sm:bottom-6")}>
+      <nav aria-label="Primary" className={cn("fixed inset-x-0 z-40 flex justify-center px-2 min-[360px]:px-4 pb-[max(0px,env(safe-area-inset-bottom))] transition-[bottom] duration-300 ease-out", currentEpisode ? "bottom-[calc(6rem+env(safe-area-inset-bottom))] sm:bottom-28" : "bottom-4 sm:bottom-6")}>
         <div className={cn("gradient-border-anim flex max-w-full items-center gap-0 min-[380px]:gap-0.5 rounded-full bg-background/90 px-1.5 py-2 sm:px-2 shadow-xl backdrop-blur-xl backdrop-saturate-150", "supports-[backdrop-filter]:bg-background/85")}>
           {tabs.map((tab) => {
             const active = tab.match(location.pathname);
