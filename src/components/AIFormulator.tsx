@@ -818,7 +818,7 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                   <Sparkles className="h-4 w-4" />
                   <span className="gradient-text font-bold">SKYNN AI</span>{" "}
-                  <span className="text-muted-foreground font-normal">v2.1 — beta</span> · by SkinLabs®
+                  <span className="text-muted-foreground font-normal">- v2.2 (beta)</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
@@ -873,7 +873,7 @@ const AIFormulator = () => {
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-heading font-bold tracking-tight">
-                      SKYNN AI <span className="font-normal text-background/60">v2.1 — beta</span>
+                      SKYNN AI <span className="font-normal text-background/60">- v2.2 (beta)</span>
                     </span>
                     <span className="text-background/60 font-medium">SkinLabs®</span>
                   </div>

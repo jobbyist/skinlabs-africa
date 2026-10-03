@@ -50,7 +50,7 @@ export function pdfSafe(text: string): string {
 }
 
 export const INTAKE_DISCLAIMER =
-  "This document is an intake record of a member's SKYNN AI v2.1 (beta) Advanced AI Dermatology Analysis submission. " +
+  "This document is an intake record of a member's SKYNN AI - v2.2 (beta) Advanced AI Dermatology Analysis submission. " +
   "It is not a report, not a medical diagnosis, and has not been reviewed by a dermatologist. The scores below are " +
   "computed by fixed rules from the member's own answers and are self-reported tracking aids, not clinical assessments. " +
   "Contains special personal information under POPIA: handle confidentially, do not forward, and delete any copies " +
@@ -68,7 +68,7 @@ export function buildIntakePdf(JsPDF: JsPdfCtor, data: IntakePdfData): Uint8Arra
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(...MUTED);
-    doc.text(pdfSafe(`SKYNN AI v2.1 — beta · Advanced AI Dermatology Analysis submission · ${data.referenceNumber} · STATUS: PENDING · Confidential`), margin, pageHeight - 24);
+    doc.text(pdfSafe(`SKYNN AI - v2.2 (beta) · Advanced AI Dermatology Analysis submission · ${data.referenceNumber} · STATUS: PENDING · Confidential`), margin, pageHeight - 24);
   };
   const newPage = () => {
     footer();

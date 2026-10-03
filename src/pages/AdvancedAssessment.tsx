@@ -139,7 +139,7 @@ const AdvancedAssessmentPage = () => {
   return (
     <>
       <Helmet>
-        <title>Advanced AI Dermatology Analysis (SKYNN AI v2.1 — beta) | SkinLabs</title>
+        <title>Advanced AI Dermatology Analysis (SKYNN AI - v2.2 (beta)) | SkinLabs</title>
         {/* Member-only, personalised flow — nothing here for search engines. */}
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>

@@ -9,6 +9,7 @@ import type { AssessmentQuestion, AssessmentSection } from "./types";
 export interface FlowStep {
   sectionId: string;
   sectionTitle: string;
+  sectionDescription?: string;
   question: AssessmentQuestion;
 }
 
@@ -34,7 +35,7 @@ export const flattenApplicableQuestions = (sections: AssessmentSection[], respon
   sections.flatMap((section) =>
     section.questions
       .filter((q) => questionApplies(q, responses))
-      .map((question) => ({ sectionId: section.id, sectionTitle: section.title, question })),
+      .map((question) => ({ sectionId: section.id, sectionTitle: section.title, sectionDescription: section.description, question })),
   );
 
 /** Whether the visitor may move past this question. */
@@ -63,4 +64,19 @@ export const initialQuestionIndex = (steps: FlowStep[], currentSectionId: string
     if (!isAnswerValid(q, responses[q.id]) || (q.required && !isAnswered(q, responses))) return i;
   }
   return start;
+};
+
+/** Sections whose introduction must sit above every one of their questions. */
+const ALWAYS_INTRODUCED_SECTIONS = new Set(["consent", "safety_screening"]);
+
+/**
+ * Whether a question screen shows its section's own title and description
+ * (verbatim from the definition): on the first question of every section, and
+ * on every consent and safety question, so neither is ever asked without it.
+ */
+export const showsSectionIntro = (steps: FlowStep[], index: number): boolean => {
+  const step = steps[index];
+  if (!step) return false;
+  if (ALWAYS_INTRODUCED_SECTIONS.has(step.sectionId) || step.question.id.startsWith("popia_")) return true;
+  return index === 0 || steps[index - 1].sectionId !== step.sectionId;
 };

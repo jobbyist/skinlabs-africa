@@ -11,6 +11,7 @@ import {
   isAnswered,
   isConsentDecline,
   questionApplies,
+  showsSectionIntro,
 } from "@/lib/assessment/questionFlow";
 
 interface AssessmentFlowProps {
@@ -124,10 +125,9 @@ const AssessmentFlow = ({
     return (
       <div className="mx-auto max-w-xl space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Almost done</p>
-          <h2 className="mt-2 font-heading text-2xl font-bold">Your answers</h2>
+          <h2 className="font-heading text-2xl font-semibold">Your Assessment</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {intakeMode ? "Check each section, then submit your request." : "Check each section, then generate your report."}
+            {intakeMode ? "Review your answers, then submit your request." : "Review your answers, then generate your report."}
           </p>
         </div>
         <ul className="divide-y divide-border rounded-3xl border-2 border-border bg-card">
@@ -184,7 +184,7 @@ const AssessmentFlow = ({
           <Button
             onClick={onSubmit}
             disabled={submitting || !!firstIncomplete}
-            className="h-12 flex-1 gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 font-semibold text-white hover:from-blue-600 hover:to-sky-400"
+            className="h-12 flex-1 gap-2 rounded-full font-semibold gradient-bg text-white shadow-md transition-[filter,box-shadow] hover:brightness-110 hover:shadow-lg disabled:bg-none disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-100"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {intakeMode ? "Submit my request" : "Generate my Advanced AI Dermatology Analysis report"}
@@ -204,7 +204,7 @@ const AssessmentFlow = ({
     <QuestionShell
       position={index + 1}
       total={steps.length}
-      sectionTitle={step.sectionTitle}
+      sectionTitle={showsSectionIntro(steps, index) ? undefined : step.sectionTitle}
       onBack={index === 0 && !onExit ? undefined : goBack}
       backLabel={index === 0 ? "Back to the introduction" : "Previous question"}
       saving={saving}
@@ -213,9 +213,9 @@ const AssessmentFlow = ({
         <Button
           onClick={goNext}
           disabled={!canAdvance}
-          className="h-14 w-full gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 text-base font-semibold text-white shadow-lg shadow-blue-500/20 hover:from-blue-600 hover:to-sky-400 disabled:shadow-none"
+          className="h-14 w-full gap-2 rounded-full text-base font-semibold gradient-bg text-white shadow-md transition-[filter,box-shadow] hover:brightness-110 hover:shadow-lg disabled:bg-none disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-100"
         >
-          {isLast ? "Review answers" : "Continue"}
+          {isLast ? "Review answers" : "Next"}
           <ArrowRight className="h-5 w-5" />
         </Button>
       }
@@ -223,13 +223,18 @@ const AssessmentFlow = ({
       {prefillNote && question.id === firstPrefilledId && (
         <p className="mb-5 rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">{prefillNote}</p>
       )}
+      {showsSectionIntro(steps, index) && (
+        <div className="mb-6 rounded-3xl border border-border bg-muted/40 p-5">
+          <p className="font-heading text-lg font-semibold">{step.sectionTitle}</p>
+          {step.sectionDescription && <p className="mt-1 text-sm text-muted-foreground">{step.sectionDescription}</p>}
+        </div>
+      )}
       <h2 className="text-balance font-heading text-2xl font-semibold leading-tight sm:text-[1.75rem]">{question.prompt}</h2>
       {isPrefilled?.(question.id) && (
         <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
           From your Basic AI Skin Analysis — check it still fits
         </p>
       )}
-      {!question.required && <p className="mt-2 text-sm text-muted-foreground">Optional</p>}
       <div className="mt-7">
         <QuestionRenderer question={question} value={value} onChange={(v) => answer(question, v)} />
       </div>

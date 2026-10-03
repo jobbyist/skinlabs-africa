@@ -18,9 +18,9 @@
  *   - Historical content: Announcements, the About roadmap, dated newsroom posts.
  */
 export const SKYNN_PRODUCT = "SKYNN AI";
-export const SKYNN_RELEASE_LABEL = "SKYNN AI v2.1 — beta";
+export const SKYNN_RELEASE_LABEL = "SKYNN AI - v2.2 (beta)";
 /** Machine-readable version stamped on analytics, fairness events and intake records. */
-export const SKYNN_FEATURE_VERSION = "2.1.0-beta";
+export const SKYNN_FEATURE_VERSION = "2.2.0-beta";
 
 export const BASIC_NAME = "Basic AI Skin Analysis";
 export const BASIC_REPORT_NAME = "Basic AI Skin Analysis report";

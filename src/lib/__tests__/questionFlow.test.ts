@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { flattenApplicableQuestions, initialQuestionIndex, isAnswerValid } from "@/lib/assessment/questionFlow";
+import { flattenApplicableQuestions, initialQuestionIndex, isAnswerValid, showsSectionIntro } from "@/lib/assessment/questionFlow";
 import type { AssessmentQuestion, AssessmentSection } from "@/lib/assessment/types";
 
 const single = (id: string, extra: Partial<AssessmentQuestion> = {}): AssessmentQuestion => ({
@@ -76,5 +76,27 @@ describe("initialQuestionIndex", () => {
     const steps = flattenApplicableQuestions(sections, responses);
     expect(initialQuestionIndex(steps, "consent", responses)).toBe(0);
     expect(initialQuestionIndex(steps, "unknown", responses)).toBe(0);
+  });
+});
+
+describe("showsSectionIntro", () => {
+  const allSections: AssessmentSection[] = [
+    ...sections,
+    { id: "safety_screening", title: "Safety", questions: [single("red_flags"), single("pregnancy")] },
+  ];
+  const steps = flattenApplicableQuestions(allSections, {});
+  const shows = (id: string) => showsSectionIntro(steps, steps.findIndex((s) => s.question.id === id));
+
+  it("introduces every consent and safety question", () => {
+    expect(shows("popia_special")).toBe(true);
+    expect(shows("popia_cross")).toBe(true);
+    expect(shows("red_flags")).toBe(true);
+    expect(shows("pregnancy")).toBe(true);
+  });
+
+  it("introduces other sections on their first question only", () => {
+    expect(shows("has_breakouts")).toBe(true);
+    expect(showsSectionIntro(flattenApplicableQuestions(allSections, { has_breakouts: "yes" }), 3)).toBe(false);
+    expect(shows("goals")).toBe(true);
   });
 });

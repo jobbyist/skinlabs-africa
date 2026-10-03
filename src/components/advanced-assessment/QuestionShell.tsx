@@ -51,15 +51,15 @@ const QuestionShell = ({ position, total, sectionTitle, onBack, backLabel = "Bac
           className="ml-2 h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
         >
           <div
-            className="h-full rounded-full transition-[width] duration-300 ease-out"
-            style={{ width: `${pct}%`, background: "linear-gradient(90deg, #2563eb, #0ea5e9)" }}
+            className="gradient-bg h-full rounded-full transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }}
           />
         </div>
       </div>
 
       <div key={stepKey} className="flex-1 pt-8 animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none">
         <div className="mb-4 flex items-center gap-4">
-          <span className="h-px w-10 bg-blue-600" aria-hidden="true" />
+          <span className="gradient-bg h-0.5 w-10 rounded-full" aria-hidden="true" />
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Question {position} of {total}
             {sectionTitle && <span className="font-normal normal-case tracking-normal"> · {sectionTitle}</span>}
@@ -70,7 +70,7 @@ const QuestionShell = ({ position, total, sectionTitle, onBack, backLabel = "Bac
 
       <div className="sticky bottom-0 -mx-4 mt-8 border-t border-border bg-background/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
         <p className="mb-2 h-4 text-center text-xs text-muted-foreground" aria-live="polite">
-          {saving ? "Saving…" : ""}
+          {saving ? "Saving..." : ""}
         </p>
         {footer}
       </div>

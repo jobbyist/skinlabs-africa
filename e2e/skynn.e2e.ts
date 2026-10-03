@@ -99,8 +99,11 @@ test("Advanced AI Dermatology Analysis with a Pass: submit → pending submissio
   await page.getByRole("button", { name: "Start my assessment" }).click();
   // One question per screen; a single-choice answer moves on by itself.
   await expect(page.getByText(/Question 1 of 3/)).toBeVisible();
+  // The consent section's own introduction sits above every consent question.
+  await expect(page.getByText("Before we start: how SKYNN AI handles your skin information.")).toBeVisible();
   await page.getByText("I agree", { exact: true }).click();
   await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
+  await expect(page.getByText("Before we start: how SKYNN AI handles your skin information.")).toBeVisible();
   await page.getByText("I agree to cross-border processing").click();
   await expect(page.getByText(/Question 3 of 3/)).toBeVisible();
   // The last question is optional, so the member can go straight to review.
@@ -121,7 +124,7 @@ test("Advanced AI Dermatology Analysis: declining consent blocks the flow, Back 
   await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
   await page.getByText("I don't agree to cross-border processing").click();
   await expect(page.getByRole("alert")).toContainText("only accept an Advanced AI Dermatology Analysis submission with your consent");
-  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
   await page.getByRole("button", { name: "Previous question" }).click();
   await expect(page.getByText(/Question 1 of 3/)).toBeVisible();
