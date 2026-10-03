@@ -23,6 +23,7 @@ import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
+import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
 
 type Submission = {
@@ -371,6 +372,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="skynn-reviews">SKYNN Reviews</TabsTrigger>
                 <TabsTrigger value="sa-prices">SA Prices</TabsTrigger>
                 <TabsTrigger value="leads">Leads</TabsTrigger>
+                <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -611,6 +613,12 @@ const AdminDashboard = () => {
 
               <TabsContent value="leads">
                 <LeadsTab />
+              </TabsContent>
+
+              {/* Analysis Passes — manual, no-payment issuing by email. See AnalysisPassesTab and
+                  supabase/migrations/20261004110000_admin_issue_analysis_passes.sql. */}
+              <TabsContent value="analysis-passes">
+                <AnalysisPassesTab />
               </TabsContent>
 
               <TabsContent value="sa-prices">

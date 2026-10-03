@@ -53,7 +53,9 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import MobileContentRail from "@/components/MobileContentRail";
+import MobileContentRail, { CONTENT_RAIL_HEIGHT_CLASS } from "@/components/MobileContentRail";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { shouldShowContentRail } from "@/lib/contentRail";
 // Served from public/ (not a Vite-bundled src/assets import) — real light/
 // dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
 // than a CSS filter on one file, so the actual PNG that's "live" for each
@@ -223,41 +225,10 @@ const Header = () => {
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
-  const [storyRailVisible, setStoryRailVisible] = useState(true);
-
-  useEffect(() => {
-    if (!storyRail) {
-      setStoryRailVisible(false);
-      return;
-    }
-    const media = window.matchMedia("(max-width: 767px)");
-    const syncViewport = () => setStoryRailVisible(media.matches && window.scrollY <= 8);
-    syncViewport();
-
-    let lastY = window.scrollY;
-    const handleScroll = () => {
-      const y = window.scrollY;
-      if (!media.matches) {
-        setStoryRailVisible(false);
-      } else if (y <= 8) {
-        setStoryRailVisible(true);
-      } else if (y > lastY + 4) {
-        setStoryRailVisible(false);
-      } else if (y < lastY - 4) {
-        setStoryRailVisible(true);
-      }
-      lastY = y;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    media.addEventListener?.("change", syncViewport);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      media.removeEventListener?.("change", syncViewport);
-    };
-  }, [storyRail, pathname]);
+  const storyRailVisible = useScrollReveal(storyRail);
 
   const showStories = storyRail && storyRailVisible;
+  const contentRail = shouldShowContentRail(pathname, Boolean(user));
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -294,6 +265,8 @@ const Header = () => {
           />
         </>
       )}
+      {/* Flow space for the pill strip that sits inside the fixed header below (members, key pages, phones). */}
+      {contentRail && <div className={cn(CONTENT_RAIL_HEIGHT_CLASS, "md:hidden")} aria-hidden="true" />}
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
@@ -462,9 +435,8 @@ const Header = () => {
             </Button>
           </div>
         </div>
+        <MobileContentRail />
       </header>
-
-      <MobileContentRail storyRail={storyRail} />
 
       {/* Mobile sheet — kept for small screens */}
       <Sheet open={open} onOpenChange={setOpen}>

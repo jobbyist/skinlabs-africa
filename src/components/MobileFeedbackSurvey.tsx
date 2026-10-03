@@ -1,18 +1,26 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Send } from "lucide-react";
+import { Loader2, MessageCircle, Send } from "lucide-react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { cn } from "@/lib/utils";
-import { FEEDBACK_SURVEY_CUTOFF_MS, getFeedbackSurvey, type FeedbackSurvey } from "@/lib/feedback-surveys";
+import {
+  FEEDBACK_COMMENT_MAX,
+  FEEDBACK_SURVEY_CUTOFF_MS,
+  getFeedbackSurvey,
+  type FeedbackSurvey,
+} from "@/lib/feedback-surveys";
+import { submitFeedbackSurvey } from "@/lib/feedbackSubmit";
 import { useLocation } from "react-router-dom";
 
 const SESSION_SHOWN_KEY = "skinlabs-feedback-survey-session-shown-v1";
 const USER_SHOWN_PREFIX = "skinlabs-feedback-survey-shown-v1";
 const USER_VISITED_PREFIX = "skinlabs-feedback-survey-visited-v1";
-const MAX_COMMENT_LENGTH = 280;
+const PENDING_KEY = "skinlabs-feedback-survey-pending-v1";
+const MAX_COMMENT_LENGTH = FEEDBACK_COMMENT_MAX;
 
 let sessionShownFallback = false;
 
@@ -39,11 +47,13 @@ const isMobile = () =>
 const FeedbackSurveyModal = ({
   survey,
   open,
+  submitting,
   onClose,
   onSubmit,
 }: {
   survey: FeedbackSurvey | null;
   open: boolean;
+  submitting: boolean;
   onClose: () => void;
   onSubmit: (answer: string, comment: string) => void;
 }) => {
@@ -117,17 +127,17 @@ const FeedbackSurveyModal = ({
         </div>
 
         <DialogFooter className="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
-          <Button type="button" variant="ghost" className="min-h-11 rounded-2xl" onClick={onClose}>
+          <Button type="button" variant="ghost" className="min-h-11 rounded-2xl" onClick={onClose} disabled={submitting}>
             Not now
           </Button>
           <Button
             type="button"
             className="min-h-11 rounded-2xl gap-2"
-            disabled={!answer}
+            disabled={!answer || submitting}
             onClick={() => onSubmit(answer, comment.trim())}
           >
-            Send feedback
-            <Send className="h-3.5 w-3.5" aria-hidden="true" />
+            {submitting ? "Sending…" : "Send feedback"}
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Send className="h-3.5 w-3.5" aria-hidden="true" />}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -137,10 +147,15 @@ const FeedbackSurveyModal = ({
 
 export const MobileFeedbackSurvey = () => {
   const { user, loading: authLoading } = useAuth();
+  // The id, not the user object: supabase-js hands back a new object on every token
+  // refresh, which would otherwise cancel the pending timer after the first-visit
+  // flag was already spent.
+  const userId = user?.id;
   const { pathname } = useLocation();
   const [mobile, setMobile] = useState(false);
   const [survey, setSurvey] = useState<FeedbackSurvey | null>(null);
   const [open, setOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -157,27 +172,35 @@ export const MobileFeedbackSurvey = () => {
     setOpen(false);
     setSurvey(null);
     setSubmitted(false);
+    setSubmitting(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!mobile || authLoading || !user) return;
+    if (!mobile || authLoading || !userId) return;
     if (Date.now() >= FEEDBACK_SURVEY_CUTOFF_MS) return;
 
     const current = getFeedbackSurvey(pathname);
     if (!current) return;
 
-    const userShownKey = USER_SHOWN_PREFIX + ":" + user.id + ":" + current.id;
-    const userVisitedKey = USER_VISITED_PREFIX + ":" + user.id + ":" + current.id;
-    const alreadyShownForUser = Boolean(safeGet(localStorage, userShownKey));
-    const alreadyVisitedForUser = Boolean(safeGet(localStorage, userVisitedKey));
-    const alreadyShownInSession =
-      safeGet(sessionStorage, SESSION_SHOWN_KEY) === "1" || sessionShownFallback;
+    const userShownKey = USER_SHOWN_PREFIX + ":" + userId + ":" + current.id;
+    const userVisitedKey = USER_VISITED_PREFIX + ":" + userId + ":" + current.id;
+    if (safeGet(localStorage, userShownKey)) return;
+    if (safeGet(sessionStorage, SESSION_SHOWN_KEY) === "1" || sessionShownFallback) return;
 
-    if (alreadyShownForUser || alreadyVisitedForUser || alreadyShownInSession) return;
-
-    // First arrival to this surface is enough to consume the first-visit opportunity.
-    // A later return should not produce the same modal after the user has already moved on.
-    safeSet(localStorage, userVisitedKey);
+    // "First time on this surface": the first arrival records the visit and leaves a
+    // session-scoped note, so a reader who goes hub -> article inside the delay is
+    // still asked once, on the page they're actually reading. A later visit, or a
+    // later session, never is.
+    const firstArrival = !safeGet(localStorage, userVisitedKey);
+    if (firstArrival) {
+      safeSet(localStorage, userVisitedKey);
+      try {
+        sessionStorage.setItem(PENDING_KEY, current.id);
+      } catch {
+        // ignore: the same-route timer below still works
+      }
+    }
+    if (!firstArrival && safeGet(sessionStorage, PENDING_KEY) !== current.id) return;
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -200,19 +223,18 @@ export const MobileFeedbackSurvey = () => {
       });
     }, 7000);
 
-    const cutoffTimer = window.setTimeout(() => {
-      cancelled = true;
-      setOpen(false);
-    }, Math.max(0, FEEDBACK_SURVEY_CUTOFF_MS - Date.now() + 50));
-
+    // No separate timer for the cutoff date: it is ~88 days away, and setTimeout delays above
+    // 2^31-1 ms (~24.8 days) overflow and fire immediately, which used to cancel every survey
+    // before it showed. The checks above and in the callback, plus the `open &&` guard on the
+    // modal below, already enforce it.
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
-      window.clearTimeout(cutoffTimer);
     };
-  }, [mobile, authLoading, user, pathname]);
+  }, [mobile, authLoading, userId, pathname]);
 
   const handleClose = () => {
+    if (submitting) return;
     if (survey && !submitted) {
       trackConversionEvent("feedback_survey_dismissed", {
         survey_id: survey.id,
@@ -222,16 +244,30 @@ export const MobileFeedbackSurvey = () => {
     setOpen(false);
   };
 
-  const handleSubmit = (answer: string, comment: string) => {
-    if (!survey) return;
+  const handleSubmit = async (answer: string, comment: string) => {
+    if (!survey || submitting) return;
+
+    setSubmitting(true);
+    const result = await submitFeedbackSurvey(survey, answer, comment, pathname);
+    setSubmitting(false);
+
+    if (result === "failed") {
+      // Stay open so the answer isn't lost; never claim it was sent.
+      toast.error("Couldn't send your feedback. Please try again.");
+      return;
+    }
 
     setSubmitted(true);
+    // Analytics carry tokens and counts only. The comment itself goes to feedback@ via the
+    // database, never into analytics_events.
     trackConversionEvent("feedback_survey_submitted", {
       survey_id: survey.id,
       surface: survey.surface,
       answer,
-      comment: comment || undefined,
+      has_comment: comment.length > 0,
+      comment_length: comment.length,
     });
+    toast.success("Thanks, that really helps.");
     setOpen(false);
   };
 
@@ -239,8 +275,9 @@ export const MobileFeedbackSurvey = () => {
     <FeedbackSurveyModal
       survey={survey}
       open={open && mobile && Date.now() < FEEDBACK_SURVEY_CUTOFF_MS}
+      submitting={submitting}
       onClose={handleClose}
-      onSubmit={handleSubmit}
+      onSubmit={(answer, comment) => void handleSubmit(answer, comment)}
     />
   );
 };

@@ -39,6 +39,8 @@ const ADMIN_TEMPLATE_EXTRA_RECIPIENTS: Record<string, string[]> = {
 // ADMIN_NOTIFICATION_EMAIL inbox). /consult survey responses go to consult@.
 const ADMIN_TEMPLATE_RECIPIENT_OVERRIDE: Record<string, string[]> = {
   admin_consult_survey_response: ["consult@skinlabs.co.za"],
+  // Mobile contextual feedback surveys go to feedback@ only.
+  admin_feedback_survey_response: ["feedback@skinlabs.co.za"],
 };
 
 interface OutboxJob {

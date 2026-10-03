@@ -85,7 +85,7 @@ const About = () => {
     },
     {
       icon: <Sparkles className="h-6 w-6" />,
-      title: "Skin Analysis (SKYNN AI)",
+      title: "AI Skin Analysis",
       description: "Personalized skincare routines, progress trackers, and dermatologist-approved recommendations.",
       highlight: "Premium member feature",
       link: "/skynn-ai"

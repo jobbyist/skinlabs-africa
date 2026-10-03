@@ -341,6 +341,12 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     return r.fulfill({ json: single ? (rows[0] ?? null) : rows });
   });
 
+  // Mirrors has_smart_routine_access(): a saved, delivered Basic AI Skin Analysis OR a submitted
+  // Advanced analysis (migration 20261003100000). Advanced alone is no longer required.
+  const smartRoutineAccess = () =>
+    state.advancedSubmitted ||
+    (opts.tables?.skincare_recommendations ?? []).some((row) => row.status === "delivered" && row.result_payload != null);
+
   await context.route(/supabase\.co\/rest\/v1\/rpc\/([a-z_]+)/, (r) => {
     const fn = /rpc\/([a-z_]+)/.exec(r.request().url())?.[1] ?? "";
     state.rpcCalls.push(fn);
@@ -349,9 +355,9 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       return r.fulfill({ json: true });
     }
     if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
-    if (fn === "get_smart_routine_access") return r.fulfill({ json: state.advancedSubmitted });
+    if (fn === "get_smart_routine_access") return r.fulfill({ json: smartRoutineAccess() });
     if (fn === "save_smart_routine") {
-      if (!state.advancedSubmitted) return r.fulfill({ status: 403, json: { code: "42501", message: "smart_routine_locked" } });
+      if (!smartRoutineAccess()) return r.fulfill({ status: 403, json: { code: "42501", message: "smart_routine_locked" } });
       let body: Record<string, unknown> = {};
       try {
         body = (r.request().postDataJSON() as Record<string, unknown>) ?? {};

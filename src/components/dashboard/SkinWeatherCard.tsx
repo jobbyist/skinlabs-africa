@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useSkinWeather } from "@/hooks/use-skin-weather";
 import { DEFAULT_CITY_KEY, SA_CITIES, cityByKey, cityFromProfile, nearestCity } from "@/lib/skinWeather/cities";
 import { getSkinWeatherTip, type SkinWeatherProfile } from "@/lib/skinWeather/tips";
+import { getClimateCue } from "@/lib/skinWeather/climate";
 
 interface SkinWeatherCardProps {
   /** profiles.weather_city_key — the city chosen for this card. */
@@ -26,25 +27,6 @@ interface SkinWeatherCardProps {
  * precise coordinates are never sent or stored) → Johannesburg by default.
  * Errors stay inside this card — the rest of the dashboard is unaffected.
  */
-const HIGHVELD_CITIES = new Set(["johannesburg", "pretoria", "bloemfontein", "polokwane", "kimberley"]);
-const COASTAL_CITIES = new Set(["cape-town", "durban", "gqeberha", "east-london"]);
-
-const getClimateCue = (cityKey: string) => {
-  if (HIGHVELD_CITIES.has(cityKey)) {
-    return {
-      label: "Highveld / inland",
-      text: "Drier inland air can make moisture loss more noticeable. Keep hydration and moisturiser layers simple and consistent.",
-    };
-  }
-  if (COASTAL_CITIES.has(cityKey)) {
-    return {
-      label: "Coastal",
-      text: "Coastal humidity can make richer layers feel heavier. Keep hydration in, but lighter textures may feel more comfortable.",
-    };
-  }
-  return null;
-};
-
 const SkinWeatherCard = ({ weatherCityKey, addressCity, skinProfile, onSaveCity }: SkinWeatherCardProps) => {
   const headingId = useId();
   const savedCity = cityByKey(weatherCityKey) ?? cityFromProfile(addressCity);
