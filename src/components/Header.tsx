@@ -244,7 +244,7 @@ const Header = () => {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [storyRail]);
+  }, [storyRail, pathname]);
 
   const showStories = storyRail && storyRailVisible;
 
