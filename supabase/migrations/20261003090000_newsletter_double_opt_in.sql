@@ -47,11 +47,16 @@ CREATE INDEX IF NOT EXISTS newsletter_subscribers_digest_status_idx
 -- already describe them: waitlist = true, digest_status = 'none'). They are
 -- NOT opted in to the digest and are never emailed it.
 
--- ---------- 2. No direct client writes ----------
--- All writes now go through the RPCs below. Without this, a client could
--- INSERT a row with digest_status = 'confirmed' and subscribe any address.
-DROP POLICY IF EXISTS "Anyone can subscribe to newsletter" ON public.newsletter_subscribers;
+-- ---------- 2. No direct client writes beyond the email column ----------
+-- Without this, a client could INSERT a row with digest_status = 'confirmed' and
+-- subscribe any address. API roles may still insert just `email` (that is what the
+-- original consultation-waitlist form did, so it keeps working during a deploy):
+-- every other column then takes its safe default (waitlist = true, digest 'none').
+-- The existing INSERT policy (email format check) is kept for that column grant.
 REVOKE INSERT, UPDATE, DELETE ON public.newsletter_subscribers FROM anon, authenticated;
+-- The project's default privileges also hand API roles TRUNCATE/REFERENCES/TRIGGER on new tables.
+REVOKE TRUNCATE, REFERENCES, TRIGGER ON public.newsletter_subscribers FROM anon, authenticated;
+GRANT INSERT (email) ON public.newsletter_subscribers TO anon, authenticated;
 
 -- The confirm / unsubscribe tokens are credentials: no client role (admins
 -- included) may read them. Admins keep SELECT on every other column.
@@ -117,9 +122,11 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.notify_newsletter_subscriber() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS trg_notify_newsletter_subscriber ON public.newsletter_subscribers;
-CREATE TRIGGER trg_notify_newsletter_subscriber
-  AFTER INSERT OR UPDATE OF consultation_waitlist ON public.newsletter_subscribers
+-- The original AFTER INSERT trigger (trg_notify_newsletter_subscriber) stays as is and now
+-- reaches the function's INSERT branch; this one covers a digest-only row joining the waitlist.
+DROP TRIGGER IF EXISTS trg_notify_newsletter_subscriber_update ON public.newsletter_subscribers;
+CREATE TRIGGER trg_notify_newsletter_subscriber_update
+  AFTER UPDATE OF consultation_waitlist ON public.newsletter_subscribers
   FOR EACH ROW EXECUTE FUNCTION public.notify_newsletter_subscriber();
 
 -- ---------- 4. Weekly digest: subscribe (step 1 of double opt-in) ----------
@@ -260,6 +267,9 @@ REVOKE ALL ON FUNCTION public.unsubscribe_newsletter(uuid) FROM PUBLIC, anon, au
 GRANT EXECUTE ON FUNCTION public.unsubscribe_newsletter(uuid) TO service_role;
 
 -- ---------- 7. Weekly digest fan-out reaches confirmed subscribers too ----------
+-- Also supersedes the live definition, which still passed a bare `unsubscribe_token`
+-- (migration 20260919100100's full `unsubscribe_url` was never applied), so digests
+-- had no working unsubscribe link or List-Unsubscribe header.
 -- Same content selection as before; the only change is a second recipient loop.
 -- An address that is also a consenting member is emailed once (the member row
 -- wins), and each job key is per week + recipient, so a re-run never double-sends.
