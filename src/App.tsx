@@ -4,7 +4,8 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { reportNetworkFailure, reportNetworkSuccess } from "./lib/pwa/network";
 import { BrowserRouter, Routes, Route, useParams, Navigate, useLocation } from "react-router-dom";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import { useDeploymentSkewGuard } from "./hooks/use-deployment-skew-guard";
@@ -19,6 +20,8 @@ import Index from "./pages/Index";
 // paint. Deferring it costs nothing visually — the overlay wasn't part of
 // the pre-hydration HTML anyway.
 const Preloader = lazyWithRetry(() => import("./components/Preloader"));
+// Installed-app layer (install prompt, offline banner, update toast, background sync). See docs/pwa.md.
+const PWAProvider = lazyWithRetry(() => import("./components/pwa/PWAProvider"));
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
@@ -78,6 +81,7 @@ const UserDashboard = lazyWithRetry(() => import("./pages/UserDashboard"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
+const Start = lazyWithRetry(() => import("./pages/Start"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazyWithRetry(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazyWithRetry(() => import("./pages/marketplace/MarketplaceProductDetail"));
@@ -98,6 +102,12 @@ const IngredientChecker = lazyWithRetry(() => import("./pages/IngredientChecker"
 // (refetchOnWindowFocus defaults to true, staleTime to 0), re-rendering most of
 // the page in a burst the moment the user switched back.
 const queryClient = new QueryClient({
+  // Real request outcomes are the source of truth for "are we online?" (navigator.onLine only says an
+  // interface exists): a network error marks the app unreachable, any success marks it reachable again.
+  queryCache: new QueryCache({
+    onError: (error) => reportNetworkFailure(error),
+    onSuccess: () => reportNetworkSuccess(),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60_000,
@@ -117,6 +127,7 @@ const AppContent = () => {
     <>
       <Suspense fallback={null}>
         <Preloader />
+        <PWAProvider />
       </Suspense>
       <ScrollToTop />
       <FloatingBottomNav />
@@ -208,6 +219,8 @@ const AppContent = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
             <Route path="/welcome" element={<Welcome />} />
+            {/* Installed-app entry point (manifest start_url): restores the session, then routes onward. */}
+            <Route path="/start" element={<Start />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

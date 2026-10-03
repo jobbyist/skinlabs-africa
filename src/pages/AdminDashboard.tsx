@@ -16,6 +16,7 @@ import AuthDialog from "@/components/AuthDialog";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
+import PwaAnalyticsPanel from "@/components/admin/PwaAnalyticsPanel";
 import TikTokAdsPanel from "@/components/admin/TikTokAdsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
@@ -606,6 +607,7 @@ const AdminDashboard = () => {
 
               <TabsContent value="analytics" className="space-y-6">
                 <ConversionFunnelPanel />
+                <PwaAnalyticsPanel />
                 <EventsAnalyticsPanel />
                 <AnalyticsTab />
               </TabsContent>

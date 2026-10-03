@@ -763,6 +763,42 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_pass_grants: {
+        Row: {
+          admin_user_id: string
+          created_at: string
+          credits: number
+          id: string
+          note: string
+          request_id: string | null
+          target_email: string
+          target_user_id: string
+          transaction_id: string | null
+        }
+        Insert: {
+          admin_user_id: string
+          created_at?: string
+          credits: number
+          id?: string
+          note: string
+          request_id?: string | null
+          target_email: string
+          target_user_id: string
+          transaction_id?: string | null
+        }
+        Update: {
+          admin_user_id?: string
+          created_at?: string
+          credits?: number
+          id?: string
+          note?: string
+          request_id?: string | null
+          target_email?: string
+          target_user_id?: string
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           created_at: string
@@ -1165,6 +1201,42 @@ export type Database = {
         }
         Relationships: []
       }
+      consult_survey_responses: {
+        Row: {
+          booking_priority: number
+          created_at: string
+          feedback_text: string | null
+          id: string
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features: string[]
+          user_id: string | null
+        }
+        Insert: {
+          booking_priority: number
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features?: string[]
+          user_id?: string | null
+        }
+        Update: {
+          booking_priority?: number
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          primary_use?: string
+          sentiment?: number
+          trust_score?: number
+          useful_features?: string[]
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -1476,6 +1548,45 @@ export type Database = {
           created_at?: string
           feature_key?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      feedback_survey_responses: {
+        Row: {
+          answer: string
+          answer_label: string
+          comment: string | null
+          created_at: string
+          id: string
+          path: string | null
+          question: string
+          surface: string
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          answer_label: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          path?: string | null
+          question: string
+          surface: string
+          survey_id: string
+          user_id?: string
+        }
+        Update: {
+          answer?: string
+          answer_label?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          path?: string | null
+          question?: string
+          surface?: string
+          survey_id?: string
           user_id?: string
         }
         Relationships: []
@@ -2602,6 +2713,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          account_update: boolean
+          briefing: boolean
+          created_at: string
+          podcast_episode: boolean
+          promotional: boolean
+          promotional_opt_in_at: string | null
+          routine_reminder: boolean
+          service: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_update?: boolean
+          briefing?: boolean
+          created_at?: string
+          podcast_episode?: boolean
+          promotional?: boolean
+          promotional_opt_in_at?: string | null
+          routine_reminder?: boolean
+          service?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          account_update?: boolean
+          briefing?: boolean
+          created_at?: string
+          podcast_episode?: boolean
+          promotional?: boolean
+          promotional_opt_in_at?: string | null
+          routine_reminder?: boolean
+          service?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -3072,6 +3222,33 @@ export type Database = {
           created_at?: string
           episode_slug?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      podcast_playback_progress: {
+        Row: {
+          client_updated_at: string
+          duration_seconds: number | null
+          episode_slug: string
+          position_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_updated_at: string
+          duration_seconds?: number | null
+          episode_slug: string
+          position_seconds: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_updated_at?: string
+          duration_seconds?: number | null
+          episode_slug?: string
+          position_seconds?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -4041,6 +4218,51 @@ export type Database = {
           username?: string | null
           username_generated?: boolean
           weather_city_key?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          browser: string
+          created_at: string
+          endpoint: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          p256dh: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          browser?: string
+          created_at?: string
+          endpoint: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          p256dh: string
+          platform?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          browser?: string
+          created_at?: string
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          p256dh?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -5047,6 +5269,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tiktok_event_log: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          event_id: string
+          event_name: string
+          id: number
+          identified: boolean
+          page_key: string
+          path: string | null
+          status: string
+          upstream_code: number | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          event_id: string
+          event_name: string
+          id?: never
+          identified?: boolean
+          page_key: string
+          path?: string | null
+          status: string
+          upstream_code?: number | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          event_id?: string
+          event_name?: string
+          id?: never
+          identified?: boolean
+          page_key?: string
+          path?: string | null
+          status?: string
+          upstream_code?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -5338,6 +5599,17 @@ export type Database = {
         }
         Relationships: []
       }
+      review_live_prices: {
+        Row: {
+          checked_at: string | null
+          in_stock: boolean | null
+          price_zar: number | null
+          review_id: string | null
+          source_name: string | null
+          source_path: string | null
+        }
+        Relationships: []
+      }
       sa_retail_prices: {
         Row: {
           checked_at: string | null
@@ -5373,6 +5645,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_campaign_attribution: { Args: { p_days?: number }; Returns: Json }
+      admin_events_overview: { Args: { p_days?: number }; Returns: Json }
       admin_get_advanced_assessment_review: {
         Args: { p_report_id: string }
         Returns: Json
@@ -5395,6 +5669,21 @@ export type Database = {
         }[]
       }
       admin_ingredient_pair_note_coverage: { Args: never; Returns: Json }
+      admin_issue_analysis_passes: {
+        Args: {
+          p_credits: number
+          p_email: string
+          p_note: string
+          p_request_id: string
+        }
+        Returns: {
+          already_issued: boolean
+          credits_issued: number
+          email: string
+          pass_balance: number
+          user_id: string
+        }[]
+      }
       admin_list_advanced_assessment_reviews: {
         Args: { p_status?: string }
         Returns: {
@@ -5451,6 +5740,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_lookup_analysis_pass_account: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          full_name: string
+          pass_balance: number
+          subscription_status: string
+          user_id: string
+        }[]
+      }
       admin_override_entitlement: {
         Args: {
           _reason: string
@@ -5463,6 +5762,7 @@ export type Database = {
         Args: { p_report_ids?: string[] }
         Returns: number
       }
+      admin_pwa_overview: { Args: { p_days?: number }; Returns: Json }
       admin_record_prompt_signoff: {
         Args: {
           p_approved_on: string
@@ -5508,6 +5808,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_tiktok_events_overview: { Args: { p_days?: number }; Returns: Json }
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_email_job: {
         Args: { p_job_id: string; p_reason: string }
@@ -5921,6 +6222,16 @@ export type Database = {
       }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      register_push_subscription: {
+        Args: {
+          p_auth: string
+          p_browser?: string
+          p_endpoint: string
+          p_p256dh: string
+          p_platform?: string
+        }
+        Returns: string
+      }
       save_advanced_assessment_pipeline_state: {
         Args: {
           p_release?: boolean
@@ -6126,6 +6437,7 @@ export type Database = {
         Returns: boolean
       }
       subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
+      sync_openhaus_review_prices: { Args: never; Returns: number }
       trial_lifecycle_email_plan: {
         Args: { p_today?: string }
         Returns: {
@@ -6140,8 +6452,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      unregister_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
       unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
       unsubscribe_newsletter: { Args: { p_token: string }; Returns: boolean }
+      upsert_podcast_progress: {
+        Args: {
+          p_client_updated_at: string
+          p_duration: number
+          p_position: number
+          p_slug: string
+        }
+        Returns: boolean
+      }
       verify_price_sync_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }

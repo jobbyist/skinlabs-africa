@@ -68,3 +68,7 @@ verify_jwt = false
 
 [functions.shelf-showdown-sync]
 verify_jwt = false
+
+# Web Push sender: verifies the caller itself (service role, admin JWT, or a member's own "test" action).
+[functions.push-send]
+verify_jwt = false

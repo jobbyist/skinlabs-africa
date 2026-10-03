@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { usePodcastEngagement } from "@/hooks/use-podcast-engagement";
 import type { PodcastEpisode } from "@/data/podcast";
 import { SITE_URL } from "@/lib/seo-config";
+import DownloadEpisodeButton from "@/components/pwa/DownloadEpisodeButton";
 
 interface PodcastEngagementBarProps {
   episode: PodcastEpisode;
@@ -76,6 +77,9 @@ const PodcastEngagementBar = ({ episode, onPlay }: PodcastEngagementBarProps) =>
         <Share2 className="h-4 w-4" />
         {getShares(episode).toLocaleString()}
       </Button>
+
+      <div className="mx-1 h-5 w-px bg-border" aria-hidden="true" />
+      <DownloadEpisodeButton episode={episode} size="full" />
     </div>
   );
 };

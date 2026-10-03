@@ -143,6 +143,27 @@ export type ConversionEvent =
   | "signup_from_formulator"
   | "reanalysis_blocked"
   | "upgrade_clicked_from_formulator"
+  // Installable app / PWA layer (src/lib/pwa). Payloads: platform / browser / source tokens and counts only.
+  | "pwa_install_prompt_viewed"
+  | "pwa_install_prompt_dismissed"
+  | "pwa_install_accepted"
+  | "pwa_install_declined"
+  | "pwa_install_started"
+  | "pwa_installed"
+  | "pwa_launch"
+  | "pwa_offline"
+  | "pwa_online"
+  | "pwa_update_available"
+  | "pwa_updated"
+  | "push_prompt_viewed"
+  | "push_permission_granted"
+  | "push_permission_denied"
+  | "push_subscribed"
+  | "push_unsubscribed"
+  | "podcast_download_started"
+  | "podcast_download_completed"
+  | "podcast_download_removed"
+  | "podcast_offline_play"
   // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
   // which whitelists the payload, never directly.
   | import("@/lib/skynn/analytics").SkynnEvent;

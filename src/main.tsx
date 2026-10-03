@@ -3,6 +3,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { installDomResilience } from "./lib/domResilience";
 import { reloadForNewDeployment } from "./lib/chunkRecovery";
+import { initPwa } from "./lib/pwa/init";
 
 installDomResilience();
 
@@ -12,22 +13,9 @@ window.addEventListener("vite:preloadError", (event) => {
   if (reloadForNewDeployment()) event.preventDefault();
 });
 
-// PWA functionality is temporarily disabled (see vite.config.ts). Actively
-// unregister any service worker and clear its caches so visitors who
-// installed the app previously fall back to a plain, always-fresh site.
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    registrations.forEach((registration) => void registration.unregister());
-  }).catch((error) => {
-    console.warn("Failed to unregister service worker:", error);
-  });
-}
-if ("caches" in window) {
-  caches.keys().then((keys) => {
-    keys.forEach((key) => void caches.delete(key));
-  }).catch((error) => {
-    console.warn("Failed to clear caches:", error);
-  });
-}
+// PWA layer (service worker, install prompt capture, network status): src/lib/pwa.
+// Replaces the earlier teardown that unregistered every worker and cleared ALL
+// caches on each load — which would also have wiped members' offline podcast downloads.
+initPwa();
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -71,6 +71,16 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Detach this device's push subscription from the account first (best effort, time-boxed) so the next
+    // person to use it isn't sent this member's notifications. Never blocks or fails sign-out.
+    try {
+      await Promise.race([
+        import("@/lib/pwa/notificationManager").then((m) => m.detachDeviceForSignOut()),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+    } catch {
+      /* ignore */
+    }
     const { error } = await supabase.auth.signOut();
     return { error };
   };

@@ -41,6 +41,7 @@ const CATEGORIES = [
   "Pricing & upgrades",
   "Sign-up & sign-in",
   "Routines",
+  "App & PWA",
   "Content & community",
 ] as const;
 const CATEGORY_COLOR: Record<string, string> = {
@@ -49,6 +50,7 @@ const CATEGORY_COLOR: Record<string, string> = {
   "Pricing & upgrades": "hsl(var(--chart-3))",
   "Sign-up & sign-in": "hsl(var(--chart-4))",
   Routines: "hsl(var(--chart-5))",
+  "App & PWA": "hsl(var(--chart-1) / 0.55)",
   "Content & community": "hsl(var(--muted-foreground))",
 };
 

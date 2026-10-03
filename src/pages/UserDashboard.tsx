@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, useLocation, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -20,6 +21,7 @@ import RoutineTrackerTab from "@/components/dashboard/RoutineTrackerTab";
 import BillingTab from "@/components/dashboard/BillingTab";
 import InboxTab from "@/components/dashboard/InboxTab";
 import AccountTab from "@/components/dashboard/AccountTab";
+const AppSettingsPanel = lazyWithRetry(() => import("@/components/pwa/AppSettingsPanel"));
 import SavedContentTab from "@/components/dashboard/SavedContentTab";
 import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
 import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
@@ -828,6 +830,7 @@ const UserDashboard = () => {
                       { value: "profile", label: "Profile" },
                       { value: "billing", label: "Billing" },
                       { value: "security", label: "Security" },
+                      { value: "app", label: "App" },
                       { value: "account", label: "Account" },
                     ]}
                   />
@@ -863,6 +866,11 @@ const UserDashboard = () => {
                       <EmailVerificationCard />
                       <MFASettingsCard />
                     </div>
+                  )}
+                  {activeSection === "app" && (
+                    <Suspense fallback={null}>
+                      <AppSettingsPanel />
+                    </Suspense>
                   )}
                   {activeSection === "account" && <AccountTab />}
                 </TabsContent>
