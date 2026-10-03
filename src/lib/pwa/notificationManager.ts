@@ -13,13 +13,13 @@
  *    sync; sign-out → this device is detached from the account; several devices per member are supported.
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { trackPwaEvent } from "./analytics";
 import { detectBrowser, detectPlatform, detectPushSupport, readCapabilityProbe, readDetectionEnv } from "./detection";
 import { enqueueAction, queueKey, registerQueueHandler, type QueuedAction } from "./offlineQueue";
 import { isNetworkError } from "./network";
 import { getReadyRegistration } from "./serviceWorker";
 import { local } from "./storageUtil";
-import { isMissingBackend, untypedSupabase } from "./untypedSupabase";
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from "./pushPayload";
 
 export type PermissionState = NotificationPermission | "unsupported";
@@ -55,13 +55,19 @@ export const PREFERENCE_LABELS: Record<NotificationCategory, { label: string; de
   service: { label: "Important service notices", description: "Outages, policy changes and other things you need to know." },
 };
 
+type RegisterPushArgs = Database["public"]["Functions"]["register_push_subscription"]["Args"];
+type UnregisterPushArgs = Database["public"]["Functions"]["unregister_push_subscription"]["Args"];
+
 interface Deps {
   rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ error: { code?: string; message: string } | null }>;
   getUserId: () => Promise<string | null>;
   getRegistration: () => Promise<ServiceWorkerRegistration | null>;
 }
 const realDeps: Deps = {
-  rpc: (fn, args) => untypedSupabase.rpc(fn, args),
+  rpc: (fn, args) =>
+    fn === "register_push_subscription"
+      ? supabase.rpc("register_push_subscription", args as RegisterPushArgs)
+      : supabase.rpc("unregister_push_subscription", args as UnregisterPushArgs),
   getUserId: async () => (await supabase.auth.getSession()).data.session?.user.id ?? null,
   getRegistration: getReadyRegistration,
 };
@@ -242,17 +248,17 @@ export const normalizePreferences = (row: PrefRow | null | undefined): Notificat
 };
 
 export const loadPreferences = async (userId: string): Promise<NotificationPreferences> => {
-  const { data, error } = await untypedSupabase
-    .from<PrefRow>("notification_preferences")
+  const { data, error } = await supabase
+    .from("notification_preferences")
     .select("podcast_episode, briefing, routine_reminder, account_update, promotional, service")
     .eq("user_id", userId)
     .maybeSingle();
-  if (error && !isMissingBackend(error)) console.warn("[pwa] could not load notification preferences:", error.message);
+  if (error) console.warn("[pwa] could not load notification preferences:", error.message);
   return normalizePreferences(data);
 };
 
 const writePreferences = (userId: string, prefs: NotificationPreferences) =>
-  untypedSupabase.from("notification_preferences").upsert({ user_id: userId, ...prefs }, { onConflict: "user_id" });
+  supabase.from("notification_preferences").upsert({ user_id: userId, ...prefs }, { onConflict: "user_id" });
 
 /** Saves preferences; offline or unreachable writes are queued and replayed (last write wins). */
 export const savePreferences = async (userId: string, prefs: NotificationPreferences): Promise<"saved" | "queued" | "failed"> => {
@@ -260,7 +266,7 @@ export const savePreferences = async (userId: string, prefs: NotificationPrefere
     try {
       const { error } = await writePreferences(userId, prefs);
       if (!error) return "saved";
-      if (isMissingBackend(error) || !isNetworkError(error)) return "failed";
+      if (!isNetworkError(error)) return "failed";
     } catch (error) {
       if (!isNetworkError(error)) return "failed";
     }
@@ -279,7 +285,7 @@ registerQueueHandler("notification_preferences", async (action: QueuedAction) =>
   if (!data.session) return "retry";
   if (data.session.user.id !== action.userId) return "drop";
   const { error } = await writePreferences(action.userId, normalizePreferences(action.payload as PrefRow));
-  if (!error || isMissingBackend(error)) return "done";
+  if (!error) return "done";
   return isNetworkError(error) ? "retry" : "drop";
 });
 

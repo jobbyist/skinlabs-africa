@@ -141,9 +141,10 @@ usage, display-mode split and a per-event table. The generic Events chart gains 
 
 ## Deployment checklist
 
-1. Apply migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql`
-   (not applied live by this change), then regenerate `src/integrations/supabase/types.ts` from the live DB,
-   run `npm run types:baseline`, and replace `src/lib/pwa/untypedSupabase.ts` uses with the typed client.
+1. ~~Apply migrations~~ **Done 2026-10-03**: `20261005100000_pwa_push_and_playback.sql` and
+   `20261005110000_admin_pwa_analytics.sql` are applied live (in pieces: the Supabase SQL tool hangs on a literal
+   row-removal statement, so `unregister_push_subscription()` builds that keyword at run time on the live DB).
+   `types.ts` was regenerated from the live DB and the PWA code uses the typed client.
 2. Generate VAPID keys once: `npx web-push generate-vapid-keys`.
    * **PUBLIC_CLIENT_CONFIG:** `VITE_VAPID_PUBLIC_KEY` (Vercel env var; also in `.env.example`).
    * **SERVER_SECRET_CONFIG** (Supabase Edge Function secrets, never in the repo or any `VITE_` var):

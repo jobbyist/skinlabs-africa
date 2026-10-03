@@ -6,12 +6,12 @@
  * Account store (signed-in members): public.podcast_playback_progress through upsert_podcast_progress(),
  * which keeps the NEWEST client timestamp, so an offline device can never overwrite newer progress from
  * elsewhere. Writes made offline are queued (offlineQueue.ts) and replayed in order when connectivity
- * returns. If the backend objects don't exist yet (migration not applied) everything stays local.
+ * returns.
  */
+import { supabase } from "@/integrations/supabase/client";
 import { local } from "./storageUtil";
 import { enqueueAction, queueKey, registerQueueHandler, type QueuedAction } from "./offlineQueue";
 import { isNetworkError } from "./network";
-import { isMissingBackend, untypedSupabase } from "./untypedSupabase";
 
 export const POSITION_KEY = "skinlabs-podcast-positions";
 export const POSITION_TIMES_KEY = "skinlabs-podcast-position-times";
@@ -56,10 +56,11 @@ interface ProgressPayload {
 }
 
 const sendProgress = async (p: ProgressPayload) =>
-  untypedSupabase.rpc("upsert_podcast_progress", {
+  supabase.rpc("upsert_podcast_progress", {
     p_slug: p.slug,
     p_position: Math.round(p.position * 10) / 10,
-    p_duration: p.duration === null ? null : Math.round(p.duration * 10) / 10,
+    // The function accepts NULL (unknown duration); the generated arg type just has no DEFAULT to mark it optional.
+    p_duration: (p.duration === null ? null : Math.round(p.duration * 10) / 10) as number,
     p_client_updated_at: p.clientUpdatedAt,
   });
 
@@ -74,7 +75,7 @@ export const syncProgressToAccount = async (userId: string, slug: string, positi
   if (!offline) {
     try {
       const { error } = await sendProgress(payload);
-      if (!error || isMissingBackend(error)) return;
+      if (!error) return;
       if (!isNetworkError(error)) return; // a permanent server-side refusal: don't retry forever
     } catch (error) {
       if (!isNetworkError(error)) return;
@@ -84,20 +85,19 @@ export const syncProgressToAccount = async (userId: string, slug: string, positi
 };
 
 registerQueueHandler("podcast_progress", async (action: QueuedAction) => {
-  const { supabase } = await import("@/integrations/supabase/client");
   const { data } = await supabase.auth.getSession();
   // Not signed in (yet) or a different member now: keep for the right user / drop for the wrong one.
   if (!data.session) return "retry";
   if (data.session.user.id !== action.userId) return "drop";
   const { error } = await sendProgress(action.payload as unknown as ProgressPayload);
-  if (!error || isMissingBackend(error)) return "done";
+  if (!error) return "done";
   return isNetworkError(error) ? "retry" : "drop";
 });
 
 /** On sign-in: adopt account progress that is newer than what this device has. Returns how many slugs changed. */
 export const hydrateProgressFromAccount = async (userId: string): Promise<number> => {
-  const { data, error } = await untypedSupabase
-    .from<{ episode_slug: string; position_seconds: number; client_updated_at: string }[]>("podcast_playback_progress")
+  const { data, error } = await supabase
+    .from("podcast_playback_progress")
     .select("episode_slug, position_seconds, client_updated_at")
     .eq("user_id", userId);
   if (error || !Array.isArray(data)) return 0;

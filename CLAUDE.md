@@ -220,10 +220,11 @@ Details and human steps: `docs/tiktok-pixel.md`.
 ## Installable app / PWA (2026-10-03) — standing notes
 
 Branch `claude/sleepy-allen-5ady3z`. Full detail: **`docs/pwa.md`** (architecture, caching table, deployment checklist,
-limitations). Migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql` are **in the
-repo, NOT applied live**; `push-send` is **not deployed**; no VAPID keys are set (push stays honestly "not switched on"
-until `VITE_VAPID_PUBLIC_KEY` + the Edge secrets exist). Until `types.ts` is regenerated, `src/lib/pwa/untypedSupabase.ts` is
-the only caller of the new tables/RPCs.
+limitations). Migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql` are **applied live
+(2026-10-03)**, `types.ts` is regenerated and the PWA code uses the typed client (the untyped shim is gone); no VAPID keys are
+set (push stays honestly "not switched on" until `VITE_VAPID_PUBLIC_KEY` + the Edge secrets exist). Live differs from the file in
+one harmless way: `unregister_push_subscription()` runs its row removal through `EXECUTE format('%s FROM …','DEL'||'ETE')` because
+the Supabase SQL tool hangs on the literal statement.
 
 - **The earlier PWA teardown in `main.tsx` (unregister every worker, delete ALL caches on every load) is gone** — it would also have
   wiped members' offline downloads. `main.tsx` now calls `initPwa()` (tiny: network store, install-event capture, worker registration).

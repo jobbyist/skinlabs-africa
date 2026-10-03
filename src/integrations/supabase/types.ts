@@ -2713,6 +2713,45 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_preferences: {
+        Row: {
+          account_update: boolean
+          briefing: boolean
+          created_at: string
+          podcast_episode: boolean
+          promotional: boolean
+          promotional_opt_in_at: string | null
+          routine_reminder: boolean
+          service: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_update?: boolean
+          briefing?: boolean
+          created_at?: string
+          podcast_episode?: boolean
+          promotional?: boolean
+          promotional_opt_in_at?: string | null
+          routine_reminder?: boolean
+          service?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          account_update?: boolean
+          briefing?: boolean
+          created_at?: string
+          podcast_episode?: boolean
+          promotional?: boolean
+          promotional_opt_in_at?: string | null
+          routine_reminder?: boolean
+          service?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -3183,6 +3222,33 @@ export type Database = {
           created_at?: string
           episode_slug?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      podcast_playback_progress: {
+        Row: {
+          client_updated_at: string
+          duration_seconds: number | null
+          episode_slug: string
+          position_seconds: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_updated_at: string
+          duration_seconds?: number | null
+          episode_slug: string
+          position_seconds: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_updated_at?: string
+          duration_seconds?: number | null
+          episode_slug?: string
+          position_seconds?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -4152,6 +4218,51 @@ export type Database = {
           username?: string | null
           username_generated?: boolean
           weather_city_key?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          browser: string
+          created_at: string
+          endpoint: string
+          failure_count: number
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          p256dh: string
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          browser?: string
+          created_at?: string
+          endpoint: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          p256dh: string
+          platform?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          browser?: string
+          created_at?: string
+          endpoint?: string
+          failure_count?: number
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          p256dh?: string
+          platform?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -5534,6 +5645,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_campaign_attribution: { Args: { p_days?: number }; Returns: Json }
+      admin_events_overview: { Args: { p_days?: number }; Returns: Json }
       admin_get_advanced_assessment_review: {
         Args: { p_report_id: string }
         Returns: Json
@@ -5649,6 +5762,7 @@ export type Database = {
         Args: { p_report_ids?: string[] }
         Returns: number
       }
+      admin_pwa_overview: { Args: { p_days?: number }; Returns: Json }
       admin_record_prompt_signoff: {
         Args: {
           p_approved_on: string
@@ -6108,6 +6222,16 @@ export type Database = {
       }
       register_ai_analysis_use: { Args: never; Returns: boolean }
       register_article_view: { Args: { p_article_id: string }; Returns: number }
+      register_push_subscription: {
+        Args: {
+          p_auth: string
+          p_browser?: string
+          p_endpoint: string
+          p_p256dh: string
+          p_platform?: string
+        }
+        Returns: string
+      }
       save_advanced_assessment_pipeline_state: {
         Args: {
           p_release?: boolean
@@ -6328,8 +6452,21 @@ export type Database = {
           user_id: string
         }[]
       }
+      unregister_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
+      }
       unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
       unsubscribe_newsletter: { Args: { p_token: string }; Returns: boolean }
+      upsert_podcast_progress: {
+        Args: {
+          p_client_updated_at: string
+          p_duration: number
+          p_position: number
+          p_slug: string
+        }
+        Returns: boolean
+      }
       verify_price_sync_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }
