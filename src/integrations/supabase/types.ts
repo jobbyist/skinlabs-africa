@@ -365,11 +365,10 @@ export type Database = {
       }
       advanced_assessment_sessions: {
         Row: {
-          basic_analysis_id: string | null
-          prefilled_question_ids: string[] | null
           access_type: string | null
           assessment_definition_id: string
           assessment_version: string
+          basic_analysis_id: string | null
           completed_at: string | null
           completeness_pct: number
           created_at: string
@@ -380,6 +379,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           pass_transaction_id: string | null
+          prefilled_question_ids: string[] | null
           question_library_version: string
           responses: Json
           safety_screen: Json | null
@@ -391,11 +391,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          basic_analysis_id?: string | null
-          prefilled_question_ids?: string[] | null
           access_type?: string | null
           assessment_definition_id: string
           assessment_version: string
+          basic_analysis_id?: string | null
           completed_at?: string | null
           completeness_pct?: number
           created_at?: string
@@ -406,6 +405,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           pass_transaction_id?: string | null
+          prefilled_question_ids?: string[] | null
           question_library_version: string
           responses?: Json
           safety_screen?: Json | null
@@ -417,11 +417,10 @@ export type Database = {
           user_id: string
         }
         Update: {
-          basic_analysis_id?: string | null
-          prefilled_question_ids?: string[] | null
           access_type?: string | null
           assessment_definition_id?: string
           assessment_version?: string
+          basic_analysis_id?: string | null
           completed_at?: string | null
           completeness_pct?: number
           created_at?: string
@@ -432,6 +431,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           pass_transaction_id?: string | null
+          prefilled_question_ids?: string[] | null
           question_library_version?: string
           responses?: Json
           safety_screen?: Json | null
@@ -448,6 +448,13 @@ export type Database = {
             columns: ["assessment_definition_id"]
             isOneToOne: false
             referencedRelation: "assessment_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advanced_assessment_sessions_basic_analysis_id_fkey"
+            columns: ["basic_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "skincare_recommendations"
             referencedColumns: ["id"]
           },
           {
@@ -2507,22 +2514,55 @@ export type Database = {
       }
       newsletter_subscribers: {
         Row: {
+          consultation_waitlist: boolean
+          digest_confirm_token: string | null
+          digest_confirmation_sent_at: string | null
+          digest_confirmed_at: string | null
+          digest_consent_text: string | null
+          digest_consent_version: string | null
+          digest_source: string | null
+          digest_source_path: string | null
+          digest_status: string
+          digest_unsubscribed_at: string | null
           email: string
           id: string
           is_active: boolean
           subscribed_at: string
+          unsubscribe_token: string
         }
         Insert: {
+          consultation_waitlist?: boolean
+          digest_confirm_token?: string | null
+          digest_confirmation_sent_at?: string | null
+          digest_confirmed_at?: string | null
+          digest_consent_text?: string | null
+          digest_consent_version?: string | null
+          digest_source?: string | null
+          digest_source_path?: string | null
+          digest_status?: string
+          digest_unsubscribed_at?: string | null
           email: string
           id?: string
           is_active?: boolean
           subscribed_at?: string
+          unsubscribe_token?: string
         }
         Update: {
+          consultation_waitlist?: boolean
+          digest_confirm_token?: string | null
+          digest_confirmation_sent_at?: string | null
+          digest_confirmed_at?: string | null
+          digest_consent_text?: string | null
+          digest_consent_version?: string | null
+          digest_source?: string | null
+          digest_source_path?: string | null
+          digest_status?: string
+          digest_unsubscribed_at?: string | null
           email?: string
           id?: string
           is_active?: boolean
           subscribed_at?: string
+          unsubscribe_token?: string
         }
         Relationships: []
       }
@@ -2616,45 +2656,6 @@ export type Database = {
           id?: string
           last_name?: string
           phone?: string
-        }
-        Relationships: []
-      }
-      practice_suite_waitlist: {
-        Row: {
-          admin_pain: string | null
-          contact_consent: boolean
-          created_at: string
-          email: string
-          full_name: string
-          id: string
-          practice_type: string
-          practitioner_count: string
-          province: string
-          role: string
-        }
-        Insert: {
-          admin_pain?: string | null
-          contact_consent: boolean
-          created_at?: string
-          email: string
-          full_name: string
-          id?: string
-          practice_type: string
-          practitioner_count: string
-          province: string
-          role: string
-        }
-        Update: {
-          admin_pain?: string | null
-          contact_consent?: boolean
-          created_at?: string
-          email?: string
-          full_name?: string
-          id?: string
-          practice_type?: string
-          practitioner_count?: string
-          province?: string
-          role?: string
         }
         Relationships: []
       }
@@ -3087,6 +3088,45 @@ export type Database = {
           id?: string
           shared_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      practice_suite_waitlist: {
+        Row: {
+          admin_pain: string | null
+          contact_consent: boolean
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          practice_type: string
+          practitioner_count: string
+          province: string
+          role: string
+        }
+        Insert: {
+          admin_pain?: string | null
+          contact_consent: boolean
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          practice_type: string
+          practitioner_count: string
+          province: string
+          role: string
+        }
+        Update: {
+          admin_pain?: string | null
+          contact_consent?: boolean
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          practice_type?: string
+          practitioner_count?: string
+          province?: string
+          role?: string
         }
         Relationships: []
       }
@@ -4407,84 +4447,53 @@ export type Database = {
       }
       routine_steps: {
         Row: {
-          guidance: string | null
-          product_slug: string | null
-          smart_routine_id: string | null
-          source: string
           created_at: string
+          guidance: string | null
           id: string
           product_name: string | null
+          product_slug: string | null
+          smart_routine_id: string | null
           sort_order: number
+          source: string
           step_name: string
           time_of_day: string
           user_id: string
         }
         Insert: {
-          guidance?: string | null
-          product_slug?: string | null
-          smart_routine_id?: string | null
-          source?: string
           created_at?: string
+          guidance?: string | null
           id?: string
           product_name?: string | null
+          product_slug?: string | null
+          smart_routine_id?: string | null
           sort_order?: number
+          source?: string
           step_name: string
           time_of_day?: string
           user_id: string
         }
         Update: {
-          guidance?: string | null
-          product_slug?: string | null
-          smart_routine_id?: string | null
-          source?: string
           created_at?: string
+          guidance?: string | null
           id?: string
           product_name?: string | null
+          product_slug?: string | null
+          smart_routine_id?: string | null
           sort_order?: number
+          source?: string
           step_name?: string
           time_of_day?: string
           user_id?: string
         }
-        Relationships: []
-      }
-      smart_routines: {
-        Row: {
-          advanced_session_id: string | null
-          basic_analysis_id: string | null
-          created_at: string
-          engine_version: string
-          id: string
-          routine: Json
-          season: string | null
-          source: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          advanced_session_id?: string | null
-          basic_analysis_id?: string | null
-          created_at?: string
-          engine_version: string
-          id?: string
-          routine: Json
-          season?: string | null
-          source: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          advanced_session_id?: string | null
-          basic_analysis_id?: string | null
-          created_at?: string
-          engine_version?: string
-          id?: string
-          routine?: Json
-          season?: string | null
-          source?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "routine_steps_smart_routine_id_fkey"
+            columns: ["smart_routine_id"]
+            isOneToOne: false
+            referencedRelation: "smart_routines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skin_concerns: {
         Row: {
@@ -4752,6 +4761,60 @@ export type Database = {
           source?: string
         }
         Relationships: []
+      }
+      smart_routines: {
+        Row: {
+          advanced_session_id: string | null
+          basic_analysis_id: string | null
+          created_at: string
+          engine_version: string
+          id: string
+          routine: Json
+          season: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advanced_session_id?: string | null
+          basic_analysis_id?: string | null
+          created_at?: string
+          engine_version: string
+          id?: string
+          routine: Json
+          season?: string | null
+          source: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advanced_session_id?: string | null
+          basic_analysis_id?: string | null
+          created_at?: string
+          engine_version?: string
+          id?: string
+          routine?: Json
+          season?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_routines_advanced_session_id_fkey"
+            columns: ["advanced_session_id"]
+            isOneToOne: false
+            referencedRelation: "advanced_assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "smart_routines_basic_analysis_id_fkey"
+            columns: ["basic_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "skincare_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       spotlight_brand_requests: {
         Row: {
@@ -5133,23 +5196,6 @@ export type Database = {
       }
     }
     Functions: {
-      get_smart_routine_access: { Args: never; Returns: boolean }
-      link_basic_analysis_to_advanced_session: {
-        Args: {
-          p_basic_analysis_id: string
-          p_prefilled_question_ids?: string[]
-          p_session_id: string
-        }
-        Returns: boolean
-      }
-      save_smart_routine: {
-        Args: {
-          p_advanced_session_id?: string
-          p_basic_analysis_id?: string
-          p_routine: Json
-        }
-        Returns: string
-      }
       _refund_advanced_session_pass: {
         Args: {
           p_session: Database["public"]["Tables"]["advanced_assessment_sessions"]["Row"]
@@ -5399,6 +5445,7 @@ export type Database = {
         Args: { p_responses: Json; p_sections: Json }
         Returns: number
       }
+      confirm_newsletter: { Args: { p_token: string }; Returns: string }
       consume_analysis_pass: {
         Args: never
         Returns: {
@@ -5477,6 +5524,7 @@ export type Database = {
         Returns: string
       }
       enqueue_trial_expiring_events: { Args: never; Returns: number }
+      enqueue_trial_lifecycle_emails: { Args: never; Returns: number }
       enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
       expire_finished_trials: { Args: never; Returns: number }
       expire_lapsed_subscriptions: { Args: never; Returns: number }
@@ -5552,6 +5600,7 @@ export type Database = {
           usage_guidance: string
         }[]
       }
+      get_smart_routine_access: { Args: never; Returns: boolean }
       grant_ai_credits:
         | {
             Args: {
@@ -5583,10 +5632,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_smart_routine_access: { Args: { _user_id: string }; Returns: boolean }
       is_member: { Args: { _user_id: string }; Returns: boolean }
       is_professional_account: { Args: { _user_id: string }; Returns: boolean }
       is_profile_complete: { Args: { _user_id: string }; Returns: boolean }
+      is_trial_activated: { Args: { _user_id: string }; Returns: boolean }
       is_username_available: { Args: { p_username: string }; Returns: boolean }
+      join_consultation_waitlist: { Args: { p_email: string }; Returns: string }
+      link_basic_analysis_to_advanced_session: {
+        Args: {
+          p_basic_analysis_id: string
+          p_prefilled_question_ids?: string[]
+          p_session_id: string
+        }
+        Returns: boolean
+      }
       list_orphan_intake_pdfs: {
         Args: { p_limit?: number }
         Returns: {
@@ -5647,6 +5707,7 @@ export type Database = {
           access_type: string | null
           assessment_definition_id: string
           assessment_version: string
+          basic_analysis_id: string | null
           completed_at: string | null
           completeness_pct: number
           created_at: string
@@ -5657,6 +5718,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           pass_transaction_id: string | null
+          prefilled_question_ids: string[] | null
           question_library_version: string
           responses: Json
           safety_screen: Json | null
@@ -5673,6 +5735,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_smart_routine: {
+        Args: {
+          p_advanced_session_id?: string
+          p_basic_analysis_id?: string
+          p_routine: Json
+        }
+        Returns: string
       }
       save_starter_analysis: {
         Args: {
@@ -5736,12 +5806,32 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      skynn_ops_summary: {
+        Args: { p_days?: number }
+        Returns: {
+          advanced_intake_email_failed: number
+          advanced_intake_pdf_failed: number
+          advanced_pending: number
+          advanced_started_from_basic: number
+          advanced_submissions: number
+          analysis_passes_consumed: number
+          basic_analyses_saved: number
+          basic_limit_hits: number
+          skynn_errors: number
+          skynn_pdf_downloads: number
+          skynn_results_viewed: number
+          skynn_starts: number
+          smart_routines_saved: number
+          window_days: number
+        }[]
+      }
       start_advanced_assessment_session: {
         Args: never
         Returns: {
           access_type: string | null
           assessment_definition_id: string
           assessment_version: string
+          basic_analysis_id: string | null
           completed_at: string | null
           completeness_pct: number
           created_at: string
@@ -5752,6 +5842,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           pass_transaction_id: string | null
+          prefilled_question_ids: string[] | null
           question_library_version: string
           responses: Json
           safety_screen: Json | null
@@ -5769,25 +5860,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      skynn_ops_summary: {
-        Args: { p_days?: number }
-        Returns: {
-          advanced_intake_email_failed: number
-          advanced_intake_pdf_failed: number
-          advanced_pending: number
-          advanced_submissions: number
-          advanced_started_from_basic: number
-          analysis_passes_consumed: number
-          basic_analyses_saved: number
-          basic_limit_hits: number
-          skynn_errors: number
-          skynn_pdf_downloads: number
-          skynn_results_viewed: number
-          skynn_starts: number
-          window_days: number
-          smart_routines_saved: number
-        }[]
-      }
       start_free_trial: {
         Args: { p_plan: string; p_variant_key?: string }
         Returns: boolean
@@ -5802,8 +5874,27 @@ export type Database = {
           session_status: string
         }[]
       }
+      subscribe_newsletter: {
+        Args: { p_email: string; p_source?: string; p_source_path?: string }
+        Returns: boolean
+      }
       subscription_ladder_rank: { Args: { p_status: string }; Returns: number }
+      trial_lifecycle_email_plan: {
+        Args: { p_today?: string }
+        Returns: {
+          category: string
+          email: string
+          idempotency_key: string
+          payload: Json
+          template_id: string
+          transactional: boolean
+          trial_ends_at: string
+          trial_plan: string
+          user_id: string
+        }[]
+      }
       unsubscribe_marketing: { Args: { p_token: string }; Returns: boolean }
+      unsubscribe_newsletter: { Args: { p_token: string }; Returns: boolean }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }
         Returns: boolean

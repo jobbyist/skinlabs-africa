@@ -46,3 +46,20 @@ describe("newsletter_weekly_digest template", () => {
     expect(def.subject({})).toBe("Your SkinLabs Weekly");
   });
 });
+
+describe("newsletter_digest_confirm template", () => {
+  const def = getTemplate("newsletter_digest_confirm")!;
+
+  test("is transactional (sent only because the visitor asked) and needs a confirm link", () => {
+    expect(def.category).toBe("FORMS");
+    expect(def.transactional).toBe(true);
+    expect(def.requiredVars).toEqual(["confirm_url"]);
+  });
+
+  test("renders the confirm button and tells a mistaken recipient to ignore it", () => {
+    const html = def.render({ confirm_url: "https://skinlabs.co.za/newsletter/confirm?token=abc" });
+    expect(html).toContain("https://skinlabs.co.za/newsletter/confirm?token=abc");
+    expect(html).toContain("Confirm my subscription");
+    expect(html).toContain("ignore this email");
+  });
+});
