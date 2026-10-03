@@ -1,6 +1,6 @@
 import { COOKIE_CONSENT_CHANGED_EVENT, getStoredCookiePreferences } from "@/lib/cookie-consent";
 import { isAutomatedAgent } from "@/lib/viewerContext";
-import { newEventId, parseTtclid, tiktokEventFor } from "@/lib/tiktok/events";
+import { contentForPath, newEventId, parseTtclid, tiktokEventFor, type TikTokContent } from "@/lib/tiktok/events";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -25,6 +25,7 @@ const TIKTOK_EVENTS_JS = "https://analytics.tiktok.com/i18n/pixel/events.js";
 type Ttq = {
   load: (id: string, opts?: Record<string, unknown>) => void;
   page: () => void;
+  identify?: (identity: Record<string, string>) => void;
   track: (name: string, props?: Record<string, unknown>, opts?: { event_id?: string }) => void;
   grantConsent?: () => void;
   revokeConsent?: () => void;
@@ -110,6 +111,35 @@ const readTtp = (): string | undefined => {
   return m ? decodeURIComponent(m[1]) : undefined;
 };
 
+const sha256Hex = async (input: string): Promise<string> => {
+  const bytes = new TextEncoder().encode(input.trim().toLowerCase());
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+};
+
+let identifiedFor: string | null = null;
+let lastReportedPath: string | null = null;
+
+/**
+ * Advanced matching: for a signed-in member who accepted advertising cookies, tell the pixel
+ * who they are with SHA-256 hashes only (email + account id), computed here in the browser.
+ * Phone numbers are deliberately not sent. Called before events so they carry the identity.
+ */
+export const identifyTikTokUser = async (): Promise<void> => {
+  try {
+    if (!loaded || !shouldRun()) return;
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    if (!user || identifiedFor === user.id) return;
+    identifiedFor = user.id;
+    const identity: Record<string, string> = { external_id: await sha256Hex(user.id) };
+    if (user.email) identity.email = await sha256Hex(user.email);
+    window.ttq?.identify?.(identity);
+  } catch {
+    /* identity is optional */
+  }
+};
+
 /** Loads the pixel once (consent already checked by the caller) and sends the first page view. */
 const load = () => {
   if (loaded) return;
@@ -119,6 +149,8 @@ const load = () => {
   window.ttq?.enableCookie?.();
   window.ttq?.grantConsent?.();
   window.ttq?.page();
+  void identifyTikTokUser();
+  reportContent(window.location.pathname);
 };
 
 /** Re-evaluates consent: loads on grant, switches everything off on withdrawal. */
@@ -129,10 +161,12 @@ export const syncTikTokConsent = (): void => {
     else {
       window.ttq?.enableCookie?.();
       window.ttq?.grantConsent?.();
+      void identifyTikTokUser();
     }
   } else if (loaded) {
     window.ttq?.revokeConsent?.();
     window.ttq?.disableCookie?.();
+    identifiedFor = null;
   }
 };
 
@@ -149,12 +183,6 @@ export const startTikTokPixel = (): (() => void) => {
   };
 };
 
-/** SPA navigation → one more page view (the first one is sent by load()). */
-export const trackTikTokPageView = (): void => {
-  if (!loaded || !shouldRun()) return;
-  window.ttq?.page();
-};
-
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
 const moneyFrom = (payload: ConversionPayload): { value: number; currency: string } | null => {
@@ -163,44 +191,70 @@ const moneyFrom = (payload: ConversionPayload): { value: number; currency: strin
   return value !== null && value >= 0 && /^[A-Z]{3}$/.test(currency) ? { value, currency } : null;
 };
 
+/** Browser event + matching server event (same event_id). Caller has already checked consent. */
+const sendEvent = (name: string, content: TikTokContent | null, money: { value: number; currency: string } | null) => {
+  void identifyTikTokUser().finally(() => {
+    const eventId = newEventId();
+    window.ttq?.track(
+      name,
+      {
+        ...(content ? { contents: [content] } : {}),
+        ...(money ?? {}),
+      },
+      { event_id: eventId },
+    );
+    // supabase-js attaches the signed-in user's JWT itself; the function derives the email from it.
+    void supabase.functions
+      .invoke("tiktok-events", {
+        body: {
+          event: name,
+          eventId,
+          eventTime: Math.floor(Date.now() / 1000),
+          url: window.location.href,
+          referrer: document.referrer || undefined,
+          ttclid: readTtclid(),
+          ttp: readTtp(),
+          consent: true,
+          contentId: content?.content_id,
+          contentType: content?.content_type,
+          contentName: content?.content_name,
+          ...(money ?? {}),
+        },
+      })
+      .catch(() => undefined);
+  });
+};
+
+function reportContent(pathname: string): void {
+  if (lastReportedPath === pathname) return;
+  lastReportedPath = pathname;
+  const content = contentForPath(pathname);
+  if (content) sendEvent("ViewContent", content, null);
+}
+
+/** SPA navigation → a page view, plus ViewContent on the key event pages (home, /skynn-ai, reviews…). */
+export const trackTikTokPageView = (pathname: string = window.location.pathname): void => {
+  try {
+    if (!loaded || !shouldRun()) return;
+    if (lastReportedPath !== pathname) window.ttq?.page();
+    reportContent(pathname);
+  } catch {
+    /* never break navigation */
+  }
+};
+
 /**
  * Forwarded from trackConversionEvent(). No-op without consent or for events TikTok
- * doesn't need. Sends the browser event and the matching server event (same event_id).
- * Never throws, never awaited by the caller.
+ * doesn't need. Never throws, never awaited by the caller.
  */
 export const forwardConversionToTikTok = (event: string, payload: ConversionPayload = {}): void => {
   try {
     const name = tiktokEventFor(event);
     if (!name || !shouldRun()) return;
     if (!loaded) load();
-    const eventId = newEventId();
-    const money = moneyFrom(payload);
-    window.ttq?.track(
-      name,
-      money ? { value: money.value, currency: money.currency } : {},
-      { event_id: eventId },
-    );
-
-    void (async () => {
-      try {
-        // supabase-js attaches the signed-in user's JWT itself; the function derives the email from it.
-        await supabase.functions.invoke("tiktok-events", {
-          body: {
-            event: name,
-            eventId,
-            eventTime: Math.floor(Date.now() / 1000),
-            url: window.location.href,
-            referrer: document.referrer || undefined,
-            ttclid: readTtclid(),
-            ttp: readTtp(),
-            consent: true,
-            ...(money ?? {}),
-          },
-        });
-      } catch {
-        /* server copy is best effort */
-      }
-    })();
+    const path = window.location.pathname;
+    // Page context only (never the search words, answers or anything typed by the visitor).
+    sendEvent(name, contentForPath(path), moneyFrom(payload));
   } catch {
     /* analytics must never break the feature it measures */
   }

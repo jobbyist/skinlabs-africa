@@ -17,6 +17,9 @@ export const TIKTOK_STANDARD_EVENTS = [
   "StartTrial",
   "Subscribe",
   "SubmitForm",
+  "Search",
+  "AddPaymentInfo",
+  "Purchase",
 ] as const;
 
 export type TikTokStandardEvent = (typeof TIKTOK_STANDARD_EVENTS)[number];
@@ -37,6 +40,8 @@ export interface IncomingTikTokEvent {
   consent?: boolean;
   value?: number;
   currency?: string;
+  contentId?: string;
+  contentType?: "product" | "product_group";
   contentName?: string;
 }
 
@@ -108,6 +113,8 @@ export const validateIncomingEvent = (raw: unknown): ValidationResult => {
       consent: true,
       value: num(e.value),
       currency: typeof e.currency === "string" && /^[A-Z]{3}$/.test(e.currency) ? e.currency : undefined,
+      contentId: typeof e.contentId === "string" && /^[A-Za-z0-9:_.-]{1,140}$/.test(e.contentId) ? e.contentId : undefined,
+      contentType: e.contentType === "product" || e.contentType === "product_group" ? e.contentType : undefined,
       contentName: str(e.contentName, 120),
     },
   };
@@ -145,7 +152,11 @@ export const buildTrackBody = async (args: {
     properties.value = event.value;
     properties.currency = event.currency;
   }
-  if (event.contentName) properties.content_name = event.contentName;
+  if (event.contentId && event.contentType) {
+    properties.contents = [
+      { content_id: event.contentId, content_type: event.contentType, ...(event.contentName ? { content_name: event.contentName } : {}) },
+    ];
+  }
 
   const page: Record<string, string> = {};
   const url = safeUrl(event.url);

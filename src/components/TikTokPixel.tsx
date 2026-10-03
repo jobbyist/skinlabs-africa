@@ -14,7 +14,7 @@ const TikTokPixel = () => {
 
   // The first page view is sent when the pixel loads; every later route change adds one.
   useEffect(() => {
-    trackTikTokPageView();
+    trackTikTokPageView(pathname);
   }, [pathname]);
 
   return null;

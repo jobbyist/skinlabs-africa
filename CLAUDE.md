@@ -212,6 +212,7 @@ Details and human steps: `docs/tiktok-pixel.md`.
 
 - **Consent-gated, not in `index.html`**: `src/lib/tiktok/pixel.ts` injects TikTok's snippet only while `targetedAdvertising` cookie consent is on (banner, preference panel and profile sync all fire `COOKIE_CONSENT_CHANGED_EVENT`); withdrawing stops it. Never paste the snippet into `index.html` (a test fails).
 - `trackConversionEvent()` forwards only the events in `src/lib/tiktok/events.ts`; the same `event_id` goes to the browser pixel and the `tiktok-events` edge function (Events API v1.3), which whitelists events, requires `consent: true`, hashes email/account id from the verified JWT, strips URL queries.
+- ViewContent fires only on key pages (`contentForPath()`); `identify` sends SHA-256 email + account id (no phone) for consented signed-in members; Search sends the event, never the typed words. Details in `docs/tiktok-pixel.md`.
 - **Not live until a human** sets `TIKTOK_EVENTS_ACCESS_TOKEN` and deploys `tiktok-events`. Cookie Policy copy now names the TikTok Pixel; Privacy Policy still needs a legal read.
 
 ## Admin: manual Analysis Pass issuing (2026-10-03)

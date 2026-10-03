@@ -6,7 +6,7 @@ import {
   sha256Hex,
   validateIncomingEvent,
 } from "../../../supabase/functions/_shared/tiktok/eventsApi";
-import { newEventId, parseTtclid, tiktokEventFor } from "../tiktok/events";
+import { contentForPath, newEventId, parseTtclid, tiktokEventFor } from "../tiktok/events";
 
 const base = { event: "StartTrial", eventId: "sl_12345678-abcd", consent: true };
 
@@ -22,7 +22,7 @@ describe("validateIncomingEvent", () => {
     expect(validateIncomingEvent({ event: "StartTrial", eventId: base.eventId })).toEqual({ ok: false, reason: "no_consent" });
   });
   test("refuses events outside the whitelist", () => {
-    expect(validateIncomingEvent({ ...base, event: "Purchase" })).toEqual({ ok: false, reason: "unsupported_event" });
+    expect(validateIncomingEvent({ ...base, event: "PlaceAnOrder" })).toEqual({ ok: false, reason: "unsupported_event" });
     expect(isTikTokStandardEvent("PageView")).toBe(false);
   });
   test("refuses malformed ids and drops malformed tokens/currency", () => {
@@ -136,5 +136,44 @@ describe("isValidIp", () => {
     if (!parsed.ok) throw new Error("should validate");
     const body = await buildTrackBody({ pixelCode: "P", event: parsed.event, context: { ip: "evil\nip" } });
     expect((body.data[0] as Row).user.ip).toBeUndefined();
+  });
+});
+
+describe("key event pages", () => {
+  test("home, SKYNN AI and pricing describe themselves; private pages are never reported", () => {
+    expect(contentForPath("/")?.content_id).toBe("home");
+    expect(contentForPath("/skynn-ai")?.content_name).toBe("Basic AI Skin Analysis");
+    expect(contentForPath("/skynn-ai/advanced")?.content_id).toBe("skynn-ai-advanced");
+    expect(contentForPath("/pricing/")?.content_id).toBe("membership-plans");
+    for (const p of ["/dashboard", "/admin", "/welcome", "/reset-password", "/privacy-policy", "/newsletter/confirm"]) {
+      expect(contentForPath(p)).toBeNull();
+    }
+  });
+  test("slug pages use the public slug only and reject odd paths", () => {
+    expect(contentForPath("/reviews/geve-earthmoss-serum")).toEqual({
+      content_id: "review:geve-earthmoss-serum",
+      content_type: "product",
+      content_name: "geve earthmoss serum",
+    });
+    expect(contentForPath("/reviews/a/b")).toBeNull();
+    expect(contentForPath("/reviews/<x>")).toBeNull();
+  });
+  test("new event mappings and contents reach the server payload", async () => {
+    expect(tiktokEventFor("keep_membership_gateway_selected")).toBe("AddPaymentInfo");
+    expect(tiktokEventFor("checkout_completed")).toBe("Purchase");
+    expect(tiktokEventFor("site_search_result_clicked")).toBe("Search");
+    const parsed = validateIncomingEvent({
+      event: "ViewContent",
+      eventId: "sl_12345678-abcd",
+      consent: true,
+      contentId: "home",
+      contentType: "product_group",
+      contentName: "Home",
+    });
+    if (!parsed.ok) throw new Error("should validate");
+    const body = await buildTrackBody({ pixelCode: "P", event: parsed.event, context: {} });
+    expect((body.data[0] as { properties: Record<string, unknown> }).properties.contents).toEqual([
+      { content_id: "home", content_type: "product_group", content_name: "Home" },
+    ]);
   });
 });

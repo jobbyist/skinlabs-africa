@@ -33,6 +33,19 @@ a signed-in member only — SHA-256 hashed email and account id taken from the v
 from the request body). The function refuses requests without `consent: true` and any event
 outside the whitelist.
 
+## Page events, identify, extra events (2026-10-03, follow-up)
+
+- **ViewContent** fires on key event pages only (`contentForPath()` in `src/lib/tiktok/events.ts`): home, `/skynn-ai`,
+  `/skynn-ai/advanced`, `/pricing`, `/routines`, review / ingredient / briefing / episode pages and their hubs. Payload is
+  `contents: [{content_id, content_type, content_name}]` from the public path/slug; dashboard, admin, welcome, auth and legal
+  pages are never reported.
+- **identify** (`identifyTikTokUser()`) runs before events for a signed-in member with advertising consent: SHA-256 of email and
+  account id, hashed in the browser. Phone numbers are not sent.
+- Added: AddPaymentInfo (payment method chosen), Purchase (`checkout_completed`, `credit_pack_purchased`), Search.
+  **Search sends the event only, never the words typed** (health-adjacent queries). `value`/`currency` are included only when a
+  call site supplies them; nothing is invented.
+- Not wired (no honest trigger exists): AddToWishlist, PlaceAnOrder.
+
 ## Human steps still needed
 
 1. Events Manager → your pixel → **Settings → Generate Access Token** (Events API), then
