@@ -217,6 +217,45 @@ Details and human steps: `docs/tiktok-pixel.md`.
 
 - **Campaign attribution (2026-10-04)**: `src/lib/attribution.ts` captures `utm_*`/`ttclid` into sessionStorage (+ random `attr_sid`), `AttributionCapture` logs one `campaign_landing` per campaign per session, and `trackConversionEvent` merges the labels into the Vercel + `analytics_events` payloads only, never the TikTok forward. Google sign-ups now fire `signup_completed` (-> CompleteRegistration) from `IntentResolver` via `oauthRegistration.ts`. Admin -> Ads -> Campaigns (`admin_campaign_attribution()`, migration `20261004130000`, probe `supabase/tests/campaign_attribution.sql`) is the first-party count; TikTok only sees consented visitors, so it will be lower. Tag links `?utm_source=tiktok&utm_medium=paid_social&utm_campaign=<c>&utm_content=<ad>`.
 
+## Installable app / PWA (2026-10-03) — standing notes
+
+Branch `claude/sleepy-allen-5ady3z`. Full detail: **`docs/pwa.md`** (architecture, caching table, deployment checklist,
+limitations). Migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql` are **in the
+repo, NOT applied live**; `push-send` is **not deployed**; no VAPID keys are set (push stays honestly "not switched on"
+until `VITE_VAPID_PUBLIC_KEY` + the Edge secrets exist). Until `types.ts` is regenerated, `src/lib/pwa/untypedSupabase.ts` is
+the only caller of the new tables/RPCs.
+
+- **The earlier PWA teardown in `main.tsx` (unregister every worker, delete ALL caches on every load) is gone** — it would also have
+  wiped members' offline downloads. `main.tsx` now calls `initPwa()` (tiny: network store, install-event capture, worker registration).
+- **Service worker is hand-written and dependency-free** (`src/sw/sw.ts`, rules in the unit-tested `src/lib/pwa/swCore.ts`), built to
+  `dist/sw.js` by a Vite plugin (production only; `tsconfig.sw.json` typechecks it, `src/sw` is excluded from `tsconfig.app.json`).
+  **Privacy contract: only same-origin GETs and three whitelisted PUBLIC Supabase tables are ever cached; auth/RPC/storage/functions/`/api`/
+  payments/admin are never intercepted; member-route HTML is never cached as its own page.** If you add a cache rule, extend
+  `swCore.ts` + `pwaServiceWorker.test.ts` first. The podcast download cache (`skinlabs-podcast-audio`) is never version-purged.
+- **`/start` is the manifest `start_url`** (new route — there was none before). It never creates accounts; it waits for the normal
+  session restore, then → `/dashboard` (or validated `?next=`), sign-in (existing `AuthDialog`), or an offline panel.
+- **The launch splash is the existing `Preloader`** (new "pwa" mode, installed cold launch only; weighted real tasks, ≤12 s ceiling,
+  early finish, no replay in a session). Don't add a second splash; `index.html` only paints a static copy of the same one.
+- **`navigator.onLine` is not truth**: `src/lib/pwa/network.ts` flips to "unreachable" only after a failed request AND a failed probe of
+  our own origin (a single aborted ad/third-party request used to look like "offline" in the first draft). `reloadForNewDeployment()` no
+  longer reloads while offline.
+- **The PWA layer switches itself off for automation** (`navigator.webdriver`, headless/bot UAs) so prerender, SEO and the other e2e specs are
+  unaffected; `e2e/pwa.e2e.ts` presents as a real browser (and serves a 200 ad script so the ad-block wall stays away).
+- **Install prompt**: branded, never automatic-on-load — engagement + 14-day dismissal cooldown + route exclusions in
+  `resolveInstallExperience()`. iOS gets Share → Add to Home Screen text steps.
+- **Offline podcasts**: bytes in Cache Storage, metadata in IndexedDB, same access rule as streaming. Progress sync keeps the newest
+  client timestamp (`upsert_podcast_progress`). The offline queue only ever holds podcast progress + notification preferences.
+- **Push**: permission only from an explicit button; subscriptions only via SECURITY DEFINER RPCs (clients can't read endpoint/keys);
+  marketing off by default with a recorded opt-in. **No automatic senders exist yet** (episode/briefing/reminder triggers are follow-ups).
+- **PWA analytics**: everything through `trackPwaEvent()` (adds `platform`, `browser`, `device_type`, `display_mode`; nothing else).
+  iOS fires no `appinstalled`, so its first standalone launch records `pwa_installed` (`source: first_launch`). Admin → Analytics →
+  "App installs & devices" (`PwaAnalyticsPanel`, `admin_pwa_overview()`); `admin_events_overview()` gained an "App & PWA" category.
+- Tests: `bun test` (`pwa*.test.ts`), `e2e/pwa.e2e.ts`, `e2e/pwa-admin.e2e.ts`, SQL probes `supabase/tests/pwa_push_and_playback.sql` (30) and
+  `pwa_admin_analytics.sql` (14) — the probes were run against a LOCAL Postgres 16 with a stubbed schema, not the live project; run
+  `scripts/run-sql-probes.sh` after applying the migrations.
+- Mock-isolation gotcha: bun's `mock.module` leaks across test files — use the injection seams (`__setNotificationDepsForTests`,
+  `__setPwaEventSink`, `__resetNetworkForTests`) and restore any `globalThis` fakes in `afterAll`.
+
 ## Admin: manual Analysis Pass issuing (2026-10-03)
 
 - **/admin sign-in (2026-10-03, supersedes the "`/admin` gate" bullet under Auth + membership onboarding)**: the `ADMIN_PASSWORD` gate, `api/admin-auth.ts`, `use-admin-gate.ts` and `AdminLoginScreen` are gone. `/admin` embeds a second instance of the normal `AuthDialog` (signed out) and `AdminDashboard` checks `has_role(admin)` on whichever account signs in (any admin, e.g. michael@). `api/admin-analytics.ts` now verifies the bearer access token + admin role with the service-role client; `AnalyticsTab` sends the session token. `ADMIN_PASSWORD` is no longer used and can be deleted from Vercel.
