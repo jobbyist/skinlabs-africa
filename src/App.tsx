@@ -82,6 +82,7 @@ const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
 const Start = lazyWithRetry(() => import("./pages/Start"));
+const GiveawayOctober2026 = lazyWithRetry(() => import("./pages/GiveawayOctober2026"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazyWithRetry(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazyWithRetry(() => import("./pages/marketplace/MarketplaceProductDetail"));
@@ -146,6 +147,8 @@ const AppContent = () => {
             <Route path="/" element={<Index />} />
             <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
             <Route path="/skynn-ai" element={<AIFormulator />} />
+            {/* TikTok acquisition landing page for the October 2026 giveaway (src/lib/giveaway). */}
+            <Route path="/giveaways/october-2026" element={<GiveawayOctober2026 />} />
             {/* SKYNN AI Advanced Dermatology Report — gated server-side by get_advanced_assessment_access(). */}
             <Route path="/skynn-ai/advanced" element={<AdvancedAssessment />} />
             <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />

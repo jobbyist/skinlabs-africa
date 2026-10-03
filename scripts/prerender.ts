@@ -53,6 +53,7 @@ const STATIC_ROUTES = [
   "/partners",
   "/brand-ambassadors",
   "/skynn-ai",
+  "/giveaways/october-2026",
   "/knowledge-hub",
   "/privacy-policy",
   "/terms-of-service",

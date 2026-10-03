@@ -226,6 +226,19 @@ Details and human steps: `docs/tiktok-pixel.md`.
 
 - **Campaign attribution (2026-10-04)**: `src/lib/attribution.ts` captures `utm_*`/`ttclid` into sessionStorage (+ random `attr_sid`), `AttributionCapture` logs one `campaign_landing` per campaign per session, and `trackConversionEvent` merges the labels into the Vercel + `analytics_events` payloads only, never the TikTok forward. Google sign-ups now fire `signup_completed` (-> CompleteRegistration) from `IntentResolver` via `oauthRegistration.ts`. Admin -> Ads -> Campaigns (`admin_campaign_attribution()`, migration `20261004130000`, probe `supabase/tests/campaign_attribution.sql`) is the first-party count; TikTok only sees consented visitors, so it will be lower. Tag links `?utm_source=tiktok&utm_medium=paid_social&utm_campaign=<c>&utm_content=<ad>`.
 
+## October 2026 Skin Story Giveaway landing page (2026-10-03) — standing notes
+
+Branch `claude/tiktok-giveaway-october-2026`. Full detail: **`docs/giveaway-october-2026.md`**.
+
+- **Route `/giveaways/october-2026`** (TikTok paid traffic; slim header, no ads, no site nav; lazy; prerendered; in sitemap; `FloatingBottomNav`/story rail/ad-block wall skip `/giveaways`). CTAs go to the existing free assessment `/skynn-ai` (visitors finish it anonymously; the existing save gate signs them up). Facts/copy live in `src/lib/giveaway/campaign.ts`; T&Cs are built from `GIVEAWAY_LEGAL` in `terms.ts`: unknown legal facts stay `null` and the copy falls back to wording that is true regardless; **never invent entity/age/territory/draw method**. `giveawayOpenQuestions()` lists what is unconfirmed.
+- **Tracking extends the existing layer, no second system**: `src/lib/giveaway/analytics.ts` (whitelisted payload, once-per-session guards, `markGiveawayContext()` so the SKYNN AI flow reports `giveaway_assessment_started/completed` at its existing moments). TikTok: CTA clicks → `ClickButton` (added to client + `_shared/tiktok/eventsApi.ts` whitelist), finished analysis → `SubmitForm`, ViewContent from `contentForPath`. No health data, UTMs or query strings go to TikTok.
+- **Bug fixed in `pixel.ts`**: `sendEvent` read `location.href` after an async step, so a click that navigated filed the event under the next page (and sent the query string); it now captures origin+path synchronously.
+- **Entry = self-report, human-checked** (`giveaway_entries`, `enter_giveaway()`, migration `20261006100000`, **applied live 2026-10-03**, probe `supabase/tests/giveaway_entries.sql` 13/13 rolled back, `types.ts` regenerated). Never say "verified": TikTok Stories can't be checked by API. Closing instant is mirrored in SQL and TS (a test checks both).
+- **Story**: `giveawayOctober2026Story()` (curated; video 0.87 MB from 7.7 MB, poster, blurred bg); listed only while open. Inline player is poster-first and mounts the video at ≥50 % visibility.
+- **Naming conflict, left to the owner**: approved copy says "free AI dermatology analysis" for what is the **Basic AI Skin Analysis** (not dermatologist-reviewed); the page states what it is next to the headline. The supplied video says "Basic dermatology report" and can't be edited in code.
+- **Left for a human**: legal facts above, legal sign-off, redeploy `tiktok-events` (ClickButton is refused by the deployed version), winners' Lifetime Glow Insider grant process, admin UI for entries (SQL only).
+- Gotcha repeated: shadcn `Button` is `whitespace-nowrap`; long CTA labels widened the whole mobile column until given `whitespace-normal h-auto`.
+
 ## Installable app / PWA (2026-10-03) — standing notes
 
 Branch `claude/sleepy-allen-5ady3z`. Full detail: **`docs/pwa.md`** (architecture, caching table, deployment checklist,

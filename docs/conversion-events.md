@@ -266,6 +266,13 @@ Before this change `upgrade_click` carried `{ feature, accountState }` (UpgradeP
 `{ feature, accountState, source }` (PremiumUpsellSection), so rows before 2026-09-25 have
 no `kind`.
 
+## October 2026 giveaway (`giveaway_*`)
+
+Fired through `src/lib/giveaway/analytics.ts` (payload whitelist: `campaign`, `landing_page`, `campaign_deadline`, `cta_location`, `cta`; the visit's `utm_*`/`attr_sid` are merged by `trackConversionEvent`). `giveaway_page_view` (once per visit), `giveaway_cta_click`
+(`cta_location` hero/mid_page/final_cta/entry, `cta` primary/secondary/enter), `giveaway_assessment_started` / `giveaway_assessment_completed` (from the SKYNN AI flow, once per session, only for giveaway visitors),
+`giveaway_story_cta_click` (web story + "Share Your Skin Story"), `giveaway_terms_viewed` (once per session), `giveaway_entry_submitted` (once per session; never the TikTok username).
+To TikTok: `giveaway_cta_click`/`giveaway_story_cta_click` → ClickButton, `giveaway_assessment_completed` → SubmitForm. Details: `docs/giveaway-october-2026.md`.
+
 ## Declared but never fired
 
 These names are in the `ConversionEvent` union, but no code path calls them. Don't build

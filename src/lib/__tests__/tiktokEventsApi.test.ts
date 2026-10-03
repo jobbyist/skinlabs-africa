@@ -184,8 +184,26 @@ describe("pageKeyForUrl", () => {
     expect(pageKeyForUrl("https://skinlabs.co.za/?ttclid=x")).toEqual({ pageKey: "home", path: "/" });
     expect(pageKeyForUrl("https://skinlabs.co.za/skynn-ai/")).toEqual({ pageKey: "skynn-ai", path: "/skynn-ai" });
     expect(pageKeyForUrl("https://skinlabs.co.za/skynn-ai/advanced?x=1").pageKey).toBe("skynn-ai-advanced");
+    expect(pageKeyForUrl("https://skinlabs.co.za/giveaways/october-2026?ttclid=x&utm_source=tiktok")).toEqual({ pageKey: "giveaway", path: "/giveaways/october-2026" });
     expect(pageKeyForUrl("https://skinlabs.co.za/pricing")).toEqual({ pageKey: "other", path: "/pricing" });
     expect(pageKeyForUrl("not a url")).toEqual({ pageKey: "other", path: null });
     expect(pageKeyForUrl(undefined)).toEqual({ pageKey: "other", path: null });
+  });
+});
+
+describe("ClickButton (giveaway CTAs)", () => {
+  test("is a whitelisted event and builds a contents-only payload with a shared event id", async () => {
+    const parsed = validateIncomingEvent({
+      consent: true, event: "ClickButton", eventId: "sl_abcdef123456", url: "https://skinlabs.co.za/giveaways/october-2026?ttclid=abc&utm_source=tiktok",
+      contentId: "giveaway-october-2026", contentType: "product", contentName: "October 2026 Skin Story Giveaway",
+    });
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    const body = await buildTrackBody({ pixelCode: "PIX", event: parsed.event, context: {} });
+    const row = body.data[0] as { event: string; event_id: string; properties: Record<string, unknown>; page: Record<string, string> };
+    expect(row.event).toBe("ClickButton");
+    expect(row.event_id).toBe("sl_abcdef123456");
+    expect(JSON.stringify(row.properties)).toBe(JSON.stringify({ contents: [{ content_id: "giveaway-october-2026", content_type: "product", content_name: "October 2026 Skin Story Giveaway" }] }));
+    expect(row.page.url).toBe("https://skinlabs.co.za/giveaways/october-2026");
   });
 });

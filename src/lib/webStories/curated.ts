@@ -3,6 +3,16 @@ import { seasonHubs } from "@/data/seasonals";
 import { productReviews } from "@/data/reviews";
 import { getProductImage } from "@/data/productImages";
 import { announcementsForMonth } from "@/data/announcements";
+import {
+  GIVEAWAY_ASSESSMENT_PATH,
+  GIVEAWAY_COPY,
+  GIVEAWAY_DEADLINE_LABEL,
+  GIVEAWAY_PATH,
+  GIVEAWAY_PRIZES,
+  GIVEAWAY_STORY_SLUG,
+  GIVEAWAY_TIKTOK_HANDLE,
+  isGiveawayOpen,
+} from "@/lib/giveaway/campaign";
 import { clipText, MAX_BODY_CHARS, MAX_HEADLINE_CHARS, type Story, type StoryPage } from "./stories";
 
 /**
@@ -193,7 +203,66 @@ export const icymiSeptember2026Story = (): Story => {
   };
 };
 
-export const curatedStories = (): Story[] => [
+export const GIVEAWAY_OCT_2026_SLUG = GIVEAWAY_STORY_SLUG;
+const GIVEAWAY_MEDIA_DIR = "/stories-media/giveaway";
+/**
+ * Campaign files (9:16). A unit test fails if any is missing:
+ *   october-2026.mp4     720×1280, 30 fps, H.264 CRF 26, faststart, no audio track (the source was silent);
+ *                        0.87 MB, down from the 7.7 MB 1080p/50 fps original
+ *   october-2026.jpg     poster (the frame with the full headline; every video frame carries its own text)
+ *   october-2026-bg.jpg  blurred, darkened panel behind the text page
+ */
+export const GIVEAWAY_OCT_2026_MEDIA = {
+  video: `${GIVEAWAY_MEDIA_DIR}/october-2026.mp4`,
+  poster: `${GIVEAWAY_MEDIA_DIR}/october-2026.jpg`,
+  background: `${GIVEAWAY_MEDIA_DIR}/october-2026-bg.jpg`,
+} as const;
+
+/** The October 2026 giveaway story: the campaign video, then the how-to-enter summary. Listed only while the giveaway is open. */
+export const giveawayOctober2026Story = (): Story => {
+  const { video, poster, background } = GIVEAWAY_OCT_2026_MEDIA;
+  return {
+    key: GIVEAWAY_OCT_2026_SLUG,
+    source: "curated",
+    slug: GIVEAWAY_OCT_2026_SLUG,
+    title: "Win R500 + Lifetime Glow Insider",
+    kind: "video",
+    coverImageUrl: poster,
+    coverImageAlt: "SkinLabs® October 2026 Skin Story Giveaway: get your free skin analysis",
+    ctaLabel: GIVEAWAY_COPY.enterCta,
+    ctaUrl: GIVEAWAY_PATH,
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-10-03",
+    pages: [
+      {
+        ...page({
+          mediaUrl: video,
+          mediaAlt: "SkinLabs® October giveaway: get your free skin analysis, then share your results on your TikTok Story",
+          // The video carries its own headline and copy on every frame.
+          headline: null,
+          body: null,
+          ctaLabel: GIVEAWAY_COPY.enterCta,
+          ctaUrl: GIVEAWAY_PATH,
+        }),
+        mediaType: "video",
+        posterUrl: poster,
+      },
+      page({
+        mediaUrl: background,
+        mediaAlt: "",
+        headline: "Get your free skin analysis",
+        body: `Complete the free AI skin assessment, share your Skin Story on your TikTok Story and tag ${GIVEAWAY_TIKTOK_HANDLE}. Two winners each get a ${GIVEAWAY_PRIZES.voucher} and ${GIVEAWAY_PRIZES.subscription}. Entries close ${GIVEAWAY_DEADLINE_LABEL}.`,
+        ctaLabel: GIVEAWAY_COPY.storyAssessmentCta,
+        ctaUrl: GIVEAWAY_ASSESSMENT_PATH,
+      }),
+    ],
+  };
+};
+
+export const curatedStories = (now: Date | number = Date.now()): Story[] => [
+  ...(isGiveawayOpen(now) ? [giveawayOctober2026Story()] : []),
   ...(ICYMI_SEPTEMBER_2026_VIDEO_READY ? [icymiSeptember2026Story()] : []),
   podcastSeasonOneStory(),
   springResetStory(),
