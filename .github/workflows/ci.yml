@@ -59,4 +59,5 @@ jobs:
       - name: Run rolled-back SQL probes
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          REQUIRE_SQL_PROBES: ${{ vars.REQUIRE_SQL_PROBES }}
         run: scripts/run-sql-probes.sh

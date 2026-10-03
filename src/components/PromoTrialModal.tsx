@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useConversionAction } from "@/hooks/use-conversion-action";
 import { PROMO_END_DATE_LABEL } from "@/lib/promo";
 
 interface PromoTrialModalProps {
@@ -24,10 +25,15 @@ const BENEFITS = [
 
 /**
  * Conversion-focused popup for the promo chip / bar ("Free until 1 Nov").
- * Details the extended free-trial offer and routes to /pricing to pick a plan.
+ * Details the extended free-trial offer. The primary action is the viewer's one-tap
+ * path (useConversionAction); /pricing is a secondary link.
  * The full announcement stays one secondary link away.
  */
-const PromoTrialModal = ({ open, onOpenChange }: PromoTrialModalProps) => (
+const PromoTrialModal = ({ open, onOpenChange }: PromoTrialModalProps) => {
+  // The one right primary action for this viewer (sign up / one-tap trial / subscribe); /pricing is only secondary.
+  const action = useConversionAction(undefined, "promo_modal");
+  const primary = action.kind && !action.entitled && !action.unavailable;
+  return (
   <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="w-[calc(100%-2rem)] gap-5 rounded-2xl p-6 sm:max-w-md">
       <DialogHeader className="space-y-3 text-left">
@@ -36,7 +42,7 @@ const PromoTrialModal = ({ open, onOpenChange }: PromoTrialModalProps) => (
           Limited time
         </span>
         <DialogTitle className="text-xl leading-snug">
-          All paid plans are free until {PROMO_END_DATE_LABEL}
+          Glow Lite and Glow Insider are free to try until {PROMO_END_DATE_LABEL}
         </DialogTitle>
         <DialogDescription>
           Sign up for a free trial of Glow Lite or Glow Insider and it runs all the way through {PROMO_END_DATE_LABEL} — instead of the usual 7 days. Standard billing returns for everyone on {PROMO_END_DATE_LABEL}.
@@ -50,10 +56,23 @@ const PromoTrialModal = ({ open, onOpenChange }: PromoTrialModalProps) => (
           </li>
         ))}
       </ul>
-      <Button asChild size="lg" className="w-full">
+      {primary && (
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={action.busy}
+          onClick={() => {
+            action.run();
+            onOpenChange(false);
+          }}
+        >
+          {action.label}
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Button>
+      )}
+      <Button asChild size="lg" variant={primary ? "ghost" : "default"} className="w-full">
         <Link to="/pricing" onClick={() => onOpenChange(false)}>
           See membership plans
-          <ArrowRight className="h-4 w-4" aria-hidden />
         </Link>
       </Button>
       <p className="text-center text-xs text-muted-foreground">
@@ -63,6 +82,7 @@ const PromoTrialModal = ({ open, onOpenChange }: PromoTrialModalProps) => (
       </p>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 export default PromoTrialModal;

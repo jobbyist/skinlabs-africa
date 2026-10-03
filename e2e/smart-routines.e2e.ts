@@ -142,11 +142,13 @@ test("legal and policy pages accurately describe PhotoJournal storage without cl
   for (const path of ["/privacy-policy", "/terms-of-service", "/cookie-policy", "/refund-policy", "/whitepapers"]) {
     await page.goto(path);
     await page.waitForLoadState("networkidle");
-    const text = await page.locator("body").innerText();
+    // The policy legitimately says images are "not analysed ... for facial recognition ..."; only an
+    // un-negated claim (no "not"/"never" earlier in the same sentence) should fail.
+    const text = (await page.locator("body").innerText()).replace(/\b(?:not|never)\b[^.]*\./gi, " ");
     for (const re of banned) expect(text, `${path} matches ${re}`).not.toMatch(re);
   }
   await page.goto("/privacy-policy");
-  await expect(page.locator("body")).toContainText("PhotoJournal storage");
+  await expect(page.locator("body")).toContainText("PhotoJournal and baseline photos");
   await expect(page.locator("body")).toContainText("private PhotoJournal");
   await expect(page.locator("body")).toContainText("limited to 5 MB");
   await expect(page.locator("body")).toContainText("not analysed by SKYNN AI");

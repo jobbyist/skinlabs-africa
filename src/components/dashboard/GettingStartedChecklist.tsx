@@ -52,7 +52,15 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
       return;
     }
     const target = TARGETS[item.id];
-    if (target.tab) onGoToTab(target.tab);
+    if (target.tab) {
+      onGoToTab(target.tab);
+      // The section swaps in place, so bring it into view or the click looks like a no-op.
+      window.setTimeout(() => {
+        const el = document.getElementById(item.id === "routine" || item.id === "checkins" ? "routine-tracker" : "");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        else window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 150);
+    }
   };
 
   const dismiss = async () => {

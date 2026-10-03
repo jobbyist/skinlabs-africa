@@ -46,8 +46,6 @@ export type ConversionEvent =
   | "subscription_cancelled"
   | "credit_pack_viewed"
   | "credit_pack_purchased"
-  | "founding_member_viewed"
-  | "founding_member_purchased"
   // Starter Analysis 2.0 — per-question funnel + refinement/conversion detail
   // not covered by the events above (see Section 24 of the implementation spec).
   | "starter_question_viewed"

@@ -88,33 +88,9 @@ export async function resolveCharge(
     };
   }
 
+  // The Founding Member offer was withdrawn (2026-10-03): it can no longer be bought.
   if (purchaseType === "founding_member") {
-    const offerId = typeof body.offerId === "string" ? body.offerId : "";
-    const { data: offer } = await admin
-      .from("founding_member_offers")
-      .select("id, name, price, member_cap, redeemed_count, grants_plan, is_active, starts_at, ends_at")
-      .eq("id", offerId)
-      .maybeSingle();
-    if (!offer || !offer.is_active) {
-      return { ok: false, error: "This offer is no longer available", status: 400 };
-    }
-    if (offer.ends_at && new Date(offer.ends_at as string) < new Date()) {
-      return { ok: false, error: "This offer has ended", status: 400 };
-    }
-    if ((offer.redeemed_count as number) >= (offer.member_cap as number)) {
-      return { ok: false, error: "All founding member spots have been claimed", status: 400 };
-    }
-    return {
-      ok: true,
-      amountZar: Number(offer.price),
-      name: offer.name as string,
-      metadata: {
-        purchase_type: "founding_member",
-        offer_id: offer.id,
-        grants_plan: offer.grants_plan,
-        expected_amount_zar: Number(offer.price),
-      },
-    };
+    return { ok: false, error: "This offer is no longer available", status: 400 };
   }
 
   return { ok: false, error: "Invalid purchase type", status: 400 };

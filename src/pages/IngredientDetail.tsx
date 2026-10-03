@@ -312,6 +312,16 @@ const IngredientDetail = () => {
             <AdSlotAutorelaxed placement="ingredient-before-suppliers" compact />
 
             <section>
+              <Link
+                to={`/ingredients/checker?a=${encodeURIComponent(ingredient.slug)}`}
+                className="group mb-3 flex items-center justify-between rounded-xl border border-border p-4 text-sm hover:border-primary/40"
+              >
+                <span>
+                  <span className="font-medium text-foreground">Check {ingredient.common_name || ingredient.inci_name} with another ingredient</span>
+                  <span className="text-muted-foreground"> — compatibility notes for every pair</span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+              </Link>
               {can("routine.conflict_matcher") ? (
                 <Link
                   to="/dashboard?tab=routine"

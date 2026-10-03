@@ -32,8 +32,7 @@ interface PaymentGatewayDialogProps {
 }
 
 /**
- * Every one-off purchase flow (Analysis Pass credit packs, the founding-member
- * offer) routes through this one picker: PayPal — PayPal balance or any
+ * Every one-off purchase flow (Analysis Pass credit packs) routes through this one picker: PayPal — PayPal balance or any
  * debit/credit card — charged in USD at a live rate, or PayFast for South
  * African Rand (shown as "Temporarily unavailable" while PAYFAST_ENABLED is
  * false). Recurring memberships use MembershipCheckoutDialog instead.

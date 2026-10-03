@@ -43,12 +43,13 @@ const StepRow = ({
 );
 
 const RoutineTrackerTab = () => {
-  const { amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin, refresh } =
+  const { isStarterOnly, saveStarterRoutine, amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin, refresh } =
     useRoutine();
   const [draftName, setDraftName] = useState("");
   const [draftProduct, setDraftProduct] = useState("");
   const [draftTime, setDraftTime] = useState<RoutineStep["time_of_day"]>("both");
   const [adding, setAdding] = useState(false);
+  const [savingStarter, setSavingStarter] = useState(false);
 
   const handleAdd = async () => {
     if (!draftName.trim()) return;
@@ -71,7 +72,28 @@ const RoutineTrackerTab = () => {
   const pct = todayTotal > 0 ? Math.round((todayDone / todayTotal) * 100) : 0;
 
   return (
-    <div className="space-y-6">
+    <div id="routine-tracker" className="space-y-6">
+      {isStarterOnly && (
+        <Card className="border-primary/30 bg-primary/[0.03]">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div>
+              <p className="text-sm font-semibold">This is a starter routine.</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Edit the steps below, add your own products, then save it as your routine.</p>
+            </div>
+            <Button
+              className="min-h-10 shrink-0"
+              disabled={savingStarter}
+              onClick={async () => {
+                setSavingStarter(true);
+                await saveStarterRoutine();
+                setSavingStarter(false);
+              }}
+            >
+              {savingStarter && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save my routine
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <SmartRoutinePanel onSaved={() => void refresh()} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">

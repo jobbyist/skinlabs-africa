@@ -67,7 +67,7 @@ const stripForbiddenMarkup = (s: string) =>
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/__([^_]+)__/g, "$1")
     .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/ /g, " ");
+    .replace(/\u00a0/g, " ");
 
 const cleanHeading = (raw: string) =>
   raw
@@ -170,7 +170,7 @@ function expandProse(line: string): string[] {
     const items: string[] = [];
     markers.forEach((mk, i) => {
       const end = i + 1 < markers.length ? markers[i + 1].index : line.length;
-      let body = line.slice(mk.index + mk.len, end).trim();
+      const body = line.slice(mk.index + mk.len, end).trim();
       if (i === markers.length - 1) {
         // The last item runs into the following prose: keep the first
         // sentence (or two, if the first is a short "Label:" lead-in) only.

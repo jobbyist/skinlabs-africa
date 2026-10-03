@@ -608,7 +608,15 @@ export type Database = {
           title?: string
           verdicts?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_generated_product_reviews: {
         Row: {
@@ -4610,6 +4618,63 @@ export type Database = {
           notes?: string | null
           photo_url?: string | null
           skin_condition_rating?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skin_photo_journal_entries: {
+        Row: {
+          captured_at: string
+          created_at: string
+          entry_type: string
+          id: string
+          note: string | null
+          source_analysis_id: string | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          note?: string | null
+          source_analysis_id?: string | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          note?: string | null
+          source_analysis_id?: string | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skin_photo_journal_settings: {
+        Row: {
+          created_at: string
+          frequency: string
+          reminder_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency?: string
+          reminder_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string
+          reminder_enabled?: boolean
           updated_at?: string
           user_id?: string
         }

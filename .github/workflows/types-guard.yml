@@ -1,0 +1,43 @@
+name: Supabase types guard
+
+# Lovable's sync overwrites src/integrations/supabase/types.ts with an older generation. GitHub can't
+# make a file read-only to a pusher, so this detects a regressed file on main and commits the repair.
+# To change the schema on purpose: regenerate types from the live database, then `npm run types:baseline`.
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/integrations/supabase/types.ts
+      - supabase/types.baseline.ts
+  pull_request:
+    paths:
+      - src/integrations/supabase/types.ts
+      - supabase/types.baseline.ts
+
+permissions:
+  contents: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Check types.ts against the baseline (pull requests fail, main is repaired)
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun run scripts/check-supabase-types.ts
+          else
+            bun run scripts/check-supabase-types.ts --fix
+          fi
+      - name: Commit the restored file
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- src/integrations/supabase/types.ts; then
+            git config user.name "types-guard[bot]"
+            git config user.email "types-guard@users.noreply.github.com"
+            git add src/integrations/supabase/types.ts
+            git commit -m "chore: restore Supabase types (guard)" -m "types.ts had lost tables, columns or functions the baseline (supabase/types.baseline.ts) has; see scripts/check-supabase-types.ts."
+            git push
+          fi

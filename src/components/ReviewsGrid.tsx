@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
+import { useLiveReviewPrices } from "@/hooks/use-live-review-prices";
+import { compareByLivePrice, inPriceBand } from "@/lib/pricing/liveReviewPrices";
+import { checkedLabel, formatRand } from "@/lib/pricing/saRetailPrices";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { scoreProductReview } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
@@ -57,6 +60,7 @@ const ReviewsGrid = ({
     [generatedReviews],
   );
 
+  const { data: livePrices } = useLiveReviewPrices();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -70,14 +74,9 @@ const ReviewsGrid = ({
   const filtered = useMemo(() => {
     let base = allReviews.filter((r) => category === "All" || r.category === category);
 
+    // Price bands and sorting use LIVE prices only; a product without one is left out of a band rather than guessed.
     if (priceRange !== "all") {
-      base = base.filter((r) => {
-        const price = r.local_price_zar;
-        if (priceRange === "under-200") return price < 200;
-        if (priceRange === "200-500") return price >= 200 && price <= 500;
-        if (priceRange === "over-500") return price > 500;
-        return true;
-      });
+      base = base.filter((r) => inPriceBand(livePrices?.get(r.id)?.priceZar ?? null, priceRange));
     }
 
     if (skinType !== "all") {
@@ -89,9 +88,9 @@ const ReviewsGrid = ({
     } else if (sortBy === "rating") {
       base = base.sort((a, b) => overallScore(b) - overallScore(a));
     } else if (sortBy === "price-low") {
-      base = base.sort((a, b) => a.local_price_zar - b.local_price_zar);
+      base = base.sort((a, b) => compareByLivePrice(livePrices?.get(a.id)?.priceZar ?? null, livePrices?.get(b.id)?.priceZar ?? null, "asc"));
     } else if (sortBy === "price-high") {
-      base = base.sort((a, b) => b.local_price_zar - a.local_price_zar);
+      base = base.sort((a, b) => compareByLivePrice(livePrices?.get(a.id)?.priceZar ?? null, livePrices?.get(b.id)?.priceZar ?? null, "desc"));
     }
 
     if (query.trim()) {
@@ -103,7 +102,7 @@ const ReviewsGrid = ({
     }
     if (limit) return base.slice(0, limit);
     return base;
-  }, [allReviews, category, limit, query, priceRange, skinType, sortBy]);
+  }, [allReviews, category, limit, livePrices, query, priceRange, skinType, sortBy]);
 
   const matchReasons = useMemo(() => {
     if (!query.trim()) return new Map<string, string[]>();
@@ -186,7 +185,14 @@ const ReviewsGrid = ({
 
 
             <div className="mb-4 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">R{review.local_price_zar}</span>
+              {livePrices?.get(review.id) && (
+                <span
+                  className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"
+                  title={`${livePrices.get(review.id)!.source} price, ${checkedLabel(new Date(livePrices.get(review.id)!.checkedAt), new Date())}`}
+                >
+                  {formatRand(livePrices.get(review.id)!.priceZar)}
+                </span>
+              )}
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
                 <MapPin className="h-3 w-3" /> {review.where_to_buy}
               </span>

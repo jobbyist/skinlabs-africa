@@ -21,6 +21,7 @@ import { headlineForSavedAnalysis, type SavedAnalysisHeadline } from "@/lib/form
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { trialCtaLabel } from "@/lib/promo";
 import { SA_CITIES, cityByKey, cityFromProfile, nearestCity } from "@/lib/skinWeather/cities";
+import { clearWelcomeInProgress, isWelcomeInProgress, markWelcomeInProgress } from "@/lib/welcomeResume";
 import { loadCompletedState, persistStarterResultToAccount } from "@/lib/starter-analysis/persistence";
 
 const STEPS = ["Your skin", "Your day", "Your trial"] as const;
@@ -102,6 +103,11 @@ const Welcome = () => {
       }
       await loadAnalysis(user.id);
       if (cancelled) return;
+      // Back from the SKYNN AI analysis started in step 1: carry on at step 2.
+      if (isWelcomeInProgress()) {
+        clearWelcomeInProgress();
+        setStep(2);
+      }
       setLoaded(true);
       trackConversionEvent("welcome_viewed", { trial: searchParams.get("trial") === "started" });
     })();
@@ -293,7 +299,7 @@ const Welcome = () => {
                               <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-secondary-text">Start with your skin. Answer a few questions and SKYNN AI builds your skin profile and a routine around it.</p>
                             </div>
                             <Button asChild className="mt-6 min-h-11 w-full gap-2">
-                              <Link to="/skynn-ai" onClick={() => trackConversionEvent("welcome_step_completed", { step: 1, action: "analysis" })}><Sparkles className="h-4 w-4" aria-hidden="true" /> Take the 2-minute analysis</Link>
+                              <Link to="/skynn-ai" onClick={() => { markWelcomeInProgress(); trackConversionEvent("welcome_step_completed", { step: 1, action: "analysis" }); }}><Sparkles className="h-4 w-4" aria-hidden="true" /> Take the 2-minute analysis</Link>
                             </Button>
                             <Button variant="ghost" className="mt-2 min-h-11 w-full" onClick={() => next(true)}>Skip for now</Button>
                           </CardContent>

@@ -1,7 +1,7 @@
 /**
  * Static fallback plan data — used ONLY if the database-backed pricing
  * config (src/lib/pricing-config.ts, tables: pricing_plans, credit_packs,
- * founding_member_offers, pricing_settings) fails to load, so the pricing
+ * pricing_settings) fails to load, so the pricing
  * page never renders completely blank. These are NOT the source of truth
  * for what anyone is actually charged — every checkout resolves its price
  * server-side from the database (see supabase/functions/payfast-payment/paypal-payment),

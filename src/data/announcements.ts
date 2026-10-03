@@ -27,9 +27,9 @@ export const announcements: Announcement[] = [
     date: "2026-09-22",
     tag: "New",
     icon: "gift",
-    title: "All paid plans free to try until 1 November 2026, plus Founding Member is back",
+    title: "All paid plans free to try until 1 November 2026",
     description:
-      "For a limited time, Glow Lite and Glow Insider are free to try — sign up for either plan's free trial with no card required, and it runs all the way through 1 November 2026 instead of the usual 7 days. Every member benefit applies during this period except ad-free browsing, which stays a Glow VIP perk once standard billing resumes. Advanced AI Analysis Passes (for your Advanced AI Dermatology Report from SKYNN AI) remain a small once-off payment for every account, member or not — that's unchanged. We've also brought back the Founding Member offer: a once-off R499 for lifetime Glow Insider access, limited to the first 100 members. Standard subscription-based billing returns for everyone on 1 November 2026 as we continue rolling out the rest of the platform — see the Pricing page for full details.",
+      "For a limited time, Glow Lite and Glow Insider are free to try — sign up for either plan's free trial with no card required, and it runs all the way through 1 November 2026 instead of the usual 7 days. Every member benefit applies during this period except ad-free browsing, which stays a Glow VIP perk once standard billing resumes. Advanced AI Analysis Passes (for your Advanced AI Dermatology Report from SKYNN AI) remain a small once-off payment for every account, member or not — that's unchanged. Standard subscription-based billing returns for everyone on 1 November 2026 as we continue rolling out the rest of the platform — see the Pricing page for full details.",
   },
   {
     date: "2026-09-13",

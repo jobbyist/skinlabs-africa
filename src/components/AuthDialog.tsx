@@ -1,3 +1,4 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -127,7 +128,7 @@ const AuthDialog = ({
   const oauthRedirect = () => {
     const latest = getPendingIntent() ?? pendingIntent;
     const path = latest?.returnTo ?? (isSafeReturnTo(returnTo) ? returnTo : window.location.pathname);
-    return withPendingIntentParams(`${window.location.origin}${path}`, latest);
+    return withPendingIntentParams(`${getSiteOrigin()}${path}`, latest);
   };
 
   const handleGoogleSignIn = async () => {

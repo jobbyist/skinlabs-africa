@@ -22,6 +22,8 @@ import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
+import LeadsTab from "@/components/admin/LeadsTab";
+import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
 
 type Submission = {
   id: string;
@@ -128,6 +130,8 @@ const AdminDashboard = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [premiumMemberCount, setPremiumMemberCount] = useState(0);
+  // The lists below are capped at 200 rows; these are the real table totals.
+  const [totals, setTotals] = useState({ submissions: 0, waitlist: 0, subscribers: 0, preorders: 0 });
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [filter, setFilter] = useState("all");
 
@@ -160,14 +164,14 @@ const AdminDashboard = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
+    const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes] = await Promise.all([
       // Bounded like the Data Quality queue below -- these are queues an admin
       // works through in recency order, not a full-table export, so a limit
       // keeps this page load bounded as each table grows.
-      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("newsletter_subscribers").select("id,email,subscribed_at,is_active,consultation_waitlist,digest_status,digest_source").order("subscribed_at", { ascending: false }).limit(200),
-      supabase.from("preorders").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("skincare_recommendations").select("id,user_id,created_at,recommendation,skin_type,concerns,contact_name,email_sent_to,contact_whatsapp,status,book_consultation,age_range,lifestyle,environment", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
+      supabase.from("openhaus_waitlist").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
+      supabase.from("newsletter_subscribers").select("id,email,subscribed_at,is_active,consultation_waitlist,digest_status,digest_source", { count: "exact" }).order("subscribed_at", { ascending: false }).limit(200),
+      supabase.from("preorders").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
       // Count-only (head: true fetches zero rows) — the full user directory now
       // lives behind admin_search_profiles via the Users tab, never a bare
       // `profiles.select("*")` dump into the browser.
@@ -176,9 +180,10 @@ const AdminDashboard = () => {
       supabase.from("ingredients").select("id,inci_name,common_name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("products").select("id,name,slug,brand_id,verification_status,is_discontinued,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("ingredient_interactions").select("id,interaction_type,explanation,ingredient_a_id,ingredient_b_id,verification_status").in("verification_status", ["unverified", "partially_verified"]).limit(100),
-      supabase.from("brands").select("id,name"),
-      supabase.from("ingredients").select("id,inci_name,common_name"),
     ]);
+    const failed = [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes].filter((x) => x.error);
+    if (failed.length > 0) toast.error(`Some admin data failed to load (${failed.length} of 9 queries): ${failed[0].error?.message ?? "unknown error"}`);
+    setTotals({ submissions: subRes.count ?? 0, waitlist: waitRes.count ?? 0, subscribers: newsRes.count ?? 0, preorders: preRes.count ?? 0 });
     setSubmissions((subRes.data as Submission[]) || []);
     setWaitlist((waitRes.data as WaitlistEntry[]) || []);
     setSubscribers((newsRes.data as Subscriber[]) || []);
@@ -188,6 +193,13 @@ const AdminDashboard = () => {
     setIntelIngredients((ingredientsQCRes.data as IntelIngredient[]) || []);
     setIntelProducts((productsQCRes.data as IntelProduct[]) || []);
     setIntelInteractions((interactionsQCRes.data as IntelInteraction[]) || []);
+    // Look names up only for ids the queues reference (a full-table read would silently stop at the 1,000-row API cap).
+    const brandIds = [...new Set(((productsQCRes.data as IntelProduct[]) || []).map((p) => p.brand_id))];
+    const ingredientIds = [...new Set(((interactionsQCRes.data as IntelInteraction[]) || []).flatMap((i) => [i.ingredient_a_id, i.ingredient_b_id]))];
+    const [brandMapRes, ingredientMapRes] = await Promise.all([
+      brandIds.length ? supabase.from("brands").select("id,name").in("id", brandIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ingredientIds.length ? supabase.from("ingredients").select("id,inci_name,common_name").in("id", ingredientIds) : Promise.resolve({ data: [] as { id: string; inci_name: string; common_name: string | null }[] }),
+    ]);
     setBrandNames(Object.fromEntries(((brandMapRes.data as { id: string; name: string }[]) || []).map((b) => [b.id, b.name])));
     setIngredientNames(
       Object.fromEntries(
@@ -328,10 +340,10 @@ const AdminDashboard = () => {
             {/* Overview Stats */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               {[
-                { label: "AI Submissions", value: submissions.length, icon: FileText, color: "text-primary" },
-                { label: "Waitlist", value: waitlist.length, icon: Users, color: "text-primary" },
-                { label: "Newsletter", value: subscribers.length, icon: Mail, color: "text-primary" },
-                { label: "Pre-Orders", value: preorders.length, icon: ShoppingCart, color: "text-primary" },
+                { label: "AI Submissions", value: totals.submissions, icon: FileText, color: "text-primary" },
+                { label: "Waitlist", value: totals.waitlist, icon: Users, color: "text-primary" },
+                { label: "Newsletter", value: totals.subscribers, icon: Mail, color: "text-primary" },
+                { label: "Pre-Orders", value: totals.preorders, icon: ShoppingCart, color: "text-primary" },
                 { label: "Premium Members", value: premiumMemberCount, icon: Star, color: "text-primary" },
               ].map((s) => (
                 <Card key={s.label}>
@@ -358,6 +370,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
                 <TabsTrigger value="skynn-reviews">SKYNN Reviews</TabsTrigger>
                 <TabsTrigger value="sa-prices">SA Prices</TabsTrigger>
+                <TabsTrigger value="leads">Leads</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -478,6 +491,7 @@ const AdminDashboard = () => {
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
               <TabsContent value="dataquality">
+                <PairNoteCoverageCard />
                 <p className="text-sm text-muted-foreground mb-4">
                   Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>
                   until a human confirms them against a primary source. Mark verified only once you've checked it.
@@ -593,6 +607,10 @@ const AdminDashboard = () => {
               {/* Analytics Tab — live Vercel Web Analytics, see api/admin-analytics.ts */}
               <TabsContent value="skynn-reviews">
                 <SkynnReviewsTab />
+              </TabsContent>
+
+              <TabsContent value="leads">
+                <LeadsTab />
               </TabsContent>
 
               <TabsContent value="sa-prices">

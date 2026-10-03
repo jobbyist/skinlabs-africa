@@ -6,6 +6,7 @@ import { TIER_LABELS } from "@/lib/entitlements";
 import { consumePendingIntent, type PendingIntent } from "@/lib/pendingIntent";
 import { WELCOME_PATH, isNewAccount, shouldRedirectNewAccount, trialDestination } from "@/lib/intentRouting";
 import { useStartTrial } from "@/hooks/use-start-trial";
+import { markWelcomeInProgress } from "@/lib/welcomeResume";
 import { openMembershipCheckout } from "@/lib/conversionDialogs";
 
 /** Once per browser session per account, so a reload never re-routes a new member. */
@@ -97,12 +98,19 @@ const IntentResolver = () => {
       return;
     }
 
-    if (alreadyRouted(userId) || !shouldRedirectNewAccount(location.pathname)) return;
+    if (alreadyRouted(userId)) return;
+    const redirectable = shouldRedirectNewAccount(location.pathname);
+    const onAnalysis = location.pathname === "/skynn-ai" || location.pathname.startsWith("/skynn-ai/");
+    if (!redirectable && !onAnalysis) return;
     const createdAt = user?.created_at;
     void (async () => {
       const { data } = await supabase.from("profiles").select("onboarding_completed_at").eq("user_id", userId).maybeSingle();
       markRouted(userId);
-      if (isNewAccount(createdAt, data?.onboarding_completed_at ?? null)) go(WELCOME_PATH);
+      if (!isNewAccount(createdAt, data?.onboarding_completed_at ?? null)) return;
+      if (redirectable) go(WELCOME_PATH);
+      // A new member signing up mid-analysis isn't pulled away from it; once the
+      // result is saved, SKYNN AI offers "Continue setup" back to /welcome.
+      else markWelcomeInProgress();
     })();
     // Runs on auth transitions only; `here`/`location` are read at that moment.
     // eslint-disable-next-line react-hooks/exhaustive-deps
