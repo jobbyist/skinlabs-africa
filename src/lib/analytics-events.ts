@@ -128,6 +128,7 @@ export type ConversionEvent =
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"
+  | "routine_saved"
   // Contextual mobile feedback survey lifecycle.
   | "feedback_survey_shown"
   | "feedback_survey_dismissed"

@@ -49,8 +49,7 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.enforce_feedback_survey_rate_limit() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS feedback_survey_rate_limit ON public.feedback_survey_responses;
-CREATE TRIGGER feedback_survey_rate_limit BEFORE INSERT ON public.feedback_survey_responses
+CREATE OR REPLACE TRIGGER feedback_survey_rate_limit BEFORE INSERT ON public.feedback_survey_responses
   FOR EACH ROW EXECUTE FUNCTION public.enforce_feedback_survey_rate_limit();
 
 -- Admin-only email (nothing to confirm back to the member).
@@ -71,6 +70,5 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.notify_feedback_survey_response() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS trg_notify_feedback_survey_response ON public.feedback_survey_responses;
-CREATE TRIGGER trg_notify_feedback_survey_response AFTER INSERT ON public.feedback_survey_responses
+CREATE OR REPLACE TRIGGER trg_notify_feedback_survey_response AFTER INSERT ON public.feedback_survey_responses
   FOR EACH ROW EXECUTE FUNCTION public.notify_feedback_survey_response();

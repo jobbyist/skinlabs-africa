@@ -6,15 +6,6 @@ const UNIQUE_VIOLATION = "23505";
 
 export type FeedbackSubmitResult = "sent" | "already_sent" | "failed";
 
-// `feedback_survey_responses` (migration 20261004100000) isn't in the generated
-// Supabase types until that migration is applied and types.ts is regenerated.
-// Drop this shim and use `supabase.from(...)` directly once it is.
-type UntypedInsert = {
-  from: (table: string) => {
-    insert: (row: Record<string, unknown>) => PromiseLike<{ error: { code?: string; message: string } | null }>;
-  };
-};
-
 /**
  * Stores a member's survey answer. A database trigger emails it to
  * feedback@skinlabs.co.za; the browser never talks to email at all. The answer
@@ -30,7 +21,7 @@ export const submitFeedbackSurvey = async (
   const option = survey.options.find((o) => o.value === answer);
   if (!option) return "failed";
 
-  const { error } = await (supabase as unknown as UntypedInsert).from("feedback_survey_responses").insert({
+  const { error } = await supabase.from("feedback_survey_responses").insert({
     survey_id: survey.id,
     surface: survey.surface,
     question: survey.question,

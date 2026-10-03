@@ -97,10 +97,20 @@ test("the member can re-download their Basic analysis PDF from the dashboard", a
   expect(download.suggestedFilename()).toMatch(/^skinlabs-basic-ai-skin-analysis-.*\.pdf$/);
 });
 
-test("Smart Routines are locked until an Advanced analysis is submitted", async ({ page, context }) => {
+test("a saved Basic AI Skin Analysis is enough to build a Smart Routine (no Advanced needed)", async ({ page, context }) => {
   const state = await mockSupabase(context, { profile: freeProfile(), tables: { skincare_recommendations: [BASIC_ROW] } });
   await page.goto("/dashboard?tab=routine");
-  await expect(page.getByText(/Smart Routines come with the Advanced AI Dermatology Analysis/)).toBeVisible();
+  await expect(page.getByText("Your Smart Routine is ready to build")).toBeVisible();
+  await page.getByRole("button", { name: "Build my Smart Routine" }).click();
+  await expect(page.getByText("Rule-based from your answers")).toBeVisible();
+  expect(state.rpcCalls).toContain("save_smart_routine");
+  expect((state.smartRoutine as { routine: { source: string } }).routine.source).toBe("rule_based");
+});
+
+test("without a saved Basic analysis Smart Routines stay locked and point to the analysis", async ({ page, context }) => {
+  const state = await mockSupabase(context, { profile: freeProfile() });
+  await page.goto("/dashboard?tab=routine");
+  await expect(page.getByText(/Smart Routines are free with your Basic AI Skin Analysis/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Build my Smart Routine" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: /Start my Advanced AI Dermatology Analysis/ })).toBeVisible();
   expect(state.rpcCalls).not.toContain("save_smart_routine");
@@ -124,15 +134,16 @@ test("/routines opens the member's Smart Routine once they have access", async (
   await mockSupabase(context, { profile: freeProfile(), skynn: { submitted: true }, tables: SUBMISSION_TABLES });
   await page.goto("/routines");
   await expect(page.getByRole("link", { name: /Open my Smart Routine/ }).first()).toBeVisible();
-  await expect(page.getByText("Smart Routines unlock with an Advanced AI Dermatology Analysis (Analysis Pass)")).toBeVisible();
+  await expect(page.getByText(/Smart Routines already work from your free Basic AI Skin Analysis/)).toBeVisible();
   await expect(page.locator("body")).not.toContainText("Smart Routines included in your membership");
   await expect(page.locator("body")).not.toContainText("Set your budget");
 });
 
-test("/routines without access still points to the Analysis Pass flow", async ({ page, context }) => {
+test("/routines without access leads with the free Basic analysis; the Analysis Pass is the optional upgrade", async ({ page, context }) => {
   await mockSupabase(context, { profile: freeProfile() });
   await page.goto("/routines");
-  await expect(page.getByRole("button", { name: /Get an Analysis Pass/ }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: /Take the free Basic AI Skin Analysis/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Get Analysis Pass/ }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: /Open my Smart Routine/ })).toHaveCount(0);
 });
 
