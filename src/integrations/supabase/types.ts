@@ -1201,6 +1201,42 @@ export type Database = {
         }
         Relationships: []
       }
+      consult_survey_responses: {
+        Row: {
+          booking_priority: number
+          created_at: string
+          feedback_text: string | null
+          id: string
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features: string[]
+          user_id: string | null
+        }
+        Insert: {
+          booking_priority: number
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          primary_use: string
+          sentiment: number
+          trust_score: number
+          useful_features?: string[]
+          user_id?: string | null
+        }
+        Update: {
+          booking_priority?: number
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          primary_use?: string
+          sentiment?: number
+          trust_score?: number
+          useful_features?: string[]
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           created_at: string
@@ -5122,6 +5158,45 @@ export type Database = {
         }
         Relationships: []
       }
+      tiktok_event_log: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          event_id: string
+          event_name: string
+          id: number
+          identified: boolean
+          page_key: string
+          path: string | null
+          status: string
+          upstream_code: number | null
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          event_id: string
+          event_name: string
+          id?: never
+          identified?: boolean
+          page_key: string
+          path?: string | null
+          status: string
+          upstream_code?: number | null
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          event_id?: string
+          event_name?: string
+          id?: never
+          identified?: boolean
+          page_key?: string
+          path?: string | null
+          status?: string
+          upstream_code?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -5619,6 +5694,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_tiktok_events_overview: { Args: { p_days?: number }; Returns: Json }
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_email_job: {
         Args: { p_job_id: string; p_reason: string }

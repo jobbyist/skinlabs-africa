@@ -40,8 +40,7 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.enforce_consult_survey_rate_limit() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS consult_survey_rate_limit ON public.consult_survey_responses;
-CREATE TRIGGER consult_survey_rate_limit BEFORE INSERT ON public.consult_survey_responses
+CREATE OR REPLACE TRIGGER consult_survey_rate_limit BEFORE INSERT ON public.consult_survey_responses
   FOR EACH ROW EXECUTE FUNCTION public.enforce_consult_survey_rate_limit();
 
 -- Admin-only email (no confirmation: anonymous survey, nothing to confirm to).
@@ -64,6 +63,5 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.notify_consult_survey_response() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS trg_notify_consult_survey_response ON public.consult_survey_responses;
-CREATE TRIGGER trg_notify_consult_survey_response AFTER INSERT ON public.consult_survey_responses
+CREATE OR REPLACE TRIGGER trg_notify_consult_survey_response AFTER INSERT ON public.consult_survey_responses
   FOR EACH ROW EXECUTE FUNCTION public.notify_consult_survey_response();
