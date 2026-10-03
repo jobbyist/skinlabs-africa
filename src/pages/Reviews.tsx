@@ -1,6 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import Header from "@/components/Header";
+import SkynnMiniCta from "@/components/briefings/SkynnMiniCta";
 import Footer from "@/components/Footer";
 import ReviewsGrid from "@/components/ReviewsGrid";
 import AffiliateBanner from "@/components/AffiliateBanner";
@@ -40,6 +41,10 @@ const Reviews = () => {
         <Header />
         <main className="pt-20 pb-24">
           <ReviewsGrid paginate />
+
+          <div className="container mx-auto max-w-3xl px-4">
+            <SkynnMiniCta source="reviews" headline="Which of these suits your skin?" />
+          </div>
 
           <div className="container mx-auto px-4 mt-14">
             <section className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 md:p-8">

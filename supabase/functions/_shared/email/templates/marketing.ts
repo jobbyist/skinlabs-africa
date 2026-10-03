@@ -1,6 +1,6 @@
 import { registerTemplate } from "./registry.ts";
 import { BRAND, escapeHtml } from "../layout.ts";
-import { emailHeading, emailParagraph, emailDivider, emailButton } from "../components.ts";
+import { emailHeading, emailParagraph, emailDivider, emailButton, emailFaithfulToNature, emailSkynnMiniCard } from "../components.ts";
 
 interface StoryVar {
   title?: string;
@@ -100,17 +100,14 @@ registerTemplate({
     const stories = asArray<StoryVar>(vars.top_stories);
     const reviews = asArray<ReviewVar>(vars.top_reviews);
     const offer = (vars.offer ?? null) as OfferVar | null;
-    const unsubscribeUrl = typeof vars.unsubscribe_url === "string" ? vars.unsubscribe_url : `${BRAND.siteUrl}/dashboard?tab=account`;
     return `
       ${emailHeading("Your SkinLabs Weekly")}
       ${renderStorySection(stories)}
       ${renderReviewSection(reviews)}
       ${renderOfferSection(offer)}
       ${emailDivider()}
-      <p style="margin:0;font-size:12px;line-height:18px;color:${BRAND.muted};">
-        You're getting this because you opted in to SkinLabs marketing updates.
-        <a href="${escapeHtml(unsubscribeUrl)}" style="color:${BRAND.muted};text-decoration:underline;">Unsubscribe</a>
-      </p>
+      ${emailSkynnMiniCard()}
+      ${vars.show_ads === false ? "" : emailFaithfulToNature()}
     `;
   },
 });

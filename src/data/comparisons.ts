@@ -13,12 +13,14 @@ import { comparisonArticlesPart1 } from "./comparisons-part1";
 import { comparisonArticlesPart2 } from "./comparisons-part2";
 import { comparisonArticlesPart3 } from "./comparisons-part3";
 import { comparisonArticlesPart4 } from "./comparisons-part4";
+import { comparisonArticlesPart5 } from "./comparisons-part5";
 
 export const comparisonArticles = [
   ...comparisonArticlesPart1,
   ...comparisonArticlesPart2,
   ...comparisonArticlesPart3,
   ...comparisonArticlesPart4,
+  ...comparisonArticlesPart5,
 ];
 
 export const getComparison = (slug: string) =>

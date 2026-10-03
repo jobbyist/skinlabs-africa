@@ -35,7 +35,7 @@ const configs: Record<string, ComingSoonConfig> = {
     eyebrow: "Routines",
     title: "Smart Routines is coming soon",
     description:
-      "A living AM and PM routine that adapts to your skin, the season and the products already on your shelf — built from your SKYNN AI profile.",
+      "A living AM and PM routine that adapts to your skin, the season and your budget — built from your free Basic AI Skin Analysis from SKYNN AI.",
     bullets: [
       "Step-by-step AM and PM schedules with timing and layering",
       "Automatic actives calendar so you never over-exfoliate",

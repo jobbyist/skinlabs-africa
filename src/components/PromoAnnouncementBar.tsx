@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
+import PromoOfferDialog from "@/components/PromoOfferDialog";
 import { PROMO_END_AT, PROMO_END_DATE_LABEL } from "@/lib/promo";
 import PromoTrialModal from "@/components/PromoTrialModal";
 
