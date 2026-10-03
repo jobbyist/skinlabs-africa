@@ -214,7 +214,7 @@ async function discover(state: RunState, limit: number) {
     const search = (await firecrawl(state, "search", "/search", {
       query: `${target.brand} ${target.product_name} site:${state.policy.searchHost}`,
       limit: 8,
-    })) as { data?: { web?: { url?: string; title?: string }[] } | { url?: string; title?: string }[] } | null;
+    })) as { data?: { web?: { url?: string; title?: string; description?: string }[] } | { url?: string; title?: string; description?: string }[] } | null;
     if (state.stop) break;
     if (search === null) {
       // The call itself failed: say nothing about the product (a miss would hide it for 30 days).
@@ -225,7 +225,7 @@ async function discover(state: RunState, limit: number) {
     const candidates = rankSearchResults(
       matchTarget,
       state.policy.slug,
-      (rows ?? []).filter((r): r is { url: string; title?: string } => typeof r?.url === "string"),
+      (rows ?? []).filter((r): r is { url: string; title?: string; description?: string } => typeof r?.url === "string"),
     );
     if (candidates.length === 0) {
       await state.admin.rpc("mark_price_discovery_miss", { p_variant_id: target.variant_id, p_retailer_slug: state.policy.slug, p_note: "no product page found" });
@@ -242,7 +242,7 @@ async function discover(state: RunState, limit: number) {
     let reasons = best.match.reasons;
     if (parsed) {
       const sizes = candidates.map((c) => c.match.listingSizeMl).filter((s): s is number => s !== null);
-      const pageMatch = scoreMatch(matchTarget, [best.title, ...parsed.titles].filter(Boolean), sizes);
+      const pageMatch = scoreMatch(matchTarget, [...best.evidence, ...parsed.titles].filter(Boolean), sizes, candidates.length);
       decision = confirmWithPage(best.match, pageMatch);
       reasons = decision.reasons;
     } else {

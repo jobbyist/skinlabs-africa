@@ -74,7 +74,13 @@ function overlap(needles: string[], hay: Set<string>): number {
  * `otherSizesSeen` = distinct sizes of the SAME product found at this retailer; when
  * the target size is unknown and there is more than one, the choice is a human's.
  */
-export function scoreMatch(target: MatchTarget, listingTitles: string[], otherSizesSeen: number[] = []): MatchResult {
+export function scoreMatch(
+  target: MatchTarget,
+  listingTitles: string[],
+  otherSizesSeen: number[] = [],
+  /** How many plausible (non-rejected) listings the retailer showed for this product. */
+  plausibleCount = 0,
+): MatchResult {
   const reasons: string[] = [];
   const brand = brandTokens(target.brand);
   const targetNameTokens = tokens(target.name).filter((w) => !brand.includes(w) || tokens(target.name).length <= 2);
@@ -131,8 +137,14 @@ export function scoreMatch(target: MatchTarget, listingTitles: string[], otherSi
           decision = "needs_review";
           r.push(`several sizes listed (${[...sizes].sort((a, b) => a - b).join(", ")}); a person must pick`);
         } else if (!listingSize) {
-          decision = "needs_review";
-          r.push("pack size unknown on both sides");
+          // Retailers like Takealot don't put the pack size in the title. Only when this is the
+          // single plausible listing and the name fits tightly is that good enough; otherwise a person decides.
+          if (plausibleCount === 1 && nameCoverage >= 0.9 && extraRatio <= 0.35) {
+            r.push("pack size not stated; only one plausible listing");
+          } else {
+            decision = "needs_review";
+            r.push("pack size unknown on both sides");
+          }
         }
       }
     } else {

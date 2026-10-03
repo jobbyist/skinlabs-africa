@@ -12,6 +12,7 @@ import {
   RETAILER_POLICIES,
   rankSearchResults,
   confirmWithPage,
+  brandTagFromSnippet,
   scoreMatch,
 } from "../index.ts";
 
@@ -299,5 +300,50 @@ describe("rankSearchResults (real Firecrawl search results)", () => {
     expect(confirmWithPage(search, pageOk).decision).toBe("needs_review");
     expect(confirmWithPage({ ...search, decision: "matched" }, pageBad).decision).toBe("rejected");
     expect(confirmWithPage({ ...search, decision: "matched" }, pageOk).decision).toBe("matched");
+  });
+});
+
+describe("brand evidence from the retailer's own snippet (Takealot titles omit the brand)", () => {
+  test("brandTagFromSnippet", () => {
+    expect(brandTagFromSnippet("Rating 4.4(460)2% Alpha Arbutin Serum in Niacinamide & 1% Hyaluronic Acid |Standard Beauty. Eligible for Cash on Delivery.")).toBe("Standard Beauty");
+    expect(brandTagFromSnippet("Rating 4.6(663)10% Niacinamide & 1% Zinc Serum with Hyaluronic Acid | Standard Beauty. Eligible for Cash on Delivery.")).toBe("Standard Beauty");
+    expect(brandTagFromSnippet("Eligible for Cash on Delivery. Many ways to pay.")).toBeNull();
+    expect(brandTagFromSnippet(null)).toBeNull();
+  });
+
+  test("real Standard Beauty alpha-arbutin results: same PLID under two slugs counts once, other brands drop out, a looser name goes to a person", () => {
+    const target = { brand: "Standard Beauty", name: "2% Alpha Arbutin Serum" };
+    const ranked = rankSearchResults(target, "takealot", [
+      { url: "https://www.takealot.com/2-alpha-arbutin-serum-in-niacinamide-1-hyaluronic-acid-standard-/PLID72022546?srsltid=a", title: "2% Alpha Arbutin Serum in Niacinamide & 1% Hyaluronic Acid", description: "Rating 4.4(460)2% Alpha Arbutin Serum in Niacinamide & 1% Hyaluronic Acid |Standard Beauty. Eligible for Cash on Delivery. Non-Returnable. Many ways to pay." },
+      { url: "https://www.takealot.com/1-5-alpha-arbutin-serum-with-niacinamide-bamboo-extract-standard-beauty/PLID72022546?srsltid=b", title: "2% Alpha Arbutin Serum in Niacinamide & 1% Hyaluronic Acid ...", description: "2% Alpha Arbutin Serum in Niacinamide & 1% Hyaluronic Acid |Standard Beauty. Eligible for Cash on Delivery." },
+      { url: "https://www.takealot.com/fundamentals-skincare-2-alpha-arbutin-2-licorice-extract-serum/PLID72690362", title: "Fundamentals Skincare 2% Alpha Arbutin + 2% Licorice Extract Serum", description: "Rating 4.4(789)Fundamentals Skincare 2% Alpha Arbutin + 2% Licorice Extract Serum. Eligible for Cash on Delivery." },
+    ]);
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].url).toContain("PLID72022546");
+    // The listing adds "Niacinamide & 1% Hyaluronic Acid": probably ours, but not certain enough to show.
+    expect(ranked[0].match.decision).toBe("needs_review");
+  });
+
+  test("a tight name match with the brand only in the snippet, single plausible listing, no size stated -> matched", () => {
+    const ranked = rankSearchResults({ brand: "Standard Beauty", name: "Glow Glaze Serum" }, "takealot", [
+      { url: "https://www.takealot.com/glow-glaze-serum/PLID1001", title: "Glow Glaze Serum", description: "Rating 4.5(10)Glow Glaze Serum | Standard Beauty. Eligible for Cash on Delivery." },
+    ]);
+    expect(ranked[0].match.decision).toBe("matched");
+    expect(ranked[0].match.reasons.join(" ")).toContain("only one plausible listing");
+  });
+
+  test("two plausible listings and no stated size -> a person decides", () => {
+    const ranked = rankSearchResults({ brand: "Standard Beauty", name: "Glow Glaze Serum" }, "takealot", [
+      { url: "https://www.takealot.com/glow-glaze-serum/PLID1001", title: "Glow Glaze Serum", description: "Glow Glaze Serum | Standard Beauty. Eligible." },
+      { url: "https://www.takealot.com/glow-glaze-serum-b/PLID1002", title: "Glow Glaze Serum", description: "Glow Glaze Serum | Standard Beauty. Eligible." },
+    ]);
+    expect(ranked).toHaveLength(2);
+    expect(ranked.every((c) => c.match.decision === "needs_review")).toBe(true);
+  });
+
+  test("a brand that is nowhere in the title or snippet is still rejected", () => {
+    expect(rankSearchResults({ brand: "Standard Beauty", name: "Glow Glaze Serum" }, "takealot", [
+      { url: "https://www.takealot.com/glow-glaze-serum/PLID1003", title: "Glow Glaze Serum", description: "Glow Glaze Serum | Other Brand. Eligible." },
+    ])).toEqual([]);
   });
 });
