@@ -89,6 +89,10 @@ BEGIN
 END;
 $function$;
 
+-- Revoke straight after the definition: CREATE OR REPLACE never carries a previous REVOKE forward.
+REVOKE ALL ON FUNCTION public.enter_giveaway(text, text, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.enter_giveaway(text, text, boolean, text) TO authenticated;
+
 -- Admin review list: entries with the account email (so winners can be contacted). Admin-gated.
 CREATE OR REPLACE FUNCTION public.admin_giveaway_entries(p_campaign text DEFAULT 'skinlabs_october_2026_giveaway')
 RETURNS TABLE (id uuid, tiktok_handle text, email text, status text, created_at timestamptz, terms_version text)
@@ -110,7 +114,5 @@ BEGIN
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION public.enter_giveaway(text, text, boolean, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.enter_giveaway(text, text, boolean, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.admin_giveaway_entries(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_giveaway_entries(text) TO authenticated;
