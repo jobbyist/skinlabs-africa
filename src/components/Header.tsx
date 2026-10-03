@@ -232,18 +232,28 @@ const Header = () => {
     const media = window.matchMedia("(max-width: 767px)");
     const syncViewport = () => setStoryRailVisible(media.matches && window.scrollY <= 8);
     syncViewport();
-    if (!media.matches) return;
 
     let lastY = window.scrollY;
     const handleScroll = () => {
       const y = window.scrollY;
-      if (y <= 8) setStoryRailVisible(true);
-      else if (y > lastY + 4) setStoryRailVisible(false);
-      else if (y < lastY - 4) setStoryRailVisible(true);
+      if (!media.matches) {
+        setStoryRailVisible(false);
+      } else if (y <= 8) {
+        setStoryRailVisible(true);
+      } else if (y > lastY + 4) {
+        setStoryRailVisible(false);
+      } else if (y < lastY - 4) {
+        setStoryRailVisible(true);
+      }
       lastY = y;
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    media.addEventListener?.("change", syncViewport);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      media.removeEventListener?.("change", syncViewport);
+    };
   }, [storyRail, pathname]);
 
   const showStories = storyRail && storyRailVisible;
