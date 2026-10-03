@@ -182,6 +182,15 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
+## SKYNN AI - v2.2 (beta): Advanced flow redesign (2026-10-03, PR #190)
+
+- **Release label is now `SKYNN AI - v2.2 (beta)`** (`SKYNN_RELEASE_LABEL`, `SKYNN_FEATURE_VERSION = "2.2.0-beta"`, client + edge mirror; the terminology guard pins it). Older notes above saying "v2.1 — beta" describe history; dated "since v2.1" comments stay.
+- **`/skynn-ai/advanced` is one question per screen** (`AdvancedIntro`, `QuestionShell`, `AssessmentFlow`; pure rules in `src/lib/assessment/questionFlow.ts`, tested). Section stays the server resume unit; single choice auto-advances after 300 ms; consent decline still blocks; phones hide the site header/footer/bottom nav while answering.
+- **Copy is verbatim from the definition and the pre-redesign flow**: each section's title + description show on every consent and safety question and on the first question of other sections (`showsSectionIntro()`); "Next", "Saving...", "Your Assessment". Don't invent per-question copy.
+- Accents use the brand gradient via the new `.gradient-bg` utility (`--gradient-brand`); one gradient accent per screen (the primary action).
+- e2e: `ui-enhancements.e2e.ts` used to abort the whole Playwright run (non-destructured `beforeEach`); newsletter submit presses Enter (review page shifts while ads settle).
+- **Edge deploys 2026-10-03**: `skynn-advanced-worker` and `email-processor` redeployed as one-line raw-GitHub entries pinned to the merge commit of PR #190 on `main` (intake PDF + intake email say v2.2). The next deploy of either must pin a commit containing it.
+
 ## Roadmap batch (2026-10-03) — standing notes
 
 Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applied live**; edge functions are **not deployed** (deploy `email-processor` + `email-unsubscribe` with the whole `_shared/email/` tree). Details of the email audit: `docs/email-trigger-audit-2026-10-03.md`.
