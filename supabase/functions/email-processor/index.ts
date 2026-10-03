@@ -13,7 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getTemplate, missingRequiredVars } from "../_shared/email/templates/index.ts";
 import { getGuard } from "../_shared/email/guards.ts";
 import { renderEmailLayout } from "../_shared/email/layout.ts";
-import { loadRecipientContext } from "../_shared/email/context.ts";
+import { BULK_LIFECYCLE_TEMPLATES, loadRecipientContext } from "../_shared/email/context.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -33,6 +33,12 @@ const ADMIN_TEMPLATE_EXTRA_RECIPIENTS: Record<string, string[]> = {
   // SKYNN pre-approval intake: the team that owns reports@ must see these.
   admin_skynn_intake_failed: ["reports@skinlabs.co.za"],
   admin_skynn_intake_withdrawn: ["reports@skinlabs.co.za"],
+};
+
+// Admin templates delivered ONLY to these recipients (not the general
+// ADMIN_NOTIFICATION_EMAIL inbox). /consult survey responses go to consult@.
+const ADMIN_TEMPLATE_RECIPIENT_OVERRIDE: Record<string, string[]> = {
+  admin_consult_survey_response: ["consult@skinlabs.co.za"],
 };
 
 interface OutboxJob {
@@ -104,8 +110,9 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
 
   if (!recipient) {
     if (job.category === "ADMIN") {
+      const only = ADMIN_TEMPLATE_RECIPIENT_OVERRIDE[job.template_id];
       const extra = ADMIN_TEMPLATE_EXTRA_RECIPIENTS[job.template_id];
-      recipient = extra ? [ADMIN_NOTIFICATION_EMAIL, ...extra] : ADMIN_NOTIFICATION_EMAIL;
+      recipient = only ?? (extra ? [ADMIN_NOTIFICATION_EMAIL, ...extra] : ADMIN_NOTIFICATION_EMAIL);
     } else {
       await supabaseAdmin.rpc("fail_email_job", {
         p_job_id: job.id,
@@ -130,22 +137,24 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
   // Staff (ADMIN) notifications are internal and carry no unsubscribe link.
   const internal = job.category === "ADMIN";
   const ctx = internal ? null : await loadRecipientContext(supabaseAdmin, SUPABASE_URL, job.user_id);
-  if (job.category === "MARKETING") {
-    // Consent is re-checked for EVERY marketing job at send time, so an
-    // unsubscribe between enqueue and send always wins.
+  const bulkLifecycle = BULK_LIFECYCLE_TEMPLATES.has(job.template_id);
+  if (job.category === "MARKETING" || bulkLifecycle) {
+    // Re-checked at send time so an unsubscribe between enqueue and send always wins.
+    // MARKETING needs an opt-in; the welcome series / weekly reminder go to everyone
+    // who hasn't explicitly unsubscribed.
     if (!ctx) {
-      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "marketing recipient has no profile" });
+      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "bulk email recipient has no profile" });
       return;
     }
-    if (!ctx.marketingConsent) {
-      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "unsubscribed from marketing before send" });
+    if (job.category === "MARKETING" ? !ctx.marketingConsent : ctx.unsubscribed) {
+      await supabaseAdmin.rpc("cancel_email_job", { p_job_id: job.id, p_reason: "unsubscribed before send" });
       return;
     }
     vars = { ...vars, show_ads: ctx.showAds, has_analysis: ctx.hasAnalysis };
   }
   const unsubscribeUrl =
     ctx?.unsubscribeUrl ?? (typeof vars.unsubscribe_url === "string" ? (vars.unsubscribe_url as string) : null);
-  if (job.category === "MARKETING" && !unsubscribeUrl) {
+  if ((job.category === "MARKETING" || bulkLifecycle) && !unsubscribeUrl) {
     await supabaseAdmin.rpc("fail_email_job", {
       p_job_id: job.id,
       p_processing_token: job.processing_token,
@@ -163,7 +172,7 @@ async function processJob(supabaseAdmin: ReturnType<typeof createClient>, job: O
   // List-Unsubscribe mandatory for marketing mail — required here, not
   // optional polish. mailto falls back to the one confirmed-monitored inbox.
   let resendHeaders: Record<string, string> | undefined;
-  if (job.category === "MARKETING" && unsubscribeUrl) {
+  if ((job.category === "MARKETING" || bulkLifecycle) && unsubscribeUrl) {
     resendHeaders = {
       "List-Unsubscribe": `<mailto:support@skinlabs.co.za?subject=unsubscribe>, <${unsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",

@@ -29,7 +29,7 @@ Read-only checks against the live project (`gnkpzijxuciiaamakgzm`) and Resend.
    `email-unsubscribe` (v25) must be redeployed to get the unsubscribe footer, consent re-check and
    gradient buttons (include the whole `_shared/email/` tree — see docs/email-automation-system.md §13).
 4. **Only 1 of 14 members has `marketing_consent = true`** (and that address is unconfirmed), so
-   marketing emails reach almost nobody yet. Consent is opt-in at sign-up by design (POPIA).
+   marketing emails reach almost nobody yet. The daily briefing and top-brands emails are opt-in only (POPIA). The welcome series and weekly reminder go to every member except explicit unsubscribers (owner decision).
 5. Several trigger-driven emails have **never fired in production** (no trial, payment, membership
    or cancellation events yet), so those paths are verified by code/trigger inspection and unit tests only.
 

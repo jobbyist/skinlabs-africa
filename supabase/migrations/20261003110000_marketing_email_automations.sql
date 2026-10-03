@@ -1,5 +1,7 @@
--- Marketing email automations (all consent-gated MARKETING jobs, sent by the
--- existing outbox -> email-processor -> Resend pipeline):
+-- Email automations, sent by the existing outbox -> email-processor -> Resend pipeline.
+-- daily briefing + weekly top brands are opt-in MARKETING jobs; the welcome series
+-- (MEMBERSHIP) and weekly reminder (ROUTINES) go to EVERY member except those who
+-- explicitly unsubscribed (consent false AND marketing_consent_at set):
 --   daily_briefing_digest     daily  05:30 UTC (07:30 SAST), after briefings-sync (04:00 UTC)
 --   weekly_top_brands         Friday 07:00 UTC
 --   welcome_series_1..4       daily  06:00 UTC, on days 1, 3, 5 and 8 after sign-up
@@ -152,14 +154,14 @@ BEGIN
            END AS step
       FROM public.profiles p
       JOIN auth.users u ON u.id = p.user_id
-     WHERE p.marketing_consent = true
+     WHERE (p.marketing_consent OR p.marketing_consent_at IS NULL)
        AND coalesce(p.account_status, 'active') = 'active'
        AND u.email IS NOT NULL AND u.email_confirmed_at IS NOT NULL
        AND (v_today - (u.created_at AT TIME ZONE 'Africa/Johannesburg')::date) IN (1, 3, 5, 8)
   LOOP
     PERFORM public.enqueue_email(
       'WELCOME_SERIES', 'welcome_series:' || v_rec.step::text || ':' || v_rec.user_id::text,
-      'welcome_series_' || v_rec.step::text, 'MARKETING', v_rec.user_id, v_rec.email,
+      'welcome_series_' || v_rec.step::text, 'MEMBERSHIP', v_rec.user_id, v_rec.email,
       jsonb_build_object('step', v_rec.step,
                          'unsubscribe_url', public.marketing_unsubscribe_url(v_rec.marketing_unsubscribe_token)),
       'cron:enqueue_welcome_series_emails', false
@@ -196,7 +198,7 @@ BEGIN
     SELECT p.user_id, u.email, p.marketing_unsubscribe_token
       FROM public.profiles p
       JOIN auth.users u ON u.id = p.user_id
-     WHERE p.marketing_consent = true
+     WHERE (p.marketing_consent OR p.marketing_consent_at IS NULL)
        AND coalesce(p.account_status, 'active') = 'active'
        AND u.email IS NOT NULL AND u.email_confirmed_at IS NOT NULL
        AND p.last_free_analysis_at IS NOT NULL
@@ -212,7 +214,7 @@ BEGIN
   LOOP
     PERFORM public.enqueue_email(
       'WEEKLY_ANALYSIS_REMINDER', 'weekly_analysis_reminder:' || v_week || ':' || v_rec.user_id::text,
-      'weekly_analysis_reminder', 'MARKETING', v_rec.user_id, v_rec.email,
+      'weekly_analysis_reminder', 'ROUTINES', v_rec.user_id, v_rec.email,
       jsonb_build_object('week_label', v_week,
                          'unsubscribe_url', public.marketing_unsubscribe_url(v_rec.marketing_unsubscribe_token)),
       'cron:enqueue_weekly_analysis_reminders', false

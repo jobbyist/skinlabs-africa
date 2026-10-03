@@ -1,7 +1,8 @@
-// Daily briefing, weekly top-brands, welcome series and weekly Basic-analysis
-// reminder emails. All MARKETING (consent-gated, one-click unsubscribe is
-// added by the layout/processor). Content comes only from real rows chosen in
-// SQL (see 20261003110000_marketing_email_automations.sql) — nothing is
+// Daily briefing and weekly top-brands emails are MARKETING (opt-in only). The
+// welcome series (MEMBERSHIP) and the weekly Basic-analysis reminder (ROUTINES)
+// go to every member except those who have explicitly unsubscribed (see
+// BULK_LIFECYCLE_TEMPLATES in ../context.ts). All carry a one-click
+// unsubscribe link. Content comes only from real rows chosen in SQL (see 20261003110000_marketing_email_automations.sql) — nothing is
 // invented, and every list section renders only when it has items.
 import { registerTemplate } from "./registry.ts";
 import { BRAND, escapeHtml } from "../layout.ts";
@@ -146,7 +147,7 @@ function welcome(
 ) {
   registerTemplate({
     id: `welcome_series_${step}`,
-    category: "MARKETING",
+    category: "MEMBERSHIP",
     internalName: `Welcome series ${step} of 4`,
     transactional: false,
     requiredVars: [],
@@ -220,7 +221,7 @@ welcome(4, {
 // -------------------------------------------------- weekly Basic-analysis reminder
 registerTemplate({
   id: "weekly_analysis_reminder",
-  category: "MARKETING",
+  category: "ROUTINES",
   internalName: "Weekly free Basic analysis reminder",
   transactional: false,
   requiredVars: [],

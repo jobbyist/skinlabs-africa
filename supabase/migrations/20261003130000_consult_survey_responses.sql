@@ -1,8 +1,7 @@
 -- /consult "Help shape the directory" survey: the page used to show "your
 -- feedback is recorded" while discarding the answers. Responses are now stored
--- and emailed to the consult@skinlabs.co.za inbox (plus support@, the one
--- confirmed-monitored inbox every admin lead reaches — see email-processor's
--- ADMIN_TEMPLATE_EXTRA_RECIPIENTS).
+-- and emailed to consult@skinlabs.co.za only (email-processor's
+-- ADMIN_TEMPLATE_RECIPIENT_OVERRIDE).
 CREATE TABLE IF NOT EXISTS public.consult_survey_responses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid DEFAULT auth.uid(),

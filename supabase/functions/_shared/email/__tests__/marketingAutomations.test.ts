@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getTemplate } from "../templates/index.ts";
-import { adsAllowedForTier, buildUnsubscribeUrl } from "../context.ts";
+import { BULK_LIFECYCLE_TEMPLATES, adsAllowedForTier, buildUnsubscribeUrl, hasExplicitlyUnsubscribed } from "../context.ts";
 
 const render = (id: string, vars: Record<string, unknown>) => getTemplate(id)!.render(vars);
 const FTN = "c.trackmytarget.com";
@@ -52,8 +52,10 @@ describe("welcome series", () => {
   test("four emails exist, each with a call to action and an unsubscribe-ready body", () => {
     for (const n of [1, 2, 3, 4]) {
       const def = getTemplate(`welcome_series_${n}`)!;
-      expect(def.category).toBe("MARKETING");
+      // Welcome series goes to every member (not opt-in MARKETING); only an explicit unsubscribe skips it.
+      expect(def.category).toBe("MEMBERSHIP");
       expect(def.transactional).toBe(false);
+      expect(BULK_LIFECYCLE_TEMPLATES.has(`welcome_series_${n}`)).toBe(true);
       expect(render(`welcome_series_${n}`, {})).toContain("<a href=");
     }
   });
@@ -77,6 +79,12 @@ describe("welcome series", () => {
 });
 
 describe("weekly analysis reminder", () => {
+  test("goes to every member (ROUTINES, not opt-in MARKETING)", () => {
+    expect(getTemplate("weekly_analysis_reminder")!.category).toBe("ROUTINES");
+    expect(BULK_LIFECYCLE_TEMPLATES.has("weekly_analysis_reminder")).toBe(true);
+    expect(getTemplate("daily_briefing_digest")!.category).toBe("MARKETING");
+    expect(BULK_LIFECYCLE_TEMPLATES.has("daily_briefing_digest")).toBe(false);
+  });
   test("names the free 7-day Basic analysis and links to SKYNN AI", () => {
     const html = render("weekly_analysis_reminder", {});
     expect(html).toContain("once every 7 days");
@@ -85,6 +93,11 @@ describe("weekly analysis reminder", () => {
 });
 
 describe("recipient context helpers", () => {
+  test("only an explicit unsubscribe opts a member out of the lifecycle emails", () => {
+    expect(hasExplicitlyUnsubscribed({ marketing_consent: false, marketing_consent_at: null })).toBe(false); // never opted in
+    expect(hasExplicitlyUnsubscribed({ marketing_consent: true, marketing_consent_at: "2026-10-01" })).toBe(false);
+    expect(hasExplicitlyUnsubscribed({ marketing_consent: false, marketing_consent_at: "2026-10-01" })).toBe(true); // clicked unsubscribe
+  });
   test("unsubscribe URL only for a well-formed token", () => {
     const t = "123e4567-e89b-12d3-a456-426614174000";
     expect(buildUnsubscribeUrl("https://x.supabase.co/", t)).toBe(`https://x.supabase.co/functions/v1/email-unsubscribe?token=${t}`);
