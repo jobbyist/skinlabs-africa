@@ -120,6 +120,7 @@ export type ConversionEvent =
   | "ingredient_checker_checked"
   | "consultation_booking_requested"
   | "site_search_result_clicked"
+  | "content_vertical_clicked"
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"
