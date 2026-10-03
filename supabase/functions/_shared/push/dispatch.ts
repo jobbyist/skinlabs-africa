@@ -68,3 +68,19 @@ export const parseSendRequest = (raw: unknown): { ok: true; request: SendRequest
 export const isGoneStatus = (status: number | undefined): boolean => status === 404 || status === 410;
 
 export const MAX_CONSECUTIVE_FAILURES = 5;
+
+/**
+ * Constant-time string comparison (CWE-208): the work done does not depend on where the first
+ * difference is, so response timing can't be used to recover a secret one character at a time.
+ * Empty values never match.
+ */
+export const safeCompare = (a: string, b: string): boolean => {
+  if (!a || !b) return false;
+  const encoder = new TextEncoder();
+  const x = encoder.encode(a);
+  const y = encoder.encode(b);
+  const length = Math.max(x.length, y.length);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < length; i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+};

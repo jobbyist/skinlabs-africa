@@ -25,6 +25,7 @@ import {
   isGoneStatus,
   MAX_CONSECUTIVE_FAILURES,
   parseSendRequest,
+  safeCompare,
   type PreferenceRow,
   type SendRequest,
 } from "../_shared/push/dispatch.ts";
@@ -72,7 +73,8 @@ Deno.serve(async (req) => {
 
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
   const bearer = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
-  const isService = bearer === serviceKey;
+  // Constant-time: the service-role key must not be recoverable through response timing.
+  const isService = safeCompare(bearer, serviceKey);
 
   let targetUserIds: string[] | undefined;
   let request: SendRequest;

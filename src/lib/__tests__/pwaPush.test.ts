@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { categoryAllowed, isGoneStatus, parseSendRequest, sanitizePath } from "../../../supabase/functions/_shared/push/dispatch";
+import { categoryAllowed, isGoneStatus, parseSendRequest, safeCompare, sanitizePath } from "../../../supabase/functions/_shared/push/dispatch";
 
 // --- fakes for the browser + backend -------------------------------------------------------------
 const rpcCalls: { fn: string; args: Record<string, unknown> }[] = [];
@@ -219,5 +219,17 @@ describe("server-side send rules (push-send)", () => {
     expect(isGoneStatus(410)).toBe(true);
     expect(isGoneStatus(404)).toBe(true);
     expect(isGoneStatus(500)).toBe(false);
+  });
+});
+
+describe("service-role check is constant-time", () => {
+  test("equal strings match; any difference, length mismatch or empty value does not", () => {
+    expect(safeCompare("sb_service_role_secret", "sb_service_role_secret")).toBe(true);
+    expect(safeCompare("sb_service_role_secret", "sb_service_role_secreT")).toBe(false);
+    expect(safeCompare("sb_service_role_secret", "sb_service_role_secret2")).toBe(false);
+    expect(safeCompare("short", "sb_service_role_secret")).toBe(false);
+    expect(safeCompare("", "")).toBe(false);
+    expect(safeCompare("", "x")).toBe(false);
+    expect(safeCompare("ünïcode-κey", "ünïcode-κey")).toBe(true);
   });
 });
