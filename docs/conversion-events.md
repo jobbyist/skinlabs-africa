@@ -195,6 +195,7 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `consultation_booking_requested` | `Consultations.tsx` | `practitioner_id` |
 | `ingredient_checker_checked` | `use-ingredient-compatibility.ts` | `found`, `interaction_type` |
 | `site_search_result_clicked` | `SiteSearch.tsx` | `query` (trimmed, ≤100 chars), `href` |
+| `content_vertical_clicked` | `MobileContentRail.tsx` | `vertical`, `source` (`homepage_rail` \| `sitewide_rail`) |
 | `marketplace_add_to_cart` | `CartContext.tsx` | `productId`, `quantity` |
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
