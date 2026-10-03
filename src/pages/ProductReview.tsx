@@ -20,6 +20,10 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import SaPricesPanel from "@/components/SaPricesPanel";
+import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
+import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
+import { formatRand } from "@/lib/pricing/saRetailPrices";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SkinLabsPromiseBadge } from "@/components/SkinLabsPromiseBadge";
@@ -62,6 +66,8 @@ const ProductReview = () => {
     [generatedReviews],
   );
   const review = useMemo(() => allReviews.find((item) => item.id === slug), [allReviews, slug]);
+  // Live, verified South African prices (a hook, so it sits with the others above any early return).
+  const { data: livePrices = [] } = useSaRetailPrices(review?.id);
   const { getImage: getReviewImage } = useReviewImages();
   const productImage = useMemo(
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
@@ -217,7 +223,12 @@ const ProductReview = () => {
     toast.success("Comment posted");
   };
 
-  const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar);
+  // Live, verified South African prices (read from each retailer's product page by the price sync).
+  // The editorial `retailers` list is only a review-time snapshot, never live, so it is not
+  // used for the price table's stock/price claims, structured data or the glance card.
+  const priceSnapshot = reviewTimeSnapshot(review.retailers, review.published_date);
+  const liveMin = livePrices.length > 0 ? Math.min(...livePrices.map((r) => r.price_zar)) : null;
+  const liveMax = livePrices.length > 0 ? Math.max(...livePrices.map((r) => r.price_zar)) : null;
   // Real comments only — the seeded placeholder discussion was fabricated social proof.
   const displayComments = comments;
   const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
@@ -238,12 +249,12 @@ const ProductReview = () => {
         brand: review.brand,
         category: review.category,
         ...(productImage ? { image: productImage.url } : {}),
-        ...(review.retailers.length > 0
+        ...(liveMin !== null && liveMax !== null
           ? {
               offers: {
-                lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
-                highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
-                offerCount: review.retailers.length,
+                lowPrice: liveMin,
+                highPrice: liveMax,
+                offerCount: livePrices.length,
               },
             }
           : {}),
@@ -355,8 +366,7 @@ const ProductReview = () => {
               brand={review.brand}
               productName={review.product_name}
               category={review.category}
-              priceZAR={Math.min(...review.retailers.map((r) => r.price_zar))}
-              whereAvailable={review.retailers.map((r) => r.retailer).join(", ")}
+              {...(liveMin !== null ? { priceZAR: liveMin, whereAvailable: livePrices.map((r) => r.retailer_name).join(", ") } : {})}
               size={review.product_size ?? undefined}
               countryOfOrigin={review.country_of_origin ?? undefined}
               amPmUsage={review.am_pm_usage ?? undefined}
@@ -439,30 +449,7 @@ const ProductReview = () => {
 
           <AdSlot placement="product-review-top" compact priority="primary" />
 
-          <div className="mt-8">
-            <h2 className="mb-2 font-heading text-lg font-bold text-foreground">Where to buy — SA price comparison</h2>
-            <div className="overflow-hidden rounded-2xl border border-border">
-              {sortedRetailers.map((entry, index) => (
-                <a
-                  key={entry.retailer}
-                  href={entry.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn("flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-accent", index > 0 && "border-t border-border")}
-                >
-                  <span className="inline-flex items-center gap-2 font-medium text-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {entry.retailer}
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <span className={cn("text-xs", entry.in_stock ? "text-primary" : "text-muted-foreground line-through")}>
-                      {entry.in_stock ? "In stock" : "Out of stock"}
-                    </span>
-                    <span className="font-semibold text-foreground">R{entry.price_zar}</span>
-                  </span>
-                </a>
-              ))}
-            </div>
-          </div>
+          <SaPricesPanel rows={livePrices} snapshot={priceSnapshot} />
 
           {marketplaceMatch && (
             <Link

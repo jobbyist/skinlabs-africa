@@ -106,6 +106,7 @@ export type ConversionEvent =
   // Broader site-wide gap-fill (2026-09-22) — key actions across the app
   // that had no analytics instrumentation at all before this pass.
   | "newsletter_subscribed"
+  | "sa_price_link_clicked"
   | "brand_request_submitted"
   | "partner_enquiry_submitted"
   | "ingredient_checker_checked"

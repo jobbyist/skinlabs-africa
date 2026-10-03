@@ -23,6 +23,8 @@ import { getBrandBanner } from '@/lib/brand-banners'
 import { getProductImage, type CategoryImage } from '@/data/productImages'
 import { findMarketplaceMatch, type MarketplaceMatch } from '@/lib/marketplaceCrossLink'
 import { fetchIngredientBreakdown, type IngredientBreakdownEntry } from '@/lib/ingredientBreakdown'
+import { checkedLabel, formatRand, formatSize, groupPrices, type SaRetailPrice } from '@/lib/pricing/saRetailPrices'
+import { reviewTimeSnapshot } from '@/lib/pricing/editorialPrices'
 import { ScoreBar } from '@/components/ScoreBar'
 import { SkinLabsPromiseBadge } from '@/components/SkinLabsPromiseBadge'
 import EvidenceBadge from '@/components/ingredients/EvidenceBadge'
@@ -105,6 +107,7 @@ function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
     key_ingredients: (row.key_ingredients as string[] | null) ?? [],
     retailers: (row.retailers as unknown as RetailerListing[] | null) ?? [],
     isNew: new Date(row.published_date as string).getTime() >= cutoff,
+    published_date: row.published_date as string,
     seo_intro: row.seo_intro as string | null,
     review_body: row.review_body as string | null,
     faq: (row.faq as unknown as { question: string; answer: string }[] | null) ?? [],
@@ -121,6 +124,8 @@ interface ReviewPageData {
   ingredientBreakdown: IngredientBreakdownEntry[]
   /** Real `review_ratings` aggregate (1-5), null when nobody has rated yet. */
   communityRating: { average: number; count: number } | null
+  /** Live, matched, recently checked SA retail prices (view sa_retail_prices); empty when none are verified. */
+  livePrices: SaRetailPrice[]
 }
 
 const fetchReview = createServerFn({ method: 'GET' })
@@ -186,7 +191,19 @@ const fetchReview = createServerFn({ method: 'GET' })
     const communityRating =
       ratings.length > 0 ? { average: ratings.reduce((a, b) => a + b, 0) / ratings.length, count: ratings.length } : null
 
-    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown, communityRating } }
+    // Live SA prices (read from each retailer's own product page by retailer-price-sync).
+    // Best-effort: a failed read simply means no price table and no offers in the JSON-LD.
+    const { data: priceRows } = await supabase
+      .from('sa_retail_prices' as never)
+      .select('product_slug,retailer_slug,retailer_name,listing_url,listing_title,listing_size_ml,price_zar,in_stock,price_since,checked_at')
+      .eq('product_slug', review.id as never)
+    const livePrices = ((priceRows ?? []) as unknown as SaRetailPrice[]).map((r) => ({
+      ...r,
+      price_zar: Number(r.price_zar),
+      listing_size_ml: r.listing_size_ml === null ? null : Number(r.listing_size_ml),
+    }))
+
+    return { found: true, data: { review, image, relatedReviews, ingredientBreakdown, communityRating, livePrices } }
   })
 
 export const Route = createFileRoute('/reviews/$slug')({
@@ -197,7 +214,7 @@ export const Route = createFileRoute('/reviews/$slug')({
   },
   head: ({ loaderData }) => {
     if (!loaderData) return {}
-    const { review, image, communityRating } = loaderData
+    const { review, image, communityRating, livePrices } = loaderData
     const path = `/reviews/${review.id}`
     const score = overallScore(review)
     // Prefer the pipeline's stored seo_title/seo_description (same formula, computed
@@ -219,12 +236,13 @@ export const Route = createFileRoute('/reviews/$slug')({
       brand: review.brand,
       category: review.category,
       image: image ? absoluteUrl(image.url) : undefined,
+      // Live, verified prices only: the editorial `retailers` list is a review-time snapshot.
       offers:
-        review.retailers.length > 0
+        livePrices.length > 0
           ? {
-              lowPrice: Math.min(...review.retailers.map((r) => r.price_zar)),
-              highPrice: Math.max(...review.retailers.map((r) => r.price_zar)),
-              offerCount: review.retailers.length,
+              lowPrice: Math.min(...livePrices.map((r) => r.price_zar)),
+              highPrice: Math.max(...livePrices.map((r) => r.price_zar)),
+              offerCount: livePrices.length,
             }
           : undefined,
       ...(communityRating ? { communityRating } : {}),
@@ -274,9 +292,10 @@ function ReviewPage() {
 }
 
 function ReviewPageContent() {
-  const { review, image, relatedReviews, ingredientBreakdown } = Route.useLoaderData()
+  const { review, image, relatedReviews, ingredientBreakdown, livePrices } = Route.useLoaderData()
   const score = overallScore(review)
-  const sortedRetailers = [...review.retailers].sort((a, b) => a.price_zar - b.price_zar)
+  const priceSnapshot = reviewTimeSnapshot(review.retailers, review.published_date)
+  const priceGroups = groupPrices(livePrices)
 
   // Everything below is client-only, session-dependent state -- identical
   // pattern to src/pages/ProductReview.tsx, reused rather than reimplemented.
@@ -482,19 +501,50 @@ function ReviewPageContent() {
           <span>{avgRating ? `${avgRating.toFixed(1)}/5 from members` : 'No member ratings yet'}</span>
         </div>
 
-        <div>
-          <h2>Where to buy — SA price comparison</h2>
-          <ul>
-            {sortedRetailers.map((entry) => (
-              <li key={entry.retailer}>
-                <a href={entry.url} target="_blank" rel="noopener noreferrer">
-                  {entry.retailer}
-                </a>{' '}
-                — R{entry.price_zar} {entry.in_stock ? '(in stock)' : '(out of stock)'}
-              </li>
+        {livePrices.length > 0 ? (
+          <div>
+            <h2>Where to buy in South Africa</h2>
+            {priceGroups.map((group) => (
+              <div key={group.sizeMl ?? 'unknown'}>
+                {(priceGroups.length > 1 || group.sizeMl) && <h3>{formatSize(group.sizeMl) ?? 'Pack size not stated'}</h3>}
+                <ul>
+                  {group.rows.map((entry) => (
+                    <li key={entry.retailer_slug}>
+                      <a href={entry.listing_url} target="_blank" rel="noopener noreferrer nofollow">
+                        {entry.retailer_name}
+                      </a>{' '}
+                      — {formatRand(entry.price_zar)} ({checkedLabel(new Date(entry.checked_at), new Date())}
+                      {entry.in_stock === false ? ', out of stock' : ''})
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
-        </div>
+            <p>
+              Prices are read automatically from each retailer's own product page and change often. Pack sizes can differ
+              between listings; check the retailer before you buy.
+            </p>
+          </div>
+        ) : priceSnapshot ? (
+          <div>
+            <h2>Where to buy in South Africa</h2>
+            <ul>
+              {priceSnapshot.rows.map((entry) => (
+                <li key={entry.retailer}>
+                  <a href={entry.url} target="_blank" rel="noopener noreferrer nofollow">
+                    {entry.retailer}
+                  </a>{' '}
+                  — {formatRand(entry.price_zar)}
+                </li>
+              ))}
+            </ul>
+            <p>
+              Prices as noted when we reviewed this product on{' '}
+              {new Date(priceSnapshot.asOf).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}. They
+              are not live. Check the retailer for today's price and stock.
+            </p>
+          </div>
+        ) : null}
 
         {marketplaceMatch && (
           <Link to={`/marketplace/product/${marketplaceMatch.slug}`}>Sponsored — Also available on OpenHaus</Link>

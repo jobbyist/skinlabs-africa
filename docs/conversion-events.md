@@ -185,6 +185,7 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `smart_routines_page_view` | `SmartRoutines.tsx` mount | `authenticated`, `tier`, `hasAnalysisPass` |
 | `smart_routines_cta_clicked` | `SmartRoutines.tsx` CTAs | `location`, `tier`, `authenticated`, `hasAnalysisPass` |
 | `routine_checkin_completed` | `use-routine.ts` | `slot` |
+| `sa_price_link_clicked` | `SaPricesPanel` (a live retailer price link) | `retailer`, `product` (slug) |
 | `newsletter_subscribed` | `Newsletter.tsx` | none |
 | `brand_request_submitted` | `BrandRequestModal.tsx` | `mode` |
 | `partner_enquiry_submitted` | `partners/PartnerEnquiryForm.tsx` | `partnership_model` |

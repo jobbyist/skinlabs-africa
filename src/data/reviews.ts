@@ -14,6 +14,8 @@ export interface ProductReview {
   key_ingredients: string[];
   retailers: RetailerListing[];
   isNew?: boolean;
+  /** ISO date the review was published (DB reviews only); the static catalogue has none. */
+  published_date?: string;
   /** SEO/structured fields from supabase/migrations/20260922120000_add_seo_review_schema_fields.sql
    *  -- populated by the product-review-sync pipeline's second, best-effort Gemini call
    *  (generateSupplementalFields()) for AI-generated reviews only. Always undefined for
