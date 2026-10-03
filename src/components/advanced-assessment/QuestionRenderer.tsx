@@ -6,9 +6,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import type { AssessmentQuestion, ProductListEntry } from "@/lib/assessment/types";
 import { MST_SCALE } from "@/data/mstScale";
+
+/** Full-width answer card. The real radio/checkbox sits before it as a visually
+ *  hidden `peer`, so keyboard focus and the checked state style the card. */
+const optionCard =
+  "flex min-h-14 cursor-pointer items-center gap-4 rounded-[1.75rem] border-2 border-border bg-card px-4 py-3 shadow-xs transition-[border-color,background-color,transform] duration-150 ease-out hover:border-primary/40 active:scale-[0.99] peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-accent peer-disabled:cursor-not-allowed peer-disabled:opacity-50";
+
+const LetterBadge = ({ index, checked }: { index: number; checked: boolean }) => (
+  <span
+    aria-hidden="true"
+    className={
+      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors " +
+      (checked ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground")
+    }
+  >
+    {String.fromCharCode(65 + (index % 26))}
+  </span>
+);
 
 interface QuestionRendererProps {
   question: AssessmentQuestion;
@@ -39,11 +56,11 @@ const QuestionRenderer = ({ question, value, onChange }: QuestionRendererProps) 
               aria-label={`Monk ${swatch.level}`}
               onClick={() => onChange(v)}
               className={
-                "flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors " +
+                "flex min-h-11 flex-col items-center gap-1.5 rounded-2xl border-2 p-2 transition-colors " +
                 (isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")
               }
             >
-              <span className="h-9 w-9 rounded-full border border-black/10" style={{ backgroundColor: swatch.hex }} />
+              <span className="h-10 w-10 rounded-full border border-black/10" style={{ backgroundColor: swatch.hex }} />
               <span className="text-xs text-muted-foreground">{swatch.level}</span>
             </button>
           );
@@ -53,51 +70,82 @@ const QuestionRenderer = ({ question, value, onChange }: QuestionRendererProps) 
   }
 
   switch (question.type) {
+    // `frequency` has the same shape as a single choice (a list of options).
+    case "frequency":
     case "single_select": {
       const selected = typeof value === "string" ? value : undefined;
       return (
-        <RadioGroup value={selected} onValueChange={onChange} className="grid gap-2.5 sm:grid-cols-2">
-          {question.options?.map((opt) => (
-            <Label
-              key={opt.value}
-              htmlFor={`${question.id}-${opt.value}`}
-              className={
-                "flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-colors " +
-                (selected === opt.value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")
-              }
-            >
-              <RadioGroupItem value={opt.value} id={`${question.id}-${opt.value}`} />
-              <span className="text-sm">{opt.label}</span>
-            </Label>
-          ))}
+        <RadioGroup value={selected} onValueChange={onChange} aria-label={question.prompt} className="grid gap-3">
+          {question.options?.map((opt, idx) => {
+            const id = `${question.id}-${opt.value}`;
+            const checked = selected === opt.value;
+            return (
+              <div key={opt.value}>
+                <RadioGroupItem value={opt.value} id={id} className="peer sr-only" />
+                <Label htmlFor={id} className={optionCard}>
+                  <LetterBadge index={idx} checked={checked} />
+                  <span className="flex-1 text-[15px] font-medium leading-snug">{opt.label}</span>
+                  <span
+                    aria-hidden="true"
+                    className={
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors " +
+                      (checked ? "border-primary" : "border-muted-foreground/30")
+                    }
+                  >
+                    {checked && <span className="h-3 w-3 rounded-full bg-primary" />}
+                  </span>
+                </Label>
+              </div>
+            );
+          })}
         </RadioGroup>
       );
     }
 
     case "multi_select": {
       const selected = Array.isArray(value) ? (value as string[]) : [];
+      const atMax = question.maxSelections != null && selected.length >= question.maxSelections;
       const toggle = (optValue: string) => {
         const next = selected.includes(optValue) ? selected.filter((v) => v !== optValue) : [...selected, optValue];
         onChange(next);
       };
       return (
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {question.options?.map((opt) => {
-            const checked = selected.includes(opt.value);
-            return (
-              <Label
-                key={opt.value}
-                htmlFor={`${question.id}-${opt.value}`}
-                className={
-                  "flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-colors " +
-                  (checked ? "border-primary bg-primary/5" : "border-border hover:border-primary/40")
-                }
-              >
-                <Checkbox id={`${question.id}-${opt.value}`} checked={checked} onCheckedChange={() => toggle(opt.value)} />
-                <span className="text-sm">{opt.label}</span>
-              </Label>
-            );
-          })}
+        <div className="space-y-3">
+          {question.maxSelections != null && (
+            <p className="text-center text-xs text-muted-foreground">
+              Choose up to {question.maxSelections} · {selected.length} selected
+            </p>
+          )}
+          <div className="grid gap-3" role="group" aria-label={question.prompt}>
+            {question.options?.map((opt, idx) => {
+              const id = `${question.id}-${opt.value}`;
+              const checked = selected.includes(opt.value);
+              return (
+                <div key={opt.value}>
+                  <Checkbox
+                    id={id}
+                    checked={checked}
+                    disabled={!checked && atMax}
+                    onCheckedChange={() => toggle(opt.value)}
+                    className="peer sr-only"
+                  />
+                  <Label htmlFor={id} className={optionCard}>
+                    <LetterBadge index={idx} checked={checked} />
+                    <span className="flex-1 text-[15px] font-medium leading-snug">{opt.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className={
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 transition-colors " +
+                        (checked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30")
+                      }
+                    >
+                      {checked && <Check className="h-4 w-4" />}
+                    </span>
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
@@ -107,12 +155,14 @@ const QuestionRenderer = ({ question, value, onChange }: QuestionRendererProps) 
       const max = question.max ?? 5;
       const current = typeof value === "number" ? value : Math.round((min + max) / 2);
       return (
-        <div className="px-2 space-y-3">
-          <Slider min={min} max={max} step={1} value={[current]} onValueChange={([v]) => onChange(v)} />
-          <div className="flex justify-between text-xs text-muted-foreground">
+        <div className="space-y-5 rounded-3xl border-2 border-border bg-card px-5 py-6">
+          <p className="text-center font-heading text-4xl font-bold tabular-nums" aria-hidden="true">
+            {typeof value === "number" ? current : "–"}
+          </p>
+          <Slider min={min} max={max} step={1} value={[current]} onValueChange={([v]) => onChange(v)} aria-label={question.prompt} />
+          <div className="flex justify-between gap-4 text-sm text-muted-foreground">
             <span>{question.minLabel ?? min}</span>
-            <span className="font-medium text-foreground">{current}</span>
-            <span>{question.maxLabel ?? max}</span>
+            <span className="text-right">{question.maxLabel ?? max}</span>
           </div>
         </div>
       );
@@ -124,7 +174,7 @@ const QuestionRenderer = ({ question, value, onChange }: QuestionRendererProps) 
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Type your answer here..."
-          className="min-h-24"
+          className="min-h-32 rounded-2xl border-2 px-4 py-3 text-base"
         />
       );
     }
@@ -163,9 +213,9 @@ const ProductListInput = ({ entries, onChange }: { entries: ProductListEntry[]; 
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())}
           placeholder="e.g. CeraVe Foaming Cleanser"
-          className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="h-12 min-w-0 flex-1 rounded-full border-2 border-input bg-background px-4 text-base"
         />
-        <Button type="button" variant="outline" onClick={add}>
+        <Button type="button" variant="outline" onClick={add} className="h-12 rounded-full px-5">
           Add
         </Button>
       </div>

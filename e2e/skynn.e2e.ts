@@ -97,8 +97,13 @@ test("Advanced AI Dermatology Analysis with a Pass: submit → pending submissio
   await page.goto("/skynn-ai/advanced");
   await expect(page.getByRole("heading", { name: "Advanced AI Dermatology Analysis" })).toBeVisible();
   await page.getByRole("button", { name: "Start my assessment" }).click();
+  // One question per screen; a single-choice answer moves on by itself.
+  await expect(page.getByText(/Question 1 of 3/)).toBeVisible();
   await page.getByText("I agree", { exact: true }).click();
+  await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
   await page.getByText("I agree to cross-border processing").click();
+  await expect(page.getByText(/Question 3 of 3/)).toBeVisible();
+  // The last question is optional, so the member can go straight to review.
   await page.getByRole("button", { name: "Review answers" }).click();
   await page.getByRole("button", { name: "Submit my request" }).click();
   await expect(page.getByRole("heading", { name: "Your Advanced AI Dermatology Analysis submission has been received." })).toBeVisible();
@@ -106,6 +111,21 @@ test("Advanced AI Dermatology Analysis with a Pass: submit → pending submissio
   expect(state.advancedSubmitted).toBe(true);
   expect(state.passes).toBe(0);
   noLegacyCalls(state);
+});
+
+test("Advanced AI Dermatology Analysis: declining consent blocks the flow, Back returns to the previous question", async ({ page, context }) => {
+  const state = await mockSupabase(context, { profile: freeProfile(), skynn: { passes: 1 } });
+  await page.goto("/skynn-ai/advanced");
+  await page.getByRole("button", { name: "Start my assessment" }).click();
+  await page.getByText("I agree", { exact: true }).click();
+  await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
+  await page.getByText("I don't agree to cross-border processing").click();
+  await expect(page.getByRole("alert")).toContainText("only accept an Advanced AI Dermatology Analysis submission with your consent");
+  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+  await expect(page.getByText(/Question 2 of 3/)).toBeVisible();
+  await page.getByRole("button", { name: "Previous question" }).click();
+  await expect(page.getByText(/Question 1 of 3/)).toBeVisible();
+  expect(state.advancedSubmitted).toBe(false);
 });
 
 test("no retired SKYNN AI names on the current surfaces", async ({ page, context }) => {
