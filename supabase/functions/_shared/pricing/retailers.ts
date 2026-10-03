@@ -92,3 +92,14 @@ export function isWithinVisitWindow(policy: RetailerPolicy, now: Date): boolean 
   const minute = now.getUTCHours() * 60 + now.getUTCMinutes();
   return minute >= policy.utcWindow.startMinute && minute <= policy.utcWindow.endMinute;
 }
+
+/**
+ * Retailers deliberately switched off. Takealot is paused (owner decision, 2026-10-03) to stay inside
+ * Firecrawl's free allowance; its listings keep their data but are neither discovered nor refreshed.
+ * Remove a slug here (and re-add its cron jobs) to resume.
+ */
+export const DISABLED_RETAILERS: RetailerSlug[] = ["takealot"];
+
+export function isRetailerEnabled(slug: RetailerSlug): boolean {
+  return !DISABLED_RETAILERS.includes(slug);
+}

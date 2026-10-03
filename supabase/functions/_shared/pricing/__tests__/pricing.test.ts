@@ -13,6 +13,9 @@ import {
   rankSearchResults,
   confirmWithPage,
   brandTagFromSnippet,
+  creditAllowance,
+  isRetailerEnabled,
+  DEFAULT_CREDIT_RESERVE,
   scoreMatch,
 } from "../index.ts";
 
@@ -345,5 +348,32 @@ describe("brand evidence from the retailer's own snippet (Takealot titles omit t
     expect(rankSearchResults({ brand: "Standard Beauty", name: "Glow Glaze Serum" }, "takealot", [
       { url: "https://www.takealot.com/glow-glaze-serum/PLID1003", title: "Glow Glaze Serum", description: "Glow Glaze Serum | Other Brand. Eligible." },
     ])).toEqual([]);
+  });
+});
+
+describe("Firecrawl limits", () => {
+  test("the daily cap, minus what was already used, bounds a run", () => {
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 10, remainingAccountCredits: 400 })).toEqual({ credits: 20, limitedBy: "none" });
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 30, remainingAccountCredits: 400 })).toEqual({ credits: 0, limitedBy: "daily_budget" });
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 50, remainingAccountCredits: 400 }).credits).toBe(0);
+  });
+
+  test("never dips into the account reserve", () => {
+    expect(DEFAULT_CREDIT_RESERVE).toBeGreaterThanOrEqual(100);
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: 160 })).toEqual({ credits: 10, limitedBy: "account_reserve" });
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: 150 })).toEqual({ credits: 0, limitedBy: "account_reserve" });
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: 20 }).credits).toBe(0);
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: 500, reserve: 480 }).credits).toBe(20);
+  });
+
+  test("fails closed when the account balance is unknown", () => {
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: null })).toEqual({ credits: 0, limitedBy: "account_unknown" });
+    expect(creditAllowance({ dailyBudget: 30, usedToday: 0, remainingAccountCredits: Number.NaN }).credits).toBe(0);
+  });
+
+  test("Takealot is switched off; the other two are on", () => {
+    expect(isRetailerEnabled("takealot")).toBe(false);
+    expect(isRetailerEnabled("clicks")).toBe(true);
+    expect(isRetailerEnabled("dis-chem")).toBe(true);
   });
 });

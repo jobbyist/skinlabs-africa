@@ -18,7 +18,7 @@ refresh (daily): matched listings -> page read -> parseListing() -> evaluateObse
 ```
 
 All decisions are in the pure, tested library `supabase/functions/_shared/pricing/`
-(`bun test supabase/functions/_shared/pricing`, 32 tests incl. real retailer markup and real
+(`bun test supabase/functions/_shared/pricing`, 36 tests incl. real retailer markup and real
 search results). The edge function `retailer-price-sync` is I/O only.
 
 ## Rules baked in
@@ -38,9 +38,16 @@ search results). The edge function `retailer-price-sync` is I/O only.
   re-recorded at most every 30 days; history in `product_prices` is append-only.
 - **Freshness**: the public view `sa_retail_prices` hides a listing not checked for 14 days or whose last 2 checks failed.
   5 failures in a row hand the listing back to review.
-- **Budget**: `RETAILER_PRICE_DAILY_CREDIT_BUDGET` (default 250 Firecrawl credits/day; search 2, scrape 1), counted from
-  `pipeline_api_usage` (`purpose = retailer-price-sync:*`). Any 401/402/403/429 stops the run (`blocked_firecrawl`,
-  reason in `retailer_price_runs.summary.stop_detail`) instead of retrying.
+- **Firecrawl free-tier limits** (`_shared/pricing/budget.ts`, tested): the free plan is a small ONE-TIME credit allowance,
+  so every run (a) reads the account's real remaining credits (`/v2/team/credit-usage`), (b) keeps a reserve of 150
+  (`RETAILER_PRICE_CREDIT_RESERVE`) for briefings/reviews that share the account, (c) honours a daily cap of 30 credits
+  (`RETAILER_PRICE_DAILY_CREDIT_BUDGET`; search 2, page read 1, counted from `pipeline_api_usage`), and (d) spends at most
+  what's left of both. If the balance can't be read it does nothing. Requests are sequential, one retailer at a time. Any
+  401/402/403/429 stops the run (`blocked_firecrawl`, reason in `retailer_price_runs.summary.stop_detail`). Raise the caps
+  only after upgrading the Firecrawl plan.
+- **Takealot is paused** (owner decision, 2026-10-03): `DISABLED_RETAILERS` in `retailers.ts`, no cron jobs, and the function
+  refuses it. Existing Takealot rows stay but age out of the public view after 14 days. To resume: empty that list, re-add
+  the two jobs.
 
 ## Schema (migration `20261003120000_retailer_price_pipeline.sql`, applied live)
 
@@ -84,11 +91,11 @@ live rows only.
 | Job | UTC | Notes |
 |-----|-----|-------|
 | `retailer-price-refresh-clicks` | `*/15 4-7` | inside Clicks' visit window; 6 pages/run, 10 s apart |
-| `retailer-price-discover-clicks` | `10,40 8` | inside the window; 4 products/run |
+| `retailer-price-discover-clicks` | `10 8` | inside the window; 2 products/run |
 | `retailer-price-refresh-dischem` | `0,20,40 2-3` | 8 listings/run |
-| `retailer-price-refresh-takealot` | `10,30,50 2-3` | 8 listings/run |
-| `retailer-price-discover-dischem` | `30 11` | 8 products/run |
-| `retailer-price-discover-takealot` | `30 12` | 8 products/run |
+| `retailer-price-discover-dischem` | `30 11` | 3 products/run |
+
+(Takealot jobs removed; everything is further bounded by the credit allowance above.)
 
 Each job posts with `wait` off (the function answers 202 and works in the background). Clicks has only been exercised
 by unit tests on real markup so far; confirm the first morning run in `retailer_price_runs`.

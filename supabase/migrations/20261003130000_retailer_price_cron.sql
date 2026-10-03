@@ -2,8 +2,10 @@
 -- are respected and runs never overlap (Firecrawl's concurrency limit answers 429 otherwise):
 --   * Clicks: only inside its robots.txt visit window (04:00-08:45 UTC), 10 s apart per page
 --     (the function enforces the delay; batches of 6 stay well inside one run).
---   * Dis-Chem / Takealot: early-morning UTC refreshes, daytime discovery.
--- Spend is capped by the function's daily Firecrawl budget (default 250 credits). To pause a
+--   * Dis-Chem: early-morning UTC refreshes, daytime discovery.
+--   * Takealot is paused (owner decision): no jobs, and the function refuses it (DISABLED_RETAILERS).
+-- Firecrawl's free plan is a small one-off allowance, so spend is capped by the function: default
+-- 30 credits/day, a 150-credit reserve, and the live account balance is read before every run. To pause a
 -- job: SELECT cron.unschedule('<name>').
 -- x-cron-secret is looked up live from Vault by name (never a literal); the function verifies it
 -- in the database (verify_price_sync_secret), so no Edge secret has to be set by hand.
@@ -24,13 +26,13 @@ SELECT cron.schedule(
 
 SELECT cron.schedule(
   'retailer-price-discover-clicks',
-  '10,40 8 * * *',
+  '10 8 * * *',
   $$
   SELECT net.http_post(
     url := 'https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/retailer-price-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'retailer_price_sync_cron_secret')),
-    body := '{"retailer":"clicks","mode":"discover","limit":4}'::jsonb,
+    body := '{"retailer":"clicks","mode":"discover","limit":2}'::jsonb,
     timeout_milliseconds := 5000
   );
   $$
@@ -51,20 +53,6 @@ SELECT cron.schedule(
 );
 
 SELECT cron.schedule(
-  'retailer-price-refresh-takealot',
-  '10,30,50 2-3 * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/retailer-price-sync',
-    headers := jsonb_build_object('Content-Type', 'application/json',
-      'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'retailer_price_sync_cron_secret')),
-    body := '{"retailer":"takealot","mode":"refresh","limit":8}'::jsonb,
-    timeout_milliseconds := 5000
-  );
-  $$
-);
-
-SELECT cron.schedule(
   'retailer-price-discover-dischem',
   '30 11 * * *',
   $$
@@ -72,22 +60,9 @@ SELECT cron.schedule(
     url := 'https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/retailer-price-sync',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'retailer_price_sync_cron_secret')),
-    body := '{"retailer":"dis-chem","mode":"discover","limit":8}'::jsonb,
+    body := '{"retailer":"dis-chem","mode":"discover","limit":3}'::jsonb,
     timeout_milliseconds := 5000
   );
   $$
 );
 
-SELECT cron.schedule(
-  'retailer-price-discover-takealot',
-  '30 12 * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/retailer-price-sync',
-    headers := jsonb_build_object('Content-Type', 'application/json',
-      'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'retailer_price_sync_cron_secret')),
-    body := '{"retailer":"takealot","mode":"discover","limit":8}'::jsonb,
-    timeout_milliseconds := 5000
-  );
-  $$
-);

@@ -27,6 +27,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   confirmWithPage,
   canonicalListingUrl,
+  creditAllowance,
+  DEFAULT_CREDIT_RESERVE,
+  DEFAULT_DAILY_CREDIT_BUDGET,
+  isRetailerEnabled,
   evaluateObservation,
   isRetailerSlug,
   isWithinVisitWindow,
@@ -42,7 +46,10 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const FIRECRAWL_KEY =
   Deno.env.get("FIRECRAWL_API_KEY_PRICES") ?? Deno.env.get("FIRECRAWL_API_KEY") ?? Deno.env.get("FIRECRAWL_API_KEY_BRIEFINGS") ?? "";
 
-const DAILY_CREDIT_BUDGET = Number(Deno.env.get("RETAILER_PRICE_DAILY_CREDIT_BUDGET") ?? "250");
+// Firecrawl's free plan is a small ONE-TIME allowance, so the defaults are deliberately tiny and the real
+// account balance is checked before every run (see _shared/pricing/budget.ts).
+const DAILY_CREDIT_BUDGET = Number(Deno.env.get("RETAILER_PRICE_DAILY_CREDIT_BUDGET") ?? String(DEFAULT_DAILY_CREDIT_BUDGET));
+const CREDIT_RESERVE = Number(Deno.env.get("RETAILER_PRICE_CREDIT_RESERVE") ?? String(DEFAULT_CREDIT_RESERVE));
 const CREDITS = { search: 2, scrape: 1 } as const;
 const RUN_TIME_BUDGET_MS = 110_000;
 const FIRECRAWL_BASE = "https://api.firecrawl.dev/v2";
@@ -68,6 +75,9 @@ interface RunState {
   lastRetailerRequestAt: number;
   outcomes: Outcome[];
   creditsUsed: number;
+  creditsSpentThisRun: number;
+  /** Credits this run may spend (from the account balance, reserve and daily cap). */
+  allowance: number;
   stop: null | "blocked_firecrawl" | "budget_reached" | "outside_window" | "time";
   stopDetail?: string;
 }
@@ -88,6 +98,20 @@ async function creditsUsedToday(admin: Admin): Promise<number> {
   return credits;
 }
 
+/** Remaining credits on the Firecrawl account (null if it can't be read, which stops the run). */
+async function accountCredits(): Promise<number | null> {
+  if (!FIRECRAWL_KEY) return null;
+  try {
+    const res = await fetch(`${FIRECRAWL_BASE}/team/credit-usage`, { headers: { Authorization: `Bearer ${FIRECRAWL_KEY}` } });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { data?: { remainingCredits?: number } };
+    const n = body?.data?.remainingCredits;
+    return typeof n === "number" ? n : null;
+  } catch {
+    return null;
+  }
+}
+
 async function logUsage(admin: Admin, kind: "search" | "scrape", success: boolean) {
   await admin.from("pipeline_api_usage").insert({ provider: "firecrawl", purpose: `retailer-price-sync:${kind}`, success });
 }
@@ -98,9 +122,9 @@ async function firecrawl(state: RunState, kind: "search" | "scrape", path: strin
     state.stopDetail = "no Firecrawl key configured";
     throw new FirecrawlBlocked(state.stopDetail);
   }
-  if (state.creditsUsed + CREDITS[kind] > DAILY_CREDIT_BUDGET) {
+  if (state.creditsSpentThisRun + CREDITS[kind] > state.allowance) {
     state.stop = "budget_reached";
-    state.stopDetail = "daily credit budget reached";
+    state.stopDetail = "credit allowance for this run reached";
     throw new FirecrawlBlocked(state.stopDetail);
   }
   const res = await fetch(`${FIRECRAWL_BASE}${path}`, {
@@ -109,6 +133,7 @@ async function firecrawl(state: RunState, kind: "search" | "scrape", path: strin
     body: JSON.stringify(body),
   });
   state.creditsUsed += CREDITS[kind];
+  state.creditsSpentThisRun += CREDITS[kind];
   await logUsage(state.admin, kind, res.ok);
   if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429) {
     state.stop = "blocked_firecrawl";
@@ -280,6 +305,9 @@ async function discover(state: RunState, limit: number) {
 
 async function run(admin: Admin, retailer: string, mode: "refresh" | "discover", limit: number): Promise<Record<string, unknown>> {
   const policy = RETAILER_POLICIES[retailer as keyof typeof RETAILER_POLICIES];
+  if (!isRetailerEnabled(policy.slug)) {
+    return { status: "skipped", stop: "retailer_disabled", processed: 0 };
+  }
   const { data: runRow } = await admin.from("retailer_price_runs").insert({ retailer, mode }).select("id").single();
   const state: RunState = {
     admin,
@@ -288,14 +316,25 @@ async function run(admin: Admin, retailer: string, mode: "refresh" | "discover",
     lastRetailerRequestAt: 0,
     outcomes: [],
     creditsUsed: await creditsUsedToday(admin),
+    creditsSpentThisRun: 0,
+    allowance: 0,
     stop: null,
   };
+  const remaining = await accountCredits();
+  const allowed = creditAllowance({ dailyBudget: DAILY_CREDIT_BUDGET, usedToday: state.creditsUsed, remainingAccountCredits: remaining, reserve: CREDIT_RESERVE });
+  state.allowance = allowed.credits;
+  if (allowed.credits <= 0) {
+    state.stop = allowed.limitedBy === "account_unknown" ? "blocked_firecrawl" : "budget_reached";
+    state.stopDetail = `no credits to spend (${allowed.limitedBy}; account remaining ${remaining ?? "unknown"}, reserve ${CREDIT_RESERVE}, today ${state.creditsUsed}/${DAILY_CREDIT_BUDGET})`;
+  }
   const creditsBefore = state.creditsUsed;
   let status: "ok" | "skipped" | "blocked_firecrawl" | "budget_reached" | "error" = "ok";
   let errorMessage: string | undefined;
 
   try {
-    if (!isWithinVisitWindow(policy, new Date()) && (mode === "refresh" || mode === "discover")) {
+    if (state.stop) {
+      /* nothing to spend: skip all work */
+    } else if (!isWithinVisitWindow(policy, new Date()) && (mode === "refresh" || mode === "discover")) {
       state.stop = "outside_window";
     } else if (mode === "refresh") {
       await refresh(state, limit);
@@ -325,6 +364,8 @@ async function run(admin: Admin, retailer: string, mode: "refresh" | "discover",
     credits_used: state.creditsUsed - creditsBefore,
     credits_today: state.creditsUsed,
     credit_budget: DAILY_CREDIT_BUDGET,
+    account_remaining: remaining,
+    credit_reserve: CREDIT_RESERVE,
   };
   if (runRow?.id) {
     await admin.from("retailer_price_runs").update({ status, finished_at: new Date().toISOString(), summary }).eq("id", runRow.id);
