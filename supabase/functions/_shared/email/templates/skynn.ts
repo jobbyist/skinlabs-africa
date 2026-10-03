@@ -54,7 +54,7 @@ registerTemplate({
   preheader: () => "Your submission is pending — no need to complete the questionnaire again.",
   render: (vars) => `
     ${emailHeading("Your submission has been received")}
-    ${emailParagraph(`Thanks for completing the SKYNN AI v2.1 (beta) Advanced AI Dermatology Analysis questionnaire. Your reference is <strong>${escapeHtml(vars.reference_number)}</strong>.`)}
+    ${emailParagraph(`Thanks for completing the SKYNN AI - v2.2 (beta) Advanced AI Dermatology Analysis questionnaire. Your reference is <strong>${escapeHtml(vars.reference_number)}</strong>.`)}
     ${emailParagraph("Your submission is currently <strong>pending</strong> while we complete the upgraded SKYNN AI dermatology review system and clinical approval process. Your answers are securely recorded and queued, so you don't need to complete the assessment again.")}
     ${emailParagraph("Expected delivery: <strong>approximately 3–4 weeks</strong>. We'll email you as soon as your report is ready to read.")}
     ${emailButton("View submission status", `${BRAND.siteUrl}/skynn-ai/advanced${vars.session_id ? `?session=${encodeURIComponent(String(vars.session_id))}` : ""}`)}

@@ -87,6 +87,7 @@ export const ADVANCED_DEFINITION = {
     {
       id: "consent",
       title: "Your consent",
+      description: "Before we start: how SKYNN AI handles your skin information.",
       questions: [
         { id: "popia_special_info_consent", type: "single_select", required: true, prompt: "Special personal information consent", options: [{ value: "agree", label: "I agree" }, { value: "decline", label: "I don't agree" }] },
         { id: "popia_cross_border_consent", type: "single_select", required: true, prompt: "Cross-border processing consent", options: [{ value: "agree", label: "I agree to cross-border processing" }, { value: "decline", label: "I don't agree to cross-border processing" }] },

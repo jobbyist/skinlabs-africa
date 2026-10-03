@@ -1,10 +1,18 @@
-import { useMemo, useState } from "react";
-import { ArrowLeft, ArrowRight, Loader2, Sparkles } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Loader2, Pencil, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import AssessmentProgress from "./AssessmentProgress";
 import QuestionRenderer from "./QuestionRenderer";
+import QuestionShell from "./QuestionShell";
 import type { AssessmentQuestion, AssessmentSection } from "@/lib/assessment/types";
+import {
+  flattenApplicableQuestions,
+  initialQuestionIndex,
+  isAnswerValid,
+  isAnswered,
+  isConsentDecline,
+  questionApplies,
+  showsSectionIntro,
+} from "@/lib/assessment/questionFlow";
 
 interface AssessmentFlowProps {
   sections: AssessmentSection[];
@@ -15,31 +23,28 @@ interface AssessmentFlowProps {
   onAnswer: (questionId: string, value: unknown) => void;
   onGoToSection: (sectionId: string) => void;
   onSubmit: () => void;
+  /** Back from the first question (returns to the intro). */
+  onExit?: () => void;
   /** Pre-approval intake mode submits a request rather than generating a
    *  report, so the final step must say so. */
   intakeMode?: boolean;
   /** Questions suggested from the member's Basic AI Skin Analysis. */
   isPrefilled?: (questionId: string) => boolean;
-  /** Shown once above the questions when the session started from a Basic analysis. */
+  /** Shown once, above the first suggested answer, when the session started from a Basic analysis. */
   prefillNote?: string | null;
 }
 
-const questionApplies = (question: AssessmentQuestion, responses: Record<string, unknown>): boolean => {
-  if (!question.showIf) return true;
-  const dep = responses[question.showIf.questionId];
-  return typeof dep === "string" && question.showIf.oneOf.includes(dep);
-};
+/** A tap on one of these answers moves on by itself. */
+const autoAdvances = (question: AssessmentQuestion) =>
+  question.id === "mst_tone" || question.type === "single_select" || question.type === "frequency";
+const AUTO_ADVANCE_MS = 300;
 
-const isAnswered = (question: AssessmentQuestion, responses: Record<string, unknown>): boolean => {
-  const value = responses[question.id];
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === "string") return value.trim().length > 0;
-  return value !== undefined && value !== null;
-};
-
-/** Discover → Prepare → Assess → Analyse → Reveal (section 27) — this
- *  component owns the "Assess" phase: one section per screen, a review
- *  step, then handoff to submit. */
+/**
+ * The "Assess" phase: one question per screen (applicable questions only,
+ * across every section), then a review step and the hand-off to submit. The
+ * section stays the server's resume point, so crossing a section boundary
+ * calls `onGoToSection`.
+ */
 const AssessmentFlow = ({
   sections,
   currentSectionId,
@@ -49,59 +54,138 @@ const AssessmentFlow = ({
   onAnswer,
   onGoToSection,
   onSubmit,
+  onExit,
   intakeMode = false,
   isPrefilled,
   prefillNote,
 }: AssessmentFlowProps) => {
-  const [showReview, setShowReview] = useState(false);
-  const currentIndex = sections.findIndex((s) => s.id === currentSectionId);
-  const currentSection = sections[currentIndex] ?? sections[0];
-  const isLastSection = currentIndex === sections.length - 1;
-
-  const applicableQuestions = useMemo(
-    () => currentSection?.questions.filter((q) => questionApplies(q, responses)) ?? [],
-    [currentSection, responses],
+  const steps = useMemo(() => flattenApplicableQuestions(sections, responses), [sections, responses]);
+  const [currentId, setCurrentId] = useState<string | null>(
+    () => steps[initialQuestionIndex(steps, currentSectionId, responses)]?.question.id ?? null,
   );
-  const requiredUnanswered = applicableQuestions.filter((q) => q.required && !isAnswered(q, responses));
-  // POPIA: SKYNN AI can't process special personal information without
-  // explicit consent, so a "decline" answer stops the flow here — before
-  // any Analysis Pass could be spent (the submit RPC enforces this too).
-  const consentDeclined = applicableQuestions.some((q) => q.id.startsWith("popia_") && responses[q.id] === "decline");
-  const canAdvance = requiredUnanswered.length === 0 && !consentDeclined;
+  const [showReview, setShowReview] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (!currentSection) return null;
+  const clearTimer = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => clearTimer, []);
+
+  const foundIndex = steps.findIndex((s) => s.question.id === currentId);
+  const index = foundIndex < 0 ? 0 : foundIndex;
+  const step = steps[index];
+  const isLast = index === steps.length - 1;
+
+  const goTo = useCallback(
+    (nextId: string, sectionId: string) => {
+      clearTimer();
+      setCurrentId(nextId);
+      if (sectionId !== currentSectionId) onGoToSection(sectionId);
+    },
+    [currentSectionId, onGoToSection],
+  );
+
+  const goNext = () => {
+    if (isLast) {
+      clearTimer();
+      setShowReview(true);
+      return;
+    }
+    const next = steps[index + 1];
+    goTo(next.question.id, next.sectionId);
+  };
+
+  const goBack = () => {
+    if (index === 0) {
+      clearTimer();
+      onExit?.();
+      return;
+    }
+    const prev = steps[index - 1];
+    goTo(prev.question.id, prev.sectionId);
+  };
+
+  const answer = (question: AssessmentQuestion, value: unknown) => {
+    clearTimer();
+    onAnswer(question.id, value);
+    if (!autoAdvances(question) || !isAnswerValid(question, value)) return;
+    // The answer can reveal a follow-up question, so work out "next" from the new answers.
+    const nextSteps = flattenApplicableQuestions(sections, { ...responses, [question.id]: value });
+    const here = nextSteps.findIndex((s) => s.question.id === question.id);
+    const next = nextSteps[here + 1];
+    if (!next) return; // the last question waits for "Review answers"
+    timer.current = setTimeout(() => goTo(next.question.id, next.sectionId), AUTO_ADVANCE_MS);
+  };
+
+  if (!step) return null;
 
   if (showReview) {
+    const firstIncomplete = steps.find((s) => s.question.required && !isAnswerValid(s.question, responses[s.question.id]));
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="mx-auto max-w-xl space-y-6 pt-8 animate-in fade-in slide-in-from-bottom-1 duration-200 motion-reduce:animate-none">
         <div>
-          <h2 className="text-xl font-heading font-semibold mb-1">Your Assessment</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="font-heading text-2xl font-semibold">Your Assessment</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             {intakeMode ? "Review your answers, then submit your request." : "Review your answers, then generate your report."}
           </p>
         </div>
-        <Card>
-          <CardContent className="pt-6 space-y-3">
-            {sections.map((section) => {
-              const sectionAnswered = section.questions.filter((q) => questionApplies(q, responses) && isAnswered(q, responses)).length;
-              const sectionApplicable = section.questions.filter((q) => questionApplies(q, responses)).length;
-              return (
-                <div key={section.id} className="flex items-center justify-between border-b last:border-0 py-2">
-                  <span className="text-sm font-medium">{section.title}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {sectionAnswered}/{sectionApplicable} answered
+        <ul className="divide-y divide-border rounded-3xl border-2 border-border bg-card">
+          {sections.map((section) => {
+            const applicable = section.questions.filter((q) => questionApplies(q, responses));
+            if (applicable.length === 0) return null;
+            const answered = applicable.filter((q) => isAnswered(q, responses)).length;
+            const first = applicable[0];
+            return (
+              <li key={section.id} className="flex items-center gap-3 px-5 py-3.5">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">{section.title}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {answered}/{applicable.length} answered
                   </span>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" onClick={() => setShowReview(false)} className="gap-2">
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 rounded-full"
+                  aria-label={`Edit ${section.title}`}
+                  onClick={() => {
+                    setShowReview(false);
+                    goTo(first.id, section.id);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+        {firstIncomplete && (
+          <p role="alert" className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+            A required question still needs an answer.{" "}
+            <button
+              type="button"
+              className="font-medium text-foreground underline underline-offset-4"
+              onClick={() => {
+                setShowReview(false);
+                goTo(firstIncomplete.question.id, firstIncomplete.sectionId);
+              }}
+            >
+              Go to it
+            </button>
+          </p>
+        )}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button variant="outline" onClick={() => setShowReview(false)} className="h-12 gap-2 rounded-full">
             <ArrowLeft className="h-4 w-4" />
             Back to answers
           </Button>
-          <Button onClick={onSubmit} disabled={submitting} className="gap-2 flex-1 gradient-border-anim">
+          <Button
+            onClick={onSubmit}
+            disabled={submitting || !!firstIncomplete}
+            className="h-12 flex-1 gap-2 rounded-full font-semibold gradient-bg text-white shadow-md transition-[filter,box-shadow] hover:brightness-110 hover:shadow-lg disabled:bg-none disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-100"
+          >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {intakeMode ? "Submit my request" : "Generate my Advanced AI Dermatology Analysis report"}
           </Button>
@@ -110,67 +194,58 @@ const AssessmentFlow = ({
     );
   }
 
+  const { question } = step;
+  const value = responses[question.id];
+  const canAdvance = isAnswerValid(question, value);
+  const declined = isConsentDecline(question, value);
+  const firstPrefilledId = isPrefilled ? steps.find((s) => isPrefilled(s.question.id))?.question.id : undefined;
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <AssessmentProgress sections={sections} currentSectionId={currentSection.id} responses={responses} />
-
-      {prefillNote && currentIndex <= 1 && (
-        <p className="mb-6 rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">{prefillNote}</p>
+    <QuestionShell
+      position={index + 1}
+      total={steps.length}
+      sectionTitle={showsSectionIntro(steps, index) ? undefined : step.sectionTitle}
+      onBack={index === 0 && !onExit ? undefined : goBack}
+      backLabel={index === 0 ? "Back to the introduction" : "Previous question"}
+      saving={saving}
+      stepKey={question.id}
+      footer={
+        <Button
+          onClick={goNext}
+          disabled={!canAdvance}
+          className="h-14 w-full gap-2 rounded-full text-base font-semibold gradient-bg text-white shadow-md transition-[filter,box-shadow] hover:brightness-110 hover:shadow-lg disabled:bg-none disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-100"
+        >
+          {isLast ? "Review answers" : "Next"}
+          <ArrowRight className="h-5 w-5" />
+        </Button>
+      }
+    >
+      {prefillNote && question.id === firstPrefilledId && (
+        <p className="mb-5 rounded-2xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">{prefillNote}</p>
       )}
-
-      <div className="space-y-8">
-        <div>
-          <h2 className="text-xl font-heading font-semibold">{currentSection.title}</h2>
-          {currentSection.description && <p className="text-sm text-muted-foreground mt-1">{currentSection.description}</p>}
+      {showsSectionIntro(steps, index) && (
+        <div className="mb-6 rounded-3xl border border-border bg-muted/40 p-5">
+          <p className="font-heading text-lg font-semibold">{step.sectionTitle}</p>
+          {step.sectionDescription && <p className="mt-1 text-sm text-muted-foreground">{step.sectionDescription}</p>}
         </div>
-
-        {applicableQuestions.map((question) => (
-          <div key={question.id} className="space-y-3">
-            <div>
-              <p className="text-sm font-medium">{question.prompt}</p>
-              {question.helperText && <p className="text-xs text-muted-foreground mt-1">{question.helperText}</p>}
-              {isPrefilled?.(question.id) && (
-                <p className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  From your Basic AI Skin Analysis — check it still fits
-                </p>
-              )}
-            </div>
-            <QuestionRenderer question={question} value={responses[question.id]} onChange={(v) => onAnswer(question.id, v)} />
-          </div>
-        ))}
-      </div>
-
-      {consentDeclined && (
-        <p role="alert" className="mt-8 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
-          We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or
-          leave now — no Analysis Pass has been used.
+      )}
+      <h2 className="text-balance font-heading text-2xl font-semibold leading-tight sm:text-[1.75rem]">{question.prompt}</h2>
+      {isPrefilled?.(question.id) && (
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+          From your Basic AI Skin Analysis — check it still fits
         </p>
       )}
-
-      <div className="flex items-center justify-between mt-10">
-        <Button
-          variant="ghost"
-          disabled={currentIndex === 0}
-          onClick={() => onGoToSection(sections[Math.max(0, currentIndex - 1)].id)}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-        <span className="text-xs text-muted-foreground">{saving ? "Saving..." : ""}</span>
-        {isLastSection ? (
-          <Button disabled={!canAdvance} onClick={() => setShowReview(true)} className="gap-2">
-            Review answers
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button disabled={!canAdvance} onClick={() => onGoToSection(sections[currentIndex + 1].id)} className="gap-2">
-            Next
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        )}
+      <div className="mt-7">
+        <QuestionRenderer question={question} value={value} onChange={(v) => answer(question, v)} />
       </div>
-    </div>
+      {question.helperText && <p className="mx-auto mt-6 max-w-md text-pretty text-center text-sm text-muted-foreground">{question.helperText}</p>}
+      {declined && (
+        <p role="alert" className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 text-sm text-muted-foreground">
+          We can only accept an Advanced AI Dermatology Analysis submission with your consent. You can change your answer above, or leave
+          now — no Analysis Pass has been used.
+        </p>
+      )}
+    </QuestionShell>
   );
 };
 

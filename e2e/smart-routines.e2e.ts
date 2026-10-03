@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { ADVANCED_REFERENCE, freeProfile, mockSupabase, USER_ID } from "./support/mockSupabase";
 
 /**
@@ -52,17 +52,25 @@ const SUBMISSION_TABLES = {
   ],
 };
 
+/** One question per screen: the two consent questions come before the prefilled skin type. */
+const answerConsent = async (page: Page) => {
+  await page.getByText("I agree", { exact: true }).click();
+  await page.getByText("I agree to cross-border processing").click();
+  await expect(page.getByText(/Question 3 of 3/)).toBeVisible();
+};
+
 test("a new Advanced analysis starts from the member's Basic analysis, marked and editable", async ({ page, context }) => {
   const state = await mockSupabase(context, { profile: freeProfile(), skynn: { passes: 1 }, tables: { skincare_recommendations: [BASIC_ROW] } });
   await page.goto("/skynn-ai/advanced");
   await page.getByRole("button", { name: "Start my assessment" }).click();
+  await answerConsent(page);
   await expect(page.getByText(/We've started from your Basic AI Skin Analysis/)).toBeVisible();
   await expect(page.getByText(/check it still fits/).first()).toBeVisible();
   await expect(page.getByRole("radio", { name: "Oily" })).toBeChecked();
   expect(state.seededResponses).toEqual({ skin_type: "oily" });
   expect(state.linkedBasicAnalysis).toEqual({ basicAnalysisId: "rec-basic-1", prefilledQuestionIds: ["skin_type"] });
   expect(state.seededResponses).not.toHaveProperty("popia_special_info_consent");
-  await page.getByRole("radio", { name: "Dry" }).click();
+  await page.getByText("Dry", { exact: true }).click();
   await expect(page.getByRole("radio", { name: "Dry" })).toBeChecked();
 });
 
@@ -70,6 +78,7 @@ test("without a saved Basic analysis nothing is suggested", async ({ page, conte
   const state = await mockSupabase(context, { profile: freeProfile(), skynn: { passes: 1 } });
   await page.goto("/skynn-ai/advanced");
   await page.getByRole("button", { name: "Start my assessment" }).click();
+  await answerConsent(page);
   await expect(page.getByText("Which best describes your skin type?")).toBeVisible();
   await expect(page.getByText(/check it still fits/)).toHaveCount(0);
   expect(state.linkedBasicAnalysis).toBeNull();

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdvancedAssessmentAccess, useAdvancedAssessment } from "@/hooks/use-advanced-assessment";
 import AssessmentFlow from "@/components/advanced-assessment/AssessmentFlow";
+import AdvancedIntro from "@/components/advanced-assessment/AdvancedIntro";
 import ProcessingState from "@/components/advanced-assessment/ProcessingState";
 import ReportView from "@/components/advanced-assessment/ReportView";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
@@ -74,6 +75,9 @@ const AdvancedAssessmentPage = () => {
     [setSearchParams],
   );
 
+  // While answering, phones get the question screen's own top bar instead of the site header.
+  const inRunner = !!user && !confirmation && !viewSessionId && started && !!access?.eligible;
+
   let body: ReactNode;
   if (authLoading || accessLoading) {
     body = (
@@ -112,7 +116,7 @@ const AdvancedAssessmentPage = () => {
     body = (
       <div className="space-y-10">
         {access?.eligible ? (
-          <Landing
+          <AdvancedIntro
             passesAvailable={access.passesAvailable}
             reportMode={reportMode}
             onStart={() => {
@@ -135,14 +139,18 @@ const AdvancedAssessmentPage = () => {
   return (
     <>
       <Helmet>
-        <title>Advanced AI Dermatology Analysis (SKYNN AI v2.1 — beta) | SkinLabs</title>
+        <title>Advanced AI Dermatology Analysis (SKYNN AI - v2.2 (beta)) | SkinLabs</title>
         {/* Member-only, personalised flow — nothing here for search engines. */}
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-24 pb-16 container mx-auto px-4">{body}</main>
-        <Footer />
+        <div className={inRunner ? "hidden md:block" : undefined}>
+          <Header />
+        </div>
+        <main className={`container mx-auto px-4 ${inRunner ? "pb-0 pt-0 md:pb-16 md:pt-24" : "pb-16 pt-24"}`}>{body}</main>
+        <div className={inRunner ? "hidden md:block" : undefined}>
+          <Footer />
+        </div>
       </div>
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} onAuthenticated={() => setAuthOpen(false)} />
       <AnalysisPassPurchaseModal open={purchaseOpen} onOpenChange={setPurchaseOpen} />
@@ -171,42 +179,6 @@ const NotAvailable = ({ paused, onPurchase }: { paused: boolean; onPurchase: () 
         : "Each Advanced AI Dermatology Analysis uses one Analysis Pass — membership alone doesn't include it. If we can't release your report, the pass is refunded."}
     </p>
     {!paused && <Button onClick={onPurchase}>Get an Analysis Pass</Button>}
-  </div>
-);
-
-const Landing = ({ passesAvailable, reportMode, onStart }: { passesAvailable: number; reportMode: AdvancedReportMode; onStart: () => void }) => (
-  <div className="max-w-2xl mx-auto text-center pt-8 space-y-6">
-    <Sparkles className="h-8 w-8 mx-auto text-primary" />
-    <div>
-      <p className="text-sm font-semibold uppercase tracking-wide gradient-text">SKYNN AI v2.1 — beta</p>
-      <h1 className="text-3xl font-heading font-semibold mt-1">Advanced AI Dermatology Analysis</h1>
-    </div>
-    <p className="text-muted-foreground">
-      A deeper, evidence-referenced look at your skin: how it behaves, your breakouts, sun and pigment concerns, and how
-      it affects your day — with guidance tailored to your skin tone and South African conditions.
-    </p>
-    <ul className="text-sm text-muted-foreground space-y-1.5 text-left max-w-md mx-auto">
-      <li className="flex gap-2"><ClipboardCheck className="h-4 w-4 mt-0.5 shrink-0 text-primary" /> About 15 minutes of questions, saved as you go</li>
-      <li className="flex gap-2"><ShieldCheck className="h-4 w-4 mt-0.5 shrink-0 text-primary" /> Checked by the SkinLabs team before you see it</li>
-      <li className="flex gap-2"><Sparkles className="h-4 w-4 mt-0.5 shrink-0 text-primary" /> Cosmetic guidance — not a medical diagnosis</li>
-    </ul>
-    {reportMode === "fallback" && (
-      <p className="flex gap-2 text-sm text-left max-w-md mx-auto rounded-xl border border-border bg-muted/40 p-3">
-        <CalendarClock className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
-        <span>
-          We&apos;re finishing the upgraded SKYNN AI review system and its clinical approval. Requests made now are securely
-          queued and your report is expected in {INTAKE_EXPECTED_DELIVERY} — you won&apos;t need to answer the questions again.
-        </span>
-      </p>
-    )}
-    <p className="text-xs text-muted-foreground">
-      Uses 1 of your {passesAvailable} Analysis Pass{passesAvailable === 1 ? "" : "es"} when you submit · refunded if we can&apos;t release your report
-      {reportMode === "fallback" ? " or you withdraw your request" : ""}
-    </p>
-    <Button size="lg" onClick={onStart} className="gap-2 gradient-border-anim">
-      <Sparkles className="h-4 w-4" />
-      Start my assessment
-    </Button>
   </div>
 );
 
@@ -441,6 +413,7 @@ const AssessmentRunner = ({
       onAnswer={setAnswer}
       onGoToSection={goToSection}
       onSubmit={submit}
+      onExit={onExit}
       intakeMode={reportMode === "fallback"}
       isPrefilled={isPrefilled}
       prefillNote={prefillNote}

@@ -162,6 +162,8 @@
   }
   .gradient-border-anim > * { position: relative; z-index: 0; }
   .gradient-text { background: var(--gradient-brand); background-clip: text; -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  /* Solid brand-gradient fill for a screen's one primary action or a thin accent (progress, rules). */
+  .gradient-bg { background-image: var(--gradient-brand); color: #fff; }
   .gradient-bg-soft { background-image: var(--gradient-brand); background-color: hsl(var(--accent)); background-blend-mode: soft-light; }
   .dark .gradient-bg-soft { background-blend-mode: overlay; }
   .card-interactive { transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out; }
