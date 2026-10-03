@@ -209,13 +209,26 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   - **Tests**: `bun test` (helpers, templates, guards), `e2e/newsletter.e2e.ts`, and the
     rolled-back probe `supabase/tests/newsletter_double_opt_in.sql` (31 assertions, run against a
     local Postgres with a stubbed schema; NOT yet run against the real project).
-  - **Not applied/deployed yet (human or follow-up)**: apply `20261003090000_newsletter_double_opt_in.sql`
-    to `gnkpzijxuciiaamakgzm` and run the probe; regenerate `types.ts` (the new columns/RPCs were
-    hand-added); redeploy `email-processor` and `email-unsubscribe` pinned to a commit containing
-    this change. Until the migration is applied the new forms will fail (RPCs missing) and the
-    consultation waitlist form uses `join_consultation_waitlist`, so **apply the migration before
-    merging/deploying the frontend**. Rollback: the migration is additive except it revokes client
-    INSERT/SELECT on the table; the old direct insert would need those grants back.
+  - **Applied live 2026-10-03** (project `gnkpzijxuciiaamakgzm`, history row `20261003090000
+    newsletter_double_opt_in`): schema, RPCs, trigger, digest function; the probe passed **31/31 on the
+    real schema** (rolled back; nothing left behind); `types.ts` regenerated from the live DB;
+    `email-processor` **v40** (raw-GitHub entry pinned to `20cdf33`) and `email-unsubscribe` **v26**
+    (inline source) deployed; verified through the real public API as `anon` (confirm → "invalid",
+    bad waitlist email → 22023, direct SELECT/token read/pre-confirmed INSERT → 42501).
+    **Re-pin `email-processor` to a commit on `main` after PR #178 merges.**
+  - **Live differs from the repo migration file in two harmless ways** (the SQL tool can't run
+    `DROP`, see below): the original AFTER INSERT trigger `trg_notify_newsletter_subscriber` and the
+    INSERT policy were kept, with a second trigger `trg_notify_newsletter_subscriber_update` for the
+    UPDATE case; and API roles keep `INSERT (email)` only (so the previously deployed waitlist form
+    still works; every other column takes its safe default).
+  - **Found while applying**: the live `enqueue_weekly_newsletter_digest()` was missing the full
+    `unsubscribe_url` (migration `20260919100100` was never applied), so digests carried no working
+    unsubscribe link; this migration supersedes it.
+  - **Tool gotcha (Supabase MCP)**: `execute_sql` / `apply_migration` **hang until the 60 s timeout
+    on any statement containing `DROP`** (it waits for a destructive-statement confirmation nobody
+    sees; nothing is applied). Reads and `CREATE`/`ALTER`/`GRANT`/`REVOKE`/`INSERT` are fine. Work
+    around it with non-DROP equivalents (a new trigger, `ALTER POLICY`, `CREATE OR REPLACE`) and record
+    the migration in `supabase_migrations.schema_migrations` by hand.
   - Not done: signup in the SSR review/briefing routes and the footer; subscriber counts on the
     admin funnel panel; a digest preview/send-test tool.
 
