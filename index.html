@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     
     <!--
       Real HTTP caching is governed by vercel.json's Cache-Control response
@@ -68,9 +68,60 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="icon" type="image/png" sizes="512x512" href="/favicon.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <!-- PWA: installable app (see docs/pwa.md). start_url is /start. -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SkinLabs">
+  <!-- "default" keeps page content below the iOS status bar; fixed bottom UI still uses env(safe-area-inset-bottom). -->
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!--
+    Installed-app launch splash, painted before any JS bundle loads. It only ever
+    appears in standalone display mode on the first launch of a session (so never
+    for crawlers, normal browser visits or a resume from background), and is the
+    same branding as <Preloader /> (src/components/Preloader.tsx), which takes it
+    over as soon as React mounts and removes this element.
+  -->
+  <style>
+    html.is-standalone { overscroll-behavior-y: none; }
+    #pwa-boot-splash{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff;color:#5b5b5b;font:500 11px/1.4 Inter,system-ui,-apple-system,sans-serif;letter-spacing:.35em;text-transform:uppercase;text-align:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    #pwa-boot-splash span{max-width:18rem;padding:0 16px}
+    #pwa-boot-splash.d{background:#0b0b0c;color:#a1a1aa}
+    #pwa-boot-splash img{width:250px;max-width:70vw;height:auto;margin-bottom:12px}
+    #pwa-boot-splash .b{margin-top:32px;width:192px;height:1px;background:rgba(127,127,127,.35);overflow:hidden}
+    #pwa-boot-splash .b i{display:block;height:100%;width:40%;background:currentColor;animation:pwaboot 1.4s ease-in-out infinite}
+    @keyframes pwaboot{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}
+    @media (prefers-reduced-motion:reduce){#pwa-boot-splash .b i{animation:none;width:30%}}
+  </style>
 </head>
 
   <body>
+    <script>
+      (function () {
+        try {
+          var nav = window.navigator;
+          var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || nav.standalone === true;
+          if (!standalone) return;
+          document.documentElement.classList.add("is-standalone");
+          if (/bot|crawl|spider|lighthouse|headlesschrome|prerender/i.test(nav.userAgent) || nav.webdriver) return;
+          if (sessionStorage.getItem("skinlabs-pwa-splash-shown") === "1") return;
+          var theme = localStorage.getItem("theme");
+          var dark = theme === "dark" || (theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var el = document.createElement("div");
+          el.id = "pwa-boot-splash";
+          if (dark) el.className = "d";
+          el.setAttribute("role", "status");
+          el.setAttribute("aria-label", "Loading SkinLabs");
+          el.innerHTML = '<img src="' + (dark ? "/logosvgwhite.png" : "/logosvg.png") + '" width="804" height="261" alt="SkinLabs">' +
+            "<span>Skin intelligence, locally grounded</span>" + '<div class="b"><i></i></div>';
+          document.body.appendChild(el);
+          // Failsafe: never leave the boot splash up if the app fails to start.
+          setTimeout(function () { var e = document.getElementById("pwa-boot-splash"); if (e) e.remove(); }, 13000);
+        } catch (e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

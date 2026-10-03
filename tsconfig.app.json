@@ -38,6 +38,7 @@
     "src/**/__tests__/**",
     "src/**/*.test.ts",
     "src/router.tsx",
-    "src/routes/**"
+    "src/routes/**",
+    "src/sw"
   ]
 }

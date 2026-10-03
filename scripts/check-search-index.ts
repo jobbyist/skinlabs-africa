@@ -45,6 +45,9 @@ const KNOWN_EXCLUSIONS = new Set([
   // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached
   // from /skynn-ai, the dashboard and emails rather than site search.
   "/skynn-ai/advanced",
+  // Installed-app entry point (manifest start_url): restores the session, then routes
+  // onward. noindex utility route, not content.
+  "/start",
 ]);
 
 interface RouteEntry {
