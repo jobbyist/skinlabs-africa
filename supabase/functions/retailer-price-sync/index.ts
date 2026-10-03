@@ -69,6 +69,7 @@ interface RunState {
   outcomes: Outcome[];
   creditsUsed: number;
   stop: null | "blocked_firecrawl" | "budget_reached" | "outside_window" | "time";
+  stopDetail?: string;
 }
 
 async function creditsUsedToday(admin: Admin): Promise<number> {
@@ -94,11 +95,13 @@ async function logUsage(admin: Admin, kind: "search" | "scrape", success: boolea
 async function firecrawl(state: RunState, kind: "search" | "scrape", path: string, body: unknown): Promise<unknown | null> {
   if (!FIRECRAWL_KEY) {
     state.stop = "blocked_firecrawl";
-    throw new FirecrawlBlocked("no Firecrawl key configured");
+    state.stopDetail = "no Firecrawl key configured";
+    throw new FirecrawlBlocked(state.stopDetail);
   }
   if (state.creditsUsed + CREDITS[kind] > DAILY_CREDIT_BUDGET) {
     state.stop = "budget_reached";
-    throw new FirecrawlBlocked("daily credit budget reached");
+    state.stopDetail = "daily credit budget reached";
+    throw new FirecrawlBlocked(state.stopDetail);
   }
   const res = await fetch(`${FIRECRAWL_BASE}${path}`, {
     method: "POST",
@@ -109,7 +112,8 @@ async function firecrawl(state: RunState, kind: "search" | "scrape", path: strin
   await logUsage(state.admin, kind, res.ok);
   if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429) {
     state.stop = "blocked_firecrawl";
-    throw new FirecrawlBlocked(`Firecrawl answered ${res.status}`);
+    state.stopDetail = `Firecrawl answered ${res.status}`;
+    throw new FirecrawlBlocked(state.stopDetail);
   }
   if (!res.ok) return null;
   return await res.json().catch(() => null);
@@ -212,6 +216,11 @@ async function discover(state: RunState, limit: number) {
       limit: 8,
     })) as { data?: { web?: { url?: string; title?: string }[] } | { url?: string; title?: string }[] } | null;
     if (state.stop) break;
+    if (search === null) {
+      // The call itself failed: say nothing about the product (a miss would hide it for 30 days).
+      state.outcomes.push({ ref: target.product_slug, outcome: "transient:search_failed" });
+      continue;
+    }
     const rows = Array.isArray(search?.data) ? search?.data : search?.data?.web ?? [];
     const candidates = rankSearchResults(
       matchTarget,
@@ -308,6 +317,7 @@ async function run(admin: Admin, retailer: string, mode: "refresh" | "discover",
   for (const o of state.outcomes) counts[o.outcome.split(":")[0]] = (counts[o.outcome.split(":")[0]] ?? 0) + 1;
   const summary = {
     stop: state.stop,
+    stop_detail: state.stopDetail,
     error: errorMessage,
     processed: state.outcomes.length,
     counts,
