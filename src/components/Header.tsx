@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -18,6 +18,7 @@ import {
   Target,
   FlaskConical,
   TrendingUp,
+  Stethoscope,
   Megaphone,
   BookOpenCheck,
   Compass,
@@ -69,8 +70,8 @@ interface NavItem {
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
-  { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Practice Suite", href: "/practice-suite", icon: TrendingUp, badge: "Coming Soon" },
+  { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
 ];
 
 /** The "Explore" grid — SkinLabs' editorial + platform sections. */
@@ -221,6 +222,31 @@ const Header = () => {
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
+  const [storyRailVisible, setStoryRailVisible] = useState(true);
+
+  useEffect(() => {
+    if (!storyRail) {
+      setStoryRailVisible(false);
+      return;
+    }
+    const media = window.matchMedia("(max-width: 767px)");
+    const syncViewport = () => setStoryRailVisible(media.matches && window.scrollY <= 8);
+    syncViewport();
+    if (!media.matches) return;
+
+    let lastY = window.scrollY;
+    const handleScroll = () => {
+      const y = window.scrollY;
+      if (y <= 8) setStoryRailVisible(true);
+      else if (y > lastY + 4) setStoryRailVisible(false);
+      else if (y < lastY - 4) setStoryRailVisible(true);
+      lastY = y;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [storyRail]);
+
+  const showStories = storyRail && storyRailVisible;
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -245,7 +271,7 @@ const Header = () => {
       {/* Mobile-only Instagram-style story rail, stacked directly above the nav
           header. WebStoriesBar is md:hidden itself; this flow spacer matches its
           h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
-      {storyRail && (
+      {showStories && (
         <>
           <WebStoriesBar top="top-0" />
           <div className="h-24 md:hidden" aria-hidden="true" />
@@ -255,7 +281,7 @@ const Header = () => {
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
           // Mobile: below the story rail (96px) when it shows. md+: below the promo bar (36px).
-          storyRail ? "top-24" : "top-0",
+          showStories ? "top-24" : "top-0",
           promoBarVisible ? "md:top-9" : "md:top-0",
         )}
       >
