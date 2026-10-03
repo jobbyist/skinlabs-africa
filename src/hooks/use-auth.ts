@@ -94,17 +94,6 @@ export const useAuth = () => {
     return { data, error };
   };
 
-  /**
-   * Verifies a one-time token_hash issued by a server-side admin.generateLink
-   * call (see api/admin-auth.ts) to establish a real Supabase session for a
-   * specific account without sending an email — used only by the /admin
-   * gate, never by consumer auth.
-   */
-  const verifyRecoveryOrMagicLinkToken = async (tokenHash: string, type: "magiclink" | "recovery" = "magiclink") => {
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    return { data, error };
-  };
-
   /** Optional email verification, initiated by the user from the dashboard. */
   const sendEmailVerification = async () => {
     if (!user?.email) return { data: null, error: new Error("No email on this account") };
@@ -154,7 +143,6 @@ export const useAuth = () => {
     signOut,
     sendPasswordReset,
     updatePassword,
-    verifyRecoveryOrMagicLinkToken,
     sendEmailVerification,
     enrollMFA,
     challengeAndVerifyMFA,

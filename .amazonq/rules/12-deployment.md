@@ -111,7 +111,6 @@ git diff --quiet HEAD^ HEAD -- . ':!docs' ':!content' ':!supabase' ':!*.md' ':!.
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_VERCEL_ANALYTICS_ID`
-- `ADMIN_PASSWORD` (admin gate)
 - `SUPABASE_SERVICE_ROLE_KEY` (serverless functions)
 
 **Optional**:

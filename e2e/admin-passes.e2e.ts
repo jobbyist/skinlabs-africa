@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { mockSupabase } from "./support/mockSupabase";
 
 /**
- * Admin → Analysis Passes: issue passes to a member by email. The admin gate
- * (/api/admin-auth) and the admin RPCs are mocked; what's under test is the tab:
+ * Admin → Analysis Passes: issue passes to a member by email. The admin role check
+ * (has_role) and the admin RPCs are mocked; what's under test is the tab:
  * lookup, the confirm step, the exact payload sent, and idempotency ids.
  */
 
@@ -11,9 +11,6 @@ const MEMBER = { user_id: "11111111-1111-4111-8111-111111111111", email: "michae
 
 async function openTab(page: Page, issued: Record<string, unknown>[]) {
   let balance = 0;
-  await page.route("**/api/admin-auth", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, tokenHash: null }) }),
-  );
   await page.route("**/rest/v1/rpc/has_role*", (route) => route.fulfill({ json: true }));
   await page.route("**/rest/v1/rpc/admin_lookup_analysis_pass_account*", async (route) => {
     const { p_email } = route.request().postDataJSON() as { p_email: string };

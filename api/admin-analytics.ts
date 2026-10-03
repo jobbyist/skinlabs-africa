@@ -3,11 +3,9 @@
  * pulled directly from Vercel's own Web Analytics REST API rather than
  * fabricated -- see src/components/admin/AnalyticsTab.tsx for the consumer.
  *
- * Auth: the same skinlabs_admin_gate HttpOnly cookie api/admin-auth.ts sets
- * (checked the identical way -- copied rather than shared, matching this
- * repo's existing convention of duplicating this small block per api/*.ts
- * file rather than introducing an api/_shared/ module; see
- * api/marketplace-auth.ts for the same duplicated pattern). Never trusts a
+ * Auth: the caller's Supabase access token (Authorization: Bearer ...) is
+ * verified with the service-role client and the user must hold the `admin`
+ * role in user_roles (the same check has_role() makes). Never trusts a
  * client-supplied "I'm an admin" flag.
  *
  * Required Vercel project environment variable (cannot be set from this
@@ -46,7 +44,6 @@
  * labels every chart with which of these two independent sources it came
  * from, so nothing on the page is ambiguous about its provenance.
  */
-import { readGateCookie, verifyGateToken } from "./_lib/adminGateToken";
 import { createClient } from "@supabase/supabase-js";
 
 type VercelReq = {
@@ -64,10 +61,22 @@ const DEFAULT_PROJECT_ID = "prj_QiDafIkNxgVHBnDuepg4EvxNsH8J";
 const DEFAULT_TEAM_ID = "team_SsKFiB8H2aVoVKQAchiFleRR";
 const API_BASE = "https://api.vercel.com/v1/query/web-analytics";
 
-function isGateValid(req: VercelReq): boolean {
-  const adminPassword = process.env.ADMIN_PASSWORD;
-  if (!adminPassword) return false;
-  return verifyGateToken(adminPassword, readGateCookie(req));
+async function isAdminRequest(req: VercelReq): Promise<boolean> {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const header = req.headers.authorization;
+  const value = Array.isArray(header) ? header[0] : header;
+  const token = value?.match(/^Bearer (.+)$/i)?.[1];
+  if (!supabaseUrl || !serviceRoleKey || !token) return false;
+  try {
+    const client = createClient(supabaseUrl, serviceRoleKey);
+    const { data: userData, error } = await client.auth.getUser(token);
+    if (error || !userData.user) return false;
+    const { data: isAdmin } = await client.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
+    return isAdmin === true;
+  } catch {
+    return false;
+  }
 }
 
 interface CountResponse {
@@ -159,7 +168,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     return;
   }
 
-  if (!isGateValid(req)) {
+  if (!(await isAdminRequest(req))) {
     res.status(401).json({ ok: false, error: "Not authorised" });
     return;
   }

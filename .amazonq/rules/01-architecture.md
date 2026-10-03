@@ -97,7 +97,6 @@ Primary API layer:
 Secondary endpoints:
 
 - `api/admin-analytics.ts`: Admin dashboard data
-- `api/admin-auth.ts`: Admin credential gate
 - `api/marketplace-auth.ts`: OpenHaus gate
 
 ### Supabase Architecture (CURRENT)
