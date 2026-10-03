@@ -22,6 +22,7 @@ import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
+import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
 
 type Submission = {
   id: string;
@@ -489,6 +490,7 @@ const AdminDashboard = () => {
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
               <TabsContent value="dataquality">
+                <PairNoteCoverageCard />
                 <p className="text-sm text-muted-foreground mb-4">
                   Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>
                   until a human confirms them against a primary source. Mark verified only once you've checked it.

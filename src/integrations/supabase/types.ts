@@ -1565,6 +1565,42 @@ export type Database = {
           },
         ]
       }
+      ingredient_class_pair_rules: {
+        Row: {
+          class_a: string
+          class_b: string
+          created_at: string
+          explanation: string
+          interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          source_label: string
+          source_url: string | null
+          updated_at: string
+          usage_guidance: string
+        }
+        Insert: {
+          class_a: string
+          class_b: string
+          created_at?: string
+          explanation: string
+          interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          source_label?: string
+          source_url?: string | null
+          updated_at?: string
+          usage_guidance: string
+        }
+        Update: {
+          class_a?: string
+          class_b?: string
+          created_at?: string
+          explanation?: string
+          interaction_type?: Database["public"]["Enums"]["ingredient_interaction_type"]
+          source_label?: string
+          source_url?: string | null
+          updated_at?: string
+          usage_guidance?: string
+        }
+        Relationships: []
+      }
       ingredient_concerns: {
         Row: {
           concern_id: string
@@ -4615,6 +4651,63 @@ export type Database = {
         }
         Relationships: []
       }
+      skin_photo_journal_entries: {
+        Row: {
+          captured_at: string
+          created_at: string
+          entry_type: string
+          id: string
+          note: string | null
+          source_analysis_id: string | null
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          note?: string | null
+          source_analysis_id?: string | null
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          note?: string | null
+          source_analysis_id?: string | null
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skin_photo_journal_settings: {
+        Row: {
+          created_at: string
+          frequency: string
+          reminder_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency?: string
+          reminder_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string
+          reminder_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       skin_types: {
         Row: {
           description: string | null
@@ -5301,6 +5394,7 @@ export type Database = {
           status: string
         }[]
       }
+      admin_ingredient_pair_note_coverage: { Args: never; Returns: Json }
       admin_list_advanced_assessment_reviews: {
         Args: { p_status?: string }
         Returns: {
@@ -5344,6 +5438,16 @@ export type Database = {
           total_count: number
           updated_at: string
           user_email: string
+          user_id: string
+        }[]
+      }
+      admin_list_feature_waitlist: {
+        Args: { p_feature?: string; p_limit?: number }
+        Returns: {
+          created_at: string
+          email: string
+          feature_key: string
+          full_name: string
           user_id: string
         }[]
       }
@@ -5656,6 +5760,20 @@ export type Database = {
           id: string
           interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
           notes: string
+          source_url: string
+          usage_guidance: string
+        }[]
+      }
+      get_ingredient_pair_note: {
+        Args: { a: string; b: string }
+        Returns: {
+          confidence: Database["public"]["Enums"]["confidence_level"]
+          explanation: string
+          id: string
+          interaction_type: Database["public"]["Enums"]["ingredient_interaction_type"]
+          note_source: string
+          notes: string
+          source_label: string
           source_url: string
           usage_guidance: string
         }[]

@@ -210,6 +210,24 @@ PR #185 and follow-ups. Detail lives in the code; these are the rules to keep.
 - RLS policies now use `(select auth.uid())` everywhere in `public`; `rls_auto_enable()` is not callable by API roles.
 - CI on `main` was red since 28 Sep; lint is now 0 errors. Still needs: the `SUPABASE_DB_URL` secret for `sql-probes`.
 - `PromoTrialModal` primary action is `useConversionAction` (source `promo_modal`); `/pricing` is secondary.
+- **types.ts guard (2026-10-03)**: `scripts/check-supabase-types.ts` compares `src/integrations/supabase/types.ts` with the
+  committed `supabase/types.baseline.ts` (anything the baseline has must still be there). Runs in `npm run lint`/CI, as
+  `npm run types:fix` at the start of `npm run build`, in `.githooks/pre-commit`, and in `.github/workflows/types-guard.yml`
+  (repairs and commits a regressed file on `main`). After a real schema change: regenerate from the live DB
+  (`mcp__Supabase__generate_typescript_types`), then `npm run types:baseline`. Lovable project knowledge also tells it not
+  to touch the file. It cannot be made read-only to Lovable; the guard detects and repairs.
+- **Daily trial-email cron is LIVE** (`trial-lifecycle-emails-daily`, `5 4 * * *` UTC = 06:05 SAST, jobid 31), scheduled 2026-10-03
+  after a dry run. One real trialist then: nudge 5 Oct, week-left 25 Oct, last-chance 29 Oct.
+- **Status lookups are self-only for client roles**: `is_member`, `is_professional_account`, `is_profile_complete` return false
+  for another user's id when called as anon/authenticated (service role and internal callers unchanged). Probe:
+  `supabase/tests/restricted_status_functions.sql`. `has_role` still takes any id (left alone: RLS hot path).
+- **Admin reads the dermatologist-messaging waitlist** via `admin_list_feature_waitlist()` (Admin > Leads > Messaging waitlist).
+- **Combination Checker covers every pair** (`get_ingredient_pair_note(a,b)`): 1) cited row in `ingredient_interactions`,
+  2) category-pair rule in `ingredient_class_pair_rules` (labelled "class guidance", never "tested"), 3) "nothing on record".
+  Live: 13,366 pairs = 18 cited, 2,940 class guidance, 10,408 nothing-on-record. A new ingredient is covered the moment it has a
+  `category`; `admin_ingredient_pair_note_coverage()` (Admin > Data Quality) lists any without one. `get_ingredient_interaction`
+  and the Conflict Matcher stay cited-only. Probe: `supabase/tests/ingredient_pair_notes.sql`. The checker itself still
+  requires sign-in (existing product decision); its CTA now opens the sign-up dialog.
 
 ## Major systems
 

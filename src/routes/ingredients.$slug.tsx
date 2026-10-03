@@ -334,6 +334,10 @@ function IngredientPage() {
           (IngredientDetail.tsx) this can't branch on membership tier --
           render one CTA that works for every visitor instead. */}
       <section>
+        <a href={`/ingredients/checker?a=${encodeURIComponent(ingredient.slug)}`}>Check this ingredient with another — compatibility notes for every pair</a>
+      </section>
+
+      <section>
         <a href="/skynn-ai">See how this fits your skin — try SKYNN AI, free</a>
       </section>
 
