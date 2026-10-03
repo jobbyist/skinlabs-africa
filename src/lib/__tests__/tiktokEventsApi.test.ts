@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   buildTrackBody,
+  isValidIp,
   isTikTokStandardEvent,
   sha256Hex,
   validateIncomingEvent,
@@ -8,6 +9,8 @@ import {
 import { newEventId, parseTtclid, tiktokEventFor } from "../tiktok/events";
 
 const base = { event: "StartTrial", eventId: "sl_12345678-abcd", consent: true };
+
+type Row = { user: Record<string, string | undefined>; [k: string]: unknown };
 
 describe("validateIncomingEvent", () => {
   test("accepts a consented, whitelisted event", () => {
@@ -61,7 +64,7 @@ describe("buildTrackBody", () => {
     expect(body.event_source).toBe("web");
     expect(body.event_source_id).toBe("PIXEL");
     expect(body.test_event_code).toBe("TEST1");
-    const d = body.data[0] as Record<string, any>;
+    const d = body.data[0] as Row;
     expect(d.event).toBe("StartTrial");
     expect(d.event_id).toBe(base.eventId);
     expect(d.event_time).toBe(1_000);
@@ -77,7 +80,7 @@ describe("buildTrackBody", () => {
     const parsed = validateIncomingEvent({ ...base, eventTime: 5 });
     if (!parsed.ok) throw new Error("should validate");
     const body = await buildTrackBody({ pixelCode: "P", event: parsed.event, context: {}, nowSeconds: 10 * 86400 });
-    const d = body.data[0] as Record<string, any>;
+    const d = body.data[0] as Row;
     expect(d.user.email).toBeUndefined();
     expect(d.event_time).toBe(10 * 86400);
     expect(body.test_event_code).toBeUndefined();
@@ -114,5 +117,24 @@ describe("consent guard", () => {
     const html = await Bun.file(new URL("../../../index.html", import.meta.url)).text();
     expect(html).not.toContain("analytics.tiktok.com");
     expect(html).not.toContain("ttq.load");
+  });
+});
+
+describe("isValidIp", () => {
+  test("accepts IPv4 and IPv6 literals", () => {
+    for (const ip of ["1.2.3.4", "255.255.255.255", "::1", "2001:db8::1", "2001:0db8:85a3:0000:0000:8a2e:0370:7334"]) {
+      expect(isValidIp(ip)).toBe(true);
+    }
+  });
+  test("rejects anything else", () => {
+    for (const ip of ["", "256.1.1.1", "1.2.3", "01.2.3.4", "abc", "1.2.3.4, 5.6.7.8", "<script>", "12345::1", "1:2:3:4:5:6:7", "::1::2"]) {
+      expect(isValidIp(ip)).toBe(false);
+    }
+  });
+  test("an invalid ip is dropped from the payload", async () => {
+    const parsed = validateIncomingEvent({ event: "StartTrial", eventId: "sl_12345678-abcd", consent: true });
+    if (!parsed.ok) throw new Error("should validate");
+    const body = await buildTrackBody({ pixelCode: "P", event: parsed.event, context: { ip: "evil\nip" } });
+    expect((body.data[0] as Row).user.ip).toBeUndefined();
   });
 });

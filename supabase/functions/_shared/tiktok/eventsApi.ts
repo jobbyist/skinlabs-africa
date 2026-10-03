@@ -50,6 +50,20 @@ export interface EventContext {
 const EVENT_ID_RE = /^[A-Za-z0-9_.:-]{8,64}$/;
 const TOKEN_RE = /^[A-Za-z0-9_.~-]{1,300}$/;
 
+/** True only for a well-formed IPv4 or IPv6 literal; anything else is never forwarded to TikTok. */
+export const isValidIp = (value: string | undefined): value is string => {
+  if (!value || value.length > 45) return false;
+  const v4 = value.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) return v4.slice(1).every((o) => Number(o) <= 255 && String(Number(o)) === o);
+  if (!/^[0-9a-fA-F:]+$/.test(value) || !value.includes(":")) return false;
+  const groups = value.split("::");
+  if (groups.length > 2) return false;
+  const parts = value.split(":");
+  if (parts.some((g) => g.length > 4)) return false;
+  const count = parts.filter((g) => g !== "").length;
+  return groups.length === 2 ? count <= 7 : parts.length === 8 && count === 8;
+};
+
 export const sha256Hex = async (input: string): Promise<string> => {
   const bytes = new TextEncoder().encode(input.trim().toLowerCase());
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -123,7 +137,7 @@ export const buildTrackBody = async (args: {
   if (context.userId) user.external_id = await sha256Hex(context.userId);
   if (event.ttclid) user.ttclid = event.ttclid;
   if (event.ttp) user.ttp = event.ttp;
-  if (context.ip) user.ip = context.ip;
+  if (isValidIp(context.ip)) user.ip = context.ip;
   if (context.userAgent) user.user_agent = context.userAgent;
 
   const properties: Record<string, unknown> = {};
