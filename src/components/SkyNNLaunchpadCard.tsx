@@ -100,7 +100,7 @@ const SkyNNLaunchpadCard = () => {
               </span>
             </div>
 
-            <div className="mt-5 space-y-2.5" role="list" aria-label="SKYNN AI analysis preview">
+            <div className="mt-5 space-y-2.5" aria-label="SKYNN AI analysis preview">
               {STEPS.map((step, index) => {
                 const Icon = step.icon;
                 const active = index === activeStep;
@@ -108,8 +108,8 @@ const SkyNNLaunchpadCard = () => {
                   <button
                     key={step.label}
                     type="button"
-                    role="listitem"
                     aria-pressed={active}
+                    aria-label={`${step.label}: ${step.detail}`}
                     onClick={() => setActiveStep(index)}
                     className={`group flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition-all duration-500 sm:p-4 ${
                       active
@@ -120,7 +120,7 @@ const SkyNNLaunchpadCard = () => {
                     <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors duration-500 ${
                       active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                     }`}>
-                      <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+                      <Icon className="h-4 w-4" aria-hidden="true" />
                     </span>
 
                     <span className="min-w-0 flex-1">
