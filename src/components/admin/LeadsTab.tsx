@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Admin-only by RLS; a non-admin simply gets zero rows.
  */
 type Column = { key: string; label: string };
-type Source = { table: string; label: string; title: string; subtitle: string[]; detail: Column[] };
+type Source = { table: string; label: string; title: string; subtitle: string[]; detail: Column[]; /** Read through an admin-gated RPC instead of the table (the table only holds user ids). */ rpc?: { name: string; args: Record<string, unknown> } };
 
 const SOURCES: Source[] = [
   {
@@ -69,6 +69,14 @@ const SOURCES: Source[] = [
     ],
   },
   {
+    table: "feature_waitlist",
+    label: "Messaging waitlist",
+    title: "full_name",
+    subtitle: ["email", "feature_key"],
+    detail: [],
+    rpc: { name: "admin_list_feature_waitlist", args: { p_feature: "dermatologist_messaging", p_limit: 200 } },
+  },
+  {
     table: "notify_me_requests",
     label: "Notify me",
     title: "feature_key",
@@ -90,7 +98,7 @@ const SOURCES: Source[] = [
   },
 ];
 
-type Row = Record<string, unknown> & { id: string; created_at: string };
+type Row = Record<string, unknown> & { id?: string; user_id?: string; created_at: string };
 
 const show = (v: unknown): string => {
   if (v === null || v === undefined || v === "") return "";
@@ -111,7 +119,11 @@ const LeadsTab = () => {
     setError(null);
     // Tables are chosen from the fixed SOURCES list; the generated types don't cover a dynamic name.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data, error: err } = await (supabase as any).from(active).select("*").order("created_at", { ascending: false }).limit(200);
+    const client = supabase as any;
+    const src = SOURCES.find((x) => x.table === active) ?? SOURCES[0];
+    const { data, error: err } = src.rpc
+      ? await client.rpc(src.rpc.name, src.rpc.args)
+      : await client.from(active).select("*").order("created_at", { ascending: false }).limit(200);
     if (err) {
       setError(err.message);
       setRows([]);
@@ -150,7 +162,7 @@ const LeadsTab = () => {
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Showing the latest {rows.length} (max 200).</p>
           {rows.map((row) => (
-            <Card key={row.id}>
+            <Card key={String(row.id ?? row.user_id)}>
               <CardContent className="space-y-2 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-medium text-card-foreground">{show(row[source.title]) || "—"}</span>
