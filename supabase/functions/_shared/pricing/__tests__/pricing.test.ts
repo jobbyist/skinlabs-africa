@@ -101,6 +101,17 @@ describe("parseListing on real retailer markup", () => {
     expect(r.titles).toContain("Niacinamide 10% + Zinc 1% | The Ordinary");
   });
 
+  test("clicks: the plain server response (inline script, no ld+json block) used by the direct, Firecrawl-free refresh", () => {
+    const r = parseListing("clicks", fixture("clicks-inline-script-niacinamide-30ml.html"))!;
+    expect(r.priceZar).toBe(130);
+    expect(r.inStock).toBe(true);
+    expect(r.titles.join(" ")).toContain("Niacinamide 10% + Zinc 1% Serum 30ml");
+    // A non-ZAR or malformed offer in that inline form is not read.
+    const pad = "x".repeat(300);
+    expect(parseListing("clicks", `<html><title>X - Clicks</title>${pad}<script>{"@type":"Product","offers":{"@type":"Offer","priceCurrency":"USD","price":"9"}}</script></html>`)).toBeNull();
+    expect(parseListing("clicks", `<html>${pad}<script>{"@type":"Offer","priceCurrency":"ZAR","price":"9"}</script></html>`)).toBeNull(); // no Product before the Offer
+  });
+
   test("Takealot: reads the buy-box price, never a recommended-product price", () => {
     const html = fixture("takealot-the-ordinary-niacinamide-30ml.html");
     expect(html).toContain("R 179"); // the decoy is really on the page

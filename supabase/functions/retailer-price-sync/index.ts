@@ -78,7 +78,7 @@ interface RunState {
   creditsSpentThisRun: number;
   /** Credits this run may spend (from the account balance, reserve and daily cap). */
   allowance: number;
-  stop: null | "blocked_firecrawl" | "budget_reached" | "outside_window" | "time";
+  stop: null | "blocked_firecrawl" | "budget_reached" | "outside_window" | "time" | "retailer_challenge";
   stopDetail?: string;
 }
 
@@ -153,6 +153,7 @@ async function fetchProductPage(state: RunState, url: string): Promise<{ html: s
   const wait = state.policy.minIntervalMs - (Date.now() - state.lastRetailerRequestAt);
   if (wait > 0) await sleep(wait);
   state.lastRetailerRequestAt = Date.now();
+  if (state.policy.directFetch) return await fetchDirect(state, url);
   const payload = (await firecrawl(state, "scrape", "/scrape", {
     url,
     formats: ["rawHtml"],
@@ -162,6 +163,34 @@ async function fetchProductPage(state: RunState, url: string): Promise<{ html: s
   const html = payload?.data?.rawHtml;
   if (typeof html !== "string") return null;
   return { html, status: payload?.data?.metadata?.statusCode ?? 200 };
+}
+
+const DIRECT_FETCH_UA = "SkinLabsPriceBot/1.0 (+https://skinlabs.co.za/about; support@skinlabs.co.za)";
+
+/**
+ * Reads one product page with a plain HTTP request: no Firecrawl, no credits. Identifies itself honestly, honours the
+ * retailer's crawl delay and visit window (done by the caller), and NEVER works around a bot challenge: if the retailer
+ * answers with one, the run stops and the listing is left as it was.
+ */
+async function fetchDirect(state: RunState, url: string): Promise<{ html: string; status: number } | null> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { "User-Agent": DIRECT_FETCH_UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-ZA,en;q=0.8" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch {
+    return null;
+  }
+  const html = await res.text().catch(() => "");
+  const challenged = (res.status === 403 || res.status === 429 || res.status === 503) && /<title>\s*Just a moment|Attention Required|cf-browser-verification/i.test(html);
+  if (challenged) {
+    state.stop = "retailer_challenge";
+    state.stopDetail = `${state.policy.slug} answered with a bot challenge (HTTP ${res.status}); not bypassed`;
+    return null;
+  }
+  return { html, status: res.status };
 }
 
 function timeUp(state: RunState): boolean {
@@ -323,7 +352,9 @@ async function run(admin: Admin, retailer: string, mode: "refresh" | "discover",
   const remaining = await accountCredits();
   const allowed = creditAllowance({ dailyBudget: DAILY_CREDIT_BUDGET, usedToday: state.creditsUsed, remainingAccountCredits: remaining, reserve: CREDIT_RESERVE });
   state.allowance = allowed.credits;
-  if (allowed.credits <= 0) {
+  // A direct-fetch retailer's refresh spends no Firecrawl credits, so an empty credit budget must not stop it.
+  const spendsNoCredits = mode === "refresh" && policy.directFetch === true;
+  if (allowed.credits <= 0 && !spendsNoCredits) {
     state.stop = allowed.limitedBy === "account_unknown" ? "blocked_firecrawl" : "budget_reached";
     state.stopDetail = `no credits to spend (${allowed.limitedBy}; account remaining ${remaining ?? "unknown"}, reserve ${CREDIT_RESERVE}, today ${state.creditsUsed}/${DAILY_CREDIT_BUDGET})`;
   }
@@ -350,6 +381,7 @@ async function run(admin: Admin, retailer: string, mode: "refresh" | "discover",
 
   if (state.stop === "blocked_firecrawl") status = "blocked_firecrawl";
   else if (state.stop === "budget_reached") status = "budget_reached";
+  else if (state.stop === "retailer_challenge") status = "error";
   else if (state.stop === "outside_window" && state.outcomes.length === 0) status = "skipped";
 
   const counts: Record<string, number> = {};

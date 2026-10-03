@@ -11,6 +11,8 @@
 export type RetailerSlug = "clicks" | "dis-chem" | "takealot";
 
 export interface RetailerPolicy {
+  /** Product pages are readable with a plain, polite HTTP request (no Firecrawl, no credits). Never set for a retailer that serves a bot challenge. */
+  directFetch?: boolean;
   slug: RetailerSlug;
   name: string;
   hosts: string[];
@@ -33,6 +35,7 @@ export const RETAILER_POLICIES: Record<RetailerSlug, RetailerPolicy> = {
     minIntervalMs: 10_000,
     utcWindow: { startMinute: 4 * 60, endMinute: 8 * 60 + 45 },
     searchHost: "clicks.co.za",
+    directFetch: true,
   },
   "dis-chem": {
     slug: "dis-chem",

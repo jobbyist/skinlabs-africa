@@ -87,6 +87,23 @@ function metaContent(html: string, attr: "itemprop" | "property" | "name", key: 
   return content === undefined ? null : decodeEntities(content);
 }
 
+/**
+ * Clicks' plain server response (what a direct, non-browser request gets) builds its schema.org Product in an inline
+ * script: `el.text = JSON.stringify({ "@type": "Product", ..., "offers": { "@type": "Offer", "priceCurrency": "ZAR",
+ * "price": "130.00", "availability": ... } })`. That is a JS object literal (it even references a variable), not JSON, so
+ * only the Offer block is read, with strict patterns. A rendered page (Firecrawl) carries real ld+json instead.
+ */
+function parseClicksInlineScript(html: string): ParsedListing | null {
+  const at = html.search(/"@type"\s*:\s*"Offer"/);
+  if (at < 0 || !/"@type"\s*:\s*"Product"/.test(html.slice(Math.max(0, at - 4000), at))) return null;
+  const offer = html.slice(at, at + 600).split("}")[0];
+  if (!/"priceCurrency"\s*:\s*"ZAR"/.test(offer)) return null;
+  const price = parseRand(/"price"\s*:\s*"?([0-9][0-9.,]*)"?/.exec(offer)?.[1] ?? null);
+  if (!plausible(price)) return null;
+  const titles = [pageTitle(html, /\s*[-|]\s*Clicks\s*$/i), headline(html)].filter((t): t is string => !!t);
+  return { titles, priceZar: price, inStock: availability(/"availability"\s*:\s*"([^"]*)"/.exec(offer)?.[1]), method: "jsonld" };
+}
+
 function parseClicks(html: string): ParsedListing | null {
   const blocks = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/gi) ?? [];
   for (const block of blocks) {
@@ -112,7 +129,7 @@ function parseClicks(html: string): ParsedListing | null {
       return { titles, priceZar: price, inStock: availability(offer.availability), method: "jsonld" };
     }
   }
-  return null;
+  return parseClicksInlineScript(html);
 }
 
 function parseDisChem(html: string): ParsedListing | null {
