@@ -121,6 +121,10 @@ export type ConversionEvent =
   | "consultation_booking_requested"
   | "site_search_result_clicked"
   | "content_vertical_clicked"
+  // Homepage skin-weather notch. Payloads: city key / UV band only.
+  | "weather_notch_opened"
+  | "weather_notch_dismissed"
+  | "weather_notch_city_changed"
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"

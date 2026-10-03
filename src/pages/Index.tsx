@@ -12,9 +12,14 @@ import SkyNNLaunchpadCard from "@/components/SkyNNLaunchpadCard";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import AdSlot from "@/components/AdSlot";
 import SEO from "@/components/SEO";
+import { Suspense } from "react";
 import { useTheme } from "next-themes";
 import { pageSeo, SITE_URL, BRAND, buildOrganizationJsonLd } from "@/lib/seo-config";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
+
+// Lazy: the notch pulls in react-query + the weather call, none of which the first paint needs.
+const SkinWeatherNotch = lazyWithRetry(() => import("@/components/SkinWeatherNotch"));
 
 const SectionDivider = () => (
   <div className="container mx-auto px-4" aria-hidden="true">
@@ -91,6 +96,10 @@ const Index = () => {
           <Newsletter />
         </main>
         <Footer />
+        {/* Homepage only: local SA intelligence (UV, humidity, Highveld vs coastal) in seconds. */}
+        <Suspense fallback={null}>
+          <SkinWeatherNotch />
+        </Suspense>
       </div>
     </>
   );

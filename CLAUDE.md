@@ -194,6 +194,17 @@ Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applie
 - Shelf Showdown: 32 generated comparisons in `data/comparisons-part5.ts` from `scripts/generate-comparisons.ts` (real scores/prices/ingredients/verdicts of non-sponsored reviews only; re-run, don't hand-edit). 53 static + DB-generated. `ComparedProduct.officialBrandUrl` is now optional (never guessed).
 - Connector gotcha: the "Resend for Skinlabs" MCP connector points at the CannaPlug Resend account; use the plain "Resend" connector for SkinLabs. Resend domain skinlabs.co.za showed `failed` on 2026-10-03.
 
+## UI/UX batch (2026-10-03) — standing notes
+
+Branch `claude/ui-ux-launchpad-rail-feedback`. Builds on PRs #183/#184 (first launchpad/rail/survey pass).
+
+- **Launchpad** (`SkyNNLaunchpadCard`): CTA "Start Your 2-Minute Basic AI Skin Analysis"; steps Skin Tone → Primary Concern → Desired Outcomes → Tailored Routine. Rows are fixed-size and ONE fixed-height preview panel changes (an in-row accordion shifted rows under a tap). Imports no chart/PDF/quiz code (verified: main bundle has no jsPDF/html2canvas/recharts; the quiz chunk loads only after the CTA). Previews are generic and labelled "Example".
+- **Skin weather notch** (`SkinWeatherNotch`, homepage only, lazy): UV / humidity / high + Highveld-vs-coastal cue (`lib/skinWeather/climate.ts`, shared with the dashboard card). Renders nothing until real data loads or if the call fails. Dismissal lasts the SAST day (`notchPrefs.ts`). City: own pick > profile > Johannesburg; no geolocation prompt.
+- **Content rail** (`MobileContentRail`, `lib/contentRail.ts`): members only, phones only, key pages only (home + each vertical hub), hides on scroll down / reveals on scroll up (`useScrollReveal`, also drives the story rail), shuffled once per page load. It lives INSIDE Header's fixed bar; Header adds a same-height flow spacer. Don't go back to a sticky rail with offset maths against the story rail.
+- **Feedback surveys**: dashboard added; hub pages get their own wording (a "this briefing" question makes no sense on a list). Answers are stored in `feedback_survey_responses` (migration `20261004100000`, **in the repo, NOT applied live**; unique per member+survey) and a trigger emails `admin_feedback_survey_response` to **feedback@ only** (no member identity in the email). The comment never goes into analytics (counts/tokens only). `lib/feedbackSubmit.ts` uses an untyped shim until `types.ts` is regenerated after the migration. **Bug fixed**: a `setTimeout` for the 1 Jan 2027 cutoff (~88 days) overflowed 2^31 ms and fired immediately, cancelling every survey; never schedule timers from a far-future date. Deploy `email-processor` with the new template when applying.
+- Labels: "AI Skin Analysis" everywhere in nav/search/About (dated announcements keep the old name). Base CSS gained anchor `scroll-padding-top`, `text-wrap: balance/pretty`, `touch-action: manipulation` and an `.eyebrow` utility.
+- Known, not mine: `e2e/smart-routines.e2e.ts` still asserts the superseded "Advanced required" rule (12 failures); `supabaseTypesGuard` test fails on main (types baseline behind); the homepage height wobbles ~70px while ad slots settle.
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own

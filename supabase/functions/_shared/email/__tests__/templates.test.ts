@@ -22,7 +22,7 @@ describe("email template registry", () => {
       "form_confirmation_feature_waitlist",
       "form_confirmation_openhaus_waitlist", "admin_form_notification_openhaus_waitlist",
       "form_confirmation_newsletter", "admin_form_notification_newsletter",
-      "admin_notify_me_request", "admin_consult_survey_response",
+      "admin_notify_me_request", "admin_consult_survey_response", "admin_feedback_survey_response",
       "admin_payment_needs_review", "admin_delivery_failed",
       "newsletter_weekly_digest", "newsletter_digest_confirm",
       "trial_activation_nudge", "trial_week_left", "trial_precharge_reminder", "trial_last_chance", "trial_winback",
