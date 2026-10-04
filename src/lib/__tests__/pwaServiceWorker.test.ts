@@ -10,7 +10,13 @@ import {
   isPrivatePath,
   pageCacheKey,
   parseByteRange,
+  chooseNotificationActions,
+  pickWindowIndexForClick,
+  pushTrackUrl,
+  requiresVisibleNotification,
+  safeClickTarget,
   shouldCachePage,
+  shouldSuppressSystemNotification,
 } from "../pwa/swCore";
 import { notificationFromPush, safeNotificationUrl } from "../pwa/pushPayload";
 
@@ -151,7 +157,7 @@ describe("Range requests for offline audio", () => {
 describe("push payloads are untrusted input", () => {
   test("click targets are same-origin relative paths only", () => {
     expect(safeNotificationUrl("/podcast/ep-1", SELF)).toBe("/podcast/ep-1");
-    expect(safeNotificationUrl("https://skinlabs.co.za/briefings/x?y=1#z", SELF)).toBe("/briefings/x?y=1#z");
+    expect(safeNotificationUrl("https://skinlabs.co.za/briefings/x?y=1#z", SELF)).toBe("/start"); // absolute URLs are refused: relative "/…" only
     expect(safeNotificationUrl("https://evil.example/phish", SELF)).toBe("/start");
     expect(safeNotificationUrl("//evil.example", SELF)).toBe("/start");
     expect(safeNotificationUrl("javascript:alert(1)", SELF)).toBe("/start");
@@ -176,5 +182,74 @@ describe("push payloads are untrusted input", () => {
       expect(n.url).toBe("/start");
       expect(n.category).toBe("other");
     }
+  });
+});
+
+describe("notification click validation", () => {
+  test("accepts a same-origin relative path and keeps its query and hash", () => {
+    expect(safeClickTarget("/dashboard?tab=inbox", SELF)).toBe("/dashboard?tab=inbox");
+    expect(safeClickTarget("/podcast/ep-1#notes", SELF)).toBe("/podcast/ep-1#notes");
+  });
+  test("rejects //host, backslashes, absolute and scheme URLs, control characters, empties and non-strings", () => {
+    for (const bad of ["//evil.example", "/\\evil.example", "/a\\b", "https://skinlabs.co.za/x", "https://evil.example", "javascript:alert(1)", "data:text/html,x", "", "dashboard", "/ok\u0000x", "/ok\nx", `/${"a".repeat(400)}`, undefined, null, 42, {}]) {
+      expect(safeClickTarget(bad as unknown, SELF)).toBeNull();
+    }
+  });
+  test("the worker falls back to the start page through safeNotificationUrl", () => {
+    expect(safeNotificationUrl("//evil.example", SELF)).toBe("/start");
+    expect(safeNotificationUrl("/\\evil.example", SELF)).toBe("/start");
+  });
+});
+
+describe("visible-window suppression", () => {
+  const ANDROID = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";
+  const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+  const MAC_SAFARI = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+  const win = (over: Partial<{ url: string; visibilityState: string; focused: boolean }> = {}) => ({ url: `${SELF}/dashboard`, visibilityState: "visible", focused: true, ...over });
+  test("a visible AND focused SkinLabs window suppresses the system notification", () => {
+    expect(shouldSuppressSystemNotification([win()], SELF, ANDROID)).toBe(true);
+  });
+  test("hidden, unfocused, other-origin or no windows: show the notification", () => {
+    expect(shouldSuppressSystemNotification([win({ visibilityState: "hidden" })], SELF, ANDROID)).toBe(false);
+    expect(shouldSuppressSystemNotification([win({ focused: false })], SELF, ANDROID)).toBe(false);
+    expect(shouldSuppressSystemNotification([win({ url: "https://evil.example/" })], SELF, ANDROID)).toBe(false);
+    expect(shouldSuppressSystemNotification([win({ url: "not a url" })], SELF, ANDROID)).toBe(false);
+    expect(shouldSuppressSystemNotification([], SELF, ANDROID)).toBe(false);
+  });
+  test("any one qualifying window is enough", () => {
+    expect(shouldSuppressSystemNotification([win({ focused: false }), win()], SELF, ANDROID)).toBe(true);
+  });
+  test("never on WebKit (iOS and Safari revoke a subscription whose pushes show nothing)", () => {
+    expect(requiresVisibleNotification(IPHONE)).toBe(true);
+    expect(requiresVisibleNotification(MAC_SAFARI)).toBe(true);
+    expect(requiresVisibleNotification(ANDROID)).toBe(false);
+    expect(shouldSuppressSystemNotification([win()], SELF, IPHONE)).toBe(false);
+    expect(shouldSuppressSystemNotification([win()], SELF, MAC_SAFARI)).toBe(false);
+  });
+});
+
+describe("which window a tap reuses (no second window)", () => {
+  const w = (url: string, visibilityState = "hidden", focused = false) => ({ url, visibilityState, focused });
+  test("prefers focused, then visible, then any same-origin window; ignores other origins", () => {
+    expect(pickWindowIndexForClick([w(`${SELF}/a`), w(`${SELF}/b`, "visible", true)], SELF)).toBe(1);
+    expect(pickWindowIndexForClick([w(`${SELF}/a`), w(`${SELF}/b`, "visible")], SELF)).toBe(1);
+    expect(pickWindowIndexForClick([w("https://evil.example/"), w(`${SELF}/a`)], SELF)).toBe(1);
+    expect(pickWindowIndexForClick([w("https://evil.example/")], SELF)).toBe(-1);
+    expect(pickWindowIndexForClick([], SELF)).toBe(-1);
+  });
+});
+
+describe("action buttons and build config", () => {
+  test("actions only where the platform reports support (Android/desktop Chromium), capped at maxActions", () => {
+    expect(chooseNotificationActions([], undefined)).toEqual([]);
+    expect(chooseNotificationActions([], 0)).toEqual([]);
+    expect(chooseNotificationActions([], 2).map((a) => a.action)).toEqual(["open", "dismiss"]);
+    expect(chooseNotificationActions([], 1).map((a) => a.action)).toEqual(["open"]);
+    expect(chooseNotificationActions([{ action: "open", title: "Listen" }], 2)).toEqual([{ action: "open", title: "Listen" }]);
+  });
+  test("the push-track URL is derived from the public project URL, https only, never hard-coded", () => {
+    expect(pushTrackUrl("https://abc.supabase.co")).toBe("https://abc.supabase.co/functions/v1/push-track");
+    expect(pushTrackUrl("https://abc.supabase.co/")).toBe("https://abc.supabase.co/functions/v1/push-track");
+    for (const bad of [undefined, null, "", "http://abc.supabase.co", "not a url", 7]) expect(pushTrackUrl(bad as unknown)).toBeNull();
   });
 });

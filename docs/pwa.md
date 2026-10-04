@@ -120,9 +120,8 @@ reports or health data. It holds no credentials; handlers re-read the live sessi
   `promotional` is explicit opt-in with a recorded `promotional_opt_in_at`.
 * Sending: Edge Function `push-send` (VAPID, `npm:web-push`) for the service role / an admin
   (`{category,title,body,url,user_ids?}`) and a member's own `{action:"test"}`. It honours preferences, deletes
-  404/410 subscriptions and deactivates after 5 consecutive failures. **No automatic senders are wired yet**
-  (new episode / briefing / reminder triggers are a follow-up) — the infrastructure, preferences and a test send
-  are live once configured.
+  404/410 subscriptions and deactivates after 5 consecutive failures. Automatic delivery is handled by the notification engine (`notification-dispatcher`, see `docs/notification-dispatcher.md`); `push-send` stays the manual/admin sender
+  Episode / briefing / reminder triggers are the notification-engine automations.
 * iOS/iPadOS: Web Push only works inside the installed Home Screen app on iOS/iPadOS 16.4+; Safari tabs show
   "install first".
 
@@ -189,6 +188,16 @@ changes, bump `CACHE_VERSION`.
 * iOS: no `beforeinstallprompt`/`appinstalled`; Push only for the installed app (16.4+); no Background Sync;
   Media Session actions vary; storage can be evicted by the OS after long disuse.
 * Firefox (desktop/Android) can't install a PWA on desktop; Safari macOS supports "Add to Dock" without prompts.
-* No automatic push senders yet; no web-app screenshots in the manifest (richer Chrome install UI not enabled).
+* Push is queued by the notification engine and delivered by `notification-dispatcher`;  no web-app screenshots in the manifest (richer Chrome install UI not enabled).
 * The offline shell shows what was cached; a page never visited offline loads the shell and the in-app offline
   states, not its data.
+
+
+## Push notifications (2026-10-04)
+
+See CLAUDE.md "Notification engine" for the full rules and `docs/notification-dispatcher.md` for delivery. Capability decision:
+`src/lib/pwa/pushCapability.ts`; shared opt-in: `src/lib/pwa/pushOptIn.ts`; worker rules: `src/lib/pwa/swCore.ts`
+(`safeClickTarget`, `shouldSuppressSystemNotification`, `pickWindowIndexForClick`, `chooseNotificationActions`, `pushTrackUrl`).
+Tests: `bun test` (`pushCapability`, `pwaServiceWorker`, `notificationDispatcher`, `appInstalled`, `journey`), `e2e/pwa.e2e.ts`
+(capability branches, Welcome, checklist, Advanced pending, first check-in) and `e2e/push.e2e.ts` (push event + click in the worker).
+Build env for the e2e: `VITE_VAPID_PUBLIC_KEY` and `VITE_SUPABASE_URL` (see `.github/workflows/ci.yml`).

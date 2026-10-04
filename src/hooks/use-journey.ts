@@ -9,6 +9,8 @@ import {
   resolveJourneyStage,
   type JourneyFacts,
 } from "@/lib/journey";
+import { detectPlatform, isApplePlatform, readDetectionEnv } from "@/lib/pwa/detection";
+import { getPushCapabilityNow } from "@/lib/pwa/pushCapability";
 import { loadCompletedState } from "@/lib/starter-analysis/persistence";
 
 const LIVE_SUB_STATUSES = ["pending", "trialing", "active", "past_due"];
@@ -34,7 +36,7 @@ export const useJourney = () => {
     let cancelled = false;
     const count = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
     (async () => {
-      const [analyses, steps, checkins, saved, reads, subs, profile, factors] = await Promise.all([
+      const [analyses, steps, checkins, saved, reads, subs, profile, factors, devices] = await Promise.all([
         count(
           supabase
             .from("skincare_recommendations")
@@ -60,8 +62,10 @@ export const useJourney = () => {
             .eq("user_id", user.id)
             .in("status", LIVE_SUB_STATUSES),
         ),
-        supabase.from("profiles").select("weather_city_key, checklist_dismissed_at").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("weather_city_key, checklist_dismissed_at, app_installed_at").eq("user_id", user.id).maybeSingle(),
         supabase.auth.mfa.listFactors().catch(() => ({ data: null })),
+        // Server truth for "reminders on": an ACTIVE push device (members can't read push_subscriptions directly).
+        Promise.resolve(supabase.rpc("list_my_push_devices")).then((r) => r.data ?? []).catch(() => []),
       ]);
       if (cancelled) return;
       setChecklistDismissedAt(profile.data?.checklist_dismissed_at ?? null);
@@ -74,6 +78,10 @@ export const useJourney = () => {
         hasPaymentOnFile: subs > 0,
         weatherCitySet: Boolean(profile.data?.weather_city_key),
         mfaEnabled: Boolean(factors.data?.totp?.some((f) => f.status === "verified")),
+        reminderPushAvailable: getPushCapabilityNow() !== "unsupported",
+        reminderDeviceActive: (devices as { is_active: boolean }[]).some((d) => d.is_active),
+        reminderIosDevice: isApplePlatform(detectPlatform(readDetectionEnv())),
+        appInstalled: Boolean(profile.data?.app_installed_at),
       });
     })();
     return () => {

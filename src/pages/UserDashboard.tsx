@@ -716,6 +716,8 @@ const UserDashboard = () => {
                       items={journey.checklist}
                       onGoToTab={setActiveTab}
                       onDismiss={journey.dismissChecklist}
+                      userId={user?.id}
+                      onChanged={journey.refresh}
                     />
                   )}
 

@@ -4,7 +4,6 @@ import {
   detectBrowser,
   detectDeviceType,
   detectPlatform,
-  detectPushSupport,
   getIosVersion,
   isAutomation,
   isInAppBrowser,
@@ -101,21 +100,6 @@ describe("iOS install instructions", () => {
   test("iOS version parsing", () => {
     expect(getIosVersion(UA.iphoneSafari)).toBeCloseTo(17.04);
     expect(getIosVersion(UA.androidChrome)).toBeNull();
-  });
-});
-
-describe("push support", () => {
-  test("Android/desktop Chromium: supported when the APIs exist", () => {
-    expect(detectPushSupport(env(UA.androidChrome), caps())).toEqual({ supported: true, requiresInstall: false });
-    expect(detectPushSupport(env(UA.desktopChrome), caps({ hasPushManager: false }))).toEqual({ supported: false, requiresInstall: false });
-  });
-  test("iOS 16.4+: only inside the installed app; in Safari it 'requires install'", () => {
-    expect(detectPushSupport(env(UA.iphoneSafari), caps({ hasPushManager: false }))).toEqual({ supported: false, requiresInstall: true });
-    expect(detectPushSupport(env(UA.iphoneSafari, { navigatorStandalone: true }), caps())).toEqual({ supported: true, requiresInstall: false });
-  });
-  test("old iOS can never push; in-app browsers can't install", () => {
-    expect(detectPushSupport(env(UA.iphoneOld, { navigatorStandalone: true }), caps())).toEqual({ supported: false, requiresInstall: false });
-    expect(detectPushSupport(env(UA.instagram), caps({ hasPushManager: false }))).toEqual({ supported: false, requiresInstall: false });
   });
 });
 

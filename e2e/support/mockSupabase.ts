@@ -1,4 +1,4 @@
-import type { BrowserContext, Route } from "@playwright/test";
+import type { BrowserContext, Route, WebSocketRoute } from "@playwright/test";
 
 /**
  * A fake signed-in (or signed-out) session and an in-memory Supabase for the
@@ -59,12 +59,33 @@ export interface MockOptions {
   /** payfast-payment subscription_quote startKind. */
   quoteStartKind?: "new_trial" | "existing_trial" | "immediate";
   /** SKYNN AI v2.1: Analysis Passes held, and the last free Basic AI Skin Analysis. */
+  /** list_my_push_devices(): the member's push devices on the server (server truth for "reminders on"). */
+  pushDevices?: Partial<PushDeviceRow>[];
   skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean; submitted?: boolean };
 }
 
+export interface PushDeviceRow {
+  id: string;
+  platform: string;
+  browser: string;
+  is_active: boolean;
+  created_at: string;
+  last_used_at: string | null;
+}
+
 export interface MockState {
+  /** The member's push devices (list_my_push_devices); remove_my_push_device marks one inactive. */
+  pushDevices: PushDeviceRow[];
+  /** Ids passed to remove_my_push_device. */
+  removedDevices: string[];
+  /** PATCH bodies applied to notifications rows (read / archive), newest last. */
+  notificationPatches: { id: string; patch: Record<string, unknown> }[];
+  /** Pushes a Supabase Realtime postgres_changes event to every subscribed client (needs a notifications binding). */
+  realtime: { emit: (type: "INSERT" | "UPDATE", record: Record<string, unknown>, table?: string) => void; bindings: () => number };
   profile: Profile;
   rpcCalls: string[];
+  /** Bodies of notification_preferences writes (upserts), newest last. */
+  preferenceWrites: Record<string, unknown>[];
   functionCalls: { name: string; action?: string }[];
   /** Basic AI Skin Analysis saves the mock accepted. */
   basicSaves: string[];
@@ -188,6 +209,11 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
   const state: MockState = {
     profile: opts.profile ?? freeProfile(),
     rpcCalls: [],
+    preferenceWrites: [],
+    pushDevices: (opts.pushDevices ?? []).map((d, i) => ({ id: d.id ?? `dev-${i + 1}`, platform: d.platform ?? "android", browser: d.browser ?? "chrome", is_active: d.is_active ?? true, created_at: d.created_at ?? "2026-09-01T10:00:00Z", last_used_at: d.last_used_at ?? "2026-10-01T10:00:00Z" })),
+    removedDevices: [],
+    notificationPatches: [],
+    realtime: { emit: () => undefined, bindings: () => 0 },
     functionCalls: [],
     basicSaves: [],
     lastFreeAnalysisAt: opts.skynn?.lastFreeAnalysisAt ?? null,
@@ -322,8 +348,18 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     const url = new URL(req.url());
     const table = url.pathname.split("/").pop() ?? "";
     const single = (req.headers()["accept"] ?? "").includes("vnd.pgrst.object");
+    // Mirrors the server-side filters the inbox and badge send (PostgREST is.null / gt operators).
+    const filterNotifications = (all: Record<string, unknown>[]) => {
+      let out = all;
+      if (url.searchParams.get("archived_at") === "is.null") out = out.filter((row) => !row.archived_at);
+      if (url.searchParams.get("read_at") === "is.null") out = out.filter((row) => !row.read_at);
+      if ((url.searchParams.get("or") ?? "").includes("expires_at")) out = out.filter((row) => !row.expires_at || Date.parse(String(row.expires_at)) > Date.now());
+      return out;
+    };
     const rows =
-      table === "profiles"
+      table === "notifications"
+        ? filterNotifications(tables.notifications ?? [])
+        : table === "profiles"
         ? [state.profile]
         : table === "smart_routines"
           ? state.smartRoutine ? [state.smartRoutine] : []
@@ -331,7 +367,25 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
             ? state.routineSteps
             : (tables[table] ?? []);
     if (req.method() === "HEAD" || (req.headers()["prefer"] ?? "").includes("count=exact")) {
-      return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json" }, body: "[]" });
+      return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json", "access-control-expose-headers": "content-range" }, body: "[]" });
+    }
+    if (req.method() === "PATCH" && table === "notifications") {
+      let patch: Record<string, unknown> = {};
+      try {
+        patch = (req.postDataJSON() as Record<string, unknown>) ?? {};
+      } catch {
+        /* ignore */
+      }
+      const idFilter = url.searchParams.get("id") ?? "";
+      const ids = idFilter.startsWith("in.") ? idFilter.slice(4, -1).split(",") : [idFilter.replace(/^eq\./, "")];
+      for (const row of tables.notifications ?? []) {
+        if (!ids.includes(String(row.id))) continue;
+        // Members may only change read_at / archived_at (the live column grants).
+        if (Object.keys(patch).some((k) => k !== "read_at" && k !== "archived_at")) return r.fulfill({ status: 403, json: { code: "42501", message: "permission denied for table notifications" } });
+        Object.assign(row, patch);
+        state.notificationPatches.push({ id: String(row.id), patch });
+      }
+      return r.fulfill({ status: 204, body: "" });
     }
     if (req.method() === "PATCH" && table === "profiles") {
       try {
@@ -340,6 +394,19 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
         /* ignore */
       }
       return r.fulfill({ status: 204, body: "" });
+    }
+    if (req.method() !== "GET" && table === "notification_preferences") {
+      let body: Record<string, unknown> = {};
+      try {
+        body = req.postDataJSON() as Record<string, unknown>;
+      } catch {
+        /* ignore */
+      }
+      // The live grants: members may write the preference columns only, never user_id or promotional_opt_in_at.
+      if ("user_id" in body || "promotional_opt_in_at" in body) {
+        return r.fulfill({ status: 403, json: { code: "42501", message: "permission denied for table notification_preferences" } });
+      }
+      state.preferenceWrites.push(body);
     }
     if (req.method() !== "GET") return r.fulfill({ status: 201, body: "" });
     return r.fulfill({ json: single ? (rows[0] ?? null) : rows });
@@ -357,6 +424,25 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     if (fn === "start_free_trial") {
       state.profile = { ...state.profile, subscription_status: "trial", trial_plan: "insider", trial_ends_at: PROMO_TRIAL_END, trial_used_at: new Date().toISOString(), trial_started_at: new Date().toISOString() };
       return r.fulfill({ json: true });
+    }
+    if (fn === "list_my_push_devices") return r.fulfill({ json: state.pushDevices });
+    if (fn === "remove_my_push_device") {
+      let id = "";
+      try {
+        id = String((r.request().postDataJSON() as Record<string, unknown>).p_id ?? "");
+      } catch {
+        /* ignore */
+      }
+      const device = state.pushDevices.find((d) => d.id === id);
+      if (device) device.is_active = false;
+      state.removedDevices.push(id);
+      return r.fulfill({ json: Boolean(device) });
+    }
+    if (fn === "mark_all_notifications_read") {
+      const now = new Date().toISOString();
+      let n = 0;
+      for (const row of tables.notifications ?? []) if (!row.read_at) { row.read_at = now; n++; }
+      return r.fulfill({ json: n });
     }
     if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
     if (fn === "get_smart_routine_access") return r.fulfill({ json: smartRoutineAccess() });
@@ -425,6 +511,47 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     }
     return r.fulfill({ json: null });
   });
+
+  // Supabase Realtime (Phoenix channels, vsn 1.0.0 JSON frames). Joins are acknowledged echoing the client's
+  // postgres_changes bindings with ids; emit() then pushes a change to every socket bound to that table.
+  const sockets: { ws: WebSocketRoute; topic: string; bindings: { id: number; event: string; table: string }[] }[] = [];
+  await context.routeWebSocket(/supabase\.co\/realtime\/v1\/websocket/, (ws) => {
+    ws.onMessage((raw) => {
+      let msg: { topic: string; event: string; payload?: Record<string, unknown>; ref?: string | null } | null = null;
+      try {
+        msg = JSON.parse(String(raw));
+      } catch {
+        return;
+      }
+      if (!msg) return;
+      const reply = (response: unknown) => ws.send(JSON.stringify({ topic: msg.topic, event: "phx_reply", payload: { status: "ok", response }, ref: msg.ref ?? null, join_ref: msg.ref ?? null }));
+      if (msg.event === "phx_join") {
+        const config = (msg.payload?.config ?? {}) as { postgres_changes?: { event: string; schema: string; table: string; filter?: string }[] };
+        const list = (config.postgres_changes ?? []).map((c, i) => ({ id: i + 1, ...c }));
+        sockets.push({ ws, topic: msg.topic, bindings: list.map((c) => ({ id: c.id, event: c.event, table: c.table })) });
+        reply({ postgres_changes: list });
+      } else if (msg.event === "heartbeat" || msg.event === "phx_leave" || msg.event === "access_token") {
+        reply({});
+      }
+    });
+  });
+  state.realtime = {
+    bindings: () => sockets.reduce((n, sock) => n + sock.bindings.length, 0),
+    emit: (type, record, table = "notifications") => {
+      for (const sock of sockets) {
+        const ids = sock.bindings.filter((b) => b.table === table && (b.event === type || b.event === "*")).map((b) => b.id);
+        if (!ids.length) continue;
+        sock.ws.send(
+          JSON.stringify({
+            topic: sock.topic,
+            event: "postgres_changes",
+            payload: { ids, data: { schema: "public", table, commit_timestamp: new Date().toISOString(), type, record, old_record: {}, columns: [], errors: null } },
+            ref: null,
+          }),
+        );
+      }
+    },
+  };
 
   return state;
 }

@@ -54,6 +54,7 @@ export const useRoutine = () => {
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [firstCheckinJustDone, setFirstCheckinJustDone] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -205,6 +206,9 @@ export const useRoutine = () => {
       return;
     }
     if (!isDone) {
+      // First check-in EVER (server count, not a local guess): offer the nudge once, non-modally.
+      const { count } = await supabase.from("routine_checkins").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+      if (count === 1) setFirstCheckinJustDone(true);
       trackConversionEvent("routine_checkin_completed", { slot });
       if (steps.find((s) => s.id === stepId)?.source === "smart") {
         trackSkynnEvent("skynn_smart_routine_step_checked", { step: slot });
@@ -228,6 +232,8 @@ export const useRoutine = () => {
     pmSteps,
     loading,
     streak,
+    firstCheckinJustDone,
+    dismissFirstCheckinNudge: () => setFirstCheckinJustDone(false),
     todayCheckins,
     todayDone,
     todayTotal,

@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { mockSupabase } from "./support/mockSupabase";
+import { freeProfile, mockSupabase } from "./support/mockSupabase";
+import { stubPushApis } from "./support/pushHarness";
 import { publishedPodcastEpisodes } from "../src/data/podcast";
 
 /**
@@ -33,10 +34,11 @@ const asRealBrowser = (context: BrowserContext, opts: { standalone?: boolean } =
 
 /** Real-browser presentation + a working ad network, so the ad-block wall (which a real browser with ads aborted would trigger) stays away. */
 const setup = async (context: BrowserContext, supabase: Parameters<typeof mockSupabase>[1], browser: { standalone?: boolean } = {}) => {
-  await mockSupabase(context, supabase);
+  const state = await mockSupabase(context, supabase);
   // Registered after the mock, so it wins over its "abort all third parties" rule.
   await context.route(/googlesyndication\.com|doubleclick\.net/, (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
   await asRealBrowser(context, browser);
+  return state;
 };
 
 /** The provider is lazy-loaded: keep asking until its listener is mounted and the dialog appears. */
@@ -336,7 +338,321 @@ test.describe("app settings", () => {
     await expect(page.getByText("SkinLabs® app")).toBeVisible();
     await expect(page.getByRole("heading", { name: /Notifications/ }).or(page.getByText("Notifications").first())).toBeVisible();
     await expect(page.getByText("Offline storage")).toBeVisible();
-    // Push isn't configured in this build (no VAPID key): the card says so rather than faking a toggle.
-    await expect(page.getByText(/aren’t switched on|can’t receive push|install SkinLabs® to your Home Screen/)).toBeVisible();
+    // Without a VAPID key the card says push isn't switched on (never a fake toggle); with one (CI builds set it) a
+    // device that can push is offered "Enable notifications" (headless Chromium reports permission as denied, so the blocked state with
+    // re-enable steps also qualifies). Either way it is one honest state.
+    await expect(
+      page
+        .getByText(/aren’t switched on|can’t receive push|notifications work from the installed app|blocked for SkinLabs/)
+        .or(page.getByRole("button", { name: "Enable notifications" }))
+        .first(),
+    ).toBeVisible();
+  });
+});
+
+// --- Reminder opt-in: one capability, one soft ask, per branch ----------------------------------------------------
+// Needs a build with VITE_VAPID_PUBLIC_KEY (CI sets it): without it the app (correctly) says push isn't switched on.
+
+const DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const nativePrompts = (page: Page) => page.evaluate(() => (window as unknown as { __push: { requestCalls: number } }).__push.requestCalls);
+
+/** Welcome step 2 ("Your day") for a brand-new account. */
+const openWelcomeDay = async (page: Page) => {
+  await page.goto("/welcome");
+  await page.getByRole("button", { name: /^(Continue|Skip for now)/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Make daily guidance feel local." })).toBeVisible();
+};
+
+test.describe("reminder opt-in: ready (Android Chrome)", () => {
+  test.use({ userAgent: ANDROID_UA });
+
+  test("soft ask first; the native prompt only after the tap on Allow; then subscribe, one preference upsert, confirmation", async ({ page, context }) => {
+    const state = await mockSupabase(context, { signedIn: true, profile: freeProfile({ onboarding_completed_at: null }) });
+    await context.route(/googlesyndication\.com|doubleclick\.net/, (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: "" }));
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default" });
+    await openWelcomeDay(page);
+
+    const remind = page.getByRole("button", { name: /Remind me at 7:00 am/ });
+    await expect(remind).toBeVisible();
+    expect(await nativePrompts(page)).toBe(0); // seeing the step never prompts
+
+    await remind.click();
+    await expect(page.getByText(/One short reminder at 7:00 am/)).toBeVisible(); // our soft ask
+    expect(await nativePrompts(page)).toBe(0); // still no native prompt
+
+    await page.getByRole("button", { name: "Allow reminders" }).click();
+    await expect(page.getByText("Reminders are on for this device.")).toBeVisible();
+    expect(await nativePrompts(page)).toBe(1);
+    expect(state.rpcCalls).toContain("register_push_subscription");
+    // One upsert enabling the reminder at the chosen time.
+    expect(state.preferenceWrites.some((w) => w.routine_reminder === true && w.routine_reminder_time === "07:00")).toBe(true);
+    // The confirmation test notification goes through the member self-test action.
+    await expect.poll(() => state.functionCalls.some((c) => c.name === "push-send" && c.action === "test")).toBe(true);
+  });
+
+  test("'Not now' never reaches the native prompt", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ onboarding_completed_at: null }) });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default" });
+    await openWelcomeDay(page);
+    await page.getByRole("button", { name: /Remind me at/ }).click();
+    await page.getByRole("button", { name: "Not now" }).click();
+    expect(await nativePrompts(page)).toBe(0);
+    await expect(page.getByRole("button", { name: /Remind me at/ })).toBeVisible();
+  });
+});
+
+test.describe("reminder opt-in: needs_install (iPhone Safari tab → installed app)", () => {
+  test("shows the three Share-sheet steps as text, flags the intent, and the installed app offers the opt-in once", async ({ browser }) => {
+    const context = await browser.newContext({ userAgent: IPHONE_UA, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ onboarding_completed_at: null }) });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default" });
+    let page = await context.newPage();
+    await openWelcomeDay(page);
+    await expect(page.getByText("Get reminders on your iPhone")).toBeVisible();
+    await expect(page.getByText(/Tap the Share button/)).toBeVisible();
+    await expect(page.getByText(/Add to Home Screen/).first()).toBeVisible();
+    await expect(page.getByText(/Open SkinLabs® from your Home Screen/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Remind me at/ })).toHaveCount(0); // no native ask in a Safari tab
+    await page.getByRole("button", { name: "Remind me once it’s installed" }).click();
+    expect(await page.evaluate(() => localStorage.getItem("skinlabs_reminder_intent"))).toBe("07:00");
+    expect(await nativePrompts(page)).toBe(0);
+    await page.close();
+
+    // The member opens the installed app (standalone): the opt-in sheet appears once; still no native prompt until Allow.
+    await context.addInitScript(() => {
+      const original = window.matchMedia.bind(window);
+      window.matchMedia = (query: string) =>
+        /display-mode:\s*standalone/.test(query)
+          ? ({ matches: true, media: query, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false } as unknown as MediaQueryList)
+          : original(query);
+    });
+    page = await context.newPage();
+    await page.goto("/dashboard");
+    await expect(page.getByRole("dialog", { name: "Welcome to the app" })).toBeVisible({ timeout: 15_000 });
+    expect(await nativePrompts(page)).toBe(0);
+    await expect(page.getByRole("dialog", { name: /Take SkinLabs® with you/ })).toHaveCount(0); // never the install dialog in the app
+    expect(await page.evaluate(() => localStorage.getItem("skinlabs_reminder_intent"))).toBeNull(); // offered once
+    await page.reload();
+    await expect(page.getByRole("dialog", { name: "Welcome to the app" })).toHaveCount(0);
+    await context.close();
+  });
+
+  test("the install dialog never opens inside the installed app (signed in)", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true });
+    await asRealBrowser(context, { standalone: true });
+    await page.goto("/dashboard");
+    await expect(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event("skinlabs:pwa-open-install")));
+      await expect(page.getByText("SkinLabs® is already installed.")).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 15_000 });
+    await expect(page.getByRole("dialog", { name: /Take SkinLabs® with you/ })).toHaveCount(0);
+  });
+});
+
+test.describe("reminder opt-in: denied and unsupported", () => {
+  test.use({ userAgent: DESKTOP_UA });
+
+  test("denied: platform re-enable steps, no ask, never prompts again", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ onboarding_completed_at: null }) });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "denied" });
+    await openWelcomeDay(page);
+    await expect(page.getByText("Reminders are blocked for SkinLabs®")).toBeVisible();
+    await expect(page.getByText(/lock or tune icon/)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Remind me at|Allow reminders/ })).toHaveCount(0);
+    expect(await nativePrompts(page)).toBe(0);
+  });
+
+  test("unsupported: the ask is hidden entirely", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ onboarding_completed_at: null }) });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default", noPushApi: true });
+    await openWelcomeDay(page);
+    await expect(page.getByLabel("When do you do your routine?").or(page.locator("#welcome-routine-time"))).toBeVisible();
+    await expect(page.getByText(/Remind me|Reminders are|Get reminders/)).toHaveCount(0);
+  });
+});
+
+test.describe("getting started checklist: Get reminders on your phone", () => {
+  test.use({ userAgent: ANDROID_UA });
+
+  test("one item, from server truth: shown until an active push device exists", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ checklist_dismissed_at: null }), pushDevices: [] });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default" });
+    await page.goto("/dashboard");
+    await expect(page.getByText("Get reminders on your phone")).toHaveCount(1);
+  });
+
+  test("an active server device completes it (client analytics events are not consulted)", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ checklist_dismissed_at: null }), pushDevices: [{ is_active: true }] });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "granted" });
+    await page.goto("/dashboard");
+    await expect(page.getByText(/completed (step|steps)/)).toBeVisible();
+    // Listed only inside the collapsed "completed" group, not as an open step.
+    await expect(page.getByRole("listitem").filter({ hasText: "Get reminders on your phone" })).toHaveCount(0);
+  });
+
+  test("hidden where the browser has no Push API", async ({ page, context }) => {
+    await mockSupabase(context, { signedIn: true, profile: freeProfile({ checklist_dismissed_at: null }) });
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default", noPushApi: true });
+    await page.goto("/dashboard");
+    await expect(page.getByText("Getting started")).toBeVisible();
+    await expect(page.getByText("Get reminders on your phone")).toHaveCount(0);
+  });
+});
+
+// --- "Notify me when my report is ready" (Advanced pending screen) and the first check-in nudge --------------------
+
+const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+const LOCK_SCREEN_SAFE = /report is ready|securely/i; // the only words the report notification may carry
+
+test.describe("Advanced report pending: notify me when it's ready", () => {
+  test.describe("ready (Android)", () => {
+    test.use({ userAgent: ANDROID_UA });
+    test("native prompt only after the tap; subscribes; report_ready stays on; copy is generic", async ({ page, context }) => {
+      const state = await setup(context, { signedIn: true, skynn: { submitted: true, passes: 0 } });
+      await stubPushApis(context, { permission: "default" });
+      await page.goto("/skynn-ai/advanced?session=sess-e2e");
+      const notify = page.getByRole("button", { name: "Notify me when my report is ready" });
+      await expect(notify).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(/Nothing about it appears on your lock screen/)).toBeVisible();
+      expect(await nativePrompts(page)).toBe(0);
+      await notify.click();
+      await expect(page.getByText("We’ll notify you when it’s ready.")).toBeVisible();
+      expect(await nativePrompts(page)).toBe(1);
+      expect(state.rpcCalls).toContain("register_push_subscription");
+      expect(state.preferenceWrites.some((w) => w.report_ready === true)).toBe(true);
+      // Nothing about the report content is written anywhere in the opt-in: only generic wording.
+      expect("Your SkinLabs® report is ready").toMatch(LOCK_SCREEN_SAFE);
+    });
+  });
+
+  test("iPhone Safari tab (needs_install): the three steps as text, no native ask", async ({ browser }) => {
+    const context = await browser.newContext({ userAgent: IPHONE_UA, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    await setup(context, { signedIn: true, skynn: { submitted: true, passes: 0 } });
+    await stubPushApis(context, { permission: "default" });
+    const page = await context.newPage();
+    await page.goto("/skynn-ai/advanced?session=sess-e2e");
+    await expect(page.getByText("Get a notification when your report is ready")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Tap the Share button/)).toBeVisible();
+    await page.getByRole("button", { name: "Notify me once it’s installed" }).click();
+    expect(await page.evaluate(() => localStorage.getItem("skinlabs_reminder_intent"))).toBe("report");
+    expect(await nativePrompts(page)).toBe(0);
+    await context.close();
+  });
+
+  test.describe("hidden unless ready or needs_install", () => {
+    test.use({ userAgent: DESKTOP_UA });
+    for (const [name, stub] of [
+      ["denied", { permission: "denied" as const }],
+      ["unsupported", { permission: "default" as const, noPushApi: true }],
+    ] as const) {
+      test(`${name}: no opt-in is offered`, async ({ page, context }) => {
+        await setup(context, { signedIn: true, skynn: { submitted: true, passes: 0 } });
+        await stubPushApis(context, stub);
+        await page.goto("/skynn-ai/advanced?session=sess-e2e");
+        await expect(page.getByText("Pending").first()).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByText(/Notify me|notify you when|notification when your report/)).toHaveCount(0);
+        expect(await nativePrompts(page)).toBe(0);
+      });
+    }
+  });
+});
+
+test.describe("first routine check-in nudge", () => {
+  const routine = (over: Record<string, unknown> = {}) => ({
+    signedIn: true,
+    profile: freeProfile(),
+    tables: {
+      routine_steps: [{ id: "step-1", user_id: "00000000-0000-4000-8000-000000000001", step_name: "Cleanser", product_name: null, time_of_day: "am", sort_order: 0, source: "manual" }],
+      // Exactly one check-in on record (for another step), so the tick below is the member's FIRST successful check-in.
+      routine_checkins: [{ id: "c1", user_id: "00000000-0000-4000-8000-000000000001", step_id: "other", time_slot: "am", checkin_date: today() }],
+      notification_preferences: [{ user_id: "00000000-0000-4000-8000-000000000001", routine_reminder_time: "07:00:00" }],
+    },
+    ...over,
+  });
+  const tick = async (page: Page) => {
+    await page.goto("/dashboard?tab=routine");
+    await page.getByLabel(/Cleanser/).first().click();
+  };
+
+  test.describe("ready", () => {
+    test.use({ userAgent: ANDROID_UA });
+    test("a single non-modal card; Yes → native prompt only now, then subscribed", async ({ page, context }) => {
+      const state = await mockSupabase(context, routine());
+      await asRealBrowser(context);
+      await stubPushApis(context, { permission: "default" });
+      await tick(page);
+      const card = page.getByRole("region", { name: "Routine reminder" });
+      await expect(card.getByText("Want a nudge at 7:00 am tomorrow?")).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0); // non-modal
+      expect(await nativePrompts(page)).toBe(0);
+      await card.getByRole("button", { name: "Yes" }).click();
+      await expect(card.getByText(/We’ll nudge you at 7:00 am/)).toBeVisible();
+      expect(await nativePrompts(page)).toBe(1);
+      expect(state.rpcCalls).toContain("register_push_subscription");
+      expect(state.preferenceWrites.some((w) => w.routine_reminder === true)).toBe(true);
+    });
+
+    test("'Not now' is remembered for 14 days", async ({ page, context }) => {
+      await mockSupabase(context, routine());
+      await asRealBrowser(context);
+      await stubPushApis(context, { permission: "default" });
+      await tick(page);
+      const card = page.getByRole("region", { name: "Routine reminder" });
+      await card.getByRole("button", { name: "Not now" }).click();
+      await expect(card).toHaveCount(0);
+      const stamp = Number(await page.evaluate(() => localStorage.getItem("skinlabs_checkin_nudge_dismissed_at")));
+      expect(Date.now() - stamp).toBeLessThan(60_000);
+      // Another "first check-in" within the window: still hidden.
+      await page.reload();
+      await page.getByLabel(/Cleanser/).first().click();
+      await page.waitForTimeout(800);
+      await expect(page.getByRole("region", { name: "Routine reminder" })).toHaveCount(0);
+      // After the 14 days it may be offered again.
+      await page.evaluate(() => localStorage.setItem("skinlabs_checkin_nudge_dismissed_at", String(Date.now() - 15 * 24 * 3600 * 1000)));
+      await page.reload();
+      await page.getByLabel(/Cleanser/).first().click();
+      await expect(page.getByRole("region", { name: "Routine reminder" })).toBeVisible();
+    });
+  });
+
+  test("needs_install (iPhone Safari tab): Yes shows the steps and flags the intent; no native prompt", async ({ browser }) => {
+    const context = await browser.newContext({ userAgent: IPHONE_UA, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+    await mockSupabase(context, routine());
+    await asRealBrowser(context);
+    await stubPushApis(context, { permission: "default" });
+    const page = await context.newPage();
+    await tick(page);
+    const card = page.getByRole("region", { name: "Routine reminder" });
+    await card.getByRole("button", { name: "Yes" }).click();
+    await expect(card.getByText(/Tap the Share button/)).toBeVisible();
+    await card.getByRole("button", { name: "Remind me once it’s installed" }).click();
+    expect(await page.evaluate(() => localStorage.getItem("skinlabs_reminder_intent"))).toBe("07:00");
+    expect(await nativePrompts(page)).toBe(0);
+    await context.close();
+  });
+
+  test.describe("hidden unless ready or needs_install", () => {
+    test.use({ userAgent: DESKTOP_UA });
+    for (const [name, stub] of [
+      ["denied", { permission: "denied" as const }],
+      ["unsupported", { permission: "default" as const, noPushApi: true }],
+    ] as const) {
+      test(`${name}: no card`, async ({ page, context }) => {
+        await mockSupabase(context, routine());
+        await asRealBrowser(context);
+        await stubPushApis(context, stub);
+        await tick(page);
+        await page.waitForTimeout(800);
+        await expect(page.getByRole("region", { name: "Routine reminder" })).toHaveCount(0);
+      });
+    }
   });
 });

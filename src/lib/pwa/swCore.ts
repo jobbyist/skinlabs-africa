@@ -190,3 +190,103 @@ export const isFreshEnough = (dateHeader: string | null, maxAgeMs: number, now: 
   if (!Number.isFinite(t)) return true;
   return now - t <= maxAgeMs;
 };
+
+// --- Push: click targets, display decision, actions, build config ---------------------------------
+
+/**
+ * A notification's click target. Only a same-origin RELATIVE path is accepted: it must start with a single "/"
+ * (so "//host" and absolute URLs are out), contain no backslash (browsers treat "\\" as "/") and no control
+ * characters. Anything else returns null (callers fall back to the start page).
+ */
+export const safeClickTarget = (value: unknown, origin: string): string | null => {
+  if (typeof value !== "string" || value.length === 0 || value.length > 300) return null;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(value)) return null;
+  try {
+    const url = new URL(value, origin);
+    if (url.origin !== origin) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+};
+
+export interface PushWindowInfo {
+  url: string;
+  visibilityState: string;
+  focused: boolean;
+}
+
+/** Safari/WebKit (every iOS browser, Safari on macOS) revokes a subscription that receives pushes without showing a notification. */
+export const requiresVisibleNotification = (userAgent: string): boolean => {
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return true;
+  return /Safari\//.test(userAgent) && !/Chrome|Chromium|CriOS|FxiOS|Edg|Android|OPR\//.test(userAgent);
+};
+
+/**
+ * Whether to skip the system notification because the member is already looking at the app: a SkinLabs window
+ * (same origin) is visible AND focused. Never on WebKit, which needs every push to show something.
+ */
+export const shouldSuppressSystemNotification = (windows: PushWindowInfo[], origin: string, userAgent: string): boolean => {
+  if (requiresVisibleNotification(userAgent)) return false;
+  return windows.some((w) => {
+    try {
+      return new URL(w.url).origin === origin && w.visibilityState === "visible" && w.focused;
+    } catch {
+      return false;
+    }
+  });
+};
+
+/** Which window a tap should reuse: a same-origin one, preferring the focused, then a visible one. */
+export const pickWindowIndexForClick = (windows: PushWindowInfo[], origin: string): number => {
+  const same = windows.map((w, i) => ({ w, i })).filter(({ w }) => {
+    try {
+      return new URL(w.url).origin === origin;
+    } catch {
+      return false;
+    }
+  });
+  if (same.length === 0) return -1;
+  return (same.find(({ w }) => w.focused) ?? same.find(({ w }) => w.visibilityState === "visible") ?? same[0]).i;
+};
+
+export interface NotificationAction {
+  action: string;
+  title: string;
+}
+const DEFAULT_ACTIONS: NotificationAction[] = [
+  { action: "open", title: "Open" },
+  { action: "dismiss", title: "Dismiss" },
+];
+/** Action buttons only where the platform supports them (Notification.maxActions: Android/desktop Chromium; absent on iOS/Safari). */
+export const chooseNotificationActions = (fromPayload: NotificationAction[], maxActions: unknown): NotificationAction[] => {
+  const max = typeof maxActions === "number" && Number.isFinite(maxActions) ? Math.max(0, Math.floor(maxActions)) : 0;
+  if (max === 0) return [];
+  return (fromPayload.length > 0 ? fromPayload : DEFAULT_ACTIONS).slice(0, max);
+};
+
+/**
+ * The tap-beacon URL comes from build config (VITE_SUPABASE_URL, the public project URL), never hard-coded.
+ * Null (no tracking) when it is missing or not https.
+ */
+export const pushTrackUrl = (supabaseUrl: unknown): string | null => {
+  if (typeof supabaseUrl !== "string") return null;
+  try {
+    const url = new URL(supabaseUrl.trim());
+    if (url.protocol !== "https:") return null;
+    return `${url.origin}/functions/v1/push-track`;
+  } catch {
+    return null;
+  }
+};
+
+/** Base64url VAPID public key -> bytes (for pushManager.subscribe in the worker). */
+export const vapidKeyToBytes = (base64: string): Uint8Array => {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + padding).replace(/-/g, "+").replace(/_/g, "/"));
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+};

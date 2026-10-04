@@ -1,9 +1,9 @@
+import { readPushInputs, resolvePushCapability } from "@/lib/pwa/pushCapability";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   canShowIosInstructions,
   detectBrowser,
   detectPlatform,
-  detectPushSupport,
   isInAppBrowser,
   isStandaloneMode,
   readCapabilityProbe,
@@ -66,7 +66,7 @@ export const usePWAStatus = (): PWAStatus => {
     const caps = readCapabilityProbe();
     const platform = detectPlatform(env);
     const standalone = isStandaloneMode(env);
-    const push = detectPushSupport(env, caps);
+    const pushCapability = resolvePushCapability(readPushInputs(null));
     const iosFlow = canShowIosInstructions(env);
     const installed = standalone || install.installedFlag;
     return {
@@ -79,8 +79,8 @@ export const usePWAStatus = (): PWAStatus => {
       browser: detectBrowser(env),
       isInAppBrowser: isInAppBrowser(env.userAgent),
       supportsNotifications: caps.hasNotification,
-      supportsPush: push.supported,
-      pushRequiresInstall: push.requiresInstall,
+      supportsPush: pushCapability !== "unsupported" && pushCapability !== "needs_install",
+      pushRequiresInstall: pushCapability === "needs_install",
       supportsBackgroundSync: caps.hasSyncManager,
       supportsMediaSession: caps.hasMediaSession,
       supportsShare: caps.hasShare,

@@ -39,7 +39,12 @@ jobs:
           cache: npm
       - run: npm install --legacy-peer-deps
       - run: npx playwright install --with-deps chromium
+      # Public values only. The VAPID key is the public sample key from the web-push docs (the push e2e stubs the push
+      # service); VITE_SUPABASE_URL is what the service worker builds its tap-beacon URL from.
       - run: npx vite build
+        env:
+          VITE_VAPID_PUBLIC_KEY: BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U
+          VITE_SUPABASE_URL: https://gnkpzijxuciiaamakgzm.supabase.co
       - run: npx playwright test
       - if: failure()
         uses: actions/upload-artifact@v4

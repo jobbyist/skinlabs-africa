@@ -14,6 +14,7 @@ import AssessmentFlow from "@/components/advanced-assessment/AssessmentFlow";
 import AdvancedIntro from "@/components/advanced-assessment/AdvancedIntro";
 import ProcessingState from "@/components/advanced-assessment/ProcessingState";
 import ReportView from "@/components/advanced-assessment/ReportView";
+import ReportReadyOptIn from "@/components/pwa/ReportReadyOptIn";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
 import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
@@ -337,6 +338,7 @@ const IntakePendingView = ({ row }: { row: AdvancedAssessmentReportRow }) => (
         will be prepared from the answers you&apos;ve already given, and we&apos;ll email you as soon as it&apos;s ready to read here.
       </p>
     </div>
+    <ReportReadyOptIn />
     <IntakeDisclaimer />
   </div>
 );

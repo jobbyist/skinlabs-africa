@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import ReportReadyOptIn from "@/components/pwa/ReportReadyOptIn";
 import { INTAKE_EXPECTED_DELIVERY } from "@/lib/assessment/types";
 
 /**
@@ -45,6 +46,8 @@ const IntakeConfirmation = ({
             Expected delivery: {INTAKE_EXPECTED_DELIVERY}.
           </p>
         </div>
+
+        <ReportReadyOptIn />
 
         <IntakeDisclaimer />
 

@@ -15,7 +15,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useStartTrial } from "@/hooks/use-start-trial";
+import ReminderOptIn from "@/components/pwa/ReminderOptIn";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { reminderClockTime, saveReminderPreference } from "@/lib/pwa/pushOptIn";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { headlineForSavedAnalysis, type SavedAnalysisHeadline } from "@/lib/formulator/summary";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
@@ -144,6 +146,8 @@ const Welcome = () => {
     const patch: { preferred_routine_time: RoutineTime; weather_city_key?: string } = { preferred_routine_time: routineTime };
     if (cityKey) patch.weather_city_key = cityKey;
     const { error } = await supabase.from("profiles").update(patch).eq("user_id", user.id);
+    // The chosen time also becomes the reminder time (time only: whether reminders are ON stays the member's choice).
+    if (!error) await saveReminderPreference(user.id, reminderClockTime(routineTime), false);
     setSaving(false);
     if (error) {
       toast.error("Couldn't save that — try again, or skip for now.");
@@ -347,6 +351,7 @@ const Welcome = () => {
                                     <SelectItem value="both">Morning and evening</SelectItem>
                                   </SelectContent>
                                 </Select>
+                                {user && <ReminderOptIn surface="welcome" userId={user.id} clockTime={reminderClockTime(routineTime)} className="pt-2" />}
                               </div>
                             </div>
                           </div>

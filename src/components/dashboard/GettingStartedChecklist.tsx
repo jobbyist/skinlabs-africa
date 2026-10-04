@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarCheck2, Check, ChevronRight, CircleUserRound, LockKeyhole, MapPin, ShieldCheck, Sparkles, X } from "lucide-react";
+import { BellRing, BookOpen, CalendarCheck2, Check, ChevronRight, CircleUserRound, LockKeyhole, MapPin, ShieldCheck, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { openKeepMembership } from "@/lib/conversionDialogs";
+import ReminderOptIn from "@/components/pwa/ReminderOptIn";
 import { checklistComplete, type ChecklistItem, type ChecklistItemId } from "@/lib/journey";
 
 interface GettingStartedChecklistProps {
@@ -13,6 +15,10 @@ interface GettingStartedChecklistProps {
   /** Switch dashboard tab (routine, security, …) in place. */
   onGoToTab: (tab: string) => void;
   onDismiss: () => Promise<boolean>;
+  /** Needed for the inline reminders step. */
+  userId?: string;
+  /** Re-read the facts after an inline step (reminders) succeeds. */
+  onChanged?: () => void;
 }
 
 const TARGETS: Record<ChecklistItemId, { tab?: string; href?: string; cta: string }> = {
@@ -20,6 +26,7 @@ const TARGETS: Record<ChecklistItemId, { tab?: string; href?: string; cta: strin
   routine: { tab: "routine", cta: "Build routine" },
   weather: { tab: "home", cta: "Choose city" },
   checkins: { tab: "routine", cta: "Check in" },
+  reminders: { cta: "Set up" },
   content: { href: "/reviews", cta: "Browse reviews" },
   mfa: { tab: "security", cta: "Set up" },
   keep_membership: { cta: "Keep it" },
@@ -30,12 +37,14 @@ const META: Record<ChecklistItemId, { description: string; icon: typeof Sparkles
   routine: { description: "Turn your profile into a morning and evening routine you can actually follow.", icon: CircleUserRound },
   weather: { description: "Get daily skincare guidance tuned to the weather where you are.", icon: MapPin },
   checkins: { description: "A couple of check-ins is enough to start building a useful habit.", icon: CalendarCheck2 },
+  reminders: { description: "A short nudge at your routine time, only on days you haven’t checked in yet.", icon: BellRing },
   content: { description: "Learn what ingredients and products can do for your skin before you buy.", icon: BookOpen },
   mfa: { description: "Add a second layer of protection to your SkinLabs account.", icon: ShieldCheck },
   keep_membership: { description: "Keep the full experience going after your trial without losing your profile or routine.", icon: LockKeyhole },
 };
 
-const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStartedChecklistProps) => {
+const GettingStartedChecklist = ({ items, onGoToTab, onDismiss, userId, onChanged }: GettingStartedChecklistProps) => {
+  const [remindersOpen, setRemindersOpen] = useState(false);
   const done = items.filter((item) => item.done).length;
   const total = items.length;
   const complete = checklistComplete(items);
@@ -45,6 +54,10 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
     trackConversionEvent("checklist_step_clicked", { step: item.id });
     if (item.id === "keep_membership") {
       openKeepMembership({ source: "checklist" });
+      return;
+    }
+    if (item.id === "reminders") {
+      setRemindersOpen(true);
       return;
     }
     if (item.id === "weather") {
@@ -146,6 +159,12 @@ const GettingStartedChecklist = ({ items, onGoToTab, onDismiss }: GettingStarted
               </div>
               <div className="shrink-0">{action(firstIncomplete, true)}</div>
             </div>
+          </div>
+        )}
+
+        {remindersOpen && userId && items.some((i) => i.id === "reminders" && !i.done) && (
+          <div className="mt-4" onClickCapture={() => onChanged && window.setTimeout(onChanged, 1500)}>
+            <ReminderOptIn surface="checklist" userId={userId} />
           </div>
         )}
 

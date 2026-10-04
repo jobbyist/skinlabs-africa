@@ -19,6 +19,17 @@ export const SW_EVENTS = {
   pushReceived: "skinlabs:push-received",
 } as const;
 
+/**
+ * A tapped notification's target can arrive before the (lazy) PWAProvider has mounted its listener. Keep the most
+ * recent one until the provider takes it, so a fast tap is never lost.
+ */
+let pendingNavigation: string | null = null;
+export const takePendingNavigation = (): string | null => {
+  const url = pendingNavigation;
+  pendingNavigation = null;
+  return url;
+};
+
 export interface UpdateSnapshot {
   /** A new worker is installed and waiting for the member to accept it. */
   updateReady: boolean;
@@ -97,6 +108,7 @@ export const registerServiceWorker = () => {
           window.dispatchEvent(new Event(SW_EVENTS.flushQueue));
           break;
         case SW_MESSAGES.notificationClick:
+          pendingNavigation = typeof data.url === "string" ? data.url : null;
           window.dispatchEvent(new CustomEvent(SW_EVENTS.navigate, { detail: { url: data.url } }));
           break;
         case "PUSH_SUBSCRIPTION_CHANGED":
