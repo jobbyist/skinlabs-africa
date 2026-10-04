@@ -1644,6 +1644,39 @@ export type Database = {
           },
         ]
       }
+      giveaway_entries: {
+        Row: {
+          campaign: string
+          created_at: string
+          id: string
+          status: string
+          terms_version: string
+          tiktok_handle: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign: string
+          created_at?: string
+          id?: string
+          status?: string
+          terms_version: string
+          tiktok_handle: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign?: string
+          created_at?: string
+          id?: string
+          status?: string
+          terms_version?: string
+          tiktok_handle?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ingredient_aliases: {
         Row: {
           alias: string
@@ -2713,16 +2746,294 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_admin_audit_log: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+        }
+        Relationships: []
+      }
+      notification_automations: {
+        Row: {
+          audience: Json
+          created_at: string
+          description: string | null
+          enabled: boolean
+          event_key: string | null
+          frequency: string | null
+          id: string
+          key: string
+          last_run_at: string | null
+          last_run_count: number | null
+          month_day: number | null
+          name: string
+          send_time: string | null
+          system: boolean
+          template_key: string | null
+          trigger_kind: string
+          updated_at: string
+          updated_by: string | null
+          weekday: number | null
+        }
+        Insert: {
+          audience?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          event_key?: string | null
+          frequency?: string | null
+          id?: string
+          key: string
+          last_run_at?: string | null
+          last_run_count?: number | null
+          month_day?: number | null
+          name: string
+          send_time?: string | null
+          system?: boolean
+          template_key?: string | null
+          trigger_kind: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number | null
+        }
+        Update: {
+          audience?: Json
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          event_key?: string | null
+          frequency?: string | null
+          id?: string
+          key?: string
+          last_run_at?: string | null
+          last_run_count?: number | null
+          month_day?: number | null
+          name?: string
+          send_time?: string | null
+          system?: boolean
+          template_key?: string | null
+          trigger_kind?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekday?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_automations_template_key_fkey"
+            columns: ["template_key"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      notification_campaigns: {
+        Row: {
+          audience: Json
+          body: string
+          cancelled_at: string | null
+          category: string
+          channels: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          recipient_count: number | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          audience?: Json
+          body: string
+          cancelled_at?: string | null
+          category: string
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          url?: string
+        }
+        Update: {
+          audience?: Json
+          body?: string
+          cancelled_at?: string | null
+          category?: string
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          recipient_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      notification_dispatches: {
+        Row: {
+          attempt_count: number
+          automation_key: string | null
+          body: string
+          bypass_caps: boolean
+          campaign_id: string | null
+          category: string
+          created_at: string
+          devices_failed: number
+          devices_sent: number
+          devices_targeted: number
+          guard: Json | null
+          id: string
+          idempotency_key: string
+          inbox_notification_id: string | null
+          last_error: string | null
+          priority: number
+          processing_started_at: string | null
+          processing_token: string | null
+          push_wanted: boolean
+          scheduled_at: string
+          sent_at: string | null
+          skip_reason: string | null
+          source: string
+          status: string
+          tag: string | null
+          template_key: string | null
+          title: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number
+          automation_key?: string | null
+          body: string
+          bypass_caps?: boolean
+          campaign_id?: string | null
+          category: string
+          created_at?: string
+          devices_failed?: number
+          devices_sent?: number
+          devices_targeted?: number
+          guard?: Json | null
+          id?: string
+          idempotency_key: string
+          inbox_notification_id?: string | null
+          last_error?: string | null
+          priority?: number
+          processing_started_at?: string | null
+          processing_token?: string | null
+          push_wanted: boolean
+          scheduled_at?: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          source: string
+          status?: string
+          tag?: string | null
+          template_key?: string | null
+          title: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number
+          automation_key?: string | null
+          body?: string
+          bypass_caps?: boolean
+          campaign_id?: string | null
+          category?: string
+          created_at?: string
+          devices_failed?: number
+          devices_sent?: number
+          devices_targeted?: number
+          guard?: Json | null
+          id?: string
+          idempotency_key?: string
+          inbox_notification_id?: string | null
+          last_error?: string | null
+          priority?: number
+          processing_started_at?: string | null
+          processing_token?: string | null
+          push_wanted?: boolean
+          scheduled_at?: string
+          sent_at?: string | null
+          skip_reason?: string | null
+          source?: string
+          status?: string
+          tag?: string | null
+          template_key?: string | null
+          title?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_dispatches_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "notification_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_dispatches_inbox_notification_id_fkey"
+            columns: ["inbox_notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           account_update: boolean
           briefing: boolean
           created_at: string
+          daily_cap: number
+          journal_reminder: boolean
           podcast_episode: boolean
+          price_alert: boolean
           promotional: boolean
           promotional_opt_in_at: string | null
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string
+          quiet_hours_start: string
+          report_ready: boolean
           routine_reminder: boolean
+          routine_reminder_time: string | null
           service: boolean
+          skin_weather: boolean
           updated_at: string
           user_id: string
         }
@@ -2730,11 +3041,20 @@ export type Database = {
           account_update?: boolean
           briefing?: boolean
           created_at?: string
+          daily_cap?: number
+          journal_reminder?: boolean
           podcast_episode?: boolean
+          price_alert?: boolean
           promotional?: boolean
           promotional_opt_in_at?: string | null
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          report_ready?: boolean
           routine_reminder?: boolean
+          routine_reminder_time?: string | null
           service?: boolean
+          skin_weather?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -2742,42 +3062,156 @@ export type Database = {
           account_update?: boolean
           briefing?: boolean
           created_at?: string
+          daily_cap?: number
+          journal_reminder?: boolean
           podcast_episode?: boolean
+          price_alert?: boolean
           promotional?: boolean
           promotional_opt_in_at?: string | null
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string
+          quiet_hours_start?: string
+          report_ready?: boolean
           routine_reminder?: boolean
+          routine_reminder_time?: string | null
           service?: boolean
+          skin_weather?: boolean
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
+      notification_settings: {
+        Row: {
+          default_daily_cap: number
+          id: boolean
+          push_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_daily_cap?: number
+          id?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_daily_cap?: number
+          id?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          body: string
+          bypass_caps: boolean
+          category: string
+          channels: string[]
+          created_at: string
+          description: string | null
+          enabled: boolean
+          inbox_body: string | null
+          inbox_category: string
+          inbox_title: string | null
+          key: string
+          lock_screen_safe: boolean
+          name: string
+          priority: number
+          system: boolean
+          title: string
+          updated_at: string
+          updated_by: string | null
+          url: string
+        }
+        Insert: {
+          body: string
+          bypass_caps?: boolean
+          category: string
+          channels?: string[]
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          inbox_body?: string | null
+          inbox_category?: string
+          inbox_title?: string | null
+          key: string
+          lock_screen_safe?: boolean
+          name: string
+          priority?: number
+          system?: boolean
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          url?: string
+        }
+        Update: {
+          body?: string
+          bypass_caps?: boolean
+          category?: string
+          channels?: string[]
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          inbox_body?: string | null
+          inbox_category?: string
+          inbox_title?: string | null
+          key?: string
+          lock_screen_safe?: boolean
+          name?: string
+          priority?: number
+          system?: boolean
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
+          action_label: string | null
+          archived_at: string | null
           body: string | null
           category: string
           created_at: string
+          dispatch_id: string | null
+          expires_at: string | null
           id: string
+          image_url: string | null
           link: string | null
           read_at: string | null
           title: string
           user_id: string
         }
         Insert: {
+          action_label?: string | null
+          archived_at?: string | null
           body?: string | null
           category?: string
           created_at?: string
+          dispatch_id?: string | null
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           link?: string | null
           read_at?: string | null
           title: string
           user_id: string
         }
         Update: {
+          action_label?: string | null
+          archived_at?: string | null
           body?: string | null
           category?: string
           created_at?: string
+          dispatch_id?: string | null
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           link?: string | null
           read_at?: string | null
           title?: string
@@ -4074,6 +4508,7 @@ export type Database = {
           address_line1: string | null
           address_line2: string | null
           allergies: string[] | null
+          app_installed_at: string | null
           billing_interval: string
           checklist_dismissed_at: string | null
           city: string | null
@@ -4124,6 +4559,7 @@ export type Database = {
           address_line1?: string | null
           address_line2?: string | null
           allergies?: string[] | null
+          app_installed_at?: string | null
           billing_interval?: string
           checklist_dismissed_at?: string | null
           city?: string | null
@@ -4174,6 +4610,7 @@ export type Database = {
           address_line1?: string | null
           address_line2?: string | null
           allergies?: string[] | null
+          app_installed_at?: string | null
           billing_interval?: string
           checklist_dismissed_at?: string | null
           city?: string | null
@@ -4220,6 +4657,63 @@ export type Database = {
           weather_city_key?: string | null
         }
         Relationships: []
+      }
+      push_deliveries: {
+        Row: {
+          browser: string | null
+          clicked_at: string | null
+          created_at: string
+          dispatch_id: string
+          error: string | null
+          http_status: number | null
+          id: string
+          platform: string | null
+          status: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          dispatch_id: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          platform?: string | null
+          status: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          clicked_at?: string | null
+          created_at?: string
+          dispatch_id?: string
+          error?: string | null
+          http_status?: number | null
+          id?: string
+          platform?: string | null
+          status?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_deliveries_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "notification_dispatches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_subscriptions: {
         Row: {
@@ -5645,7 +6139,34 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_announce_podcast_episode: {
+        Args: {
+          p_audience?: Json
+          p_confirm_recipients?: number
+          p_slug: string
+          p_title: string
+        }
+        Returns: number
+      }
       admin_campaign_attribution: { Args: { p_days?: number }; Returns: Json }
+      admin_cancel_notification_campaign: {
+        Args: { p_id: string }
+        Returns: number
+      }
+      admin_create_notification_automation: {
+        Args: {
+          p_audience?: Json
+          p_description: string
+          p_frequency: string
+          p_key: string
+          p_month_day?: number
+          p_name: string
+          p_send_time: string
+          p_template_key: string
+          p_weekday?: number
+        }
+        Returns: string
+      }
       admin_events_overview: { Args: { p_days?: number }; Returns: Json }
       admin_get_advanced_assessment_review: {
         Args: { p_report_id: string }
@@ -5666,6 +6187,17 @@ export type Database = {
           prompt_set: string
           recorded_at: string
           status: string
+        }[]
+      }
+      admin_giveaway_entries: {
+        Args: { p_campaign?: string }
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          status: string
+          terms_version: string
+          tiktok_handle: string
         }[]
       }
       admin_ingredient_pair_note_coverage: { Args: never; Returns: Json }
@@ -5740,6 +6272,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_notification_audit: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      admin_list_notification_automations: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      admin_list_notification_campaigns: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      admin_list_notification_dispatches: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_source?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      admin_list_notification_templates: { Args: never; Returns: Json }
       admin_lookup_analysis_pass_account: {
         Args: { p_email: string }
         Returns: {
@@ -5750,6 +6304,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_notification_overview: { Args: { p_days?: number }; Returns: Json }
       admin_override_entitlement: {
         Args: {
           _reason: string
@@ -5757,6 +6312,10 @@ export type Database = {
           _target_user_id: string
         }
         Returns: undefined
+      }
+      admin_preview_notification_audience: {
+        Args: { p_audience: Json; p_category?: string; p_channels?: string[] }
+        Returns: Json
       }
       admin_promote_advanced_intake_to_production: {
         Args: { p_report_ids?: string[] }
@@ -5785,6 +6344,31 @@ export type Database = {
         Args: { p_decision: string; p_notes?: string; p_report_id: string }
         Returns: Json
       }
+      admin_run_notification_automation_now: {
+        Args: { p_key: string }
+        Returns: number
+      }
+      admin_save_notification_campaign: {
+        Args: {
+          p_audience?: Json
+          p_body: string
+          p_category: string
+          p_channels?: string[]
+          p_id: string
+          p_name: string
+          p_title: string
+          p_url?: string
+        }
+        Returns: string
+      }
+      admin_schedule_notification_campaign: {
+        Args: {
+          p_confirm_recipients?: number
+          p_id: string
+          p_scheduled_for: string
+        }
+        Returns: number
+      }
       admin_search_profiles: {
         Args: { _page?: number; _page_size?: number; _query?: string }
         Returns: {
@@ -5800,6 +6384,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_send_notification_campaign_now: {
+        Args: { p_confirm_recipients?: number; p_id: string }
+        Returns: number
+      }
+      admin_send_test_notification: {
+        Args: { p_body?: string; p_title?: string; p_url?: string }
+        Returns: string
+      }
+      admin_set_notification_settings: {
+        Args: { p_default_daily_cap?: number; p_push_enabled?: boolean }
+        Returns: Json
+      }
       admin_set_user_role: {
         Args: {
           _grant: boolean
@@ -5809,6 +6405,34 @@ export type Database = {
         Returns: undefined
       }
       admin_tiktok_events_overview: { Args: { p_days?: number }; Returns: Json }
+      admin_update_notification_automation: {
+        Args: {
+          p_audience?: Json
+          p_enabled?: boolean
+          p_key: string
+          p_month_day?: number
+          p_send_time?: string
+          p_template_key?: string
+          p_weekday?: number
+        }
+        Returns: Json
+      }
+      admin_upsert_notification_template: {
+        Args: {
+          p_body: string
+          p_category: string
+          p_channels?: string[]
+          p_description?: string
+          p_enabled?: boolean
+          p_inbox_body?: string
+          p_inbox_title?: string
+          p_key: string
+          p_name: string
+          p_title: string
+          p_url?: string
+        }
+        Returns: Json
+      }
       available_ai_credits: { Args: { _user_id?: string }; Returns: number }
       cancel_email_job: {
         Args: { p_job_id: string; p_reason: string }
@@ -5842,6 +6466,19 @@ export type Database = {
       claim_founding_member_slot: {
         Args: { p_offer_id: string }
         Returns: boolean
+      }
+      claim_notification_dispatches: {
+        Args: { p_limit?: number }
+        Returns: {
+          d_body: string
+          d_category: string
+          d_id: string
+          d_subscriptions: Json
+          d_tag: string
+          d_title: string
+          d_url: string
+          d_user_id: string
+        }[]
       }
       claim_pending_email_jobs: {
         Args: { p_limit?: number }
@@ -5923,6 +6560,15 @@ export type Database = {
           p_provider_message_id: string
         }
         Returns: boolean
+      }
+      complete_notification_dispatch: {
+        Args: {
+          p_error?: string
+          p_failed: number
+          p_id: string
+          p_sent: number
+        }
+        Returns: undefined
       }
       compute_assessment_completeness: {
         Args: { p_responses: Json; p_sections: Json }
@@ -6006,9 +6652,33 @@ export type Database = {
         }
         Returns: string
       }
+      enqueue_notification: {
+        Args: {
+          p_automation_key?: string
+          p_campaign_id?: string
+          p_guard?: Json
+          p_idempotency_key?: string
+          p_overrides?: Json
+          p_scheduled_at?: string
+          p_source?: string
+          p_template_key: string
+          p_user_id: string
+          p_vars?: Json
+        }
+        Returns: string
+      }
       enqueue_trial_expiring_events: { Args: never; Returns: number }
       enqueue_trial_lifecycle_emails: { Args: never; Returns: number }
       enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
+      enter_giveaway: {
+        Args: {
+          p_campaign: string
+          p_confirmed: boolean
+          p_terms_version: string
+          p_tiktok_handle: string
+        }
+        Returns: Json
+      }
       expire_finished_trials: { Args: never; Returns: number }
       expire_lapsed_subscriptions: { Args: never; Returns: number }
       fail_advanced_assessment_session: {
@@ -6018,6 +6688,10 @@ export type Database = {
       fail_email_job: {
         Args: { p_error: string; p_job_id: string; p_processing_token: string }
         Returns: boolean
+      }
+      fan_out_notification_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: number
       }
       formulator_tier: { Args: { _user_id: string }; Returns: string }
       generate_advanced_report_reference: { Args: never; Returns: string }
@@ -6118,6 +6792,7 @@ export type Database = {
         }[]
       }
       get_smart_routine_access: { Args: never; Returns: boolean }
+      giveaway_closes_at: { Args: never; Returns: string }
       grant_ai_credits:
         | {
             Args: {
@@ -6164,6 +6839,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_my_push_devices: {
+        Args: never
+        Returns: {
+          browser: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_used_at: string
+          platform: string
+        }[]
+      }
       list_orphan_intake_pdfs: {
         Args: { p_limit?: number }
         Returns: {
@@ -6185,10 +6871,51 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: undefined
       }
+      mark_all_notifications_read: { Args: never; Returns: number }
+      mark_app_installed: { Args: never; Returns: string }
       mark_price_discovery_miss: {
         Args: { p_note: string; p_retailer_slug: string; p_variant_id: string }
         Returns: undefined
       }
+      notification_admin_audit: {
+        Args: { p_action: string; p_detail: Json }
+        Returns: undefined
+      }
+      notification_audience_user_ids: {
+        Args: { p_audience: Json }
+        Returns: {
+          user_id: string
+        }[]
+      }
+      notification_automation_enabled: {
+        Args: { p_key: string }
+        Returns: boolean
+      }
+      notification_campaign_confirm: {
+        Args: { p_confirm_recipients: number; p_id: string }
+        Returns: number
+      }
+      notification_categories: { Args: never; Returns: string[] }
+      notification_category_allowed: {
+        Args: { p_category: string; p_user_id: string }
+        Returns: boolean
+      }
+      notification_cron_secret_matches: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
+      notification_first_name: { Args: { p_user_id: string }; Returns: string }
+      notification_guard_ok: {
+        Args: { p_guard: Json; p_user_id: string }
+        Returns: boolean
+      }
+      notification_inbox_category: {
+        Args: { p_category: string }
+        Returns: string
+      }
+      notification_plan_label: { Args: { p_plan: string }; Returns: string }
+      notification_require_admin: { Args: never; Returns: string }
+      prewarm_skin_weather_for_alerts: { Args: never; Returns: number }
       reactivate_account: { Args: never; Returns: boolean }
       record_advanced_intake_result: {
         Args: {
@@ -6216,6 +6943,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_push_click: { Args: { p_delivery_id: string }; Returns: boolean }
       refund_analysis_pass: {
         Args: { p_transaction_id: string }
         Returns: boolean
@@ -6232,6 +6960,17 @@ export type Database = {
         }
         Returns: string
       }
+      remove_my_push_device: { Args: { p_id: string }; Returns: boolean }
+      render_notification_text: {
+        Args: { p_text: string; p_vars: Json }
+        Returns: string
+      }
+      run_notification_automation: {
+        Args: { p_key: string; p_now?: string }
+        Returns: number
+      }
+      run_notification_scheduler: { Args: { p_now?: string }; Returns: number }
+      sanitize_notification_url: { Args: { p_url: string }; Returns: string }
       save_advanced_assessment_pipeline_state: {
         Args: {
           p_release?: boolean
