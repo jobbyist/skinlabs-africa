@@ -88,7 +88,7 @@ export const reenableInstructions = (env: DetectionEnv): ReenableInstructions =>
       title: "Turn notifications back on",
       steps:
         browser === "chrome" || browser === "samsung" || browser === "edge"
-          ? ["Tap the lock or tune icon next to the address bar (or press and hold the SkinLabs® app icon → App info).", "Open Permissions → Notifications.", "Choose Allow.", "Reload SkinLabs® and turn notifications on here."]
+          ? ["Tap the lock or tune icon next to the address bar (or press and hold the SkinLabs® icon on your home screen → App info).", "Open Permissions → Notifications.", "Choose Allow.", "Reload SkinLabs® and turn notifications on here."]
           : ["Open your browser’s site settings for SkinLabs®.", "Set Notifications to Allow.", "Reload SkinLabs® and turn notifications on here."],
     };
   }

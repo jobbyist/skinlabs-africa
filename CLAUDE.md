@@ -230,8 +230,9 @@ Details and human steps: `docs/tiktok-pixel.md`.
 
 Branch `claude/sleepy-allen-5ady3z`. Full detail: **`docs/pwa.md`** (architecture, caching table, deployment checklist,
 limitations). Migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql` are **applied live
-(2026-10-03)**, `types.ts` is regenerated and the PWA code uses the typed client (the untyped shim is gone); no VAPID keys are
-set (push stays honestly "not switched on" until `VITE_VAPID_PUBLIC_KEY` + the Edge secrets exist). Live differs from the file in
+(2026-10-03)**, `types.ts` is regenerated and the PWA code uses the typed client (the untyped shim is gone); `VITE_VAPID_PUBLIC_KEY` is
+set in production (owner-confirmed 2026-10-04; the matching `VAPID_*` Edge secrets are what `notification-dispatcher` needs, and it answers
+503 `not_configured` without them, leaving dispatches pending). The "no VAPID keys / not switched on" wording that used to be here is stale. Live differs from the file in
 one harmless way: `unregister_push_subscription()` runs its row removal through `EXECUTE format('%s FROM …','DEL'||'ETE')` because
 the Supabase SQL tool hangs on the literal statement.
 
@@ -256,7 +257,7 @@ the Supabase SQL tool hangs on the literal statement.
 - **Offline podcasts**: bytes in Cache Storage, metadata in IndexedDB, same access rule as streaming. Progress sync keeps the newest
   client timestamp (`upsert_podcast_progress`). The offline queue only ever holds podcast progress + notification preferences.
 - **Push**: permission only from an explicit button; subscriptions only via SECURITY DEFINER RPCs (clients can't read endpoint/keys);
-  marketing off by default with a recorded opt-in. **No automatic senders exist yet** (episode/briefing/reminder triggers are follow-ups).
+  marketing off by default with a recorded opt-in. `push-send` remains a manual/admin sender, but automatic delivery now exists: the notification engine queues pushes in SQL and `notification-dispatcher` delivers them (see "Notification engine" below).
 - **PWA analytics**: everything through `trackPwaEvent()` (adds `platform`, `browser`, `device_type`, `display_mode`; nothing else).
   iOS fires no `appinstalled`, so its first standalone launch records `pwa_installed` (`source: first_launch`). Admin → Analytics →
   "App installs & devices" (`PwaAnalyticsPanel`, `admin_pwa_overview()`); `admin_events_overview()` gained an "App & PWA" category.
@@ -265,6 +266,64 @@ the Supabase SQL tool hangs on the literal statement.
   `scripts/run-sql-probes.sh` after applying the migrations.
 - Mock-isolation gotcha: bun's `mock.module` leaks across test files — use the injection seams (`__setNotificationDepsForTests`,
   `__setPwaEventSink`, `__resetNetworkForTests`) and restore any `globalThis` fakes in `afterAll`.
+
+## Notification engine (applied live 2026-10-03, reconciled into the repo 2026-10-04)
+
+Docs: `docs/notification-dispatcher.md` (runbook), `docs/notification-engine-found-vs-assumed.md`. Migrations
+`20261003200900 … 20261003203505_notification_*` are in the repo and byte-identical to live (MD5 checked); the first one's header
+mentions a `20261006100000_…` file that does not exist, don't go looking for it.
+
+- **Tables** (all RLS on, no client grants except where noted): `notification_templates` (copy + channels + `bypass_caps`),
+  `notification_automations` (system + admin-made schedules, `enabled` flags), `notification_campaigns` (admin broadcasts),
+  `notification_dispatches` (outbox + permanent record, idempotent on `idempotency_key`), `push_deliveries` (one row per device;
+  `id` is the `d` in the push payload; `clicked_at`), `notification_settings` (single row: global push kill switch + default daily
+  cap), `notification_admin_audit_log` (append-only, admin-read). `notification_preferences` gained `report_ready`, `skin_weather`,
+  `journal_reminder`, `price_alert`, quiet hours (default 21:00-07:00 SAST), `daily_cap` (2), `routine_reminder_time`;
+  `notifications` lost client INSERT/UPDATE (clients may only update `read_at`/`archived_at`); `profiles.app_installed_at`.
+- **Who may call which RPCs**: `enqueue_notification`, `claim_notification_dispatches`, `complete_notification_dispatch`,
+  `record_push_click`, `notification_cron_secret_matches` and `run_notification_scheduler` are **service_role only**. Members (authenticated)
+  get `mark_app_installed`, `list_my_push_devices`, `remove_my_push_device`, `mark_all_notifications_read`. The 17 `admin_*_notification*`
+  RPCs are granted to `authenticated` but each calls `notification_require_admin()` (`has_role(...,'admin')`, else 42501); bulk sends
+  over 50 recipients need `p_confirm_recipients` = audience size. Internal helpers (`notification_guard_ok`, `notification_category_allowed`,
+  `notification_audience_user_ids`, ...) are revoked from everyone. Write new callers with `enqueue_notification()`, never insert into the tables.
+- **Cron jobs**: `notification-scheduler` (every 15 min, `run_notification_scheduler()`), `notification-dispatcher` (every minute, POSTs the
+  Edge Function only when a push is due), `skin-weather-prewarm` (04:50 UTC). Automations live in `notification_automations`; the system ones
+  are on by default except `inbox_mirror_push`.
+- **Vault secret**: `notification_dispatcher_cron_secret` (sent as `x-cron-secret`, verified in SQL by `notification_cron_secret_matches`;
+  no Edge secret to set, never write its value anywhere).
+- **Delivery**: `notification-dispatcher` (cron secret OR service role OR admin member; 503 `not_configured` before claiming when
+  `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` are missing) and `push-track` (service-worker tap beacon, always 200). Preferences, quiet hours,
+  caps and guards are decided in `claim_notification_dispatches()`; don't re-implement them in the function. Pure rules + tests:
+  `_shared/push/notificationDispatch.ts`, `src/lib/__tests__/notificationDispatcher.test.ts`.
+- **Copy rule for health categories stays generic.** Lock-screen text for `report_ready`, `skin_weather`, `journal_reminder` and anything
+  touching a member's analysis, report, skin concern, routine or photos must not name a condition, product, ingredient, score or result
+  ("Your SkinLabs(R) report is ready", "Tap to read it securely in the app."). Detail goes in the in-app inbox (`inbox_title`/`inbox_body`) behind
+  sign-in. `notification_templates.lock_screen_safe` marks this; admin-written templates/campaigns must follow it too. No push copy may imply
+  a diagnosis (same rule as the rest of the product).
+- **Client push layer (2026-10-04)**: ONE capability decision, `resolvePushCapability()` in `src/lib/pwa/pushCapability.ts` (hook
+  `usePushCapability()`): `ready | needs_install | denied | unsupported | subscribed`. No other file may read `Notification.permission`
+  or probe `PushManager` to decide this (the old `detectPushSupport` is gone). Rules: the native prompt only after a tap on our own soft ask
+  (`requestPermission()` refuses without `navigator.userActivation` and never re-asks after `denied`; denied shows `reenableInstructions()`
+  per platform); "subscribed" needs permission + a browser subscription + the server acknowledging THIS endpoint (`markEndpointRegistered`);
+  `syncSubscription()` re-registers on every launch. First STANDALONE launch calls `mark_app_installed()` once (`appInstalled.ts`; iOS fires no
+  `appinstalled`). Shared opt-in sequencing + funnel events (`push_soft_ask_shown|accepted`, plus `push_permission_*`/`push_subscribed`, each
+  with a `surface` prop) live in `pushOptIn.ts`. Surfaces: Welcome "Your day" (`ReminderOptIn`, no 4th screen), ONE checklist item "Get
+  reminders on your phone" (`remindersDone()` in `journey.ts`: an active `list_my_push_devices()` row, plus `profiles.app_installed_at` on iOS;
+  never `analytics_events`), the Advanced pending screens (`ReportReadyOptIn`), the first-ever routine check-in card (`FirstCheckinNudge`,
+  "Not now" = 14 days), Settings -> App. iOS Safari tab members flag an intent (`skinlabs_reminder_intent`); the installed app offers it once
+  (`ReminderIntentSheet`). Report-ready copy stays generic; nothing about a report ever reaches a lock screen.
+- **Service worker push (src/sw/sw.ts, rules in `swCore.ts`)**: payload `{title, body, url, tag, category, d}`; a malformed payload still shows
+  a generic "SkinLabs®" notification; same `tag` replaces; a visible+focused SkinLabs window gets `push-received` instead of a system
+  notification (NEVER on Safari/WebKit, which revokes subscriptions for silent pushes); action buttons only where `Notification.maxActions`
+  exists; tap -> `safeClickTarget()` (same-origin relative path only, else `/start`) -> POST `{d}` to `push-track` (URL from
+  `VITE_SUPABASE_URL`, null/no tracking when unset: **set it in Vercel**), reuse an existing window (message -> in-app route, buffered by
+  `takePendingNavigation()` because `PWAProvider` mounts lazily), else `openWindow`. `pushsubscriptionchange` re-subscribes with
+  `VITE_VAPID_PUBLIC_KEY` but the worker holds no credentials, so `register_push_subscription` is called by the page (`syncSubscription`).
+  The app badge shows the real unread inbox count.
+- **Not built yet**: an admin console UI for the engine (only the RPCs exist), member preference UI for the four new categories, quiet
+  hours and the daily cap (`notificationManager.ts` still knows 6 categories), the Admin -> Analytics split of the push funnel by `surface`
+  (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
+  Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).
 
 ## Admin: manual Analysis Pass issuing (2026-10-03)
 

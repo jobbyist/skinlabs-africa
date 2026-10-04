@@ -134,10 +134,16 @@ export const requestPermission = (surface?: PushSurface): Promise<PermissionStat
   });
 };
 
+/** Where no worker ever registers (dev, automation, blocked) the registration never resolves: don't wait for it forever. */
+const REGISTRATION_WAIT_MS = 3_000;
+
 export const getSubscription = async (): Promise<PushSubscription | null> => {
   try {
-    const reg = await deps.getRegistration();
-    return (await reg?.pushManager?.getSubscription()) ?? null;
+    const lookup = (async () => {
+      const reg = await deps.getRegistration();
+      return (await reg?.pushManager?.getSubscription()) ?? null;
+    })();
+    return await Promise.race([lookup, new Promise<null>((resolve) => setTimeout(() => resolve(null), REGISTRATION_WAIT_MS))]);
   } catch {
     return null;
   }

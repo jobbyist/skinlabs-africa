@@ -59,12 +59,16 @@ export interface MockOptions {
   /** payfast-payment subscription_quote startKind. */
   quoteStartKind?: "new_trial" | "existing_trial" | "immediate";
   /** SKYNN AI v2.1: Analysis Passes held, and the last free Basic AI Skin Analysis. */
+  /** list_my_push_devices(): the member's push devices on the server (server truth for "reminders on"). */
+  pushDevices?: { is_active: boolean }[];
   skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean; submitted?: boolean };
 }
 
 export interface MockState {
   profile: Profile;
   rpcCalls: string[];
+  /** Bodies of notification_preferences writes (upserts), newest last. */
+  preferenceWrites: Record<string, unknown>[];
   functionCalls: { name: string; action?: string }[];
   /** Basic AI Skin Analysis saves the mock accepted. */
   basicSaves: string[];
@@ -186,6 +190,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
   const state: MockState = {
     profile: opts.profile ?? freeProfile(),
     rpcCalls: [],
+    preferenceWrites: [],
     functionCalls: [],
     basicSaves: [],
     lastFreeAnalysisAt: opts.skynn?.lastFreeAnalysisAt ?? null,
@@ -328,7 +333,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
             ? state.routineSteps
             : (tables[table] ?? []);
     if (req.method() === "HEAD" || (req.headers()["prefer"] ?? "").includes("count=exact")) {
-      return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json" }, body: "[]" });
+      return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json", "access-control-expose-headers": "content-range" }, body: "[]" });
     }
     if (req.method() === "PATCH" && table === "profiles") {
       try {
@@ -337,6 +342,13 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
         /* ignore */
       }
       return r.fulfill({ status: 204, body: "" });
+    }
+    if (req.method() !== "GET" && table === "notification_preferences") {
+      try {
+        state.preferenceWrites.push(req.postDataJSON() as Record<string, unknown>);
+      } catch {
+        /* ignore */
+      }
     }
     if (req.method() !== "GET") return r.fulfill({ status: 201, body: "" });
     return r.fulfill({ json: single ? (rows[0] ?? null) : rows });
@@ -355,6 +367,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       state.profile = { ...state.profile, subscription_status: "trial", trial_plan: "insider", trial_ends_at: PROMO_TRIAL_END, trial_used_at: new Date().toISOString(), trial_started_at: new Date().toISOString() };
       return r.fulfill({ json: true });
     }
+    if (fn === "list_my_push_devices") return r.fulfill({ json: opts.pushDevices ?? [] });
     if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
     if (fn === "get_smart_routine_access") return r.fulfill({ json: smartRoutineAccess() });
     if (fn === "save_smart_routine") {
