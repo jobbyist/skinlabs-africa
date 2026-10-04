@@ -141,11 +141,11 @@ test.describe("Settings → App → Notifications", () => {
     for (const label of [
       "Report ready",
       "Account updates",
-      "Important service notices",
+      "Account and analysis updates",
       "Routine reminders",
       "SkinLabs® briefings",
       "Skin weather alerts",
-      "Photo journal reminders",
+      "Progress check-ins",
       "New podcast episodes",
       "Offers and news",
       "Price alerts",

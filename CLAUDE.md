@@ -373,6 +373,17 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
   Verified live (rolled back): a non-admin gets 42501 "Admin access required" from overview / settings / send. Tests: `e2e/admin-notifications.e2e.ts`
   (non-admin and signed-out see nothing and call no RPC, campaign flow, bulk confirmation, kill switch, automations, templates, audit, and a guard
   that no table is queried directly).
+- **Automations review (2026-10-04, fixes APPLIED live the same day)**: `docs/notification-automations-review-2026-10-04.md` (findings F1-F9, volume
+  table, owner decisions). Migrations `20261004031707_notification_automation_fixes` (journal honours `reminder_enabled`, monthly cadence, **stops after 3
+  unanswered reminders**; free-analysis audience/guard use `formulator_tier()` so Glow Lite is included; per-template trial guards; recap wording; new
+  automation **`monthly_skin_review`**, 1st of the month 10:00 SAST, `journal_reminder` category), `…031715_announce_podcast_episode_once` (a podcast episode
+  can be announced once) and `…031727_notification_cap_priority_classes`. **Cap rule now:** `routine_reminder`, `account_update`, `service` and `report_ready`
+  never count against / are never dropped by `daily_cap` (only a member cap of 0 holds them back); `bypass_caps` rows (trial_last_chance, precharge, ...) ignore cap
+  and quiet hours. `free_analysis_refreshed` stays in the always-on `service` category (Settings label "Account and analysis updates"). Probe:
+  `supabase/tests/notification_automations.sql` (23, rolled back, passes live). Still not built: price-drop alerts, a podcast-announce picker in Admin.
+  Other facts: `skin-weather-prewarm` (06:50 SAST) refreshes the cities of opted-in members 25 min before the 07:15 alert tick and the alert ignores any reading
+  older than 4 h; `retailer_price_runs` is a run log, not a price source (price changes live in `product_prices`); the daily trial-lifecycle EMAIL cron
+  `trial-lifecycle-emails-daily` **is scheduled** (job 31, 04:05 UTC; "not enabled" notes elsewhere in this file are stale).
 - **Not built yet**: the Admin -> Analytics split of the push funnel by `surface`
   (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
   Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).

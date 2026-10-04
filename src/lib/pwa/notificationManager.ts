@@ -82,11 +82,11 @@ export interface PreferenceMeta {
 export const PREFERENCE_LABELS: Record<PreferenceCategory, PreferenceMeta> = {
   report_ready: { label: "Report ready", description: "When your Advanced analysis is released to you.", example: "e.g. “Your SkinLabs® report is ready”", defaultOn: true },
   account_update: { label: "Account updates", description: "Membership, billing and security notices.", example: "e.g. “Your Glow Insider trial ends in 3 days”", defaultOn: true },
-  service: { label: "Important service notices", description: "Outages, policy changes and other things you need to know.", example: "e.g. “Scheduled maintenance tonight”", defaultOn: true },
+  service: { label: "Account and analysis updates", description: "Outages and policy changes, and a heads-up when your free Basic AI Skin Analysis is available again.", example: "e.g. “Your Basic AI Skin Analysis is ready”", defaultOn: true },
   routine_reminder: { label: "Routine reminders", description: "A nudge at your routine time, only on days you haven’t checked in.", example: "e.g. “Time for your morning routine”", defaultOn: false },
   briefing: { label: "SkinLabs® briefings", description: "When the day’s Daily Skinny briefing is published.", example: "e.g. “Today’s SkinLabs® briefing · 4 min read”", defaultOn: false },
   skin_weather: { label: "Skin weather alerts", description: "On days with high UV, very dry or hot and humid conditions in your city.", example: "e.g. “High UV today in Johannesburg”", defaultOn: false },
-  journal_reminder: { label: "Photo journal reminders", description: "When a progress photo is due.", example: "e.g. “Time for a progress photo”", defaultOn: false },
+  journal_reminder: { label: "Progress check-ins", description: "A reminder when a progress photo is due, plus a monthly check-in on the 1st. We stop after 3 you haven't answered.", example: "e.g. “Time for a progress photo”", defaultOn: false },
   podcast_episode: { label: "New podcast episodes", description: "When a new episode of The Skin Deep is published.", example: "e.g. “New episode: Sunscreen myths”", defaultOn: false },
   promotional: { label: "Offers and news", description: "Offers and news - you can turn this off any time.", example: "e.g. “Member offer: 20% off Analysis Passes”", defaultOn: false },
   price_alert: { label: "Price alerts", description: "When a product you follow drops in price at a South African retailer.", example: "e.g. “A product you saved is cheaper at Clicks”", defaultOn: false },
