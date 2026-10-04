@@ -250,7 +250,7 @@ describe("SEO, routing and story", () => {
     expect(story.pages[0].mediaType).toBe("video");
     expect(story.ctaLabel).toBe(GIVEAWAY_COPY.enterCta);
     expect(story.ctaUrl).toBe(GIVEAWAY_PATH);
-    expect(story.pages[1].ctaLabel).toBe("Start Your Free Assessment");
+    expect(story.pages[1].ctaLabel).toBe(GIVEAWAY_COPY.storyAssessmentCta);
     expect(story.pages[1].ctaUrl).toBe("/skynn-ai");
     for (const file of Object.values(GIVEAWAY_OCT_2026_MEDIA)) expect(existsSync(join(ROOT, "public", file))).toBe(true);
   });
