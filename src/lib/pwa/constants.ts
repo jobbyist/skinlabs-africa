@@ -45,7 +45,7 @@ export const SW_MESSAGES = {
   getVersion: "GET_VERSION",
   flushQueue: "FLUSH_QUEUE",
   notificationClick: "NOTIFICATION_CLICK",
-  pushReceived: "PUSH_RECEIVED",
+  pushReceived: "push-received",
 } as const;
 
 /** Background Sync tag the service worker listens for (Chromium only). */
@@ -58,12 +58,16 @@ export const STORAGE_KEYS = {
   installDismissedAt: "skinlabs_pwa_install_dismissed_at",
   installPageViews: "skinlabs_pwa_pageviews", // sessionStorage
   notifyPromptDismissedAt: "skinlabs_push_prompt_dismissed_at",
+  checkinNudgeDismissedAt: "skinlabs_checkin_nudge_dismissed_at",
   splashShown: "skinlabs-pwa-splash-shown", // sessionStorage
   swReloadGuard: "skinlabs_sw_reload_at", // sessionStorage
   lastLaunchPing: "skinlabs_pwa_launch_ping", // sessionStorage
 } as const;
 
 // --- UX tuning ---------------------------------------------------------------
+
+/** "Not now" on the first-check-in nudge stays away this long. */
+export const CHECKIN_NUDGE_COOLDOWN_DAYS = 14;
 
 /** After a dismissal, the install prompt stays away for this long. */
 export const INSTALL_DISMISS_COOLDOWN_DAYS = 14;

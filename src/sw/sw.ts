@@ -1,4 +1,5 @@
 /// <reference lib="webworker" />
+/// <reference types="vite/client" />
 /**
  * SkinLabs® service worker. Built to /sw.js by the `skinlabs-service-worker`
  * plugin in vite.config.ts (separate IIFE bundle — see docs/pwa.md).
@@ -36,10 +37,17 @@ import {
   extractAssetUrls,
   isFreshEnough,
   isPrivatePath,
+  chooseNotificationActions,
   pageCacheKey,
+  pickWindowIndexForClick,
+  pushTrackUrl,
+  safeClickTarget,
   shouldCachePage,
+  shouldSuppressSystemNotification,
+  vapidKeyToBytes,
+  type NotificationAction,
 } from "../lib/pwa/swCore";
-import { notificationFromPush, safeNotificationUrl } from "../lib/pwa/pushPayload";
+import { notificationFromPush } from "../lib/pwa/pushPayload";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -289,24 +297,46 @@ self.addEventListener("sync", (event) => {
 
 // --- push --------------------------------------------------------------------
 
+/** Public project URL from build config (VITE_SUPABASE_URL); null = no tap tracking. Never hard-coded. */
+const TRACK_URL = pushTrackUrl(import.meta.env.VITE_SUPABASE_URL);
+/** Public VAPID key from build config, only used to re-subscribe after the browser rotates the subscription. */
+const VAPID_PUBLIC_KEY: string = (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined)?.trim() ?? "";
+
+const listWindows = async () => {
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  return clients as WindowClient[];
+};
+const windowInfo = (c: WindowClient) => ({ url: c.url, visibilityState: c.visibilityState, focused: c.focused });
+
 self.addEventListener("push", (event) => {
+  // Defensive: a malformed/empty/non-JSON payload still yields a generic "SkinLabs®" notification
+  // (a push that shows nothing gets the subscription revoked on iOS/Safari).
   const parsed = notificationFromPush(() => (event.data ? event.data.json() : null), self.location.origin);
   event.waitUntil(
     (async () => {
-      // Every push must show a notification (userVisibleOnly; iOS revokes the subscription otherwise).
+      const windows = await listWindows().catch(() => [] as WindowClient[]);
+      const message = { type: SW_MESSAGES.pushReceived, category: parsed.category, d: parsed.deliveryId };
+      // The app is open and focused: let the in-app inbox update instead of a system notification.
+      // The server already counted the delivery. (Never on Safari/WebKit: every push must show.)
+      if (shouldSuppressSystemNotification(windows.map(windowInfo), self.location.origin, self.navigator.userAgent)) {
+        windows.forEach((w) => w.postMessage(message));
+        return;
+      }
+      const maxActions = (self as unknown as { Notification?: { maxActions?: number } }).Notification?.maxActions;
+      const actions = chooseNotificationActions(parsed.actions, maxActions);
+      // Same `tag` => a repeat replaces the earlier notification instead of stacking.
       await self.registration.showNotification(parsed.title, {
         body: parsed.body,
         icon: parsed.icon,
         badge: parsed.badge,
         tag: parsed.tag,
-        data: { url: parsed.url, category: parsed.category },
-        actions: parsed.actions,
+        data: { url: parsed.url, d: parsed.deliveryId },
+        ...(actions.length > 0 ? { actions } : {}),
         lang: "en-ZA",
-        // `actions` is Chromium/Android only and missing from the WebWorker lib typings.
-      } as NotificationOptions & { actions: typeof parsed.actions });
+      } as NotificationOptions & { actions?: NotificationAction[] });
+      windows.forEach((w) => w.postMessage(message));
       const nav = self.navigator as WorkerNavigator & { setAppBadge?: (n?: number) => Promise<void> };
       if (parsed.badgeCount != null && nav.setAppBadge) await nav.setAppBadge(parsed.badgeCount).catch(() => undefined);
-      await broadcast({ type: SW_MESSAGES.pushReceived, category: parsed.category });
     })(),
   );
 });
@@ -314,13 +344,24 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const target = safeNotificationUrl((event.notification.data as { url?: string } | undefined)?.url, self.location.origin);
+  const data = (event.notification.data ?? {}) as { url?: unknown; d?: unknown };
+  const target = safeClickTarget(data.url, self.location.origin) ?? PWA_START_PATH;
+
+  // Tap beacon: delivery id only, no credentials. Never awaited before navigation.
+  if (TRACK_URL && typeof data.d === "string") {
+    event.waitUntil(
+      fetch(TRACK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ d: data.d }), keepalive: true }).catch(() => undefined),
+    );
+  }
+
   event.waitUntil(
     (async () => {
-      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      const existing = windows.find((w) => new URL(w.url).origin === self.location.origin);
-      if (existing) {
-        await existing.focus();
+      const windows = await listWindows();
+      const index = pickWindowIndexForClick(windows.map(windowInfo), self.location.origin);
+      if (index >= 0) {
+        const existing = windows[index];
+        await existing.focus().catch(() => undefined);
+        // The page routes inside the running app (no reload, no second window).
         existing.postMessage({ type: SW_MESSAGES.notificationClick, url: target });
         return;
       }
@@ -330,8 +371,20 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("pushsubscriptionchange", (event) => {
-  // The browser rotated/expired the subscription. The worker can't talk to the
-  // authenticated API, so it wakes the windows; the app re-registers on next open
-  // (src/lib/pwa/notificationManager.ts → syncSubscription()).
-  (event as ExtendableEvent).waitUntil(broadcast({ type: "PUSH_SUBSCRIPTION_CHANGED" }).then(() => undefined));
+  // The browser rotated/expired the subscription. The worker holds no credentials (by design: nothing
+  // authenticated is ever stored here), so it can re-subscribe with the public VAPID key but cannot call
+  // register_push_subscription itself: it wakes the windows to register the new endpoint, and the app
+  // re-registers on the next open/launch (notificationManager.syncSubscription) if none is open.
+  (event as ExtendableEvent).waitUntil(
+    (async () => {
+      try {
+        const old = (event as Event & { oldSubscription?: PushSubscription | null }).oldSubscription;
+        const key = VAPID_PUBLIC_KEY ? vapidKeyToBytes(VAPID_PUBLIC_KEY) : old?.options?.applicationServerKey;
+        if (key) await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key as BufferSource });
+      } catch {
+        /* the app re-subscribes on its next launch */
+      }
+      await broadcast({ type: "PUSH_SUBSCRIPTION_CHANGED" });
+    })(),
+  );
 });

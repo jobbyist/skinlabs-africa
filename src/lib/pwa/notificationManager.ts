@@ -15,12 +15,22 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { trackPwaEvent } from "./analytics";
-import { detectBrowser, detectPlatform, detectPushSupport, readCapabilityProbe, readDetectionEnv } from "./detection";
+import { detectBrowser, detectPlatform, readDetectionEnv } from "./detection";
+import {
+  markEndpointRegistered,
+  PUSH_STATE_CHANGED_EVENT,
+  readBrowserPermission,
+  readPushInputs,
+  resolvePushCapability,
+} from "./pushCapability";
 import { enqueueAction, queueKey, registerQueueHandler, type QueuedAction } from "./offlineQueue";
 import { isNetworkError } from "./network";
 import { getReadyRegistration } from "./serviceWorker";
 import { local } from "./storageUtil";
 import { NOTIFICATION_CATEGORIES, type NotificationCategory } from "./pushPayload";
+
+/** Where in the product a push opt-in happened (a prop on the existing push events, so the funnel splits by surface). */
+export type PushSurface = "welcome" | "checklist" | "settings" | "prompt" | "report_pending" | "first_checkin";
 
 export type PermissionState = NotificationPermission | "unsupported";
 
@@ -91,14 +101,26 @@ export const urlBase64ToUint8Array = (base64: string): Uint8Array => {
 
 export const isConfigured = (): boolean => VAPID_PUBLIC_KEY.length > 20;
 
-export const getPushSupport = () => detectPushSupport(readDetectionEnv(), readCapabilityProbe());
-export const isSupported = (): boolean => getPushSupport().supported;
+/** Tell every usePushCapability() instance to re-read (subscribe / unsubscribe / re-sync happened). */
+const notifyPushStateChanged = () => {
+  try {
+    if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") window.dispatchEvent(new Event(PUSH_STATE_CHANGED_EVENT));
+  } catch {
+    /* a UI refresh hint must never fail a subscription */
+  }
+};
 
-export const getPermissionState = (): PermissionState => (typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+/** Thin alias of the single permission read in pushCapability.ts (kept for the manager's own call sites + tests). */
+export const getPermissionState = (): PermissionState => readBrowserPermission() as PermissionState;
 
 /** Wraps both the promise and the legacy callback form of requestPermission (older Safari). */
-export const requestPermission = (): Promise<PermissionState> => {
+export const requestPermission = (surface?: PushSurface): Promise<PermissionState> => {
   if (typeof Notification === "undefined") return Promise.resolve("unsupported");
+  // After a denial we never ask again (the browser would not show the dialog anyway): the UI shows re-enable steps.
+  if (Notification.permission === "denied") return Promise.resolve("denied");
+  // Only from a user gesture (our own soft-ask button). Where the browser exposes it, refuse a call with no live activation.
+  const activation = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+  if (activation && !activation.isActive) return Promise.resolve(Notification.permission);
   return new Promise((resolve) => {
     try {
       const result = Notification.requestPermission((p) => resolve(p));
@@ -107,7 +129,7 @@ export const requestPermission = (): Promise<PermissionState> => {
       resolve(Notification.permission);
     }
   }).then((permission) => {
-    trackPwaEvent(permission === "granted" ? "push_permission_granted" : "push_permission_denied", { state: String(permission) });
+    trackPwaEvent(permission === "granted" ? "push_permission_granted" : "push_permission_denied", { state: String(permission), ...(surface ? { surface } : {}) });
     return permission as PermissionState;
   });
 };
@@ -139,13 +161,17 @@ const registerWithServer = async (subscription: PushSubscription): Promise<boole
     p_platform: platform,
     p_browser: browser,
   });
+  // The server acknowledged this endpoint: this is what lets the capability resolver say "subscribed".
+  markEndpointRegistered(error ? null : json.endpoint);
+  notifyPushStateChanged();
   return !error;
 };
 
 /** Subscribes this device (permission must already be granted) and registers it with the signed-in member's account. */
-export const subscribe = async (): Promise<SubscribeResult> => {
-  const support = getPushSupport();
-  if (!support.supported) return { ok: false, reason: support.requiresInstall ? "needs_install" : "unsupported" };
+export const subscribe = async (surface?: PushSurface): Promise<SubscribeResult> => {
+  const capability = resolvePushCapability(readPushInputs(null));
+  if (capability === "unsupported") return { ok: false, reason: "unsupported" };
+  if (capability === "needs_install") return { ok: false, reason: "needs_install" };
   if (!isConfigured()) return { ok: false, reason: "not_configured" };
   if (getPermissionState() !== "granted") return { ok: false, reason: "denied" };
   const userId = await deps.getUserId();
@@ -165,7 +191,7 @@ export const subscribe = async (): Promise<SubscribeResult> => {
       return { ok: false, reason: "failed" };
     }
     local.set(ENABLED_KEY, userId);
-    trackPwaEvent("push_subscribed");
+    trackPwaEvent("push_subscribed", surface ? { surface } : {});
     return { ok: true };
   } catch (error) {
     console.warn("[pwa] push subscribe failed:", error);
@@ -182,6 +208,8 @@ export const unsubscribe = async (): Promise<boolean> => {
     const endpoint = subscription.endpoint;
     await subscription.unsubscribe().catch(() => false);
     await deps.rpc("unregister_push_subscription", { p_endpoint: endpoint });
+    markEndpointRegistered(null);
+    notifyPushStateChanged();
     trackPwaEvent("push_unsubscribed");
     return true;
   } catch {
@@ -213,7 +241,8 @@ export const detachDeviceForSignOut = async (): Promise<void> => {
  *  - subscription exists → re-register it (idempotent; also re-points a shared device to the current member)
  */
 export const syncSubscription = async (userId: string): Promise<void> => {
-  if (!isSupported() || !isConfigured()) return;
+  const capability = resolvePushCapability(readPushInputs(null));
+  if (capability === "unsupported" || capability === "needs_install" || !isConfigured()) return;
   const permission = getPermissionState();
   if (permission === "denied") {
     if (local.get(ENABLED_KEY) === userId) {
@@ -232,9 +261,6 @@ export const syncSubscription = async (userId: string): Promise<void> => {
     await subscribe();
   }
 };
-
-/** Whether this device is currently receiving pushes for the signed-in member. */
-export const isEnabledOnThisDevice = async (): Promise<boolean> => getPermissionState() === "granted" && (await getSubscription()) !== null;
 
 // --- preferences ---------------------------------------------------------------
 

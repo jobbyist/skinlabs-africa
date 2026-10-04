@@ -112,33 +112,6 @@ export const readCapabilityProbe = (): CapabilityProbe => {
   };
 };
 
-export interface PushSupport {
-  /** Push can be used right now on this device. */
-  supported: boolean;
-  /** Push exists on this platform but only after installing the app (iOS/iPadOS Safari). */
-  requiresInstall: boolean;
-}
-
-/**
- * Web Push availability. On iOS/iPadOS 16.4+ the Push API only exists inside
- * an installed (Home Screen) web app, so in a Safari tab `PushManager` is
- * missing even though the device could support it after installing.
- */
-export const detectPushSupport = (env: DetectionEnv, caps: CapabilityProbe): PushSupport => {
-  const platform = detectPlatform(env);
-  const standalone = isStandaloneMode(env);
-  const ready = caps.hasServiceWorker && caps.hasNotification && caps.hasPushManager;
-  if (isApplePlatform(platform)) {
-    const version = getIosVersion(env.userAgent);
-    const osCanPush = version === null || version >= 16.4;
-    if (!standalone) {
-      return { supported: false, requiresInstall: osCanPush && !isInAppBrowser(env.userAgent) };
-    }
-    return { supported: ready && osCanPush, requiresInstall: false };
-  }
-  return { supported: ready, requiresInstall: false };
-};
-
 export const readDetectionEnv = (): DetectionEnv => {
   if (typeof navigator === "undefined") return { userAgent: "" };
   const mq = (q: string) => {

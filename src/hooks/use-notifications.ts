@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { SW_EVENTS } from "@/lib/pwa/serviceWorker";
 
 export interface NotificationRow {
   id: string;
@@ -58,6 +59,13 @@ export const useNotifications = () => {
       void supabase.removeChannel(channel);
     };
   }, [user]);
+
+  // A push arrived while the app was open (the worker skips the system notification): refresh the feed.
+  useEffect(() => {
+    const onPush = () => void load();
+    window.addEventListener(SW_EVENTS.pushReceived, onPush);
+    return () => window.removeEventListener(SW_EVENTS.pushReceived, onPush);
+  }, [load]);
 
   const markRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n)));

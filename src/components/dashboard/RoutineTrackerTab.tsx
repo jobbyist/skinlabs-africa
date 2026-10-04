@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import FirstCheckinNudge from "./FirstCheckinNudge";
 import { useRoutine, type RoutineStep } from "@/hooks/use-routine";
 import LayeringGuide from "@/components/dashboard/LayeringGuide";
 import SmartRoutinePanel from "@/components/dashboard/SmartRoutinePanel";
@@ -43,7 +44,7 @@ const StepRow = ({
 );
 
 const RoutineTrackerTab = () => {
-  const { isStarterOnly, saveStarterRoutine, amSteps, pmSteps, loading, streak, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin, refresh } =
+  const { isStarterOnly, saveStarterRoutine, amSteps, pmSteps, loading, streak, firstCheckinJustDone, dismissFirstCheckinNudge, todayDone, todayTotal, isChecked, isPending, addStep, removeStep, toggleCheckin, refresh } =
     useRoutine();
   const [draftName, setDraftName] = useState("");
   const [draftProduct, setDraftProduct] = useState("");
@@ -94,6 +95,7 @@ const RoutineTrackerTab = () => {
           </CardContent>
         </Card>
       )}
+      {firstCheckinJustDone && <FirstCheckinNudge onDone={dismissFirstCheckinNudge} />}
       <SmartRoutinePanel onSaved={() => void refresh()} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">

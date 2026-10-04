@@ -103,6 +103,35 @@ describe("notification permission is user-initiated and handled", () => {
   });
 });
 
+describe("permission guard", () => {
+  const withRequestCounter = (permission: NotificationPermission) => {
+    const notification = setEnv({ permission });
+    let calls = 0;
+    const original = notification.requestPermission as (cb?: (p: NotificationPermission) => void) => Promise<NotificationPermission>;
+    notification.requestPermission = (cb?: (p: NotificationPermission) => void) => ((calls += 1), original(cb));
+    return () => calls;
+  };
+  test("after a denial the native prompt is never shown again", async () => {
+    const calls = withRequestCounter("denied");
+    expect(await manager.requestPermission("welcome")).toBe("denied");
+    expect(calls()).toBe(0);
+  });
+  test("without a live user activation the prompt is not shown (only a tap on our own button may trigger it)", async () => {
+    const calls = withRequestCounter("default");
+    (g.navigator as Record<string, unknown>).userActivation = { isActive: false };
+    expect(await manager.requestPermission("welcome")).toBe("default");
+    expect(calls()).toBe(0);
+    (g.navigator as Record<string, unknown>).userActivation = { isActive: true };
+    expect(await manager.requestPermission("welcome")).toBe("granted");
+    expect(calls()).toBe(1);
+  });
+  test("the surface rides along on the analytics event", async () => {
+    setEnv({ permission: "default" });
+    await manager.requestPermission("checklist");
+    expect(tracked).toContain("push_permission_granted");
+  });
+});
+
 describe("subscription lifecycle", () => {
   test("not supported / needs install / not signed in / permission not granted are explicit, never silent", async () => {
     setEnv({ push: false });

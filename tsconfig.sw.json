@@ -10,7 +10,7 @@
     "noEmit": true,
     "strict": false,
     "strictNullChecks": true,
-    "types": []
+    "types": ["vite/client"]
   },
   "include": ["src/sw", "src/lib/pwa/constants.ts", "src/lib/pwa/swCore.ts", "src/lib/pwa/pushPayload.ts"]
 }

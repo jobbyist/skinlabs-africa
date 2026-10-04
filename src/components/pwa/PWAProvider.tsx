@@ -9,13 +9,17 @@ import { useNetworkStatus } from "@/hooks/use-network-status";
 import { usePWAStatus } from "@/hooks/use-pwa-status";
 import { isCookieConsentFresh } from "@/lib/cookie-consent";
 import { isSafeReturnTo } from "@/lib/pendingIntent";
-import { clearBadge } from "@/lib/pwa/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { setBadge } from "@/lib/pwa/badge";
+import { markAppInstalledOnce } from "@/lib/pwa/appInstalled";
+import { clearReminderIntent, readReminderIntent } from "@/lib/pwa/pushOptIn";
+import { getPushCapabilityNow } from "@/lib/pwa/pushCapability";
 import { readDetectionEnv } from "@/lib/pwa/detection";
 import { INSTALL_MIN_DELAY_MS } from "@/lib/pwa/constants";
 import { countPageView, getPageViews, readInstallDismissedAt, resolveInstallExperience, type InstallExperience } from "@/lib/pwa/install";
 import { onBackOnline } from "@/lib/pwa/network";
 import { flushQueue } from "@/lib/pwa/offlineQueue";
-import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate, getUpdateSnapshot, SW_EVENTS, subscribeUpdates } from "@/lib/pwa/serviceWorker";
+import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate, getUpdateSnapshot, SW_EVENTS, subscribeUpdates, takePendingNavigation } from "@/lib/pwa/serviceWorker";
 import { session } from "@/lib/pwa/storageUtil";
 import { PWA_UI_EVENTS } from "@/lib/pwa/uiEvents";
 
@@ -23,6 +27,7 @@ import { PWA_UI_EVENTS } from "@/lib/pwa/uiEvents";
 // it must render when the network is already gone, when a not-yet-cached chunk could no longer be fetched.
 const PWAInstallPrompt = lazyWithRetry(() => import("./PWAInstallPrompt"));
 const NotificationPermissionPrompt = lazyWithRetry(() => import("./NotificationPermissionPrompt"));
+const ReminderIntentSheet = lazyWithRetry(() => import("./ReminderIntentSheet"));
 
 const UPDATE_TOAST_ID = "pwa-update";
 const INSTALL_SHOWN_KEY = "skinlabs_pwa_install_shown";
@@ -48,6 +53,7 @@ const PWAProvider = () => {
   const [tick, setTick] = useState(0);
   const [install, setInstall] = useState<{ open: boolean; experience: Exclude<InstallExperience, null> } | null>(null);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [intentSheet, setIntentSheet] = useState<{ clockTime?: string; purpose: "routine" | "report" } | null>(null);
   const [everOffline, setEverOffline] = useState(false);
 
   useEffect(() => {
@@ -152,22 +158,49 @@ const PWAProvider = () => {
   // A tapped notification routes inside the running app (validated same-origin path only).
   useEffect(() => {
     const onNavigate = (event: Event) => {
+      takePendingNavigation(); // handled live: don't replay it
       const url = (event as CustomEvent<{ url?: string }>).detail?.url;
       if (url && isSafeReturnTo(url)) navigate(url);
     };
+    // A tap that arrived before this listener existed (the provider mounts lazily).
+    const early = takePendingNavigation();
+    if (early && isSafeReturnTo(early)) navigate(early);
     window.addEventListener(SW_EVENTS.navigate, onNavigate);
     return () => window.removeEventListener(SW_EVENTS.navigate, onNavigate);
   }, [navigate]);
 
-  // Opening the app clears any unread badge a push set.
+  // App badge = the member's real unread inbox count (feature-detected no-op where unsupported; never throws).
   useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") void clearBadge();
+    let cancelled = false;
+    const syncBadge = async () => {
+      if (!user) return void setBadge(0);
+      const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null);
+      if (!cancelled) await setBadge(count ?? 0);
     };
-    onVisible();
+    const onVisible = () => document.visibilityState === "visible" && void syncBadge();
+    void syncBadge();
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+    window.addEventListener(SW_EVENTS.pushReceived, onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(SW_EVENTS.pushReceived, onVisible);
+    };
+  }, [user]);
+
+  // First standalone launch = installed (iOS fires no `appinstalled`). Stamped once, server-side.
+  useEffect(() => {
+    if (user && status.isStandalone) void markAppInstalledOnce(user.id, true);
+  }, [user, status.isStandalone]);
+
+  // First open of the installed app after an iPhone member asked for reminders in Safari: offer the opt-in once.
+  useEffect(() => {
+    if (!user || !status.isStandalone) return;
+    const intent = readReminderIntent();
+    if (!intent || getPushCapabilityNow() !== "ready") return;
+    clearReminderIntent();
+    setIntentSheet({ clockTime: intent === "07:00" || intent === "19:30" ? intent : undefined, purpose: intent === "report" ? "report" : "routine" });
+  }, [user, status.isStandalone]);
 
   // --- update toast ---------------------------------------------------------------
   useEffect(() => {
@@ -199,6 +232,11 @@ const PWAProvider = () => {
       {notifyOpen && (
         <Suspense fallback={null}>
           <NotificationPermissionPrompt open={notifyOpen} onOpenChange={setNotifyOpen} />
+        </Suspense>
+      )}
+      {user && intentSheet && (
+        <Suspense fallback={null}>
+          <ReminderIntentSheet open onOpenChange={(open) => !open && setIntentSheet(null)} userId={user.id} clockTime={intentSheet.clockTime} purpose={intentSheet.purpose} />
         </Suspense>
       )}
     </>

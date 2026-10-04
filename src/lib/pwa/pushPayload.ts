@@ -5,6 +5,8 @@
  * constrained to same-origin relative paths.
  */
 
+import { safeClickTarget } from "./swCore";
+
 export const NOTIFICATION_CATEGORIES = [
   "podcast_episode",
   "briefing",
@@ -15,6 +17,10 @@ export const NOTIFICATION_CATEGORIES = [
 ] as const;
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
+/** Every category the notification engine can send. The preference UI keeps the six above; the worker accepts all. */
+export const ENGINE_NOTIFICATION_CATEGORIES = [...NOTIFICATION_CATEGORIES, "report_ready", "skin_weather", "journal_reminder", "price_alert"] as const;
+export type EngineNotificationCategory = (typeof ENGINE_NOTIFICATION_CATEGORIES)[number];
+
 export interface ParsedNotification {
   title: string;
   body: string;
@@ -22,24 +28,19 @@ export interface ParsedNotification {
   badge: string;
   tag: string;
   url: string;
-  category: NotificationCategory | "other";
+  category: EngineNotificationCategory | "other";
   actions: { action: string; title: string }[];
   badgeCount: number | null;
+  /** Per-device delivery id (UUID) the notification-dispatcher put in the payload; null when absent/invalid. */
+  deliveryId: string | null;
 }
 
 const clip = (value: unknown, max: number): string => (typeof value === "string" ? value.trim().slice(0, max) : "");
 
 /** Same-origin relative path only ("/podcast/ep-1"); anything else becomes the start page. */
-export const safeNotificationUrl = (value: unknown, origin: string): string => {
-  if (typeof value !== "string" || !value) return "/start";
-  try {
-    const url = new URL(value, origin);
-    if (url.origin !== origin) return "/start";
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return "/start";
-  }
-};
+export const safeNotificationUrl = (value: unknown, origin: string): string => safeClickTarget(value, origin) ?? "/start";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const ALLOWED_ACTIONS = new Set(["open", "dismiss"]);
 
@@ -51,8 +52,8 @@ export const notificationFromPush = (readJson: () => unknown, origin = "https://
     raw = null;
   }
   const data = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const category = (NOTIFICATION_CATEGORIES as readonly string[]).includes(data.category as string)
-    ? (data.category as NotificationCategory)
+  const category = (ENGINE_NOTIFICATION_CATEGORIES as readonly string[]).includes(data.category as string)
+    ? (data.category as EngineNotificationCategory)
     : "other";
   const actions = Array.isArray(data.actions)
     ? (data.actions as unknown[])
@@ -74,5 +75,6 @@ export const notificationFromPush = (readJson: () => unknown, origin = "https://
     category,
     actions,
     badgeCount,
+    deliveryId: typeof data.d === "string" && UUID_RE.test(data.d) ? data.d : null,
   };
 };

@@ -8,12 +8,11 @@ import NotificationPreferencesList from "./NotificationPreferencesList";
 import { useAuth } from "@/hooks/use-auth";
 import { useOfflinePodcasts } from "@/hooks/use-offline-podcasts";
 import { usePWAStatus } from "@/hooks/use-pwa-status";
+import { usePushCapability } from "@/hooks/use-push-capability";
 import { getDownloadedBytes, removeAllDownloads, removeDownload } from "@/lib/pwa/podcastCache";
 import {
   DEFAULT_PREFERENCES,
-  getPermissionState,
   isConfigured,
-  isEnabledOnThisDevice,
   loadPreferences,
   savePreferences,
   sendTestNotification,
@@ -55,28 +54,24 @@ const InstallCard = () => {
 
 const NotificationsCard = () => {
   const { user } = useAuth();
-  const status = usePWAStatus();
-  const [enabled, setEnabled] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { capability, loading: capabilityLoading, instructions, refresh: refreshCapability } = usePushCapability();
+  const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [busy, setBusy] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setEnabled(await isEnabledOnThisDevice());
-    if (user) setPrefs(await loadPreferences(user.id));
-    setLoading(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (user) {
+        const loaded = await loadPreferences(user.id);
+        if (!cancelled) setPrefs(loaded);
+      }
+      if (!cancelled) setPrefsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  // The prompt dialog closes itself; re-read state when it might have changed.
-  useEffect(() => {
-    const onFocus = () => void refresh();
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
-  }, [refresh]);
 
   const changePrefs = async (next: NotificationPreferences) => {
     if (!user) return;
@@ -90,10 +85,9 @@ const NotificationsCard = () => {
     setBusy(true);
     const ok = await unsubscribe();
     setBusy(false);
-    if (ok) {
-      setEnabled(false);
-      toast.success("Notifications are off on this device.");
-    } else toast.error("Couldn’t turn notifications off. Please try again.");
+    await refreshCapability();
+    if (ok) toast.success("Notifications are off on this device.");
+    else toast.error("Couldn’t turn notifications off. Please try again.");
   };
 
   const test = async () => {
@@ -104,9 +98,6 @@ const NotificationsCard = () => {
     else toast.error("Couldn’t send a test notification right now.");
   };
 
-  const permission = getPermissionState();
-  const unavailable = !status.supportsPush && !status.pushRequiresInstall;
-
   return (
     <Card>
       <CardHeader>
@@ -116,22 +107,26 @@ const NotificationsCard = () => {
         <CardDescription>Choose what SkinLabs® can notify you about on your devices.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {loading ? (
+        {capabilityLoading || prefsLoading ? (
           <Loader2 className="h-4 w-4 motion-safe:animate-spin text-muted-foreground" aria-label="Loading" />
-        ) : unavailable ? (
+        ) : capability === "unsupported" ? (
           <p className="text-sm text-muted-foreground">This browser can’t receive push notifications.</p>
         ) : !isConfigured() ? (
           <p className="text-sm text-muted-foreground">Push notifications aren’t switched on for SkinLabs® yet.</p>
-        ) : status.pushRequiresInstall ? (
+        ) : capability === "needs_install" ? (
           <p className="text-sm text-muted-foreground">On iPhone and iPad, install SkinLabs® to your Home Screen first, then open it from there to enable notifications.</p>
+        ) : capability === "denied" ? (
+          <div className="text-sm text-muted-foreground" role="status">
+            <p>Notifications are blocked for SkinLabs® in your browser or device settings. {instructions.title}:</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-5">
+              {instructions.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
         ) : (
           <>
-            {permission === "denied" && (
-              <p className="text-sm text-muted-foreground" role="status">
-                Notifications are blocked for SkinLabs® in your browser or device settings. Allow them there to turn this on.
-              </p>
-            )}
-            {enabled ? (
+            {capability === "subscribed" ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium" role="status">
                   <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" /> On for this device
@@ -144,9 +139,9 @@ const NotificationsCard = () => {
                 </Button>
               </div>
             ) : (
-              permission !== "denied" && <Button onClick={openNotificationPrompt}>Enable notifications</Button>
+              <Button onClick={openNotificationPrompt}>Enable notifications</Button>
             )}
-            {user && enabled && <NotificationPreferencesList value={prefs} onChange={(next) => void changePrefs(next)} idPrefix="settings-notif" />}
+            {user && capability === "subscribed" && <NotificationPreferencesList value={prefs} onChange={(next) => void changePrefs(next)} idPrefix="settings-notif" />}
           </>
         )}
       </CardContent>

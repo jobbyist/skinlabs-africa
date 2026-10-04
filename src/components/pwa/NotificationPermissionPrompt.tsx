@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import NotificationPreferencesList from "./NotificationPreferencesList";
 import { useAuth } from "@/hooks/use-auth";
-import { usePWAStatus } from "@/hooks/use-pwa-status";
+import { usePushCapability } from "@/hooks/use-push-capability";
 import { openSignupDialog } from "@/lib/conversionDialogs";
 import { trackPwaEvent } from "@/lib/pwa/analytics";
 import { STORAGE_KEYS } from "@/lib/pwa/constants";
@@ -12,7 +12,6 @@ import { openInstallPrompt } from "@/lib/pwa/uiEvents";
 import { local } from "@/lib/pwa/storageUtil";
 import {
   DEFAULT_PREFERENCES,
-  getPermissionState,
   isConfigured,
   requestPermission,
   savePreferences,
@@ -45,7 +44,7 @@ const PROBLEM_COPY: Record<SubscribeFailure | "blocked", string> = {
  */
 const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
   const { user } = useAuth();
-  const status = usePWAStatus();
+  const { capability, instructions } = usePushCapability();
   const [prefs, setPrefs] = useState<NotificationPreferences>({ ...DEFAULT_PREFERENCES, podcast_episode: true, briefing: true });
   const [phase, setPhase] = useState<Phase>("intro");
   const [problem, setProblem] = useState<SubscribeFailure | "blocked" | null>(null);
@@ -54,7 +53,8 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
     if (!open) return;
     setPhase("intro");
     setProblem(null);
-    trackPwaEvent("push_prompt_viewed", { permission: getPermissionState() });
+    trackPwaEvent("push_prompt_viewed", { capability, surface: "settings" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const later = () => {
@@ -68,8 +68,8 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
       openSignupDialog("signin");
       return;
     }
-    if (!status.supportsPush) {
-      setProblem(status.pushRequiresInstall ? "needs_install" : "unsupported");
+    if (capability === "unsupported" || capability === "needs_install" || capability === "denied") {
+      setProblem(capability === "denied" ? "blocked" : capability);
       setPhase("problem");
       return;
     }
@@ -80,13 +80,13 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
     }
     setPhase("working");
     // Explicit user gesture: this is the only place the browser permission dialog is triggered.
-    const permission = await requestPermission();
+    const permission = await requestPermission("settings");
     if (permission !== "granted") {
       setProblem(permission === "denied" ? "blocked" : "denied");
       setPhase("problem");
       return;
     }
-    const result = await subscribe();
+    const result = await subscribe("settings");
     if (!result.ok) {
       setProblem(result.reason);
       setPhase("problem");
@@ -123,6 +123,13 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
         {phase === "problem" && problem && (
           <div role="alert" className="rounded-xl border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
             {PROBLEM_COPY[problem]}
+            {problem === "blocked" && (
+              <ol className="mt-2 list-decimal space-y-1 pl-5">
+                {instructions.steps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            )}
             {problem === "needs_install" && (
               <Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => { onOpenChange(false); openInstallPrompt(); }}>
                 Show me how to install

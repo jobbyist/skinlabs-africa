@@ -9,6 +9,7 @@ import { trackConversionEvent } from "@/lib/analytics-events";
 import { useAdvancedAssessmentAccess } from "@/hooks/use-advanced-assessment";
 import { listAdvancedAssessmentReports } from "@/lib/assessment/client";
 import { getReportDisplayStatus, INTAKE_EXPECTED_DELIVERY, type AdvancedAssessmentReportSummary } from "@/lib/assessment/types";
+import ReportReadyOptIn from "@/components/pwa/ReportReadyOptIn";
 import { PendingBadge } from "@/components/advanced-assessment/IntakeConfirmation";
 import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
@@ -105,6 +106,7 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
                 </Link>
                 <DownloadSubmissionPdfButton sessionId={pending.session_id} source="dashboard" variant="ghost" />
               </div>
+              <ReportReadyOptIn />
             </div>
           )}
           <p className="text-sm text-muted-foreground">

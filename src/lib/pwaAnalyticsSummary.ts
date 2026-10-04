@@ -109,6 +109,8 @@ export const EVENT_DESCRIPTIONS: Record<string, string> = {
   pwa_update_available: "New app version waiting",
   pwa_updated: "New app version applied",
   push_prompt_viewed: "Notification prompt shown",
+  push_soft_ask_shown: "Reminder soft ask shown (split by surface)",
+  push_soft_ask_accepted: "Reminder soft ask accepted (split by surface)",
   push_permission_granted: "Notification permission granted",
   push_permission_denied: "Notification permission denied",
   push_subscribed: "Device subscribed to push",

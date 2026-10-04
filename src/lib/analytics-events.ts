@@ -156,6 +156,8 @@ export type ConversionEvent =
   | "pwa_update_available"
   | "pwa_updated"
   | "push_prompt_viewed"
+  | "push_soft_ask_shown"
+  | "push_soft_ask_accepted"
   | "push_permission_granted"
   | "push_permission_denied"
   | "push_subscribed"
