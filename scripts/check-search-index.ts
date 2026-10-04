@@ -48,6 +48,8 @@ const KNOWN_EXCLUSIONS = new Set([
   // Installed-app entry point (manifest start_url): restores the session, then routes
   // onward. noindex utility route, not content.
   "/start",
+  // Time-limited TikTok acquisition landing page (October 2026 giveaway); reached from ads and the story, not site search.
+  "/giveaways/october-2026",
 ]);
 
 interface RouteEntry {

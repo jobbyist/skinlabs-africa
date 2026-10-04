@@ -92,6 +92,8 @@ import {
   SKYNN_RELEASE_LABEL,
 } from "@/lib/skynn/terminology";
 import { crossedMilestone, trackSkynnEvent } from "@/lib/skynn/analytics";
+import { trackGiveawayAssessment } from "@/lib/giveaway/analytics";
+import GiveawayResultsNudge from "@/components/giveaway/GiveawayResultsNudge";
 import type {
   ChangeContext,
   ConcernKey,
@@ -282,6 +284,8 @@ const AIFormulator = () => {
     setGroundedRoutine(result.groundedRoutine);
     setCompleteness(result.completeness);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
+    // October 2026 giveaway: reports "completed" once, only for visitors who came through it (no result content).
+    trackGiveawayAssessment("completed");
     if (!user) trackConversionEvent("formulator_completed_anonymous", { skinType: result.skinType });
     void logFairnessEvent({
       source: "starter",
@@ -537,6 +541,7 @@ const AIFormulator = () => {
 
   const handleStartAnalysis = () => {
     trackConversionEvent("analysis_started");
+    trackGiveawayAssessment("started");
     trackConversionEvent("formulator_started", { accountState });
     trackSkynnEvent("skynn_started", { mode: "basic", account_state: accountState });
     trackSkynnEvent("skynn_mode_selected", { mode: "basic", source: "intro" });
@@ -1234,6 +1239,7 @@ const AIFormulator = () => {
 
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
+                  <GiveawayResultsNudge />
                   {resultsSaved && isWelcomeInProgress() && (
                     <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-muted/45 p-4 sm:flex-row">
                       <p className="text-sm text-secondary-text">Your skin profile is saved. Two quick steps left to finish setting up.</p>

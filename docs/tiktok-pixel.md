@@ -46,6 +46,11 @@ outside the whitelist.
   call site supplies them; nothing is invented.
 - Not wired (no honest trigger exists): AddToWishlist, PlaceAnOrder.
 
+## October 2026 giveaway page (2026-10-03)
+
+`/giveaways/october-2026` reuses everything above. Added: **ClickButton** (client `TikTokEventName` + `TIKTOK_STANDARD_EVENTS` in the edge function: redeploy `tiktok-events` to accept it), `giveaway_cta_click` / `giveaway_story_cta_click` → ClickButton,
+`giveaway_assessment_completed` → SubmitForm, a `contentForPath` entry (`giveaway-october-2026`) and a `giveaway` page key. `sendEvent` now captures the page URL (origin + path, no query) when the event is raised rather than after the async identify step: a CTA click that navigates used to be filed under the next page. See `docs/giveaway-october-2026.md`.
+
 ## Admin → Ads tab
 
 `TikTokAdsPanel` reads `admin_tiktok_events_overview()` (admin-gated) over `public.tiktok_event_log`, which the `tiktok-events`

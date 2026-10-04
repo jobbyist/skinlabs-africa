@@ -20,7 +20,7 @@ const TAB_IDLE = "text-foreground/80 hover:text-foreground";
 const TAB_ACTIVE = "font-semibold text-foreground";
 // The Advanced AI Dermatology Analysis has its own sticky action bar.
 const hasOwnBottomBar = (pathname: string) =>
-  pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors") || pathname.startsWith("/skynn-ai/advanced");
+  pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors") || pathname.startsWith("/skynn-ai/advanced") || pathname.startsWith("/giveaways");
 
 const FloatingBottomNav = () => {
   const { user } = useAuth();
