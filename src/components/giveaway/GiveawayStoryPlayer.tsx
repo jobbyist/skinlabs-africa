@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Maximize2, Play } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GIVEAWAY_ASSESSMENT_PATH, GIVEAWAY_COPY } from "@/lib/giveaway/campaign";
+import { GIVEAWAY_COPY } from "@/lib/giveaway/campaign";
 import { trackGiveawayCta } from "@/lib/giveaway/analytics";
 import { GIVEAWAY_OCT_2026_MEDIA, giveawayOctober2026Story } from "@/lib/webStories/curated";
 
@@ -102,7 +101,7 @@ const GiveawayStoryPlayer = ({ onEnter }: { onEnter: () => void }) => {
         </button>
       </div>
 
-      <div className="mt-4 flex flex-col gap-2">
+      <div className="mt-4">
         <Button
           size="lg"
           className="h-12 w-full rounded-full"
@@ -112,11 +111,6 @@ const GiveawayStoryPlayer = ({ onEnter }: { onEnter: () => void }) => {
           }}
         >
           {GIVEAWAY_COPY.enterCta}
-        </Button>
-        <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-full">
-          <Link to={GIVEAWAY_ASSESSMENT_PATH} onClick={() => trackGiveawayCta("story", "story_assessment")}>
-            {GIVEAWAY_COPY.storyAssessmentCta}
-          </Link>
         </Button>
       </div>
 

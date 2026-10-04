@@ -43,15 +43,15 @@ const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
     const { am, pm } = saved.routine;
     return (
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base"><Sparkles className="h-4 w-4 text-primary" /> Today&apos;s Smart Routine</CardTitle>
+        <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
+          <CardTitle className="min-w-0 flex items-start gap-2 text-base leading-snug"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> <span className="min-w-0 break-words">Today&apos;s Smart Routine</span></CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 text-sm">
-            <p className="flex items-start gap-2"><Sun className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />{am.map((s) => s.step).join(" → ")}</p>
-            <p className="flex items-start gap-2"><Moon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />{pm.map((s) => s.step).join(" → ")}</p>
+        <CardContent className="space-y-3 p-4 sm:p-6 sm:pt-0">
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="min-w-0 flex items-start gap-2"><Sun className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><span className="min-w-0 break-words leading-relaxed">{am.map((s) => s.step).join(" → ")}</span></div>
+            <div className="min-w-0 flex items-start gap-2"><Moon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" /><span className="min-w-0 break-words leading-relaxed">{pm.map((s) => s.step).join(" → ")}</span></div>
           </div>
-          <Button size="sm" variant="outline" className="gap-2" onClick={onOpenRoutine}>
+          <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto" onClick={onOpenRoutine}>
             Check in <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </CardContent>

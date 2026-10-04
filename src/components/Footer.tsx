@@ -83,8 +83,6 @@ const Footer = () => {
     ],
     company: [
       { label: "About Us", href: "/about" },
-      { label: "Our Science", href: "/about#science" },
-      { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
       { label: "Ambassadors", href: "/brand-ambassadors" },

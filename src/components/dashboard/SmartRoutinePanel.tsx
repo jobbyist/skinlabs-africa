@@ -14,12 +14,12 @@ import { trackSkynnEvent } from "@/lib/skynn/analytics";
 import { ADVANCED_NAME, BASIC_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/terminology";
 
 const StepItem = ({ step }: { step: SmartStep }) => (
-  <li className="rounded-xl border border-border bg-background px-3 py-2.5">
-    <div className="flex flex-wrap items-center gap-2">
-      <p className="text-sm font-medium text-foreground">{step.step}</p>
+  <li className="min-w-0 rounded-2xl border border-border bg-background p-3 sm:p-3.5">
+    <div className="flex min-w-0 flex-wrap items-start gap-2">
+      <p className="min-w-0 flex-1 break-words text-sm font-medium leading-snug text-foreground">{step.step}</p>
       {step.fromShelf && <Badge variant="secondary" className="text-[10px]">From your shelf</Badge>}
     </div>
-    <p className="text-xs text-muted-foreground mt-0.5">
+    <p className="mt-1 min-w-0 break-words text-xs leading-snug text-muted-foreground">
       {step.productSlug && step.productName ? (
         <Link
           to={`/reviews/${step.productSlug}`}
@@ -32,8 +32,8 @@ const StepItem = ({ step }: { step: SmartStep }) => (
         step.productType
       )}
     </p>
-    <p className="text-xs text-foreground/80 mt-1.5">{step.guidance}</p>
-    <p className="text-[11px] text-muted-foreground mt-1">Why: {step.why}.</p>
+    <p className="mt-2 break-words text-xs leading-relaxed text-foreground/80">{step.guidance}</p>
+    <p className="mt-2 break-words text-[11px] leading-snug text-muted-foreground">Why: {step.why}.</p>
   </li>
 );
 
@@ -138,27 +138,28 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
   }
 
   return (
-    <Card className="border-primary/30">
-      <CardHeader className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" /> Your Smart Routine
+    <Card className="overflow-hidden border-primary/30">
+      <CardHeader className="space-y-3 p-4 sm:p-6">
+        <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <CardTitle className="min-w-0 flex items-start gap-2 text-base leading-snug">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <span className="min-w-0 break-words">Your Smart Routine</span>
           </CardTitle>
-          <Badge variant="outline" className="text-[10px]">
+          <Badge variant="outline" className="max-w-full justify-self-start whitespace-normal text-left text-[10px] leading-tight sm:justify-self-end">
             {saved?.source === "advanced_report" ? "From your approved Advanced report" : "Rule-based from your answers"}
           </Badge>
         </div>
-        <CardDescription>
+        <CardDescription className="max-w-2xl leading-relaxed">
           {saved?.source === "advanced_report"
             ? `Steps from your ${ADVANCED_NAME} report, matched to products SkinLabs has reviewed.`
             : `Built from your ${BASIC_NAME} and ${ADVANCED_NAME} answers. It will update from your report once that's released.`}
         </CardDescription>
         {stale && (
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
-            <p className="text-xs text-muted-foreground flex-1 min-w-[12rem]">
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/40 p-3 sm:flex-row sm:items-center">
+            <p className="min-w-0 flex-1 break-words text-xs leading-relaxed text-muted-foreground">
               You have a newer analysis{saved?.source === "rule_based" && preview?.source === "advanced_report" ? " and your report is released" : ""}. Update your routine to use it.
             </p>
-            <Button size="sm" variant="outline" onClick={() => void handleBuild()} disabled={building} className="gap-2">
+            <Button size="sm" variant="outline" onClick={() => void handleBuild()} disabled={building} className="w-full shrink-0 gap-2 sm:w-auto">
               {building ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Update my routine
             </Button>
@@ -166,28 +167,28 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
         )}
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Sun className="h-4 w-4 text-amber-500" /> Morning</p>
-            <ol className="space-y-2">{routine.am.map((s) => <StepItem key={s.key} step={s} />)}</ol>
+      <CardContent className="space-y-5 p-4 sm:space-y-6 sm:p-6">
+        <div className="grid gap-5 md:grid-cols-2 md:gap-4">
+          <div className="min-w-0">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Sun className="h-4 w-4 shrink-0 text-amber-500" /> Morning</p>
+            <ol className="space-y-2.5">{routine.am.map((s) => <StepItem key={s.key} step={s} />)}</ol>
           </div>
-          <div>
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Moon className="h-4 w-4 text-indigo-500" /> Evening</p>
-            <ol className="space-y-2">{routine.pm.map((s) => <StepItem key={s.key} step={s} />)}</ol>
+          <div className="min-w-0">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><Moon className="h-4 w-4 shrink-0 text-indigo-500" /> Evening</p>
+            <ol className="space-y-2.5">{routine.pm.map((s) => <StepItem key={s.key} step={s} />)}</ol>
           </div>
         </div>
 
         {routine.weekly.some((d) => d.pm.length > 2) && (
           <div>
             <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold"><CalendarDays className="h-4 w-4" /> Your week (evenings)</p>
-            <div className="grid grid-cols-7 gap-1.5 text-center">
+            <div className="grid grid-cols-2 gap-2 text-left sm:grid-cols-4 md:grid-cols-7">
               {routine.weekly.map((d) => {
                 const extras = d.pm.filter((x) => x !== "Cleanse" && x !== "Moisturise");
                 return (
-                  <div key={d.day} className="rounded-lg border border-border p-1.5">
-                    <p className="text-[11px] font-medium">{d.day}</p>
-                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                  <div key={d.day} className="flex min-h-16 min-w-0 flex-col rounded-xl border border-border p-2 sm:p-2.5">
+                    <p className="text-xs font-semibold leading-tight">{d.day}</p>
+                    <p className="mt-1 min-w-0 break-words text-[11px] leading-snug text-muted-foreground">
                       {extras.length ? extras.map((x) => (x.startsWith("Exfoliate") ? "Exfoliate" : x)).join(" + ") : "Basics"}
                     </p>
                   </div>
@@ -198,7 +199,7 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
         )}
 
         {routine.notes.length > 0 && (
-          <ul className="space-y-1.5 text-xs text-muted-foreground list-disc pl-4">
+          <ul className="space-y-2 break-words pl-4 text-xs leading-relaxed text-muted-foreground list-disc">
             {routine.notes.map((n) => <li key={n}>{n}</li>)}
           </ul>
         )}

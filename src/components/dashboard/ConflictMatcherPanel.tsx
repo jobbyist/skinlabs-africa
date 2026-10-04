@@ -37,16 +37,16 @@ const FlagCard = ({ flag }: { flag: ConflictFlag }) => {
   const productsA = flag.ingredientA.fromProducts.map((p) => p.productName).join(", ");
   const productsB = flag.ingredientB.fromProducts.map((p) => p.productName).join(", ");
   return (
-    <div className={`rounded-xl border p-3.5 text-xs ${meta.className}`}>
-      <div className="flex items-center gap-1.5 font-semibold">
-        <Icon className="h-3.5 w-3.5" />
+    <div className={`min-w-0 rounded-2xl border p-3.5 text-xs ${meta.className}`}>
+      <div className="flex min-w-0 flex-wrap items-start gap-1.5 font-semibold leading-snug">
+        <Icon className="h-3.5 w-3.5 shrink-0" />
         <IngredientName ingredient={flag.ingredientA} /> + <IngredientName ingredient={flag.ingredientB} /> — {meta.label}
       </div>
-      <p className="mt-1 opacity-80">
+      <p className="mt-1 break-words leading-snug opacity-80">
         {nameA} ({productsA}) · {nameB} ({productsB})
       </p>
-      {flag.explanation && <p className="mt-1.5 opacity-90">{flag.explanation}</p>}
-      {flag.usageGuidance && <p className="mt-1 font-medium opacity-90">Tip: {flag.usageGuidance}</p>}
+      {flag.explanation && <p className="mt-1.5 break-words leading-relaxed opacity-90">{flag.explanation}</p>}
+      {flag.usageGuidance && <p className="mt-1 break-words font-medium leading-relaxed opacity-90">Tip: {flag.usageGuidance}</p>}
     </div>
   );
 };
