@@ -24,6 +24,7 @@ import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
 import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
+import NotificationsTab from "@/components/admin/notifications/NotificationsTab";
 
 type Submission = {
   id: string;
@@ -347,6 +348,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="leads">Leads</TabsTrigger>
                 <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
                 <TabsTrigger value="ads">Ads</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -599,6 +601,11 @@ const AdminDashboard = () => {
                   and supabase/migrations/20261004120000_tiktok_event_log.sql. */}
               <TabsContent value="ads">
                 <TikTokAdsPanel />
+              </TabsContent>
+
+              {/* Notifications — the notification engine's admin RPCs only. See components/admin/notifications. */}
+              <TabsContent value="notifications">
+                <NotificationsTab />
               </TabsContent>
 
               <TabsContent value="sa-prices">

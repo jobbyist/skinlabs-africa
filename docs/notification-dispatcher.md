@@ -41,7 +41,7 @@ curl -s -X POST "https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/notificat
   -H "Authorization: Bearer $ADMIN_ACCESS_TOKEN"
 ```
 
-Queue a test (there is no admin UI for the engine in the repo yet): an admin calls `rpc admin_send_test_notification()`, or as service role
+Queue a test: Admin → Notifications → Overview → "Send a test push to me" (or an admin calls `rpc admin_send_test_notification()`), or as service role
 `select public.enqueue_notification('<admin user id>','test_push')`. Expect: a `push_deliveries` row with `status='sent'`,
 the dispatch `status='sent'`, and `clicked_at` set after tapping the notification.
 

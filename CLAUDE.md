@@ -336,7 +336,21 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
   2026-10-04; `preferenceRow()` strips both and the column default fills `user_id`). The `notification_preferences_audit` trigger stamps and
   clears `promotional_opt_in_at`. Verified live in a rolled-back probe: toggling `promotional` flips `opted_out`/`push_reachable` in
   `admin_preview_notification_audience`. `PREFERENCE_CATEGORIES` / `PREFERENCE_LABELS` in `notificationManager.ts` are the one list.
-- **Not built yet**: an admin console UI for the engine (only the RPCs exist), the Admin -> Analytics split of the push funnel by `surface`
+- **Admin → Notifications (2026-10-04)**: `src/components/admin/notifications/` (container `NotificationsTab`, six sub-tabs: Overview, Compose,
+  Automations, Templates, Scheduled & History, Audit), pure rules in `src/lib/notificationAdmin.ts` (tested). It talks ONLY to the engine's
+  admin RPCs through `adminRpc.ts` (`callAdmin` / `useAdminCall`: the signed-in admin's own session, no table reads, no service-role code
+  in the browser) and every failure is toasted with the RPC's message unchanged (`rpcMessage`). Rules: title 80 / message 240 / link a
+  same-origin path; the audience JSON is exactly what `notification_audience_user_ids()` reads (`buildAudience`, only filters that were
+  set); the audience preview (`admin_preview_notification_audience`) re-runs on every audience/category/channel change and Send/Schedule
+  stay disabled until it shows members > 0; sending asks first, and above 50 recipients the audience size must be typed and is sent as
+  `p_confirm_recipients` (`confirmation_required:N` from the server is shown verbatim and the dialog re-asks with N); schedule times are typed
+  in SAST (UTC+2); pausing push (the kill switch) asks first and shows a "Push is paused" banner on every sub-tab (while paused, queued pushes
+  wait and any unsent after 24 h are dropped; inbox rows are still written); health categories (report_ready, skin_weather,
+  journal_reminder, routine_reminder) show the generic-lock-screen-copy warning; system templates can be reworded/disabled but not recategorised.
+  Verified live (rolled back): a non-admin gets 42501 "Admin access required" from overview / settings / send. Tests: `e2e/admin-notifications.e2e.ts`
+  (non-admin and signed-out see nothing and call no RPC, campaign flow, bulk confirmation, kill switch, automations, templates, audit, and a guard
+  that no table is queried directly).
+- **Not built yet**: the Admin -> Analytics split of the push funnel by `surface`
   (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
   Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).
 
