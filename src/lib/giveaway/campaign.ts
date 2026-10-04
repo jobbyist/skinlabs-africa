@@ -52,13 +52,17 @@ export const GIVEAWAY_CONTACT_EMAIL = "support@skinlabs.co.za";
 export interface GiveawayLegalConfig {
   /** TODO(legal): registered legal entity name of the promoter. Not in the repository. */
   promoterLegalName: string | null;
-  /** TODO(legal): registration number + physical address of the promoter. */
+  /** Company registration shown after the name. Supplied by the owner 2026-10-04. */
   promoterRegistration: string | null;
+  /** Person running the giveaway on the company's behalf. Supplied by the owner 2026-10-04. */
+  promoterRepresentative: string | null;
+  /** TODO(legal): physical address of the promoter. Not supplied. */
+  promoterAddress: string | null;
   /** Minimum entrant age. Supplied by the owner 2026-10-04: 18. */
   minimumAge: number | null;
   /** Geographic eligibility wording. Supplied by the owner 2026-10-04. */
   territory: string | null;
-  /** TODO(business): how winners are drawn (random draw vs judged). Not supplied. */
+  /** How winners are drawn. Supplied by the owner 2026-10-04. */
   winnerSelectionMethod: string | null;
   /** Date winners are announced. Supplied by the owner 2026-10-04: the day after entries close. */
   winnerAnnouncementDate: string | null;
@@ -66,30 +70,33 @@ export interface GiveawayLegalConfig {
   prizeAwardDate: string | null;
   /** When Lifetime Glow Insider starts. Supplied by the owner 2026-10-04: after the extended free trial period. */
   lifetimeActivation: string | null;
-  /** TODO(business): days a winner has to respond before a replacement is chosen. */
-  prizeClaimWindowDays: number | null;
-  /** TODO(business): may SkinLabs® repost entrants' Stories? Default copy promises it will NOT without asking. */
+  /** Working days a winner has to respond before the prize is forfeited. Supplied by the owner 2026-10-04: 10. */
+  prizeClaimWindowWorkingDays: number | null;
+  /** May SkinLabs® repost entrants' Stories for promotional purposes? Supplied by the owner 2026-10-04: yes. */
   ugcRepostLicence: boolean | null;
-  /** TODO(legal): what "lifetime" means (lifetime of the account? of the Glow Insider plan?). Not defined anywhere. */
+  /** What "lifetime" means. Supplied by the owner 2026-10-04. */
   lifetimeDefinition: string | null;
-  /** TODO(business): who fulfils the Takealot voucher, and its expiry. */
+  /** TODO(business): Takealot voucher expiry. Not supplied. */
   voucherExpiryNote: string | null;
   /** Have the 15 Oct 23:59 SAST closing time and these terms been signed off by the business/legal? */
   signedOff: boolean;
 }
 
 export const GIVEAWAY_LEGAL: GiveawayLegalConfig = {
-  promoterLegalName: null,
-  promoterRegistration: null,
+  promoterLegalName: "SkinLabs South Africa (Pty) Ltd",
+  promoterRegistration: "Registration No. 2024/627587/07",
+  promoterRepresentative: "Michael Chigbu",
+  promoterAddress: null,
   minimumAge: 18,
   territory: "legal residents or citizens of the Republic of South Africa",
-  winnerSelectionMethod: null,
+  winnerSelectionMethod: "Winners are randomly selected using an electronic prize draw system.",
   winnerAnnouncementDate: "16 October 2026",
   prizeAwardDate: "31 October 2026",
   lifetimeActivation: "on the winner's account after the current extended free trial period ends on 1 November 2026",
-  prizeClaimWindowDays: null,
-  ugcRepostLicence: null,
-  lifetimeDefinition: null,
+  prizeClaimWindowWorkingDays: 10,
+  ugcRepostLicence: true,
+  lifetimeDefinition:
+    "free, unrestricted access to the Glow Insider membership plan (valued at R790 per year) at no cost to the winner.",
   voucherExpiryNote: null,
   signedOff: false,
 };
@@ -98,17 +105,18 @@ export const GIVEAWAY_LEGAL: GiveawayLegalConfig = {
 export const giveawayOpenQuestions = (legal: GiveawayLegalConfig = GIVEAWAY_LEGAL): string[] => {
   const q: string[] = [];
   if (!legal.promoterLegalName) q.push("Promoter's registered legal entity name");
-  if (!legal.promoterRegistration) q.push("Promoter's registration number and physical address");
+  if (!legal.promoterRegistration) q.push("Promoter's registration number");
+  if (!legal.promoterAddress) q.push("Promoter's physical address");
   if (legal.minimumAge === null) q.push("Minimum entrant age");
   if (!legal.territory) q.push("Geographic eligibility (e.g. South Africa only?)");
   if (!legal.prizeAwardDate) q.push("Date prizes are awarded");
   if (!legal.lifetimeActivation) q.push("When Lifetime Glow Insider starts for the winners");
   if (!legal.winnerSelectionMethod) q.push("How the two winners are selected (random draw or judged)");
   if (!legal.winnerAnnouncementDate) q.push("Date winners will be announced");
-  if (legal.prizeClaimWindowDays === null) q.push("How long a winner has to respond before a replacement is drawn");
-  if (legal.ugcRepostLicence === null) q.push("Whether SkinLabs® may repost entrants' TikTok Stories (copy currently promises it will not without asking)");
-  if (!legal.lifetimeDefinition) q.push("Definition of \"lifetime\" for Glow Insider (account lifetime vs plan lifetime) and how SkinLabs® grants it to the winners");
-  if (!legal.voucherExpiryNote) q.push("Takealot voucher expiry / delivery method");
+  if (legal.prizeClaimWindowWorkingDays === null) q.push("How long a winner has to respond before the prize is forfeited");
+  if (legal.ugcRepostLicence === null) q.push("Whether SkinLabs® may repost entrants' TikTok Stories for promotional purposes (copy promises it will not without asking)");
+  if (!legal.lifetimeDefinition) q.push("Definition of \"lifetime\" for Glow Insider");
+  if (!legal.voucherExpiryNote) q.push("Takealot voucher expiry");
   if (!legal.signedOff) q.push("Legal sign-off of these terms and of the assumed 23:59 SAST closing time on 15 October");
   return q;
 };

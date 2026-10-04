@@ -63,10 +63,8 @@ update public.giveaway_entries set status = 'verified' where id = '<entry id>';
 ## Still needs business / legal confirmation (T&Cs degrade to true-regardless wording until supplied)
 
 `GIVEAWAY_LEGAL` in `campaign.ts`; `giveawayOpenQuestions()` lists what is still `null`:
-promoter legal name + registration + address · how the two winners are selected (random draw or judged) · how long a winner has to respond ·
-whether SkinLabs® may repost Stories (copy promises it will NOT without asking) · what "lifetime" means (account vs plan lifetime; activation timing is now supplied) ·
-Takealot voucher expiry/delivery · legal sign-off, including the assumed 23:59 SAST closing time on 15 Oct.
-Interpretation to confirm: "over the age of 18" is written as "18 years old or older".
+Supplied by the owner 2026-10-04 (now in the T&Cs): promoter = Michael Chigbu on behalf of SkinLabs South Africa (Pty) Ltd (Reg. 2024/627587/07) · 18+ and SA citizens/legal residents · random winner selection by an electronic prize draw system · 10 working days to respond or the prize is forfeited · SkinLabs® may repost entrants' Stories for promotional purposes · "lifetime" = free, unrestricted access to Glow Insider (valued at R790 per year) at no cost · voucher and membership delivered 31 Oct 2026 (membership active from 1 Nov, when the extended trial ends).
+Still open: promoter's physical address · Takealot voucher expiry · what happens to "lifetime" if the Glow Insider plan is ever renamed or withdrawn · legal sign-off, including the assumed 23:59 SAST closing time on 15 Oct and "unrestricted" (Glow Insider does not include Analysis Passes).
 Also: there is still no tool that grants Lifetime Glow Insider to a winner (the founding-member entitlement looks closest, confirm first) and the activation must be done on/after 1 Nov 2026.
 
 ## Naming note
