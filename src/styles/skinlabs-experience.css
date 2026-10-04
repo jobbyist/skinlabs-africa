@@ -49,9 +49,11 @@ main .rounded-xl.border.bg-card {
   main h1 { font-size: clamp(2rem, 10vw, 3.2rem); line-height: .98; }
   main h2 { line-height: 1.08; }
   main p { text-wrap: pretty; }
-  main button:not([data-radix-collection-item]),
+  main button:not([data-radix-collection-item]):not([role="checkbox"]),
   main a.inline-flex { min-height: 42px; }
-  main input, main textarea, main select { min-height: 46px; }
+  main button:not([data-radix-collection-item]):not([role="checkbox"]) { min-width: 42px; }
+  main input:not([type="checkbox"]):not([type="radio"]), main textarea, main select { min-height: 46px; }
+  main input[type="checkbox"], main input[type="radio"] { width: 1rem; height: 1rem; min-width: 1rem; min-height: 1rem; }
   main .grid { gap: .9rem; }
 }
 

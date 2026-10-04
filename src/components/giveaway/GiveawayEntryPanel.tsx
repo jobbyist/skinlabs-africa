@@ -177,21 +177,21 @@ const GiveawayEntryPanel = () => {
           className="h-12 text-base"
         />
       </div>
-      <div className="mt-5 flex items-start gap-3">
+      <div className="mt-5 flex items-start gap-3 rounded-xl bg-muted/30 p-3">
         <Checkbox id="giveaway-posted" checked={posted} onCheckedChange={(v) => setPosted(v === true)} className="mt-0.5" />
-        <Label htmlFor="giveaway-posted" className="text-sm font-normal leading-snug">
+        <Label htmlFor="giveaway-posted" className="min-w-0 flex-1 text-sm font-normal leading-relaxed">
           I've shared my Skin Story on my TikTok Story and tagged {GIVEAWAY_TIKTOK_HANDLE}.
         </Label>
       </div>
-      <div className="mt-3 flex items-start gap-3">
+      <div className="mt-3 flex items-start gap-3 rounded-xl bg-muted/30 p-3">
         <Checkbox id="giveaway-eligible" checked={eligible} onCheckedChange={(v) => setEligible(v === true)} className="mt-0.5" />
-        <Label htmlFor="giveaway-eligible" className="text-sm font-normal leading-snug">
+        <Label htmlFor="giveaway-eligible" className="min-w-0 flex-1 text-sm font-normal leading-relaxed">
           I am 18 or older and a South African citizen or legal resident.
         </Label>
       </div>
-      <div className="mt-3 flex items-start gap-3">
+      <div className="mt-3 flex items-start gap-3 rounded-xl bg-muted/30 p-3">
         <Checkbox id="giveaway-terms" checked={accepted} onCheckedChange={(v) => setAccepted(v === true)} className="mt-0.5" />
-        <Label htmlFor="giveaway-terms" className="text-sm font-normal leading-snug">
+        <Label htmlFor="giveaway-terms" className="min-w-0 flex-1 text-sm font-normal leading-relaxed">
           I accept the <a href="#terms" className="underline underline-offset-2">giveaway terms</a>.
         </Label>
       </div>

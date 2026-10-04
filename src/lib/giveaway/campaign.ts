@@ -29,13 +29,12 @@ export const GIVEAWAY_CLOSING_TIME_LABEL = "23:59 South African Standard Time (S
 /** The free assessment the giveaway sends people to (existing canonical route — never a new one). */
 export const GIVEAWAY_ASSESSMENT_PATH = "/skynn-ai";
 
-/** Approved CTA copy. Do not swap for generic copy without a UX test. */
+/** Campaign CTA copy; keep the assessment label clear and non-clinical. */
 export const GIVEAWAY_COPY = {
-  primaryCta: "Get started with the free skin assessment",
-  secondaryCta: "Start the free dermatology analysis",
-  enterCta: "Enter the Giveaway",
+  primaryCta: "Start your free skin assessment",
+  enterCta: "Enter the giveaway",
   storyCta: "Share Your Skin Story",
-  storyAssessmentCta: "Start Your Free Assessment",
+  storyAssessmentCta: "Start your free skin assessment",
 } as const;
 
 export const GIVEAWAY_PRIZES = {

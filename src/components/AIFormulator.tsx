@@ -1033,14 +1033,14 @@ const AIFormulator = () => {
                   <div className="space-y-3">
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-data" checked={consentData} onCheckedChange={(c) => setConsentData(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-data" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-data" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I agree to the collection and processing of my data for the purpose of skin analysis and routine
                         formulation, in accordance with POPIA. My data will not be sold or shared with third parties.
                       </Label>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-mst" checked={consentMst} onCheckedChange={(c) => setConsentMst(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-mst" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-mst" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I understand that my Monk Skin Tone (MST) is optional and self-reported. If I share it, it
                         tailors sun-protection and pigmentation guidance and helps SkinLabs test fairness across skin
                         tones. It is never inferred from a photo and is not a diagnosis.
@@ -1048,7 +1048,7 @@ const AIFormulator = () => {
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-terms" checked={consentTerms} onCheckedChange={(c) => setConsentTerms(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-terms" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I agree to the <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a> and{" "}
                         <a href="/terms" className="text-primary hover:underline">Terms of Service</a>, and understand SKYNN AI
                         does not replace professional medical care.
@@ -1111,7 +1111,7 @@ const AIFormulator = () => {
                   {skinImage && (
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
                       <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
-                      <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="photo-consent" className="min-w-0 flex-1 text-xs text-muted-foreground cursor-pointer leading-relaxed">
                         I understand my photo stays on this device. It isn't uploaded or analysed, and SKYNN AI never
                         uses it to estimate my skin tone.
                       </Label>

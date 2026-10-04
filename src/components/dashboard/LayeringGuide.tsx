@@ -17,20 +17,20 @@ const LayeringGuide = ({ amSteps, pmSteps }: { amSteps: Step[]; pmSteps: Step[] 
   const switchSlot = (s: "am" | "pm") => { setSlot(s); setIndex(0); };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden">
+      <CardHeader className="p-4 pb-3 sm:p-6 sm:pb-3">
         <CardTitle className="flex items-center gap-2 text-base"><Layers className="h-4 w-4 text-primary" /> Layering guide</CardTitle>
         <CardDescription>The order to apply your steps, thinnest to thickest. General guidance, not medical advice.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="inline-flex rounded-full border border-border p-1" role="tablist">
+      <CardContent className="space-y-4 p-4 sm:p-6">
+        <div className="flex w-full max-w-full overflow-x-auto rounded-full border border-border p-1 sm:w-auto" role="tablist">
           {(["am", "pm"] as const).map((s) => (
             <button
               key={s}
               role="tab"
               aria-selected={slot === s}
               onClick={() => switchSlot(s)}
-              className={cn("flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors", slot === s ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
+              className={cn("flex min-h-9 shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors", slot === s ? "bg-primary text-primary-foreground" : "text-muted-foreground")}
             >
               {s === "am" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />} {s === "am" ? "Morning" : "Evening"}
             </button>

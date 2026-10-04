@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarClock, Gift, ShieldCheck, Smartphone, Sparkles, Ticket } from "lucide-react";
+import { CalendarClock, CheckCircle2, Gift, Sparkles, Ticket } from "lucide-react";
 import SEO from "@/components/SEO";
 import GiveawayCta from "@/components/giveaway/GiveawayCta";
 import GiveawayStoryPlayer from "@/components/giveaway/GiveawayStoryPlayer";
 import GiveawayTerms from "@/components/giveaway/GiveawayTerms";
-import { Button } from "@/components/ui/button";
 import {
+  GIVEAWAY_CLOSING_TIME_LABEL,
   GIVEAWAY_DEADLINE_LABEL,
   GIVEAWAY_NAME,
   GIVEAWAY_SEO,
@@ -17,8 +17,7 @@ import {
   daysLeft,
   isGiveawayOpen,
 } from "@/lib/giveaway/campaign";
-import { trackGiveawayCta, trackGiveawayPageView } from "@/lib/giveaway/analytics";
-import { BASIC_NAME } from "@/lib/skynn/terminology";
+import { trackGiveawayPageView } from "@/lib/giveaway/analytics";
 
 const GiveawayEntryPanel = lazy(() => import("@/components/giveaway/GiveawayEntryPanel"));
 
@@ -94,36 +93,28 @@ const GiveawayOctober2026 = () => {
           <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
             <div className="min-w-0 animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
               <p className="eyebrow">{open ? `SkinLabs® October Giveaway · Closes ${GIVEAWAY_DEADLINE_LABEL}` : `Giveaway closed ${GIVEAWAY_DEADLINE_LABEL}`}</p>
-              <h1 id="giveaway-hero" className="mt-3 text-balance font-heading text-[2.4rem] font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-                Your Skin Story Could Win You More Than{" "}
-                <span className="gradient-text">Great Skin Insights.</span>
+              <h1 id="giveaway-hero" className="mt-3 max-w-3xl text-balance font-heading text-[2.45rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+                Tell your Skin Story.
+                <span className="gradient-text"> Win R500 + Lifetime Glow Insider.</span>
               </h1>
-              <p className="mt-5 max-w-xl text-pretty text-lg text-muted-foreground">
-                Complete your free AI dermatology analysis, share your Skin Story on TikTok and tag {GIVEAWAY_TIKTOK_HANDLE} for your chance to win.
+              <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground">
+                Start with the free SKYNN AI skin assessment, share your honest Skin Story on TikTok, tag {GIVEAWAY_TIKTOK_HANDLE}, then confirm your entry here.
               </p>
 
-              <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-bold uppercase tracking-[0.14em]">
-                <Sparkles className="h-4 w-4" aria-hidden="true" /> Free AI dermatology analysis
-              </p>
+              <div className="mt-6 flex flex-wrap gap-2" aria-label="Giveaway highlights">
+                <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">Free to enter</span>
+                <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">2 winners</span>
+                <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">Closes {GIVEAWAY_DEADLINE_LABEL}</span>
+              </div>
 
-              <div className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm">
-                <p className="text-sm font-bold uppercase tracking-[0.14em] text-muted-foreground">2 people will win</p>
+              <div className="mt-6 rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+                <p className="text-sm font-bold uppercase tracking-[0.14em] text-muted-foreground">Each winner gets</p>
                 <p className="mt-1 text-xl font-bold leading-snug sm:text-2xl">R500 Takealot Voucher + Lifetime Glow Insider</p>
               </div>
 
-              <ol className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground" aria-label="How it works">
-                <li>Free assessment</li>
-                <li aria-hidden="true">→</li>
-                <li>Share your story</li>
-                <li aria-hidden="true">→</li>
-                <li className="text-foreground">Win</li>
-              </ol>
-
-              <div ref={heroCta} className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div ref={heroCta} className="mt-8 flex flex-col items-stretch sm:flex-row sm:items-center">
                 <GiveawayCta location="hero" />
-                <GiveawayCta location="hero" variant="secondary" className="min-h-12 sm:min-h-14" />
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">Free to enter. No purchase needed. Not every participant wins.</p>
             </div>
 
             <div className="hidden lg:block">
@@ -162,7 +153,7 @@ const GiveawayOctober2026 = () => {
           <div className="mx-auto max-w-4xl">
             <p className="eyebrow">How to enter</p>
             <h2 id="how-heading" className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
-              Three steps. Five minutes or less.
+              Three steps to enter.
             </h2>
             <ol className="mt-8 grid gap-4 sm:grid-cols-3">
               {STEPS.map((s) => (
@@ -185,32 +176,30 @@ const GiveawayOctober2026 = () => {
           <GiveawayStoryPlayer onEnter={scrollToEntry} />
         </section>
 
-        {/* WHY THE ASSESSMENT */}
+        {/* WHAT YOU GET */}
         <section aria-labelledby="why-heading" className="bg-muted/40 px-4 py-14 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-4xl">
-            <p className="eyebrow">Why start here</p>
-            <h2 id="why-heading" className="mt-2 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              The free analysis is the real prize.
+            <p className="eyebrow">What you get</p>
+            <h2 id="why-heading" className="mt-2 max-w-3xl text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              Useful before you ever win.
             </h2>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-              <li className="rounded-3xl border border-border bg-card p-6">
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-3xl border border-border bg-card p-6">
                 <Sparkles className="h-6 w-6" aria-hidden="true" />
-                <p className="mt-3 font-semibold">Personalised skin insights</p>
-                <p className="mt-1 text-sm text-muted-foreground">AI-powered insights built from your own answers, with a routine and SkinLabs®-reviewed product picks.</p>
-              </li>
-              <li className="rounded-3xl border border-border bg-card p-6">
-                <Smartphone className="h-6 w-6" aria-hidden="true" />
-                <p className="mt-3 font-semibold">Quick and private</p>
-                <p className="mt-1 text-sm text-muted-foreground">About two minutes. If you add a photo it stays on your device and is never analysed.</p>
-              </li>
-              <li className="rounded-3xl border border-border bg-card p-6">
-                <ShieldCheck className="h-6 w-6" aria-hidden="true" />
-                <p className="mt-3 font-semibold">Honest about what it is</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  It's SkinLabs®' {BASIC_NAME}: general skincare guidance, not medical advice or a diagnosis, and no replacement for a dermatologist.
-                </p>
-              </li>
-            </ul>
+                <p className="mt-3 font-semibold">A clearer skin snapshot</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Get personalised skincare insights built from your own answers, plus a routine that fits your profile.</p>
+              </div>
+              <div className="rounded-3xl border border-border bg-card p-6">
+                <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+                <p className="mt-3 font-semibold">A fast, private start</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">It takes about two minutes. Any optional photo stays on your device and is not uploaded or analysed.</p>
+              </div>
+              <div className="rounded-3xl border border-border bg-card p-6">
+                <CalendarClock className="h-6 w-6" aria-hidden="true" />
+                <p className="mt-3 font-semibold">A simple path to enter</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">Save your assessment, share your Story, tag {GIVEAWAY_TIKTOK_HANDLE}, then confirm your entry below.</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -224,32 +213,19 @@ const GiveawayOctober2026 = () => {
             <p className="mt-4 text-pretty text-lg text-muted-foreground">
               Share your experience, your skin concerns, your journey, something you discovered or what you learned from your SkinLabs® assessment. There's no script.
             </p>
-            <ul className="mt-6 space-y-3">
-              <li className="flex gap-3"><span aria-hidden="true">✓</span><span>You do <strong>not</strong> have to leave a positive review.</span></li>
-              <li className="flex gap-3"><span aria-hidden="true">✓</span><span>You do <strong>not</strong> have to say SkinLabs® improved your skin. Honest stories are welcome.</span></li>
-              <li className="flex gap-3"><span aria-hidden="true">✓</span><span>Post it on your <strong>TikTok Story</strong> and tag <strong>{GIVEAWAY_TIKTOK_HANDLE}</strong>.</span></li>
-              <li className="flex gap-3"><span aria-hidden="true">✓</span><span>Keep it live for as long as TikTok allows, so we can find it. We check Stories by hand.</span></li>
+            <ul className="mt-6 space-y-3 text-sm leading-relaxed sm:text-base">
+              <li className="flex gap-3"><span className="mt-0.5" aria-hidden="true">✓</span><span>Talk about your skin, your experience, what you have tried or what you learned.</span></li>
+              <li className="flex gap-3"><span className="mt-0.5" aria-hidden="true">✓</span><span>You do <strong>not</strong> have to leave a positive review or say SkinLabs® improved your skin.</span></li>
+              <li className="flex gap-3"><span className="mt-0.5" aria-hidden="true">✓</span><span>Post it on your <strong>TikTok Story</strong>, tag <strong>{GIVEAWAY_TIKTOK_HANDLE}</strong> and keep it live while TikTok allows.</span></li>
             </ul>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              {open && (
-                <Button
-                  size="lg"
-                  className="h-auto min-h-14 whitespace-normal rounded-full px-6 py-3 text-base font-semibold"
-                  onClick={() => {
-                    trackGiveawayCta("mid_page", "share_story");
-                    scrollToEntry();
-                  }}
-                >
-                  Share Your Skin Story
-                </Button>
-              )}
+            <div className="mt-6">
               <a
                 href={GIVEAWAY_TIKTOK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex h-12 items-center justify-center text-sm font-medium underline underline-offset-4"
+                className="inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4"
               >
-                Find {GIVEAWAY_TIKTOK_HANDLE} on TikTok
+                See {GIVEAWAY_TIKTOK_HANDLE} on TikTok
               </a>
             </div>
           </div>
@@ -275,16 +251,26 @@ const GiveawayOctober2026 = () => {
           </div>
         </section>
 
-        {/* FINAL CTA */}
-        <section aria-labelledby="final-heading" className="px-4 py-16 text-center sm:px-8 sm:py-24">
-          <div className="mx-auto max-w-2xl">
-            <h2 id="final-heading" className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Get your free skin analysis.
+        {/* COMPLETION CHECKLIST */}
+        <section aria-labelledby="checklist-heading" className="px-4 py-14 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
+            <p className="eyebrow">Before you leave</p>
+            <h2 id="checklist-heading" className="mt-2 text-balance text-2xl font-bold tracking-tight sm:text-3xl">
+              Make sure your entry is complete.
             </h2>
-            <p className="mt-3 text-muted-foreground">Then share your Skin Story for your chance to win.</p>
-            <div className="mt-8 flex justify-center">
-              <GiveawayCta location="final_cta" />
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {[
+                "Your free assessment is saved",
+                `Your TikTok Story is live and tags ${GIVEAWAY_TIKTOK_HANDLE}`,
+                "You confirmed your entry below",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-2 rounded-2xl border border-border bg-muted/30 p-4">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  <p className="text-sm leading-relaxed">{item}</p>
+                </div>
+              ))}
             </div>
+            <p className="mt-5 text-sm text-muted-foreground">Entries close {GIVEAWAY_DEADLINE_LABEL} at {GIVEAWAY_CLOSING_TIME_LABEL.toLowerCase()}.</p>
           </div>
         </section>
 

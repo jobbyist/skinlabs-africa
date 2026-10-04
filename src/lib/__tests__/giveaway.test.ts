@@ -55,10 +55,10 @@ describe("campaign rules", () => {
   });
 
   test("approved CTA copy is verbatim", () => {
-    expect(GIVEAWAY_COPY.primaryCta).toBe("Get started with the free skin assessment");
-    expect(GIVEAWAY_COPY.secondaryCta).toBe("Start the free dermatology analysis");
-    expect(GIVEAWAY_COPY.enterCta).toBe("Enter the Giveaway");
+    expect(GIVEAWAY_COPY.primaryCta).toBe("Start your free skin assessment");
+    expect(GIVEAWAY_COPY.enterCta).toBe("Enter the giveaway");
     expect(GIVEAWAY_COPY.storyCta).toBe("Share Your Skin Story");
+    expect(GIVEAWAY_COPY.storyAssessmentCta).toBe("Start your free skin assessment");
   });
 
   test("unconfirmed legal facts are tracked, never invented", () => {
