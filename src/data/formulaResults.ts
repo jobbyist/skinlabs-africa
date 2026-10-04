@@ -116,6 +116,19 @@ const CONCERN_PROFILE: Record<
 };
 
 /**
+ * Short, shareable names of the "key actives" each concern's recommendation
+ * already names (`CONCERN_PROFILE[...].keyActives`). Used by "My Skin Story" so
+ * the shared card never says more than the analysis itself does; a test pins
+ * every entry to the generated recommendation text.
+ */
+export const FOCUS_ACTIVES: Record<FormulaConcern, string[]> = {
+  acne: ["Niacinamide", "Salicylic acid"],
+  brightening: ["Vitamin C", "Azelaic acid", "Alpha arbutin"],
+  aging: ["Retinol", "Peptides", "Vitamin C"],
+  sensitivity: ["Ceramides", "Centella asiatica", "Panthenol"],
+};
+
+/**
  * Monk Skin Tone (MST)-aware guidance — general, well-established dermatology
  * knowledge about how melanin density interacts with common skincare concerns
  * (post-inflammatory hyperpigmentation risk, UV sensitivity, sunscreen texture

@@ -215,6 +215,16 @@ Branch `claude/ui-ux-launchpad-rail-feedback`. Builds on PRs #183/#184 (first la
 - **Applied live 2026-10-03** (after the follow-up below): `feedback_survey_responses` (+ rate-limit and email triggers; probed rolled-back as a member/anon: insert ok, duplicate 23505, user_id spoof 42501, bad surface/long comment rejected, members can't read rows back, exactly one email enqueued) and `email-processor` v42 (one-line entry pinned to a commit on this branch; **re-pin to a commit on main after merge**).
 - The homepage height wobbles ~70px while ad slots settle (pre-existing), which makes Playwright's "element is stable" check slow on phones: use `click({ force: true })` in e2e where it bites.
 
+## "Share my skin story" (2026-10-04) — standing notes
+
+Replaces "Share my skin type" on the Basic AI Skin Analysis results (both buttons in `AIFormulator.tsx`).
+
+- **Client-side only**: `src/lib/skynn/my-skin-story.ts` draws a 1080 × 1920 PNG with native Canvas (no dependency, no upload, no DB row; no devicePixelRatio scaling; `generateMySkinStory()` reads the PNG header and throws if it isn't exactly 1080 × 1920). Input is `MySkinStoryData`, which has no identity/photo/id fields; `my-skin-story-data.ts` maps a `StarterAnalysisResult` onto it (top 3 priorities, `FOCUS_ACTIVES[primaryConcern]` from `formulaResults.ts`, AM/PM slot names from the grounded routine, barrier line only when not "uncertain", MST only if the member picked one, version badge from `SKYNN_FEATURE_VERSION`). Never add fields the analysis doesn't already show; `FOCUS_ACTIVES` is pinned to the recommendation text by a test.
+- **Delivery** (`share-my-skin-story.ts`): native `navigator.share({files})` when `canShare` allows; an AbortError is silent; anything else opens `MySkinStoryDialog` (existing `ui/dialog`) with preview, Download (object URL revoked after 1 s), Copy Share Link (`https://skinlabs.co.za/skynn-ai`, no query), optional Share. `preloadStoryAssets()` warms the logo/fonts when results show so the share call stays inside the browser's gesture window.
+- No QR code (no QR dependency in the repo; text CTA instead). Fonts are the page's own Montserrat/Inter with system fallbacks; logo is `src/assets/skinlabs-logo-white.svg`, falling back to a text wordmark.
+- Tests: `src/lib/__tests__/mySkinStory.test.ts`, three e2e in `e2e/skynn.e2e.ts` (fallback dialog + 1080×1920 download, native share with the PNG, silent cancel).
+- Pre-existing and unrelated: 317 `tsc -p tsconfig.app.json` errors and `supabaseTypesGuard` fail on main (stale `types.ts` vs live DB: `get_formulator_allowance`, `web_story_events`…).
+
 ## TikTok Pixel + Events API (2026-10-03)
 
 Details and human steps: `docs/tiktok-pixel.md`.
@@ -225,6 +235,19 @@ Details and human steps: `docs/tiktok-pixel.md`.
 - **Live 2026-10-03**: token set by the owner; `tiktok-events` v1 deployed (one-line entry pinned to `367b92f` on PR #187, **re-pin to a commit on main after merge**); `20261004120000_tiktok_event_log.sql` applied (probed rolled-back: anon/non-admin denied, no leftover rows). Admin → Ads shows the delivery log. A real end-to-end event was NOT sent (would pollute live ad data): use TikTok Events Manager → Test events (`TIKTOK_TEST_EVENT_CODE`) to verify. Cookie Policy copy now names the TikTok Pixel; Privacy Policy still needs a legal read.
 
 - **Campaign attribution (2026-10-04)**: `src/lib/attribution.ts` captures `utm_*`/`ttclid` into sessionStorage (+ random `attr_sid`), `AttributionCapture` logs one `campaign_landing` per campaign per session, and `trackConversionEvent` merges the labels into the Vercel + `analytics_events` payloads only, never the TikTok forward. Google sign-ups now fire `signup_completed` (-> CompleteRegistration) from `IntentResolver` via `oauthRegistration.ts`. Admin -> Ads -> Campaigns (`admin_campaign_attribution()`, migration `20261004130000`, probe `supabase/tests/campaign_attribution.sql`) is the first-party count; TikTok only sees consented visitors, so it will be lower. Tag links `?utm_source=tiktok&utm_medium=paid_social&utm_campaign=<c>&utm_content=<ad>`.
+
+## October 2026 Skin Story Giveaway landing page (2026-10-03) — standing notes
+
+Branch `claude/tiktok-giveaway-october-2026`. Full detail: **`docs/giveaway-october-2026.md`**.
+
+- **Route `/giveaways/october-2026`** (TikTok paid traffic; slim header, no ads, no site nav; lazy; prerendered; in sitemap; `FloatingBottomNav`/story rail/ad-block wall skip `/giveaways`). CTAs go to the existing free assessment `/skynn-ai` (visitors finish it anonymously; the existing save gate signs them up). **Dates (owner, 2026-10-04): entries close 15 Oct (23:59:59 SAST assumed), winners announced 16 Oct, prizes awarded 31 Oct; eligibility 18+ and SA citizen/legal resident; Lifetime Glow Insider is activated after the free trial period ends on 1 Nov 2026.** Facts/copy live in `src/lib/giveaway/campaign.ts`; T&Cs are built from `GIVEAWAY_LEGAL` in `terms.ts`: unknown legal facts stay `null` and the copy falls back to wording that is true regardless; **never invent entity/age/territory/draw method**. `giveawayOpenQuestions()` lists what is unconfirmed.
+- **Tracking extends the existing layer, no second system**: `src/lib/giveaway/analytics.ts` (whitelisted payload, once-per-session guards, `markGiveawayContext()` so the SKYNN AI flow reports `giveaway_assessment_started/completed` at its existing moments). TikTok: CTA clicks → `ClickButton` (added to client + `_shared/tiktok/eventsApi.ts` whitelist), finished analysis → `SubmitForm`, ViewContent from `contentForPath`. No health data, UTMs or query strings go to TikTok.
+- **Bug fixed in `pixel.ts`**: `sendEvent` read `location.href` after an async step, so a click that navigated filed the event under the next page (and sent the query string); it now captures origin+path synchronously.
+- **Entry = self-report, human-checked** (`giveaway_entries`, `enter_giveaway()`, migration `20261006100000`, **applied live 2026-10-03**, probe `supabase/tests/giveaway_entries.sql` 13/13 rolled back, `types.ts` regenerated). Never say "verified": TikTok Stories can't be checked by API. Closing instant is mirrored in SQL and TS (a test checks both).
+- **Story**: `giveawayOctober2026Story()` (curated; video 0.87 MB from 7.7 MB, poster, blurred bg); listed only while open. Inline player is poster-first and mounts the video at ≥50 % visibility.
+- **Naming conflict, left to the owner**: approved copy says "free AI dermatology analysis" for what is the **Basic AI Skin Analysis** (not dermatologist-reviewed); the page states what it is next to the headline. The supplied video says "Basic dermatology report" and can't be edited in code.
+- **Left for a human**: winner-selection method, claim window, repost licence, "lifetime" definition, voucher expiry, promoter entity details and legal sign-off (see `giveawayOpenQuestions()`), the winners' Lifetime Glow Insider grant (no tool exists; activate on/after 1 Nov 2026), admin UI for entries (SQL only).
+- Gotcha repeated: shadcn `Button` is `whitespace-nowrap`; long CTA labels widened the whole mobile column until given `whitespace-normal h-auto`.
 
 ## Installable app / PWA (2026-10-03) — standing notes
 

@@ -98,6 +98,8 @@ export interface MockState {
   /** Answers the app sent when it seeded an Advanced session from a Basic analysis. */
   seededResponses: Record<string, unknown> | null;
   linkedBasicAnalysis: { basicAnalysisId: string; prefilledQuestionIds: string[] } | null;
+  /** enter_giveaway() calls the mock accepted (October 2026 giveaway). */
+  giveawayEntries: Record<string, unknown>[];
 }
 
 /** A two-question stand-in for the real Advanced AI Dermatology Analysis definition. */
@@ -221,6 +223,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     routineSteps: [],
     seededResponses: null,
     linkedBasicAnalysis: null,
+    giveawayEntries: [],
   };
   const unlimited = opts.skynn?.unlimited ?? false;
   const unlockAt = () =>
@@ -459,6 +462,20 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
         routine[slot].map((st) => ({ id: `step-${slot}-${order}`, step_name: st.step, product_name: st.productName ?? st.productType, time_of_day: slot, sort_order: order++, source: "smart", guidance: st.guidance ?? null, product_slug: st.productSlug ?? null })),
       );
       return r.fulfill({ json: "sr-e2e" });
+    }
+    if (fn === "enter_giveaway") {
+      let body: Record<string, unknown> = {};
+      try {
+        body = (r.request().postDataJSON() as Record<string, unknown>) ?? {};
+      } catch {
+        /* ignore */
+      }
+      // Mirrors the server: a delivered saved analysis is required.
+      if (!(opts.tables?.skincare_recommendations ?? []).some((row) => row.status === "delivered" && row.result_payload != null)) {
+        return r.fulfill({ status: 400, json: { code: "P0001", message: "assessment_required" } });
+      }
+      state.giveawayEntries.push(body);
+      return r.fulfill({ json: { ok: true, entry_id: "gw-e2e", already_entered: false, status: "submitted" } });
     }
     if (fn === "get_formulator_allowance") {
       const available = basicAvailable();

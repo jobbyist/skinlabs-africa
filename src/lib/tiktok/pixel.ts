@@ -193,6 +193,12 @@ const moneyFrom = (payload: ConversionPayload): { value: number; currency: strin
 
 /** Browser event + matching server event (same event_id). Caller has already checked consent. */
 const sendEvent = (name: string, content: TikTokContent | null, money: { value: number; currency: string } | null) => {
+  // Page context is captured NOW: a CTA click navigates immediately, and by the time the async identify step
+  // finishes window.location already points at the next page (the event would be filed under the wrong URL).
+  // Origin + path only: query strings (utm_*, intents, tokens) never leave the browser for this call; the
+  // edge function would strip them too, and ttclid travels in its own field.
+  const pageUrl = `${window.location.origin}${window.location.pathname}`;
+  const pageReferrer = stripQuery(document.referrer);
   void identifyTikTokUser().finally(() => {
     const eventId = newEventId();
     window.ttq?.track(
@@ -210,8 +216,8 @@ const sendEvent = (name: string, content: TikTokContent | null, money: { value: 
           event: name,
           eventId,
           eventTime: Math.floor(Date.now() / 1000),
-          url: window.location.href,
-          referrer: document.referrer || undefined,
+          url: pageUrl,
+          referrer: pageReferrer,
           ttclid: readTtclid(),
           ttp: readTtp(),
           consent: true,
@@ -223,6 +229,16 @@ const sendEvent = (name: string, content: TikTokContent | null, money: { value: 
       })
       .catch(() => undefined);
   });
+};
+
+const stripQuery = (value: string): string | undefined => {
+  try {
+    if (!value) return undefined;
+    const u = new URL(value);
+    return `${u.origin}${u.pathname}`;
+  } catch {
+    return undefined;
+  }
 };
 
 function reportContent(pathname: string): void {

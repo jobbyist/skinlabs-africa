@@ -168,7 +168,9 @@ export type ConversionEvent =
   | "podcast_offline_play"
   // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
   // which whitelists the payload, never directly.
-  | import("@/lib/skynn/analytics").SkynnEvent;
+  | import("@/lib/skynn/analytics").SkynnEvent
+  // October 2026 giveaway funnel — fire through src/lib/giveaway/analytics.ts (whitelisted payload), never directly.
+  | import("@/lib/giveaway/analytics").GiveawayEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

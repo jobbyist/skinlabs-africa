@@ -18,6 +18,7 @@ export type TikTokEventName =
   | "Subscribe"
   | "SubmitForm"
   | "Search"
+  | "ClickButton"
   | "AddPaymentInfo"
   | "Purchase";
 
@@ -33,6 +34,11 @@ const MAP: Partial<Record<string, TikTokEventName>> = {
   credit_pack_purchased: "Purchase",
   // Search: the event only, never the words typed (health-adjacent queries are personal information).
   site_search_result_clicked: "Search",
+  // October 2026 giveaway: the two CTA clicks are button clicks; the finished free analysis is the form-style
+  // conversion. Started / terms / entry stay first-party only (no honest TikTok event, and no double counting).
+  giveaway_cta_click: "ClickButton",
+  giveaway_story_cta_click: "ClickButton",
+  giveaway_assessment_completed: "SubmitForm",
   subscription_started: "Subscribe",
   keep_membership_completed: "Subscribe",
   newsletter_confirmed: "SubmitForm",
@@ -76,6 +82,7 @@ const STATIC_PAGES: Record<string, TikTokContent> = {
   "/ingredients": { content_id: "ingredients", content_type: "product_group", content_name: "Ingredient directory" },
   "/compare": { content_id: "shelf-showdown", content_type: "product_group", content_name: "Shelf Showdown" },
   "/podcast": { content_id: "podcast", content_type: "product_group", content_name: "The Skin Deep podcast" },
+  "/giveaways/october-2026": { content_id: "giveaway-october-2026", content_type: "product", content_name: "October 2026 Skin Story Giveaway" },
   "/marketplace": { content_id: "openhaus", content_type: "product_group", content_name: "OpenHaus marketplace" },
 };
 
