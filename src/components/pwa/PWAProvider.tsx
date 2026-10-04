@@ -17,6 +17,7 @@ import { getPushCapabilityNow } from "@/lib/pwa/pushCapability";
 import { readDetectionEnv } from "@/lib/pwa/detection";
 import { INSTALL_MIN_DELAY_MS } from "@/lib/pwa/constants";
 import { countPageView, getPageViews, readInstallDismissedAt, resolveInstallExperience, type InstallExperience } from "@/lib/pwa/install";
+import { NOTIFICATIONS_CHANGED_EVENT } from "@/lib/notificationInbox";
 import { onBackOnline } from "@/lib/pwa/network";
 import { flushQueue } from "@/lib/pwa/offlineQueue";
 import { applyServiceWorkerUpdate, checkForServiceWorkerUpdate, getUpdateSnapshot, SW_EVENTS, subscribeUpdates, takePendingNavigation } from "@/lib/pwa/serviceWorker";
@@ -174,17 +175,25 @@ const PWAProvider = () => {
     let cancelled = false;
     const syncBadge = async () => {
       if (!user) return void setBadge(0);
-      const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null);
+      const { count } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .is("read_at", null)
+        .is("archived_at", null)
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
       if (!cancelled) await setBadge(count ?? 0);
     };
     const onVisible = () => document.visibilityState === "visible" && void syncBadge();
     void syncBadge();
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener(SW_EVENTS.pushReceived, onVisible);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, onVisible);
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener(SW_EVENTS.pushReceived, onVisible);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, onVisible);
     };
   }, [user]);
 

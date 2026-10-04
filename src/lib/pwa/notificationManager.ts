@@ -27,7 +27,6 @@ import { enqueueAction, queueKey, registerQueueHandler, type QueuedAction } from
 import { isNetworkError } from "./network";
 import { getReadyRegistration } from "./serviceWorker";
 import { local } from "./storageUtil";
-import { NOTIFICATION_CATEGORIES, type NotificationCategory } from "./pushPayload";
 
 /** Where in the product a push opt-in happened (a prop on the existing push events, so the funnel splits by surface). */
 export type PushSurface = "welcome" | "checklist" | "settings" | "prompt" | "report_pending" | "first_checkin";
@@ -37,32 +36,92 @@ export type PermissionState = NotificationPermission | "unsupported";
 export type SubscribeFailure = "unsupported" | "needs_install" | "not_configured" | "not_signed_in" | "denied" | "failed";
 export type SubscribeResult = { ok: true } | { ok: false; reason: SubscribeFailure };
 
-export interface NotificationPreferences {
-  podcast_episode: boolean;
-  briefing: boolean;
-  routine_reminder: boolean;
-  account_update: boolean;
-  promotional: boolean;
-  service: boolean;
-}
+/** Every category a member can switch (the engine's ten). Order here is the order the Settings card shows. */
+export const PREFERENCE_CATEGORIES = [
+  "report_ready",
+  "account_update",
+  "service",
+  "routine_reminder",
+  "briefing",
+  "skin_weather",
+  "journal_reminder",
+  "podcast_episode",
+  "promotional",
+  "price_alert",
+] as const;
+export type PreferenceCategory = (typeof PREFERENCE_CATEGORIES)[number];
 
-/** Defaults for a member who has not chosen: essential messages on, everything else (marketing most of all) off. */
+export type NotificationPreferences = Record<PreferenceCategory, boolean>;
+
+/** The six the first-run permission dialog shows (the rest live in Settings → Notifications). */
+export const PROMPT_CATEGORIES: readonly PreferenceCategory[] = ["podcast_episode", "briefing", "routine_reminder", "account_update", "promotional", "service"];
+
+/** Same as the live column defaults: essential messages on, everything else (marketing most of all) off. */
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
-  podcast_episode: false,
-  briefing: false,
-  routine_reminder: false,
+  report_ready: true,
   account_update: true,
-  promotional: false,
   service: true,
+  routine_reminder: false,
+  briefing: false,
+  skin_weather: false,
+  journal_reminder: false,
+  podcast_episode: false,
+  promotional: false,
+  price_alert: false,
 };
 
-export const PREFERENCE_LABELS: Record<NotificationCategory, { label: string; description: string }> = {
-  podcast_episode: { label: "New podcast episodes", description: "When a new episode of The Skin Deep is published." },
-  briefing: { label: "SkinLabs® briefings", description: "When a new Daily Skinny briefing is published." },
-  routine_reminder: { label: "Routine reminders", description: "A nudge at your preferred routine time." },
-  account_update: { label: "Account updates", description: "Membership, billing and security notices." },
-  promotional: { label: "Offers and promotions", description: "Occasional offers. Off unless you turn it on." },
-  service: { label: "Important service notices", description: "Outages, policy changes and other things you need to know." },
+export interface PreferenceMeta {
+  label: string;
+  /** What it is, in plain language. */
+  description: string;
+  /** A concrete example of what arrives. Never contains health detail: lock-screen copy stays generic. */
+  example: string;
+  defaultOn: boolean;
+}
+
+export const PREFERENCE_LABELS: Record<PreferenceCategory, PreferenceMeta> = {
+  report_ready: { label: "Report ready", description: "When your Advanced analysis is released to you.", example: "e.g. “Your SkinLabs® report is ready”", defaultOn: true },
+  account_update: { label: "Account updates", description: "Membership, billing and security notices.", example: "e.g. “Your Glow Insider trial ends in 3 days”", defaultOn: true },
+  service: { label: "Important service notices", description: "Outages, policy changes and other things you need to know.", example: "e.g. “Scheduled maintenance tonight”", defaultOn: true },
+  routine_reminder: { label: "Routine reminders", description: "A nudge at your routine time, only on days you haven’t checked in.", example: "e.g. “Time for your morning routine”", defaultOn: false },
+  briefing: { label: "SkinLabs® briefings", description: "When the day’s Daily Skinny briefing is published.", example: "e.g. “Today’s SkinLabs® briefing · 4 min read”", defaultOn: false },
+  skin_weather: { label: "Skin weather alerts", description: "On days with high UV, very dry or hot and humid conditions in your city.", example: "e.g. “High UV today in Johannesburg”", defaultOn: false },
+  journal_reminder: { label: "Photo journal reminders", description: "When a progress photo is due.", example: "e.g. “Time for a progress photo”", defaultOn: false },
+  podcast_episode: { label: "New podcast episodes", description: "When a new episode of The Skin Deep is published.", example: "e.g. “New episode: Sunscreen myths”", defaultOn: false },
+  promotional: { label: "Offers and news", description: "Offers and news - you can turn this off any time.", example: "e.g. “Member offer: 20% off Analysis Passes”", defaultOn: false },
+  price_alert: { label: "Price alerts", description: "When a product you follow drops in price at a South African retailer.", example: "e.g. “A product you saved is cheaper at Clicks”", defaultOn: false },
+};
+
+/** Delivery settings, bound to the real `time` / smallint columns of notification_preferences. */
+export interface DeliveryPreferences {
+  quiet_hours_enabled: boolean;
+  /** "HH:MM" (the column is `time`; the database returns "HH:MM:SS"). */
+  quiet_hours_start: string;
+  quiet_hours_end: string;
+  /** 0 to 10 (a CHECK on the column). */
+  daily_cap: number;
+  /** null = use the time from the member's routine profile. */
+  routine_reminder_time: string | null;
+}
+
+export const DEFAULT_DELIVERY: DeliveryPreferences = {
+  quiet_hours_enabled: true,
+  quiet_hours_start: "21:00",
+  quiet_hours_end: "07:00",
+  daily_cap: 2,
+  routine_reminder_time: null,
+};
+
+export const MAX_DAILY_CAP = 10;
+export const clampDailyCap = (n: unknown): number => {
+  const v = typeof n === "number" ? n : Number(n);
+  return Number.isFinite(v) ? Math.max(0, Math.min(MAX_DAILY_CAP, Math.round(v))) : DEFAULT_DELIVERY.daily_cap;
+};
+/** "21:00:00" -> "21:00"; anything that is not a clock time -> null. */
+export const toClock = (value: unknown): string | null => {
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(typeof value === "string" ? value : "");
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  return `${m[1].padStart(2, "0")}:${m[2]}`;
 };
 
 type RegisterPushArgs = Database["public"]["Functions"]["register_push_subscription"]["Args"];
@@ -270,33 +329,69 @@ export const syncSubscription = async (userId: string): Promise<void> => {
 
 // --- preferences ---------------------------------------------------------------
 
-type PrefRow = Partial<NotificationPreferences>;
+type PrefRow = Partial<NotificationPreferences & DeliveryPreferences>;
+const CATEGORY_COLUMNS = PREFERENCE_CATEGORIES.join(", ");
+const DELIVERY_COLUMNS = "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, daily_cap, routine_reminder_time";
 
 export const normalizePreferences = (row: PrefRow | null | undefined): NotificationPreferences => {
   const out = { ...DEFAULT_PREFERENCES };
   if (!row) return out;
-  for (const key of NOTIFICATION_CATEGORIES) if (typeof row[key] === "boolean") out[key] = row[key] as boolean;
+  for (const key of PREFERENCE_CATEGORIES) if (typeof row[key] === "boolean") out[key] = row[key] as boolean;
   return out;
 };
 
-export const loadPreferences = async (userId: string): Promise<NotificationPreferences> => {
+export const normalizeDelivery = (row: Record<string, unknown> | null | undefined): DeliveryPreferences => {
+  if (!row) return { ...DEFAULT_DELIVERY };
+  return {
+    quiet_hours_enabled: typeof row.quiet_hours_enabled === "boolean" ? row.quiet_hours_enabled : DEFAULT_DELIVERY.quiet_hours_enabled,
+    quiet_hours_start: toClock(row.quiet_hours_start) ?? DEFAULT_DELIVERY.quiet_hours_start,
+    quiet_hours_end: toClock(row.quiet_hours_end) ?? DEFAULT_DELIVERY.quiet_hours_end,
+    daily_cap: row.daily_cap === undefined || row.daily_cap === null ? DEFAULT_DELIVERY.daily_cap : clampDailyCap(row.daily_cap),
+    routine_reminder_time: toClock(row.routine_reminder_time),
+  };
+};
+
+/** Category switches + delivery settings in one read. */
+export const loadAllPreferences = async (userId: string): Promise<{ categories: NotificationPreferences; delivery: DeliveryPreferences }> => {
   const { data, error } = await supabase
     .from("notification_preferences")
-    .select("podcast_episode, briefing, routine_reminder, account_update, promotional, service")
+    .select(`${CATEGORY_COLUMNS}, ${DELIVERY_COLUMNS}`)
     .eq("user_id", userId)
     .maybeSingle();
   if (error) console.warn("[pwa] could not load notification preferences:", error.message);
-  return normalizePreferences(data);
+  const row = (data ?? null) as Record<string, unknown> | null;
+  return { categories: normalizePreferences(row as PrefRow | null), delivery: normalizeDelivery(row) };
 };
 
-const writePreferences = (userId: string, prefs: NotificationPreferences) =>
-  supabase.from("notification_preferences").upsert({ user_id: userId, ...prefs }, { onConflict: "user_id" });
+export const loadPreferences = async (userId: string): Promise<NotificationPreferences> => (await loadAllPreferences(userId)).categories;
 
-/** Saves preferences; offline or unreachable writes are queued and replayed (last write wins). */
-export const savePreferences = async (userId: string, prefs: NotificationPreferences): Promise<"saved" | "queued" | "failed"> => {
+/**
+ * The upsert body. There is NO user_id in it: members hold column grants on the preference columns only, so a body that
+ * names user_id (or promotional_opt_in_at) is rejected with 42501; the column default (auth.uid()) fills user_id and RLS
+ * pins it to the caller. promotional_opt_in_at is NEVER written from the client: it has no client column grant and the live
+ * BEFORE INSERT OR UPDATE trigger (notification_preferences_audit) stamps it when promotional turns on and clears it when off.
+ */
+export const preferenceRow = (prefs: PrefRow, only?: readonly string[]): Record<string, unknown> => {
+  const row: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(prefs)) {
+    if (key === "user_id" || key === "promotional_opt_in_at" || value === undefined) continue;
+    if (only && !only.includes(key)) continue;
+    row[key] = key === "routine_reminder_time" ? (value ? toClock(value) : null) : key === "daily_cap" ? clampDailyCap(value) : value;
+  }
+  return row;
+};
+
+export const writePreferences = (row: Record<string, unknown>) => supabase.from("notification_preferences").upsert(row as never, { onConflict: "user_id" });
+
+/**
+ * Saves preferences (categories and/or delivery settings; pass `only` to write a subset). Offline or unreachable writes are
+ * queued and replayed (last write wins, so callers that edit several fields pass the full state each time).
+ */
+export const savePreferences = async (userId: string, prefs: PrefRow, only?: readonly string[]): Promise<"saved" | "queued" | "failed"> => {
+  const row = preferenceRow(prefs, only);
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
     try {
-      const { error } = await writePreferences(userId, prefs);
+      const { error } = await writePreferences(row);
       if (!error) return "saved";
       if (!isNetworkError(error)) return "failed";
     } catch (error) {
@@ -307,7 +402,7 @@ export const savePreferences = async (userId: string, prefs: NotificationPrefere
     key: queueKey("notification_preferences", userId),
     type: "notification_preferences",
     userId,
-    payload: { ...prefs },
+    payload: { ...row },
   });
   return queued ? "queued" : "failed";
 };
@@ -316,17 +411,45 @@ registerQueueHandler("notification_preferences", async (action: QueuedAction) =>
   const { data } = await supabase.auth.getSession();
   if (!data.session) return "retry";
   if (data.session.user.id !== action.userId) return "drop";
-  const { error } = await writePreferences(action.userId, normalizePreferences(action.payload as PrefRow));
+  const { error } = await writePreferences(preferenceRow(action.payload as PrefRow));
   if (!error) return "done";
   return isNetworkError(error) ? "retry" : "drop";
 });
 
-/** Asks the push-send Edge Function to deliver a test notification to the signed-in member's own devices only. */
-export const sendTestNotification = async (): Promise<boolean> => {
+/** The member's push devices (SECURITY DEFINER RPC: members can't read push_subscriptions directly). */
+export interface PushDevice {
+  id: string;
+  platform: string | null;
+  browser: string | null;
+  is_active: boolean;
+  created_at: string;
+  last_used_at: string | null;
+}
+export const listMyPushDevices = async (): Promise<PushDevice[]> => {
+  const { data, error } = await supabase.rpc("list_my_push_devices");
+  if (error) return [];
+  return ((data ?? []) as PushDevice[]).filter((d) => d.is_active);
+};
+export const removeMyPushDevice = async (id: string): Promise<boolean> => {
+  const { data, error } = await supabase.rpc("remove_my_push_device", { p_id: id });
+  return !error && data === true;
+};
+
+export type TestNotificationResult = "sent" | "rate_limited" | "no_devices" | "failed";
+
+/**
+ * The member's own "Send me a test": push-send's self-test action (the engine's enqueue_notification is service-role only, and
+ * the copy is the test_push template's). push-send rate-limits it to one per 15 s per member and answers 429.
+ */
+export const sendTestNotification = async (): Promise<TestNotificationResult> => {
   try {
     const { data, error } = await supabase.functions.invoke("push-send", { body: { action: "test" } });
-    return !error && (data as { sent?: number } | null)?.sent !== 0;
+    if (error) {
+      const status = (error as { context?: { status?: number } }).context?.status;
+      return status === 429 ? "rate_limited" : "failed";
+    }
+    return (data as { sent?: number } | null)?.sent === 0 ? "no_devices" : "sent";
   } catch {
-    return false;
+    return "failed";
   }
 };

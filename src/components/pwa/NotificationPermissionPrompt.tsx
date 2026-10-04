@@ -13,6 +13,7 @@ import { local } from "@/lib/pwa/storageUtil";
 import {
   DEFAULT_PREFERENCES,
   isConfigured,
+  PROMPT_CATEGORIES,
   requestPermission,
   savePreferences,
   subscribe,
@@ -92,7 +93,7 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
       setPhase("problem");
       return;
     }
-    await savePreferences(user.id, prefs);
+    await savePreferences(user.id, prefs, PROMPT_CATEGORIES);
     setPhase("done");
   };
 
@@ -117,7 +118,7 @@ const NotificationPermissionPrompt = ({ open, onOpenChange }: Props) => {
         </DialogHeader>
 
         {(phase === "intro" || phase === "working") && (
-          <NotificationPreferencesList value={prefs} onChange={setPrefs} disabled={phase === "working"} idPrefix="prompt-notif" />
+          <NotificationPreferencesList value={prefs} onChange={setPrefs} categories={PROMPT_CATEGORIES} disabled={phase === "working"} idPrefix="prompt-notif" />
         )}
 
         {phase === "problem" && problem && (

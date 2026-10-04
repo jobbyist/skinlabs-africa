@@ -7,10 +7,9 @@
  * (requestPermission is a no-op without a live user activation and never re-asks after "denied") → subscribe →
  * one preference upsert → a confirmation test notification.
  */
-import { supabase } from "@/integrations/supabase/client";
 import { trackPwaEvent } from "./analytics";
 import { local } from "./storageUtil";
-import { requestPermission, sendTestNotification, subscribe, type PushSurface, type SubscribeFailure } from "./notificationManager";
+import { preferenceRow, requestPermission, sendTestNotification, subscribe, writePreferences, type PushSurface, type SubscribeFailure } from "./notificationManager";
 
 export type { PushSurface };
 
@@ -27,14 +26,14 @@ export const trackSoftAskAccepted = (surface: PushSurface) => trackPwaEvent("pus
  * time is stored and the member's existing on/off choice is left alone.
  */
 export const saveReminderPreference = async (userId: string, clockTime: string | null, enable: boolean): Promise<boolean> => {
-  const row = { user_id: userId, ...(clockTime ? { routine_reminder_time: clockTime } : {}), ...(enable ? { routine_reminder: true } : {}) };
-  const { error } = await supabase.from("notification_preferences").upsert(row, { onConflict: "user_id" });
+  const row = { ...(clockTime ? { routine_reminder_time: clockTime } : {}), ...(enable ? { routine_reminder: true } : {}) };
+  const { error } = await writePreferences(preferenceRow(row));
   return !error;
 };
 
 /** Make sure the member's report-ready notifications are on (the column defaults to true; this makes it explicit). */
 export const saveReportReadyPreference = async (userId: string): Promise<boolean> => {
-  const { error } = await supabase.from("notification_preferences").upsert({ user_id: userId, report_ready: true }, { onConflict: "user_id" });
+  const { error } = await writePreferences(preferenceRow({ report_ready: true }));
   return !error;
 };
 
@@ -54,7 +53,7 @@ export const runReminderOptIn = async (opts: { surface: PushSurface; userId: str
   else await saveReminderPreference(opts.userId, opts.clockTime, true);
   local.remove(REMINDER_INTENT_KEY);
   // Confirmation push (best effort; the member sees it arrive on this device).
-  const confirmed = await sendTestNotification();
+  const confirmed = (await sendTestNotification()) === "sent";
   return { ok: true, confirmed };
 };
 

@@ -1,26 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, CheckCircle2, Download, HardDrive, Loader2, Trash2 } from "lucide-react";
+import { CheckCircle2, Download, HardDrive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import NotificationPreferencesList from "./NotificationPreferencesList";
-import { useAuth } from "@/hooks/use-auth";
+import NotificationSettingsCard from "./NotificationSettingsCard";
 import { useOfflinePodcasts } from "@/hooks/use-offline-podcasts";
 import { usePWAStatus } from "@/hooks/use-pwa-status";
-import { usePushCapability } from "@/hooks/use-push-capability";
 import { getDownloadedBytes, removeAllDownloads, removeDownload } from "@/lib/pwa/podcastCache";
-import {
-  DEFAULT_PREFERENCES,
-  isConfigured,
-  loadPreferences,
-  savePreferences,
-  sendTestNotification,
-  unsubscribe,
-  type NotificationPreferences,
-} from "@/lib/pwa/notificationManager";
 import { clearCachedContent, formatBytes, getCachedContentStats, getStorageEstimate, type StorageEstimateInfo } from "@/lib/pwa/storage";
-import { openInstallPrompt, openNotificationPrompt } from "@/lib/pwa/uiEvents";
+import { openInstallPrompt } from "@/lib/pwa/uiEvents";
 
 const InstallCard = () => {
   const status = usePWAStatus();
@@ -46,103 +35,6 @@ const InstallCard = () => {
               ? "Open SkinLabs® in your regular browser (Safari or Chrome) to install it."
               : "Installing isn’t available in this browser. Chrome, Edge and Safari support it."}
           </p>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const NotificationsCard = () => {
-  const { user } = useAuth();
-  const { capability, loading: capabilityLoading, instructions, refresh: refreshCapability } = usePushCapability();
-  const [prefsLoading, setPrefsLoading] = useState(true);
-  const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (user) {
-        const loaded = await loadPreferences(user.id);
-        if (!cancelled) setPrefs(loaded);
-      }
-      if (!cancelled) setPrefsLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  const changePrefs = async (next: NotificationPreferences) => {
-    if (!user) return;
-    setPrefs(next);
-    const result = await savePreferences(user.id, next);
-    if (result === "failed") toast.error("Couldn’t save your notification choices. Please try again.");
-    else if (result === "queued") toast.message("You’re offline — we’ll save this when you’re back online.");
-  };
-
-  const turnOff = async () => {
-    setBusy(true);
-    const ok = await unsubscribe();
-    setBusy(false);
-    await refreshCapability();
-    if (ok) toast.success("Notifications are off on this device.");
-    else toast.error("Couldn’t turn notifications off. Please try again.");
-  };
-
-  const test = async () => {
-    setBusy(true);
-    const ok = await sendTestNotification();
-    setBusy(false);
-    if (ok) toast.success("Test notification sent to your devices.");
-    else toast.error("Couldn’t send a test notification right now.");
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BellRing className="h-4 w-4" aria-hidden="true" /> Notifications
-        </CardTitle>
-        <CardDescription>Choose what SkinLabs® can notify you about on your devices.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {capabilityLoading || prefsLoading ? (
-          <Loader2 className="h-4 w-4 motion-safe:animate-spin text-muted-foreground" aria-label="Loading" />
-        ) : capability === "unsupported" ? (
-          <p className="text-sm text-muted-foreground">This browser can’t receive push notifications.</p>
-        ) : !isConfigured() ? (
-          <p className="text-sm text-muted-foreground">Push notifications aren’t switched on for SkinLabs® yet.</p>
-        ) : capability === "needs_install" ? (
-          <p className="text-sm text-muted-foreground">On iPhone and iPad, install SkinLabs® to your Home Screen first, then open it from there to enable notifications.</p>
-        ) : capability === "denied" ? (
-          <div className="text-sm text-muted-foreground" role="status">
-            <p>Notifications are blocked for SkinLabs® in your browser or device settings. {instructions.title}:</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-5">
-              {instructions.steps.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
-          </div>
-        ) : (
-          <>
-            {capability === "subscribed" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-sm font-medium" role="status">
-                  <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" /> On for this device
-                </span>
-                <Button variant="outline" size="sm" onClick={() => void test()} disabled={busy}>
-                  Send a test
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => void turnOff()} disabled={busy}>
-                  Turn off
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={openNotificationPrompt}>Enable notifications</Button>
-            )}
-            {user && capability === "subscribed" && <NotificationPreferencesList value={prefs} onChange={(next) => void changePrefs(next)} idPrefix="settings-notif" />}
-          </>
         )}
       </CardContent>
     </Card>
@@ -246,7 +138,7 @@ const OfflineStorageCard = () => {
 const AppSettingsPanel = () => (
   <div className="space-y-6">
     <InstallCard />
-    <NotificationsCard />
+    <NotificationSettingsCard />
     <OfflineStorageCard />
   </div>
 );

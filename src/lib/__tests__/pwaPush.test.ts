@@ -226,6 +226,44 @@ describe("helpers", () => {
   });
 });
 
+describe("notification preferences (all ten categories + delivery)", () => {
+  test("the model covers the engine's ten categories, promotional off by default, copy as specified", () => {
+    expect([...manager.PREFERENCE_CATEGORIES].sort()).toEqual(
+      ["account_update", "briefing", "journal_reminder", "podcast_episode", "price_alert", "promotional", "report_ready", "routine_reminder", "service", "skin_weather"].sort(),
+    );
+    for (const key of manager.PREFERENCE_CATEGORIES) {
+      expect(manager.PREFERENCE_LABELS[key].defaultOn).toBe(manager.DEFAULT_PREFERENCES[key]);
+      expect(manager.PREFERENCE_LABELS[key].example.length).toBeGreaterThan(5);
+    }
+    expect(manager.PREFERENCE_LABELS.promotional.description).toBe("Offers and news - you can turn this off any time.");
+    expect(manager.PROMPT_CATEGORIES).toHaveLength(6);
+  });
+  test("the upsert body never carries user_id (no column grant: 42501) or promotional_opt_in_at (the live trigger stamps it)", () => {
+    const row = manager.preferenceRow({ promotional: true, promotional_opt_in_at: "2026-10-04", user_id: "u1" } as never);
+    expect(row).toEqual({ promotional: true });
+  });
+  test("`only` limits what is written, so one screen cannot clobber the other's fields", () => {
+    expect(manager.preferenceRow({ briefing: true, podcast_episode: true, daily_cap: 4 }, ["briefing"])).toEqual({ briefing: true });
+  });
+  test("delivery values: clock times as HH:MM, cap clamped to 0-10, blank reminder time is null", () => {
+    expect(manager.preferenceRow({ routine_reminder_time: "07:30:00", daily_cap: 99, quiet_hours_start: "21:00" })).toMatchObject({ routine_reminder_time: "07:30", daily_cap: 10 });
+    expect(manager.preferenceRow({ routine_reminder_time: "" as never })).toMatchObject({ routine_reminder_time: null });
+    expect(manager.clampDailyCap(-3)).toBe(0);
+    expect(manager.clampDailyCap("abc")).toBe(manager.DEFAULT_DELIVERY.daily_cap);
+  });
+  test("normalizeDelivery reads the database's time columns", () => {
+    expect(manager.normalizeDelivery(null)).toEqual(manager.DEFAULT_DELIVERY);
+    expect(manager.normalizeDelivery({ quiet_hours_enabled: false, quiet_hours_start: "22:30:00", quiet_hours_end: "06:15:00", daily_cap: 0, routine_reminder_time: "08:00:00" })).toEqual({
+      quiet_hours_enabled: false,
+      quiet_hours_start: "22:30",
+      quiet_hours_end: "06:15",
+      daily_cap: 0,
+      routine_reminder_time: "08:00",
+    });
+    expect(manager.normalizeDelivery({ quiet_hours_start: "25:00:00" }).quiet_hours_start).toBe("21:00");
+  });
+});
+
 describe("server-side send rules (push-send)", () => {
   test("a member with no preferences only gets essential messages; promotional needs an explicit opt-in", () => {
     expect(categoryAllowed(undefined, "account_update")).toBe(true);

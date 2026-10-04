@@ -343,7 +343,7 @@ test.describe("app settings", () => {
     // re-enable steps also qualifies). Either way it is one honest state.
     await expect(
       page
-        .getByText(/aren’t switched on|can’t receive push|install SkinLabs® to your Home Screen|blocked for SkinLabs/)
+        .getByText(/aren’t switched on|can’t receive push|notifications work from the installed app|blocked for SkinLabs/)
         .or(page.getByRole("button", { name: "Enable notifications" }))
         .first(),
     ).toBeVisible();
@@ -388,7 +388,7 @@ test.describe("reminder opt-in: ready (Android Chrome)", () => {
     // One upsert enabling the reminder at the chosen time.
     expect(state.preferenceWrites.some((w) => w.routine_reminder === true && w.routine_reminder_time === "07:00")).toBe(true);
     // The confirmation test notification goes through the member self-test action.
-    expect(state.functionCalls.some((c) => c.name === "push-send" && c.action === "test")).toBe(true);
+    await expect.poll(() => state.functionCalls.some((c) => c.name === "push-send" && c.action === "test")).toBe(true);
   });
 
   test("'Not now' never reaches the native prompt", async ({ page, context }) => {

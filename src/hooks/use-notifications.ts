@@ -1,64 +1,77 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { SW_EVENTS } from "@/lib/pwa/serviceWorker";
+import { INBOX_COLUMNS, INBOX_PAGE_SIZE, NOTIFICATIONS_CHANGED_EVENT, mergeRow, toInboxRow, unreadOf, visibleRows, type InboxRow } from "@/lib/notificationInbox";
 
-export interface NotificationRow {
-  id: string;
-  category: string;
-  title: string;
-  body: string | null;
-  link: string | null;
-  read_at: string | null;
-  created_at: string;
-}
+export type NotificationRow = InboxRow;
+
+const announceChange = () => {
+  try {
+    window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
+  } catch {
+    /* non-browser */
+  }
+};
 
 /**
- * The dashboard inbox's notification feed. Every row here is generated
- * server-side by a real account event (a new AI analysis, a credit grant, a
- * plan change — see the triggers in 20260908150000_user_dashboard_redesign.sql)
- * — nothing is fabricated client-side. Subscribes to realtime inserts so a
- * notification appears without a manual refresh.
+ * The dashboard inbox's notification feed. Every row is written server-side (account-event triggers and the
+ * notification engine); nothing is fabricated client-side. Archived and expired rows are hidden. A realtime
+ * subscription adds new rows (and applies archive/read changes from other devices) without a refresh, and a
+ * "push-received" message from the service worker (a push arrived while the app was open) refetches.
  */
 export const useNotifications = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+  const [notifications, setNotifications] = useState<InboxRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const userId = user?.id ?? null;
+  // Two components use this hook at once (the dashboard tab badge and the Inbox). supabase.channel(name) returns the SAME
+  // channel for the same name, and handlers added after it has joined never receive events, so each instance gets its own.
+  const instance = useId();
+  const latest = useRef<InboxRow[]>([]);
+  latest.current = notifications;
 
   const load = useCallback(async () => {
-    if (!user) {
+    if (!userId) {
       setNotifications([]);
       setLoading(false);
       return;
     }
     const { data } = await supabase
       .from("notifications")
-      .select("id, category, title, body, link, read_at, created_at")
-      .eq("user_id", user.id)
+      .select(INBOX_COLUMNS)
+      .eq("user_id", userId)
+      .is("archived_at", null)
+      .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
       .order("created_at", { ascending: false })
-      .limit(50);
-    setNotifications(data ?? []);
+      .limit(INBOX_PAGE_SIZE);
+    setNotifications(visibleRows((data ?? []) as InboxRow[]));
     setLoading(false);
-  }, [user]);
+    announceChange();
+  }, [userId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
+    const apply = (payload: { new: unknown }) => {
+      const row = toInboxRow(payload.new);
+      if (row) {
+        setNotifications((prev) => mergeRow(prev, row));
+        announceChange();
+      }
+    };
     const channel = supabase
-      .channel(`notifications-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => setNotifications((prev) => [payload.new as NotificationRow, ...prev]),
-      )
+      .channel(`notifications-${userId}-${instance}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, apply)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, apply)
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [userId, instance]);
 
   // A push arrived while the app was open (the worker skips the system notification): refresh the feed.
   useEffect(() => {
@@ -67,20 +80,38 @@ export const useNotifications = () => {
     return () => window.removeEventListener(SW_EVENTS.pushReceived, onPush);
   }, [load]);
 
-  const markRead = async (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? new Date().toISOString() } : n)));
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id).is("read_at", null);
-  };
+  const markRead = useCallback(async (id: string) => {
+    const now = new Date().toISOString();
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read_at: n.read_at ?? now } : n)));
+    announceChange();
+    await supabase.from("notifications").update({ read_at: now }).eq("id", id).is("read_at", null);
+    announceChange();
+  }, []);
 
-  const markAllRead = async () => {
-    const unreadIds = notifications.filter((n) => !n.read_at).map((n) => n.id);
-    if (unreadIds.length === 0) return;
+  const markAllRead = useCallback(async () => {
     const now = new Date().toISOString();
     setNotifications((prev) => prev.map((n) => ({ ...n, read_at: n.read_at ?? now })));
-    await supabase.from("notifications").update({ read_at: now }).in("id", unreadIds);
-  };
+    announceChange();
+    const { error } = await supabase.rpc("mark_all_notifications_read");
+    if (error) await load();
+    announceChange();
+    return !error;
+  }, [load]);
 
-  const unreadCount = notifications.filter((n) => !n.read_at).length;
+  const archive = useCallback(
+    async (id: string) => {
+      const before = latest.current;
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      announceChange();
+      const { error } = await supabase.from("notifications").update({ archived_at: new Date().toISOString() }).eq("id", id);
+      if (error) setNotifications(before);
+      announceChange();
+      return !error;
+    },
+    [],
+  );
 
-  return { notifications, loading, unreadCount, markRead, markAllRead, refresh: load };
+  const unreadCount = unreadOf(notifications);
+
+  return { notifications, loading, unreadCount, markRead, markAllRead, archive, refresh: load };
 };

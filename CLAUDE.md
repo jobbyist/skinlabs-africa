@@ -320,8 +320,23 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
   `takePendingNavigation()` because `PWAProvider` mounts lazily), else `openWindow`. `pushsubscriptionchange` re-subscribes with
   `VITE_VAPID_PUBLIC_KEY` but the worker holds no credentials, so `register_push_subscription` is called by the page (`syncSubscription`).
   The app badge shows the real unread inbox count.
-- **Not built yet**: an admin console UI for the engine (only the RPCs exist), member preference UI for the four new categories, quiet
-  hours and the daily cap (`notificationManager.ts` still knows 6 categories), the Admin -> Analytics split of the push funnel by `surface`
+- **Member inbox + Settings (2026-10-04)**: `use-notifications.ts` + pure `src/lib/notificationInbox.ts` (tested). The inbox hides
+  archived and expired rows (server filter + client re-check), subscribes to Realtime INSERT *and* UPDATE (`notifications` is already in the
+  `supabase_realtime` publication, no migration), refetches on the worker's `push-received`, marks read on open, mark-all through
+  `mark_all_notifications_read()`, archive = `archived_at`, `action_label` renders a button only for a same-origin link, `image_url` only
+  from our own origin (`safeImageUrl`). `NOTIFICATIONS_CHANGED_EVENT` re-counts the app-icon badge (which also ignores archived/expired).
+  **Each `useNotifications()` instance needs its own channel name** (the dashboard badge and the Inbox both call it; the same name returns
+  the already-joined channel and the second caller's handlers never receive events). Settings → App → Notifications is
+  `NotificationSettingsCard`: all ten categories with an example and "On by default", `routine_reminder_time` / `quiet_hours_*` time
+  pickers, `daily_cap` stepper 0-10, devices (`list_my_push_devices` / `remove_my_push_device`, which only deactivates the row) and
+  "Send me a test" (`push-send` self-test, 15 s limit -> "rate_limited"; it does NOT use the engine's `test_push` template because
+  `enqueue_notification` is service-role only). Denied / needs_install / unsupported replace the switches with the re-enable or
+  install steps. **Writes to `notification_preferences` must NOT name `user_id` or `promotional_opt_in_at`**: members only hold column
+  grants on the preference columns, so an upsert body with `user_id` is a 42501 (this broke every client preference save until
+  2026-10-04; `preferenceRow()` strips both and the column default fills `user_id`). The `notification_preferences_audit` trigger stamps and
+  clears `promotional_opt_in_at`. Verified live in a rolled-back probe: toggling `promotional` flips `opted_out`/`push_reachable` in
+  `admin_preview_notification_audience`. `PREFERENCE_CATEGORIES` / `PREFERENCE_LABELS` in `notificationManager.ts` are the one list.
+- **Not built yet**: an admin console UI for the engine (only the RPCs exist), the Admin -> Analytics split of the push funnel by `surface`
   (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
   Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).
 
