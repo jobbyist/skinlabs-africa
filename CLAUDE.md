@@ -215,6 +215,16 @@ Branch `claude/ui-ux-launchpad-rail-feedback`. Builds on PRs #183/#184 (first la
 - **Applied live 2026-10-03** (after the follow-up below): `feedback_survey_responses` (+ rate-limit and email triggers; probed rolled-back as a member/anon: insert ok, duplicate 23505, user_id spoof 42501, bad surface/long comment rejected, members can't read rows back, exactly one email enqueued) and `email-processor` v42 (one-line entry pinned to a commit on this branch; **re-pin to a commit on main after merge**).
 - The homepage height wobbles ~70px while ad slots settle (pre-existing), which makes Playwright's "element is stable" check slow on phones: use `click({ force: true })` in e2e where it bites.
 
+## "Share my skin story" (2026-10-04) — standing notes
+
+Replaces "Share my skin type" on the Basic AI Skin Analysis results (both buttons in `AIFormulator.tsx`).
+
+- **Client-side only**: `src/lib/skynn/my-skin-story.ts` draws a 1080 × 1920 PNG with native Canvas (no dependency, no upload, no DB row; no devicePixelRatio scaling; `generateMySkinStory()` reads the PNG header and throws if it isn't exactly 1080 × 1920). Input is `MySkinStoryData`, which has no identity/photo/id fields; `my-skin-story-data.ts` maps a `StarterAnalysisResult` onto it (top 3 priorities, `FOCUS_ACTIVES[primaryConcern]` from `formulaResults.ts`, AM/PM slot names from the grounded routine, barrier line only when not "uncertain", MST only if the member picked one, version badge from `SKYNN_FEATURE_VERSION`). Never add fields the analysis doesn't already show; `FOCUS_ACTIVES` is pinned to the recommendation text by a test.
+- **Delivery** (`share-my-skin-story.ts`): native `navigator.share({files})` when `canShare` allows; an AbortError is silent; anything else opens `MySkinStoryDialog` (existing `ui/dialog`) with preview, Download (object URL revoked after 1 s), Copy Share Link (`https://skinlabs.co.za/skynn-ai`, no query), optional Share. `preloadStoryAssets()` warms the logo/fonts when results show so the share call stays inside the browser's gesture window.
+- No QR code (no QR dependency in the repo; text CTA instead). Fonts are the page's own Montserrat/Inter with system fallbacks; logo is `src/assets/skinlabs-logo-white.svg`, falling back to a text wordmark.
+- Tests: `src/lib/__tests__/mySkinStory.test.ts`, three e2e in `e2e/skynn.e2e.ts` (fallback dialog + 1080×1920 download, native share with the PNG, silent cancel).
+- Pre-existing and unrelated: 317 `tsc -p tsconfig.app.json` errors and `supabaseTypesGuard` fail on main (stale `types.ts` vs live DB: `get_formulator_allowance`, `web_story_events`…).
+
 ## TikTok Pixel + Events API (2026-10-03)
 
 Details and human steps: `docs/tiktok-pixel.md`.

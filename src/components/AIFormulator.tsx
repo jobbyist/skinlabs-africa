@@ -57,6 +57,10 @@ import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSectio
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
+import MySkinStoryDialog from "@/components/ai-formulator/MySkinStoryDialog";
+import { generateMySkinStory, preloadStoryAssets } from "@/lib/skynn/my-skin-story";
+import { buildMySkinStoryData } from "@/lib/skynn/my-skin-story-data";
+import { shareStoryFile, storyFile } from "@/lib/skynn/share-my-skin-story";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
 import ReanalysisLockedPanel from "@/components/ai-formulator/ReanalysisLockedPanel";
 import { summarizeStarterResult } from "@/lib/formulator/summary";
@@ -184,6 +188,8 @@ const AIFormulator = () => {
   const [changeDetail, setChangeDetail] = useState("");
   const [priorityPreference, setPriorityPreference] = useState<PriorityPreference | null>(null);
   const [starterResult, setStarterResult] = useState<StarterAnalysisResult | null>(null);
+  const [storyBusy, setStoryBusy] = useState(false);
+  const [storyBlob, setStoryBlob] = useState<Blob | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
@@ -428,6 +434,12 @@ const AIFormulator = () => {
     }
   }, [step]);
 
+  // Warm the story card's logo + fonts while the results are on screen, so the first
+  // tap on "Share my skin story" stays inside the browser's share-gesture window.
+  useEffect(() => {
+    if (step === STEP_RESULTS) preloadStoryAssets();
+  }, [step]);
+
   // Fire the "viewed" funnel event once per completed analysis, separate from
   // "generated" (the data existing) — this is the moment a person actually saw it.
   useEffect(() => {
@@ -585,17 +597,18 @@ const AIFormulator = () => {
   };
 
   const handleShareResults = async () => {
-    const shareText = `I just got a free AI skin analysis from SKYNN AI on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
-    const shareUrl = "https://skinlabs.co.za/skynn-ai";
+    if (storyBusy) return;
+    setStoryBusy(true);
     try {
-      if (navigator.share) {
-        await navigator.share({ title: "My SKYNN AI skin analysis", text: shareText, url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-        toast.success("Copied — paste it anywhere");
-      }
+      const blob = await generateMySkinStory(buildMySkinStoryData({ skinType: derivedSkinType, result: starterResult, mstTone }));
+      const outcome = await shareStoryFile(storyFile(blob));
+      // Native share handled it (or the visitor dismissed the sheet — not an error).
+      // Otherwise fall back to the preview dialog with download / copy link.
+      if (outcome === "unavailable") setStoryBlob(blob);
     } catch {
-      // Visitor cancelled the native share sheet — not an error.
+      toast.error("We couldn't create your skin story just now. Please try again.");
+    } finally {
+      setStoryBusy(false);
     }
   };
 
@@ -1354,9 +1367,16 @@ const AIFormulator = () => {
                       <Download className="h-4 w-4" aria-hidden="true" />
                       Download my report (PDF)
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                      Share my skin type
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShareResults}
+                      disabled={storyBusy}
+                      aria-busy={storyBusy}
+                      className="min-h-11 gap-2 text-muted-foreground"
+                    >
+                      {storyBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
+                      {storyBusy ? "Creating your skin story…" : "Share my skin story"}
                     </Button>
                   </div>
 
@@ -1533,10 +1553,17 @@ const AIFormulator = () => {
                       ) : null}
 
                       <div className="flex justify-center">
-                        <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
-                          <Share2 className="h-4 w-4" aria-hidden="true" />
-                          Share my skin type
-                        </Button>
+                        <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShareResults}
+                      disabled={storyBusy}
+                      aria-busy={storyBusy}
+                      className="min-h-11 gap-2 text-muted-foreground"
+                    >
+                      {storyBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
+                      {storyBusy ? "Creating your skin story…" : "Share my skin story"}
+                    </Button>
                       </div>
                     </>
                   )}
@@ -1564,6 +1591,7 @@ const AIFormulator = () => {
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
       <SkynnVideoModal open={videoModalOpen} onOpenChange={setVideoModalOpen} />
+      <MySkinStoryDialog blob={storyBlob} skinType={derivedSkinType} onClose={() => setStoryBlob(null)} />
     </>
   );
 };
