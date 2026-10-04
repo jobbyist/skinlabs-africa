@@ -268,7 +268,7 @@ test.describe("Compose → preview → save → test → send / schedule → can
     await expect(page.getByTestId("audience-preview")).toContainText("Members matched");
     await expect(page.getByTestId("audience-preview").getByText("3", { exact: true }).first()).toBeVisible();
 
-    await page.getByLabel("Glow Insider").check();
+    await page.getByRole("checkbox", { name: "Glow Insider" }).check();
     await page.getByLabel("Has a push device").selectOption("yes");
     await expect.poll(() => callsOf(backend, "admin_preview_notification_audience").at(-1)?.args.p_audience).toEqual({ tiers: ["insider"], push_enabled: true });
     expect(callsOf(backend, "admin_preview_notification_audience").at(-1)?.args).toMatchObject({ p_category: "service", p_channels: ["inbox", "push"] });
