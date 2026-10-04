@@ -373,6 +373,12 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
   Verified live (rolled back): a non-admin gets 42501 "Admin access required" from overview / settings / send. Tests: `e2e/admin-notifications.e2e.ts`
   (non-admin and signed-out see nothing and call no RPC, campaign flow, bulk confirmation, kill switch, automations, templates, audit, and a guard
   that no table is queried directly).
+- **Automations review (2026-10-04)**: `docs/notification-automations-review-2026-10-04.md` (what each seeded automation does, findings F1-F9, volume table,
+  proposals for monthly review / price drops / podcast announce). Fixes are **proposed, unapplied** in `supabase/proposed/` (deliberately NOT under
+  `supabase/migrations/`; read its README before adopting one). Facts worth remembering: `skin-weather-prewarm` (06:50 SAST) refreshes the cities of opted-in
+  members 25 min before the 07:15 alert tick and the alert ignores any reading older than 4 h; `retailer_price_runs` is a run log, not a price source (price changes
+  live in `product_prices`); the daily trial-lifecycle EMAIL cron `trial-lifecycle-emails-daily` **is now scheduled** (job 31, 04:05 UTC; the "not enabled" notes
+  elsewhere in this file are stale); `claim_notification_dispatches` drops cap-exceeding rows (`daily_cap`), it does not re-schedule them.
 - **Not built yet**: the Admin -> Analytics split of the push funnel by `surface`
   (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
   Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).
