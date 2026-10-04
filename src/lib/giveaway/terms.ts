@@ -43,8 +43,8 @@ export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGA
       title: "Who can enter",
       paragraphs: ["To enter you need a SkinLabs® account, a TikTok account and the ability to accept the prizes described below. By entering you confirm that you are legally able to take part and to accept the prizes where you live."],
       bullets: [
-        ...(legal.minimumAge !== null ? [`You must be ${legal.minimumAge} or older.`] : []),
-        ...(legal.territory ? [`Open to: ${legal.territory}.`] : []),
+        ...(legal.minimumAge !== null ? [`You must be ${legal.minimumAge} years old or older.`] : []),
+        ...(legal.territory ? [`You must be ${legal.territory}.`] : []),
         "SkinLabs® staff and anyone involved in running the giveaway cannot enter.",
       ],
     },
@@ -72,6 +72,8 @@ export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGA
       title: "Prizes",
       paragraphs: [
         `There are ${GIVEAWAY_PRIZES.winners === 2 ? "two" : GIVEAWAY_PRIZES.winners} winners. Each winner receives one ${GIVEAWAY_PRIZES.voucher} and ${GIVEAWAY_PRIZES.subscription} access to SkinLabs®, so the total prize pool is two vouchers and two lifetime Glow Insider memberships. Taking part does not mean you will win. Not every participant receives a prize.`,
+        ...(legal.prizeAwardDate ? [`Prizes are awarded on ${legal.prizeAwardDate}.`] : []),
+        ...(legal.lifetimeActivation ? [`Lifetime Glow Insider is activated ${legal.lifetimeActivation}.`] : []),
         ...(legal.lifetimeDefinition ? [`Lifetime Glow Insider: ${legal.lifetimeDefinition}`] : []),
         ...(legal.voucherExpiryNote ? [`Takealot voucher: ${legal.voucherExpiryNote}`] : []),
       ],

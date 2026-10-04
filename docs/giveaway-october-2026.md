@@ -5,7 +5,9 @@ TikTok paid-traffic landing page. Primary conversion: **start/complete the free 
 
 ## Campaign facts (all in `src/lib/giveaway/campaign.ts`)
 
-- Closes **31 Oct 2026 23:59:59 SAST** (`GIVEAWAY_CLOSES_AT`; mirrored by `giveaway_closes_at()` in the migration, a test checks both).
+- Entries close **15 Oct 2026 23:59:59 SAST** (`GIVEAWAY_CLOSES_AT`; mirrored by `giveaway_closes_at()` in the migration, a test checks both; the time of day is an assumption, the owner gave the date only). Winners announced **16 Oct 2026**, prizes awarded **31 Oct 2026** (owner, 2026-10-04).
+- Eligibility (owner, 2026-10-04): **18 or older, and a legal resident or citizen of South Africa**; the entry form has a required confirmation tick, the T&Cs state it.
+- **Lifetime Glow Insider** is activated on the winner's account after the current extended free trial period ends on **1 November 2026** (owner).
 - 2 winners, each: R500 Takealot voucher + Lifetime Glow Insider. Winners announced on the website and TikTok (as the video says).
 - Entry = free assessment saved to an account + Skin Story on a TikTok Story tagging @skinlabsza + entry confirmation (TikTok username).
 - CTA copy is approved verbatim (`GIVEAWAY_COPY`), a test pins it.
@@ -58,13 +60,14 @@ update public.giveaway_entries set status = 'verified' where id = '<entry id>';
 ```
 (`admin_giveaway_entries()` does the same for a signed-in admin session.) There is no admin UI yet.
 
-## Needs business / legal confirmation (T&Cs degrade to true-regardless wording until supplied)
+## Still needs business / legal confirmation (T&Cs degrade to true-regardless wording until supplied)
 
 `GIVEAWAY_LEGAL` in `campaign.ts`; `giveawayOpenQuestions()` lists what is still `null`:
-promoter legal name + registration + address · minimum age · territory · winner-selection method · announcement date · claim window ·
-whether SkinLabs® may repost Stories (copy promises it will NOT without asking) · what "lifetime" means and how it is granted ·
-Takealot voucher expiry/delivery · legal sign-off, including the assumed 23:59 SAST closing time.
-Also decide: how winners get Lifetime Glow Insider (no grant tool exists; the founding-member entitlement looks closest, confirm first).
+promoter legal name + registration + address · how the two winners are selected (random draw or judged) · how long a winner has to respond ·
+whether SkinLabs® may repost Stories (copy promises it will NOT without asking) · what "lifetime" means (account vs plan lifetime; activation timing is now supplied) ·
+Takealot voucher expiry/delivery · legal sign-off, including the assumed 23:59 SAST closing time on 15 Oct.
+Interpretation to confirm: "over the age of 18" is written as "18 years old or older".
+Also: there is still no tool that grants Lifetime Glow Insider to a winner (the founding-member entitlement looks closest, confirm first) and the activation must be done on/after 1 Nov 2026.
 
 ## Naming note
 
@@ -77,7 +80,7 @@ for pending submissions: consider a re-cut.
 ## Deployment
 
 1. Merge the PR (Vercel builds; the route is prerendered for OG tags and in the sitemap).
-2. Migration `20261006100000_giveaway_entries` is already applied live (probe passed, rolled back).
-3. Redeploy `tiktok-events` from a commit containing `ClickButton` (`_shared/tiktok/eventsApi.ts`); until then ClickButton is refused with 400 `unsupported_event` (harmless; the browser pixel still sends it).
+2. Migration `20261006100000_giveaway_entries` is applied live (probe passed, rolled back); the closing time was then moved to 15 Oct with `giveaway_closes_15_october` (a `CREATE OR REPLACE` of `giveaway_closes_at()`; the repo file already carries the final value).
+3. `tiktok-events` redeployed from a commit on `main` containing `ClickButton` (`_shared/tiktok/eventsApi.ts`) — see CLAUDE.md for the deployed version.
 4. Tag ad links: `https://skinlabs.co.za/giveaways/october-2026?utm_source=tiktok&utm_medium=paid_social&utm_campaign=skinlabs_october_2026_giveaway&utm_content=<ad>`.
 5. Verify in TikTok Events Manager → Test events (`TIKTOK_TEST_EVENT_CODE`).

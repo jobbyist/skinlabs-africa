@@ -30,22 +30,22 @@ const ROOT = join(import.meta.dir, "..", "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("campaign rules", () => {
-  test("closing instant is 31 Oct 2026 23:59:59 SAST and matches the database function", () => {
-    expect(Date.parse(GIVEAWAY_CLOSES_AT)).toBe(Date.parse("2026-10-31T21:59:59Z"));
-    expect(read("supabase/migrations/20261006100000_giveaway_entries.sql")).toContain("timestamptz '2026-10-31 23:59:59+02'");
+  test("closing instant is 15 Oct 2026 23:59:59 SAST and matches the database function", () => {
+    expect(Date.parse(GIVEAWAY_CLOSES_AT)).toBe(Date.parse("2026-10-15T21:59:59Z"));
+    expect(read("supabase/migrations/20261006100000_giveaway_entries.sql")).toContain("timestamptz '2026-10-15 23:59:59+02'");
   });
 
   test("open until the closing instant, closed after", () => {
     expect(isGiveawayOpen(Date.parse("2026-10-03T12:00:00Z"))).toBe(true);
-    expect(isGiveawayOpen(Date.parse("2026-10-31T21:59:59Z"))).toBe(true);
-    expect(isGiveawayOpen(Date.parse("2026-10-31T22:00:00Z"))).toBe(false);
+    expect(isGiveawayOpen(Date.parse("2026-10-15T21:59:59Z"))).toBe(true);
+    expect(isGiveawayOpen(Date.parse("2026-10-15T22:00:00Z"))).toBe(false);
   });
 
   test("daysLeft counts SAST calendar days and is null once closed", () => {
-    expect(daysLeft(Date.parse("2026-10-31T10:00:00+02:00"))).toBe(0);
-    expect(daysLeft(Date.parse("2026-10-30T23:00:00+02:00"))).toBe(1);
-    expect(daysLeft(Date.parse("2026-10-03T08:00:00+02:00"))).toBe(28);
-    expect(daysLeft(Date.parse("2026-11-01T00:00:01+02:00"))).toBeNull();
+    expect(daysLeft(Date.parse("2026-10-15T10:00:00+02:00"))).toBe(0);
+    expect(daysLeft(Date.parse("2026-10-14T23:00:00+02:00"))).toBe(1);
+    expect(daysLeft(Date.parse("2026-10-04T08:00:00+02:00"))).toBe(11);
+    expect(daysLeft(Date.parse("2026-10-16T00:00:01+02:00"))).toBeNull();
   });
 
   test("TikTok usernames: @ optional, safe characters only", () => {
@@ -65,7 +65,7 @@ describe("campaign rules", () => {
     const open = giveawayOpenQuestions();
     expect(open.length).toBeGreaterThan(5);
     expect(open.join(" ")).toMatch(/legal entity/i);
-    expect(giveawayOpenQuestions({ ...GIVEAWAY_LEGAL, promoterLegalName: "X (Pty) Ltd", promoterRegistration: "R", minimumAge: 18, territory: "South Africa", winnerSelectionMethod: "m", winnerAnnouncementDate: "d", prizeClaimWindowDays: 7, ugcRepostLicence: false, lifetimeDefinition: "l", voucherExpiryNote: "v", signedOff: true })).toEqual([]);
+    expect(giveawayOpenQuestions({ ...GIVEAWAY_LEGAL, prizeAwardDate: "d", lifetimeActivation: "a", promoterLegalName: "X (Pty) Ltd", promoterRegistration: "R", minimumAge: 18, territory: "South Africa", winnerSelectionMethod: "m", winnerAnnouncementDate: "d", prizeClaimWindowDays: 7, ugcRepostLicence: false, lifetimeDefinition: "l", voucherExpiryNote: "v", signedOff: true })).toEqual([]);
   });
 });
 
@@ -76,7 +76,7 @@ describe("terms & conditions", () => {
   test("covers every required item from the brief", () => {
     const t = text();
     for (const needle of [
-      "October 2026 Skin Story Giveaway", "31 October 2026", "23:59", "@skinlabsza", "TikTok Story", "free",
+      "October 2026 Skin Story Giveaway", "15 October 2026", "23:59", "@skinlabsza", "TikTok Story", "free",
       "R500 Takealot voucher", "Lifetime Glow Insider", "two winners", "One entry per person", "does not mean you will win",
       "Winners are announced", "information we need to deliver", "disqualify", "do not have to buy anything",
       "never sent to TikTok", "not sponsored, administered, run or endorsed by TikTok or Takealot", "laws of South Africa",
@@ -93,17 +93,34 @@ describe("terms & conditions", () => {
     expect(t).toContain("We will not repost or use your Story in advertising without asking you first");
   });
 
-  test("no placeholder text can reach the page, and unknown facts are not invented", () => {
+  const NOTHING_SUPPLIED = {
+    ...GIVEAWAY_LEGAL, promoterLegalName: null, promoterRegistration: null, minimumAge: null, territory: null,
+    winnerSelectionMethod: null, winnerAnnouncementDate: null, prizeAwardDate: null, lifetimeActivation: null,
+    prizeClaimWindowDays: null, ugcRepostLicence: null, lifetimeDefinition: null, voucherExpiryNote: null,
+  };
+
+  test("no placeholder text can reach the page, with the real config or with nothing supplied", () => {
+    for (const t of [text(), text(NOTHING_SUPPLIED)]) expect(t).not.toMatch(/TODO|TBC|TBD|\[[^\]]*\]|lorem|\bnull\b|undefined/i);
+  });
+
+  test("unknown facts are never invented when nothing is supplied", () => {
+    expect(text(NOTHING_SUPPLIED)).not.toMatch(/\b(18|16|21) (years|or older)|residents|citizens|Pty|registration number|16 October|1 November/i);
+  });
+
+  test("the owner-supplied facts (2026-10-04) are in the terms", () => {
     const t = text();
-    expect(t).not.toMatch(/TODO|TBC|TBD|\[[^\]]*\]|lorem|\bnull\b|undefined/i);
-    expect(t).not.toMatch(/\b(18|16|21) (years|or older)|residents of|Pty|registration number/i);
+    expect(t).toContain("You must be 18 years old or older.");
+    expect(t).toContain("legal residents or citizens of the Republic of South Africa");
+    expect(t).toContain("16 October 2026");
+    expect(t).toContain("Prizes are awarded on 31 October 2026.");
+    expect(t).toContain("after the current extended free trial period ends on 1 November 2026");
   });
 
   test("supplied legal facts appear automatically", () => {
     const t = text({ ...GIVEAWAY_LEGAL, promoterLegalName: "Acme (Pty) Ltd", minimumAge: 18, territory: "South African residents", prizeClaimWindowDays: 7, winnerSelectionMethod: "A random draw.", ugcRepostLicence: true });
     expect(t).toContain("Acme (Pty) Ltd");
-    expect(t).toContain("You must be 18 or older.");
-    expect(t).toContain("South African residents");
+    expect(t).toContain("You must be 18 years old or older.");
+    expect(t).toContain("You must be South African residents.");
     expect(t).toContain("within 7 days");
     expect(t).toContain("A random draw.");
     expect(t).toContain("share your TikTok Story");
@@ -123,7 +140,7 @@ describe("analytics privacy + TikTok mapping", () => {
     expect(Object.keys(p).sort()).toEqual(["campaign", "campaign_deadline", "cta", "cta_location", "landing_page"]);
     expect(p.campaign).toBe(GIVEAWAY_CAMPAIGN);
     expect(p.landing_page).toBe(GIVEAWAY_PATH);
-    expect(p.campaign_deadline).toBe("2026-10-31");
+    expect(p.campaign_deadline).toBe("2026-10-15");
   });
 
   test("rejects non-token values for whitelisted keys (no free text can leave)", () => {
@@ -204,7 +221,7 @@ describe("SEO, routing and story", () => {
   test("campaign title is exact and the description stays within a snippet", () => {
     expect(GIVEAWAY_SEO.title).toBe("Win R500 + Lifetime Glow Insider | SkinLabs® October Giveaway");
     expect(GIVEAWAY_SEO.description.length).toBeLessThanOrEqual(160);
-    for (const needle of ["free AI skin assessment", "Skin Story", "TikTok", "R500 Takealot voucher", "Lifetime Glow Insider", "31 Oct 2026"]) expect(GIVEAWAY_SEO.description).toContain(needle);
+    for (const needle of ["free AI skin assessment", "Skin Story", "TikTok", "R500 Takealot voucher", "Lifetime Glow Insider", "15 Oct 2026"]) expect(GIVEAWAY_SEO.description).toContain(needle);
     expect(existsSync(join(ROOT, "public", GIVEAWAY_SEO.ogImage))).toBe(true);
   });
 
@@ -234,7 +251,7 @@ describe("SEO, routing and story", () => {
 
   test("story is listed while the giveaway is open and removed once it closes", () => {
     expect(curatedStories(Date.parse("2026-10-10T00:00:00Z")).some((s) => s.slug === GIVEAWAY_STORY_SLUG)).toBe(true);
-    expect(curatedStories(Date.parse("2026-11-02T00:00:00Z")).some((s) => s.slug === GIVEAWAY_STORY_SLUG)).toBe(false);
+    expect(curatedStories(Date.parse("2026-10-16T00:00:00Z")).some((s) => s.slug === GIVEAWAY_STORY_SLUG)).toBe(false);
   });
 
   test("video is compressed for mobile (under 1.5 MB) and keeps a poster", () => {

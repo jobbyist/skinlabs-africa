@@ -45,6 +45,7 @@ const GiveawayEntryPanel = () => {
   const [handle, setHandle] = useState("");
   const [posted, setPosted] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [eligible, setEligible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +80,7 @@ const GiveawayEntryPanel = () => {
     const clean = normaliseTikTokHandle(handle);
     if (!clean) return setError(ERRORS.invalid_handle);
     if (!posted) return setError(ERRORS.confirmation_required);
+    if (!eligible) return setError("Please confirm you are 18 or older and a South African citizen or legal resident.");
     if (!accepted) return setError("Please accept the giveaway terms to enter.");
     setBusy(true);
     const { data, error: rpcError } = await supabase.rpc("enter_giveaway", {
@@ -179,6 +181,12 @@ const GiveawayEntryPanel = () => {
         <Checkbox id="giveaway-posted" checked={posted} onCheckedChange={(v) => setPosted(v === true)} className="mt-0.5" />
         <Label htmlFor="giveaway-posted" className="text-sm font-normal leading-snug">
           I've shared my Skin Story on my TikTok Story and tagged {GIVEAWAY_TIKTOK_HANDLE}.
+        </Label>
+      </div>
+      <div className="mt-3 flex items-start gap-3">
+        <Checkbox id="giveaway-eligible" checked={eligible} onCheckedChange={(v) => setEligible(v === true)} className="mt-0.5" />
+        <Label htmlFor="giveaway-eligible" className="text-sm font-normal leading-snug">
+          I am 18 or older and a South African citizen or legal resident.
         </Label>
       </div>
       <div className="mt-3 flex items-start gap-3">

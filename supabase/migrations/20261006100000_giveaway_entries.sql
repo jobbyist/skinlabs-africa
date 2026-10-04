@@ -7,14 +7,14 @@
 -- Rules enforced HERE, not only in the browser:
 --   * signed-in members only (the account email is how winners are contacted);
 --   * a delivered, saved Basic AI Skin Analysis must exist (no entry without completing the assessment);
---   * entries stop at giveaway_closes_at() (31 Oct 2026 23:59:59 SAST: keep in sync with GIVEAWAY_CLOSES_AT in
+--   * entries stop at giveaway_closes_at() (15 Oct 2026 23:59:59 SAST: keep in sync with GIVEAWAY_CLOSES_AT in
 --     src/lib/giveaway/campaign.ts, a unit test reads this file);
 --   * one entry per member per campaign (re-submitting only corrects the TikTok username).
 -- No assessment content is copied into the entry. ON DELETE CASCADE keeps account deletion (POPIA) complete.
 
 CREATE OR REPLACE FUNCTION public.giveaway_closes_at()
 RETURNS timestamptz LANGUAGE sql IMMUTABLE PARALLEL SAFE SET search_path TO ''
-AS $$ SELECT timestamptz '2026-10-31 23:59:59+02' $$;
+AS $$ SELECT timestamptz '2026-10-15 23:59:59+02' $$;
 
 CREATE TABLE IF NOT EXISTS public.giveaway_entries (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

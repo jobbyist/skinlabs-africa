@@ -34,7 +34,7 @@ test("landing page: hero, prizes, steps, story, deadline and terms render withou
   await expect(page.getByRole("link", { name: "Get started with the free skin assessment" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Start the free dermatology analysis" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two Winners. Two Big SkinLabs® Rewards." })).toBeVisible();
-  await expect(page.getByText("Entries close 31 October 2026.")).toBeVisible();
+  await expect(page.getByText("Entries close 15 October 2026.")).toBeVisible();
   await expect(page.getByText("isn't a giveaway entry")).toBeVisible();
   await expect(page.getByText("You do not have to leave a positive review.", { exact: false })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your skin has a story. Tell us yours." })).toBeVisible();
@@ -51,7 +51,7 @@ test("SEO: exact title, description, canonical and social tags", async ({ page, 
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://skinlabs.co.za/giveaways/october-2026");
   const desc = await page.locator('meta[name="description"]').getAttribute("content");
   expect(desc).toContain("R500 Takealot voucher");
-  expect(desc).toContain("31 Oct 2026");
+  expect(desc).toContain("15 Oct 2026");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Win R500/);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /og-giveaway-october-2026\.jpg/);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
@@ -79,7 +79,7 @@ test("page view is logged once per visit with only whitelisted campaign fields (
   await page.waitForTimeout(800);
   expect(c.analytics.filter((e) => e.event_name === "giveaway_page_view")).toHaveLength(1);
   const view = c.analytics.find((e) => e.event_name === "giveaway_page_view")!;
-  expect(view.payload).toMatchObject({ campaign: "skinlabs_october_2026_giveaway", landing_page: PATH, campaign_deadline: "2026-10-31" });
+  expect(view.payload).toMatchObject({ campaign: "skinlabs_october_2026_giveaway", landing_page: PATH, campaign_deadline: "2026-10-15" });
   expect(JSON.stringify(c.analytics)).not.toMatch(/skinType|concern|acne|mst_tone|answers|result_payload/);
 });
 
@@ -150,6 +150,9 @@ test.describe("entry confirmation", () => {
     await page.getByRole("button", { name: "Confirm my entry" }).click();
     await expect(page.getByRole("alert")).toContainText("tick the box");
     await page.locator("#giveaway-posted").click();
+    await page.getByRole("button", { name: "Confirm my entry" }).click();
+    await expect(page.getByRole("alert")).toContainText("18 or older");
+    await page.locator("#giveaway-eligible").click();
     await page.locator("#giveaway-terms").click();
     await page.getByRole("button", { name: "Confirm my entry" }).click();
     await expect(page.getByText("Your entry is in.")).toBeVisible();
