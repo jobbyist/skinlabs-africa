@@ -1,15 +1,27 @@
 # Notification automations: review against product intent (2026-10-04)
 
 Scope: read the live `run_notification_scheduler()` and `run_notification_automation()` (project `gnkpzijxuciiaamakgzm`), check each
-seeded automation against what the product says and does, and propose fixes as **unapplied** migrations.
-**Nothing was changed live.** Evidence below came from read-only queries and from rolled-back probes (a `DO` block that always
-raises, or `pg_temp` copies of the changed functions, which vanish with the session).
+seeded automation against what the product says and does.
+**Update (same day): the owner answered every decision in section 6 and approved the fixes, so the migrations below are now
+APPLIED live** (see "Outcome"). The findings text is kept as written at review time. Evidence came from read-only queries and from
+rolled-back probes.
 
 Live state at the time: 15 members, 1 notification-preferences row, 1 active push device, 12 automations (11 enabled;
 `inbox_mirror_push` is off). With one opted-in member there is no real opt-in data to extrapolate from, so section 4 uses stated
 planning assumptions.
 
-Proposals: `supabase/proposed/` (not under `supabase/migrations/`, so no tooling picks them up).
+## Outcome (owner decisions, applied 2026-10-04)
+
+| # | Decision | What shipped |
+|---|---|---|
+| 1 (F2) | Keep `free_analysis_refreshed` in the always-on `service` category | Settings label reworded to "Account and analysis updates"; push title "Your Basic AI Skin Analysis is ready" |
+| 2 (F7) | Prioritise routine reminders and anything that is not purely marketing | `claim_notification_dispatches`: `routine_reminder`, `account_update`, `service`, `report_ready` are exempt from the daily cap (unless the member set the cap to 0); optional categories (weather, briefing, streak, recap, promotional...) still count |
+| 3 (F5c) | Stop journal reminders after 3 unanswered | `run_notification_automation('journal_reminder')` stops once 3 reminders were queued since the last photo/setting change; a new photo resets it |
+| 4 (F4) | `trial_last_chance` takes priority and ignores the cap | Already true in the seed (`bypass_caps`, priority 10); now asserted by the probe, no change needed |
+| 5 | Build the monthly skin review | Automation `monthly_skin_review` (1st, 10:00 SAST, `journal_reminder` category, lock-screen safe); skips members analysed in the last 14 days or reminded in the last 7, and anyone with nothing to look back on |
+| 6 | Apply and probe | Migrations `20261004031707` (F1, F4a/b, F5a/b, F6, monthly review), `20261004031715` (F8), `20261004031727` (cap classes) applied; `supabase/tests/notification_automations.sql` passes 23 assertions (rolled back) |
+
+Not built: price-drop alerts (5.2) and a picker UI for the podcast announce (5.3).
 
 ## 1. How scheduling works (verified from the live definitions)
 
@@ -162,7 +174,7 @@ briefing and streak would be asked for four and receives two (cap 2). The two tr
 * Already in place: template `podcast_episode_announce` and `admin_announce_podcast_episode(slug, title, audience, confirm)`. **Missing: UI.** The admin dashboard is client code that already bundles `publishedPodcastEpisodes`, so a picker in Admin -> Notifications -> Compose ("Announce an episode": choose an episode, see the audience preview, typed confirmation above 50) needs no database change.
 * Pair it with the dedupe migration (F8). Volume at 100 members: ~9 pushes (30 pushable x ~30% opted in) on an episode day.
 
-## 6. Decisions needed
+## 6. Decisions needed (answered, see Outcome)
 
 1. F2: move `free_analysis_refreshed` out of the always-on `service` category, or keep it and reword the Settings label?
 2. F7: how should the default cap of 2 prioritise the day? (raise to 3, stagger, or drop the streak nudge when a reminder is due within the hour)

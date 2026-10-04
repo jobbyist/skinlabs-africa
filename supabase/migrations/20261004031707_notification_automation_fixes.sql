@@ -1,21 +1,15 @@
--- PROPOSED, NOT APPLIED. Review, then move into supabase/migrations/ with a real timestamp and apply.
--- Source of truth being changed: the LIVE functions as read on 2026-10-04 (this file is a CREATE OR REPLACE of them with
--- only the changes listed below; every other branch of run_notification_automation is copied unchanged).
+-- Notification automation fixes (reviewed 2026-10-04, decisions in docs/notification-automations-review-2026-10-04.md).
+-- CREATE OR REPLACE of the LIVE notification_guard_ok / run_notification_automation as read on 2026-10-04; unchanged branches are verbatim.
 --
--- 1. journal_reminder: honour skin_photo_journal_settings.reminder_enabled (it was ignored), drop the dead 'fortnightly'/'biweekly'
---    branches (the column is CHECKed to weekly | monthly), and step "monthly" by a calendar month like the dashboard does
---    (PhotoJournalTab.addInterval uses setMonth(+1), the automation used 30 days).
--- 2. free_analysis_refreshed: audience is "limited tier" (formulator_tier explorer | glow_lite), the same rule that limits the Basic
---    analysis in the app. It used to be status free/explorer only, so Glow Lite members (limited to 1 per 7 days in-app) never got it.
---    The window still comes from pricing_settings.free_analysis_window_days (live 7).
--- 3. notification_guard_ok: new guard 'limited_tier'; 'not_paid' now covers every paid status (it missed 'active' and 'premium');
---    'trial_active' optionally re-checks card state (has_card) and activation (not_activated) at send time, which is what the
---    email guards (_shared/email/guards.ts) already do for the same trial emails.
--- 4. trial_lifecycle: passes those optional checks per template (precharge needs a live subscription, last chance needs none,
---    activation nudge needs "not activated").
--- 5. weekly_recap: "1 routine check-ins" -> "1 routine check-in" (new {{checkins}} variable; template body updated only if unedited).
--- 6. free_analysis_refreshed title uses the product name and no longer says "free" (Glow Lite is paying).
-
+-- 1. journal_reminder: honours skin_photo_journal_settings.reminder_enabled; weekly | monthly only (monthly = a calendar month, like the
+--    dashboard); STOPS after 3 reminders with no new journal photo since (owner decision, 2026-10-04). A new photo resets the count.
+-- 2. free_analysis_refreshed: audience/guard are "limited tier" (formulator_tier explorer | glow_lite). It stays in the `service` category
+--    (owner decision); the Settings label is reworded in the app.
+-- 3. notification_guard_ok: new 'limited_tier'; 'not_paid' covers every paid status; 'trial_active' optionally re-checks card state
+--    (has_card) and activation (not_activated), like the email guards.
+-- 4. trial_lifecycle: passes those checks per template. trial_last_chance already has bypass_caps = true and priority 10 (cap-exempt).
+-- 5. weekly_recap: "1 routine check-in" (new {{checkins}} variable).
+-- 6. NEW monthly_skin_review (1st of the month, 10:00 SAST), category journal_reminder.
 CREATE OR REPLACE FUNCTION public.notification_guard_ok(p_user_id uuid, p_guard jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -155,7 +149,6 @@ BEGIN
     END LOOP;
 
   ELSIF p_key = 'journal_reminder' THEN
-    -- CHANGED: reminder_enabled is honoured; frequency is weekly | monthly only (a calendar month, as in the dashboard).
     FOR c IN
       SELECT s.user_id,
              CASE WHEN lower(s.frequency) = 'monthly' THEN interval '1 month' ELSE interval '7 days' END AS step,
@@ -167,12 +160,41 @@ BEGIN
     LOOP
       IF coalesce(c.last_at, c.created_at) + c.step <= p_now
          AND NOT EXISTS (SELECT 1 FROM public.notification_dispatches d WHERE d.user_id = c.user_id
-                           AND d.automation_key = p_key AND d.created_at > p_now - (c.step - interval '1 day')) THEN
+                           AND d.automation_key = p_key AND d.created_at > p_now - (c.step - interval '1 day'))
+         -- Stop after 3 reminders the member has not answered with a photo. Only reminders that were (or are about to be) sent count.
+         AND (SELECT count(*) FROM public.notification_dispatches d WHERE d.user_id = c.user_id
+                 AND d.automation_key = p_key AND d.status IN ('pending', 'processing', 'sent', 'partial')
+                 AND d.created_at > coalesce(c.last_at, c.created_at)) < 3 THEN
         IF public.enqueue_notification(c.user_id, 'journal_reminder', '{}'::jsonb,
              'journal_reminder:' || c.user_id || ':' || v_today, 'automation', '{}'::jsonb, NULL,
              jsonb_build_object('type', 'same_day', 'date', v_today), NULL, p_key) IS NOT NULL THEN
           v_n := v_n + 1;
         END IF;
+      END IF;
+    END LOOP;
+
+  ELSIF p_key = 'monthly_skin_review' THEN
+    -- Members who opted into progress check-ins and have something to look back on (a saved Basic analysis, a routine they built, or a journal
+    -- photo). Skipped when they analysed in the last 14 days or got a journal reminder in the last 7. Once per calendar month.
+    FOR c IN
+      SELECT np.user_id
+        FROM public.notification_preferences np
+        JOIN public.profiles p ON p.user_id = np.user_id
+       WHERE np.journal_reminder
+         AND (EXISTS (SELECT 1 FROM public.skincare_recommendations sr
+                       WHERE sr.user_id = np.user_id AND sr.status = 'delivered' AND sr.result_payload IS NOT NULL)
+              OR EXISTS (SELECT 1 FROM public.routine_steps rs WHERE rs.user_id = np.user_id AND coalesce(rs.source, 'manual') <> 'default')
+              OR EXISTS (SELECT 1 FROM public.skin_photo_journal_entries e WHERE e.user_id = np.user_id))
+         AND NOT EXISTS (SELECT 1 FROM public.skincare_recommendations sr
+                          WHERE sr.user_id = np.user_id AND sr.status = 'delivered' AND sr.result_payload IS NOT NULL
+                            AND sr.created_at > p_now - interval '14 days')
+         AND NOT EXISTS (SELECT 1 FROM public.notification_dispatches d
+                          WHERE d.user_id = np.user_id AND d.automation_key = 'journal_reminder' AND d.created_at > p_now - interval '7 days')
+    LOOP
+      IF public.enqueue_notification(c.user_id, 'monthly_skin_review', '{}'::jsonb,
+           'monthly_skin_review:' || c.user_id || ':' || to_char(v_local, 'YYYY-MM'), 'automation', '{}'::jsonb, NULL,
+           jsonb_build_object('type', 'same_day', 'date', v_today), NULL, p_key) IS NOT NULL THEN
+        v_n := v_n + 1;
       END IF;
     END LOOP;
 
@@ -253,3 +275,20 @@ UPDATE public.notification_templates
 UPDATE public.notification_templates
    SET body = '{{checkins}} this week. Set yourself up for the next one.', updated_at = now()
  WHERE key = 'weekly_recap' AND body = '{{n}} routine check-ins this week. Set yourself up for the next one.';
+
+-- NEW: monthly skin check-in. Lock-screen text is generic and promises nothing that is not built (no generated "review").
+INSERT INTO public.notification_templates
+  (key, name, description, category, inbox_category, title, body, inbox_title, inbox_body, url, channels, lock_screen_safe, bypass_caps, priority, enabled, system)
+VALUES
+  ('monthly_skin_review', 'Monthly skin check-in', 'Sent on the 1st of the month to members who opted into progress check-ins.', 'journal_reminder', 'system',
+   'Time for your monthly skin check-in', 'Tap to look back at your routine and progress.',
+   'Your monthly skin check-in', 'Look back at your routine and progress photos, and add this month''s photo while you are there.',
+   '/dashboard?tab=journey', ARRAY['inbox','push'], true, false, 50, true, true)
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO public.notification_automations
+  (key, name, description, trigger_kind, frequency, send_time, month_day, template_key, audience, system, enabled)
+VALUES
+  ('monthly_skin_review', 'Monthly skin check-in', 'On the 1st of each month: a nudge to look back at routine and progress. Opt-in (progress check-ins).',
+   'schedule', 'monthly', '10:00', 1, 'monthly_skin_review', '{}'::jsonb, true, true)
+ON CONFLICT (key) DO NOTHING;

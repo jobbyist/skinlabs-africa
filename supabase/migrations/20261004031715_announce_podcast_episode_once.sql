@@ -1,9 +1,7 @@
--- PROPOSED, NOT APPLIED. Review, then move into supabase/migrations/ with a real timestamp and apply.
---
--- admin_announce_podcast_episode() creates a NEW campaign on every call and sends it at once. Nothing stops the same episode being
--- announced twice (a double click, a retry after a timeout, two admins), which would push the whole podcast audience twice.
--- This version refuses when a campaign for the same episode path is already scheduled, sending or sent. Cancelled campaigns do not
--- count, so a mistaken announcement that was cancelled can be redone. Everything else is unchanged.
+-- admin_announce_podcast_episode() created a NEW campaign on every call and sent it at once, so the same episode could be announced twice
+-- (double click, retry after a timeout, two admins) and push the whole podcast audience twice. This version refuses when a campaign for the
+-- same episode path is already scheduled, sending or sent. Cancelled campaigns do not count, so a mistaken announcement that was cancelled
+-- can be redone. Everything else is unchanged.
 CREATE OR REPLACE FUNCTION public.admin_announce_podcast_episode(p_slug text, p_title text, p_audience jsonb DEFAULT '{}'::jsonb, p_confirm_recipients integer DEFAULT NULL)
 RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_uid uuid := public.notification_require_admin(); v_id uuid;
