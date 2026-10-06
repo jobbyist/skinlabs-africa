@@ -80,9 +80,9 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Glutathione — Glutathione — antioxidant — tripeptide antioxidant, also marketed for skin brightening
 - [x] Epigallocatechin Gallate (EGCG) — EGCG / Green Tea Catechins — antioxidant — the primary active catechin in green tea extract, distinct entry from the existing generic "green tea extract" row
 - [x] Quercetin — Quercetin — antioxidant — flavonoid antioxidant
-- [ ] Grape Seed Extract — Vitis Vinifera Seed Extract — antioxidant — proanthocyanidin-rich antioxidant botanical
-- [ ] Sea Buckthorn Oil — Hippophae Rhamnoides Fruit Oil — antioxidant — carotenoid- and omega-7-rich oil, dual antioxidant/barrier function
-- [ ] Rosemary Extract — Rosmarinus Officinalis Leaf Extract — antioxidant — polyphenol antioxidant, also used as a natural preservative booster
+- [x] Grape Seed Extract — Vitis Vinifera Seed Extract — antioxidant — proanthocyanidin-rich antioxidant botanical
+- [x] Sea Buckthorn Oil — Hippophae Rhamnoides Fruit Oil — antioxidant — carotenoid- and omega-7-rich oil, dual antioxidant/barrier function
+- [x] Rosemary Extract — Rosmarinus Officinalis Leaf Extract — antioxidant — polyphenol antioxidant, also used as a natural preservative booster
 - [ ] Beta Carotene — Beta Carotene — antioxidant — carotenoid antioxidant/pigment
 - [ ] Lycopene — Lycopene — antioxidant — carotenoid antioxidant, often tomato-derived
 - [ ] Superoxide Dismutase — Superoxide Dismutase (SOD) — antioxidant — enzymatic antioxidant studied for oxidative-stress protection
@@ -121,8 +121,8 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Petrolatum — Petrolatum — barrier-lipid — classic, extensively studied occlusive barrier agent
 - [ ] Meadowfoam Seed Oil — Limnanthes Alba Seed Oil — barrier-lipid — highly oxidative-stable emollient oil
 - [ ] Sunflower Seed Oil — Helianthus Annuus Seed Oil — barrier-lipid — linoleic-acid-rich emollient, studied for barrier support
-- [ ] Evening Primrose Oil — Oenothera Biennis Oil — barrier-lipid — gamma-linolenic-acid-rich emollient oil
-- [ ] Squalene — Squalene — barrier-lipid — plant/olive-derived precursor to squalane, distinct entry from the existing hydrogenated "squalane" row
+- [x] Evening Primrose Oil — Oenothera Biennis Oil — barrier-lipid — gamma-linolenic-acid-rich emollient oil
+- [x] Squalene — Squalene — barrier-lipid — plant/olive-derived precursor to squalane, distinct entry from the existing hydrogenated "squalane" row
 - [ ] Cetyl Alcohol — Cetyl Alcohol — barrier-lipid — fatty alcohol emollient/emulsion-stabilizer
 - [ ] Glyceryl Stearate — Glyceryl Stearate — barrier-lipid — emollient/emulsifier derived from glycerin and stearic acid
 - [ ] Caprylic/Capric Triglyceride — Caprylic/Capric Triglyceride — barrier-lipid — lightweight, non-comedogenic emollient ester
@@ -155,10 +155,10 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Allantoin — Allantoin — soothing-botanical — soothing, skin-conditioning agent with long clinical usage history
 - [x] Colloidal Oatmeal — Avena Sativa (Oat) Kernel Flour — soothing-botanical — FDA-recognized skin-protectant, distinct from the existing "oat bran extract" row
 - [ ] Madecassoside — Madecassoside — soothing-botanical — Centella asiatica-derived triterpene, soothing/barrier-repair evidence
-- [ ] Beta-Glucan — Beta-Glucan (Oat or Yeast-derived) — soothing-botanical — soothing, barrier-supportive polysaccharide
+- [x] Beta-Glucan — Beta-Glucan (Oat or Yeast-derived) — soothing-botanical — soothing, barrier-supportive polysaccharide
 - [ ] Feverfew Extract — Tanacetum Parthenium Extract — soothing-botanical — anti-inflammatory botanical extract
 - [x] Chamomile Extract — Chamomilla Recutita (Matricaria) Flower Extract — soothing-botanical — classic soothing botanical, source of bisabolol
-- [ ] Tea Tree Oil — Melaleuca Alternifolia Leaf Oil — soothing-botanical — antimicrobial/soothing essential oil, well-studied for acne-prone skin use
+- [x] Tea Tree Oil — Melaleuca Alternifolia Leaf Oil — soothing-botanical — antimicrobial/soothing essential oil, well-studied for acne-prone skin use
 - [ ] Willowherb Extract — Epilobium Angustifolium Extract — soothing-botanical — anti-inflammatory botanical, often used in sensitive-skin formulations
 - [ ] Marshmallow Root Extract — Althaea Officinalis Root Extract — soothing-botanical — mucilage-rich soothing botanical
 - [ ] Houttuynia Cordata Extract — Houttuynia Cordata Extract — soothing-botanical — botanical popular in Korean skincare for soothing/calming claims
@@ -173,9 +173,9 @@ already represented, and matter for the Ingredient Combination Checker
 ## UV Filter
 
 - [x] Avobenzone — Avobenzone — uv-filter — broad-spectrum chemical UVA filter
-- [ ] Octocrylene — Octocrylene — uv-filter — chemical UV filter, also used to stabilize avobenzone
+- [x] Octocrylene — Octocrylene — uv-filter — chemical UV filter, also used to stabilize avobenzone
 - [ ] Homosalate — Homosalate — uv-filter — chemical UVB filter
-- [ ] Titanium Dioxide — Titanium Dioxide — uv-filter — mineral UV filter, distinct from the existing zinc oxide row
+- [x] Titanium Dioxide — Titanium Dioxide — uv-filter — mineral UV filter, distinct from the existing zinc oxide row
 - [ ] Bemotrizinol — Bemotrizinol (Tinosorb S) — uv-filter — broad-spectrum chemical UV filter, approved in EU/other markets, not FDA-approved in the US
 - [ ] Octisalate — Octisalate (Octyl Salicylate) — uv-filter — chemical UVB filter
 - [ ] Ensulizole — Ensulizole (Phenylbenzimidazole Sulfonic Acid) — uv-filter — water-soluble chemical UVB filter
@@ -208,20 +208,25 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Chelator (new category)
 
-- [ ] Disodium EDTA — Disodium EDTA — chelator — chelating agent that binds trace metal ions to stabilize formulations
+- [x] Disodium EDTA — Disodium EDTA — chelator — chelating agent that binds trace metal ions to stabilize formulations
 - [ ] Sodium Phytate — Sodium Phytate — chelator — plant-derived (phytic acid salt) chelating agent, natural alternative to EDTA
 - [ ] Tetrasodium EDTA — Tetrasodium EDTA — chelator — higher-substitution EDTA salt, same chelating function as disodium EDTA
 - [ ] Trisodium Ethylenediamine Disuccinate — Trisodium Ethylenediamine Disuccinate (EDDS) — chelator — biodegradable EDTA alternative chelating agent
 
 ---
 
-**Running total added from this list**: 32 / 123 processed (2026-09-29, weekly
-pipeline firing 1 processed 20 more — Sodium Lactate, Lactobionic Acid,
+**Running total added from this list**: 42 / 123 processed (2026-10-06, weekly
+pipeline firing 2 processed 10 more — Grape Seed Extract, Sea Buckthorn Oil,
+Rosemary Extract, Squalene, Evening Primrose Oil, Beta-Glucan, Tea Tree Oil,
+Titanium Dioxide, Octocrylene, Disodium EDTA; the remaining budget this
+firing went to an unusually large 23-row demand-queue backlog instead of the
+full 25+ new-ingredient target — see `INGREDIENT_CONTENT_STATUS.md` for the
+live cursor and full batch log). Previously: 32/123 as of 2026-09-29 (weekly
+pipeline firing 1 processed 20 — Sodium Lactate, Lactobionic Acid,
 Astaxanthin, Ergothioneine, Glutathione, EGCG, Quercetin, Linoleic Acid, Oleic
 Acid, Phytosphingosine, Dimethicone, Petrolatum, Magnesium Ascorbyl Phosphate,
 Sulfur, Bisabolol, Chamomile Extract, Colloidal Oatmeal, Bifida Ferment
-Lysate, Avobenzone, Phenoxyethanol — see `INGREDIENT_CONTENT_STATUS.md` for
-the live cursor and full batch log). This first batch of 123 real candidates
+Lysate, Avobenzone, Phenoxyethanol). This first batch of 123 real candidates
 comfortably covers the 122-ingredient expansion milestone and will be
 supplemented by further append rounds (same research/dedupe discipline) as
 weekly firings consume it, continuing indefinitely thereafter.
