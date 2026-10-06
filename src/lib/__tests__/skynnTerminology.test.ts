@@ -42,7 +42,7 @@ const BANNED: Array<[RegExp, string]> = [
   [/\bSkynn AI\b/, "use “SKYNN AI”"],
   [/\bSKYNN\.AI\b|\bSkynnAI\b/, "use “SKYNN AI”"],
   [/\b[Aa]nalysis pass(es)?\b(?![_a-z])/, "use “Analysis Pass” (capitalised)"],
-  [/SKYNN AI \(beta\)/, "use “SKYNN AI v2.1 — beta”"],
+  [/SKYNN AI \(beta\)/, "use “SKYNN AI - v2.2 (beta)”"],
 ];
 
 const walk = (dir: string): string[] =>
@@ -106,7 +106,7 @@ describe("SKYNN AI terminology (v2.1)", () => {
   });
 
   test("canonical names are exactly as specified for this release", () => {
-    expect(client.SKYNN_RELEASE_LABEL).toBe("SKYNN AI v2.1 — beta");
+    expect(client.SKYNN_RELEASE_LABEL).toBe("SKYNN AI - v2.2 (beta)");
     expect(client.BASIC_NAME).toBe("Basic AI Skin Analysis");
     expect(client.ADVANCED_NAME).toBe("Advanced AI Dermatology Analysis");
     expect(client.ANALYSIS_PASS).toBe("Analysis Pass");

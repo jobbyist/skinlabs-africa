@@ -129,3 +129,60 @@ registerTemplate({
     )}
   `,
 });
+
+// Mobile contextual feedback surveys: admin-only, delivered to feedback@ only
+// (email-processor ADMIN_TEMPLATE_RECIPIENT_OVERRIDE). Carries no member identity.
+registerTemplate({
+  id: "admin_feedback_survey_response",
+  category: "ADMIN",
+  internalName: "Member feedback survey — admin notification",
+  transactional: false,
+  requiredVars: [],
+  subject: (vars: TemplateVars) =>
+    `Member feedback${vars.surface ? `: ${escapeHtml(String(vars.surface))}` : ""}`,
+  preheader: () => "A signed-in member answered a contextual feedback survey on skinlabs.co.za.",
+  render: (vars: TemplateVars) => {
+    const rows: Array<[string, string]> = [
+      ["Surface", String(vars.surface ?? "")],
+      ["Survey", String(vars.survey_id ?? "")],
+      ["Question", String(vars.question ?? "")],
+      ["Answer", String(vars.answer ?? "")],
+      ["Comment", String(vars.comment ?? "")],
+      ["Page", String(vars.path ?? "")],
+    ];
+    return `
+      ${emailHeading("New member feedback")}
+      ${emailKeyValueTable(rows.filter(([, v]) => v !== ""))}
+      ${emailParagraph("Sent by a signed-in member from a mobile device. No name or email address is attached.")}
+    `;
+  },
+});
+
+// /consult survey: admin-only (anonymous visitors, nothing to confirm to).
+registerTemplate({
+  id: "admin_consult_survey_response",
+  category: "ADMIN",
+  internalName: "Consult directory survey — admin notification",
+  transactional: false,
+  requiredVars: [],
+  subject: (vars: TemplateVars) =>
+    `New consult survey response${vars.sentiment ? ` (usefulness ${escapeHtml(String(vars.sentiment))}/5)` : ""}`,
+  preheader: () => "A visitor completed the /consult directory survey on skinlabs.co.za.",
+  render: (vars: TemplateVars) => {
+    const features = Array.isArray(vars.useful_features) ? (vars.useful_features as unknown[]).map(String).join(", ") : "";
+    const rows: Array<[string, string]> = [
+      ["Directory usefulness (1-5)", String(vars.sentiment ?? "")],
+      ["First use", String(vars.primary_use ?? "")],
+      ["Booking importance (1-5)", String(vars.booking_priority ?? "")],
+      ["Features to ship first", features],
+      ["Trust in unverified listings (1-5)", String(vars.trust_score ?? "")],
+      ["Other feedback", String(vars.feedback_text ?? "")],
+      ["Signed in", vars.signed_in ? "Yes" : "No"],
+    ];
+    return `
+      ${emailHeading("New consult survey response")}
+      ${emailKeyValueTable(rows.filter(([, v]) => v !== ""))}
+      ${emailParagraph(`Submitted via ${escapeHtml(BRAND.siteUrl)}/consult.`)}
+    `;
+  },
+});

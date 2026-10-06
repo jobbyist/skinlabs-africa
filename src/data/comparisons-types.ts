@@ -17,7 +17,8 @@ export interface ComparedProduct {
   /** Slug into productReviews, when SkinLabs has a full standalone review for this product. */
   reviewSlug?: string;
   officialProductUrl?: string;
-  officialBrandUrl: string;
+  /** Only set when SkinLabs has a verified brand site; never guessed. */
+  officialBrandUrl?: string;
   retailer?: ComparisonLink;
 }
 

@@ -1,7 +1,7 @@
 /**
  * Dashboard information architecture (onboarding overhaul 08):
  *   Home · My Skin (Analysis / Routine / Journey) · Saved · Inbox ·
- *   Settings (Profile / Billing / Security / Account)
+ *   Settings (Profile / Billing / Security / App / Account)
  *
  * `?tab=` always holds a LEAF section, so every deep link that existed before
  * (emails, notifications, in-app links: ?tab=billing, ?tab=routine, …) keeps
@@ -20,6 +20,7 @@ export const DASHBOARD_SECTIONS = [
   "profile",
   "billing",
   "security",
+  "app",
   "account",
 ] as const;
 export type DashboardSection = (typeof DASHBOARD_SECTIONS)[number];
@@ -36,6 +37,7 @@ export const SECTION_GROUP: Record<DashboardSection, DashboardGroup> = {
   profile: "settings",
   billing: "settings",
   security: "settings",
+  app: "settings",
   account: "settings",
 };
 
@@ -62,6 +64,10 @@ export const LEGACY_TAB_ALIASES: Record<string, DashboardSection> = {
   settings: "profile",
   notifications: "inbox",
   mfa: "security",
+  pwa: "app",
+  notifications_settings: "app",
+  install: "app",
+  offline: "app",
   subscription: "billing",
   membership: "billing",
 };

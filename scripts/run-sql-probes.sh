@@ -8,8 +8,15 @@ set -uo pipefail
 
 if [[ -z "${SUPABASE_DB_URL:-}" ]]; then
   echo "SUPABASE_DB_URL is not set — skipping SQL probes."
+  if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+    echo "::warning title=SQL probes skipped::The SUPABASE_DB_URL repository secret is not set, so no SQL probe ran. Add it under Settings > Secrets and variables > Actions."
+    [[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && echo "### SQL probes skipped — \`SUPABASE_DB_URL\` secret is NOT set" >> "$GITHUB_STEP_SUMMARY"
+    # Set REQUIRE_SQL_PROBES=1 (a repository variable) to make a missing secret a failure.
+    [[ "${REQUIRE_SQL_PROBES:-}" == "1" ]] && exit 1
+  fi
   exit 0
 fi
+[[ -n "${GITHUB_STEP_SUMMARY:-}" ]] && echo "### SQL probes: \`SUPABASE_DB_URL\` secret is set" >> "$GITHUB_STEP_SUMMARY"
 
 status=0
 for f in supabase/tests/*.sql; do

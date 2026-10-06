@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Blocks a commit that would regress src/integrations/supabase/types.ts (see scripts/check-supabase-types.ts).
+if git diff --cached --name-only | grep -q '^src/integrations/supabase/types.ts$'; then
+  if command -v bun >/dev/null 2>&1; then
+    bun run scripts/check-supabase-types.ts || { echo "Commit blocked: types.ts lost items the baseline has. Run 'npm run types:fix'."; exit 1; }
+  fi
+fi

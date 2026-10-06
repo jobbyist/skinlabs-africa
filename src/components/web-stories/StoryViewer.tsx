@@ -6,6 +6,8 @@ import type { Story } from "@/lib/webStories/stories";
 import { logStoryEvent } from "@/lib/webStories/analytics";
 import { isStoryAd } from "@/lib/webStories/storyAds";
 import { cn } from "@/lib/utils";
+import { GIVEAWAY_PATH, GIVEAWAY_STORY_SLUG } from "@/lib/giveaway/campaign";
+import { trackGiveawayCta } from "@/lib/giveaway/analytics";
 
 interface StoryViewerProps {
   stories: Story[];
@@ -358,6 +360,7 @@ const StoryViewer = ({ stories, startIndex, onClose, onViewed }: StoryViewerProp
                   to={cta.url}
                   onClick={() => {
                     logStoryEvent(story.key, "cta_click", pageIndex);
+                    if (story.slug === GIVEAWAY_STORY_SLUG) trackGiveawayCta("story_viewer", cta.url === GIVEAWAY_PATH ? "enter" : "story_assessment");
                     onClose();
                   }}
                   className={ctaClass}

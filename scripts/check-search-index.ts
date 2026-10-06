@@ -36,6 +36,8 @@ const KNOWN_EXCLUSIONS = new Set([
   "/marketplace/saved",
   // Utility step of the password-recovery email flow, not content.
   "/reset-password",
+  // Utility step of the newsletter double opt-in email, not content.
+  "/newsletter/confirm",
   // Signed-in, noindex first-run onboarding (onboarding overhaul 07).
   "/welcome",
   // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
@@ -43,6 +45,11 @@ const KNOWN_EXCLUSIONS = new Set([
   // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached
   // from /skynn-ai, the dashboard and emails rather than site search.
   "/skynn-ai/advanced",
+  // Installed-app entry point (manifest start_url): restores the session, then routes
+  // onward. noindex utility route, not content.
+  "/start",
+  // Time-limited TikTok acquisition landing page (October 2026 giveaway); reached from ads and the story, not site search.
+  "/giveaways/october-2026",
 ]);
 
 interface RouteEntry {

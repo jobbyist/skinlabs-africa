@@ -178,7 +178,7 @@ const membershipSummaryAnswer =
 const aiQuotaAnswer =
   `It depends on your plan, and this is the exact entitlement — not a rough estimate. ${explorer.name} (free) includes ${explorerAiLine.toLowerCase()}. ` +
   `${insider.name} steps that up to ${insiderAiLine.toLowerCase()}. The deeper Advanced AI Dermatology Analysis is separate: it uses one ` +
-  `Analysis Pass on every plan, and during the SKYNN AI v2.1 beta submissions are received and queued with a reference number while the ` +
+  `Analysis Pass on every plan, and during the SKYNN AI - v2.2 (beta) submissions are received and queued with a reference number while the ` +
   `report workflow is finalised. Full feature-by-feature comparison lives on the Pricing page.`;
 
 /* -------------------------------------------------------------------------- */
@@ -227,7 +227,7 @@ export const faqEntries: FAQEntry[] = [
     slug: "how-does-the-ai-formulator-work",
     question: "How does SKYNN AI work?",
     answer:
-      "SKYNN AI v2.1 (beta) has two parts. The free Basic AI Skin Analysis is a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment. You can optionally add a photo (it stays on your device and isn't analysed) and optionally share your self-reported Monk Skin Tone (MST), which SKYNN AI never infers from a photo. It uses your answers, concerns, budget and consistency level to recommend a routine and the actives that make sense for you, once every 7 days on the free plan. The Advanced AI Dermatology Analysis is a longer questionnaire that uses an Analysis Pass. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
+      "SKYNN AI - v2.2 (beta) has two parts. The free Basic AI Skin Analysis is a short skin-profile quiz — oiliness, pores, breakouts, dryness, sensitivity and your day-to-day environment. You can optionally add a photo (it stays on your device and isn't analysed) and optionally share your self-reported Monk Skin Tone (MST), which SKYNN AI never infers from a photo. It uses your answers, concerns, budget and consistency level to recommend a routine and the actives that make sense for you, once every 7 days on the free plan. The Advanced AI Dermatology Analysis is a longer questionnaire that uses an Analysis Pass. It's built for South African conditions and shelves, but it's educational and routine guidance — not a medical diagnosis, and not a substitute for seeing a dermatologist about a specific condition.",
     category: "about",
     tags: ["ai formulator", "skynn ai", "quiz", "how it works"],
     relatedQuestions: ["about-what-is-skinlabs", "routines-basic-routine"],

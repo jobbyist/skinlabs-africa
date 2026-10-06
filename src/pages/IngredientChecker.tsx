@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeftRight, AlertTriangle, CheckCircle2, Clock, Sparkles, HelpCircle, Shuffle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,7 +8,8 @@ import IngredientCombobox from "@/components/ingredients/IngredientCombobox";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { Button } from "@/components/ui/button";
-import { useIngredientCompatibility } from "@/hooks/use-ingredient-compatibility";
+import { useIngredientCompatibility, useIngredientOptionBySlug } from "@/hooks/use-ingredient-compatibility";
+import { openSignupDialog } from "@/lib/conversionDialogs";
 import { useAuth } from "@/hooks/use-auth";
 import type { IngredientOption } from "@/hooks/use-ingredient-compatibility";
 import { SITE_URL } from "@/lib/seo-config";
@@ -21,9 +22,25 @@ const RESULT_META = {
   avoid_combining: { label: "Avoid combining", icon: AlertTriangle, className: "border-destructive/30 bg-destructive/5 text-destructive" },
 } as const;
 
+const NOTE_SOURCE_META = {
+  curated: { label: "Cited SkinLabs note", className: "bg-primary/10 text-primary" },
+  class_guidance: { label: "Class guidance — based on the types of ingredient, not a tested pairing", className: "bg-muted text-muted-foreground" },
+  general: { label: "Nothing on record", className: "bg-muted text-muted-foreground" },
+} as const;
+
 const IngredientChecker = () => {
+  const [searchParams] = useSearchParams();
   const [a, setA] = useState<IngredientOption | null>(null);
   const [b, setB] = useState<IngredientOption | null>(null);
+  // Links from ingredient pages: /ingredients/checker?a=retinol&b=glycolic-acid
+  const { data: presetA } = useIngredientOptionBySlug(searchParams.get("a"));
+  const { data: presetB } = useIngredientOptionBySlug(searchParams.get("b"));
+  useEffect(() => {
+    if (presetA) setA((cur) => cur ?? presetA);
+  }, [presetA]);
+  useEffect(() => {
+    if (presetB) setB((cur) => cur ?? presetB);
+  }, [presetB]);
   const { data: result, isLoading, isFetched } = useIngredientCompatibility(a?.id, b?.id);
   const { user } = useAuth();
 
@@ -57,8 +74,9 @@ const IngredientChecker = () => {
           <div className="text-center">
             <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">Combination Checker</h1>
             <p className="mt-3 text-muted-foreground">
-              Pick two ingredients to see whether SkinLabs has a verified compatibility note for that pair —
-              database-driven, never a guess.
+              Pick any two ingredients for a compatibility note. Where SkinLabs has a cited note you get it;
+              otherwise you get guidance for those types of ingredient, clearly labelled, or an honest
+              "nothing on record" — never a guess.
             </p>
           </div>
 
@@ -66,9 +84,9 @@ const IngredientChecker = () => {
             <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center">
               <p className="text-sm text-foreground">
                 <strong>Sign in required:</strong> The Ingredient Combination checker is available for free to all members for a limited time.{" "}
-                <Link to="/" className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80">
+                <button type="button" onClick={() => openSignupDialog()} className="font-semibold text-primary underline underline-offset-2 hover:text-primary/80">
                   Sign in or create a free account
-                </Link>{" "}
+                </button>{" "}
                 to use this feature.
               </p>
             </div>
@@ -80,8 +98,8 @@ const IngredientChecker = () => {
               <p className="text-sm text-muted-foreground mb-4">
                 Sign in to check ingredient compatibility. Anonymous users can browse ingredient profiles but cannot use the Combination checker.
               </p>
-              <Button asChild className="mx-auto">
-                <Link to="/">Sign In / Sign Up</Link>
+              <Button className="mx-auto" onClick={() => openSignupDialog()}>
+                Sign In / Sign Up
               </Button>
             </div>
           )}
@@ -133,30 +151,28 @@ const IngredientChecker = () => {
             {!sameIngredient && a && b && isFetched && !result && (
               <div className="rounded-2xl border border-dashed border-border p-6 text-center">
                 <HelpCircle className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />
-                <p className="font-medium text-foreground">No verified SkinLabs relationship yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  We haven't published a compatibility note for {a.label} + {b.label}. That doesn't mean they
-                  conflict — it means we haven't reviewed evidence for this specific pair yet.
-                </p>
+                <p className="font-medium text-foreground">We couldn't load a note for this pair</p>
+                <p className="mt-1 text-sm text-muted-foreground">Please try again in a moment.</p>
               </div>
             )}
 
-            {!sameIngredient && a && b && result && (
-              <div className={`rounded-2xl border p-6 ${RESULT_META[result.interaction_type].className}`}>
-                <div className="flex items-center gap-2 text-lg font-semibold">
-                  {(() => {
-                    const Icon = RESULT_META[result.interaction_type].icon;
-                    return <Icon className="h-5 w-5" />;
-                  })()}
-                  {a.label} + {b.label}: {RESULT_META[result.interaction_type].label}
+            {!sameIngredient && a && b && result && (() => {
+              const source = (result.note_source as keyof typeof NOTE_SOURCE_META) in NOTE_SOURCE_META ? (result.note_source as keyof typeof NOTE_SOURCE_META) : "general";
+              const meta = result.interaction_type ? RESULT_META[result.interaction_type] : null;
+              const Icon = meta?.icon ?? HelpCircle;
+              return (
+                <div className={`rounded-2xl border p-6 ${meta ? meta.className : "border-border bg-muted/30 text-foreground"}`}>
+                  <div className="flex items-center gap-2 text-lg font-semibold">
+                    <Icon className="h-5 w-5 shrink-0" />
+                    <span>{a.label} + {b.label}: {meta ? meta.label : "No interaction on record"}</span>
+                  </div>
+                  <p className={`mt-3 inline-block rounded-full px-2.5 py-1 text-xs font-medium ${NOTE_SOURCE_META[source].className}`}>{result.source_label || NOTE_SOURCE_META[source].label}</p>
+                  {result.explanation && <p className="mt-3 text-sm opacity-90">{result.explanation}</p>}
+                  {result.usage_guidance && <p className="mt-2 text-sm font-medium opacity-90">Guidance: {result.usage_guidance}</p>}
+                  {result.source_url && <SourceCitationList sources={[{ label: result.source_url, url: result.source_url }]} />}
                 </div>
-                {result.explanation && <p className="mt-3 text-sm opacity-90">{result.explanation}</p>}
-                {result.usage_guidance && (
-                  <p className="mt-2 text-sm font-medium opacity-90">Guidance: {result.usage_guidance}</p>
-                )}
-                {result.source_url && <SourceCitationList sources={[{ label: result.source_url, url: result.source_url }]} />}
-              </div>
-            )}
+              );
+            })()}
 
             {!a && !b && (
               <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">

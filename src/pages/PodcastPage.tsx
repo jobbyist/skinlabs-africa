@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import DownloadEpisodeButton from "@/components/pwa/DownloadEpisodeButton";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -301,6 +302,7 @@ const PodcastPage = () => {
                         </button>
                       </div>
                     )}
+                    {!isComingSoon && <DownloadEpisodeButton episode={episode} size="compact" />}
                     {!isComingSoon && (
                       <Button asChild variant="link" className="mt-auto justify-start px-0 text-foreground">
                         <Link to={`/podcast/${episode.slug}`}>Show notes & transcript →</Link>

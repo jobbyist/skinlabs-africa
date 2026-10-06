@@ -5,8 +5,6 @@ import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,12 +12,19 @@ import { Loader2, Eye, CheckCircle2, Clock, Users, FileText, Mail, ShoppingCart,
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { PAID_SUBSCRIPTION_STATUSES } from "@/lib/entitlements";
-import { useAdminGate } from "@/hooks/use-admin-gate";
-import AdminLoginScreen from "@/components/admin/AdminLoginScreen";
+import AuthDialog from "@/components/AuthDialog";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
+import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
+import PwaAnalyticsPanel from "@/components/admin/PwaAnalyticsPanel";
+import TikTokAdsPanel from "@/components/admin/TikTokAdsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
+import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
+import LeadsTab from "@/components/admin/LeadsTab";
+import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
+import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
+import NotificationsTab from "@/components/admin/notifications/NotificationsTab";
 
 type Submission = {
   id: string;
@@ -54,6 +59,9 @@ type Subscriber = {
   email: string;
   subscribed_at: string;
   is_active: boolean;
+  consultation_waitlist?: boolean;
+  digest_status?: "none" | "pending" | "confirmed" | "unsubscribed";
+  digest_source?: string | null;
 };
 
 type Preorder = {
@@ -108,11 +116,10 @@ type IntelInteraction = {
 };
 
 const AdminDashboard = () => {
-  const { user, loading: authLoading, signIn } = useAuth();
-  const gate = useAdminGate();
-  const [bridgePassword, setBridgePassword] = useState("");
-  const [bridgeLoading, setBridgeLoading] = useState(false);
-  const [bridgeError, setBridgeError] = useState<string | null>(null);
+  const { user, loading: authLoading, signOut } = useAuth();
+  // Admin sign-in is a second instance of the regular Supabase auth UI. Access is decided only
+  // by the admin role (has_role) on whichever account signs in, not by a fixed email/password.
+  const [authOpen, setAuthOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("submissions");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -123,6 +130,8 @@ const AdminDashboard = () => {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
   const [premiumMemberCount, setPremiumMemberCount] = useState(0);
+  // The lists below are capped at 200 rows; these are the real table totals.
+  const [totals, setTotals] = useState({ submissions: 0, waitlist: 0, subscribers: 0, preorders: 0 });
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [filter, setFilter] = useState("all");
 
@@ -136,10 +145,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user) checkAdmin();
-    // Pre-existing gap, surfaced while adding the ADMIN_PASSWORD gate above this: for a
-    // signed-out visitor, checkAdmin() (which resolves both `loading` and `isAdmin`) never
-    // ran at all, leaving this page spinning on "Checking access" forever instead of
-    // reaching the "Access Denied"/sign-in state below.
+    // A signed-out visitor never runs checkAdmin(), so resolve both flags here or the page
+    // would spin on "Checking access" instead of reaching the sign-in state below.
     else if (!authLoading) {
       setIsAdmin(false);
       setLoading(false);
@@ -155,14 +162,14 @@ const AdminDashboard = () => {
 
   const fetchAllData = async () => {
     setLoading(true);
-    const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes, brandMapRes, ingredientMapRes] = await Promise.all([
+    const [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes] = await Promise.all([
       // Bounded like the Data Quality queue below -- these are queues an admin
       // works through in recency order, not a full-table export, so a limit
       // keeps this page load bounded as each table grows.
-      supabase.from("skincare_recommendations").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("openhaus_waitlist").select("*").order("created_at", { ascending: false }).limit(200),
-      supabase.from("newsletter_subscribers").select("*").order("subscribed_at", { ascending: false }).limit(200),
-      supabase.from("preorders").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("skincare_recommendations").select("id,user_id,created_at,recommendation,skin_type,concerns,contact_name,email_sent_to,contact_whatsapp,status,book_consultation,age_range,lifestyle,environment", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
+      supabase.from("openhaus_waitlist").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
+      supabase.from("newsletter_subscribers").select("id,email,subscribed_at,is_active,consultation_waitlist,digest_status,digest_source", { count: "exact" }).order("subscribed_at", { ascending: false }).limit(200),
+      supabase.from("preorders").select("*", { count: "exact" }).order("created_at", { ascending: false }).limit(200),
       // Count-only (head: true fetches zero rows) — the full user directory now
       // lives behind admin_search_profiles via the Users tab, never a bare
       // `profiles.select("*")` dump into the browser.
@@ -171,9 +178,10 @@ const AdminDashboard = () => {
       supabase.from("ingredients").select("id,inci_name,common_name,slug,verification_status,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("products").select("id,name,slug,brand_id,verification_status,is_discontinued,created_at").in("verification_status", ["unverified", "partially_verified"]).order("created_at", { ascending: false }).limit(100),
       supabase.from("ingredient_interactions").select("id,interaction_type,explanation,ingredient_a_id,ingredient_b_id,verification_status").in("verification_status", ["unverified", "partially_verified"]).limit(100),
-      supabase.from("brands").select("id,name"),
-      supabase.from("ingredients").select("id,inci_name,common_name"),
     ]);
+    const failed = [subRes, waitRes, newsRes, preRes, premiumCountRes, brandsQCRes, ingredientsQCRes, productsQCRes, interactionsQCRes].filter((x) => x.error);
+    if (failed.length > 0) toast.error(`Some admin data failed to load (${failed.length} of 9 queries): ${failed[0].error?.message ?? "unknown error"}`);
+    setTotals({ submissions: subRes.count ?? 0, waitlist: waitRes.count ?? 0, subscribers: newsRes.count ?? 0, preorders: preRes.count ?? 0 });
     setSubmissions((subRes.data as Submission[]) || []);
     setWaitlist((waitRes.data as WaitlistEntry[]) || []);
     setSubscribers((newsRes.data as Subscriber[]) || []);
@@ -183,6 +191,13 @@ const AdminDashboard = () => {
     setIntelIngredients((ingredientsQCRes.data as IntelIngredient[]) || []);
     setIntelProducts((productsQCRes.data as IntelProduct[]) || []);
     setIntelInteractions((interactionsQCRes.data as IntelInteraction[]) || []);
+    // Look names up only for ids the queues reference (a full-table read would silently stop at the 1,000-row API cap).
+    const brandIds = [...new Set(((productsQCRes.data as IntelProduct[]) || []).map((p) => p.brand_id))];
+    const ingredientIds = [...new Set(((interactionsQCRes.data as IntelInteraction[]) || []).flatMap((i) => [i.ingredient_a_id, i.ingredient_b_id]))];
+    const [brandMapRes, ingredientMapRes] = await Promise.all([
+      brandIds.length ? supabase.from("brands").select("id,name").in("id", brandIds) : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ingredientIds.length ? supabase.from("ingredients").select("id,inci_name,common_name").in("id", ingredientIds) : Promise.resolve({ data: [] as { id: string; inci_name: string; common_name: string | null }[] }),
+    ]);
     setBrandNames(Object.fromEntries(((brandMapRes.data as { id: string; name: string }[]) || []).map((b) => [b.id, b.name])));
     setIngredientNames(
       Object.fromEntries(
@@ -224,15 +239,6 @@ const AdminDashboard = () => {
     delivered: submissions.filter((s) => s.status === "delivered").length,
   };
 
-  // The ADMIN_PASSWORD gate (api/admin-auth.ts) comes first — nothing about the
-  // dashboard, its data, or even the "checking access" spinner below is reachable
-  // until this server-verified check passes. See src/hooks/use-admin-gate.ts.
-  if (gate.status !== "unlocked") {
-    return (
-      <AdminLoginScreen status={gate.status} error={gate.error} submitting={gate.submitting} onSubmit={gate.submit} />
-    );
-  }
-
   if (authLoading || loading || isAdmin === null) {
     return (
       <div className="min-h-screen bg-background">
@@ -248,53 +254,39 @@ const AdminDashboard = () => {
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Admin Sign In | SkinLabs®</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Header />
         <main className="pt-20 flex items-center justify-center min-h-[60vh]">
-          <div className="w-full max-w-sm text-center">
-            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+          <div className="w-full max-w-sm px-4 text-center">
+            <ShieldCheck className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">{user ? "Access Denied" : "Admin sign in"}</h1>
             <p className="text-muted-foreground mb-6">
               {user
-                ? "This SkinLabs® account doesn't hold the admin role."
-                : "The admin password was correct, but no admin session could be started automatically."}
+                ? "This SkinLabs® account doesn't hold the admin role. Sign out and use an admin account."
+                : "Sign in with your SkinLabs® admin account to continue."}
             </p>
-            {!user && (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setBridgeError(null);
-                  setBridgeLoading(true);
-                  const { error } = await signIn("admin@skinlabs.co.za", bridgePassword);
-                  setBridgeLoading(false);
-                  if (error) setBridgeError("Invalid SkinLabs® admin credentials.");
-                }}
-                className="space-y-3 text-left"
-              >
-                <div className="space-y-1.5">
-                  <Label htmlFor="bridge-password" className="text-xs">
-                    SkinLabs® admin account password
-                  </Label>
-                  <Input
-                    id="bridge-password"
-                    type="password"
-                    value={bridgePassword}
-                    onChange={(e) => setBridgePassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-                {bridgeError && <p role="alert" className="text-xs font-medium text-destructive">{bridgeError}</p>}
-                <Button type="submit" className="w-full" disabled={bridgeLoading || !bridgePassword}>
-                  {bridgeLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign in
-                </Button>
-              </form>
+            {user ? (
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => void signOut()}>
+                <LogOut className="h-3.5 w-3.5" /> Sign out
+              </Button>
+            ) : (
+              <Button onClick={() => setAuthOpen(true)}>Sign in</Button>
             )}
-            <Button variant="ghost" size="sm" className="mt-4 gap-1.5" onClick={() => void gate.logout()}>
-              <LogOut className="h-3.5 w-3.5" /> Log out
-            </Button>
           </div>
         </main>
         <Footer />
+        {!user && (
+          <AuthDialog
+            open={authOpen}
+            onOpenChange={setAuthOpen}
+            mode="signin"
+            onModeChange={() => {}}
+            returnTo="/admin"
+          />
+        )}
       </div>
     );
   }
@@ -315,7 +307,7 @@ const AdminDashboard = () => {
                 <h1 className="text-3xl font-heading font-bold text-foreground mb-2">Admin Dashboard</h1>
                 <p className="text-muted-foreground mb-8">Manage submissions, waitlist, subscribers & pre-orders</p>
               </div>
-              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => void gate.logout()}>
+              <Button variant="outline" size="sm" className="gap-1.5 shrink-0" onClick={() => void signOut()}>
                 <LogOut className="h-3.5 w-3.5" /> Log out
               </Button>
             </div>
@@ -323,10 +315,10 @@ const AdminDashboard = () => {
             {/* Overview Stats */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               {[
-                { label: "AI Submissions", value: submissions.length, icon: FileText, color: "text-primary" },
-                { label: "Waitlist", value: waitlist.length, icon: Users, color: "text-primary" },
-                { label: "Newsletter", value: subscribers.length, icon: Mail, color: "text-primary" },
-                { label: "Pre-Orders", value: preorders.length, icon: ShoppingCart, color: "text-primary" },
+                { label: "AI Submissions", value: totals.submissions, icon: FileText, color: "text-primary" },
+                { label: "Waitlist", value: totals.waitlist, icon: Users, color: "text-primary" },
+                { label: "Newsletter", value: totals.subscribers, icon: Mail, color: "text-primary" },
+                { label: "Pre-Orders", value: totals.preorders, icon: ShoppingCart, color: "text-primary" },
                 { label: "Premium Members", value: premiumMemberCount, icon: Star, color: "text-primary" },
               ].map((s) => (
                 <Card key={s.label}>
@@ -352,6 +344,11 @@ const AdminDashboard = () => {
                 <TabsTrigger value="dataquality">Data Quality ({intelBrands.length + intelIngredients.length + intelProducts.length + intelInteractions.length})</TabsTrigger>
                 <TabsTrigger value="analytics" className="gap-1"><BarChart3 className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
                 <TabsTrigger value="skynn-reviews">SKYNN Reviews</TabsTrigger>
+                <TabsTrigger value="sa-prices">SA Prices</TabsTrigger>
+                <TabsTrigger value="leads">Leads</TabsTrigger>
+                <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
+                <TabsTrigger value="ads">Ads</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -420,9 +417,19 @@ const AdminDashboard = () => {
                         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
                           <div className="space-y-1">
                             <span className="font-medium text-card-foreground">{sub.email}</span>
-                            <p className="text-xs text-muted-foreground">Subscribed {new Date(sub.subscribed_at).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Joined {new Date(sub.subscribed_at).toLocaleDateString()}
+                              {sub.digest_source ? ` · via ${sub.digest_source}` : ""}
+                            </p>
                           </div>
-                          <Badge variant={sub.is_active ? "default" : "secondary"}>{sub.is_active ? "Active" : "Inactive"}</Badge>
+                          <div className="flex flex-wrap gap-2">
+                            {sub.consultation_waitlist && <Badge variant="secondary">Consult waitlist</Badge>}
+                            {sub.digest_status && sub.digest_status !== "none" && (
+                              <Badge variant={sub.digest_status === "confirmed" ? "default" : "secondary"}>
+                                Digest: {sub.digest_status}
+                              </Badge>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -462,6 +469,7 @@ const AdminDashboard = () => {
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
               <TabsContent value="dataquality">
+                <PairNoteCoverageCard />
                 <p className="text-sm text-muted-foreground mb-4">
                   Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>
                   until a human confirms them against a primary source. Mark verified only once you've checked it.
@@ -579,8 +587,35 @@ const AdminDashboard = () => {
                 <SkynnReviewsTab />
               </TabsContent>
 
+              <TabsContent value="leads">
+                <LeadsTab />
+              </TabsContent>
+
+              {/* Analysis Passes — manual, no-payment issuing by email. See AnalysisPassesTab and
+                  supabase/migrations/20261004110000_admin_issue_analysis_passes.sql. */}
+              <TabsContent value="analysis-passes">
+                <AnalysisPassesTab />
+              </TabsContent>
+
+              {/* Ads — TikTok pixel + Events API delivery log. See TikTokAdsPanel, docs/tiktok-pixel.md
+                  and supabase/migrations/20261004120000_tiktok_event_log.sql. */}
+              <TabsContent value="ads">
+                <TikTokAdsPanel />
+              </TabsContent>
+
+              {/* Notifications — the notification engine's admin RPCs only. See components/admin/notifications. */}
+              <TabsContent value="notifications">
+                <NotificationsTab />
+              </TabsContent>
+
+              <TabsContent value="sa-prices">
+                <PriceMatchesPanel />
+              </TabsContent>
+
               <TabsContent value="analytics" className="space-y-6">
                 <ConversionFunnelPanel />
+                <PwaAnalyticsPanel />
+                <EventsAnalyticsPanel />
                 <AnalyticsTab />
               </TabsContent>
             </Tabs>

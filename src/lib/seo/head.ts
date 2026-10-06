@@ -1,8 +1,8 @@
 import { BRAND, DEFAULT_OG } from "@/lib/seo-config";
 import { canonicalUrl, absoluteUrl } from "./canonical";
 import type { PageMeta, HeadTags } from "./types";
+import { clampAtWord } from "./text";
 
-const clamp = (value: string, max: number) => value.replace(/\s+/g, " ").trim().slice(0, max);
 
 /**
  * Builds the exact shape TanStack Router's `head()` API consumes: flat meta
@@ -16,7 +16,7 @@ const clamp = (value: string, max: number) => value.replace(/\s+/g, " ").trim().
  */
 export function buildHeadTags(meta: PageMeta, jsonLdBlocks: object[] = []): HeadTags {
   const canonical = canonicalUrl(meta.canonicalPath);
-  const description = clamp(meta.description, 160);
+  const description = clampAtWord(meta.description, 160);
   const ogImage = meta.ogImage ? absoluteUrl(meta.ogImage) : DEFAULT_OG;
   const robots = meta.noindex
     ? "noindex, nofollow"

@@ -84,7 +84,11 @@ const BrandAmbassadors = () => {
     <>
       <SEO
         title="SkinLabs® Brand Ambassador Programme | TikTok & Instagram Creators South Africa"
-        description={`Join the founding SkinLabs® Brand Ambassador Programme: ${BA_SPOTS} spots for South African TikTok and Instagram creators (5K–50K followers, each platform assessed separately), ${BA_COMMISSION_PERCENT} recurring commission and a potential 12-month partnership. Applications close ${BA_APPLICATIONS_CLOSE}.`}
+        description={
+          applicationStatus === "after"
+            ? `The founding SkinLabs® Brand Ambassador Programme: ${BA_SPOTS} spots for South African TikTok and Instagram creators. Applications closed ${BA_APPLICATIONS_CLOSE}.`
+            : `Join the founding SkinLabs® Brand Ambassador Programme: ${BA_SPOTS} spots for South African TikTok and Instagram creators (5K–50K followers per platform), ${BA_COMMISSION_PERCENT} recurring commission. Applications close ${BA_APPLICATIONS_CLOSE}.`
+        }
         canonical={`${SITE_URL}${LANDING_PATH}`}
         ogImage={BA_OG_IMAGE}
         jsonLd={jsonLd}

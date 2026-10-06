@@ -4,6 +4,9 @@ import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import { authorPerson } from "@/lib/seo/jsonLd";
+import { AUTHOR_NAME } from "@/lib/seo-config";
+import { clampAtWord } from "@/lib/seo/text";
 import { Button } from "@/components/ui/button";
 import BrandLogo from "@/components/BrandLogo";
 import BrandRequestModal from "@/components/BrandRequestModal";
@@ -67,7 +70,8 @@ const SpotlightBrandProfile = () => {
         "@type": "Article",
         headline: `${entry.brand} — Spotlight by SkinLabs`,
         description: editorial.whyTheyMadeTheList,
-        author: { "@type": "Organization", name: "SkinLabs", url: "https://skinlabs.co.za" },
+        author: authorPerson(),
+        editor: authorPerson(),
         publisher: {
           "@type": "Organization",
           name: "SkinLabs",
@@ -89,7 +93,7 @@ const SpotlightBrandProfile = () => {
     <div className="min-h-screen bg-background">
       <SEO
         title={`${entry.brand} — Spotlight by SkinLabs`}
-        description={editorial.whyTheyMadeTheList.slice(0, 155)}
+        description={clampAtWord(editorial.whyTheyMadeTheList, 155)}
         canonical={canonical}
         ogType="article"
         jsonLd={jsonLd}
@@ -122,6 +126,7 @@ const SpotlightBrandProfile = () => {
               )}
               <h1 className="mt-2 font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">{entry.brand}</h1>
               <p className="mt-1 text-muted-foreground">{editorial.positioningStatement}</p>
+              <p className="mt-2 text-xs text-muted-foreground">Profile by {AUTHOR_NAME}</p>
             </div>
           </div>
 

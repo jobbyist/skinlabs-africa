@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -18,6 +18,7 @@ import {
   Target,
   FlaskConical,
   TrendingUp,
+  Stethoscope,
   Megaphone,
   BookOpenCheck,
   Compass,
@@ -52,6 +53,9 @@ import { useCrossDomainAuth } from "@/hooks/use-cross-domain-auth";
 import { usePromoBar } from "@/hooks/use-promo-bar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import MobileContentRail, { CONTENT_RAIL_HEIGHT_CLASS } from "@/components/MobileContentRail";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { shouldShowContentRail } from "@/lib/contentRail";
 // Served from public/ (not a Vite-bundled src/assets import) — real light/
 // dark wordmark exports, swapped via CSS (dark:hidden/dark:block) rather
 // than a CSS filter on one file, so the actual PNG that's "live" for each
@@ -69,8 +73,8 @@ interface NavItem {
 const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
-  { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Business Suite", href: "/business", icon: TrendingUp, badge: "NEW" },
+  { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
 ];
 
 /** The "Explore" grid — SkinLabs' editorial + platform sections. */
@@ -221,6 +225,10 @@ const Header = () => {
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
+  const storyRailVisible = useScrollReveal(storyRail);
+
+  const showStories = storyRail && storyRailVisible;
+  const contentRail = shouldShowContentRail(pathname, Boolean(user));
 
   const closeMenu = () => setOpen(false);
   const closeDesktopMenu = () => setDesktopMenuOpen(false);
@@ -247,15 +255,23 @@ const Header = () => {
           h-24 and is md:hidden too. Hidden on task-focused pages (showStoryRail). */}
       {storyRail && (
         <>
-          <WebStoriesBar top="top-0" />
-          <div className="h-24 md:hidden" aria-hidden="true" />
+          {showStories && <WebStoriesBar top="top-0" />}
+          <div
+            className={cn(
+              "h-24 md:hidden transition-[height] duration-200 ease-out",
+              !showStories && "h-0",
+            )}
+            aria-hidden="true"
+          />
         </>
       )}
+      {/* Flow space for the pill strip that sits inside the fixed header below (members, key pages, phones). */}
+      {contentRail && <div className={cn(CONTENT_RAIL_HEIGHT_CLASS, "md:hidden")} aria-hidden="true" />}
       <header
         className={cn(
           "fixed inset-x-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-md",
           // Mobile: below the story rail (96px) when it shows. md+: below the promo bar (36px).
-          storyRail ? "top-24" : "top-0",
+          showStories ? "top-24" : "top-0",
           promoBarVisible ? "md:top-9" : "md:top-0",
         )}
       >
@@ -419,6 +435,7 @@ const Header = () => {
             </Button>
           </div>
         </div>
+        <MobileContentRail />
       </header>
 
       {/* Mobile sheet — kept for small screens */}

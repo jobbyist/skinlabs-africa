@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   EMPTY_FACTS,
   checklistComplete,
+  remindersDone,
   gettingStartedChecklist,
   isActivated,
   nextBestAction,
@@ -79,8 +80,12 @@ describe("nextBestAction", () => {
 });
 
 describe("gettingStartedChecklist", () => {
+  test("a free account isn't asked to read a members-only review", () => {
+    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1 }));
+    expect(items.map((i) => i.id)).toEqual(["analysis", "routine", "weather", "checkins", "mfa"]);
+  });
   test("six steps, completion from data", () => {
-    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1, weatherCitySet: true }));
+    const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1, weatherCitySet: true, isTrialing: true }));
     expect(items.map((i) => i.id)).toEqual(["analysis", "routine", "weather", "checkins", "content", "mfa"]);
     expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["analysis", "weather"]);
   });
@@ -101,5 +106,31 @@ describe("gettingStartedChecklist", () => {
     });
     expect(checklistComplete(gettingStartedChecklist(all))).toBe(true);
     expect(checklistComplete(gettingStartedChecklist({ ...all, mfaEnabled: false }))).toBe(false);
+  });
+});
+
+describe("the reminders checklist item (server truth only)", () => {
+  const ids = (f: JourneyFacts) => gettingStartedChecklist(f).map((i) => i.id);
+  test("hidden where the push API does not exist, shown (exactly once) where it could be completed", () => {
+    expect(ids(signedIn({ savedAnalyses: 1 }))).not.toContain("reminders");
+    const shown = ids(signedIn({ savedAnalyses: 1, reminderPushAvailable: true }));
+    expect(shown.filter((id) => id === "reminders")).toHaveLength(1);
+    expect(shown.indexOf("reminders")).toBe(shown.indexOf("checkins") + 1);
+  });
+  test("non-iOS: an active push device alone completes it", () => {
+    expect(remindersDone(signedIn({ reminderDeviceActive: true }))).toBe(true);
+    expect(remindersDone(signedIn({ reminderDeviceActive: false }))).toBe(false);
+  });
+  test("iOS: needs the active device AND app_installed_at", () => {
+    expect(remindersDone(signedIn({ reminderIosDevice: true, reminderDeviceActive: true }))).toBe(false);
+    expect(remindersDone(signedIn({ reminderIosDevice: true, appInstalled: true }))).toBe(false);
+    expect(remindersDone(signedIn({ reminderIosDevice: true, reminderDeviceActive: true, appInstalled: true }))).toBe(true);
+  });
+  test("a completed item stays listed even if this device can no longer push (idempotent)", () => {
+    const items = gettingStartedChecklist(signedIn({ reminderDeviceActive: true, reminderPushAvailable: false }));
+    expect(items.find((i) => i.id === "reminders")?.done).toBe(true);
+  });
+  test("completion is derived from facts alone: client analytics are not an input", () => {
+    expect(Object.keys(EMPTY_FACTS).some((k) => /analytics|event/i.test(k))).toBe(false);
   });
 });

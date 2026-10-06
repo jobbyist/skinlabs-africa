@@ -73,7 +73,7 @@ const Footer = () => {
       { label: "Podcast Series", href: "/podcast" },
     ],
     platform: [
-      { label: "Skin Analysis (SKYNN AI)", href: "/skynn-ai" },
+      { label: "AI Skin Analysis", href: "/skynn-ai" },
       { label: "Knowledge Hub", href: "/knowledge-hub" },
       { label: "Consultations", href: "/consult", isComingSoon: true },
       { label: "Marketplace", href: "/marketplace", isComingSoon: true },
@@ -83,8 +83,6 @@ const Footer = () => {
     ],
     company: [
       { label: "About Us", href: "/about" },
-      { label: "Our Science", href: "/about#science" },
-      { label: "Sustainability", href: "/about#sustainability" },
       { label: "For Business", href: "/business" },
       { label: "Partnerships", href: "/partners" },
       { label: "Ambassadors", href: "/brand-ambassadors" },

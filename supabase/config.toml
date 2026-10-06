@@ -15,6 +15,11 @@ verify_jwt = false
 [functions.skin-weather]
 verify_jwt = false
 
+# Server side of the TikTok Pixel. Public (anonymous visitors convert too); it
+# refuses anything without consent, whitelists events and verifies any JWT itself.
+[functions.tiktok-events]
+verify_jwt = false
+
 [functions.payfast-payment]
 verify_jwt = false
 
@@ -62,4 +67,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.shelf-showdown-sync]
+verify_jwt = false
+
+# Web Push sender: verifies the caller itself (service role, admin JWT, or a member's own "test" action).
+[functions.push-send]
+verify_jwt = false
+
+# Push delivery half of the notification engine: custom auth (cron secret via Vault, service role, or admin member).
+[functions.notification-dispatcher]
+verify_jwt = false
+
+# Notification-tap beacon from the service worker (no session available). Always answers 200.
+[functions.push-track]
 verify_jwt = false

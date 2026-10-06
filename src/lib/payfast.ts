@@ -1,3 +1,4 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { supabase } from "@/integrations/supabase/client";
 import { PAYFAST_ENABLED } from "@/lib/payments";
 
@@ -80,7 +81,7 @@ function submitPayfastForm(paymentUrl: string, paymentData: Record<string, strin
 
 export const startPayfastMembership = async (req: KeepMembershipRequest) => {
   if (!PAYFAST_ENABLED) throw new Error("PayFast is temporarily unavailable. Please use PayPal or a debit/credit card.");
-  const origin = window.location.origin;
+  const origin = getSiteOrigin();
   const result = await invoke<{ paymentUrl: string; paymentData: Record<string, string> }>({
     action: "initialize_subscription",
     ...req,

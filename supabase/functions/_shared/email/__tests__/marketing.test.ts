@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { getTemplate } from "../templates/index.ts";
+import { renderEmailLayout } from "../layout.ts";
 
 describe("newsletter_weekly_digest template", () => {
   const def = getTemplate("newsletter_weekly_digest")!;
@@ -21,7 +22,11 @@ describe("newsletter_weekly_digest template", () => {
     expect(html).toContain("Sunscreen myths");
     expect(html).toContain("Esse Probiotic Serum");
     expect(html).toContain("20% off Analysis Passes");
-    expect(html).toContain("https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/email-unsubscribe?token=abc");
+    // The unsubscribe link now comes from the shared layout footer, built per recipient by the processor.
+    const wrapped = renderEmailLayout({ preheader: "p", bodyHtml: html, unsubscribeUrl: "https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/email-unsubscribe?token=abc" });
+    expect(wrapped).toContain("email-unsubscribe?token=abc");
+    expect(html).toContain("SKYNN AI");
+    expect(html).toContain("Sponsored");
   });
 
   test("escapes HTML in story titles and review verdicts", () => {
@@ -44,5 +49,22 @@ describe("newsletter_weekly_digest template", () => {
 
   test("subject falls back gracefully when there's no content", () => {
     expect(def.subject({})).toBe("Your SkinLabs Weekly");
+  });
+});
+
+describe("newsletter_digest_confirm template", () => {
+  const def = getTemplate("newsletter_digest_confirm")!;
+
+  test("is transactional (sent only because the visitor asked) and needs a confirm link", () => {
+    expect(def.category).toBe("FORMS");
+    expect(def.transactional).toBe(true);
+    expect(def.requiredVars).toEqual(["confirm_url"]);
+  });
+
+  test("renders the confirm button and tells a mistaken recipient to ignore it", () => {
+    const html = def.render({ confirm_url: "https://skinlabs.co.za/newsletter/confirm?token=abc" });
+    expect(html).toContain("https://skinlabs.co.za/newsletter/confirm?token=abc");
+    expect(html).toContain("Confirm my subscription");
+    expect(html).toContain("ignore this email");
   });
 });

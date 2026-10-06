@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { getTemplate, allTemplates, missingRequiredVars } from "../templates/index.ts";
 import { renderEmailLayout } from "../layout.ts";
+import { emailButton } from "../components.ts";
 
 describe("email template registry", () => {
   test("registers every template referenced by the SQL trigger layer", () => {
@@ -21,10 +22,12 @@ describe("email template registry", () => {
       "form_confirmation_feature_waitlist",
       "form_confirmation_openhaus_waitlist", "admin_form_notification_openhaus_waitlist",
       "form_confirmation_newsletter", "admin_form_notification_newsletter",
-      "admin_notify_me_request",
+      "admin_notify_me_request", "admin_consult_survey_response", "admin_feedback_survey_response",
       "admin_payment_needs_review", "admin_delivery_failed",
-      "newsletter_weekly_digest",
+      "newsletter_weekly_digest", "newsletter_digest_confirm",
       "trial_activation_nudge", "trial_week_left", "trial_precharge_reminder", "trial_last_chance", "trial_winback",
+      "daily_briefing_digest", "weekly_top_brands", "weekly_analysis_reminder",
+      "welcome_series_1", "welcome_series_2", "welcome_series_3", "welcome_series_4",
     ];
     for (const id of expectedIds) {
       expect(getTemplate(id), `missing template: ${id}`).toBeDefined();
@@ -42,6 +45,36 @@ describe("email template registry", () => {
       expect(html).toContain("instagram.com/skinlabsza");
       expect(html).toContain("tiktok.com/@skinlabsza");
     }
+  });
+
+  test("every recipient-facing email carries an unsubscribe link; staff notifications don't", () => {
+    for (const def of allTemplates()) {
+      const vars: Record<string, unknown> = {};
+      for (const key of def.requiredVars) vars[key] = "test-value";
+      const body = def.render(vars);
+      const withUrl = renderEmailLayout({ preheader: "p", bodyHtml: body, unsubscribeUrl: "https://example.test/unsub?token=abc" });
+      expect(withUrl).toContain("https://example.test/unsub?token=abc");
+      expect(withUrl).toContain("Unsubscribe");
+      // No token known (e.g. a form confirmation to a non-member): falls back to an unsubscribe-by-email link.
+      const fallback = renderEmailLayout({ preheader: "p", bodyHtml: body });
+      expect(fallback).toContain("mailto:support@skinlabs.co.za?subject=Unsubscribe");
+      const internal = renderEmailLayout({ preheader: "p", bodyHtml: body, internal: true });
+      expect(internal).not.toContain("Don't want marketing emails?");
+    }
+  });
+
+  test("buttons use the brand gradient over a monochrome fallback — never a flat green", () => {
+    for (const def of allTemplates()) {
+      const vars: Record<string, unknown> = {};
+      for (const key of def.requiredVars) vars[key] = "test-value";
+      const html = renderEmailLayout({ preheader: "p", bodyHtml: def.render(vars) });
+      expect(html).not.toContain("#16a34a");
+      expect(html).not.toContain("#15803d");
+    }
+    const button = emailButton("Go", "https://skinlabs.co.za");
+    expect(button).toContain("linear-gradient(135deg,#22c55e,#3b82f6,#a855f7,#ec4899)");
+    expect(button).toContain("background-color:#18181b");
+    expect(emailButton("Go", "https://skinlabs.co.za", "mono")).not.toContain("linear-gradient");
   });
 
   test("every template's subject() and preheader() return non-empty strings", () => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { AUTHOR_NAME } from "@/lib/seo-config";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, Bookmark, Clock, ExternalLink, Heart, Loader2, MapPin, Share2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { useMembership } from "@/hooks/use-membership";
 import { useNewsArticle } from "@/hooks/use-news-articles";
 import { DAILY_SKINNY_FREE_WEEKLY } from "@/data/plans";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import NewsletterSignup from "@/components/NewsletterSignup";
 import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
@@ -203,6 +205,7 @@ const NewsroomArticle = () => {
             </h1>
 
             <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              <span>By {AUTHOR_NAME}</span>
               <span>{new Date(article.publish_date).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" /> {article.reading_time}</span>
             </div>
@@ -239,6 +242,8 @@ const NewsroomArticle = () => {
             )}
 
             <RelatedKnowledgeHub keywords={[article.sa_context_tag, ...article.key_takeaways]} />
+
+            <NewsletterSignup source="briefing-end" />
 
             <div className="mt-10">
               {bodyLoading || membershipLoading ? (

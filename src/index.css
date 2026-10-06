@@ -2,42 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {
   :root {
     --background: 0 0% 99%;
     --foreground: 0 0% 15%;
-
     --card: 0 0% 100%;
     --card-foreground: 0 0% 15%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 15%;
-
     --primary: 0 0% 15%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 20%;
-
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
-
     --accent: 0 0% 90%;
     --accent-foreground: 0 0% 25%;
-
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 0 0% 85%;
     --input: 0 0% 85%;
     --ring: 0 0% 15%;
-
     --radius: 0.5rem;
-
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 15%;
     --sidebar-primary: 0 0% 15%;
@@ -46,24 +34,16 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 25%;
     --sidebar-border: 0 0% 85%;
     --sidebar-ring: 0 0% 15%;
-
     --chart-1: 0 0% 20%;
     --chart-2: 0 0% 40%;
     --chart-3: 0 0% 60%;
     --chart-4: 0 0% 30%;
     --chart-5: 0 0% 50%;
-
     --sidebar: 0 0% 98%;
-
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, serif;
     --font-mono: 'Space Mono', ui-monospace, monospace;
     --font-heading: 'Montserrat', ui-sans-serif, system-ui, -apple-system, sans-serif;
-
-    /* Multi-layer shadow stack (Clerk-style): a tight, low-opacity "contact"
-       shadow close to the surface plus a softer, wider "ambient" shadow —
-       never a single hard-edged shadow. Each layer stays under ~0.18 opacity
-       so stacking reads as depth, not a heavy drop shadow. */
     --shadow-2xs: 0 1px 1px 0 hsl(0 0% 0% / 0.03);
     --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.04), 0 1px 1px 0 hsl(0 0% 0% / 0.03);
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04), 0 3px 8px -2px hsl(0 0% 0% / 0.06);
@@ -72,68 +52,43 @@ All colors MUST be HSL.
     --shadow-lg: 0 4px 6px 0 hsl(0 0% 0% / 0.04), 0 16px 36px -10px hsl(0 0% 0% / 0.12);
     --shadow-xl: 0 6px 10px 0 hsl(0 0% 0% / 0.04), 0 24px 52px -14px hsl(0 0% 0% / 0.15);
     --shadow-2xl: 0 8px 14px 0 hsl(0 0% 0% / 0.04), 0 32px 72px -18px hsl(0 0% 0% / 0.18);
-
     --tracking-normal: 0em;
     --spacing: 0.25rem;
-
-    /* SKINLABS brand colors */
     --charcoal: 0 0% 25%;
     --grey-light: 0 0% 90%;
     --grey: 0 0% 50%;
     --grey-dark: 0 0% 30%;
-
-    /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(0 0% 96%) 0%, hsl(0 0% 98%) 50%, hsl(0 0% 100%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(0 0% 15%) 0%, hsl(0 0% 30%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.9) 0%, hsl(0 0% 100% / 0.7) 100%);
-
-    /* The single source of truth for SkinLabs' "flagship AI feature" brand
-       gradient — used by .gradient-text, .gradient-border-anim and
-       .gradient-bg-soft below, and by the header scroll-progress bar and
-       FloatingBottomNav's active-tab tint. Keep this the only place these
-       four stops are defined; everything else should reference it. */
     --gradient-brand: linear-gradient(135deg, #22c55e, #3b82f6, #a855f7, #ec4899);
-
-    /* SkinLabs brand palette (2026-09-24). Additive: the shadcn semantic tokens
-       above (--primary is already #262626 and drives every primary button) are
-       deliberately NOT renamed. Use these via Tailwind's brand-* / secondary-text.
-       --brand-slate (#9CA3AF) fails WCAG AA as text on white — borders and
-       decoration only; use --secondary-text for secondary copy. */
-    --brand-slate: 218 11% 65%;            /* #9CA3AF */
-    --brand-cream: 45 76% 88%;             /* #F8EDCB */
+    --brand-slate: 218 11% 65%;
+    --brand-cream: 45 76% 88%;
     --brand-cream-foreground: 0 0% 15%;
-    --brand-ink: 0 0% 15%;                 /* #262626 */
+    --brand-ink: 0 0% 15%;
     --brand-ink-foreground: 0 0% 99%;
-    --brand-canvas: 0 0% 99%;              /* #FCFCFC */
-    --brand-gold: 37 89% 80%;              /* #F9D69C — link/highlight */
-    --secondary-text: 0 0% 37%;            /* #5E5E5E — 6.4:1 on canvas */
+    --brand-canvas: 0 0% 99%;
+    --brand-gold: 37 89% 80%;
+    --secondary-text: 0 0% 37%;
   }
 
   .dark {
     --background: 0 0% 15%;
     --foreground: 248 0.3% 98.4%;
-
     --card: 266 4% 20.8%;
     --card-foreground: 248 0.3% 98.4%;
-
     --popover: 266 4% 20.8%;
     --popover-foreground: 248 0.3% 98.4%;
-
     --primary: 256 1.3% 92.9%;
     --primary-foreground: 266 4% 20.8%;
-
     --secondary: 260 4.1% 27.9%;
     --secondary-foreground: 248 0.3% 98.4%;
-
     --muted: 260 4.1% 27.9%;
     --muted-foreground: 257 4% 70.4%;
-
     --accent: 260 4.1% 27.9%;
     --accent-foreground: 248 0.3% 98.4%;
-
     --destructive: 22 19.1% 70.4%;
     --destructive-foreground: 248 0.3% 98.4%;
-
     --border: 0 0% 100% / 10%;
     --input: 0 0% 100% / 15%;
     --ring: 264 2.7% 55.1%;
@@ -151,20 +106,6 @@ All colors MUST be HSL.
     --chart-4: 304 26.5% 62.7%;
     --chart-5: 16 24.6% 64.5%;
     --sidebar: 266 4% 20.8%;
-
-    /* Same contact + ambient two-layer approach as :root, just darker/higher
-       opacity since these sit on an already-dark background. */
-    --shadow-2xs: 0 1px 1px 0 hsl(0 0% 0% / 0.2);
-    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 1px 1px 0 hsl(0 0% 0% / 0.15);
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.25), 0 3px 8px -2px hsl(0 0% 0% / 0.3);
-    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.3), 0 6px 16px -4px hsl(0 0% 0% / 0.35);
-    --shadow-md: 0 2px 4px 0 hsl(0 0% 0% / 0.3), 0 10px 24px -6px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 4px 6px 0 hsl(0 0% 0% / 0.3), 0 16px 36px -10px hsl(0 0% 0% / 0.45);
-    --shadow-xl: 0 6px 10px 0 hsl(0 0% 0% / 0.35), 0 24px 52px -14px hsl(0 0% 0% / 0.5);
-    --shadow-2xl: 0 8px 14px 0 hsl(0 0% 0% / 0.35), 0 32px 72px -18px hsl(0 0% 0% / 0.55);
-
-    /* Brand palette, dark mode. Ink is darkened so the ink surface still
-       separates from the dark page background (also #262626). */
     --brand-slate: 218 11% 45%;
     --brand-cream: 43 22% 24%;
     --brand-cream-foreground: 45 76% 88%;
@@ -172,43 +113,39 @@ All colors MUST be HSL.
     --brand-ink-foreground: 0 0% 99%;
     --brand-canvas: 0 0% 15%;
     --brand-gold: 37 89% 80%;
-    --secondary-text: 0 0% 71%;            /* #B5B5B5 — ~6:1 on dark card */
+    --secondary-text: 0 0% 71%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
+  h1, h2, h3, h4, .font-heading { letter-spacing: -0.015em; }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+  /* Anchor jumps (#skynn-launchpad, in-page TOCs) land below the fixed header, not under it. */
+  html { scroll-padding-top: 5rem; }
+  @media (min-width: 768px) { html { scroll-padding-top: 6.5rem; } }
+
+  /* Typography polish: no one-word last lines in headings or paragraphs. */
+  h1, h2, h3 { text-wrap: balance; }
+  p, li { text-wrap: pretty; }
+
+  /* Removes the double-tap-to-zoom delay on tappable controls (phones). */
+  a, button, summary, label, select, [role="button"], [role="tab"] { touch-action: manipulation; }
 }
 
-/* Animated multicolour gradient outline border — used sparingly on featured
-   article cards (homepage) and the entry-gate carousel to draw the eye. */
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
 
-/* Ad-unit disclosure copy: identical boilerplate repeats on every ad slot across the
-   whole site, which reads as duplicate content to search engines when it's a literal
-   text node. Rendering it via ::after/attr() keeps it fully visible to sighted users
-   (and available to the accessible name via aria-label on the host element) without
-   adding a duplicated text node to the crawled/indexed page content. */
-.ad-disclosure::after {
-  content: attr(data-text);
-}
+.ad-disclosure::after { content: attr(data-text); }
 
 @layer utilities {
-  .gradient-border-anim {
-    position: relative;
-    isolation: isolate;
-  }
-
+  /* The small uppercase label that opens a card or section (launchpad, weather notch, surveys). */
+  .eyebrow { font-size: 0.6875rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+  .gradient-border-anim { position: relative; isolation: isolate; }
   .gradient-border-anim::before {
     content: "";
     position: absolute;
@@ -216,134 +153,83 @@ All colors MUST be HSL.
     z-index: 1;
     padding: 2px;
     border-radius: inherit;
-    /* conic-gradient() can't take var(--gradient-brand) directly (it needs its
-       own repeated first stop at the end to loop seamlessly) — these are the
-       same four brand stops, just spelled out again for that reason. */
-    background: conic-gradient(
-      from var(--gradient-angle),
-      #22c55e,
-      #3b82f6,
-      #a855f7,
-      #ec4899,
-      #22c55e
-    );
+    background: conic-gradient(from var(--gradient-angle), #22c55e, #3b82f6, #a855f7, #ec4899, #22c55e);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     animation: gradient-border-spin 5s linear infinite;
     pointer-events: none;
   }
-
-  .gradient-border-anim > * {
+  .gradient-border-anim > * { position: relative; z-index: 0; }
+  .gradient-text { background: var(--gradient-brand); background-clip: text; -webkit-background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  /* Solid brand-gradient fill for a screen's one primary action or a thin accent (progress, rules). */
+  .gradient-bg { background-image: var(--gradient-brand); color: #fff; }
+  .gradient-bg-soft { background-image: var(--gradient-brand); background-color: hsl(var(--accent)); background-blend-mode: soft-light; }
+  .dark .gradient-bg-soft { background-blend-mode: overlay; }
+  .card-interactive { transition: transform 200ms ease-out, box-shadow 200ms ease-out, border-color 200ms ease-out; }
+  .sl-page-shell {
     position: relative;
-    z-index: 0;
+    overflow: clip;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 12% 0%, hsl(var(--accent) / .55), transparent 28rem),
+      radial-gradient(circle at 90% 12%, hsl(var(--muted) / .9), transparent 24rem),
+      hsl(var(--background));
   }
-
-  /* Same brand gradient family as .gradient-border-anim, applied to text
-     instead of a border — used sparingly, one accent phrase per view, on
-     SKYNN AI's own headline and similar "flagship AI feature" moments. */
-  .gradient-text {
-    background: var(--gradient-brand);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    -webkit-text-fill-color: transparent;
+  .sl-page-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: .32;
+    background-image: linear-gradient(hsl(var(--foreground) / .035) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground) / .035) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to bottom, black, transparent 60%);
   }
-
-  /* A very low-opacity wash of the brand gradient — for section/pill
-     backgrounds that want a hint of colour without competing with
-     .gradient-text or .gradient-border-anim for attention. */
-  .gradient-bg-soft {
-    background-image: var(--gradient-brand);
-    background-color: hsl(var(--accent));
-    background-blend-mode: soft-light;
+  .sl-page-shell main > section,
+  .sl-page-shell main > .container,
+  .sl-page-shell main > div > section {
+    animation: sl-rise .55s cubic-bezier(.2,.7,.2,1) both;
   }
-
-  .dark .gradient-bg-soft {
-    background-blend-mode: overlay;
+  .sl-page-shell main > section:nth-child(2), .sl-page-shell main > .container:nth-child(2) { animation-delay: 60ms; }
+  .sl-page-shell main > section:nth-child(3), .sl-page-shell main > .container:nth-child(3) { animation-delay: 110ms; }
+  .sl-page-shell main > section:nth-child(4), .sl-page-shell main > .container:nth-child(4) { animation-delay: 160ms; }
+  .sl-surface {
+    border: 1px solid hsl(var(--border) / .75);
+    background: hsl(var(--card) / .82);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(12px);
   }
-
-  /* The one hover treatment for clickable cards (links, product/episode
-     tiles): a 2px lift plus the --shadow-md step, 200ms ease-out. Gated to
-     real hover devices so a tap on mobile never leaves a card "stuck"
-     raised. Informational cards stay static — don't add this to them. */
-  .card-interactive {
-    transition:
-      transform 200ms ease-out,
-      box-shadow 200ms ease-out,
-      border-color 200ms ease-out;
+  .sl-mobile-hero { border-radius: 1.75rem; padding: 1.25rem; box-shadow: var(--shadow); }
+  .sl-mobile-hero .sl-kicker { display: inline-flex; align-items: center; border-radius: 999px; padding: .35rem .65rem; background: hsl(var(--foreground)); color: hsl(var(--background)); font-size: .65rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  .sl-mobile-hero h1 { margin-top: .8rem; font-family: var(--font-heading); font-size: clamp(2rem, 9vw, 3.5rem); line-height: .98; font-weight: 800; }
+  .sl-mobile-hero p { margin-top: .8rem; max-width: 44rem; color: hsl(var(--muted-foreground)); line-height: 1.6; }
+  .sl-reveal { animation: sl-rise .55s cubic-bezier(.2,.7,.2,1) both; }
+  .sl-glow-hover { transition: box-shadow 220ms ease, transform 220ms ease; }
+  @media (hover: hover) { .card-interactive:hover, .sl-glow-hover:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); } }
+  @media (max-width: 767px) {
+    .sl-page-shell main { padding-bottom: 7rem; }
+    .sl-page-shell .container { padding-left: 1rem; padding-right: 1rem; }
+    .sl-page-shell main > section { margin-top: 1.5rem; }
+    .sl-surface { border-radius: 1.35rem; }
   }
-
-  @media (hover: hover) {
-    .card-interactive:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-    }
-  }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
 
-/* Headings default to a touch of negative tracking (Clerk-style precision) —
-   components can still override with an explicit tracking-* utility, which
-   wins because Tailwind's utilities layer loads after this base layer. */
-@layer base {
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-heading {
-    letter-spacing: -0.015em;
-  }
+@media (hover: hover) {
+  .card-interactive:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 }
 
-@keyframes gradient-border-spin {
-  to {
-    --gradient-angle: 360deg;
-  }
-}
+@keyframes gradient-border-spin { to { --gradient-angle: 360deg; } }
+@keyframes sl-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
-  .gradient-border-anim::before {
-    animation: none;
-  }
-
-  /* Dialog/modal entrance-exit (tailwindcss-animate's animate-in/animate-out,
-     used by every Dialog in the app, the SKYNN video modal included) —
-     collapse to an instant state change instead of a fade/zoom/slide. */
-  .animate-in,
-  .animate-out {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
-
-  /* Accordions collapse instantly (duration, not animation: none, so
-     Radix still receives animationend and hides the content correctly). */
-  .animate-accordion-down,
-  .animate-accordion-up {
-    animation-duration: 0.01ms !important;
-  }
-
-  /* Skeletons stay visible as quiet muted blocks — just stop pulsing.
-     Spinners (animate-spin) are intentionally kept: they communicate state. */
-  .animate-pulse {
-    animation: none;
-  }
-
-  /* Hover/press/state transitions become instant state changes. The end
-     state is still applied, so no information is lost. */
-  *,
-  *::before,
-  *::after {
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-@layer utilities {
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  .gradient-border-anim::before { animation: none; }
+  .animate-in, .animate-out { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .animate-accordion-down, .animate-accordion-up { animation-duration: .01ms !important; }
+  .animate-pulse { animation: none; }
+  .sl-reveal, .sl-page-shell main > section, .sl-page-shell main > .container, .sl-page-shell main > div > section { animation: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

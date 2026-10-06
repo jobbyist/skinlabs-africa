@@ -22,19 +22,20 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import AdSlot from "@/components/AdSlot";
 import DermatologistCard from "@/components/DermatologistCard";
-import PaginationControls from "@/components/PaginationControls";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
-import { usePageParam } from "@/hooks/use-page-param";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { dermatologists, type DirectoryCategory } from "@/data/dermatologists";
 import { SITE_URL } from "@/lib/seo-config";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 6;
-const LAUNCH_DATE = new Date("2026-09-25T00:00:00+02:00");
+const LAUNCH_DATE = new Date("2026-11-01T00:00:00+02:00");
+const LAUNCH_DATE_LABEL = "1 November 2026";
 const provinces = Array.from(new Set(dermatologists.map((d) => d.province))).sort();
 type CategoryFilter = "all" | DirectoryCategory;
 
@@ -49,11 +50,11 @@ interface RoadmapItem {
 
 const ROADMAP: RoadmapItem[] = [
   { id: "directory-v1", title: "Public directory prototype", description: "Browseable listings with Medical / Cosmetic filters and profile cards.", status: "completed", icon: Search },
-  { id: "ratings", title: "Dermatologist profile rating system", description: "Verified patient ratings and review counts on every listing.", status: "in_progress", eta: "Sep 2026", icon: Star },
+  { id: "ratings", title: "Dermatologist profile rating system", description: "Verified patient ratings and review counts on every listing.", status: "in_progress", eta: "Nov 2026", icon: Star },
   { id: "messaging", title: "Encrypted in-app messaging", description: "End-to-end encrypted chat between members and practitioners.", status: "planned", eta: "Oct 2026", icon: MessageSquare },
   { id: "booking", title: "Booking calendars + secure payments", description: "Real-time availability, deposits and online payment support.", status: "planned", eta: "Oct 2026", icon: CalendarDays },
   { id: "video", title: "Remote / virtual video consultations", description: "In-platform video consult interface for Glow Insider & VIP.", status: "planned", eta: "Nov 2026", icon: Video },
-  { id: "claim", title: "Profile claim / removal request form", description: "Unverified listing claim flow and removal requests for practitioners.", status: "planned", eta: "Sep 2026", icon: Shield },
+  { id: "claim", title: "Profile claim / removal request form", description: "Unverified listing claim flow and removal requests for practitioners.", status: "planned", eta: "Nov 2026", icon: Shield },
   { id: "ai-summaries", title: "AI-generated consultation summaries", description: "Post-consult summaries and follow-up recommendations powered by SKYNN AI.", status: "planned", eta: "Dec 2026", icon: Brain },
 ];
 
@@ -77,7 +78,6 @@ const DermatologistDirectory = () => {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [practiceType, setPracticeType] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [page, setPage] = usePageParam("page");
   const countdown = useCountdown(LAUNCH_DATE);
 
   const [surveyStep, setSurveyStep] = useState(0);
@@ -138,17 +138,12 @@ const DermatologistDirectory = () => {
     return [...base].sort((a, b) => a.name.localeCompare(b.name));
   }, [query, province, category, practiceType]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const goToPage = (p: number) => setPage(p);
+  // Only the first page of profiles is shown (no pagination) while the directory is a prototype.
+  const pageItems = filtered.slice(0, PAGE_SIZE);
 
   const baseCanonical = `${SITE_URL}/consult`;
-  const canonical = currentPage > 1 ? `${baseCanonical}?page=${currentPage}` : baseCanonical;
-  const title =
-    currentPage > 1
-      ? `Find a Trusted Dermatologist in South Africa — Page ${currentPage} | SkinLabs®`
-      : "Find a Trusted Dermatologist in South Africa | SkinLabs®";
+  const canonical = baseCanonical;
+  const title = "Find a Trusted Dermatologist in South Africa | SkinLabs®";
   const description =
     "Browse SkinLabs' directory of verified South African dermatologists and dermatology practices — real names, cities and provinces across Gauteng, the Western Cape, KwaZulu-Natal and beyond. Filter by Medical or Cosmetic focus.";
 
@@ -179,7 +174,29 @@ const DermatologistDirectory = () => {
     setUsefulFeatures((prev) => (prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]));
   };
 
-  const submitSurvey = () => {
+  const [surveySubmitting, setSurveySubmitting] = useState(false);
+
+  // Stored in consult_survey_responses; a DB trigger emails it to consult@skinlabs.co.za.
+  const submitSurvey = async () => {
+    if (surveySubmitting || sentiment === null || !primaryUse || bookingPriority === null || trustScore === null) return;
+    setSurveySubmitting(true);
+    const { error } = await supabase.from("consult_survey_responses").insert({
+      sentiment,
+      primary_use: primaryUse,
+      booking_priority: bookingPriority,
+      useful_features: usefulFeatures,
+      trust_score: trustScore,
+      feedback_text: feedbackText.trim() ? feedbackText.trim().slice(0, 2000) : null,
+    });
+    setSurveySubmitting(false);
+    if (error) {
+      toast.error(
+        error.message?.includes("Too many responses")
+          ? "Lots of feedback is coming in right now. Please try again shortly."
+          : "That didn't go through. Please try again.",
+      );
+      return;
+    }
     setSurveyDone(true);
     setSurveyStep(0);
   };
@@ -267,7 +284,6 @@ const DermatologistDirectory = () => {
                   value={query}
                   onChange={(event) => {
                     setQuery(event.target.value);
-                    goToPage(1);
                   }}
                   placeholder="Search by name, city or province…"
                   className="pl-9"
@@ -298,7 +314,6 @@ const DermatologistDirectory = () => {
                   type="button"
                   onClick={() => {
                     setCategory(opt.value);
-                    goToPage(1);
                   }}
                   className={cn(
                     "rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
@@ -320,7 +335,6 @@ const DermatologistDirectory = () => {
                     value={province}
                     onValueChange={(v) => {
                       setProvince(v);
-                      goToPage(1);
                     }}
                   >
                     <SelectTrigger>
@@ -342,7 +356,6 @@ const DermatologistDirectory = () => {
                     value={category}
                     onValueChange={(v) => {
                       setCategory(v as CategoryFilter);
-                      goToPage(1);
                     }}
                   >
                     <SelectTrigger>
@@ -362,7 +375,6 @@ const DermatologistDirectory = () => {
                     value={practiceType}
                     onValueChange={(v) => {
                       setPracticeType(v);
-                      goToPage(1);
                     }}
                   >
                     <SelectTrigger>
@@ -377,7 +389,7 @@ const DermatologistDirectory = () => {
                 </div>
                 <div className="flex items-end">
                   <p className="text-sm text-muted-foreground">
-                    Showing {filtered.length} of {dermatologists.length} listings
+                    Showing the first {pageItems.length} of {filtered.length} matching listings
                   </p>
                 </div>
               </div>
@@ -389,7 +401,6 @@ const DermatologistDirectory = () => {
               <p className="py-16 text-center text-muted-foreground">No dermatologists match that search yet.</p>
             )}
 
-            <PaginationControls page={currentPage} totalPages={totalPages} onPageChange={goToPage} className="mt-10" />
 
             <section className="mt-20 rounded-3xl border border-border bg-card p-6 md:p-10">
               <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -398,7 +409,7 @@ const DermatologistDirectory = () => {
                   <h2 className="font-heading text-2xl font-bold text-foreground md:text-3xl">Directory launch plan</h2>
                   <p className="mt-2 max-w-xl text-muted-foreground">
                     Phased rollout of the live practitioner directory. Overall target launch:{" "}
-                    <strong className="text-foreground">25 September 2026</strong>.
+                    <strong className="text-foreground">{LAUNCH_DATE_LABEL}</strong>.
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-background px-5 py-4 text-center">
@@ -678,8 +689,8 @@ const DermatologistDirectory = () => {
                         <Button variant="ghost" onClick={() => setSurveyStep(2)}>
                           Back
                         </Button>
-                        <Button disabled={trustScore === null} onClick={submitSurvey}>
-                          Submit feedback
+                        <Button disabled={trustScore === null || surveySubmitting} onClick={() => void submitSurvey()}>
+                          {surveySubmitting ? "Sending…" : "Submit feedback"}
                         </Button>
                       </div>
                     </div>

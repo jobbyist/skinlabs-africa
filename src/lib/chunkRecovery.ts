@@ -26,6 +26,9 @@ export const isChunkLoadError = (error: unknown): boolean => {
 /** Reloads the page at most once per cooldown window. Returns whether a reload was triggered. */
 export const reloadForNewDeployment = (): boolean => {
   if (typeof window === "undefined") return false;
+  // Offline there is no newer build to fetch: reloading would only interrupt an offline-capable page
+  // (the service worker serves what it has cached) and cannot fix a missing chunk.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
   try {
     const last = Number(window.sessionStorage.getItem(RELOAD_KEY) || 0);
     if (Date.now() - last < RELOAD_COOLDOWN_MS) return false;

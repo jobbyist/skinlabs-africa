@@ -710,7 +710,13 @@ function computeSeoTitleDescription(args: {
   if (args.skinTypes.length > 0) parts.push(`for ${args.skinTypes.slice(0, 2).join(" & ")} skin`);
   parts.push("in South African climate.");
   const joined = parts.join(" ");
-  const description = joined.length > 160 ? `${joined.slice(0, 157)}...` : joined;
+  // Cut at a word boundary: a hard slice leaves fragments like "…for oily sk..." in the SERP.
+  let description = joined;
+  if (joined.length > 160) {
+    const room = joined.slice(0, 159);
+    const lastSpace = room.lastIndexOf(" ");
+    description = `${(lastSpace >= 80 ? room.slice(0, lastSpace) : room).replace(/[\s,;:\-–—(]+$/, "")}…`;
+  }
 
   return { title, description };
 }

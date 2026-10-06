@@ -18,13 +18,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { STATIC_SITEMAP_ROUTES } from "../src/lib/sitemap/staticRoutes";
+import { isDuplicateReview } from "../src/lib/sitemap/duplicateReviews";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 const SITE = "https://skinlabs.co.za";
 
-const urlEntry = (loc: string, lastmod: string, changefreq: string, priority: string) =>
-  `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+// lastmod only when there is a real content date (see src/routes/sitemap[.]xml.ts).
+const urlEntry = (loc: string, lastmod: string | undefined, changefreq: string, priority: string) =>
+  `  <url>\n    <loc>${loc}</loc>\n${lastmod ? `    <lastmod>${lastmod}</lastmod>\n` : ""}    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
 
 const extractQuoted = (source: string, field: string): string[] => {
   const pattern = new RegExp(`\\n\\s*${field}:\\s*"([a-z0-9-]+)"`, "g");
@@ -35,10 +37,9 @@ const extractQuoted = (source: string, field: string): string[] => {
 };
 
 async function main() {
-  const today = new Date().toISOString().slice(0, 10);
   const seen = new Set<string>();
   const urls: string[] = [];
-  const add = (path: string, changefreq: string, priority: string, lastmod = today) => {
+  const add = (path: string, changefreq: string, priority: string, lastmod?: string) => {
     const clean = path === "/" ? "/" : `/${path.replace(/^\/+|\/+$/g, "")}`;
     if (seen.has(clean)) return;
     seen.add(clean);
@@ -48,7 +49,7 @@ async function main() {
   for (const route of STATIC_SITEMAP_ROUTES) add(route.path, route.changefreq, route.priority);
 
   const reviewsSource = readFileSync(resolve(root, "src/data/reviews.ts"), "utf-8");
-  for (const id of extractQuoted(reviewsSource, "id")) add(`/reviews/${id}`, "monthly", "0.75");
+  for (const id of extractQuoted(reviewsSource, "id")) if (!isDuplicateReview(id)) add(`/reviews/${id}`, "monthly", "0.75");
 
   const comparisonsSource = readFileSync(resolve(root, "src/data/comparisons.ts"), "utf-8");
   for (const slug of extractQuoted(comparisonsSource, "slug")) add(`/reviews/versus/${slug}`, "monthly", "0.8");
@@ -92,7 +93,7 @@ async function main() {
     } else {
       for (const article of data ?? []) {
         if (typeof article.slug === "string") {
-          add(`/briefings/${article.slug}`, "weekly", "0.85", article.publish_date?.slice(0, 10) || today);
+          add(`/briefings/${article.slug}`, "weekly", "0.85", article.publish_date?.slice(0, 10) || undefined);
         }
       }
     }
@@ -102,13 +103,13 @@ async function main() {
 
     const { data: ingredientRows, error: ingredientsError } = await supabase
       .from("ingredients")
-      .select("slug")
+      .select("slug, updated_at")
       .neq("verification_status", "deprecated");
     if (ingredientsError) {
       console.warn("generate-sitemap: could not fetch ingredient slugs:", ingredientsError.message);
     } else {
       for (const ingredient of ingredientRows ?? []) {
-        if (typeof ingredient.slug === "string") add(`/ingredients/${ingredient.slug}`, "monthly", "0.6");
+        if (typeof ingredient.slug === "string") add(`/ingredients/${ingredient.slug}`, "monthly", "0.6", ingredient.updated_at?.slice(0, 10) || undefined);
       }
     }
 
@@ -119,8 +120,8 @@ async function main() {
       console.warn("generate-sitemap: could not fetch generated product reviews:", generatedReviewsError.message);
     } else {
       for (const review of generatedReviews ?? []) {
-        if (typeof review.id === "string") {
-          add(`/reviews/${review.id}`, "monthly", "0.75", review.published_date?.slice(0, 10) || today);
+        if (typeof review.id === "string" && !isDuplicateReview(review.id)) {
+          add(`/reviews/${review.id}`, "monthly", "0.75", review.published_date?.slice(0, 10) || undefined);
         }
       }
     }

@@ -1,6 +1,6 @@
 import { registerTemplate } from "./registry.ts";
 import { BRAND, escapeHtml } from "../layout.ts";
-import { emailHeading, emailParagraph, emailDivider, emailButton } from "../components.ts";
+import { emailHeading, emailParagraph, emailDivider, emailButton, emailFaithfulToNature, emailSkynnMiniCard } from "../components.ts";
 
 interface StoryVar {
   title?: string;
@@ -100,17 +100,34 @@ registerTemplate({
     const stories = asArray<StoryVar>(vars.top_stories);
     const reviews = asArray<ReviewVar>(vars.top_reviews);
     const offer = (vars.offer ?? null) as OfferVar | null;
-    const unsubscribeUrl = typeof vars.unsubscribe_url === "string" ? vars.unsubscribe_url : `${BRAND.siteUrl}/dashboard?tab=account`;
     return `
       ${emailHeading("Your SkinLabs Weekly")}
       ${renderStorySection(stories)}
       ${renderReviewSection(reviews)}
       ${renderOfferSection(offer)}
       ${emailDivider()}
-      <p style="margin:0;font-size:12px;line-height:18px;color:${BRAND.muted};">
-        You're getting this because you opted in to SkinLabs marketing updates.
-        <a href="${escapeHtml(unsubscribeUrl)}" style="color:${BRAND.muted};text-decoration:underline;">Unsubscribe</a>
-      </p>
+      ${emailSkynnMiniCard()}
+      ${vars.show_ads === false ? "" : emailFaithfulToNature()}
     `;
   },
+});
+
+// Double opt-in confirmation for the weekly digest. Sent only because the
+// visitor asked for it (transactional, no unsubscribe link needed), and the
+// link goes to a page with a button rather than confirming on GET, so mail
+// scanners that prefetch links can't subscribe anybody.
+registerTemplate({
+  id: "newsletter_digest_confirm",
+  category: "FORMS",
+  internalName: "Weekly digest — confirm your subscription",
+  transactional: true,
+  requiredVars: ["confirm_url"],
+  subject: () => "Confirm your SkinLabs weekly digest",
+  preheader: () => "One tap to confirm. If this wasn't you, ignore this email.",
+  render: (vars) => `
+    ${emailHeading("Confirm your subscription")}
+    ${emailParagraph("Someone (hopefully you) asked for the SkinLabs weekly digest: new briefings, reviews and ingredient guides, once a week.")}
+    ${emailButton("Confirm my subscription", String(vars.confirm_url))}
+    ${emailParagraph(`If you didn't ask for this, ignore this email and you won't hear from us. The link works for 7 days.`)}
+  `,
 });

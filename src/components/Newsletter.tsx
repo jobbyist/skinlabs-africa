@@ -16,16 +16,11 @@ const Newsletter = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("newsletter_subscribers")
-        .insert({ email });
+      const { data, error } = await supabase.rpc("join_consultation_waitlist", { p_email: email });
 
-      if (error) {
-        if (error.code === "23505") {
-          toast.info("You're already subscribed!");
-        } else {
-          throw error;
-        }
+      if (error) throw error;
+      if (data === "already") {
+        toast.info("You're already on the list!");
       } else {
         toast.success("You're on the early access list! We'll notify you when consultations launch.");
         trackConversionEvent("newsletter_subscribed");

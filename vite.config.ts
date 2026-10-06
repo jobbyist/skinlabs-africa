@@ -1,12 +1,38 @@
-import { defineConfig } from "vite";
+import { defineConfig, build as viteBuild, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
-// PWA functionality (service worker, offline caching, install manifest) is
-// temporarily disabled — see src/main.tsx for the matching service-worker
-// teardown. Re-enable by restoring the VitePWA import/plugin block below.
-// import { VitePWA } from "vite-plugin-pwa";
+
+/**
+ * Builds src/sw/sw.ts into dist/sw.js (a standalone IIFE, not part of the app
+ * bundle) after the main build has written dist/. Production builds only: there
+ * is no service worker in `vite dev` (src/lib/pwa/serviceWorker.ts skips
+ * registration there). Not using vite-plugin-pwa: the worker is hand-written
+ * and dependency-free — see docs/pwa.md.
+ */
+const skinlabsServiceWorker = (): Plugin => ({
+  name: "skinlabs-service-worker",
+  apply: "build",
+  enforce: "post",
+  async closeBundle() {
+    await viteBuild({
+      configFile: false,
+      logLevel: "warn",
+      publicDir: false,
+      resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+      build: {
+        outDir: "dist",
+        emptyOutDir: false,
+        sourcemap: false,
+        minify: "esbuild",
+        target: "es2020",
+        lib: { entry: path.resolve(__dirname, "src/sw/sw.ts"), formats: ["iife"], name: "SkinLabsServiceWorker", fileName: () => "sw.js" },
+        rollupOptions: { output: { inlineDynamicImports: true } },
+      },
+    });
+  },
+});
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -70,6 +96,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    mode === "production" && skinlabsServiceWorker(),
     // Compresses every raster/vector asset that goes through Vite's asset pipeline
     // (anything imported from src/assets) at build time — lossy but visually
     // transparent settings, matched per format. Files in public/ bypass Vite's

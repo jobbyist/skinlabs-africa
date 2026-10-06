@@ -13,7 +13,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const BRAND = {
-  accent: "#16a34a",
+  ink: "#18181b",
+  gradient: "linear-gradient(135deg,#22c55e,#3b82f6,#a855f7,#ec4899)",
   text: "#18181b",
   muted: "#71717a",
   border: "#e4e4e7",
@@ -42,7 +43,7 @@ function confirmationPage(success: boolean): string {
               <td style="padding:40px 32px;text-align:center;">
                 <h1 style="margin:0 0 12px 0;font-size:20px;color:${BRAND.text};">${heading}</h1>
                 <p style="margin:0 0 24px 0;font-size:14px;line-height:22px;color:${BRAND.muted};">${body}</p>
-                <a href="https://skinlabs.co.za" style="display:inline-block;padding:10px 20px;font-size:14px;font-weight:600;color:#ffffff;background-color:${BRAND.accent};border-radius:8px;text-decoration:none;">Back to SkinLabs</a>
+                <a href="https://skinlabs.co.za" style="display:inline-block;padding:10px 20px;font-size:14px;font-weight:600;color:#ffffff;background-color:${BRAND.ink};background-image:${BRAND.gradient};border-radius:8px;text-decoration:none;">Back to SkinLabs</a>
               </td>
             </tr>
           </table>
@@ -67,9 +68,17 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const { data: success, error } = await admin.rpc("unsubscribe_marketing", { p_token: token });
-  if (error) {
-    console.error("email-unsubscribe: RPC failed", error);
+  // The token belongs either to a member's profile or to a double-opt-in
+  // newsletter subscriber (no account); try the member first, then the subscriber.
+  const member = await admin.rpc("unsubscribe_marketing", { p_token: token });
+  if (member.error) {
+    console.error("email-unsubscribe: RPC failed", member.error);
+  }
+  let success: boolean | null = member.data;
+  if (!success) {
+    const sub = await admin.rpc("unsubscribe_newsletter", { p_token: token });
+    if (sub.error) console.error("email-unsubscribe: newsletter RPC failed", sub.error);
+    success = sub.data;
   }
 
   if (isPost) {

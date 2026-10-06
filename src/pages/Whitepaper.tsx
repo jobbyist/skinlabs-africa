@@ -131,7 +131,7 @@ const Whitepaper = () => {
                         <li>Answer-based skin assessment: the free Basic AI Skin Analysis and the Advanced AI Dermatology Analysis</li>
                         <li>Personalised routine suggestions matched to SA climate and budget</li>
                         <li>Integration with SkinLabs editorial intelligence and product database</li>
-                        <li>Freemium access: the Basic analysis is free; the Advanced analysis and Smart Routines use an Analysis Pass</li>
+                        <li>Freemium access: the Basic analysis and Smart Routines are free; the optional Advanced analysis uses an Analysis Pass</li>
                       </ul>
                     </div>
                   </div>

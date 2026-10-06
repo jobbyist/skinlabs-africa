@@ -3,10 +3,14 @@ import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import { authorPerson } from "@/lib/seo/jsonLd";
+import { AUTHOR_NAME } from "@/lib/seo-config";
 import { Button } from "@/components/ui/button";
 import ArticleComments from "@/components/ArticleComments";
 import { getComparison } from "@/data/comparisons";
 import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
+import { useLiveReviewPrices } from "@/hooks/use-live-review-prices";
+import { checkedLabel, formatRand } from "@/lib/pricing/saRetailPrices";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { canReadComparison, recordComparisonRead } from "@/lib/access-quotas";
 import GatedOverlay from "@/components/GatedOverlay";
@@ -29,6 +33,7 @@ const EDITORIAL_DISCLAIMER =
 
 const ComparisonArticle = () => {
   const { slug } = useParams();
+  const { data: livePrices } = useLiveReviewPrices();
   // Glow Lite and above get unlimited comparisons — the underlying quota (used by
   // free/Explorer accounts) is still tracked via canReadComparison/access-quotas.
   const { can } = useEntitlements();
@@ -121,7 +126,8 @@ const ComparisonArticle = () => {
         headline: article.title,
         description: article.seoDescription,
         image: { "@type": "ImageObject", url: article.thumbnail.url },
-        author: { "@type": "Organization", name: "SkinLabs", url: "https://skinlabs.co.za" },
+        author: authorPerson(),
+        editor: authorPerson(),
         publisher: {
           "@type": "Organization",
           name: "SkinLabs",
@@ -207,6 +213,7 @@ const ComparisonArticle = () => {
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground">{article.dek}</p>
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+            <span>By {AUTHOR_NAME}</span>
             <time dateTime={article.publishDate}>
               {new Date(article.publishDate).toLocaleDateString("en-ZA", {
                 day: "numeric",
@@ -255,19 +262,26 @@ const ComparisonArticle = () => {
                 <div key={`${product.brand}-${product.name}`} className="rounded-2xl border border-border bg-card p-4">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">{product.brand}</p>
                   <h3 className="mt-1 font-heading text-base font-bold text-foreground md:text-lg">{product.name}</h3>
-                  <p className="mt-1 text-sm">
-                    <span className="font-semibold text-foreground">R{product.priceZar}</span>
-                    <span className="text-muted-foreground"> indicative SA retail</span>
-                  </p>
+                  {product.reviewSlug && livePrices?.get(product.reviewSlug) && (
+                    <p className="mt-1 text-sm">
+                      <span className="font-semibold text-foreground">{formatRand(livePrices.get(product.reviewSlug)!.priceZar)}</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        at {livePrices.get(product.reviewSlug)!.source}, {checkedLabel(new Date(livePrices.get(product.reviewSlug)!.checkedAt), new Date())}
+                      </span>
+                    </p>
+                  )}
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     {product.reviewSlug && (
                       <Link to={`/reviews/${product.reviewSlug}`} className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
                         Full SkinLabs review <ExternalLink className="h-3 w-3" />
                       </Link>
                     )}
-                    <a href={product.officialBrandUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                      Official {product.brand} site <ExternalLink className="h-3 w-3" />
-                    </a>
+                    {product.officialBrandUrl && (
+                      <a href={product.officialBrandUrl} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                        Official {product.brand} site <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
                     {product.retailer && (
                       <a href={product.retailer.url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
                         {product.retailer.label} <ExternalLink className="h-3 w-3" />
@@ -296,7 +310,7 @@ const ComparisonArticle = () => {
           )}
 
           <div className="mt-10">
-            <BriefingBody body={article.bodyMarkdown} insertAds={false} />
+            <BriefingBody body={article.bodyMarkdown} insertAds={false} skynnCta />
           </div>
 
           <AdSlot placement="comparison-before-verdicts" compact priority="primary" />

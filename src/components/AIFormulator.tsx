@@ -1,5 +1,6 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -28,6 +29,7 @@ import {
   Leaf,
   Play,
   Download,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadSkincarePdf } from "@/lib/generateSkincarePdf";
@@ -55,6 +57,10 @@ import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSectio
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
+import MySkinStoryDialog from "@/components/ai-formulator/MySkinStoryDialog";
+import { generateMySkinStory, preloadStoryAssets } from "@/lib/skynn/my-skin-story";
+import { buildMySkinStoryData } from "@/lib/skynn/my-skin-story-data";
+import { shareStoryFile, storyFile } from "@/lib/skynn/share-my-skin-story";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
 import ReanalysisLockedPanel from "@/components/ai-formulator/ReanalysisLockedPanel";
 import { summarizeStarterResult } from "@/lib/formulator/summary";
@@ -64,6 +70,7 @@ import { CHANGE_QUESTION } from "@/data/starter-analysis/contextQuestions";
 import { type CompletenessBreakdown } from "@/data/formulaResults";
 import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { logFairnessEvent } from "@/lib/skynnFairness";
+import { isWelcomeInProgress } from "@/lib/welcomeResume";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { getPersistedPricingVariant } from "@/lib/pricing-config";
 import { getPendingIntent, setPendingIntent, withPendingIntentParams } from "@/lib/pendingIntent";
@@ -89,6 +96,8 @@ import {
   SKYNN_RELEASE_LABEL,
 } from "@/lib/skynn/terminology";
 import { crossedMilestone, trackSkynnEvent } from "@/lib/skynn/analytics";
+import { trackGiveawayAssessment } from "@/lib/giveaway/analytics";
+import GiveawayResultsNudge from "@/components/giveaway/GiveawayResultsNudge";
 import type {
   ChangeContext,
   ConcernKey,
@@ -179,6 +188,8 @@ const AIFormulator = () => {
   const [changeDetail, setChangeDetail] = useState("");
   const [priorityPreference, setPriorityPreference] = useState<PriorityPreference | null>(null);
   const [starterResult, setStarterResult] = useState<StarterAnalysisResult | null>(null);
+  const [storyBusy, setStoryBusy] = useState(false);
+  const [storyBlob, setStoryBlob] = useState<Blob | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const savingResultsRef = useRef(false);
@@ -279,6 +290,8 @@ const AIFormulator = () => {
     setGroundedRoutine(result.groundedRoutine);
     setCompleteness(result.completeness);
     trackConversionEvent("analysis_generated", { resultTier: "free" });
+    // October 2026 giveaway: reports "completed" once, only for visitors who came through it (no result content).
+    trackGiveawayAssessment("completed");
     if (!user) trackConversionEvent("formulator_completed_anonymous", { skinType: result.skinType });
     void logFairnessEvent({
       source: "starter",
@@ -421,6 +434,12 @@ const AIFormulator = () => {
     }
   }, [step]);
 
+  // Warm the story card's logo + fonts while the results are on screen, so the first
+  // tap on "Share my skin story" stays inside the browser's share-gesture window.
+  useEffect(() => {
+    if (step === STEP_RESULTS) preloadStoryAssets();
+  }, [step]);
+
   // Fire the "viewed" funnel event once per completed analysis, separate from
   // "generated" (the data existing) — this is the moment a person actually saw it.
   useEffect(() => {
@@ -534,6 +553,7 @@ const AIFormulator = () => {
 
   const handleStartAnalysis = () => {
     trackConversionEvent("analysis_started");
+    trackGiveawayAssessment("started");
     trackConversionEvent("formulator_started", { accountState });
     trackSkynnEvent("skynn_started", { mode: "basic", account_state: accountState });
     trackSkynnEvent("skynn_mode_selected", { mode: "basic", source: "intro" });
@@ -554,7 +574,7 @@ const AIFormulator = () => {
         ? await signUp(
             contactEmail,
             authPassword,
-            withPendingIntentParams(`${window.location.origin}/skynn-ai`, getPendingIntent()),
+            withPendingIntentParams(`${getSiteOrigin()}/skynn-ai`, getPendingIntent()),
           )
         : await signIn(contactEmail, authPassword);
     const { error } = response;
@@ -577,17 +597,18 @@ const AIFormulator = () => {
   };
 
   const handleShareResults = async () => {
-    const shareText = `I just got a free AI skin analysis from SKYNN AI on SkinLabs — my skin type is ${derivedSkinType}. Get yours free:`;
-    const shareUrl = "https://skinlabs.co.za/skynn-ai";
+    if (storyBusy) return;
+    setStoryBusy(true);
     try {
-      if (navigator.share) {
-        await navigator.share({ title: "My SKYNN AI skin analysis", text: shareText, url: shareUrl });
-      } else {
-        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-        toast.success("Copied — paste it anywhere");
-      }
+      const blob = await generateMySkinStory(buildMySkinStoryData({ skinType: derivedSkinType, result: starterResult, mstTone }));
+      const outcome = await shareStoryFile(storyFile(blob));
+      // Native share handled it (or the visitor dismissed the sheet — not an error).
+      // Otherwise fall back to the preview dialog with download / copy link.
+      if (outcome === "unavailable") setStoryBlob(blob);
     } catch {
-      // Visitor cancelled the native share sheet — not an error.
+      toast.error("We couldn't create your skin story just now. Please try again.");
+    } finally {
+      setStoryBusy(false);
     }
   };
 
@@ -815,7 +836,7 @@ const AIFormulator = () => {
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent rounded-full text-accent-foreground text-sm font-medium mb-4">
                   <Sparkles className="h-4 w-4" />
                   <span className="gradient-text font-bold">SKYNN AI</span>{" "}
-                  <span className="text-muted-foreground font-normal">v2.1 — beta</span> · by SkinLabs®
+                  <span className="text-muted-foreground font-normal">- v2.2 (beta)</span> · by SkinLabs®
                 </div>
                 {step !== STEP_RESULTS && !isMember && (
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
@@ -870,7 +891,7 @@ const AIFormulator = () => {
                 <div className="relative space-y-8 py-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-heading font-bold tracking-tight">
-                      SKYNN AI <span className="font-normal text-background/60">v2.1 — beta</span>
+                      SKYNN AI <span className="font-normal text-background/60">- v2.2 (beta)</span>
                     </span>
                     <span className="text-background/60 font-medium">SkinLabs®</span>
                   </div>
@@ -1012,14 +1033,14 @@ const AIFormulator = () => {
                   <div className="space-y-3">
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-data" checked={consentData} onCheckedChange={(c) => setConsentData(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-data" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-data" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I agree to the collection and processing of my data for the purpose of skin analysis and routine
                         formulation, in accordance with POPIA. My data will not be sold or shared with third parties.
                       </Label>
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-mst" checked={consentMst} onCheckedChange={(c) => setConsentMst(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-mst" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-mst" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I understand that my Monk Skin Tone (MST) is optional and self-reported. If I share it, it
                         tailors sun-protection and pigmentation guidance and helps SkinLabs test fairness across skin
                         tones. It is never inferred from a photo and is not a diagnosis.
@@ -1027,7 +1048,7 @@ const AIFormulator = () => {
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border">
                       <Checkbox id="consent-terms" checked={consentTerms} onCheckedChange={(c) => setConsentTerms(c === true)} className="mt-0.5" />
-                      <Label htmlFor="consent-terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="consent-terms" className="min-w-0 flex-1 text-sm text-muted-foreground cursor-pointer leading-relaxed">
                         I agree to the <a href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</a> and{" "}
                         <a href="/terms" className="text-primary hover:underline">Terms of Service</a>, and understand SKYNN AI
                         does not replace professional medical care.
@@ -1090,7 +1111,7 @@ const AIFormulator = () => {
                   {skinImage && (
                     <div className="flex items-start gap-3 p-4 rounded-lg border border-border bg-muted/30">
                       <Checkbox id="photo-consent" checked={photoConsent} onCheckedChange={(checked) => setPhotoConsent(checked === true)} className="mt-0.5" />
-                      <Label htmlFor="photo-consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+                      <Label htmlFor="photo-consent" className="min-w-0 flex-1 text-xs text-muted-foreground cursor-pointer leading-relaxed">
                         I understand my photo stays on this device. It isn't uploaded or analysed, and SKYNN AI never
                         uses it to estimate my skin tone.
                       </Label>
@@ -1231,6 +1252,15 @@ const AIFormulator = () => {
 
               {step === STEP_RESULTS && recommendation && (
                 <div className="space-y-6">
+                  <GiveawayResultsNudge />
+                  {resultsSaved && isWelcomeInProgress() && (
+                    <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-muted/45 p-4 sm:flex-row">
+                      <p className="text-sm text-secondary-text">Your skin profile is saved. Two quick steps left to finish setting up.</p>
+                      <Button asChild className="min-h-11 gap-2">
+                        <Link to="/welcome">Continue setup <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+                      </Button>
+                    </div>
+                  )}
                   <div className="text-center">
                     <h2 className="text-2xl font-heading font-semibold text-card-foreground mb-2">
                       {showFullResult ? `Your ${BASIC_NAME}` : "Your skin at a glance"}
@@ -1337,9 +1367,16 @@ const AIFormulator = () => {
                       <Download className="h-4 w-4" aria-hidden="true" />
                       Download my report (PDF)
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
-                      <Share2 className="h-4 w-4" aria-hidden="true" />
-                      Share my skin type
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShareResults}
+                      disabled={storyBusy}
+                      aria-busy={storyBusy}
+                      className="min-h-11 gap-2 text-muted-foreground"
+                    >
+                      {storyBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
+                      {storyBusy ? "Creating your skin story…" : "Share my skin story"}
                     </Button>
                   </div>
 
@@ -1516,10 +1553,17 @@ const AIFormulator = () => {
                       ) : null}
 
                       <div className="flex justify-center">
-                        <Button variant="ghost" size="sm" onClick={handleShareResults} className="min-h-11 gap-2 text-muted-foreground">
-                          <Share2 className="h-4 w-4" aria-hidden="true" />
-                          Share my skin type
-                        </Button>
+                        <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleShareResults}
+                      disabled={storyBusy}
+                      aria-busy={storyBusy}
+                      className="min-h-11 gap-2 text-muted-foreground"
+                    >
+                      {storyBusy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Share2 className="h-4 w-4" aria-hidden="true" />}
+                      {storyBusy ? "Creating your skin story…" : "Share my skin story"}
+                    </Button>
                       </div>
                     </>
                   )}
@@ -1547,6 +1591,7 @@ const AIFormulator = () => {
       </section>
       <AuthDialog open={signInDialogOpen} onOpenChange={setSignInDialogOpen} defaultTab="signin" />
       <SkynnVideoModal open={videoModalOpen} onOpenChange={setVideoModalOpen} />
+      <MySkinStoryDialog blob={storyBlob} skinType={derivedSkinType} onClose={() => setStoryBlob(null)} />
     </>
   );
 };

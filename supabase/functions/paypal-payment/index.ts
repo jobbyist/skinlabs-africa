@@ -1,4 +1,4 @@
-// PayPal checkout — one-off orders (Analysis Passes, Founding Member) via the
+// PayPal checkout — one-off orders (Analysis Passes) via the
 // Orders v2 API, and recurring memberships via the Subscriptions API.
 //
 // PayPal does not support ZAR as a transaction currency, so every charge is
@@ -11,7 +11,7 @@
 //   config               public — PayPal client id + env for the JS SDK buttons
 //   quote                ZAR price, USD equivalent, live rate, and for plans
 //                        when the first recurring charge would happen
-//   initialize           create a one-off order (credit_pack / founding_member)
+//   initialize           create a one-off order (credit_pack)
 //   capture              capture an approved order and grant the entitlement
 //   create_subscription  create a PayPal subscription for a paid plan
 //   activate_subscription confirm an approved subscription and start the trial /

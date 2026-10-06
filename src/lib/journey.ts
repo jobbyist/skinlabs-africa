@@ -38,6 +38,14 @@ export interface JourneyFacts {
   /** At least one full review or podcast episode read/played while signed in. */
   contentReads: number;
   mfaEnabled: boolean;
+  /** This device can get reminders now, or after installing (false: the push API doesn't exist here). */
+  reminderPushAvailable: boolean;
+  /** SERVER truth: the member has an active push device (list_my_push_devices), never analytics_events. */
+  reminderDeviceActive: boolean;
+  /** The current device is an iPhone/iPad, where push only works from the installed app. */
+  reminderIosDevice: boolean;
+  /** SERVER truth: profiles.app_installed_at is set (first standalone launch). */
+  appInstalled: boolean;
 }
 
 export const EMPTY_FACTS: JourneyFacts = {
@@ -54,6 +62,10 @@ export const EMPTY_FACTS: JourneyFacts = {
   weatherCitySet: false,
   contentReads: 0,
   mfaEnabled: false,
+  reminderPushAvailable: false,
+  reminderDeviceActive: false,
+  reminderIosDevice: false,
+  appInstalled: false,
 };
 
 /** Activation = any of: a second saved analysis, a saved routine, 3 routine check-ins, or 3 saved items. */
@@ -108,13 +120,19 @@ export const nextBestAction = (stage: JourneyStage, f: JourneyFacts): NextBestAc
   }
 };
 
-export type ChecklistItemId = "analysis" | "routine" | "weather" | "checkins" | "content" | "mfa" | "keep_membership";
+export type ChecklistItemId = "analysis" | "routine" | "weather" | "checkins" | "reminders" | "content" | "mfa" | "keep_membership";
 
 export interface ChecklistItem {
   id: ChecklistItemId;
   label: string;
   done: boolean;
 }
+
+/**
+ * "Get reminders on your phone": install + push on iOS, push alone elsewhere. Completed from server facts only
+ * (an active push device, plus app_installed_at on iOS), so it is idempotent and can't be faked client-side.
+ */
+export const remindersDone = (f: JourneyFacts): boolean => f.reminderDeviceActive && (!f.reminderIosDevice || f.appInstalled);
 
 /**
  * The Getting Started checklist, completion read from real data. "Keep my
@@ -126,9 +144,17 @@ export const gettingStartedChecklist = (f: JourneyFacts): ChecklistItem[] => {
     { id: "routine", label: "Save your routine", done: f.routineSteps >= 1 },
     { id: "weather", label: "Set your Skin Weather city", done: f.weatherCitySet },
     { id: "checkins", label: "Check in on your routine twice", done: f.routineCheckins >= 2 },
+    { id: "reminders", label: "Get reminders on your phone", done: remindersDone(f) },
     { id: "content", label: "Read one full review or episode", done: f.contentReads >= 1 },
     { id: "mfa", label: "Secure your account with two-step verification", done: f.mfaEnabled },
-  ];
+  ].filter(
+    // Full reviews and episodes are a membership perk: a free account can't open one, so the step
+    // would be impossible and the checklist could never finish (or be hidden).
+    (item) => item.id !== "content" || item.done || f.isTrialing || f.isPaid,
+  ).filter(
+    // Exactly one reminders step, and only where it could ever be completed (the push API exists, or it is already done).
+    (item) => item.id !== "reminders" || item.done || f.reminderPushAvailable,
+  ) as ChecklistItem[];
   if (resolveJourneyStage(f) === "activated") {
     items.push({ id: "keep_membership", label: "Keep my membership", done: false });
   }

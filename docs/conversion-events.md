@@ -53,6 +53,8 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 | `signup_started` | `AIFormulator.tsx`: "Save your results" sign-up opened from results | `source: "ai_formulator_results"` |
 | `signup_completed` | `AuthDialog.tsx`: `signUp()` returned no error | none |
 | `signup_completed` | `AIFormulator.tsx`: account created from the results gate | `source: "ai_formulator_results"` |
+| `signup_completed` | `IntentResolver.tsx`: a brand-new Google account (< 10 min old) returns from OAuth, once per account | `method: "google"` |
+| `campaign_landing` | `AttributionCapture.tsx`: a visit with `utm_*` / `ttclid` in the URL, once per campaign per session | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`, `attr_sid` |
 | `signin_completed` | `AuthDialog.tsx`: password sign-in succeeded | none |
 | `password_reset_started` | `AuthDialog.tsx`: "Forgot password" submitted | none |
 | `password_reset_completed` | `ResetPassword.tsx`: new password saved | none |
@@ -61,6 +63,10 @@ select * from public.conversion_funnel_daily where day >= current_date - 30;
 `signup_completed` fires when `signUp()` returns without an error, which can happen
 before the user confirms their email. It counts sign-up **submissions**. Use the
 `signups` column of `conversion_funnel_daily` for real accounts.
+
+**Campaign attribution (2026-10-04).** When a session landed with UTMs/`ttclid`, every event's payload (Vercel Analytics and
+`analytics_events`) also carries `utm_*` and a random `attr_sid`. Never sent to TikTok. Admin → Ads → Campaigns counts distinct
+sessions per stage via `admin_campaign_attribution()`.
 
 ### SKYNN AI — Basic AI Skin Analysis (legacy event names): `AIFormulator.tsx` unless noted
 
@@ -89,6 +95,7 @@ These names predate SKYNN AI v2.1 and are kept for historical reporting. New fun
 | `reanalysis_blocked` | `ReanalysisLockedPanel.tsx` / `SkinProfileHero.tsx`: rolling window locks a re-run | `source` |
 | `upgrade_clicked_from_formulator` | `ReanalysisLockedPanel.tsx` / `AnalysisCreditsCard.tsx` upgrade CTA | `source` |
 | `upgrade_click` | `useConversionAction().run()` (see "Gate CTAs" below). Here: `PremiumUpsellSection` (`starter_results_upsell`), `ReanalysisLockedPanel` (`reanalysis_locked:<source>`), `AnalysisCreditsCard` (`dashboard_credits`), `FormulatorTab` (`dashboard_formulator_tab`) | `source`, `kind`, `feature` |
+| `skynn_cta_clicked` | `briefings/SkynnMiniCta.tsx`: mini SKYNN AI card inside a briefing body | `source: "briefing_article"`, `kind: "briefing_mini_cta"` |
 | `skynn_video_opened` / `skynn_video_completed` | `skynn/SkynnVideoModal.tsx` | `source: "ai_formulator_intro"` |
 | `starter_dashboard_arrived` | `UserDashboard.tsx`: a pending local starter result was saved on arrival at the dashboard | none |
 
@@ -173,9 +180,9 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `checkout_completed` | `UserDashboard.tsx`: `?payment=success` poll confirms the grant | `purchaseType` |
 | `subscription_started` | `UserDashboard.tsx`: poll sees a paid status | `plan`, `interval` (from the query string) |
 | `credit_pack_purchased` | `UserDashboard.tsx` poll, `AnalysisPassPurchaseModal.tsx` and `Pricing.tsx` inline PayPal approval | `packId` |
-| `founding_member_purchased` | `UserDashboard.tsx` poll, `Pricing.tsx` inline PayPal approval | `offerId` |
+| `founding_member_purchased` | Retired 2026-10-03 (the Founding Member offer was withdrawn); never fires | `offerId` |
 | `upgrade_viewed` | `FeatureGate.tsx` (overlay), `UpgradePrompt.tsx` (inline) | `feature`, `accountState`, `style` |
-| `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership) |
+| `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership); includes `promo_modal` (`PromoTrialModal`) |
 
 ### Engagement and other site-wide events
 
@@ -184,12 +191,17 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `smart_routines_page_view` | `SmartRoutines.tsx` mount | `authenticated`, `tier`, `hasAnalysisPass` |
 | `smart_routines_cta_clicked` | `SmartRoutines.tsx` CTAs | `location`, `tier`, `authenticated`, `hasAnalysisPass` |
 | `routine_checkin_completed` | `use-routine.ts` | `slot` |
-| `newsletter_subscribed` | `Newsletter.tsx` | none |
+| `sa_price_link_clicked` | `SaPricesPanel` (a live retailer price link) | `retailer`, `product` (slug) |
+| `newsletter_subscribed` | `Newsletter.tsx` (consultation waitlist, not the digest) | none |
+| `newsletter_signup_submitted` | `NewsletterSignup` via `subscribeToDigest()` (confirmation email requested, NOT yet subscribed) | `source` (placement id, e.g. `briefing-end`, `review-end`) |
+| `newsletter_signup_failed` | same | `source` |
+| `newsletter_confirmed` | `/newsletter/confirm` after the button press | none |
 | `brand_request_submitted` | `BrandRequestModal.tsx` | `mode` |
 | `partner_enquiry_submitted` | `partners/PartnerEnquiryForm.tsx` | `partnership_model` |
 | `consultation_booking_requested` | `Consultations.tsx` | `practitioner_id` |
 | `ingredient_checker_checked` | `use-ingredient-compatibility.ts` | `found`, `interaction_type` |
 | `site_search_result_clicked` | `SiteSearch.tsx` | `query` (trimmed, ≤100 chars), `href` |
+| `content_vertical_clicked` | `MobileContentRail.tsx` | `vertical`, `source` (`homepage_rail` \| `sitewide_rail`) |
 | `marketplace_add_to_cart` | `CartContext.tsx` | `productId`, `quantity` |
 | `podcast_played` / `podcast_liked` / `podcast_shared` | `use-podcast-engagement.ts` | `episode_slug` |
 | `account_deactivated` / `account_deletion_requested` | `dashboard/AccountTab.tsx` | none |
@@ -253,6 +265,13 @@ Insider trial in place, then `trial_activation_*` fire with the same `source`) o
 Before this change `upgrade_click` carried `{ feature, accountState }` (UpgradePrompt) or
 `{ feature, accountState, source }` (PremiumUpsellSection), so rows before 2026-09-25 have
 no `kind`.
+
+## October 2026 giveaway (`giveaway_*`)
+
+Fired through `src/lib/giveaway/analytics.ts` (payload whitelist: `campaign`, `landing_page`, `campaign_deadline`, `cta_location`, `cta`; the visit's `utm_*`/`attr_sid` are merged by `trackConversionEvent`). `giveaway_page_view` (once per visit), `giveaway_cta_click`
+(`cta_location` hero/mid_page/final_cta/entry, `cta` primary/secondary/enter), `giveaway_assessment_started` / `giveaway_assessment_completed` (from the SKYNN AI flow, once per session, only for giveaway visitors),
+`giveaway_story_cta_click` (web story + "Share Your Skin Story"), `giveaway_terms_viewed` (once per session), `giveaway_entry_submitted` (once per session; never the TikTok username).
+To TikTok: `giveaway_cta_click`/`giveaway_story_cta_click` → ClickButton, `giveaway_assessment_completed` → SubmitForm. Details: `docs/giveaway-october-2026.md`.
 
 ## Declared but never fired
 

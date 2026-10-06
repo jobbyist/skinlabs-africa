@@ -4,7 +4,8 @@ import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { reportNetworkFailure, reportNetworkSuccess } from "./lib/pwa/network";
 import { BrowserRouter, Routes, Route, useParams, Navigate, useLocation } from "react-router-dom";
 import AppErrorBoundary from "./components/AppErrorBoundary";
 import { useDeploymentSkewGuard } from "./hooks/use-deployment-skew-guard";
@@ -19,12 +20,17 @@ import Index from "./pages/Index";
 // paint. Deferring it costs nothing visually — the overlay wasn't part of
 // the pre-hydration HTML anyway.
 const Preloader = lazyWithRetry(() => import("./components/Preloader"));
+// Installed-app layer (install prompt, offline banner, update toast, background sync). See docs/pwa.md.
+const PWAProvider = lazyWithRetry(() => import("./components/pwa/PWAProvider"));
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
 import ScrollToTop from "./components/ScrollToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
+import MobileFeedbackSurvey from "./components/MobileFeedbackSurvey";
 import CookieConsent from "./components/CookieConsent";
+import TikTokPixel from "./components/TikTokPixel";
+import AttributionCapture from "./components/AttributionCapture";
 import AdBlockWall from "./components/AdBlockWall";
 import SitewideSEO from "./components/SitewideSEO";
 import { CartProvider } from "./contexts/CartContext";
@@ -37,6 +43,7 @@ const QuoteSSBeauty = lazyWithRetry(() => import("./pages/QuoteSSBeauty"));
 const About = lazyWithRetry(() => import("./pages/About"));
 const Contact = lazyWithRetry(() => import("./pages/Contact"));
 const Business = lazyWithRetry(() => import("./pages/Business"));
+const PracticeSuite = lazyWithRetry(() => import("./pages/PracticeSuite"));
 const Partners = lazyWithRetry(() => import("./pages/Partners"));
 const BrandAmbassadors = lazyWithRetry(() => import("./pages/BrandAmbassadors"));
 const KnowledgeHub = lazyWithRetry(() => import("./pages/KnowledgeHub"));
@@ -68,12 +75,14 @@ const SpotlightArchive = lazyWithRetry(() => import("./pages/SpotlightArchive"))
 const SpotlightBrandProfile = lazyWithRetry(() => import("./pages/SpotlightBrandProfile"));
 const Seasonals = lazyWithRetry(() => import("./pages/Seasonals"));
 const SeasonalHub = lazyWithRetry(() => import("./pages/SeasonalHub"));
-const Consultations = lazyWithRetry(() => import("./pages/Consultations"));
 const DermatologistDirectory = lazyWithRetry(() => import("./pages/DermatologistDirectory"));
 const Announcements = lazyWithRetry(() => import("./pages/Announcements"));
 const UserDashboard = lazyWithRetry(() => import("./pages/UserDashboard"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
+const Start = lazyWithRetry(() => import("./pages/Start"));
+const GiveawayOctober2026 = lazyWithRetry(() => import("./pages/GiveawayOctober2026"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
 const MarketplaceLanding = lazyWithRetry(() => import("./pages/marketplace/MarketplaceLanding"));
 const MarketplaceProductDetail = lazyWithRetry(() => import("./pages/marketplace/MarketplaceProductDetail"));
@@ -94,6 +103,12 @@ const IngredientChecker = lazyWithRetry(() => import("./pages/IngredientChecker"
 // (refetchOnWindowFocus defaults to true, staleTime to 0), re-rendering most of
 // the page in a burst the moment the user switched back.
 const queryClient = new QueryClient({
+  // Real request outcomes are the source of truth for "are we online?" (navigator.onLine only says an
+  // interface exists): a network error marks the app unreachable, any success marks it reachable again.
+  queryCache: new QueryCache({
+    onError: (error) => reportNetworkFailure(error),
+    onSuccess: () => reportNetworkSuccess(),
+  }),
   defaultOptions: {
     queries: {
       staleTime: 5 * 60_000,
@@ -113,6 +128,7 @@ const AppContent = () => {
     <>
       <Suspense fallback={null}>
         <Preloader />
+        <PWAProvider />
       </Suspense>
       <ScrollToTop />
       <FloatingBottomNav />
@@ -120,7 +136,10 @@ const AppContent = () => {
       <IntentResolver />
       {/* Sign-up + membership checkout dialogs opened by conversion CTAs (useConversionAction). */}
       <ConversionDialogs />
+      <MobileFeedbackSurvey />
       <CookieConsent />
+      <TikTokPixel />
+      <AttributionCapture />
       <AdBlockWall />
       <AppErrorBoundary resetKey={pathname}>
         <Suspense fallback={<RouteFallback />}>
@@ -128,6 +147,8 @@ const AppContent = () => {
             <Route path="/" element={<Index />} />
             <Route path="/get-started" element={<Navigate to="/pricing" replace />} />
             <Route path="/skynn-ai" element={<AIFormulator />} />
+            {/* TikTok acquisition landing page for the October 2026 giveaway (src/lib/giveaway). */}
+            <Route path="/giveaways/october-2026" element={<GiveawayOctober2026 />} />
             {/* SKYNN AI Advanced Dermatology Report — gated server-side by get_advanced_assessment_access(). */}
             <Route path="/skynn-ai/advanced" element={<AdvancedAssessment />} />
             <Route path="/ai-formulator" element={<Navigate to="/skynn-ai" replace />} />
@@ -135,6 +156,7 @@ const AppContent = () => {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/business" element={<Business />} />
+            <Route path="/practice-suite" element={<PracticeSuite />} />
             <Route path="/partners" element={<Partners />} />
             <Route path="/brand-ambassadors" element={<BrandAmbassadors />} />
             <Route path="/brand-ambassadors/apply" element={<BrandAmbassadors />} />
@@ -186,7 +208,7 @@ const AppContent = () => {
             <Route path="/reviews/:slug" element={<ProductReview />} />
             <Route path="/compare" element={<Compare />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/consultations" element={<Consultations />} />
+            <Route path="/consultations" element={<Navigate to="/consult" replace />} />
             <Route path="/consult" element={<DermatologistDirectory />} />
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/spotlight" element={<Spotlight />} />
@@ -198,7 +220,10 @@ const AppContent = () => {
             <Route path="/seasonals/:season" element={<SeasonalHub />} />
             <Route path="/dashboard" element={<UserDashboard />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
             <Route path="/welcome" element={<Welcome />} />
+            {/* Installed-app entry point (manifest start_url): restores the session, then routes onward. */}
+            <Route path="/start" element={<Start />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

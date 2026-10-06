@@ -1,5 +1,7 @@
 import { track } from "@vercel/analytics";
 import { supabase } from "@/integrations/supabase/client";
+import { forwardConversionToTikTok } from "@/lib/tiktok/pixel";
+import { readAttribution } from "@/lib/attribution";
 
 /**
  * Central conversion-event vocabulary for SkinLabs' free -> paid funnel.
@@ -13,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
  * site stays the same.
  */
 export type ConversionEvent =
+  // Paid-traffic landing (utm_* / ttclid) — one per campaign per session, fired by <AttributionCapture />.
+  | "campaign_landing"
   | "analysis_started"
   | "consent_completed"
   | "profile_completed"
@@ -23,8 +27,11 @@ export type ConversionEvent =
   | "signup_completed"
   | "upgrade_viewed"
   | "upgrade_click"
+  | "skynn_cta_clicked"
   | "adblock_wall_shown"
   | "adblock_wall_cleared"
+  | "promo_modal_opened"
+  | "promo_modal_cta_clicked"
   | "pricing_view"
   | "plan_selected"
   | "trial_started"
@@ -43,8 +50,6 @@ export type ConversionEvent =
   | "subscription_cancelled"
   | "credit_pack_viewed"
   | "credit_pack_purchased"
-  | "founding_member_viewed"
-  | "founding_member_purchased"
   // Starter Analysis 2.0 — per-question funnel + refinement/conversion detail
   // not covered by the events above (see Section 24 of the implementation spec).
   | "starter_question_viewed"
@@ -105,33 +110,83 @@ export type ConversionEvent =
   // Broader site-wide gap-fill (2026-09-22) — key actions across the app
   // that had no analytics instrumentation at all before this pass.
   | "newsletter_subscribed"
+  | "sa_price_link_clicked"
+  // Weekly-digest double opt-in funnel (growth engine). Payloads: source only, never the email.
+  | "newsletter_signup_submitted"
+  | "newsletter_signup_failed"
+  | "newsletter_confirmed"
   | "brand_request_submitted"
+  // Photo journal (declared here because PhotoJournalTab fires them; main was missing these)
+  | "photo_journal_frequency_changed"
+  | "photo_journal_entry_added"
+  | "photo_journal_entry_deleted"
   | "partner_enquiry_submitted"
   | "ingredient_checker_checked"
   | "consultation_booking_requested"
   | "site_search_result_clicked"
+  | "content_vertical_clicked"
+  // Homepage skin-weather notch. Payloads: city key / UV band only.
+  | "weather_notch_opened"
+  | "weather_notch_dismissed"
+  | "weather_notch_city_changed"
   | "account_deactivated"
   | "account_deletion_requested"
   | "routine_checkin_completed"
+  | "routine_saved"
+  // Contextual mobile feedback survey lifecycle.
+  | "feedback_survey_shown"
+  | "feedback_survey_dismissed"
+  | "feedback_survey_submitted"
   // Free-first SKYNN AI formulator + rolling free-analysis allowance (2026-09-24).
   | "formulator_started"
   | "formulator_completed_anonymous"
   | "signup_from_formulator"
   | "reanalysis_blocked"
   | "upgrade_clicked_from_formulator"
+  // Installable app / PWA layer (src/lib/pwa). Payloads: platform / browser / source tokens and counts only.
+  | "pwa_install_prompt_viewed"
+  | "pwa_install_prompt_dismissed"
+  | "pwa_install_accepted"
+  | "pwa_install_declined"
+  | "pwa_install_started"
+  | "pwa_installed"
+  | "pwa_launch"
+  | "pwa_offline"
+  | "pwa_online"
+  | "pwa_update_available"
+  | "pwa_updated"
+  | "push_prompt_viewed"
+  | "push_soft_ask_shown"
+  | "push_soft_ask_accepted"
+  | "push_permission_granted"
+  | "push_permission_denied"
+  | "push_subscribed"
+  | "push_unsubscribed"
+  | "podcast_download_started"
+  | "podcast_download_completed"
+  | "podcast_download_removed"
+  | "podcast_offline_play"
   // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
   // which whitelists the payload, never directly.
-  | import("@/lib/skynn/analytics").SkynnEvent;
+  | import("@/lib/skynn/analytics").SkynnEvent
+  // October 2026 giveaway funnel — fire through src/lib/giveaway/analytics.ts (whitelisted payload), never directly.
+  | import("@/lib/giveaway/analytics").GiveawayEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 
 export const trackConversionEvent = (event: ConversionEvent, payload: ConversionPayload = {}) => {
   const path = typeof window !== "undefined" ? window.location.pathname : "";
+  // Campaign labels (utm_*, session id) ride along on our own analytics only. They are deliberately NOT
+  // part of the payload handed to TikTok below. Explicit payload keys win over attribution keys.
+  const attributed: ConversionPayload = { ...readAttribution(), ...payload };
   try {
-    track(event, { ...payload, path });
+    track(event, { ...attributed, path });
   } catch {
     // Never let analytics failures affect the feature they're instrumenting.
   }
+  // TikTok Pixel + Events API: consent-gated and limited to a few standard events
+  // (src/lib/tiktok/events.ts); a no-op for everyone who hasn't accepted advertising cookies.
+  forwardConversionToTikTok(event, payload);
   // Best-effort server-side mirror (see supabase/migrations/20260921120000_
   // analytics_events_core.sql) so the admin dashboard's Analytics tab has a
   // queryable/segmentable record independent of Vercel's own API — never
@@ -144,7 +199,7 @@ export const trackConversionEvent = (event: ConversionEvent, payload: Conversion
       .then(({ data }) =>
         supabase.from("analytics_events").insert({
           event_name: event,
-          payload,
+          payload: attributed,
           path,
           user_id: data.session?.user.id ?? null,
         }),

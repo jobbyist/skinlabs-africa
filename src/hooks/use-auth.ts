@@ -1,3 +1,4 @@
+import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
@@ -40,7 +41,7 @@ export const useAuth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectTo ?? window.location.origin,
+        emailRedirectTo: redirectTo ?? getSiteOrigin(),
         data: marketingConsent ? { marketing_consent: true } : undefined,
       },
     });
@@ -50,7 +51,7 @@ export const useAuth = () => {
   const signInWithGoogle = async (redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
+      options: { redirectTo: redirectTo ?? `${getSiteOrigin()}${window.location.pathname}` },
     });
     return { data, error };
   };
@@ -64,12 +65,22 @@ export const useAuth = () => {
   const signInWithMagicLink = async (email: string, redirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo ?? `${window.location.origin}${window.location.pathname}` },
+      options: { emailRedirectTo: redirectTo ?? `${getSiteOrigin()}${window.location.pathname}` },
     });
     return { data, error };
   };
 
   const signOut = async () => {
+    // Detach this device's push subscription from the account first (best effort, time-boxed) so the next
+    // person to use it isn't sent this member's notifications. Never blocks or fails sign-out.
+    try {
+      await Promise.race([
+        import("@/lib/pwa/notificationManager").then((m) => m.detachDeviceForSignOut()),
+        new Promise((resolve) => setTimeout(resolve, 2000)),
+      ]);
+    } catch {
+      /* ignore */
+    }
     const { error } = await supabase.auth.signOut();
     return { error };
   };
@@ -82,7 +93,7 @@ export const useAuth = () => {
    */
   const sendPasswordReset = async (email: string) => {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${getSiteOrigin()}/reset-password`,
     });
     return { data, error };
   };
@@ -93,24 +104,13 @@ export const useAuth = () => {
     return { data, error };
   };
 
-  /**
-   * Verifies a one-time token_hash issued by a server-side admin.generateLink
-   * call (see api/admin-auth.ts) to establish a real Supabase session for a
-   * specific account without sending an email — used only by the /admin
-   * gate, never by consumer auth.
-   */
-  const verifyRecoveryOrMagicLinkToken = async (tokenHash: string, type: "magiclink" | "recovery" = "magiclink") => {
-    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
-    return { data, error };
-  };
-
   /** Optional email verification, initiated by the user from the dashboard. */
   const sendEmailVerification = async () => {
     if (!user?.email) return { data: null, error: new Error("No email on this account") };
     const { data, error } = await supabase.auth.resend({
       type: "signup",
       email: user.email,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: { emailRedirectTo: `${getSiteOrigin()}/dashboard` },
     });
     return { data, error };
   };
@@ -153,7 +153,6 @@ export const useAuth = () => {
     signOut,
     sendPasswordReset,
     updatePassword,
-    verifyRecoveryOrMagicLinkToken,
     sendEmailVerification,
     enrollMFA,
     challengeAndVerifyMFA,

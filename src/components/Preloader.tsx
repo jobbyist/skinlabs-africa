@@ -19,6 +19,7 @@ import { markEntryGateResolved } from "@/lib/entry-gate";
 import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
 import { getApplicationWindowStatus } from "@/data/brandAmbassador";
 import { getProductImage } from "@/data/productImages";
+import { useLaunchSplash } from "@/hooks/use-launch-splash";
 
 interface GateSlide {
   key: string;
@@ -145,6 +146,10 @@ const Preloader = () => {
   const [externalArrival] = useState(isExternalArrival);
   const { resolvedTheme } = useTheme();
   const logoSrc = resolvedTheme === "dark" ? LOGO_DARK : LOGO_LIGHT;
+  // Installed-app cold launch: this same splash becomes the app's launch screen, driven by real
+  // launch tasks (session, service worker, fonts, route code) instead of the homepage's short timer.
+  // See src/lib/pwa/launchProgress.ts. Not active in a normal browser tab.
+  const launch = useLaunchSplash({ authLoading, isSignedIn: Boolean(user), logoSrc });
 
   const gateSlides: GateSlide[] = [
     ...buildDailyReviewSlides(),
@@ -165,13 +170,13 @@ const Preloader = () => {
   // Chrome) — a deep link landed on directly (from search, a share, or an
   // agent) should never be covered by a homepage-branding animation, and a
   // cold-sessionStorage Lighthouse run should never measure this as LCP/FCP.
-  const skipLoadingSplash = !isHome || isBotOrAutomation();
+  const skipLoadingSplash = (!isHome && !launch.active) || isBotOrAutomation();
   const [showLoading, setShowLoading] = useState(() => {
     if (typeof window === "undefined" || skipLoadingSplash) return false;
-    return sessionStorage.getItem(LOADING_KEY) !== "1";
+    return launch.active || sessionStorage.getItem(LOADING_KEY) !== "1";
   });
   const [loadingDone, setLoadingDone] = useState(
-    () => skipLoadingSplash || sessionStorage.getItem(LOADING_KEY) === "1",
+    () => skipLoadingSplash || (!launch.active && sessionStorage.getItem(LOADING_KEY) === "1"),
   );
   const [progress, setProgress] = useState(0);
   const [gateVisible, setGateVisible] = useState(false);
@@ -180,8 +185,25 @@ const Preloader = () => {
     return sessionStorage.getItem(GATE_KEY) === "1";
   });
 
+  // The static boot splash in index.html (installed-app launches only) hands over to this component.
   useEffect(() => {
-    if (!showLoading) return;
+    const frame = window.requestAnimationFrame(() => window.requestAnimationFrame(() => document.getElementById("pwa-boot-splash")?.remove()));
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!launch.active || !launch.finished) return;
+    try {
+      sessionStorage.setItem(LOADING_KEY, "1");
+    } catch {
+      /* private mode */
+    }
+    setShowLoading(false);
+    setLoadingDone(true);
+  }, [launch.active, launch.finished]);
+
+  useEffect(() => {
+    if (!showLoading || launch.active) return;
     const started = Date.now();
     const interval = window.setInterval(() => {
       setProgress(Math.min(100, Math.round(((Date.now() - started) / LOADING_MS) * 100)));
@@ -195,7 +217,7 @@ const Preloader = () => {
       window.clearInterval(interval);
       window.clearTimeout(timeout);
     };
-  }, [showLoading]);
+  }, [showLoading, launch.active]);
 
   useEffect(() => {
     if (!loadingDone || authLoading || gateDismissed) return;
@@ -248,9 +270,18 @@ const Preloader = () => {
           <motion.div
             key="loading"
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
+            style={{
+              paddingTop: "env(safe-area-inset-top)",
+              paddingRight: "env(safe-area-inset-right)",
+              paddingBottom: "env(safe-area-inset-bottom)",
+              paddingLeft: "env(safe-area-inset-left)",
+            }}
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ duration: shouldReduceMotion ? 0.15 : 0.5, ease: "easeInOut" }}
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
           >
             <motion.img
               src={logoSrc}
@@ -262,17 +293,25 @@ const Preloader = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             />
-            <p className="mt-3 text-xs uppercase tracking-[0.35em] text-muted-foreground">
+            <p className="mt-3 max-w-[18rem] px-4 text-center text-xs uppercase tracking-[0.35em] text-muted-foreground">
               Skin intelligence, locally grounded
             </p>
-            <div className="mt-8 h-px w-48 overflow-hidden bg-border">
+            <div
+              className="mt-8 h-px w-48 overflow-hidden bg-border"
+              role="progressbar"
+              aria-label="Loading SkinLabs"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={launch.active ? launch.progress : progress}
+            >
               <motion.div
                 className="h-full bg-foreground"
                 initial={{ width: "0%" }}
-                animate={{ width: `${progress}%` }}
+                animate={{ width: `${launch.active ? launch.progress : progress}%` }}
                 transition={{ ease: "linear", duration: 0.1 }}
               />
             </div>
+            {launch.active && <p className="mt-3 h-4 text-[11px] tracking-wide text-muted-foreground">{launch.label}</p>}
           </motion.div>
         )}
       </AnimatePresence>

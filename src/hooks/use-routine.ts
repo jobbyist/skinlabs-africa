@@ -54,6 +54,7 @@ export const useRoutine = () => {
   const [pendingKeys, setPendingKeys] = useState<Set<string>>(new Set());
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [firstCheckinJustDone, setFirstCheckinJustDone] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -126,7 +127,22 @@ export const useRoutine = () => {
       sort_order: steps.length,
     });
     if (error) return toast.error("Could not add that step");
+    trackConversionEvent("routine_saved", { routine_source: "manual" });
     void load();
+  };
+
+  /** Adopt the seeded starter steps as the member's own routine (default -> manual). */
+  const saveStarterRoutine = async () => {
+    if (!user) return false;
+    const { error } = await supabase.from("routine_steps").update({ source: "manual" }).eq("user_id", user.id).eq("source", "default");
+    if (error) {
+      toast.error("Could not save your routine — please try again.");
+      return false;
+    }
+    trackConversionEvent("routine_saved", { routine_source: "starter" });
+    toast.success("Routine saved. Tick steps off each day to build your streak.");
+    await load();
+    return true;
   };
 
   const removeStep = async (id: string) => {
@@ -190,6 +206,9 @@ export const useRoutine = () => {
       return;
     }
     if (!isDone) {
+      // First check-in EVER (server count, not a local guess): offer the nudge once, non-modally.
+      const { count } = await supabase.from("routine_checkins").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+      if (count === 1) setFirstCheckinJustDone(true);
       trackConversionEvent("routine_checkin_completed", { slot });
       if (steps.find((s) => s.id === stepId)?.source === "smart") {
         trackSkynnEvent("skynn_smart_routine_step_checked", { step: slot });
@@ -198,6 +217,9 @@ export const useRoutine = () => {
     void load();
   };
 
+  /** True while every step is still the seeded starter set (not yet "saved" by the member). */
+  const isStarterOnly = steps.length > 0 && steps.every((s) => s.source === "default");
+
   const amSteps = useMemo(() => steps.filter((s) => s.time_of_day === "am" || s.time_of_day === "both"), [steps]);
   const pmSteps = useMemo(() => steps.filter((s) => s.time_of_day === "pm" || s.time_of_day === "both"), [steps]);
   const todayDone = todayCheckins.size;
@@ -205,16 +227,20 @@ export const useRoutine = () => {
 
   return {
     steps,
+    isStarterOnly,
     amSteps,
     pmSteps,
     loading,
     streak,
+    firstCheckinJustDone,
+    dismissFirstCheckinNudge: () => setFirstCheckinJustDone(false),
     todayCheckins,
     todayDone,
     todayTotal,
     isChecked: (stepId: string, slot: "am" | "pm") => todayCheckins.has(`${stepId}:${slot}`),
     isPending: (stepId: string, slot: "am" | "pm") => pendingKeys.has(`${stepId}:${slot}`),
     addStep,
+    saveStarterRoutine,
     removeStep,
     toggleCheckin,
     refresh: load,

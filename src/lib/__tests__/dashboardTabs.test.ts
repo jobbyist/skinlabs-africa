@@ -37,7 +37,7 @@ describe("groups", () => {
   test("My Skin and Settings hold the right sections", () => {
     const inGroup = (g: string) => DASHBOARD_SECTIONS.filter((s) => SECTION_GROUP[s] === g);
     expect(inGroup("skin")).toEqual(["analysis", "routine", "journey"]);
-    expect(inGroup("settings")).toEqual(["profile", "billing", "security", "account"]);
+    expect(inGroup("settings")).toEqual(["profile", "billing", "security", "app", "account"]);
   });
   test("each group's default section belongs to it", () => {
     for (const [group, section] of Object.entries(GROUP_DEFAULT_SECTION)) expect(SECTION_GROUP[section] as string).toBe(group);

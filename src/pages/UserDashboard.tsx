@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams, useLocation, Link } from "react-router-dom";
+import { useSearchParams, useLocation, Link, useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import { useStartTrial } from "@/hooks/use-start-trial";
 import { supabase } from "@/integrations/supabase/client";
 import MFASettingsCard from "@/components/MFASettingsCard";
 import EmailVerificationCard from "@/components/EmailVerificationCard";
@@ -19,6 +21,7 @@ import RoutineTrackerTab from "@/components/dashboard/RoutineTrackerTab";
 import BillingTab from "@/components/dashboard/BillingTab";
 import InboxTab from "@/components/dashboard/InboxTab";
 import AccountTab from "@/components/dashboard/AccountTab";
+const AppSettingsPanel = lazyWithRetry(() => import("@/components/pwa/AppSettingsPanel"));
 import SavedContentTab from "@/components/dashboard/SavedContentTab";
 import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
 import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
@@ -28,7 +31,9 @@ import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
 import ForYourSkinCard from "@/components/dashboard/ForYourSkinCard";
+import ForYourProfileFeed from "@/components/dashboard/ForYourProfileFeed";
 import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
+import JourneyMomentumCard from "@/components/dashboard/JourneyMomentumCard";
 import SectionNav from "@/components/dashboard/SectionNav";
 import { useJourney } from "@/hooks/use-journey";
 import { GROUP_DEFAULT_SECTION, SECTION_GROUP, resolveDashboardSection, type DashboardGroup } from "@/lib/dashboardTabs";
@@ -81,6 +86,8 @@ const UserDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
+  const navigate = useNavigate();
+  const { start: startTrial, loading: trialLoading } = useStartTrial();
   const { data: allowance, loading: allowanceLoading, error: allowanceError, refresh: refreshAllowance } = useFormulatorAllowance();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [preorders, setPreorders] = useState<Preorder[]>([]);
@@ -114,6 +121,33 @@ const UserDashboard = () => {
   };
   const setActiveGroup = (group: string) => setActiveTab(GROUP_DEFAULT_SECTION[group as DashboardGroup] ?? "home");
   const journey = useJourney();
+  const dashboardEntered = useRef(false);
+  useEffect(() => {
+    if (!user || dashboardEntered.current) return;
+    dashboardEntered.current = true;
+    trackConversionEvent("dashboard_entered", { stage: journey.stage });
+  }, [user, journey.stage]);
+
+  const handleJourneyAction = () => {
+    const action = journey.nextAction;
+    trackConversionEvent("checklist_step_clicked", { step: action.id });
+    if (action.kind === "keep_membership") {
+      openKeepMembership({ source: "dashboard_journey" });
+      return;
+    }
+    if (action.kind === "start_trial") {
+      void startTrial({ plan: "insider", source: "dashboard", destination: null });
+      return;
+    }
+    if (action.kind === "link" && action.href) {
+      navigate(action.href);
+    }
+  };
+
+  const scrollToSetup = () => {
+    document.getElementById("getting-started")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   // Checklist completion comes from data changed on other tabs (routine,
   // security…): re-read it whenever Home is shown again.
   const seenGroup = useRef(false);
@@ -263,17 +297,6 @@ const UserDashboard = () => {
           trackConversionEvent("checkout_completed", { purchaseType });
           trackConversionEvent("credit_pack_purchased", { packId: searchParams.get("pack_id") ?? undefined });
           toast.success("Payment confirmed — your AI analysis credits are ready.");
-          return true;
-        }
-        return false;
-      }
-      if (purchaseType === "founding_member") {
-        const { data } = await supabase.from("profiles").select("founding_member").eq("user_id", user.id).maybeSingle();
-        if (data?.founding_member) {
-          refreshMembership();
-          trackConversionEvent("checkout_completed", { purchaseType });
-          trackConversionEvent("founding_member_purchased", { offerId: searchParams.get("offer_id") ?? undefined });
-          toast.success("Welcome — you're a SkinLabs Founding Member.");
           return true;
         }
         return false;
@@ -565,7 +588,15 @@ const UserDashboard = () => {
                   <h1 className="text-3xl font-heading font-bold text-foreground mb-1">
                     Hello{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
                   </h1>
-                  <p className="text-muted-foreground">{user?.email}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-muted-foreground">{user?.email}</p>
+                    <Badge variant={isSubscribed ? "default" : "secondary"}>
+                      {tierLabel}{isTrialing ? " · trial" : ""}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 max-w-xl text-sm text-secondary-text">
+                    Your skin profile, routine and daily guidance — all in one place.
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <ReportBugButton />
@@ -581,6 +612,20 @@ const UserDashboard = () => {
                   </button>
                 </div>
               </div>
+
+              {!journey.loading && (
+                <div className="mb-6">
+                  <JourneyMomentumCard
+                stage={journey.stage}
+                facts={journey.facts}
+                checklist={journey.checklist}
+                nextAction={journey.nextAction}
+                onAction={handleJourneyAction}
+                onSeeSteps={scrollToSetup}
+                actionLoading={trialLoading}
+                  />
+                </div>
+              )}
 
               {!membershipLoading && trialBanner !== "none" && trialBanner !== "ended" && (
                 <div
@@ -671,6 +716,8 @@ const UserDashboard = () => {
                       items={journey.checklist}
                       onGoToTab={setActiveTab}
                       onDismiss={journey.dismissChecklist}
+                      userId={user?.id}
+                      onChanged={journey.refresh}
                     />
                   )}
 
@@ -680,8 +727,6 @@ const UserDashboard = () => {
                     allowance={allowance}
                     onViewFullAnalysis={() => setActiveTab("analysis")}
                   />
-
-                  <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
 
                   <div id="skin-weather" className="scroll-mt-28">
                     <SkinWeatherCard
@@ -695,6 +740,10 @@ const UserDashboard = () => {
                       }}
                     />
                   </div>
+
+                  <ForYourSkinCard onOpenRoutine={() => setActiveTab("routine")} />
+
+                  <ForYourProfileFeed />
 
                   {/* One row of secondary cards. */}
                   <div className="grid gap-6 md:grid-cols-3">
@@ -783,6 +832,7 @@ const UserDashboard = () => {
                       { value: "profile", label: "Profile" },
                       { value: "billing", label: "Billing" },
                       { value: "security", label: "Security" },
+                      { value: "app", label: "App" },
                       { value: "account", label: "Account" },
                     ]}
                   />
@@ -818,6 +868,11 @@ const UserDashboard = () => {
                       <EmailVerificationCard />
                       <MFASettingsCard />
                     </div>
+                  )}
+                  {activeSection === "app" && (
+                    <Suspense fallback={null}>
+                      <AppSettingsPanel />
+                    </Suspense>
                   )}
                   {activeSection === "account" && <AccountTab />}
                 </TabsContent>

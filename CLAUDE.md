@@ -182,7 +182,316 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   rename is really wanted it is a product decision that also needs `terminology.ts`, the
   guard test and the e2e updated together.
 
+## SKYNN AI - v2.2 (beta): Advanced flow redesign (2026-10-03, PR #190)
+
+- **Release label is now `SKYNN AI - v2.2 (beta)`** (`SKYNN_RELEASE_LABEL`, `SKYNN_FEATURE_VERSION = "2.2.0-beta"`, client + edge mirror; the terminology guard pins it). Older notes above saying "v2.1 — beta" describe history; dated "since v2.1" comments stay.
+- **`/skynn-ai/advanced` is one question per screen** (`AdvancedIntro`, `QuestionShell`, `AssessmentFlow`; pure rules in `src/lib/assessment/questionFlow.ts`, tested). Section stays the server resume unit; single choice auto-advances after 300 ms; consent decline still blocks; phones hide the site header/footer/bottom nav while answering.
+- **Copy is verbatim from the definition and the pre-redesign flow**: each section's title + description show on every consent and safety question and on the first question of other sections (`showsSectionIntro()`); "Next", "Saving...", "Your Assessment". Don't invent per-question copy.
+- Accents use the brand gradient via the new `.gradient-bg` utility (`--gradient-brand`); one gradient accent per screen (the primary action).
+- e2e: `ui-enhancements.e2e.ts` used to abort the whole Playwright run (non-destructured `beforeEach`); newsletter submit presses Enter (review page shifts while ads settle).
+- **Edge deploys 2026-10-03**: `skynn-advanced-worker` and `email-processor` redeployed as one-line raw-GitHub entries pinned to the merge commit of PR #190 on `main` (intake PDF + intake email say v2.2). The next deploy of either must pin a commit containing it.
+
+## Roadmap batch (2026-10-03) — standing notes
+
+Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applied live**; edge functions are **not deployed** (deploy `email-processor` + `email-unsubscribe` with the whole `_shared/email/` tree). Details of the email audit: `docs/email-trigger-audit-2026-10-03.md`.
+
+- **Smart Routines run on the free Basic AI Skin Analysis** (supersedes the "Advanced submission required" rule in the v2.1 follow-up above): `has_smart_routine_access()` is true for a saved delivered Basic analysis OR a non-rejected Advanced submission (`20261003100000`). Advanced stays an optional upgrade that adds shelf products, the avoid list and an approved report's own steps. Page/dashboard/search/whitepaper copy updated; keep it honest about what only Advanced adds.
+- Mini SKYNN AI card (`briefings/SkynnMiniCta`, optional `headline`) now also on `/reviews`, `/compare` and Shelf Showdown articles. The "Free until 1 Nov" chip and bar "See details" open `PromoOfferDialog` (CTA → `/pricing`, explicit user request; the earlier "never make /pricing the primary action" rule is for feature gates).
+- **Email**: every recipient-facing email has a footer unsubscribe link (per-recipient token resolved by `email-processor` via `_shared/email/context.ts`; mailto fallback; none for ADMIN mail); the processor re-checks marketing consent for EVERY MARKETING job and sets `show_ads` (only Explorer/Glow Lite see the Faithful to Nature block, same as the site ad policy) and `has_analysis`. Buttons are the brand gradient over a monochrome `#18181b` fallback (`emailButton`, `variant="mono"` for solid). New MARKETING templates in `templates/marketingAutomations.ts`: `daily_briefing_digest`, `weekly_top_brands`, `welcome_series_1-4` (days 1/3/5/8, category MEMBERSHIP), `weekly_analysis_reminder` (ROUTINES), each with the mini SKYNN card + FtN block. SQL + crons in `20261003110000` (daily briefing 05:30 UTC, top brands Fri 07:00, welcome 06:00, reminders 07:00). Top brands = one rotating category per week, top 3 by score from the NON-sponsored static catalogue, from the `weekly_featured_brands` table filled by `scripts/generate-weekly-featured-brands.ts` (20 weeks from 2026-10-05; regenerate before it runs out; the send skips quietly with no row). The daily briefing and top-brands emails are opt-in MARKETING. **The welcome series and weekly reminder go to every member (owner decision, 2026-10-03)** except those who explicitly unsubscribed (`marketing_consent` false AND `marketing_consent_at` set; `BULK_LIFECYCLE_TEMPLATES` in `_shared/email/context.ts`, re-checked at send time). Only 1 of 14 members had opted in at audit time.
+- `/consult`: the "Help shape the directory" survey used to discard answers. It now inserts into `consult_survey_responses` (`20261003130000`); a trigger emails admin template `admin_consult_survey_response` to **consult@ only** (`ADMIN_TEMPLATE_RECIPIENT_OVERRIDE`, owner decision). Only the first page (6) of profiles is shown, no pagination.
+- Admin → Analytics: `EventsAnalyticsPanel` charts everything in `analytics_events` via the admin-gated `admin_events_overview(p_days)` (`20261003140000`; aggregates only; validated live in a rolled-back transaction).
+- Shelf Showdown: 32 generated comparisons in `data/comparisons-part5.ts` from `scripts/generate-comparisons.ts` (real scores/prices/ingredients/verdicts of non-sponsored reviews only; re-run, don't hand-edit). 53 static + DB-generated. `ComparedProduct.officialBrandUrl` is now optional (never guessed).
+- Connector gotcha: the "Resend for Skinlabs" MCP connector points at the CannaPlug Resend account; use the plain "Resend" connector for SkinLabs. Resend domain skinlabs.co.za showed `failed` on 2026-10-03.
+
+## UI/UX batch (2026-10-03) — standing notes
+
+Branch `claude/ui-ux-launchpad-rail-feedback`. Builds on PRs #183/#184 (first launchpad/rail/survey pass).
+
+- **Launchpad** (`SkyNNLaunchpadCard`): CTA "Start Your 2-Minute Basic AI Skin Analysis"; steps Skin Tone → Primary Concern → Desired Outcomes → Tailored Routine. Rows are fixed-size and ONE fixed-height preview panel changes (an in-row accordion shifted rows under a tap). Imports no chart/PDF/quiz code (verified: main bundle has no jsPDF/html2canvas/recharts; the quiz chunk loads only after the CTA). Previews are generic and labelled "Example".
+- **Skin weather notch** (`SkinWeatherNotch`, homepage only, lazy): UV / humidity / high + Highveld-vs-coastal cue (`lib/skinWeather/climate.ts`, shared with the dashboard card). Renders nothing until real data loads or if the call fails. Dismissal lasts the SAST day (`notchPrefs.ts`). City: own pick > profile > Johannesburg; no geolocation prompt.
+- **Content rail** (`MobileContentRail`, `lib/contentRail.ts`): members only, phones only, key pages only (home + each vertical hub), hides on scroll down / reveals on scroll up (`useScrollReveal`, also drives the story rail), shuffled once per page load. It lives INSIDE Header's fixed bar; Header adds a same-height flow spacer. Don't go back to a sticky rail with offset maths against the story rail.
+- **Feedback surveys**: dashboard added; hub pages get their own wording (a "this briefing" question makes no sense on a list). Answers are stored in `feedback_survey_responses` (migration `20261004100000`, **in the repo, NOT applied live**; unique per member+survey) and a trigger emails `admin_feedback_survey_response` to **feedback@ only** (no member identity in the email). The comment never goes into analytics (counts/tokens only). `lib/feedbackSubmit.ts` uses an untyped shim until `types.ts` is regenerated after the migration. **Bug fixed**: a `setTimeout` for the 1 Jan 2027 cutoff (~88 days) overflowed 2^31 ms and fired immediately, cancelling every survey; never schedule timers from a far-future date. Deploy `email-processor` with the new template when applying.
+- Labels: "AI Skin Analysis" everywhere in nav/search/About (dated announcements keep the old name). Base CSS gained anchor `scroll-padding-top`, `text-wrap: balance/pretty`, `touch-action: manipulation` and an `.eyebrow` utility.
+- **Applied live 2026-10-03** (after the follow-up below): `feedback_survey_responses` (+ rate-limit and email triggers; probed rolled-back as a member/anon: insert ok, duplicate 23505, user_id spoof 42501, bad surface/long comment rejected, members can't read rows back, exactly one email enqueued) and `email-processor` v42 (one-line entry pinned to a commit on this branch; **re-pin to a commit on main after merge**).
+- The homepage height wobbles ~70px while ad slots settle (pre-existing), which makes Playwright's "element is stable" check slow on phones: use `click({ force: true })` in e2e where it bites.
+
+## "Share my skin story" (2026-10-04) — standing notes
+
+Replaces "Share my skin type" on the Basic AI Skin Analysis results (both buttons in `AIFormulator.tsx`).
+
+- **Client-side only**: `src/lib/skynn/my-skin-story.ts` draws a 1080 × 1920 PNG with native Canvas (no dependency, no upload, no DB row; no devicePixelRatio scaling; `generateMySkinStory()` reads the PNG header and throws if it isn't exactly 1080 × 1920). Input is `MySkinStoryData`, which has no identity/photo/id fields; `my-skin-story-data.ts` maps a `StarterAnalysisResult` onto it (top 3 priorities, `FOCUS_ACTIVES[primaryConcern]` from `formulaResults.ts`, AM/PM slot names from the grounded routine, barrier line only when not "uncertain", MST only if the member picked one, version badge from `SKYNN_FEATURE_VERSION`). Never add fields the analysis doesn't already show; `FOCUS_ACTIVES` is pinned to the recommendation text by a test.
+- **Delivery** (`share-my-skin-story.ts`): native `navigator.share({files})` when `canShare` allows; an AbortError is silent; anything else opens `MySkinStoryDialog` (existing `ui/dialog`) with preview, Download (object URL revoked after 1 s), Copy Share Link (`https://skinlabs.co.za/skynn-ai`, no query), optional Share. `preloadStoryAssets()` warms the logo/fonts when results show so the share call stays inside the browser's gesture window.
+- No QR code (no QR dependency in the repo; text CTA instead). Fonts are the page's own Montserrat/Inter with system fallbacks; logo is `src/assets/skinlabs-logo-white.svg`, falling back to a text wordmark.
+- Tests: `src/lib/__tests__/mySkinStory.test.ts`, three e2e in `e2e/skynn.e2e.ts` (fallback dialog + 1080×1920 download, native share with the PNG, silent cancel).
+- Pre-existing and unrelated: 317 `tsc -p tsconfig.app.json` errors and `supabaseTypesGuard` fail on main (stale `types.ts` vs live DB: `get_formulator_allowance`, `web_story_events`…).
+
+## TikTok Pixel + Events API (2026-10-03)
+
+Details and human steps: `docs/tiktok-pixel.md`.
+
+- **Consent-gated, not in `index.html`**: `src/lib/tiktok/pixel.ts` injects TikTok's snippet only while `targetedAdvertising` cookie consent is on (banner, preference panel and profile sync all fire `COOKIE_CONSENT_CHANGED_EVENT`); withdrawing stops it. Never paste the snippet into `index.html` (a test fails).
+- `trackConversionEvent()` forwards only the events in `src/lib/tiktok/events.ts`; the same `event_id` goes to the browser pixel and the `tiktok-events` edge function (Events API v1.3), which whitelists events, requires `consent: true`, hashes email/account id from the verified JWT, strips URL queries.
+- ViewContent fires only on key pages (`contentForPath()`); `identify` sends SHA-256 email + account id (no phone) for consented signed-in members; Search sends the event, never the typed words. Details in `docs/tiktok-pixel.md`.
+- **Live 2026-10-03**: token set by the owner; `tiktok-events` v1 deployed (one-line entry pinned to `367b92f` on PR #187, **re-pin to a commit on main after merge**); `20261004120000_tiktok_event_log.sql` applied (probed rolled-back: anon/non-admin denied, no leftover rows). Admin → Ads shows the delivery log. A real end-to-end event was NOT sent (would pollute live ad data): use TikTok Events Manager → Test events (`TIKTOK_TEST_EVENT_CODE`) to verify. Cookie Policy copy now names the TikTok Pixel; Privacy Policy still needs a legal read.
+
+- **Campaign attribution (2026-10-04)**: `src/lib/attribution.ts` captures `utm_*`/`ttclid` into sessionStorage (+ random `attr_sid`), `AttributionCapture` logs one `campaign_landing` per campaign per session, and `trackConversionEvent` merges the labels into the Vercel + `analytics_events` payloads only, never the TikTok forward. Google sign-ups now fire `signup_completed` (-> CompleteRegistration) from `IntentResolver` via `oauthRegistration.ts`. Admin -> Ads -> Campaigns (`admin_campaign_attribution()`, migration `20261004130000`, probe `supabase/tests/campaign_attribution.sql`) is the first-party count; TikTok only sees consented visitors, so it will be lower. Tag links `?utm_source=tiktok&utm_medium=paid_social&utm_campaign=<c>&utm_content=<ad>`.
+
+## October 2026 Skin Story Giveaway landing page (2026-10-03) — standing notes
+
+Branch `claude/tiktok-giveaway-october-2026`. Full detail: **`docs/giveaway-october-2026.md`**.
+
+- **Route `/giveaways/october-2026`** (TikTok paid traffic; slim header, no ads, no site nav; lazy; prerendered; in sitemap; `FloatingBottomNav`/story rail/ad-block wall skip `/giveaways`). CTAs go to the existing free assessment `/skynn-ai` (visitors finish it anonymously; the existing save gate signs them up). **Dates (owner, 2026-10-04): entries close 15 Oct (23:59:59 SAST assumed), winners announced 16 Oct, prizes awarded 31 Oct; eligibility 18+ and SA citizen/legal resident; Lifetime Glow Insider is activated after the free trial period ends on 1 Nov 2026.** Facts/copy live in `src/lib/giveaway/campaign.ts`; T&Cs are built from `GIVEAWAY_LEGAL` in `terms.ts`: unknown legal facts stay `null` and the copy falls back to wording that is true regardless; **never invent entity/age/territory/draw method**. `giveawayOpenQuestions()` lists what is unconfirmed.
+- **Tracking extends the existing layer, no second system**: `src/lib/giveaway/analytics.ts` (whitelisted payload, once-per-session guards, `markGiveawayContext()` so the SKYNN AI flow reports `giveaway_assessment_started/completed` at its existing moments). TikTok: CTA clicks → `ClickButton` (added to client + `_shared/tiktok/eventsApi.ts` whitelist), finished analysis → `SubmitForm`, ViewContent from `contentForPath`. No health data, UTMs or query strings go to TikTok.
+- **Bug fixed in `pixel.ts`**: `sendEvent` read `location.href` after an async step, so a click that navigated filed the event under the next page (and sent the query string); it now captures origin+path synchronously.
+- **Entry = self-report, human-checked** (`giveaway_entries`, `enter_giveaway()`, migration `20261006100000`, **applied live 2026-10-03**, probe `supabase/tests/giveaway_entries.sql` 13/13 rolled back, `types.ts` regenerated). Never say "verified": TikTok Stories can't be checked by API. Closing instant is mirrored in SQL and TS (a test checks both).
+- **Story**: `giveawayOctober2026Story()` (curated; video 0.87 MB from 7.7 MB, poster, blurred bg); listed only while open. Inline player is poster-first and mounts the video at ≥50 % visibility.
+- **Naming conflict, left to the owner**: approved copy says "free AI dermatology analysis" for what is the **Basic AI Skin Analysis** (not dermatologist-reviewed); the page states what it is next to the headline. The supplied video says "Basic dermatology report" and can't be edited in code.
+- **Left for a human**: winner-selection method, claim window, repost licence, "lifetime" definition, voucher expiry, promoter entity details and legal sign-off (see `giveawayOpenQuestions()`), the winners' Lifetime Glow Insider grant (no tool exists; activate on/after 1 Nov 2026), admin UI for entries (SQL only).
+- Gotcha repeated: shadcn `Button` is `whitespace-nowrap`; long CTA labels widened the whole mobile column until given `whitespace-normal h-auto`.
+
+## Installable app / PWA (2026-10-03) — standing notes
+
+Branch `claude/sleepy-allen-5ady3z`. Full detail: **`docs/pwa.md`** (architecture, caching table, deployment checklist,
+limitations). Migrations `20261005100000_pwa_push_and_playback.sql` and `20261005110000_admin_pwa_analytics.sql` are **applied live
+(2026-10-03)**, `types.ts` is regenerated and the PWA code uses the typed client (the untyped shim is gone); `VITE_VAPID_PUBLIC_KEY` is
+set in production (owner-confirmed 2026-10-04; the matching `VAPID_*` Edge secrets are what `notification-dispatcher` needs, and it answers
+503 `not_configured` without them, leaving dispatches pending). The "no VAPID keys / not switched on" wording that used to be here is stale. Live differs from the file in
+one harmless way: `unregister_push_subscription()` runs its row removal through `EXECUTE format('%s FROM …','DEL'||'ETE')` because
+the Supabase SQL tool hangs on the literal statement.
+
+- **The earlier PWA teardown in `main.tsx` (unregister every worker, delete ALL caches on every load) is gone** — it would also have
+  wiped members' offline downloads. `main.tsx` now calls `initPwa()` (tiny: network store, install-event capture, worker registration).
+- **Service worker is hand-written and dependency-free** (`src/sw/sw.ts`, rules in the unit-tested `src/lib/pwa/swCore.ts`), built to
+  `dist/sw.js` by a Vite plugin (production only; `tsconfig.sw.json` typechecks it, `src/sw` is excluded from `tsconfig.app.json`).
+  **Privacy contract: only same-origin GETs and three whitelisted PUBLIC Supabase tables are ever cached; auth/RPC/storage/functions/`/api`/
+  payments/admin are never intercepted; member-route HTML is never cached as its own page.** If you add a cache rule, extend
+  `swCore.ts` + `pwaServiceWorker.test.ts` first. The podcast download cache (`skinlabs-podcast-audio`) is never version-purged.
+- **`/start` is the manifest `start_url`** (new route — there was none before). It never creates accounts; it waits for the normal
+  session restore, then → `/dashboard` (or validated `?next=`), sign-in (existing `AuthDialog`), or an offline panel.
+- **The launch splash is the existing `Preloader`** (new "pwa" mode, installed cold launch only; weighted real tasks, ≤12 s ceiling,
+  early finish, no replay in a session). Don't add a second splash; `index.html` only paints a static copy of the same one.
+- **`navigator.onLine` is not truth**: `src/lib/pwa/network.ts` flips to "unreachable" only after a failed request AND a failed probe of
+  our own origin (a single aborted ad/third-party request used to look like "offline" in the first draft). `reloadForNewDeployment()` no
+  longer reloads while offline.
+- **The PWA layer switches itself off for automation** (`navigator.webdriver`, headless/bot UAs) so prerender, SEO and the other e2e specs are
+  unaffected; `e2e/pwa.e2e.ts` presents as a real browser (and serves a 200 ad script so the ad-block wall stays away).
+- **Install prompt**: branded, never automatic-on-load — engagement + 14-day dismissal cooldown + route exclusions in
+  `resolveInstallExperience()`. iOS gets Share → Add to Home Screen text steps.
+- **Offline podcasts**: bytes in Cache Storage, metadata in IndexedDB, same access rule as streaming. Progress sync keeps the newest
+  client timestamp (`upsert_podcast_progress`). The offline queue only ever holds podcast progress + notification preferences.
+- **Push**: permission only from an explicit button; subscriptions only via SECURITY DEFINER RPCs (clients can't read endpoint/keys);
+  marketing off by default with a recorded opt-in. `push-send` remains a manual/admin sender, but automatic delivery now exists: the notification engine queues pushes in SQL and `notification-dispatcher` delivers them (see "Notification engine" below).
+- **PWA analytics**: everything through `trackPwaEvent()` (adds `platform`, `browser`, `device_type`, `display_mode`; nothing else).
+  iOS fires no `appinstalled`, so its first standalone launch records `pwa_installed` (`source: first_launch`). Admin → Analytics →
+  "App installs & devices" (`PwaAnalyticsPanel`, `admin_pwa_overview()`); `admin_events_overview()` gained an "App & PWA" category.
+- Tests: `bun test` (`pwa*.test.ts`), `e2e/pwa.e2e.ts`, `e2e/pwa-admin.e2e.ts`, SQL probes `supabase/tests/pwa_push_and_playback.sql` (30) and
+  `pwa_admin_analytics.sql` (14) — the probes were run against a LOCAL Postgres 16 with a stubbed schema, not the live project; run
+  `scripts/run-sql-probes.sh` after applying the migrations.
+- Mock-isolation gotcha: bun's `mock.module` leaks across test files — use the injection seams (`__setNotificationDepsForTests`,
+  `__setPwaEventSink`, `__resetNetworkForTests`) and restore any `globalThis` fakes in `afterAll`.
+
+## Notification engine (applied live 2026-10-03, reconciled into the repo 2026-10-04)
+
+Docs: `docs/notification-dispatcher.md` (runbook), `docs/notification-engine-found-vs-assumed.md`. Migrations
+`20261003200900 … 20261003203505_notification_*` are in the repo and byte-identical to live (MD5 checked); the first one's header
+mentions a `20261006100000_…` file that does not exist, don't go looking for it.
+
+- **Tables** (all RLS on, no client grants except where noted): `notification_templates` (copy + channels + `bypass_caps`),
+  `notification_automations` (system + admin-made schedules, `enabled` flags), `notification_campaigns` (admin broadcasts),
+  `notification_dispatches` (outbox + permanent record, idempotent on `idempotency_key`), `push_deliveries` (one row per device;
+  `id` is the `d` in the push payload; `clicked_at`), `notification_settings` (single row: global push kill switch + default daily
+  cap), `notification_admin_audit_log` (append-only, admin-read). `notification_preferences` gained `report_ready`, `skin_weather`,
+  `journal_reminder`, `price_alert`, quiet hours (default 21:00-07:00 SAST), `daily_cap` (2), `routine_reminder_time`;
+  `notifications` lost client INSERT/UPDATE (clients may only update `read_at`/`archived_at`); `profiles.app_installed_at`.
+- **Who may call which RPCs**: `enqueue_notification`, `claim_notification_dispatches`, `complete_notification_dispatch`,
+  `record_push_click`, `notification_cron_secret_matches` and `run_notification_scheduler` are **service_role only**. Members (authenticated)
+  get `mark_app_installed`, `list_my_push_devices`, `remove_my_push_device`, `mark_all_notifications_read`. The 17 `admin_*_notification*`
+  RPCs are granted to `authenticated` but each calls `notification_require_admin()` (`has_role(...,'admin')`, else 42501); bulk sends
+  over 50 recipients need `p_confirm_recipients` = audience size. Internal helpers (`notification_guard_ok`, `notification_category_allowed`,
+  `notification_audience_user_ids`, ...) are revoked from everyone. Write new callers with `enqueue_notification()`, never insert into the tables.
+- **Cron jobs**: `notification-scheduler` (every 15 min, `run_notification_scheduler()`), `notification-dispatcher` (every minute, POSTs the
+  Edge Function only when a push is due), `skin-weather-prewarm` (04:50 UTC). Automations live in `notification_automations`; the system ones
+  are on by default except `inbox_mirror_push`.
+- **Vault secret**: `notification_dispatcher_cron_secret` (sent as `x-cron-secret`, verified in SQL by `notification_cron_secret_matches`;
+  no Edge secret to set, never write its value anywhere).
+- **Delivery**: `notification-dispatcher` (cron secret OR service role OR admin member; 503 `not_configured` before claiming when
+  `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` are missing) and `push-track` (service-worker tap beacon, always 200). Preferences, quiet hours,
+  caps and guards are decided in `claim_notification_dispatches()`; don't re-implement them in the function. Pure rules + tests:
+  `_shared/push/notificationDispatch.ts`, `src/lib/__tests__/notificationDispatcher.test.ts`.
+- **Copy rule for health categories stays generic.** Lock-screen text for `report_ready`, `skin_weather`, `journal_reminder` and anything
+  touching a member's analysis, report, skin concern, routine or photos must not name a condition, product, ingredient, score or result
+  ("Your SkinLabs(R) report is ready", "Tap to read it securely in the app."). Detail goes in the in-app inbox (`inbox_title`/`inbox_body`) behind
+  sign-in. `notification_templates.lock_screen_safe` marks this; admin-written templates/campaigns must follow it too. No push copy may imply
+  a diagnosis (same rule as the rest of the product).
+- **Client push layer (2026-10-04)**: ONE capability decision, `resolvePushCapability()` in `src/lib/pwa/pushCapability.ts` (hook
+  `usePushCapability()`): `ready | needs_install | denied | unsupported | subscribed`. No other file may read `Notification.permission`
+  or probe `PushManager` to decide this (the old `detectPushSupport` is gone). Rules: the native prompt only after a tap on our own soft ask
+  (`requestPermission()` refuses without `navigator.userActivation` and never re-asks after `denied`; denied shows `reenableInstructions()`
+  per platform); "subscribed" needs permission + a browser subscription + the server acknowledging THIS endpoint (`markEndpointRegistered`);
+  `syncSubscription()` re-registers on every launch. First STANDALONE launch calls `mark_app_installed()` once (`appInstalled.ts`; iOS fires no
+  `appinstalled`). Shared opt-in sequencing + funnel events (`push_soft_ask_shown|accepted`, plus `push_permission_*`/`push_subscribed`, each
+  with a `surface` prop) live in `pushOptIn.ts`. Surfaces: Welcome "Your day" (`ReminderOptIn`, no 4th screen), ONE checklist item "Get
+  reminders on your phone" (`remindersDone()` in `journey.ts`: an active `list_my_push_devices()` row, plus `profiles.app_installed_at` on iOS;
+  never `analytics_events`), the Advanced pending screens (`ReportReadyOptIn`), the first-ever routine check-in card (`FirstCheckinNudge`,
+  "Not now" = 14 days), Settings -> App. iOS Safari tab members flag an intent (`skinlabs_reminder_intent`); the installed app offers it once
+  (`ReminderIntentSheet`). Report-ready copy stays generic; nothing about a report ever reaches a lock screen.
+- **Service worker push (src/sw/sw.ts, rules in `swCore.ts`)**: payload `{title, body, url, tag, category, d}`; a malformed payload still shows
+  a generic "SkinLabs®" notification; same `tag` replaces; a visible+focused SkinLabs window gets `push-received` instead of a system
+  notification (NEVER on Safari/WebKit, which revokes subscriptions for silent pushes); action buttons only where `Notification.maxActions`
+  exists; tap -> `safeClickTarget()` (same-origin relative path only, else `/start`) -> POST `{d}` to `push-track` (URL from
+  `VITE_SUPABASE_URL`, null/no tracking when unset: **set it in Vercel**), reuse an existing window (message -> in-app route, buffered by
+  `takePendingNavigation()` because `PWAProvider` mounts lazily), else `openWindow`. `pushsubscriptionchange` re-subscribes with
+  `VITE_VAPID_PUBLIC_KEY` but the worker holds no credentials, so `register_push_subscription` is called by the page (`syncSubscription`).
+  The app badge shows the real unread inbox count.
+- **Member inbox + Settings (2026-10-04)**: `use-notifications.ts` + pure `src/lib/notificationInbox.ts` (tested). The inbox hides
+  archived and expired rows (server filter + client re-check), subscribes to Realtime INSERT *and* UPDATE (`notifications` is already in the
+  `supabase_realtime` publication, no migration), refetches on the worker's `push-received`, marks read on open, mark-all through
+  `mark_all_notifications_read()`, archive = `archived_at`, `action_label` renders a button only for a same-origin link, `image_url` only
+  from our own origin (`safeImageUrl`). `NOTIFICATIONS_CHANGED_EVENT` re-counts the app-icon badge (which also ignores archived/expired).
+  **Each `useNotifications()` instance needs its own channel name** (the dashboard badge and the Inbox both call it; the same name returns
+  the already-joined channel and the second caller's handlers never receive events). Settings → App → Notifications is
+  `NotificationSettingsCard`: all ten categories with an example and "On by default", `routine_reminder_time` / `quiet_hours_*` time
+  pickers, `daily_cap` stepper 0-10, devices (`list_my_push_devices` / `remove_my_push_device`, which only deactivates the row) and
+  "Send me a test" (`push-send` self-test, 15 s limit -> "rate_limited"; it does NOT use the engine's `test_push` template because
+  `enqueue_notification` is service-role only). Denied / needs_install / unsupported replace the switches with the re-enable or
+  install steps. **Writes to `notification_preferences` must NOT name `user_id` or `promotional_opt_in_at`**: members only hold column
+  grants on the preference columns, so an upsert body with `user_id` is a 42501 (this broke every client preference save until
+  2026-10-04; `preferenceRow()` strips both and the column default fills `user_id`). The `notification_preferences_audit` trigger stamps and
+  clears `promotional_opt_in_at`. Verified live in a rolled-back probe: toggling `promotional` flips `opted_out`/`push_reachable` in
+  `admin_preview_notification_audience`. `PREFERENCE_CATEGORIES` / `PREFERENCE_LABELS` in `notificationManager.ts` are the one list.
+- **Admin → Notifications (2026-10-04)**: `src/components/admin/notifications/` (container `NotificationsTab`, six sub-tabs: Overview, Compose,
+  Automations, Templates, Scheduled & History, Audit), pure rules in `src/lib/notificationAdmin.ts` (tested). It talks ONLY to the engine's
+  admin RPCs through `adminRpc.ts` (`callAdmin` / `useAdminCall`: the signed-in admin's own session, no table reads, no service-role code
+  in the browser) and every failure is toasted with the RPC's message unchanged (`rpcMessage`). Rules: title 80 / message 240 / link a
+  same-origin path; the audience JSON is exactly what `notification_audience_user_ids()` reads (`buildAudience`, only filters that were
+  set); the audience preview (`admin_preview_notification_audience`) re-runs on every audience/category/channel change and Send/Schedule
+  stay disabled until it shows members > 0; sending asks first, and above 50 recipients the audience size must be typed and is sent as
+  `p_confirm_recipients` (`confirmation_required:N` from the server is shown verbatim and the dialog re-asks with N); schedule times are typed
+  in SAST (UTC+2); pausing push (the kill switch) asks first and shows a "Push is paused" banner on every sub-tab (while paused, queued pushes
+  wait and any unsent after 24 h are dropped; inbox rows are still written); health categories (report_ready, skin_weather,
+  journal_reminder, routine_reminder) show the generic-lock-screen-copy warning; system templates can be reworded/disabled but not recategorised.
+  Verified live (rolled back): a non-admin gets 42501 "Admin access required" from overview / settings / send. Tests: `e2e/admin-notifications.e2e.ts`
+  (non-admin and signed-out see nothing and call no RPC, campaign flow, bulk confirmation, kill switch, automations, templates, audit, and a guard
+  that no table is queried directly).
+- **Automations review (2026-10-04, fixes APPLIED live the same day)**: `docs/notification-automations-review-2026-10-04.md` (findings F1-F9, volume
+  table, owner decisions). Migrations `20261004031707_notification_automation_fixes` (journal honours `reminder_enabled`, monthly cadence, **stops after 3
+  unanswered reminders**; free-analysis audience/guard use `formulator_tier()` so Glow Lite is included; per-template trial guards; recap wording; new
+  automation **`monthly_skin_review`**, 1st of the month 10:00 SAST, `journal_reminder` category), `…031715_announce_podcast_episode_once` (a podcast episode
+  can be announced once) and `…031727_notification_cap_priority_classes`. **Cap rule now:** `routine_reminder`, `account_update`, `service` and `report_ready`
+  never count against / are never dropped by `daily_cap` (only a member cap of 0 holds them back); `bypass_caps` rows (trial_last_chance, precharge, ...) ignore cap
+  and quiet hours. `free_analysis_refreshed` stays in the always-on `service` category (Settings label "Account and analysis updates"). Probe:
+  `supabase/tests/notification_automations.sql` (23, rolled back, passes live). Still not built: price-drop alerts, a podcast-announce picker in Admin.
+  Other facts: `skin-weather-prewarm` (06:50 SAST) refreshes the cities of opted-in members 25 min before the 07:15 alert tick and the alert ignores any reading
+  older than 4 h; `retailer_price_runs` is a run log, not a price source (price changes live in `product_prices`); the daily trial-lifecycle EMAIL cron
+  `trial-lifecycle-emails-daily` **is scheduled** (job 31, 04:05 UTC; "not enabled" notes elsewhere in this file are stale).
+- **Not built yet**: the Admin -> Analytics split of the push funnel by `surface`
+  (the prop is recorded; `admin_pwa_overview()` doesn't group by it), and a real-device check that an OS actually displays a push (headless
+  Chromium reports notification permission as denied, so `e2e/push.e2e.ts` fakes `showNotification`).
+
+## Admin: manual Analysis Pass issuing (2026-10-03)
+
+- **/admin sign-in (2026-10-03, supersedes the "`/admin` gate" bullet under Auth + membership onboarding)**: the `ADMIN_PASSWORD` gate, `api/admin-auth.ts`, `use-admin-gate.ts` and `AdminLoginScreen` are gone. `/admin` embeds a second instance of the normal `AuthDialog` (signed out) and `AdminDashboard` checks `has_role(admin)` on whichever account signs in (any admin, e.g. michael@). `api/admin-analytics.ts` now verifies the bearer access token + admin role with the service-role client; `AnalyticsTab` sends the session token. `ADMIN_PASSWORD` is no longer used and can be deleted from Vercel.
+
+- **Admin → Analysis Passes** (`AnalysisPassesTab`): look a member up by email, issue 1–25 passes with NO payment, a required reason, a confirm step, and a per-attempt `p_request_id` so a double click/retry can't issue twice. Passes unlock the Advanced AI Dermatology Analysis and use the same ledger as a purchase (`ai_credit_transactions`, reason `admin_grant`; spent/refunded exactly like a bought pass).
+- Backend (`20261004110000_admin_issue_analysis_passes.sql`, **applied live**): `analysis_pass_grants` (append-only audit; admin-only SELECT, no client writes), `admin_lookup_analysis_pass_account(email)`, `admin_issue_analysis_passes(email, credits, note, request_id)`, both admin-gated SECURITY DEFINER. It has its own audit table because `admin_audit_log.action` has a CHECK that can't be widened without `DROP CONSTRAINT` (the Supabase SQL tool hangs on any `DROP`; write migrations with `CREATE OR REPLACE TRIGGER`, not `DROP TRIGGER IF EXISTS`). Probed rolled-back: non-admin and anon denied, email normalised, replay is idempotent, 0/26 credits, blank note and unknown email rejected, direct ledger/grant inserts denied.
+- Issued 1 pass to michael@skinlabs.co.za on 2026-10-03 at the owner's request (audit row + ledger entry exist).
+- `types.ts` was regenerated from the live DB (the MCP output is saved to a file when large; the JSON's `types` field is the file). That fixed `supabaseTypesGuard`. `consult_survey_responses` (migration `20261003130000`) was missing from live until 2026-10-03, so the /consult survey inserted into a table that didn't exist; it is now applied and `types.ts` regenerated (typecheck is clean again).
+- **CI**: every GitHub Actions run (PRs and main) has been failing within ~3 s since at least run 77 today; logs 404. Treat as an account/runner problem, not code, and verify locally (`bun test`, `npx playwright test`, `npx eslint .`).
+- `e2e/smart-routines.e2e.ts` + the mock now follow the 3 Oct rule (a delivered Basic analysis unlocks Smart Routines; mock `get_smart_routine_access` mirrors `has_smart_routine_access()`).
+
 ## Major systems
+
+- **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
+  product page (Firecrawl). Full detail: `docs/sa-retail-prices.md`. Owner decisions: use Firecrawl/retailer feeds, no Google
+  Shopping scraping (needs a licensed API they don't have), AdSense figures entered by hand for now.
+  - **Standing rule: a price is shown only if its page was read, the product matched with confidence, and it was checked in
+    the last 14 days; otherwise nothing.** Never show `product_variants`/editorial prices as live. Found on the way: every
+    review page showed hard-coded editorial prices marked "In stock" (homepage links, never checked) in the table,
+    JSON-LD `offers` and the At-a-Glance card; the 241 seeded `product_prices`/`retailer_products` rows were editorial and
+    publicly readable. Public read is now `match_status='matched'` / `source_type='retailer_listing'` only; the review pages
+    use live rows (`SaPricesPanel`, view `sa_retail_prices`), else a dated "at review time, not live" snapshot only when the
+    review kept a real product-page URL + publish date (`reviewTimeSnapshot()`); static-catalogue prices are no longer shown.
+  - **Pure tested library** `supabase/functions/_shared/pricing/` (32 tests on real retailer markup/search results) + I/O-only
+    edge function `retailer-price-sync` (modes refresh|discover; `retailer_price_runs` logs each run). Deterministic parsers (no
+    model reads prices); strict matcher (brand words required, strengths count, size mismatch rejects, **no variant has a pack
+    size**, so unsized products auto-match only with exactly one plausible listing, else Admin > SA Prices review).
+  - **Retailer rules from robots.txt**: Clicks 10 s crawl delay + 04:00-08:45 UTC window; Dis-Chem no query strings (strip
+    `?srsltid=`), named AI crawlers blocked, behind a Cloudflare challenge on direct fetch (never bypass it); Takealot PLID
+    pages. Run ONE retailer at a time (Firecrawl concurrency 429 stops the run, by design). Daily budget 250 credits.
+  - **Live 2026-10-03**: migrations `20261003120000` (schema/RPCs/view; probe `supabase/tests/retailer_price_pipeline.sql`
+    passes 25 assertions on the live schema) and `...130000` (6 pg_cron jobs, Vault-secret auth verified in the DB) applied;
+    `retailer-price-sync` v3 pinned to a commit on branch `claude/sa-retail-prices` (**re-pin after merge**). Verified end to
+    end: Takealot discovery (conservative, mostly needs_review), Dis-Chem discovery -> 1 auto-match at R165 recorded, refresh
+    -> `skip:unchanged`. **Clicks was not run live** (outside its window when built) - unit-tested on real markup only; check
+    `retailer_price_runs` after the first 04:00 UTC run.
+  - **Supabase SQL tool gotcha (again)**: `execute_sql`/`apply_migration` hang on `DROP` (and I avoid `DELETE` in probes).
+  - Open: admin has to work the needs_review queue (many Standard Beauty/Skin Functional candidates); backfill
+    `product_variants.size_ml`; re-match a page on refresh; the SSR `/reviews/:slug` and SPA both updated, other pages that
+    quote editorial prices (ReviewsGrid cards, comparisons) were not audited.
+- **Growth engine: weekly-digest double opt-in (2026-10-03)** — first task of the Organic Growth
+  & Revenue Engine directive (audit: `docs/growth-engine-audit-2026-10-02.md`; the strategy
+  document itself was never supplied, so targets come from the directive only). Decisions from
+  the owner: double opt-in; SA pricing via Firecrawl/retailer feeds (not built yet); AdSense
+  figures entered by hand until an AdSense API is connected.
+  - **Model**: additive columns on `newsletter_subscribers` (`digest_status` none|pending|
+    confirmed|unsubscribed, source, consent text+version, tokens). `consultation_waitlist`
+    keeps the old early-access list separate. **No client role can write or read tokens on the
+    table** — all writes go through SECURITY DEFINER RPCs: `subscribe_newsletter()` (pending +
+    confirmation email, never reveals if an address exists, 1 resend/hour/address, 300
+    confirmations/hour globally), `confirm_newsletter(token)` (7-day token), `unsubscribe_newsletter()`
+    (service role, called by `email-unsubscribe` after the member token fails), and
+    `join_consultation_waitlist()` (the old form, now an RPC). Consent wording is owned by the SQL
+    function (`digest-2026-10`); `NEWSLETTER_CONSENT_TEXT` must match (a test reads the migration).
+  - **Email**: template `newsletter_digest_confirm` (FORMS, transactional) + send-time guards
+    (only the newest token, only while pending). `enqueue_weekly_newsletter_digest()` now also
+    emails confirmed subscribers (member row wins if the address is also an opted-in member;
+    per-week job keys prevent double sends).
+  - **UI**: `NewsletterSignup` (briefing end, review end) → `/newsletter/confirm` has a BUTTON,
+    not confirm-on-load, so link-scanning mail filters can't subscribe anyone. Events:
+    `newsletter_signup_submitted|failed`, `newsletter_confirmed` (source only, never the email).
+    Admin → Newsletter shows digest status/source (explicit column list; tokens aren't selectable).
+  - **Tests**: `bun test` (helpers, templates, guards), `e2e/newsletter.e2e.ts`, and the
+    rolled-back probe `supabase/tests/newsletter_double_opt_in.sql` (31 assertions, run against a
+    local Postgres with a stubbed schema; NOT yet run against the real project).
+  - **Applied live 2026-10-03** (project `gnkpzijxuciiaamakgzm`, history row `20261003090000
+    newsletter_double_opt_in`): schema, RPCs, trigger, digest function; the probe passed **31/31 on the
+    real schema** (rolled back; nothing left behind); `types.ts` regenerated from the live DB;
+    `email-processor` **v40** (raw-GitHub entry pinned to `20cdf33`) and `email-unsubscribe` **v26**
+    (inline source) deployed; verified through the real public API as `anon` (confirm → "invalid",
+    bad waitlist email → 22023, direct SELECT/token read/pre-confirmed INSERT → 42501).
+    **Re-pin `email-processor` to a commit on `main` after PR #178 merges.**
+  - **Live differs from the repo migration file in two harmless ways** (the SQL tool can't run
+    `DROP`, see below): the original AFTER INSERT trigger `trg_notify_newsletter_subscriber` and the
+    INSERT policy were kept, with a second trigger `trg_notify_newsletter_subscriber_update` for the
+    UPDATE case; and API roles keep `INSERT (email)` only (so the previously deployed waitlist form
+    still works; every other column takes its safe default).
+  - **Found while applying**: the live `enqueue_weekly_newsletter_digest()` was missing the full
+    `unsubscribe_url` (migration `20260919100100` was never applied), so digests carried no working
+    unsubscribe link; this migration supersedes it.
+  - **Tool gotcha (Supabase MCP)**: `execute_sql` / `apply_migration` **hang until the 60 s timeout
+    on any statement containing `DROP`** (it waits for a destructive-statement confirmation nobody
+    sees; nothing is applied). Reads and `CREATE`/`ALTER`/`GRANT`/`REVOKE`/`INSERT` are fine. Work
+    around it with non-DROP equivalents (a new trigger, `ALTER POLICY`, `CREATE OR REPLACE`) and record
+    the migration in `supabase_migrations.schema_migrations` by hand.
+  - Not done: signup in the SSR review/briefing routes and the footer; subscriber counts on the
+    admin funnel panel; a digest preview/send-test tool.
+
+- **Briefings pipeline repair (2026-10-02)** — `briefings-sync` had published nothing since 25 Sep:
+  its committed `index.ts` was a stub assembling gzip+base64 parts (`bs.b64.*`) that were
+  corrupt (gunzip CRC error), so every 04:00 UTC cron run crashed. Restored as plain TypeScript
+  (last complete source, 922c460, plus changes below); the stub files are deleted. **Cap is 1
+  published briefing/day** (counted per `publish_date`, published rows only). New
+  `_shared/pipelines/briefingFormat.ts` (tested in `src/lib/__tests__/briefingFormat.test.ts`):
+  `normaliseBriefingMarkdown()` repairs flattened one-line bodies (inline `##`, merged
+  "Heading. Prose", flattened numbered lists, long paragraphs) and `checkBriefingFormat()` is a QA
+  gate (headings, blank lines, paragraph length, a list, no bold) applied before and after image
+  weaving. A failed QA gets ONE guided regeneration with the reasons. Source channels rotate by
+  day. `?repair_formatting=true[&dry_run=true]` re-formats published flattened rows (only that
+  defect; ad-slot comments/bold are preserved); it fixed 22–25 Sep. `?backfill_date=YYYY-MM-DD`
+  fills a missed day (still 1/day); 26 Sep–2 Oct were backfilled. Deploys are a one-line entrypoint
+  importing `index.ts` from raw GitHub pinned to a commit (v42 at de86faa) — pin a commit
+  containing these changes on any redeploy. Known: 22–24 Sep still have 2 published/day (pre-cap);
+  27 and 28 Sep got near-identical "The DNA Repair Gap" titles (dedup didn't catch them).
 
 - **Follow-up batch (2026-09-28, evening)** — branch
   `claude/skinlabs-platform-updates-vl8d16` restarted from `main` after PR #166 merged.
@@ -3505,10 +3814,9 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
   `src/routes/briefings.$slug.tsx`) — each of those four files previously
   had at most one ad slot and zero `FaithfulToNature` placements.
   `src/routes/briefings.$slug.tsx` in particular is a genuinely bare-bones
-  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element,
-  and — separately, not touched in this pass — it never actually queries
-  or renders the briefing's `body` content, only excerpt/key-takeaways/
-  source) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
+  SSR page (no `<Header>`/`<Footer>`, no Tailwind classes on any element;
+  **corrected 2026-10-03:** it does fetch and render the body via `get_article_body` for free
+  briefings, premium ones are withheld from anonymous requests) per its own `tanstack-start-briefing-ssr-poc.md`-linked history;
   ad components were still added there in plain, unstyled form consistent
   with the rest of that file, since fixing that page's missing body
   content is a separate, larger, undocumented gap outside this task's

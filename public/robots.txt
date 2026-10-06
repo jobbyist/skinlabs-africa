@@ -84,6 +84,57 @@ Disallow: /admin
 Disallow: /dashboard
 Disallow: /marketplace
 
+# Further AI assistants and answer engines, named explicitly so the intent is
+# unambiguous (they would fall under the catch-all below either way).
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: meta-externalagent
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: MistralAI-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+# User-triggered fetchers (an assistant reading a page because a person asked it to).
+User-agent: Claude-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
+User-agent: Applebot
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /marketplace
+
 # Catch-all for every other crawler, including AI crawlers not named above.
 User-agent: *
 Allow: /
@@ -92,4 +143,3 @@ Disallow: /dashboard
 Disallow: /marketplace
 
 Sitemap: https://skinlabs.co.za/sitemap.xml
-Crawl-delay: 1

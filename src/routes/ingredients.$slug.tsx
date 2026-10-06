@@ -329,15 +329,14 @@ function IngredientPage() {
 
       <AdSlotAutorelaxed placement="ingredient-before-suppliers" compact />
 
-      <section>
-        <h2>Local suppliers (Coming soon)</h2>
-        <p>We're building a directory of South African suppliers and manufacturers who stock this ingredient — check back soon.</p>
-      </section>
-
       {/* This route deliberately has no per-user session/hydration boundary
           (see the file header comment), so unlike the SPA page
           (IngredientDetail.tsx) this can't branch on membership tier --
           render one CTA that works for every visitor instead. */}
+      <section>
+        <a href={`/ingredients/checker?a=${encodeURIComponent(ingredient.slug)}`}>Check this ingredient with another — compatibility notes for every pair</a>
+      </section>
+
       <section>
         <a href="/skynn-ai">See how this fits your skin — try SKYNN AI, free</a>
       </section>
