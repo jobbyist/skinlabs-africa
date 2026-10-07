@@ -15,11 +15,13 @@ import { openSignupDialog } from "@/lib/conversionDialogs";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { useConversionAction } from "@/hooks/use-conversion-action";
 import { recordContentRead } from "@/lib/contentReads";
+import { recordReviewView } from "@/lib/reviewActivity";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import { MemberNextStepCard } from "@/components/briefings/SkynnMiniCta";
 import SaPricesPanel from "@/components/SaPricesPanel";
 import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
 import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
@@ -104,6 +106,11 @@ const ProductReview = () => {
       active = false;
     };
   }, [review]);
+
+  // Local, counts-only: "you've been reading reviews" unlocks product comparison on the dashboard (src/lib/context).
+  useEffect(() => {
+    if (review?.id) recordReviewView(review.id);
+  }, [review?.id]);
 
   useEffect(() => {
     let active = true;
@@ -474,6 +481,7 @@ const ProductReview = () => {
           <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+          <MemberNextStepCard source="product_review" />
 
           <NewsletterSignup source="review-end" />
 

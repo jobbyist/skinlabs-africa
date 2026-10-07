@@ -5,7 +5,6 @@ import {
   remindersDone,
   gettingStartedChecklist,
   isActivated,
-  nextBestAction,
   resolveJourneyStage,
   type JourneyFacts,
 } from "../journey";
@@ -53,32 +52,6 @@ describe("isActivated", () => {
   });
 });
 
-describe("nextBestAction", () => {
-  test("visitor → analysis; analysed → save results (sign-up)", () => {
-    expect(nextBestAction("visitor", facts()).href).toBe("/skynn-ai");
-    expect(nextBestAction("analysed", facts({ hasLocalAnalysis: true })).kind).toBe("signup");
-  });
-  test("member: analysis first, then the trial", () => {
-    expect(nextBestAction("member", signedIn()).id).toBe("analysis");
-    expect(nextBestAction("member", signedIn({ savedAnalyses: 1 })).kind).toBe("start_trial");
-  });
-  test("trialing: analysis, then routine, then check-in", () => {
-    const t = { isTrialing: true, trialUsed: true };
-    expect(nextBestAction("trialing", signedIn(t)).id).toBe("analysis");
-    expect(nextBestAction("trialing", signedIn({ ...t, savedAnalyses: 1 })).id).toBe("routine");
-  });
-  test("activated → keep my membership", () => {
-    expect(nextBestAction("activated", signedIn({ isTrialing: true, routineSteps: 1 })).kind).toBe("keep_membership");
-  });
-  test("payment_on_file and paid → routine habits", () => {
-    expect(nextBestAction("payment_on_file", signedIn()).id).toBe("routine");
-    expect(nextBestAction("paid", signedIn({ routineSteps: 2 })).id).toBe("check_in");
-  });
-  test("lapsed → keep membership (subscribe)", () => {
-    expect(nextBestAction("lapsed", signedIn({ trialUsed: true })).kind).toBe("keep_membership");
-  });
-});
-
 describe("gettingStartedChecklist", () => {
   test("a free account isn't asked to read a members-only review", () => {
     const items = gettingStartedChecklist(signedIn({ savedAnalyses: 1 }));
@@ -89,11 +62,9 @@ describe("gettingStartedChecklist", () => {
     expect(items.map((i) => i.id)).toEqual(["analysis", "routine", "weather", "checkins", "content", "mfa"]);
     expect(items.filter((i) => i.done).map((i) => i.id)).toEqual(["analysis", "weather"]);
   });
-  test("an activated trialist without payment also gets Keep my membership", () => {
+  test("membership prompts are not checklist items (the trial banner owns them)", () => {
     const items = gettingStartedChecklist(signedIn({ isTrialing: true, routineSteps: 1 }));
-    expect(items.at(-1)?.id).toBe("keep_membership");
-    const withCard = gettingStartedChecklist(signedIn({ isTrialing: true, routineSteps: 1, hasPaymentOnFile: true }));
-    expect(withCard.some((i) => i.id === "keep_membership")).toBe(false);
+    expect(items.map((i) => i.id)).not.toContain("keep_membership" as never);
   });
   test("complete only when every step is done", () => {
     const all = signedIn({

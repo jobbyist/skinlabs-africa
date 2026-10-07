@@ -1,6 +1,6 @@
 import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -54,6 +54,7 @@ import SkinStoryCard from "@/components/ai-formulator/SkinStoryCard";
 import PriorityList from "@/components/ai-formulator/PriorityList";
 import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
+import ResultsNextSteps from "@/components/ai-formulator/ResultsNextSteps";
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
@@ -89,9 +90,7 @@ import {
   saveDraftState,
 } from "@/lib/starter-analysis/persistence";
 import {
-  ADVANCED_NAME,
   BASIC_NAME,
-  SKYNN_ADVANCED_ROUTE,
   SKYNN_FEATURE_VERSION,
   SKYNN_RELEASE_LABEL,
 } from "@/lib/skynn/terminology";
@@ -122,8 +121,8 @@ const TOTAL_QUESTIONS = QUESTIONS.length;
 //
 // The photo never leaves the device: it only counts toward input completeness.
 // Monk Skin Tone is optional and self-reported — nothing here infers it.
-// Every "Advanced" CTA routes to the one Advanced AI Dermatology Analysis flow
-// at /skynn-ai/advanced (Analysis Pass required, enforced server-side).
+// The Advanced AI Dermatology Analysis is offered once, after a saved result, by the
+// contextual engine (ResultsNextSteps -> /skynn-ai/advanced, Pass required server-side).
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
@@ -148,7 +147,6 @@ const AIFormulator = () => {
   const { isMember } = useMembership();
   const accountState: "anonymous" | "free" | "member" = user ? (isMember ? "member" : "free") : "anonymous";
   const { can: canEntitlement } = useEntitlements();
-  const navigate = useNavigate();
   const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -178,9 +176,6 @@ const AIFormulator = () => {
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const preAnalysisUpsellViewedRef = useRef(false);
-  const midQuizUpsellViewedRef = useRef(false);
-  const resultsUpsellViewedRef = useRef(false);
   // Starter Analysis 2.0 — What Changed / Routine Reality Check answers, the
   // deterministic result object, and its refinement history.
   const [analysisId, setAnalysisId] = useState<string>(() => crypto.randomUUID());
@@ -390,17 +385,6 @@ const AIFormulator = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  /**
-   * Every Advanced CTA on this page lands on the single Advanced AI Dermatology
-   * Analysis flow. That page handles sign-in, the Analysis Pass gate (server-side
-   * via get_advanced_assessment_access) and purchase — nothing is spent here.
-   */
-  const goToAdvanced = (funnelLocation: string) => {
-    trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation });
-    trackSkynnEvent("skynn_mode_selected", { mode: "advanced", source: funnelLocation });
-    navigate(SKYNN_ADVANCED_ROUTE);
   };
 
   // Kick off generation the moment the visitor reaches the Analysis step.
@@ -842,8 +826,7 @@ const AIFormulator = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
                     <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
-                      {BASIC_NAME} · free, no card required •
-                      <a href={SKYNN_ADVANCED_ROUTE} className="text-primary hover:underline ml-1">Go deeper with the {ADVANCED_NAME}</a>
+                      {BASIC_NAME} · free, no card required
                     </span>
                   </div>
                 )}
@@ -969,39 +952,6 @@ const AIFormulator = () => {
                     </button>
                   )}
 
-                  <div
-                    ref={(el) => {
-                      if (el && !preAnalysisUpsellViewedRef.current) {
-                        preAnalysisUpsellViewedRef.current = true;
-                        trackConversionEvent("advanced_assessment_upsell_viewed", {
-                          funnelLocation: "pre_analysis",
-                          accessState: isMember ? "member" : "none",
-                        });
-                      }
-                    }}
-                    className="rounded-xl border border-background/15 bg-background/5 p-4 space-y-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-background/90">Want to go deeper?</p>
-                      <p className="text-xs text-background/60 mt-1">
-                        The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a
-                        longer, more detailed questionnaire that uses one Analysis Pass. During this beta, submissions
-                        are received and queued with a reference number while the full report workflow is finalised.
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-auto min-h-9 max-w-full gap-2 whitespace-normal border-background/30 bg-transparent py-2 text-left text-background hover:bg-background/10 hover:text-background"
-                        onClick={() => goToAdvanced("pre_analysis")}
-                      >
-                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                        Get an {ADVANCED_NAME}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -1176,28 +1126,6 @@ const AIFormulator = () => {
                       </div>
                     ))}
                   </RadioGroup>
-                </div>
-              )}
-
-              {step === STEP_CHANGE && !isMember && (
-                <div
-                  ref={(el) => {
-                    if (el && !midQuizUpsellViewedRef.current) {
-                      midQuizUpsellViewedRef.current = true;
-                      trackConversionEvent("advanced_assessment_upsell_viewed", { funnelLocation: "during_analysis" });
-                    }
-                  }}
-                  className="mb-5 rounded-xl border border-primary/20 bg-accent/30 p-4 space-y-2"
-                >
-                  <p className="text-sm text-card-foreground">
-                    <span className="font-medium">You're building your skin profile.</span> Want the full picture? The{" "}
-                    {ADVANCED_NAME} asks in more depth about the factors behind your skin concerns. You can finish this{" "}
-                    {BASIC_NAME} first — nothing here is lost.
-                  </p>
-                  <Button type="button" size="sm" variant="outline" className="h-auto min-h-9 max-w-full gap-2 whitespace-normal py-2 text-left" onClick={() => goToAdvanced("during_analysis")}>
-                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                    See the {ADVANCED_NAME}
-                  </Button>
                 </div>
               )}
 
@@ -1406,37 +1334,8 @@ const AIFormulator = () => {
                     </div>
                   ) : null}
 
-                  {starterResult && (
-                    <div
-                      ref={(el) => {
-                        if (el && !resultsUpsellViewedRef.current) {
-                          resultsUpsellViewedRef.current = true;
-                          trackConversionEvent("advanced_assessment_upsell_viewed", {
-                            funnelLocation: "results",
-                            accessState: isMember ? "member" : "none",
-                          });
-                        }
-                      }}
-                      className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3"
-                    >
-                      <p className="text-sm font-medium text-card-foreground">
-                        This is your starting point. There's more to your skin story.
-                      </p>
-                      <div>
-                        <h4 className="font-heading font-semibold text-card-foreground">Go deeper with the {ADVANCED_NAME}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          A longer, more detailed questionnaire about how your skin behaves, your concerns and your
-                          day-to-day. It uses one Analysis Pass. During this beta your submission is received and
-                          queued with a reference number; your report follows once the review workflow is finalised.
-                        </p>
-                      </div>
-                      {/* Long product name: let the label wrap instead of overflowing on phones. */}
-                      <Button size="lg" className="h-auto min-h-11 max-w-full gap-2 whitespace-normal py-2.5 text-center" onClick={() => goToAdvanced("results")}>
-                        <Sparkles className="h-4 w-4 shrink-0" />
-                        Get an {ADVANCED_NAME}
-                      </Button>
-                    </div>
-                  )}
+                  {/* What to do with this result, chosen for this member (src/lib/context): routine first, Advanced only when it fits. */}
+                  <ResultsNextSteps saved={fullResultVisible} />
 
                   {starterResult && <PremiumUpsellSection hasGroundedMatches={starterResult.groundedRoutine.matchStats.matched > 0} />}
 

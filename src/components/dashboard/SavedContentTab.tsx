@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import ContextualEmptyState from "@/components/dashboard/ContextualEmptyState";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bookmark, Heart, Loader2, MapPin, ArrowUpRight } from "lucide-react";
+import { Bookmark, Heart, Loader2, MapPin, ArrowUpRight, Mic, Star, Trophy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { podcastEpisodes } from "@/data/podcast";
+import { productReviews } from "@/data/reviews";
+import { getSpotlightBrand } from "@/data/spotlight";
+import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
+import { useEngagementStore } from "@/stores/engagementStore";
+import { loadLikedEpisodeSlugs, reconcileBriefingLikes } from "@/lib/savedContent";
 
 interface SavedBriefing {
   id: string;
@@ -34,10 +41,17 @@ const SavedContentTab = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<SavedBriefing[]>([]);
   const [subTab, setSubTab] = useState<"saved" | "liked">("saved");
+  const [likedEpisodes, setLikedEpisodes] = useState<string[]>([]);
+  // Reviews and Spotlight brands are liked on this device only (no account table), and are listed as such.
+  const localLikes = useEngagementStore((st) => st.likedIds);
+  const { data: generatedReviews = [] } = useGeneratedReviews();
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    // A briefing liked before signing in (device only) is pushed to the account first, so it shows up below.
+    await reconcileBriefingLikes(user.id);
+    setLikedEpisodes(await loadLikedEpisodeSlugs(user.id));
     const { data, error } = await supabase
       .from("news_article_engagement")
       .select(
@@ -54,12 +68,25 @@ const SavedContentTab = () => {
       setItems((data as SavedBriefing[]) ?? []);
     }
     setLoading(false);
-  };
+  }, [user]);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [load]);
+
+  const episodes = useMemo(
+    () => likedEpisodes.map((slug) => podcastEpisodes.find((e) => e.slug === slug)).filter((e): e is NonNullable<typeof e> => Boolean(e && !e.comingSoon)),
+    [likedEpisodes],
+  );
+  const likedReviews = useMemo(() => {
+    const all = [...productReviews, ...generatedReviews];
+    return localLikes.filter((id) => !id.startsWith("spotlight:")).map((id) => all.find((r) => r.id === id)).filter((r): r is NonNullable<typeof r> => Boolean(r));
+  }, [localLikes, generatedReviews]);
+  const likedBrands = useMemo(
+    () => localLikes.filter((id) => id.startsWith("spotlight:")).map((id) => getSpotlightBrand(id.slice("spotlight:".length))).filter((b): b is NonNullable<typeof b> => Boolean(b)),
+    [localLikes],
+  );
+  const likedExtras = episodes.length + likedReviews.length + likedBrands.length;
 
   const filtered = items.filter((i) => (subTab === "saved" ? i.kind === "save" : i.kind === "like"));
 
@@ -96,7 +123,7 @@ const SavedContentTab = () => {
             Saved content
           </CardTitle>
           <CardDescription>
-            Briefings you&apos;ve saved or liked. Saves sync to your account and appear here across devices.
+            Briefings you&apos;ve saved, and briefings, podcast episodes, reviews and Spotlight brands you&apos;ve liked. Saved briefings, liked briefings and liked episodes sync to your account; reviews and brands are kept on this device.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -108,17 +135,69 @@ const SavedContentTab = () => {
               </TabsTrigger>
               <TabsTrigger value="liked" className="gap-1.5">
                 <Heart className="h-3.5 w-3.5" />
-                Liked ({items.filter((i) => i.kind === "like").length})
+                Liked ({items.filter((i) => i.kind === "like").length + likedExtras})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value={subTab} className="mt-0">
+              {subTab === "liked" && likedExtras > 0 && (
+                <div className="mb-6 space-y-5">
+                  {episodes.length > 0 && (
+                    <section aria-label="Liked podcast episodes">
+                      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Mic className="h-3.5 w-3.5" /> Podcast episodes</h3>
+                      <ul className="space-y-2">
+                        {episodes.map((e) => (
+                          <li key={e.slug}>
+                            <Link to={`/podcast/${e.slug}`} className="card-interactive flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                              <img src={e.image} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" loading="lazy" />
+                              <span className="min-w-0 truncate text-sm font-medium">{e.title}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {likedReviews.length > 0 && (
+                    <section aria-label="Liked reviews">
+                      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Star className="h-3.5 w-3.5" /> Reviews · on this device</h3>
+                      <ul className="space-y-2">
+                        {likedReviews.map((r) => (
+                          <li key={r.id}>
+                            <Link to={`/reviews/${r.id}`} className="card-interactive flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                              <span className="min-w-0 truncate text-sm font-medium">{r.brand} {r.product_name}</span>
+                              <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {likedBrands.length > 0 && (
+                    <section aria-label="Liked Spotlight brands">
+                      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Trophy className="h-3.5 w-3.5" /> Spotlight brands · on this device</h3>
+                      <ul className="space-y-2">
+                        {likedBrands.map((b) => (
+                          <li key={b.slug}>
+                            <Link to={`/spotlight/${b.slug}`} className="card-interactive flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-3">
+                              <span className="min-w-0 truncate text-sm font-medium">{b.brand}</span>
+                              <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {filtered.length > 0 && <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Heart className="h-3.5 w-3.5" /> Briefings</h3>}
+                </div>
+              )}
               {filtered.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                  {subTab === "saved"
-                    ? "No saved briefings yet. Tap the bookmark on any Daily Skinny card while signed in."
-                    : "No liked briefings in your account yet. Likes on cards are stored locally; account likes appear when you like from the full briefing page after signing in."}
-                </p>
+                subTab === "saved" ? (
+                  <ContextualEmptyState kind="saved_content" />
+                ) : likedExtras === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                    Nothing liked yet. Tap the heart on a briefing, podcast episode, review or Spotlight brand and it will be kept here.
+                  </p>
+                ) : null
               ) : (
                 <ul className="space-y-4">
                   {filtered.map((row) => {

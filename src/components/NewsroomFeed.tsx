@@ -16,6 +16,7 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { useUnsplashImage } from "@/hooks/use-unsplash-image";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { reconcileBriefingLikes, syncBriefingLike } from "@/lib/savedContent";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/AuthDialog";
@@ -162,7 +163,21 @@ const NewsroomFeed = ({
     const wasLiked = likedIds.includes(article.id);
     setLikedIds(toggleLikedBriefing(article.id));
     toast.success(wasLiked ? "Like removed" : "Briefing liked");
+    // Signed in: the like also goes to the account, so it appears in Saved on every device.
+    if (user) void syncBriefingLike(user.id, article.id, !wasLiked);
   };
+
+  // Signed in: merge this device's likes with the account's (a like made before signing in isn't lost).
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void reconcileBriefingLikes(user.id).then((ids) => {
+      if (active) setLikedIds(ids);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const handleSave = async (article: NewsArticleSummary) => {
     if (!user) {

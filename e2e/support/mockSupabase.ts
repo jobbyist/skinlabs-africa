@@ -446,6 +446,10 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     }
     if (fn === "available_ai_credits") return r.fulfill({ json: state.passes });
     if (fn === "get_smart_routine_access") return r.fulfill({ json: smartRoutineAccess() });
+    // Mirrors get_advanced_assessment_access() (the edge function's "access" action wraps it).
+    if (fn === "get_advanced_assessment_access") {
+      return r.fulfill({ json: [{ eligible: state.passes > 0, access_type: state.passes > 0 ? "analysis_pass" : "none", membership_tier: "explorer", passes_available: state.passes, rollout_stage: "pass_holders_review", report_mode: "fallback" }] });
+    }
     if (fn === "save_smart_routine") {
       if (!smartRoutineAccess()) return r.fulfill({ status: 403, json: { code: "42501", message: "smart_routine_locked" } });
       let body: Record<string, unknown> = {};
