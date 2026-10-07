@@ -96,8 +96,6 @@ const FloatingBottomNav = () => {
     };
   }, []);
 
-  if (hasOwnBottomBar(location.pathname)) return null;
-
   const tabs = contextualNavigation({
     ...EMPTY_CONTEXT_FACTS({ ...EMPTY_FACTS, signedIn: Boolean(user), savedAnalyses: hasProfile ? 1 : 0 }),
   });
@@ -148,6 +146,8 @@ const FloatingBottomNav = () => {
   const setItemRef = (id: string) => (element: HTMLElement | null) => {
     itemRefs.current[id] = element;
   };
+
+  if (hasOwnBottomBar(location.pathname)) return null;
 
   return (
     <>
