@@ -165,7 +165,7 @@ const FloatingBottomNav = () => {
           !navVisible && "translate-y-[120%]",
         )}
       >
-        <div className="relative flex max-w-full items-center gap-0 rounded-full border border-border/60 bg-background/90 px-1.5 py-1.5 shadow-xl backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/85 min-[380px]:gap-0.5 sm:px-2">
+        <div className="relative flex max-w-full items-center gap-0 rounded-full p-[1px] shadow-xl backdrop-blur-xl backdrop-saturate-150 gradient-border-anim min-[380px]:gap-0.5 sm:px-[1px]">\n          <div className="relative flex max-w-full items-center gap-0 rounded-full border border-border/60 bg-background/90 px-1.5 py-1.5 supports-[backdrop-filter]:bg-background/85 min-[380px]:gap-0.5 sm:px-2">
           <span
             className={cn(INDICATOR_TRANSITION, !indicator.visible && "opacity-0")}
             style={{ width: indicator.width, transform: `translateX(${indicator.x}px)` }}
