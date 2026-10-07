@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { freeProfile, mockSupabase } from "./support/mockSupabase";
 import { stubPushApis } from "./support/pushHarness";
 import { publishedPodcastEpisodes } from "../src/data/podcast";
+import { CACHE_NAMES } from "../src/lib/pwa/constants";
 
 /**
  * Installable-app layer (docs/pwa.md): manifest, service worker, offline start, install prompts (Android +
@@ -102,7 +103,7 @@ test.describe("service worker + offline", () => {
     await page.goto("/");
     await swReady(page);
     const caches = await cacheUrls(page);
-    const shell = caches["skinlabs-shell-v1"] ?? [];
+    const shell = caches[CACHE_NAMES.shell] ?? [];
     expect(shell).toContain("/start");
     expect(shell).toContain("/offline.html");
     expect(shell.some((p) => p.startsWith("/assets/") && p.endsWith(".js"))).toBe(true);

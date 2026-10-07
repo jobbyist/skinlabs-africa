@@ -78,7 +78,10 @@ const fetchBriefing = createServerFn({ method: 'GET' })
       .eq('slug', slug)
       .eq('status', 'published')
       .maybeSingle()
-    if (error || !data) return { found: false as const }
+    // A failed query is NOT a missing article: surface it as a server error (5xx, never cached or indexed as a
+    // 404) so a transient Supabase outage can't turn a valid shared link or notification into "not found".
+    if (error) throw new Error(`briefing lookup failed for "${slug}": ${error.message}`)
+    if (!data) return { found: false as const }
 
     // Same get_article_body RPC the real client page uses (NewsroomArticle.tsx),
     // called here with no user session -- this server client is always

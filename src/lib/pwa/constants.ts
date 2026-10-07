@@ -15,7 +15,7 @@ export const OFFLINE_FALLBACK_PATH = "/offline.html";
  * activate. The podcast audio cache is NOT versioned: it holds downloads the
  * member chose to keep, so it must survive every service-worker update.
  */
-export const CACHE_VERSION = "v1";
+export const CACHE_VERSION = "v2"; // v2: purges cached bare-SSR content pages (deep-link fix)
 export const CACHE_PREFIX = "skinlabs-";
 export const CACHE_NAMES = {
   assets: `${CACHE_PREFIX}assets-${CACHE_VERSION}`,
