@@ -399,6 +399,18 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
 - **CI**: every GitHub Actions run (PRs and main) has been failing within ~3 s since at least run 77 today; logs 404. Treat as an account/runner problem, not code, and verify locally (`bun test`, `npx playwright test`, `npx eslint .`).
 - `e2e/smart-routines.e2e.ts` + the mock now follow the 3 Oct rule (a delivered Basic analysis unlocks Smart Routines; mock `get_smart_routine_access` mirrors `has_smart_routine_access()`).
 
+## SkinLabs Academy (2026-10-07) — standing notes
+
+Docs: `docs/academy/` (architecture, DB spec, routes, roles, implementation plan, `changelog/`). Phases 0–1 done (baseline + foundations). **Not live**: migration `20261007100000_academy_foundations.sql` is in the repo only; `rollout_stage` defaults `disabled`; no routes or UI exist yet (`/learn` is still the ComingSoon placeholder).
+
+- **Never claim SAQA / NQF / QCTO / SETA / CPD accreditation, a "qualification" or a "diploma"** unless `academy_public_accreditation()` returns a verified, in-date row. Use "SkinLabs Academy Certificate of Completion", "professional development course", "accreditation-ready curriculum". `src/lib/academy/terminology.ts` + `academyTerminology.test.ts` enforce it (and keep the TS regex identical to the SQL publish gate).
+- Course content is data (`academy_*` tables, `lib/academy/blocks.ts` zod schema), never JSX. Published course versions are immutable; learners are pinned to the version they enrolled on. Outline is public once published; lesson bodies are gated by `academy_can_read_lesson()` in RLS.
+- Roles are scoped assignments in `academy_role_assignments` (instructor / reviewer / assessor / academy_admin); `app_role` is untouched and platform admins are implicitly Academy admins. Author can never review their own version.
+- Public reads use column-level grants: `select=*` on `academy_courses`, `academy_course_versions`, `academy_instructors`, `academy_sources` is refused by design — list the columns.
+- Learner media is delivered by a (Phase 4) edge function that signs 5-minute URLs after `academy_authorize_asset()`; a Postgres RPC cannot sign Storage URLs. Never put Academy media in `public/`.
+- Academy RPC calls go through the untyped `src/lib/academy/rpc.ts` shim until the migration is applied and `types.ts` regenerated; then delete the shim.
+- Baseline (2026-10-07): tsc 0 errors; eslint 1 pre-existing error (`previewAuthStorage.ts`); `bun test` 1 pre-existing failure (`giveaway.test.ts` CTA capitalisation); several pre-existing Playwright failures (giveaway, notifications-member, pwa). The "317 tsc errors" note elsewhere in this file is stale.
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
