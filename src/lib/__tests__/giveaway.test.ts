@@ -63,9 +63,9 @@ describe("campaign rules", () => {
 
   test("unconfirmed legal facts are tracked, never invented", () => {
     const open = giveawayOpenQuestions();
-    expect(open.length).toBeGreaterThan(5);
-    expect(open.join(" ")).toMatch(/legal entity/i);
-    expect(giveawayOpenQuestions({ ...GIVEAWAY_LEGAL, prizeAwardDate: "d", lifetimeActivation: "a", promoterLegalName: "X (Pty) Ltd", promoterRegistration: "R", minimumAge: 18, territory: "South Africa", winnerSelectionMethod: "m", winnerAnnouncementDate: "d", prizeClaimWindowDays: 7, ugcRepostLicence: false, lifetimeDefinition: "l", voucherExpiryNote: "v", signedOff: true })).toEqual([]);
+    expect(open.length).toBeGreaterThan(2);
+    expect(open.join(" ")).toMatch(/physical address/i);
+    expect(giveawayOpenQuestions({ ...GIVEAWAY_LEGAL, prizeAwardDate: "d", lifetimeActivation: "a", promoterLegalName: "X (Pty) Ltd", promoterRegistration: "R", promoterRepresentative: "P", promoterAddress: "A", minimumAge: 18, territory: "South Africa", winnerSelectionMethod: "m", winnerAnnouncementDate: "d", prizeClaimWindowWorkingDays: 7, ugcRepostLicence: false, lifetimeDefinition: "l", voucherExpiryNote: "v", signedOff: true })).toEqual([]);
   });
 });
 
@@ -87,16 +87,16 @@ describe("terms & conditions", () => {
     }
   });
 
-  test("does not require a positive review and promises no repost without asking by default", () => {
-    const t = text();
-    expect(t).toContain("You do not have to say anything positive");
-    expect(t).toContain("We will not repost or use your Story in advertising without asking you first");
+  test("does not require a positive review; repost wording follows the licence setting", () => {
+    expect(text()).toContain("You do not have to say anything positive");
+    expect(text()).toContain("repost it for promotional purposes");
+    expect(text({ ...GIVEAWAY_LEGAL, ugcRepostLicence: null })).toContain("We will not repost or use your Story in advertising without asking you first");
   });
 
   const NOTHING_SUPPLIED = {
-    ...GIVEAWAY_LEGAL, promoterLegalName: null, promoterRegistration: null, minimumAge: null, territory: null,
+    ...GIVEAWAY_LEGAL, promoterLegalName: null, promoterRegistration: null, promoterRepresentative: null, promoterAddress: null, minimumAge: null, territory: null,
     winnerSelectionMethod: null, winnerAnnouncementDate: null, prizeAwardDate: null, lifetimeActivation: null,
-    prizeClaimWindowDays: null, ugcRepostLicence: null, lifetimeDefinition: null, voucherExpiryNote: null,
+    prizeClaimWindowWorkingDays: null, ugcRepostLicence: null, lifetimeDefinition: null, voucherExpiryNote: null,
   };
 
   test("no placeholder text can reach the page, with the real config or with nothing supplied", () => {
@@ -112,18 +112,24 @@ describe("terms & conditions", () => {
     expect(t).toContain("You must be 18 years old or older.");
     expect(t).toContain("legal residents or citizens of the Republic of South Africa");
     expect(t).toContain("16 October 2026");
-    expect(t).toContain("Prizes are awarded on 31 October 2026.");
+    expect(t).toContain("delivered to both winners on 31 October 2026");
+    expect(t).toContain("SkinLabs South Africa (Pty) Ltd (Registration No. 2024/627587/07)");
+    expect(t).toContain("Michael Chigbu on behalf of");
+    expect(t).toContain("randomly selected using an electronic prize draw system");
+    expect(t).toContain("10 working days");
+    expect(t).toContain("forfeited in full");
+    expect(t).toContain("valued at R790 per year");
     expect(t).toContain("after the current extended free trial period ends on 1 November 2026");
   });
 
   test("supplied legal facts appear automatically", () => {
-    const t = text({ ...GIVEAWAY_LEGAL, promoterLegalName: "Acme (Pty) Ltd", minimumAge: 18, territory: "South African residents", prizeClaimWindowDays: 7, winnerSelectionMethod: "A random draw.", ugcRepostLicence: true });
+    const t = text({ ...GIVEAWAY_LEGAL, promoterLegalName: "Acme (Pty) Ltd", minimumAge: 18, territory: "South African residents", prizeClaimWindowWorkingDays: 7, winnerSelectionMethod: "A random draw.", ugcRepostLicence: true });
     expect(t).toContain("Acme (Pty) Ltd");
     expect(t).toContain("You must be 18 years old or older.");
     expect(t).toContain("You must be South African residents.");
-    expect(t).toContain("within 7 days");
+    expect(t).toContain("7 working days");
     expect(t).toContain("A random draw.");
-    expect(t).toContain("share your TikTok Story");
+    expect(t).toContain("repost it for promotional purposes");
   });
 
   test("never claims the TikTok Story is verified automatically", () => {
@@ -242,9 +248,9 @@ describe("SEO, routing and story", () => {
     const story = giveawayOctober2026Story();
     expect(story.slug).toBe(GIVEAWAY_STORY_SLUG);
     expect(story.pages[0].mediaType).toBe("video");
-    expect(story.ctaLabel).toBe("Enter the Giveaway");
+    expect(story.ctaLabel).toBe(GIVEAWAY_COPY.enterCta);
     expect(story.ctaUrl).toBe(GIVEAWAY_PATH);
-    expect(story.pages[1].ctaLabel).toBe("Start Your Free Assessment");
+    expect(story.pages[1].ctaLabel).toBe(GIVEAWAY_COPY.storyAssessmentCta);
     expect(story.pages[1].ctaUrl).toBe("/skynn-ai");
     for (const file of Object.values(GIVEAWAY_OCT_2026_MEDIA)) expect(existsSync(join(ROOT, "public", file))).toBe(true);
   });
