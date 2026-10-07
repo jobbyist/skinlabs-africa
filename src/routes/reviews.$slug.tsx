@@ -138,7 +138,9 @@ const fetchReview = createServerFn({ method: 'GET' })
 
     let review: ProductReview | undefined = productReviews.find((r) => r.id === slug)
     if (!review) {
-      const { data } = await supabase.from('ai_generated_product_reviews').select(BASIC_COLUMNS).eq('id', slug).maybeSingle()
+      const { data, error } = await supabase.from('ai_generated_product_reviews').select(BASIC_COLUMNS).eq('id', slug).maybeSingle()
+      // A failed lookup is not a missing review (see briefings.$slug.tsx): 5xx, never a cached/indexed 404.
+      if (error) throw new Error(`review lookup failed for "${slug}": ${error.message}`)
       if (data) review = mapGeneratedRow(data)
     }
     if (!review) return { found: false }

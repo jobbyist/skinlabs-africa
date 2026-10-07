@@ -62,6 +62,34 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## Deep links: SSR content routes boot the real app (2026-10-07) — standing rules
+
+Root cause of broken shared links / notification taps: `/briefings/:slug`, `/reviews/:slug`, `/ingredients/:slug` and
+`/spotlight/:slug` are answered by the TanStack Start function (`scripts/assemble-vercel-output.ts`), whose document had **no
+stylesheet, no header/footer, no SPA and no service-worker registration** (it hydrated only the bare TanStack tree). A fresh
+request (external link, bookmark, push tap, PWA cold start) therefore showed an unstyled page, while a card tap inside the SPA showed
+the real one; a tap while the app sat on one of those pages was also lost (no `notificationClick` listener there).
+
+- **`src/routes/__root.tsx` now emits the SPA's own shell** (hashed entry script + stylesheet, read from `dist/index.html` via
+  `src/lib/routing/spaShell.ts`, plus index.html's static head) around the SSR content, which sits in `#root > [data-ssr-fallback]`.
+  The TanStack client bundle is deliberately NOT loaded (no `Scripts` component); the SPA's `createRoot` replaces the fallback. Browsers
+  with JS see the fallback hidden (revealed after 8 s if the bundle never boots); crawlers/no-JS get metadata + readable content.
+  `src/server.ts` strips TanStack's unused `modulepreload` hints (~260 kB gz) from the head. Don't re-add `Scripts`, and don't add a
+  second client entry. A test pins `__root.tsx`'s static head values to `index.html`.
+- **Head tags from SSR carry `data-rh="true"`** (`buildHeadTags`), so react-helmet-async adopts and replaces them when the SPA boots (no duplicate
+  canonical / OG / JSON-LD; verified in a real browser: 1 title, 1 canonical, 1 JSON-LD). Any new SSR head tag must do the same. `buildHeadTags`
+  no longer emits charset/viewport (the root's `viewport-fit=cover` must win).
+- **A failed lookup is not "not found"**: the briefing/review/ingredient loaders throw on a Supabase error (5xx + generic `defaultErrorComponent`,
+  cause logged) and only return 404 + `notFound()` when the row is genuinely absent. 404s keep a real 404 status + noindex; the SPA page then
+  shows its own branded not-found.
+- **Notification click** (`openTarget()` in `src/sw/sw.ts`): focus an existing window and ask it (MessageChannel) to route in-app; no ack in 1.5 s →
+  `client.navigate(url)`; no window → `openWindow(url)`. `safeClickTarget()` also accepts an absolute URL on our own origin / skinlabs.co.za and
+  drops trailing slashes; everything else still falls back to `/start`. The page acks in `serviceWorker.ts`. `CACHE_VERSION` is v2 (purges cached
+  bare-SSR pages). Tests: `pwaNotificationClick.test.ts` (drives the real sw.ts), `spaShell.test.ts`, `pwaServiceWorker.test.ts`.
+- Local production check: build (`vite build`, `build:tanstack-start`, `assemble-vercel-output`), then call `.vercel/output/functions/__server.func/index.mjs`
+  (`default.fetch(Request)`) or serve `.vercel/output` with a small router emulator; a real-browser check is the only thing that proves the SPA takes over.
+- Pre-existing, unrelated: `giveaway.test.ts` (1 test) fails after the giveaway closes; 3 `e2e/pwa.e2e.ts` push-opt-in tests fail on the base commit too.
+
 ## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
 
 Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,

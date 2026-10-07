@@ -110,6 +110,8 @@ export const registerServiceWorker = () => {
         case SW_MESSAGES.notificationClick:
           pendingNavigation = typeof data.url === "string" ? data.url : null;
           window.dispatchEvent(new CustomEvent(SW_EVENTS.navigate, { detail: { url: data.url } }));
+          // Tell the worker this window will route the tap itself (it otherwise navigates the window directly).
+          event.ports[0]?.postMessage({ ok: true });
           break;
         case "PUSH_SUBSCRIPTION_CHANGED":
           window.dispatchEvent(new Event(SW_EVENTS.pushSubscriptionChanged));
