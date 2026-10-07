@@ -23,8 +23,6 @@ export function buildHeadTags(meta: PageMeta, jsonLdBlocks: object[] = []): Head
     : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1";
 
   const metaTags: Array<Record<string, string>> = [
-    { charSet: "utf-8" },
-    { name: "viewport", content: "width=device-width, initial-scale=1" },
     { title: meta.title },
     { name: "description", content: description },
     { name: "robots", content: robots },
@@ -42,9 +40,12 @@ export function buildHeadTags(meta: PageMeta, jsonLdBlocks: object[] = []): Head
   if (meta.publishedTime) metaTags.push({ property: "article:published_time", content: meta.publishedTime });
   if (meta.modifiedTime) metaTags.push({ property: "article:modified_time", content: meta.modifiedTime });
 
+  // charset/viewport come from the root document (src/routes/__root.tsx); a per-route copy would override its
+  // `viewport-fit=cover`. `data-rh` makes react-helmet-async adopt (and replace) these tags when the SPA boots, so
+  // the browser never ends up with two canonicals, two sets of OG tags or duplicated JSON-LD.
   return {
-    meta: metaTags,
-    links: [{ rel: "canonical", href: canonical }],
-    scripts: jsonLdBlocks.map((block) => ({ type: "application/ld+json", children: JSON.stringify(block) })),
+    meta: metaTags.map((tag) => ("title" in tag ? tag : { ...tag, "data-rh": "true" })),
+    links: [{ rel: "canonical", href: canonical, "data-rh": "true" }],
+    scripts: jsonLdBlocks.map((block) => ({ type: "application/ld+json", children: JSON.stringify(block), "data-rh": "true" })),
   };
 }

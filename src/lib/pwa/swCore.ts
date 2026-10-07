@@ -193,20 +193,31 @@ export const isFreshEnough = (dateHeader: string | null, maxAgeMs: number, now: 
 
 // --- Push: click targets, display decision, actions, build config ---------------------------------
 
+/** Origins whose absolute URLs are treated as "ours" (the worker's own origin is always added). */
+export const TRUSTED_SITE_ORIGINS = ["https://skinlabs.co.za", "https://www.skinlabs.co.za"];
+
 /**
- * A notification's click target. Only a same-origin RELATIVE path is accepted: it must start with a single "/"
- * (so "//host" and absolute URLs are out), contain no backslash (browsers treat "\\" as "/") and no control
- * characters. Anything else returns null (callers fall back to the start page).
+ * A notification's click target, normalised to a same-origin path (`/path?query#hash`).
+ *
+ * Accepted: a relative path starting with a single "/" ("//host" and backslashes are out: browsers
+ * treat "\" as "/"), or an ABSOLUTE http(s) URL whose origin is the worker's own origin or the
+ * canonical SkinLabs site (a payload carrying "https://skinlabs.co.za/briefings/x" is still ours).
+ * Control characters are never allowed. The pathname loses a trailing slash so a link and its canonical
+ * form can never disagree ("/briefings/x/" -> "/briefings/x"; "/" stays). Anything else returns null
+ * (callers fall back to the start page), so a payload can never become an open redirect.
  */
 export const safeClickTarget = (value: unknown, origin: string): string | null => {
   if (typeof value !== "string" || value.length === 0 || value.length > 300) return null;
-  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return null;
+  if (value.includes("\\")) return null;
   // eslint-disable-next-line no-control-regex
   if (/[\u0000-\u001f\u007f]/.test(value)) return null;
+  const absolute = /^https?:\/\//i.test(value);
+  if (!absolute && (!value.startsWith("/") || value.startsWith("//"))) return null;
   try {
     const url = new URL(value, origin);
-    if (url.origin !== origin) return null;
-    return `${url.pathname}${url.search}${url.hash}`;
+    if (absolute ? ![origin, ...TRUSTED_SITE_ORIGINS].includes(url.origin) : url.origin !== origin) return null;
+    const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") || "/" : url.pathname;
+    return `${pathname}${url.search}${url.hash}`;
   } catch {
     return null;
   }

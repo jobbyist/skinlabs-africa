@@ -95,12 +95,14 @@ const fetchIngredient = createServerFn({ method: 'GET' })
   .handler(async ({ data: slug }): Promise<{ found: false } | { found: true; data: IngredientPageData }> => {
     const supabase = createSupabaseServerClient()
 
-    const { data: ingredient } = await supabase
+    const { data: ingredient, error: ingredientError } = await supabase
       .from('ingredients')
       .select('*')
       .eq('slug', slug)
       .neq('verification_status', 'deprecated')
       .maybeSingle()
+    // A failed lookup is not a missing ingredient (see briefings.$slug.tsx): 5xx, never a cached/indexed 404.
+    if (ingredientError) throw new Error(`ingredient lookup failed for "${slug}": ${ingredientError.message}`)
     if (!ingredient) return { found: false }
 
     const [{ data: concernRows }, { data: interactionRows }, { data: productRows }, { data: sourceRows }] = await Promise.all([
