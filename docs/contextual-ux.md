@@ -183,3 +183,23 @@ devices, MFA) fail safe: Advanced simply isn't offered.
   tables; none of this data is cached by it (see `docs/pwa.md`).
 - Personalisation reads the member's **own** submissions, never `analytics_events`.
   Photos are never analysed and Monk Skin Tone is never inferred.
+
+## Performance changes (2026-10-08)
+
+Measured against the live production entry script (`index-*.js`, 1,689 kB raw / 377 kB brotli-11):
+this branch is 996 kB raw / 256 kB brotli-11 (gzip-9: 470 -> 309 kB). What moved out of the entry chunk:
+
+| Moved to | What | How |
+|---|---|---|
+| on-demand | content catalogue for the podcast player | `import()` when something plays |
+| lazy chunks | Home: Seasonals, Spotlight, Podcast sections | `lazyWithRetry` + reserved height; requested on mount |
+| query | curated web stories | `import()` inside the rail's query |
+| first search | briefing search scorer | `import()` when a query is typed |
+| `m.*` + LazyMotion | framer-motion runtime (~450 kB source) | `lib/motionFeatures.ts` |
+| deleted | SitewideSEO's catalogue branch (dead) | pages own their `<SEO>` |
+
+Also: intent-based route prefetch, lazy dashboard sections with tab-hover warmup, shared react-query caches (news, member snapshot,
+Advanced card), skeleton route fallback. Unchanged by design: fonts (non-blocking), AdSense (idle-loaded), service worker (public data only).
+
+Re-check after touching anything the entry imports: `python3` static-graph walk from `src/main.tsx` to `src/data/*.ts` should say
+"NOT in static graph" for reviews, comparisons, podcast and seasonals (dynamic `import()` doesn't count).

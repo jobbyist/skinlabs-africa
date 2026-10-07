@@ -1,13 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import {
   ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, Share2, X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useNewsArticles, useSaContextTags, type NewsArticleSummary } from "@/hooks/use-news-articles";
-import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import PaginationControls from "@/components/PaginationControls";
@@ -127,9 +126,24 @@ const NewsroomFeed = ({
 
   const regions = allRegionTags;
 
+  // The search scorer lives with the review catalogue (search-engine.ts imports it), so it is fetched the first time
+  // someone actually searches, not with the homepage.
+  const searching = (searchable || paginate) && query.trim() !== "";
+  const [scoreTextItem, setScoreTextItem] = useState<typeof import("@/lib/search-engine").scoreTextItem | null>(null);
+  useEffect(() => {
+    if (!searching || scoreTextItem) return;
+    let active = true;
+    void import("@/lib/search-engine").then((m) => {
+      if (active) setScoreTextItem(() => m.scoreTextItem);
+    });
+    return () => {
+      active = false;
+    };
+  }, [searching, scoreTextItem]);
+
   const articles = useMemo(() => {
     let list = [...fetchedArticles];
-    if ((searchable || paginate) && query.trim()) {
+    if (searching && scoreTextItem) {
       list = list
         .map((article) => ({
           article,
@@ -157,7 +171,7 @@ const NewsroomFeed = ({
         list.sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
     }
     return list;
-  }, [fetchedArticles, query, searchable, paginate, sort]);
+  }, [fetchedArticles, query, searching, scoreTextItem, sort]);
 
   const handleLike = (article: NewsArticleSummary) => {
     const wasLiked = likedIds.includes(article.id);
@@ -343,7 +357,7 @@ const NewsroomFeed = ({
           <div className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 md:place-items-stretch lg:grid-cols-3">
             {articles.map((article, index) => (
               <Fragment key={article.id}>
-                <motion.article
+                <m.article
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -428,7 +442,7 @@ const NewsroomFeed = ({
                       </div>
                     </div>
                   </div>
-                </motion.article>
+                </m.article>
                 {(index + 1) % 3 === 0 && index < articles.length - 1 ? (
                   <div className="col-span-full">
                     {(index + 1) % 6 === 0 ? (

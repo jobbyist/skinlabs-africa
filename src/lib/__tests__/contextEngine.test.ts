@@ -542,3 +542,21 @@ describe("saved content persistence rules", () => {
     expect(idsMissingFrom([], ["x"])).toEqual([]);
   });
 });
+
+import { chunkForPath } from "@/lib/routePrefetch";
+
+describe("route prefetch mapping", () => {
+  test("maps pathnames to the page chunk they need", () => {
+    expect(chunkForPath("/briefings")).toBe("briefings");
+    expect(chunkForPath("/briefings/some-slug/")).toBe("briefing");
+    expect(chunkForPath("/reviews")).toBe("reviews");
+    expect(chunkForPath("/reviews/page/2")).toBe("reviews");
+    expect(chunkForPath("/reviews/sb-glow-glaze-serum")).toBe("review");
+    expect(chunkForPath("/reviews/versus/a-vs-b")).toBeNull();
+    expect(chunkForPath("/podcast/ep-1")).toBe("episode");
+    expect(chunkForPath("/dashboard")).toBe("dashboard");
+    expect(chunkForPath("/skynn-ai")).toBe("skynn");
+    expect(chunkForPath("/")).toBeNull();
+    expect(chunkForPath("/admin")).toBeNull();
+  });
+});

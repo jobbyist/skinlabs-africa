@@ -1,4 +1,5 @@
 import { Suspense, useEffect } from "react";
+import { LazyMotion } from "framer-motion";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,6 +262,9 @@ const AppContent = () => {
   );
 };
 
+// Animation features load on demand (src/lib/motionFeatures.ts) so the entry script doesn't carry the motion runtime.
+const loadMotionFeatures = () => import("@/lib/motionFeatures").then((mod) => mod.default);
+
 const App = () => (
   // attribute="class" matches tailwind.config.ts's darkMode: ["class"] and index.css's
   // .dark selector. defaultTheme="system" + enableSystem (both next-themes defaults,
@@ -271,6 +275,7 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
+          <LazyMotion features={loadMotionFeatures}>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -286,6 +291,7 @@ const App = () => (
             <Analytics />
             <SpeedInsights />
           </TooltipProvider>
+          </LazyMotion>
         </QueryClientProvider>
       </HelmetProvider>
     </ThemeProvider>

@@ -233,6 +233,17 @@ Branch `claude/contextual-ux-transformation`. Full model, action catalogue, ladd
 - **Tests:** `src/lib/__tests__/contextEngine.test.ts` (state matrix, suppression, membership, fatigue, empty states, nav, analytics whitelist) and `e2e/contextual-dashboard.e2e.ts`. Analytics only through `trackContextEvent()` (whitelisted tokens/counts).
 - Known pre-existing, unrelated: giveaway story unit test (`SEO, routing and story …`) and one `prefer-const` lint error in `previewAuthStorage.ts` fail on main.
 
+## Performance & hardening (2026-10-08) — standing rules
+
+Branch `claude/perf-and-hardening`. Details: `docs/contextual-ux.md` (perf section).
+
+- **Entry script 1,689 kB -> 996 kB raw (377 -> 256 kB brotli, measured against the live production file).** The content catalogue (`data/reviews|comparisons|podcast|spotlight|seasonals`) is no longer in the entry chunk. Don't re-add a static import of those from anything `main.tsx` reaches (App, Header, Hero, Index, PodcastPlayer, hooks used by them): use `import()` inside an effect/query, or a lazy chunk. Check with a static-graph script or the sourcemap (see the dated notes below). Specifics: `PodcastPlayer` loads episodes on demand; Home's Seasonals/Spotlight/Podcast sections are lazy chunks with reserved heights (requested on mount, not on scroll, so prerender/crawlers still get them); the story rail loads `curated.ts` inside its query; `NewsroomFeed` loads the search scorer on first search; `getCurrentSeason` lives in `lib/seasonNow.ts`; framer-motion in always-loaded code is `m.*` under `<LazyMotion>` (`lib/motionFeatures.ts`), so use `m`, not `motion`, in anything the entry reaches.
+- **`SitewideSEO` is only a fallback** (static `pageSeo` table + live briefing articles). Its review / Shelf Showdown / podcast / Spotlight / season branch was dead: those pages render their own `<SEO>` which wins, and it duplicated PodcastEpisode/Article JSON-LD (2 -> 1 now) and ran a review-images query on every page. Verified identical title/description/canonical/og on 16 routes against the previous build. Pages must keep their own `<SEO>`.
+- **Intent prefetch** (`lib/routePrefetch.ts`, installed in `main.tsx`): hover/touch/focus on an internal link downloads that page's chunk; `briefings`, `reviews`, `skynn` are warmed when idle. Off for Save-Data/2G and automation (`navigator.webdriver`, so prerender and e2e are unchanged). Add new heavy pages to its map.
+- **`AdvancedAssessmentCard` makes no requests of its own**: access, Pass count, rollout/report mode and the pending submission come from the shared snapshot (`useMemberCore()`), whose report select now includes `id, session_id, reference_number`.
+- Lint is clean again (`previewAuthStorage.ts`, `savedContent.ts`). The giveaway landing e2e specs still assert old hero copy ("Your Skin Story Could Win You More…" vs the page's "Tell your Skin Story. Win R500…") and the giveaway story unit test fails on a missing media check: both pre-date this work.
+- Offline/service worker: `e2e/offline-contextual.e2e.ts` covers Home keeping its answer when offline/refetch fails, a hover-warmed section opening offline, and no member read ever landing in Cache Storage.
+
 ## Roadmap batch (2026-10-03) — standing notes
 
 Branch `claude/skinlabs-roadmap-batch`. Migrations are **in the repo, not applied live**; edge functions are **not deployed** (deploy `email-processor` + `email-unsubscribe` with the whole `_shared/email/` tree). Details of the email audit: `docs/email-trigger-audit-2026-10-03.md`.

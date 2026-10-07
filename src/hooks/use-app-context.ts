@@ -76,7 +76,7 @@ interface MemberCore {
   smartRoutine: SavedSmartRoutine | null;
   smartRoutineAccess: boolean;
   reports: ReportRow[];
-  advancedAccess: { eligible: boolean; passes: number; open: boolean } | null;
+  advancedAccess: { eligible: boolean; passes: number; open: boolean; reportMode: string } | null;
 }
 
 interface MemberSetup {
@@ -118,7 +118,7 @@ const loadCore = async (userId: string): Promise<MemberCore> => {
     Promise.resolve(supabase.rpc("get_smart_routine_access")).catch(() => ({ data: false })),
     supabase
       .from("advanced_assessment_reports")
-      .select("generation_status, review_status, processing_mode, intake_status, submitted_at, created_at")
+      .select("id, session_id, reference_number, generation_status, review_status, processing_mode, intake_status, submitted_at, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -143,6 +143,7 @@ const loadCore = async (userId: string): Promise<MemberCore> => {
           eligible: Boolean(accessRow.eligible),
           passes: Number(accessRow.passes_available ?? 0),
           open: accessRow.rollout_stage !== "disabled" && accessRow.report_mode !== "disabled",
+          reportMode: String(accessRow.report_mode ?? ""),
         }
       : null,
   };

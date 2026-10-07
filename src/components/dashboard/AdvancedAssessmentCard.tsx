@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Lock, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import AnalysisPassPurchaseModal from "@/components/AnalysisPassPurchaseModal";
 import { trackConversionEvent } from "@/lib/analytics-events";
-import { useAdvancedAssessmentAccess } from "@/hooks/use-advanced-assessment";
-import { listAdvancedAssessmentReports } from "@/lib/assessment/client";
-import { getReportDisplayStatus, INTAKE_EXPECTED_DELIVERY, type AdvancedAssessmentReportSummary } from "@/lib/assessment/types";
+import { useMemberCore } from "@/hooks/use-app-context";
+import type { ReportRow } from "@/lib/context";
+import { getReportDisplayStatus, INTAKE_EXPECTED_DELIVERY } from "@/lib/assessment/types";
 import ReportReadyOptIn from "@/components/pwa/ReportReadyOptIn";
 import { PendingBadge } from "@/components/advanced-assessment/IntakeConfirmation";
 import DownloadSubmissionPdfButton from "@/components/advanced-assessment/DownloadSubmissionPdfButton";
@@ -37,25 +37,21 @@ interface AdvancedAssessmentCardProps {
  */
 const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssessmentCardProps) => {
   const [purchaseOpen, setPurchaseOpen] = useState(false);
-  const { access, loading: accessLoading } = useAdvancedAssessmentAccess();
-  const paused = !access || access.rolloutStage === "disabled" || access.reportMode === "disabled";
-  const balance = access?.passesAvailable ?? 0;
+  // Access, Pass count and the pending submission come from the shared member snapshot (use-app-context.ts):
+  // this card makes no requests of its own.
+  const core = useMemberCore();
+  const access = core.data?.advancedAccess ?? null;
+  const accessLoading = core.isLoading;
+  const paused = !access || !access.open;
+  const balance = access?.passes ?? 0;
   const loading = loadingProp || accessLoading;
   const hasPasses = balance > 0;
   const eligible = Boolean(access?.eligible);
   const viewedRef = useRef(false);
-  const [pending, setPending] = useState<AdvancedAssessmentReportSummary | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    listAdvancedAssessmentReports()
-      .then(({ reports }) => {
-        if (!active) return;
-        setPending(reports.find((r) => getReportDisplayStatus(r) === "pending_intake") ?? null);
-      })
-      .catch(() => { /* card still works without it */ });
-    return () => { active = false; };
-  }, []);
+  const pending = useMemo(
+    () => ((core.data?.reports ?? []) as ReportRow[]).find((r) => getReportDisplayStatus(r) === "pending_intake") ?? null,
+    [core.data?.reports],
+  );
 
   useEffect(() => {
     if (loading || viewedRef.current) return;
@@ -101,10 +97,10 @@ const AdvancedAssessmentCard = ({ loading: loadingProp = false }: AdvancedAssess
                 delivery: {INTAKE_EXPECTED_DELIVERY}. No action needed.
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-1">
-                <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id}`} className="text-xs underline underline-offset-2">
+                <Link to={`${SKYNN_ADVANCED_ROUTE}?session=${pending.session_id ?? ""}`} className="text-xs underline underline-offset-2">
                   View submission status
                 </Link>
-                <DownloadSubmissionPdfButton sessionId={pending.session_id} source="dashboard" variant="ghost" />
+                <DownloadSubmissionPdfButton sessionId={pending.session_id ?? ""} source="dashboard" variant="ghost" />
               </div>
               <ReportReadyOptIn />
             </div>

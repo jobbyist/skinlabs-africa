@@ -1,12 +1,9 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import NewsroomFeed from "@/components/NewsroomFeed";
-import SeasonalsTeaser from "@/components/SeasonalsTeaser";
 import Editorials from "@/components/Editorials";
-import SpotlightTeaser from "@/components/SpotlightTeaser";
 import BrandAmbassadorTeaser from "@/components/BrandAmbassadorTeaser";
 import Newsletter from "@/components/Newsletter";
-import PodcastSection from "@/components/PodcastSection";
 import Footer from "@/components/Footer";
 import SkyNNLaunchpadCard from "@/components/SkyNNLaunchpadCard";
 import FaithfulToNature from "@/components/FaithfulToNature";
@@ -19,6 +16,14 @@ import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
 
 // Lazy: the notch pulls in react-query + the weather call, none of which the first paint needs.
+// Below-the-fold sections that carry catalogue data (reviews, podcast, spotlight, seasons). They are their own chunks,
+// requested the moment the page mounts (not on scroll, so prerendered HTML and crawlers still get them), and the entry
+// bundle no longer ships ~400 kB of content data. Each placeholder reserves the section's height so nothing shifts.
+const SeasonalsTeaser = lazyWithRetry(() => import("@/components/SeasonalsTeaser"));
+const SpotlightTeaser = lazyWithRetry(() => import("@/components/SpotlightTeaser"));
+const PodcastSection = lazyWithRetry(() => import("@/components/PodcastSection"));
+const Reserve = ({ h }: { h: number }) => <div aria-hidden="true" style={{ minHeight: h }} />;
+
 const SkinWeatherNotch = lazyWithRetry(() => import("@/components/SkinWeatherNotch"));
 
 const SectionDivider = () => (
@@ -67,14 +72,18 @@ const Index = () => {
             <AdSlot placement="home-after-newsroom" compact priority="primary" />
           </div>
 
-          <SeasonalsTeaser />
+          <Suspense fallback={<Reserve h={520} />}>
+            <SeasonalsTeaser />
+          </Suspense>
 
           <Editorials />
           <div className="container mx-auto px-4">
             <FaithfulToNature placement="home-after-editorials" />
           </div>
 
-          <SpotlightTeaser />
+          <Suspense fallback={<Reserve h={560} />}>
+            <SpotlightTeaser />
+          </Suspense>
 
           {/* The full SKYNN AI questionnaire lives on /skynn-ai; the homepage only
               exposes a lightweight launchpad so the heavy analysis dependencies
@@ -82,7 +91,9 @@ const Index = () => {
           <SkyNNLaunchpadCard />
 
           {/* Show 3 published podcast episodes */}
-          <PodcastSection limit={3} />
+          <Suspense fallback={<Reserve h={560} />}>
+            <PodcastSection limit={3} />
+          </Suspense>
           <div className="container mx-auto px-4">
             <AdSlot placement="home-after-podcast" />
           </div>

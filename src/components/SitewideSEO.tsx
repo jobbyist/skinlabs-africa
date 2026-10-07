@@ -2,20 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { supabase } from "@/integrations/supabase/client";
-import { pageSeo, SITE_URL, productReviewTitle, productReviewDescription, brandProfileTitle, articleTitle, podcastEpisodeTitle, BRAND, AUTHOR_NAME, AUTHOR_URL } from "@/lib/seo-config";
-import { productReviews } from "@/data/reviews";
-import { podcastEpisodes } from "@/data/podcast";
-import { getSpotlightBrand } from "@/data/spotlight";
-import { comparisonArticles } from "@/data/comparisons";
-import { seasonHubs } from "@/data/seasonals";
-import { useReviewImages } from "@/hooks/use-review-images";
+import { pageSeo, SITE_URL, articleTitle, BRAND, AUTHOR_NAME, AUTHOR_URL } from "@/lib/seo-config";
+
+export interface SeoMeta {
+  title: string;
+  description: string;
+  canonical: string;
+  ogType?: string;
+  ogImage?: string;
+  jsonLd?: Record<string, unknown>;
+}
 
 const text = (value: unknown) => (typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "");
 const absolute = (value: string | undefined) => value ? (value.startsWith("http") ? value : `${SITE_URL}${value.startsWith("/") ? value : `/${value}`}`) : undefined;
 
+/**
+ * Fallback head tags for pages that don't set their own: the static page table (seo-config `pageSeo`) and live briefing
+ * articles. Review, Shelf Showdown, podcast, Spotlight and season pages each render their own <SEO> (which wins over
+ * this one), so this component deliberately carries no content catalogue and runs no per-page image queries.
+ */
 const SitewideSEO = () => {
   const { pathname } = useLocation();
-  const { getImage } = useReviewImages();
   const [article, setArticle] = useState<null | { title: string; excerpt: string; slug: string; cover_image_url?: string | null; seo_title?: string | null; seo_description?: string | null; publish_date?: string | null }>(null);
   const articleSlug = pathname.startsWith("/briefings/") ? pathname.split("/")[2] : null;
 
@@ -32,14 +39,8 @@ const SitewideSEO = () => {
     return () => { active = false; };
   }, [articleSlug]);
 
-  const meta = useMemo(() => {
+  const meta = useMemo((): SeoMeta | null => {
     const canonical = pathname === "/" ? "/" : pathname.replace(/\/$/, "");
-    const reviewSlug = pathname.startsWith("/reviews/") && !pathname.startsWith("/reviews/versus/") ? pathname.split("/")[2] : null;
-    const comparisonSlug = pathname.startsWith("/reviews/versus/") ? pathname.split("/")[3] : null;
-    const podcastSlug = pathname.startsWith("/podcast/") ? pathname.split("/")[2] : null;
-    const spotlightSlug = pathname.startsWith("/spotlight/") && !pathname.includes("/methodology") && !pathname.includes("/archive") ? pathname.split("/")[2] : null;
-    const season = pathname.startsWith("/seasonals/") ? pathname.split("/")[2] : null;
-
     if (article) {
       const title = text(article.seo_title) || articleTitle(article.title);
       const description = text(article.seo_description) || text(article.excerpt);
@@ -52,39 +53,9 @@ const SitewideSEO = () => {
         mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` },
       }};
     }
-    // /knowledge-hub/:slug is handled by KnowledgeHub.tsx itself (per-question title,
-    // description and a single FAQPage + breadcrumb). Emitting it here too produced
-    // a second, conflicting set of structured data.
-    if (reviewSlug) {
-      const review = productReviews.find((r) => r.id === reviewSlug);
-      if (review) {
-        const image = getImage(review.id, review.category);
-        // No JSON-LD here: ProductReview.tsx / the SSR route emit the page's one
-        // Product+Review node. A second Product node from this component (with its
-        // own editorial aggregateRating) caused GSC's "Review has multiple
-        // aggregate ratings" error.
-        return { title: productReviewTitle(review.product_name, review.brand), description: productReviewDescription(review.product_name, review.brand), canonical, ogType: "article", ogImage: image?.url };
-      }
-    }
-    if (comparisonSlug) {
-      const comparison = comparisonArticles.find((c) => c.slug === comparisonSlug);
-      if (comparison) return { title: `${comparison.title} | Shelf Showdown by ${BRAND}`, description: comparison.dek, canonical, ogType: "article", ogImage: absolute(comparison.thumbnail.url), jsonLd: { "@context": "https://schema.org", "@type": "Article", headline: comparison.title, description: comparison.dek, image: absolute(comparison.thumbnail.url), datePublished: comparison.publishDate, dateModified: comparison.modifiedDate, author: { "@type": "Organization", name: BRAND, url: SITE_URL }, publisher: { "@type": "Organization", name: BRAND, url: SITE_URL }, mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${canonical}` } } };
-    }
-    if (podcastSlug) {
-      const episode = podcastEpisodes.find((e) => e.slug === podcastSlug);
-      if (episode && !episode.comingSoon) return { title: podcastEpisodeTitle(episode.title), description: episode.description, canonical, ogType: "article", ogImage: absolute(episode.image), jsonLd: { "@context": "https://schema.org", "@type": "PodcastEpisode", name: episode.title, description: episode.description, datePublished: episode.publishedAt, image: absolute(episode.image), url: `${SITE_URL}${canonical}`, partOfSeries: { "@type": "PodcastSeries", name: "The Skin Deep Series", url: `${SITE_URL}/podcast` } } };
-    }
-    if (spotlightSlug) {
-      const entry = getSpotlightBrand(spotlightSlug);
-      if (entry) return { title: brandProfileTitle(entry.brand), description: text(entry.editorial.whyTheyMadeTheList), canonical, ogType: "article" };
-    }
-    if (season) {
-      const hub = seasonHubs[season as keyof typeof seasonHubs];
-      if (hub) return { title: hub.seoTitle, description: hub.seoDescription, canonical, ogType: "article", ogImage: absolute(hub.heroImage.url) };
-    }
     const key = Object.entries(pageSeo).find(([, value]) => value.canonicalPath === canonical)?.[1];
     return key ? { title: key.title, description: key.description, canonical, ogType: key.ogType } : null;
-  }, [pathname, article, getImage]);
+  }, [pathname, article]);
 
   if (!meta) return null;
   return <SEO title={meta.title} description={meta.description} canonical={meta.canonical} ogType={meta.ogType} ogImage={meta.ogImage} jsonLd={meta.jsonLd} />;

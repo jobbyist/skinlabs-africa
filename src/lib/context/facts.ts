@@ -5,7 +5,13 @@ import { daysSince } from "./states";
 /** A routine untouched this long is worth a gentle review even without a new analysis. */
 export const ROUTINE_REVIEW_AFTER_DAYS = 60;
 
-export type ReportRow = Parameters<typeof getReportDisplayStatus>[0] & { submitted_at?: string | null; created_at?: string | null };
+export type ReportRow = Parameters<typeof getReportDisplayStatus>[0] & {
+  id?: string;
+  session_id?: string;
+  reference_number?: string | null;
+  submitted_at?: string | null;
+  created_at?: string | null;
+};
 
 /**
  * Lifecycle of the member's Advanced submissions: a released result wins, then
