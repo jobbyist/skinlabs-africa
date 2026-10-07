@@ -19,7 +19,13 @@ const LIKED_BRIEFINGS_KEY = "skinlabs-liked-briefings";
 export const mergeIds = (...lists: (readonly string[] | null | undefined)[]): string[] => {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const list of lists) for (const id of list ?? []) if (id && !seen.has(id)) (seen.add(id), out.push(id));
+  for (const list of lists) {
+    for (const id of list ?? []) {
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      out.push(id);
+    }
+  }
   return out;
 };
 

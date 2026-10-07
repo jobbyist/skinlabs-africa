@@ -4,6 +4,7 @@ import "./index.css";
 import { installDomResilience } from "./lib/domResilience";
 import { reloadForNewDeployment } from "./lib/chunkRecovery";
 import { initPwa } from "./lib/pwa/init";
+import { installRoutePrefetch } from "./lib/routePrefetch";
 
 installDomResilience();
 
@@ -17,5 +18,6 @@ window.addEventListener("vite:preloadError", (event) => {
 // Replaces the earlier teardown that unregistered every worker and cleared ALL
 // caches on each load — which would also have wiped members' offline podcast downloads.
 initPwa();
+installRoutePrefetch();
 
 createRoot(document.getElementById("root")!).render(<App />);

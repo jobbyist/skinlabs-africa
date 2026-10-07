@@ -1,10 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, ReactNode } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { Pause, Play, SkipBack, SkipForward, X, Gauge } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { publishedPodcastEpisodes, type PodcastEpisode } from "@/data/podcast";
+import type { PodcastEpisode } from "@/data/podcast";
+
+// The episode catalogue (show notes, transcripts, cover imports) is not needed until something is playing, and this
+// provider wraps every page, so it is loaded on demand instead of living in the entry chunk.
+let publishedEpisodes: Promise<PodcastEpisode[]> | null = null;
+const loadPublishedEpisodes = (): Promise<PodcastEpisode[]> => {
+  publishedEpisodes ??= import("@/data/podcast").then((m) => m.publishedPodcastEpisodes.slice().sort((a, b) => a.id - b.id));
+  return publishedEpisodes;
+};
 import { useMembership } from "@/hooks/use-membership";
 import { canPlayPodcastEpisode, recordPodcastPlay } from "@/lib/access-quotas";
 import { useAuth } from "@/hooks/use-auth";
@@ -234,12 +242,13 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
       persist(true);
       const ep = currentRef.current;
       if (!ep || !isMember) return;
-      const ordered = [...publishedPodcastEpisodes].sort((a, b) => a.id - b.id);
-      const idx = ordered.findIndex((e) => e.id === ep.id);
-      if (idx >= 0 && idx < ordered.length - 1) {
-        const next = ordered[idx + 1];
-        if (next?.audioFile) setTimeout(() => playEpisode(next, 0), 400);
-      }
+      void loadPublishedEpisodes().then((ordered) => {
+        const idx = ordered.findIndex((e) => e.id === ep.id);
+        if (idx >= 0 && idx < ordered.length - 1) {
+          const next = ordered[idx + 1];
+          if (next?.audioFile) setTimeout(() => playEpisode(next, 0), 400);
+        }
+      });
     };
 
     audio.addEventListener("timeupdate", onTime);
@@ -259,7 +268,17 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
   }, [isMember, isSignedIn, playEpisode, user]);
 
   // Media Session: now-playing metadata + lock-screen / headset / Bluetooth controls (feature-detected).
-  const orderedEpisodes = useMemo(() => publishedPodcastEpisodes.slice().sort((a, b) => a.id - b.id), []);
+  const [orderedEpisodes, setOrderedEpisodes] = useState<PodcastEpisode[]>([]);
+  useEffect(() => {
+    if (!current) return;
+    let active = true;
+    void loadPublishedEpisodes().then((eps) => {
+      if (active) setOrderedEpisodes(eps);
+    });
+    return () => {
+      active = false;
+    };
+  }, [current]);
   const currentIndex = current ? orderedEpisodes.findIndex((e) => e.id === current.id) : -1;
   const previousEpisode = currentIndex > 0 ? orderedEpisodes[currentIndex - 1] : null;
   const upNext = currentIndex >= 0 ? orderedEpisodes[currentIndex + 1] ?? null : null;
@@ -301,9 +320,7 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
     [current, isPlaying, progress, duration, speed, playEpisode, toggle, close, skip, cycleSpeed, seek],
   );
 
-  const nextEpisode = current
-    ? publishedPodcastEpisodes.slice().sort((a, b) => a.id - b.id).find((e) => e.id > current.id)
-    : null;
+  const nextEpisode = current ? orderedEpisodes.find((e) => e.id > current.id) : null;
 
   return (
     <PlayerContext.Provider value={value}>
@@ -311,7 +328,7 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
       <audio ref={audioRef} preload="metadata" />
       <AnimatePresence>
         {current && (
-          <motion.div
+          <m.div
             initial={{ y: 96, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 96, opacity: 0 }}
@@ -370,7 +387,7 @@ export const PodcastPlayerProvider = ({ children }: { children: ReactNode }) => 
                 </button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </PlayerContext.Provider>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowRight, Atom } from "lucide-react";
 import { featuredEditorials } from "@/data/editorials";
 
@@ -28,7 +28,7 @@ const Editorials = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((editorial, index) => (
-            <motion.div
+            <m.div
               key={editorial.slug}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -68,7 +68,7 @@ const Editorials = () => {
                   </span>
                 </div>
               </Link>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>
