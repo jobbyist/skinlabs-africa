@@ -137,7 +137,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "advanced_get_pass",
     feature: "skynn_advanced",
-    surfaces: ["analysis_results", "dashboard"],
+    // Results only: a "buy a Pass" line has no place on Home, where the member hasn't asked about Advanced.
+    surfaces: ["analysis_results"],
     priority: 30,
     fatigue: { maxDays: 2, windowDays: 21, dismissCooldownDays: 30 },
     eligible: (f) =>
