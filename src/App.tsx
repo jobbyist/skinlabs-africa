@@ -143,6 +143,12 @@ const usePurgePrivateCacheOnSignOut = () => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_OUT") return;
       for (const key of ["member-context", "formulator-allowance", "preorders"]) queryClient.removeQueries({ queryKey: [key] });
+      // CRITICAL: Purge CTA ledger from localStorage so next user on a shared device never sees the previous user's engagement history.
+      window.localStorage.removeItem("cta-ledger:null");
+      const keys = Object.keys(window.localStorage);
+      for (const k of keys) {
+        if (k.startsWith("cta-ledger:")) window.localStorage.removeItem(k);
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
