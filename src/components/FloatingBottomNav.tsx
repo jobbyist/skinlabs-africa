@@ -60,6 +60,11 @@ const FloatingBottomNav = () => {
   }, [user?.id]);
 
   useEffect(() => {
+    setNavVisible(true);
+    lastScrollY.current = window.scrollY;
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
     lastScrollY.current = window.scrollY;
 
     const updateVisibility = () => {
