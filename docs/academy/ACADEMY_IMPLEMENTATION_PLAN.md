@@ -30,10 +30,10 @@ Branch: `claude/skinlabs-academy-architecture` (docs only so far). Each phase = 
 
 ## 2. Phases
 
-### Phase 0 — Baseline & approvals (0.5 day)
+### Phase 0 — Baseline & approvals (0.5 day) — **DONE 2026-10-07** (see `changelog/PHASE-00-baseline.md`)
 `bun install`; generate route tree; record baseline results of tsc/eslint/`bun test`/vite build/Playwright (CLAUDE.md contains conflicting notes about tsc cleanliness — measure). Owner answers D1–D4 (or accepts defaults). Spike (no commit): `PodcastPlayer` pause/ownership API for cross-player coordination; inspect `payment_checkout_intents` CHECK and email category list. **Output:** `changelog/PHASE-00-baseline.md`.
 
-### Phase 1 — Foundations: schema, RLS, roles, audit, guard (3–4 days)
+### Phase 1 — Foundations: schema, RLS, roles, audit, guard (3–4 days) — **DONE in repo 2026-10-07; migration NOT yet applied live** (see `changelog/PHASE-01-foundations.md`)
 Migrations (repo only, then applied with approval): config, roles, instructors, categories, courses, versions, modules, lessons, lesson content, assets, lesson assets, sources, course instructors, prerequisites, publication reviews, accreditations (+ constraint + public view), audit log, helper functions (`academy_has_role`, `academy_can_access_course`, `academy_can_read_lesson`), immutability triggers, storage buckets + policies. Frontend: `src/lib/academy/{types.ts, terminology.ts, blocks.ts (zod), access.ts}` + tests; `academyTerminology.test.ts` banned-terms guard; `useAcademyConfig`, `useAcademyRoles`. Probes: access, publication, accreditation, privacy. **Exit:** probes green live; advisors clean; types regenerated; no UI exposed (stage `disabled`).
 
 ### Phase 2 — Public catalogue, course landing, SEO (3–4 days)

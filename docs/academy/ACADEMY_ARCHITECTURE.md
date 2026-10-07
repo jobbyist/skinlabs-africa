@@ -106,15 +106,15 @@ Three access models on `academy_courses.access_model`: `free` (any signed-in lea
   - `academy-resources` (application/pdf, images; 25 MB)
   - `academy-submissions` (learner uploads; 10 MB; owner + assessor only)
   - `academy-course-media` (public: covers/instructor photos only; admin/instructor write) — only genuinely public marketing imagery.
-- Storage policies: no learner SELECT on private buckets; objects served only through `academy_get_asset_url()` (checks `academy_can_read_lesson`), 5-minute signed URL, preview-lesson assets also signed but allowed for anyone.
+- Storage policies: no learner SELECT on private buckets (staff read/write is path-scoped: first path segment = course id, or `shared/` for admins). Learners get objects only from the **`academy-asset-url` edge function** (Phase 4): it calls the SQL authoriser `academy_authorize_asset(asset, lesson)` with the learner's JWT, then mints a 5-minute signed URL with the service role. *(Corrected 2026-10-07: a Postgres RPC cannot sign Storage URLs, so the earlier `academy_get_asset_url()` RPC idea is replaced by this function.)* Preview-lesson assets are signed for anyone through the same function.
 
 ## 10. Audio streaming strategy (M)
 
-Signed Supabase Storage URLs (support HTTP range requests → seeking). Lesson player: native `<audio>` with custom controls, speed 0.75–2×, ±15 s, keyboard operable, Media Session metadata, no autoplay, transcript always available beside/below. Position saved every 10 s and on pause via `academy_record_progress` (newest client timestamp wins — same rule as podcast progress); resume prompt. Completion = ≥90% played OR learner marks complete (and any quiz). Signed-URL refresh on expiry/403 (single retry). Not cached by the service worker (storage is never intercepted — keep it that way). Transcode targets: mono 96 kbps MP3 for speech (CLAUDE.md audio finding); publish gate stores `duration_seconds`.
+Signed Supabase Storage URLs minted by `academy-asset-url` (support HTTP range requests → seeking). Lesson player: native `<audio>` with custom controls, speed 0.75–2×, ±15 s, keyboard operable, Media Session metadata, no autoplay, transcript always available beside/below. Position saved every 10 s and on pause via `academy_record_progress` (newest client timestamp wins — same rule as podcast progress); resume prompt. Completion = ≥90% played OR learner marks complete (and any quiz). Signed-URL refresh on expiry/403 (single retry). Not cached by the service worker (storage is never intercepted — keep it that way). Transcode targets: mono 96 kbps MP3 for speech (CLAUDE.md audio finding); publish gate stores `duration_seconds`.
 
 ## 11. PDF strategy (N)
 
-Resource PDFs in `academy-resources`; `download` blocks call `academy_get_asset_url()` with `disposition=attachment`; each file needs a title, page count, size and an HTML alternative or summary (accessibility). Certificates and receipts are generated, not stored (optional cached copy path on the certificate row for re-download parity). jsPDF output is untagged, so every PDF's content must also exist as accessible HTML on the page.
+Resource PDFs in `academy-resources`; `download` blocks call the `academy-asset-url` edge function with `disposition=attachment`; each file needs a title, page count, size and an HTML alternative or summary (accessibility). Certificates and receipts are generated, not stored (optional cached copy path on the certificate row for re-download parity). jsPDF output is untagged, so every PDF's content must also exist as accessible HTML on the page.
 
 ## 12. Analytics events (O)
 

@@ -139,7 +139,7 @@ RLS: SELECT published rows for anon/authenticated (commercial columns fine — p
 | Group | Functions |
 |---|---|
 | Public | `get_academy_public_config()`, `academy_course_public(slug)`, `academy_verify_certificate(code)` |
-| Access | `academy_can_access_course(course)`, `academy_can_read_lesson(lesson)` (STABLE, used in RLS), `academy_get_asset_url(asset, lesson, disposition)` |
+| Access | `academy_can_access_course(course)`, `academy_can_read_lesson(lesson)` (STABLE, used in RLS), `academy_authorize_asset(asset, lesson)` (Phase 4; called by the `academy-asset-url` edge function, which signs the URL — Postgres cannot sign Storage URLs) |
 | Enrolment | `academy_enrol(course, source_hint)`, `academy_grant_enrolment_from_purchase(...)` (service role), `academy_admin_grant_enrolment(user, course, note, expires)`, `academy_revoke_enrolment(enrolment, reason, refunded)` |
 | Progress | `academy_record_progress(...)`, `academy_complete_lesson(lesson)`, `academy_evaluate_completion(enrolment)`, `academy_get_resume(enrolment)`, `academy_get_streak()` |
 | Assessment | `academy_start_attempt(assessment)`, `academy_save_attempt(attempt, answers)`, `academy_submit_attempt(attempt)`, `academy_submit_assignment(...)`, `academy_assessor_claim/grade/return(...)` |
@@ -165,3 +165,15 @@ Index every FK; `(user_id, enrolment_id)` on progress; `(course_id, status)` on 
 
 ## 10. Test plan (SQL probes, all rolled back, `supabase/tests/`)
 `academy_access.sql` (anon/learner/instructor boundaries, content gating), `academy_progress.sql` (monotonic completion, sequential unlock, spoofed user_id 42501), `academy_assessments.sql` (keys never readable, attempt limits, timer, grading), `academy_certificates.sql` (idempotent issue, only on completion, verify minimal fields, revoke), `academy_accreditation.sql` (cannot mark verified without evidence; public view empty otherwise), `academy_publication.sql` (author≠reviewer, publish gate, immutability), `academy_purchase.sql` (idempotent grant on replay), `academy_privacy.sql` (notes/submissions invisible to others).
+
+## 11. Phase 1 as built (2026-10-07) — deviations from the sections above
+
+`supabase/migrations/20261007100000_academy_foundations.sql` (repo only; **not applied live**). Differences from the design:
+- `academy_assets.course_id` added (nullable; null = academy-wide evidence). Storage path convention `{course_id}/{asset_id}/{file}`, `shared/…` admin-only.
+- `academy_lessons`: `lesson_type` is `text|audio|pdf|mixed` for now (quiz/assignment arrive with assessments in Phase 5, by `ALTER … CHECK`); new column `mentions_accreditation_topic` (lets a lesson that *teaches about* SAQA/QCTO pass the wording scan; version-level fields are always scanned).
+- `academy_enrolments` exists as a table (owner SELECT only, no writes) so the access helpers are real; enrolment RPCs are Phase 3.
+- Not yet created: assessments/questions/keys, progress, attempts, submissions, certificates, bookmarks/notes/saved, reviews, learning days, accommodations (Phases 3–8).
+- Public reads use RLS + **column-level grants** (PostgREST callers must list columns, `select=*` on `academy_courses`/`academy_course_versions`/`academy_instructors`/`academy_sources` is refused). Internal columns (`created_by`, `external_ref`, `enrolment_cap`, review/approval stamps, `content_hash`, instructor `credentials`) are not granted; credentials are exposed only through `academy_public_instructor_credentials()` (verified ones, no evidence notes).
+- Catalogue visibility is double-gated: published AND (`rollout_stage = 'public'` OR the viewer has an Academy role). The "preview" stage is staff-only (no allow-list yet).
+- Added helper/RPC set beyond the spec: `academy_user_*` internal helpers (uid explicit, no client access), `academy_is_admin/is_staff/staff_for_course/catalogue_open/version_readable`, `academy_my_roles`, `get_academy_public_config`, `academy_public_accreditation`, `academy_public_instructor_credentials`, `academy_can_manage_path/view_path`, `academy_validate_version`, `academy_submit_version_for_review`, `academy_review_version`, `academy_admin_publish_version`, `academy_admin_unpublish_course`, `academy_admin_set_config`, `academy_admin_assign_role/revoke_role`, `academy_admin_save_accreditation/verify_accreditation`.
+- Review rule as built: approval needs an `editorial` approval, plus a `subject_matter` approval when any lesson `makes_claims`, both recorded after the latest submission; the author can never review (trigger).
