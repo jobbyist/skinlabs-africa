@@ -1,12 +1,9 @@
-import { useId } from "react";
-import { Link } from "react-router-dom";
-import { ChevronRight, Lock, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { headlineForSavedAnalysis } from "@/lib/formulator/summary";
 import { formatUnlockDate } from "@/lib/formulator/limits";
-import { trackConversionEvent } from "@/lib/analytics-events";
 import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysisCard";
 import type { FormulatorAllowanceStatus } from "@/hooks/use-formulator-allowance";
 
@@ -18,12 +15,11 @@ interface SkinProfileHeroProps {
 }
 
 /**
- * The dashboard's lead card: the member's current skin profile from their
- * latest SKYNN AI analysis, or — with no analysis yet — a CTA to start one.
+ * The dashboard's skin-intelligence snapshot: the member's current skin profile
+ * from their latest SKYNN AI analysis. Informational: starting or re-running an
+ * analysis is the next-action card's job, so this has no competing CTA.
  */
 const SkinProfileHero = ({ latest, loading, allowance, onViewFullAnalysis }: SkinProfileHeroProps) => {
-  const lockedReasonId = useId();
-
   if (loading) {
     return (
       <Card className="h-full">
@@ -40,28 +36,8 @@ const SkinProfileHero = ({ latest, loading, allowance, onViewFullAnalysis }: Ski
     );
   }
 
-  if (!latest) {
-    return (
-      <Card className="h-full bg-brand-ink text-brand-ink-foreground border-transparent">
-        <CardContent className="p-6 sm:p-8 flex h-full flex-col justify-center gap-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-brand-gold">SKYNN AI skin analysis</p>
-          <h2 className="text-2xl sm:text-3xl font-heading font-bold">Get your skin profile</h2>
-          <p className="max-w-lg text-sm text-brand-ink-foreground/80">
-            Answer a few questions about your skin and get your skin type, top concerns and a routine built around
-            them. It takes about five minutes and it's free.
-          </p>
-          <div>
-            <Button asChild size="lg" className="min-h-11 gap-2 bg-brand-ink-foreground text-brand-ink hover:bg-brand-ink-foreground/90">
-              <Link to="/skynn-ai">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                Start your free analysis
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // No analysis yet: the dashboard's next-action card already asks for it. Nothing to snapshot.
+  if (!latest) return null;
 
   const headline = headlineForSavedAnalysis(latest);
   const locked = Boolean(allowance?.locked);
@@ -91,41 +67,18 @@ const SkinProfileHero = ({ latest, loading, allowance, onViewFullAnalysis }: Ski
 
         <p className="max-w-xl text-sm text-secondary-text">{headline.guidance}</p>
 
-        <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Button onClick={onViewFullAnalysis} className="min-h-11 gap-2">
+        <div className="mt-auto flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <Button onClick={onViewFullAnalysis} variant="outline" className="min-h-11 gap-2">
             View full analysis
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </Button>
-          {locked ? (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                aria-disabled="true"
-                aria-describedby={lockedReasonId}
-                onClick={(e) => {
-                  e.preventDefault();
-                  trackConversionEvent("reanalysis_blocked", { source: "dashboard" });
-                }}
-                className="min-h-11 gap-2 cursor-not-allowed opacity-60 active:scale-100"
-              >
-                <Lock className="h-4 w-4" aria-hidden="true" />
-                Re-analyse
-                <span className="sr-only">(locked)</span>
-              </Button>
-              <p id={lockedReasonId} className="text-xs text-secondary-text">
-                {allowance?.nextUnlockAt
-                  ? `Next free analysis on ${formatUnlockDate(allowance.nextUnlockAt)}`
-                  : "Your next free analysis unlocks soon"}
-              </p>
-            </>
-          ) : (
-            <Button asChild variant="outline" className="min-h-11 gap-2">
-              <Link to="/skynn-ai">
-                <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Re-analyse
-              </Link>
-            </Button>
+          {locked && (
+            <p className="flex items-center gap-1.5 text-xs text-secondary-text">
+              <Lock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {allowance?.nextUnlockAt
+                ? `Next free analysis on ${formatUnlockDate(allowance.nextUnlockAt)}`
+                : "Your next free analysis unlocks soon"}
+            </p>
           )}
         </div>
       </CardContent>

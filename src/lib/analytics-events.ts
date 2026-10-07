@@ -170,7 +170,9 @@ export type ConversionEvent =
   // which whitelists the payload, never directly.
   | import("@/lib/skynn/analytics").SkynnEvent
   // October 2026 giveaway funnel — fire through src/lib/giveaway/analytics.ts (whitelisted payload), never directly.
-  | import("@/lib/giveaway/analytics").GiveawayEvent;
+  | import("@/lib/giveaway/analytics").GiveawayEvent
+  // Contextual UX (next best action, CTA suppression) — fire through trackContextEvent() (src/lib/context/analytics.ts).
+  | import("@/lib/context/analytics").ContextEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

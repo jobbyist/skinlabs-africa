@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { OPEN_MENU_EVENT } from "@/lib/context/menuEvent";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -222,6 +223,12 @@ const Header = () => {
   const [exploreOpen, setExploreOpen] = useState(true);
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
+  // The bottom nav's "Explore" tab opens this menu (its Explore grid carries every content section).
+  useEffect(() => {
+    const openMenu = () => setOpen(true);
+    window.addEventListener(OPEN_MENU_EVENT, openMenu);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, openMenu);
+  }, []);
   const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);

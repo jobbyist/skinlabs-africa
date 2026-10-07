@@ -11,7 +11,7 @@ import { useSmartRoutine } from "@/hooks/use-smart-routine";
 import type { SmartStep } from "@/lib/smartRoutine/engine";
 import type { GroundedRoutine } from "@/lib/skynnProductMatch";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
-import { ADVANCED_NAME, BASIC_NAME, SKYNN_ADVANCED_ROUTE } from "@/lib/skynn/terminology";
+import { ADVANCED_NAME, BASIC_NAME, SKYNN_ROUTE } from "@/lib/skynn/terminology";
 
 const StepItem = ({ step }: { step: SmartStep }) => (
   <li className="min-w-0 rounded-2xl border border-border bg-background p-3 sm:p-3.5">
@@ -49,11 +49,10 @@ const toGrounded = (am: SmartStep[], pm: SmartStep[]): GroundedRoutine | null =>
 };
 
 /**
- * Smart Routines, inside My Skin › Routine. An extension of the Advanced AI
- * Dermatology Analysis: unlocked once the member has submitted one, built
- * from their Basic + Advanced answers (rule-based) and replaced by the
- * approved report's own steps when that's released. Saving puts the steps in
- * the tracker below so check-ins and streaks work as before.
+ * Smart Routines, inside My Skin › Routine. Unlocked once the member has saved a Basic
+ * AI Skin Analysis; built (rule-based) from those answers, plus their Advanced answers
+ * when they have them, and replaced by an approved report's own steps once released.
+ * Saving puts the steps in the tracker below so check-ins and streaks work as before.
  */
 const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
   const { access, saved, preview, stale, sources, loading, building, error, build } = useSmartRoutine();
@@ -104,8 +103,8 @@ const SmartRoutinePanel = ({ onSaved }: { onSaved?: () => void }) => {
         </CardHeader>
         <CardContent>
           <Button asChild size="sm" className="gap-2">
-            <Link to={SKYNN_ADVANCED_ROUTE}>
-              <Sparkles className="h-3.5 w-3.5" /> Start my {ADVANCED_NAME}
+            <Link to={SKYNN_ROUTE}>
+              <Sparkles className="h-3.5 w-3.5" /> Take the {BASIC_NAME}
             </Link>
           </Button>
         </CardContent>

@@ -1,14 +1,16 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
 import { Helmet } from "react-helmet-async";
-import { useSearchParams, useLocation, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Package, Crown, Loader2, Clock, Bell, PauseCircle, Bookmark } from "lucide-react";
+import { Loader2, Clock, PauseCircle, Bookmark } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useStartTrial } from "@/hooks/use-start-trial";
@@ -23,21 +25,21 @@ import InboxTab from "@/components/dashboard/InboxTab";
 import AccountTab from "@/components/dashboard/AccountTab";
 const AppSettingsPanel = lazyWithRetry(() => import("@/components/pwa/AppSettingsPanel"));
 import SavedContentTab from "@/components/dashboard/SavedContentTab";
-import ProfileCompletenessRing from "@/components/dashboard/ProfileCompletenessRing";
-import NewsfeedCarousel from "@/components/dashboard/NewsfeedCarousel";
 import AuthDialog from "@/components/AuthDialog";
 import FormulatorTab from "@/components/dashboard/FormulatorTab";
-import AnalysisPassesCard from "@/components/dashboard/AnalysisPassesCard";
 import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
 import ForYourSkinCard from "@/components/dashboard/ForYourSkinCard";
 import ForYourProfileFeed from "@/components/dashboard/ForYourProfileFeed";
 import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
-import JourneyMomentumCard from "@/components/dashboard/JourneyMomentumCard";
+import NextActionCard from "@/components/dashboard/NextActionCard";
+import PlanStatusRow from "@/components/dashboard/PlanStatusRow";
+import PreOrdersCard from "@/components/dashboard/PreOrdersCard";
 import SectionNav from "@/components/dashboard/SectionNav";
-import { useJourney } from "@/hooks/use-journey";
+import { useContextualActions } from "@/hooks/use-contextual-actions";
+import { notifyMemberContextChanged, type MemberProfile } from "@/hooks/use-app-context";
+import { contextualGreeting, type ResolvedAction } from "@/lib/context";
 import { GROUP_DEFAULT_SECTION, SECTION_GROUP, resolveDashboardSection, type DashboardGroup } from "@/lib/dashboardTabs";
-import AnalysisCreditsCard from "@/components/dashboard/AnalysisCreditsCard";
 import SkinWeatherCard from "@/components/dashboard/SkinWeatherCard";
 import type { StarterAnalysisResult } from "@/lib/starter-analysis/types";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
@@ -48,37 +50,15 @@ import type { SavedRecommendationRow } from "@/components/dashboard/SavedAnalysi
 import { toast } from "sonner";
 import { formatBillingDate, formatUsd, formatZar } from "@/lib/paypal";
 import { isPaidSubscriptionStatus } from "@/lib/entitlements";
-import { computeProfileStrength } from "@/lib/profileStrength";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { trackContextEvent } from "@/lib/context/analytics";
 import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
-import { openKeepMembership } from "@/lib/conversionDialogs";
+import { openKeepMembership, openSignupDialog } from "@/lib/conversionDialogs";
 import { sastDaysUntil, trialBannerState } from "@/lib/trialLifecycle";
 
-interface Profile {
-  subscription_status: string | null;
-  subscription_started_at: string | null;
-  full_name: string | null;
-  email: string | null;
-  account_status: string | null;
-  username: string | null;
-  phone: string | null;
-  date_of_birth: string | null;
-  gender: string | null;
-  skin_color: string | null;
-  address_line1: string | null;
-  city: string | null;
-  weather_city_key: string | null;
-  allergies: string[] | null;
-  skin_conditions: string[] | null;
-  preferred_routine_time: string | null;
-}
-
-interface Preorder { id: string; product_type: string; amount: number; status: string; created_at: string; }
-type Recommendation = SavedRecommendationRow;
-interface ActivityStats { liked: number; saved: number; comments: number }
-
+const ANALYSES_COLUMNS = "id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload";
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -86,15 +66,8 @@ const UserDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { tier, isMember, isTrialing, trialEndsAt, trialUsed, loading: membershipLoading, refresh: refreshMembership } = useMembership();
   const { unreadCount } = useNotifications();
-  const navigate = useNavigate();
   const { start: startTrial, loading: trialLoading } = useStartTrial();
-  const { data: allowance, loading: allowanceLoading, error: allowanceError, refresh: refreshAllowance } = useFormulatorAllowance();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [preorders, setPreorders] = useState<Preorder[]>([]);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [activity, setActivity] = useState<ActivityStats>({ liked: 0, saved: 0, comments: 0 });
-  const [dataLoading, setDataLoading] = useState(true);
-  const [creditsError, setCreditsError] = useState<string | null>(null);
+  const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [authOpen, setAuthOpen] = useState(false);
   const [activating, setActivating] = useState(false);
   // The trialist's live auto-renew subscription (PayPal), if they added a payment method.
@@ -107,7 +80,6 @@ const UserDashboard = () => {
     first_billing_at: string | null;
     next_billing_at: string | null;
   } | null | undefined>(undefined);
-  const [aiCredits, setAiCredits] = useState<number | null>(null);
   const [reactivating, setReactivating] = useState(false);
 
   // ?tab= holds a leaf section (legacy values resolve via LEGACY_TAB_ALIASES);
@@ -120,43 +92,51 @@ const UserDashboard = () => {
     setSearchParams(next, { replace: true });
   };
   const setActiveGroup = (group: string) => setActiveTab(GROUP_DEFAULT_SECTION[group as DashboardGroup] ?? "home");
-  const journey = useJourney();
+  // One shared snapshot of the member (src/hooks/use-app-context.ts) feeds the greeting, the
+  // next best action, the checklist and the plan line. Home's job is to answer: where am I,
+  // what has SkinLabs learned, and what should I do next.
+  const ctx = useContextualActions("dashboard", { secondaryLimit: 2, setup: true, content: true });
+  const profile: MemberProfile | null = ctx.profile;
   const dashboardEntered = useRef(false);
   useEffect(() => {
-    if (!user || dashboardEntered.current) return;
+    if (!user || ctx.loading || dashboardEntered.current) return;
     dashboardEntered.current = true;
-    trackConversionEvent("dashboard_entered", { stage: journey.stage });
-  }, [user, journey.stage]);
+    trackConversionEvent("dashboard_entered", { stage: ctx.stage });
+    trackContextEvent("context_resolved", { surface: "dashboard", state: Array.from(ctx.states)[0] ?? "unknown", count: ctx.states.size });
+  }, [user, ctx.loading, ctx.stage, ctx.states]);
 
-  const handleJourneyAction = () => {
-    const action = journey.nextAction;
-    trackConversionEvent("checklist_step_clicked", { step: action.id });
+  // journey_state_changed: fires when the member's headline state moves (e.g. NEW_USER -> RETURNING_USER).
+  const lastHeadline = useRef<string | null>(null);
+  useEffect(() => {
+    if (ctx.loading) return;
+    const headline = ctx.stage;
+    if (lastHeadline.current && lastHeadline.current !== headline) {
+      trackContextEvent("journey_state_changed", { state: headline, previous_state: lastHeadline.current });
+    }
+    lastHeadline.current = headline;
+  }, [ctx.loading, ctx.stage]);
+
+  const handleAction = (action: ResolvedAction) => {
+    ctx.click(action);
     if (action.kind === "keep_membership") {
       openKeepMembership({ source: "dashboard_journey" });
-      return;
-    }
-    if (action.kind === "start_trial") {
+    } else if (action.kind === "start_trial") {
       void startTrial({ plan: "insider", source: "dashboard", destination: null });
-      return;
+    } else if (action.kind === "signup") {
+      openSignupDialog("signup");
     }
-    if (action.kind === "link" && action.href) {
-      navigate(action.href);
-    }
+    // "link" and "purchase_pass" actions are rendered as <Link>s and navigate themselves.
   };
 
-  const scrollToSetup = () => {
-    document.getElementById("getting-started")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  // Checklist completion comes from data changed on other tabs (routine,
-  // security…): re-read it whenever Home is shown again.
+  // Checklist completion comes from data changed on other tabs (routine, security…):
+  // re-read the shared snapshot whenever Home is shown again.
   const seenGroup = useRef(false);
   useEffect(() => {
     if (!seenGroup.current) {
       seenGroup.current = true;
       return;
     }
-    if (activeGroup === "home") journey.refresh();
+    if (activeGroup === "home") void ctx.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGroup]);
 
@@ -293,7 +273,8 @@ const UserDashboard = () => {
         const { data } = await supabase.rpc("available_ai_credits", { _user_id: user.id });
         const balance = typeof data === "number" ? data : 0;
         if (aiCreditsBaseline !== null && balance > aiCreditsBaseline) {
-          setAiCredits(balance);
+          notifyMemberContextChanged();
+          void refreshAllowance();
           trackConversionEvent("checkout_completed", { purchaseType });
           trackConversionEvent("credit_pack_purchased", { packId: searchParams.get("pack_id") ?? undefined });
           toast.success("Payment confirmed — your AI analysis credits are ready.");
@@ -392,34 +373,22 @@ const UserDashboard = () => {
     isExplorer: tier === "explorer",
   });
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const [profileRes, preordersRes, recsRes, creditsRes, likedRes, savedRes, commentsRes] = await Promise.all([
-        supabase.from("profiles").select(
-          "subscription_status, subscription_started_at, full_name, email, account_status, username, phone, date_of_birth, gender, skin_color, address_line1, city, weather_city_key, allergies, skin_conditions, preferred_routine_time",
-        ).eq("user_id", user.id).single(),
-        supabase.from("preorders").select("id, product_type, amount, status, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase
-          .from("skincare_recommendations")
-          .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase.rpc("available_ai_credits", { _user_id: user.id }),
-        supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "like"),
-        supabase.from("news_article_engagement").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("kind", "save"),
-        supabase.from("review_comments").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-      ]);
-      if (profileRes.data) setProfile(profileRes.data as Profile);
-      if (preordersRes.data) setPreorders(preordersRes.data);
-      if (recsRes.data) setRecommendations(recsRes.data);
-      if (creditsRes.error) setCreditsError(creditsRes.error.message);
-      else if (typeof creditsRes.data === "number") setAiCredits(creditsRes.data);
-      setActivity({ liked: likedRes.count ?? 0, saved: savedRes.count ?? 0, comments: commentsRes.count ?? 0 });
-      setDataLoading(false);
-    })();
-  }, [user]);
+  // The last few analyses (Home snapshot, weather profile, My Skin). Cached and invalidated with the rest of the member context.
+  const analysesQuery = useQuery({
+    queryKey: ["member-context", "analyses", user?.id ?? "anon"],
+    enabled: Boolean(user),
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("skincare_recommendations")
+        .select(ANALYSES_COLUMNS)
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return (data ?? []) as SavedRecommendationRow[];
+    },
+  });
+  const recommendations = analysesQuery.data ?? [];
 
   // Anonymous → account handoff, wherever the visitor lands after signing up
   // (e.g. an email-confirmation link opened later): a SKYNN AI result finished
@@ -440,14 +409,8 @@ const UserDashboard = () => {
         variantKey: getPersistedPricingVariant(),
       });
       if (cancelled || outcome.error || outcome.limitReached || outcome.source === "existing") return;
-      const { data } = await supabase
-        .from("skincare_recommendations")
-        .select("id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
       if (cancelled) return;
-      if (data) setRecommendations(data);
+      notifyMemberContextChanged();
       void refreshAllowance();
       toast.success("Your SKYNN AI results were saved to your account.");
       trackConversionEvent("starter_dashboard_arrived");
@@ -468,25 +431,28 @@ const UserDashboard = () => {
       }
     : undefined;
 
+  const dismissChecklist = async () => {
+    if (!user) return false;
+    const at = new Date().toISOString();
+    const { error } = await supabase.from("profiles").update({ checklist_dismissed_at: at }).eq("user_id", user.id);
+    if (!error) ctx.patchProfile({ checklist_dismissed_at: at });
+    return !error;
+  };
+
   // Saves only the weather city — never the free-text address city.
   const saveWeatherCity = async (cityKey: string): Promise<boolean> => {
     if (!user) return false;
     const { error } = await supabase.from("profiles").update({ weather_city_key: cityKey }).eq("user_id", user.id);
     if (error) return false;
-    setProfile((p) => (p ? { ...p, weather_city_key: cityKey } : p));
+    ctx.patchProfile({ weather_city_key: cityKey });
     return true;
   };
 
-  const retryAnalysisPassBalance = async () => {
-    if (!user) return;
-    setCreditsError(null);
-    const { data, error } = await supabase.rpc("available_ai_credits", { _user_id: user.id });
-    if (error) setCreditsError(error.message);
-    else if (typeof data === "number") setAiCredits(data);
-  };
-
   useEffect(() => {
-    const onUpdated = () => void retryAnalysisPassBalance();
+    const onUpdated = () => {
+      notifyMemberContextChanged();
+      void refreshAllowance();
+    };
     window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
     return () => window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -500,7 +466,7 @@ const UserDashboard = () => {
       toast.error("Could not reactivate your account right now.");
       return;
     }
-    setProfile((p) => (p ? { ...p, account_status: "active" } : p));
+    ctx.patchProfile({ account_status: "active" });
     toast.success("Welcome back — your account is active again.");
   };
 
@@ -534,8 +500,21 @@ const UserDashboard = () => {
     );
   }
 
-  if (loading || dataLoading) {
-    return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading || ctx.loading) {
+    // The page frame renders at once with skeletons shaped like the final layout: no blank screen, no jump.
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-20" aria-busy="true" aria-label="Loading your dashboard">
+          <div className="container mx-auto max-w-5xl space-y-6 px-4 py-12">
+            <Skeleton className="h-44 w-full rounded-2xl" />
+            <Skeleton className="h-10 w-full max-w-md rounded-xl" />
+            <Skeleton className="h-56 w-full rounded-2xl" />
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   const tierLabel =
@@ -569,7 +548,7 @@ const UserDashboard = () => {
     );
   }
 
-  const strength = computeProfileStrength(profile);
+  const greeting = contextualGreeting(ctx.facts, profile?.full_name ? profile.full_name.split(" ")[0] : null);
 
   return (
     <>
@@ -583,49 +562,20 @@ const UserDashboard = () => {
         <main className="pt-20">
           <section className="py-12">
             <div className="container mx-auto px-4 max-w-5xl">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-heading font-bold text-foreground mb-1">
-                    Hello{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
-                  </h1>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-muted-foreground">{user?.email}</p>
+              <div className="mb-6">
+                <NextActionCard
+                  greeting={greeting}
+                  badge={
                     <Badge variant={isSubscribed ? "default" : "secondary"}>
                       {tierLabel}{isTrialing ? " · trial" : ""}
                     </Badge>
-                  </div>
-                  <p className="mt-2 max-w-xl text-sm text-secondary-text">
-                    Your skin profile, routine and daily guidance — all in one place.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <ReportBugButton />
-                  <button
-                    onClick={() => setActiveTab("profile")}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 transition-colors hover:border-primary"
-                  >
-                    <ProfileCompletenessRing percent={strength.percent} size={48} />
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">Skin Profile</p>
-                      <p className="text-xs text-muted-foreground">{strength.filledCount}/{strength.totalCount} details</p>
-                    </div>
-                  </button>
-                </div>
+                  }
+                  primary={ctx.primary}
+                  secondary={ctx.secondary}
+                  busy={trialLoading}
+                  onAction={handleAction}
+                />
               </div>
-
-              {!journey.loading && (
-                <div className="mb-6">
-                  <JourneyMomentumCard
-                stage={journey.stage}
-                facts={journey.facts}
-                checklist={journey.checklist}
-                nextAction={journey.nextAction}
-                onAction={handleJourneyAction}
-                onSeeSteps={scrollToSetup}
-                actionLoading={trialLoading}
-                  />
-                </div>
-              )}
 
               {!membershipLoading && trialBanner !== "none" && trialBanner !== "ended" && (
                 <div
@@ -699,8 +649,8 @@ const UserDashboard = () => {
                   <TabsTrigger value="saved" className="gap-1.5">
                     <Bookmark className="h-3.5 w-3.5" />
                     Saved
-                    {activity.saved > 0 && (
-                      <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{activity.saved}</Badge>
+                    {ctx.facts.journey.savedItems > 0 && (
+                      <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{ctx.facts.journey.savedItems}</Badge>
                     )}
                   </TabsTrigger>
                   <TabsTrigger value="inbox" className="gap-1.5">
@@ -711,19 +661,20 @@ const UserDashboard = () => {
                 </TabsList>
 
                 <TabsContent value="home" className="space-y-6">
-                  {!journey.loading && !journey.checklistDismissedAt && (
+                  {!ctx.checklistDismissedAt && (
                     <GettingStartedChecklist
-                      items={journey.checklist}
+                      items={ctx.checklist}
                       onGoToTab={setActiveTab}
-                      onDismiss={journey.dismissChecklist}
+                      onDismiss={dismissChecklist}
                       userId={user?.id}
-                      onChanged={journey.refresh}
+                      onChanged={() => void ctx.refresh()}
+                      primaryHref={ctx.primary?.href ?? null}
                     />
                   )}
 
                   <SkinProfileHero
                     latest={latestAnalysis}
-                    loading={dataLoading}
+                    loading={analysesQuery.isLoading}
                     allowance={allowance}
                     onViewFullAnalysis={() => setActiveTab("analysis")}
                   />
@@ -735,7 +686,7 @@ const UserDashboard = () => {
                       skinProfile={weatherProfile}
                       onSaveCity={async (key) => {
                         const ok = await saveWeatherCity(key);
-                        if (ok) journey.refresh();
+                        if (ok) void ctx.refresh();
                         return ok;
                       }}
                     />
@@ -745,38 +696,7 @@ const UserDashboard = () => {
 
                   <ForYourProfileFeed />
 
-                  {/* One row of secondary cards. */}
-                  <div className="grid gap-6 md:grid-cols-3">
-                    <AnalysisCreditsCard
-                      allowance={allowance}
-                      loading={allowanceLoading}
-                      error={allowanceError}
-                      onRetry={() => void refreshAllowance()}
-                    />
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-sm font-medium flex items-center gap-2"><Crown className="h-4 w-4 text-primary" />Subscription</CardTitle></CardHeader>
-                      <CardContent>
-                        <Badge variant={isSubscribed ? "default" : "secondary"}>
-                          {tierLabel}{isTrialing ? " (trial)" : ""}
-                        </Badge>
-                        {isSubscribed && !isTrialing && profile?.subscription_started_at && (
-                          <p className="text-xs text-muted-foreground mt-2">Since {new Date(profile.subscription_started_at).toLocaleDateString()}</p>
-                        )}
-                        {isTrialing && (
-                          <p className="text-xs text-muted-foreground mt-2">{trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left</p>
-                        )}
-                        <Button variant="ghost" size="sm" className="mt-2 h-auto px-0 text-xs text-primary" onClick={() => setActiveTab("billing")}>
-                          Manage billing
-                        </Button>
-                      </CardContent>
-                    </Card>
-                    <AnalysisPassesCard
-                      balance={aiCredits}
-                      loading={dataLoading}
-                      error={creditsError}
-                      onRetry={() => void retryAnalysisPassBalance()}
-                    />
-                  </div>
+                  <PlanStatusRow facts={ctx.facts} tierLabel={tierLabel} allowance={allowance} />
                 </TabsContent>
 
                 <TabsContent value="skin" className="space-y-6">
@@ -793,7 +713,7 @@ const UserDashboard = () => {
                   {activeSection === "analysis" && (
                     <div className="space-y-6">
                       <FormulatorTab onGoToProfile={() => setActiveTab("profile")} />
-                      <AdvancedAssessmentCard isMember={isMember} balance={aiCredits} loading={dataLoading || membershipLoading} />
+                      <AdvancedAssessmentCard isMember={isMember} balance={ctx.facts.analysisPasses} loading={membershipLoading} />
                     </div>
                   )}
                   {activeSection === "routine" && <RoutineTrackerTab />}
@@ -802,23 +722,6 @@ const UserDashboard = () => {
 
                 <TabsContent value="saved" className="space-y-6">
                   <SavedContentTab />
-                  {(activity.liked > 0 || activity.saved > 0 || activity.comments > 0) && (
-                    <Card>
-                      <CardHeader className="pb-3"><CardTitle className="text-base">Your activity</CardTitle><CardDescription>Real engagement from your account — briefings you've liked or saved, and comments you've posted.</CardDescription></CardHeader>
-                      <CardContent className="flex flex-wrap gap-6">
-                        <div><p className="text-2xl font-bold text-foreground">{activity.liked}</p><p className="text-xs text-muted-foreground">Liked briefings</p></div>
-                        <button type="button" onClick={() => setActiveTab("saved")} className="text-left hover:opacity-80">
-                          <p className="text-2xl font-bold text-foreground">{activity.saved}</p>
-                          <p className="text-xs text-muted-foreground">Saved briefings</p>
-                        </button>
-                        <div><p className="text-2xl font-bold text-foreground">{activity.comments}</p><p className="text-xs text-muted-foreground">Comments</p></div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  <Card>
-                    <CardHeader className="pb-3"><CardTitle className="text-base">Daily Skinny — for you</CardTitle></CardHeader>
-                    <CardContent><NewsfeedCarousel /></CardContent>
-                  </Card>
                 </TabsContent>
 
                 <TabsContent value="inbox"><InboxTab /></TabsContent>
@@ -839,28 +742,8 @@ const UserDashboard = () => {
                   {activeSection === "profile" && <ProfileTab />}
                   {activeSection === "billing" && (
                     <div className="space-y-6">
-                      <BillingTab aiCredits={aiCredits} />
-                  {preorders.length > 0 && (
-                    <Card>
-                      <CardHeader><CardTitle className="flex items-center gap-2"><Package className="h-5 w-5" />Your Pre-Orders</CardTitle></CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          {preorders.map((order) => (
-                            <div key={order.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                              <div>
-                                <p className="font-medium text-foreground capitalize">{order.product_type.replace("_", " ")}</p>
-                                <p className="text-sm text-muted-foreground">{new Date(order.created_at).toLocaleDateString()}</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium text-foreground">R{order.amount}</p>
-                                <Badge variant={order.status === "complete" ? "default" : "secondary"} className="text-xs">{order.status}</Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      <BillingTab aiCredits={ctx.facts.analysisPasses} />
+                      <PreOrdersCard />
                     </div>
                   )}
                   {activeSection === "security" && (
@@ -874,7 +757,12 @@ const UserDashboard = () => {
                       <AppSettingsPanel />
                     </Suspense>
                   )}
-                  {activeSection === "account" && <AccountTab />}
+                  {activeSection === "account" && (
+                    <div className="space-y-6">
+                      <AccountTab />
+                      <div className="flex justify-end"><ReportBugButton /></div>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>

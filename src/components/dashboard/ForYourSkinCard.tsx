@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Moon, Sparkles, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSmartRoutine } from "@/hooks/use-smart-routine";
 import { buildSmartRoutine } from "@/lib/smartRoutine/engine";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
-import { ADVANCED_NAME, BASIC_NAME, SKYNN_ROUTE } from "@/lib/skynn/terminology";
+import { ADVANCED_NAME, BASIC_NAME } from "@/lib/skynn/terminology";
 
 /**
  * Dashboard Home, personalised from the member's own submissions (never from
  * analytics): today's Smart Routine when they have one, otherwise a few
- * reviewed products picked for their skin plus the route to a Smart Routine.
- * Renders nothing until there's at least one saved analysis.
+ * reviewed products picked for their skin. Informational: building or checking
+ * in on a routine is the next-action card's job. Renders nothing until there's
+ * at least one saved analysis.
  */
 const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
-  const { access, saved, profile, sources, loading } = useSmartRoutine({ withReport: false });
+  const { saved, profile, sources, loading } = useSmartRoutine({ withReport: false });
   const viewed = useRef(false);
 
   const picks = useMemo(() => {
@@ -51,9 +51,9 @@ const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
             <div className="min-w-0 flex items-start gap-2"><Sun className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><span className="min-w-0 break-words leading-relaxed">{am.map((s) => s.step).join(" → ")}</span></div>
             <div className="min-w-0 flex items-start gap-2"><Moon className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" /><span className="min-w-0 break-words leading-relaxed">{pm.map((s) => s.step).join(" → ")}</span></div>
           </div>
-          <Button size="sm" variant="outline" className="w-full gap-2 sm:w-auto" onClick={onOpenRoutine}>
-            Check in <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
+          <button type="button" onClick={onOpenRoutine} className="inline-flex min-h-9 items-center gap-1.5 text-sm font-medium underline-offset-4 hover:underline">
+            Open my routine <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
         </CardContent>
       </Card>
     );
@@ -88,16 +88,6 @@ const ForYourSkinCard = ({ onOpenRoutine }: { onOpenRoutine: () => void }) => {
           </ul>
         ) : (
           <p className="text-sm text-muted-foreground">We couldn&apos;t match a reviewed product to your answers yet.</p>
-        )}
-        {access ? (
-          <Button size="sm" className="gap-2" onClick={onOpenRoutine}>
-            <Sparkles className="h-3.5 w-3.5" /> Build my Smart Routine
-          </Button>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Want a full morning and evening routine with a weekly plan?{" "}
-            <Link to={SKYNN_ROUTE} className="underline underline-offset-2">Smart Routines are free with your {BASIC_NAME}</Link>.
-          </p>
         )}
       </CardContent>
     </Card>

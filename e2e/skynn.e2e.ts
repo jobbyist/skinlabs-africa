@@ -81,14 +81,23 @@ test("weekly limit: a second Basic AI Skin Analysis inside 7 days is refused wit
   noLegacyCalls(state);
 });
 
-test("every Advanced entry point on /skynn-ai goes to the one Pass-gated flow", async ({ page, context }) => {
-  const state = await mockSupabase(context, { profile: freeProfile({ subscription_status: "insider" }) });
+test("the Advanced entry point on /skynn-ai goes to the one Pass-gated flow (and the quiz itself has no upsell)", async ({ page, context }) => {
+  const state = await mockSupabase(context, { profile: freeProfile() });
   await page.goto("/skynn-ai");
-  await page.getByRole("button", { name: "Get an Advanced AI Dermatology Analysis" }).click();
+  // One quiet pointer on the intro; the old "Want to go deeper?" panel and mid-quiz upsell are gone.
+  await expect(page.getByText("Want to go deeper?")).toHaveCount(0);
+  await page.getByRole("link", { name: "Go deeper with the Advanced AI Dermatology Analysis" }).click();
   await expect(page).toHaveURL(/\/skynn-ai\/advanced$/);
   // Membership alone doesn't include it — the server's access check says no Pass.
   await expect(page.getByText("You'll need an Analysis Pass")).toBeVisible();
   await expect(page.getByRole("button", { name: "Get an Analysis Pass" })).toBeVisible();
+  noLegacyCalls(state);
+});
+
+test("an Insider without a Pass is still sent through the Pass gate", async ({ page, context }) => {
+  const state = await mockSupabase(context, { profile: freeProfile({ subscription_status: "insider" }) });
+  await page.goto("/skynn-ai/advanced");
+  await expect(page.getByText("You'll need an Analysis Pass")).toBeVisible();
   noLegacyCalls(state);
 });
 

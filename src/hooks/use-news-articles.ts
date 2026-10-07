@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface NewsArticleSummary {
@@ -40,10 +41,7 @@ const isPaginatedOptions = (value: unknown): value is NewsArticlesPage =>
  * Live Daily Skinny briefings. Bodies are never fetched here — they are member gated server side.
  * Pass a number for a simple top-N fetch, or `{ page, pageSize, region? }` for paginated listing.
  */
-export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
-  const [articles, setArticles] = useState<NewsArticleSummary[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage, options: { enabled?: boolean } = {}) => {
   const paginated = isPaginatedOptions(limitOrPage);
   const limit = typeof limitOrPage === "number" ? limitOrPage : undefined;
   const page = paginated ? limitOrPage.page : 1;
@@ -53,40 +51,41 @@ export const useNewsArticles = (limitOrPage?: number | NewsArticlesPage) => {
       ? limitOrPage.region
       : null;
 
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      setLoading(true);
-      let query = supabase
+  // react-query: consumers asking for the same list share one request, and coming back to a
+  // page shows the cached list at once instead of refetching (it refreshes in the background).
+  const query = useQuery({
+    queryKey: ["news-articles", limit ?? null, paginated, page, pageSize, region],
+    enabled: options.enabled ?? true,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      let q = supabase
         .from("news_articles_public")
         .select(SELECT_COLUMNS, paginated ? { count: "exact" } : undefined)
         .order("publish_date", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (region) {
-        query = query.eq("sa_context_tag", region);
+        q = q.eq("sa_context_tag", region);
       }
 
       if (paginated) {
         const from = (page - 1) * pageSize;
-        query = query.range(from, from + pageSize - 1);
+        q = q.range(from, from + pageSize - 1);
       } else if (limit) {
-        query = query.limit(limit);
+        q = q.limit(limit);
       }
 
-      const { data, count } = await query;
-      if (!active) return;
-      setArticles((data as unknown as NewsArticleSummary[]) ?? []);
-      if (paginated) setTotalCount(count ?? 0);
-      setLoading(false);
-    };
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [limit, paginated, page, pageSize, region]);
+      const { data, count } = await q;
+      return { articles: (data as unknown as NewsArticleSummary[]) ?? [], count: count ?? 0 };
+    },
+  });
 
-  return { articles, loading, totalCount };
+  return {
+    articles: query.data?.articles ?? [],
+    loading: query.isPending || (paginated && query.isFetching),
+    totalCount: paginated ? query.data?.count ?? 0 : 0,
+  };
 };
 
 /** Distinct SA context tags from all published briefings (for global filter dropdown). */
