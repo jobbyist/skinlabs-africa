@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
+import type { SavedSmartRoutine } from "@/hooks/use-smart-routine";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
 import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { useContentSignals } from "@/hooks/use-content-signals";
@@ -24,6 +25,7 @@ import type { LadderTier } from "@/lib/entitlements";
 import { detectPlatform, isApplePlatform, readDetectionEnv } from "@/lib/pwa/detection";
 import { getPushCapabilityNow } from "@/lib/pwa/pushCapability";
 import { MEMBER_CONTEXT_CHANGED_EVENT, writeSkinProfileHint } from "@/lib/context/changeEvent";
+import { captureLastVisit } from "@/lib/context/lastVisit";
 import { bindLedgerToUser, getLedger, subscribeLedger } from "@/lib/context/ledgerStore";
 
 /**
@@ -71,7 +73,7 @@ interface MemberCore {
   routineSteps: number;
   routineCheckins: number;
   lastCheckinDate: string | null;
-  smartRoutine: { updated_at: string; source: string } | null;
+  smartRoutine: SavedSmartRoutine | null;
   smartRoutineAccess: boolean;
   reports: ReportRow[];
   advancedAccess: { eligible: boolean; passes: number; open: boolean } | null;
@@ -111,7 +113,7 @@ const loadCore = async (userId: string): Promise<MemberCore> => {
     // Seeded starter steps aren't the member saving a routine (mirrors is_trial_activated()).
     supabase.from("routine_steps").select("id", { count: "exact", head: true }).eq("user_id", userId).neq("source", "default"),
     supabase.from("routine_checkins").select("checkin_date", { count: "exact" }).eq("user_id", userId).order("checkin_date", { ascending: false }).limit(1),
-    supabase.from("smart_routines").select("updated_at, source").eq("user_id", userId).maybeSingle(),
+    supabase.from("smart_routines").select("*").eq("user_id", userId).maybeSingle(),
     Promise.resolve(supabase.rpc("get_advanced_assessment_access")).catch(() => ({ data: null })),
     Promise.resolve(supabase.rpc("get_smart_routine_access")).catch(() => ({ data: false })),
     supabase
@@ -121,6 +123,10 @@ const loadCore = async (userId: string): Promise<MemberCore> => {
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
+  // A failed read must not be mistaken for "the member has done nothing": that would tell someone with an
+  // analysis to take one. Throw so react-query keeps any earlier data and the UI says it couldn't load.
+  const failed = [profile, analyses, steps, checkins, routine, reports].find((r) => r.error);
+  if (failed?.error) throw new Error(failed.error.message);
   const accessRow = Array.isArray(access.data) ? access.data[0] : access.data;
   return {
     profile: (profile.data as MemberProfile | null) ?? null,
@@ -129,7 +135,7 @@ const loadCore = async (userId: string): Promise<MemberCore> => {
     routineSteps: steps.count ?? 0,
     routineCheckins: checkins.count ?? 0,
     lastCheckinDate: (checkins.data?.[0]?.checkin_date as string | undefined) ?? null,
-    smartRoutine: routine.data ? { updated_at: routine.data.updated_at, source: routine.data.source } : null,
+    smartRoutine: (routine.data as unknown as SavedSmartRoutine | null) ?? null,
     smartRoutineAccess: smartAccess.data === true,
     reports: (reports.data ?? []) as unknown as ReportRow[],
     advancedAccess: accessRow
@@ -166,6 +172,17 @@ const ladderTierFor = (signedIn: boolean, tier: "explorer" | "glow_lite" | "insi
 
 export { notifyMemberContextChanged } from "@/lib/context/changeEvent";
 
+/** The shared member snapshot itself, for hooks that need a slice of it (same cache entry, no extra request). */
+export const useMemberCore = () => {
+  const { user, loading: authLoading } = useAuth();
+  return useQuery({
+    queryKey: memberCoreKey(user?.id),
+    enabled: !authLoading && Boolean(user),
+    staleTime: STALE_MS,
+    queryFn: () => loadCore(user!.id),
+  });
+};
+
 export interface AppContextOptions {
   /** Also load the Getting Started facts (saved items, content reads, card on file, MFA, push device). Dashboard only. */
   setup?: boolean;
@@ -182,6 +199,11 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
   const userId = user?.id;
   const ledger = useSyncExternalStore(subscribeLedger, getLedger, getLedger);
   useEffect(() => bindLedgerToUser(userId), [userId]);
+  // The visit before this one (captured once per page load), so a daily reader is never called inactive.
+  const [previousVisit, setPreviousVisit] = useState<string | null>(null);
+  useEffect(() => {
+    if (userId) setPreviousVisit(captureLastVisit(userId, new Date().toISOString()));
+  }, [userId]);
 
   const coreQuery = useQuery({
     queryKey: memberCoreKey(userId),
@@ -276,7 +298,7 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
         now,
       }),
       checkedInToday: core?.lastCheckinDate === localDateStr(),
-      lastActiveAt: newestOf(core?.lastCheckinDate ? `${core.lastCheckinDate}T12:00:00Z` : null, lastAnalysisAt),
+      lastActiveAt: newestOf(core?.lastCheckinDate ? `${core.lastCheckinDate}T12:00:00Z` : null, lastAnalysisAt, previousVisit),
       recentReviewViews: signals.recentReviewViews,
       unreadBriefing: signals.briefing && !signals.briefingStarted ? signals.briefing : null,
       startedBriefing: signals.briefing && signals.briefingStarted ? signals.briefing : null,
@@ -286,7 +308,7 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
     };
     // coreQuery.dataUpdatedAt re-stamps `now` whenever fresh data arrives.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, membership.tier, membership.isTrialing, membership.trialUsed, membership.trialEndsAt, core, setupData, allowance.data, signals, ledger, coreQuery.dataUpdatedAt]);
+  }, [userId, membership.tier, membership.isTrialing, membership.trialUsed, membership.trialEndsAt, core, setupData, allowance.data, signals, ledger, previousVisit, coreQuery.dataUpdatedAt]);
 
   const states = useMemo(() => deriveContextStates(facts), [facts]);
   const stage = resolveJourneyStage(facts.journey);
@@ -294,6 +316,8 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
 
   return {
     loading,
+    /** The snapshot couldn't be read and there is nothing cached to fall back on: make no claims about the member. */
+    unavailable: coreQuery.isError && !core,
     isSignedIn: Boolean(userId),
     facts,
     states,

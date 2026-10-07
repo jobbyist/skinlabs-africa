@@ -85,7 +85,8 @@ export const ACTIONS: ActionDef[] = [
     surfaceLabels: { home_hero: "Get Your Free Basic AI Skin Report" },
     priority: 90,
     fatigue: { essential: true },
-    eligible: (f) => f.journey.savedAnalyses === 0 && !f.journey.hasLocalAnalysis,
+    // A member whose Advanced analysis is already in hand doesn't need to be walked back to the Basic one.
+    eligible: (f) => f.journey.savedAnalyses === 0 && !f.journey.hasLocalAnalysis && f.advancedStatus === "none",
     completed: (f) => f.journey.savedAnalyses >= 1 || f.journey.hasLocalAnalysis,
     build: () => ({
       label: "Take the 2-minute Basic AI Skin Analysis",

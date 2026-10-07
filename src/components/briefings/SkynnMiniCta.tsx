@@ -28,6 +28,17 @@ const SkynnMiniCta = (props: SkynnMiniCtaProps) => {
   return hasProfile ? <MemberNextStep source={props.source ?? "briefing_article"} /> : <InviteCard {...props} />;
 };
 
+/**
+ * "What's next for you" at the end of an article, review or episode. Renders nothing for visitors and for
+ * members without a skin profile (they have the invitation card or nothing), so it can be dropped in anywhere
+ * without adding a promo for people it doesn't apply to.
+ */
+export const MemberNextStepCard = ({ source }: { source: string }) => {
+  const { user } = useAuth();
+  if (!user || !readSkinProfileHint(user.id)) return null;
+  return <MemberNextStep source={source} />;
+};
+
 const MemberNextStep = ({ source }: { source: string }) => {
   const { primary, loading, click } = useContextualActions("content_end", { secondaryLimit: 0 });
   if (loading || !primary || !primary.href) return null;

@@ -102,7 +102,8 @@ test("a member with a skin profile gets Home · My Skin · Routine · Explore ·
   await expect(nav.getByLabel("Routine")).toHaveAttribute("aria-current", "page");
   // Explore opens the menu that still carries every destination.
   await nav.getByLabel("Explore").click();
-  await expect(page.getByRole("link", { name: /Compare/ }).first()).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("link", { name: /Comparisons/ })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("link", { name: /Podcast/ })).toBeVisible();
 });
 
 test("a visitor and a brand-new member keep the public content tabs", async ({ page, context }, info) => {
@@ -119,4 +120,26 @@ test("no horizontal overflow on Home at phone width in each state", async ({ pag
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+});
+
+test("FAILED READ: Home says it couldn't load and never guesses 'take the analysis'", async ({ page, context }) => {
+  await mockSupabase(context, { profile: freeProfile(), tables: { skincare_recommendations: [BASIC_ROW] } });
+  // Registered after the mock, so it wins: the member's routine read fails.
+  await context.route(/supabase\.co\/rest\/v1\/routine_steps/, (r) => r.abort());
+  await page.goto("/dashboard");
+  await expect(page.getByText("We couldn't load your latest activity just now.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Take the 2-minute Basic AI Skin Analysis" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+});
+
+test("a secondary suggestion can be dismissed with 'Not now' and stays away", async ({ page, context }) => {
+  await mockSupabase(context, { profile: freeProfile({ trial_used_at: null }), tables: { skincare_recommendations: [BASIC_ROW] } });
+  await page.goto("/dashboard");
+  const dismiss = page.getByRole("button", { name: /^Not now:/ }).first();
+  await expect(dismiss).toBeVisible();
+  const label = (await dismiss.getAttribute("aria-label"))!.replace("Not now: ", "");
+  await dismiss.click();
+  await expect(page.getByText(label, { exact: true })).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByText(label, { exact: true })).toHaveCount(0);
 });

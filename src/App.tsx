@@ -1,6 +1,7 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -119,11 +120,38 @@ const queryClient = new QueryClient({
 });
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
 const LegacyNewsroomArticleRedirect = () => { const { slug } = useParams(); return <Navigate to={`/briefings/${slug}`} replace />; };
-const RouteFallback = () => (<div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>);
+// While a lazy route chunk loads: a quiet page-shaped skeleton (header height reserved, content blocks where the
+// page will put them) rather than a full-screen spinner, so the layout doesn't jump when the page arrives.
+const RouteFallback = () => (
+  <div className="min-h-screen bg-background" aria-busy="true" aria-label="Loading">
+    <div className="container mx-auto max-w-5xl space-y-6 px-4 pt-28">
+      <Skeleton className="h-9 w-2/3 max-w-md rounded-lg" />
+      <Skeleton className="h-4 w-full max-w-xl rounded" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+      <Skeleton className="h-40 w-full rounded-2xl" />
+    </div>
+  </div>
+);
+
+/**
+ * Private, per-member query data (the contextual snapshot, allowance, pre-orders) must not outlive the
+ * session in memory: on sign-out the cache for those keys is dropped, so the next person on a shared
+ * device can never see it. Every such key also carries the user id, so a different account never reads it.
+ */
+const usePurgePrivateCacheOnSignOut = () => {
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      for (const key of ["member-context", "formulator-allowance", "preorders"]) queryClient.removeQueries({ queryKey: [key] });
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+};
 
 const AppContent = () => {
   const { pathname } = useLocation();
   useDeploymentSkewGuard();
+  usePurgePrivateCacheOnSignOut();
   return (
     <>
       <Suspense fallback={null}>

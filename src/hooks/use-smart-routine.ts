@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import { useMemberCore } from "@/hooks/use-app-context";
 import { getAdvancedAssessmentReport } from "@/lib/assessment/client";
 import { getReportDisplayStatus, type ReportRoutineStep } from "@/lib/assessment/types";
 import { buildMemberSkinProfile, hasSkinProfile, type MemberSkinProfile } from "@/lib/skynn/memberSkinProfile";
@@ -121,21 +122,11 @@ export const useSmartRoutine = (options: { withReport?: boolean } = {}) => {
   const { user } = useAuth();
   const { sources, profile, loading: sourcesLoading, refresh: refreshSources } = useMemberSources(options);
   const queryClient = useQueryClient();
-  const routineQuery = useQuery({
-    queryKey: ["member-context", "smart-routine", user?.id ?? "anon"],
-    enabled: Boolean(user),
-    staleTime: 30_000,
-    queryFn: async () => {
-      const [{ data: allowed }, { data: row }] = await Promise.all([
-        supabase.rpc("get_smart_routine_access"),
-        supabase.from("smart_routines").select("*").eq("user_id", user!.id).maybeSingle(),
-      ]);
-      return { access: allowed === true, saved: (row as unknown as SavedSmartRoutine | null) ?? null };
-    },
-  });
-  const access: boolean | null = user ? routineQuery.data?.access ?? null : false;
-  const saved = user ? routineQuery.data?.saved ?? null : null;
-  const loading = Boolean(user) && routineQuery.isLoading;
+  // Access + the saved routine come from the shared member snapshot (use-app-context.ts): no separate requests.
+  const core = useMemberCore();
+  const access: boolean | null = user ? core.data?.smartRoutineAccess ?? null : false;
+  const saved = user ? core.data?.smartRoutine ?? null : null;
+  const loading = Boolean(user) && core.isLoading;
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(

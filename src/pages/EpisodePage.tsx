@@ -13,6 +13,8 @@ import { latestPublishedEpisode, PODCAST_SEASON_2_LINE, podcastEpisodes, publish
 import { podcastComments } from "@/data/articleComments";
 import { useMembership } from "@/hooks/use-membership";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import { nextEpisodeAfter } from "@/lib/context";
+import { MemberNextStepCard } from "@/components/briefings/SkynnMiniCta";
 import { SITE_URL } from "@/lib/seo-config";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
@@ -22,6 +24,7 @@ const EpisodePage = () => {
   const { isMember } = useMembership();
   const episode = podcastEpisodes.find((item) => item.slug === slug);
   const isCurrentEpisode = current?.slug === episode?.slug;
+  const nextEpisode = episode ? nextEpisodeAfter(publishedPodcastEpisodes, episode.slug) : null;
   const activeChapterSeconds = isCurrentEpisode
     ? [...(episode?.timestamps ?? [])].reverse().find((stamp) => progress >= stamp.seconds)?.seconds
     : undefined;
@@ -198,6 +201,16 @@ const EpisodePage = () => {
             )}
 
             <RelatedKnowledgeHub keywords={episode.topics} />
+            <MemberNextStepCard source="podcast_episode" />
+            {nextEpisode && (
+              <Link
+                to={`/podcast/${nextEpisode.slug}`}
+                className="card-interactive block rounded-2xl border border-border bg-card p-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Up next</p>
+                <p className="mt-0.5 font-heading text-base font-semibold text-foreground">{nextEpisode.title}</p>
+              </Link>
+            )}
 
             <AdSlot placement="episode-mid-3" compact />
 

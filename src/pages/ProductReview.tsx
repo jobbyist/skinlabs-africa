@@ -21,6 +21,7 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import { MemberNextStepCard } from "@/components/briefings/SkynnMiniCta";
 import SaPricesPanel from "@/components/SaPricesPanel";
 import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
 import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
@@ -480,6 +481,7 @@ const ProductReview = () => {
           <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+          <MemberNextStepCard source="product_review" />
 
           <NewsletterSignup source="review-end" />
 

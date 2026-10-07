@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { OPEN_MENU_EVENT } from "@/lib/context/menuEvent";
 import { Link, useLocation } from "react-router-dom";
 import {
@@ -43,7 +43,11 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import AuthDialog from "@/components/AuthDialog";
-import SiteSearch from "@/components/SiteSearch";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
+
+// The search drawer pulls in the whole content catalogue (reviews, comparisons, FAQ…) and a briefings
+// query. It is loaded the first time someone opens search, not on every page view.
+const SiteSearch = lazyWithRetry(() => import("@/components/SiteSearch"));
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
 import PromoAnnouncementBar, { PromoHeaderChip } from "@/components/PromoAnnouncementBar";
@@ -217,12 +221,30 @@ const DesktopMenuPanel = ({
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpenState] = useState(false);
+  const [searchMounted, setSearchMounted] = useState(false);
+  const setSearchOpen = (open: boolean) => {
+    if (open) setSearchMounted(true);
+    setSearchOpenState(open);
+  };
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [exploreOpen, setExploreOpen] = useState(true);
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
+  // Cmd/Ctrl+K opens search before its chunk has loaded; once mounted, the drawer's own handler takes over.
+  useEffect(() => {
+    if (searchMounted) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setSearchMounted(true);
+        setSearchOpenState(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [searchMounted]);
   // The bottom nav's "Explore" tab opens this menu (its Explore grid carries every content section).
   useEffect(() => {
     const openMenu = () => setOpen(true);
@@ -529,7 +551,11 @@ const Header = () => {
       </Sheet>
 
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} mode={authMode} onModeChange={setAuthMode} />
-      <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      {searchMounted && (
+        <Suspense fallback={null}>
+          <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
+        </Suspense>
+      )}
     </>
   );
 };

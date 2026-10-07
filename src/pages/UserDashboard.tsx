@@ -1,5 +1,20 @@
 import { Suspense, useEffect, useRef, useState } from "react";
-import { lazyWithRetry } from "@/lib/chunkRecovery";
+import {
+  AccountTab,
+  AdvancedAssessmentCard,
+  AppSettingsPanel,
+  BillingTab,
+  EmailVerificationCard,
+  FormulatorTab,
+  InboxTab,
+  MFASettingsCard,
+  PreOrdersCard,
+  ProfileTab,
+  RoutineTrackerTab,
+  SavedContentTab,
+  SkinJourneyTab,
+  prefetchDashboardGroup,
+} from "@/components/dashboard/lazyTabs";
 import { Helmet } from "react-helmet-async";
 import { useSearchParams, useLocation, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -15,26 +30,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useStartTrial } from "@/hooks/use-start-trial";
 import { supabase } from "@/integrations/supabase/client";
-import MFASettingsCard from "@/components/MFASettingsCard";
-import EmailVerificationCard from "@/components/EmailVerificationCard";
-import ProfileTab from "@/components/dashboard/ProfileTab";
-import SkinJourneyTab from "@/components/dashboard/SkinJourneyTab";
-import RoutineTrackerTab from "@/components/dashboard/RoutineTrackerTab";
-import BillingTab from "@/components/dashboard/BillingTab";
-import InboxTab from "@/components/dashboard/InboxTab";
-import AccountTab from "@/components/dashboard/AccountTab";
-const AppSettingsPanel = lazyWithRetry(() => import("@/components/pwa/AppSettingsPanel"));
-import SavedContentTab from "@/components/dashboard/SavedContentTab";
 import AuthDialog from "@/components/AuthDialog";
-import FormulatorTab from "@/components/dashboard/FormulatorTab";
-import AdvancedAssessmentCard from "@/components/dashboard/AdvancedAssessmentCard";
 import SkinProfileHero from "@/components/dashboard/SkinProfileHero";
 import ForYourSkinCard from "@/components/dashboard/ForYourSkinCard";
 import ForYourProfileFeed from "@/components/dashboard/ForYourProfileFeed";
 import GettingStartedChecklist from "@/components/dashboard/GettingStartedChecklist";
 import NextActionCard from "@/components/dashboard/NextActionCard";
 import PlanStatusRow from "@/components/dashboard/PlanStatusRow";
-import PreOrdersCard from "@/components/dashboard/PreOrdersCard";
 import SectionNav from "@/components/dashboard/SectionNav";
 import { useContextualActions } from "@/hooks/use-contextual-actions";
 import { notifyMemberContextChanged, type MemberProfile } from "@/hooks/use-app-context";
@@ -58,6 +60,13 @@ import { openKeepMembership, openSignupDialog } from "@/lib/conversionDialogs";
 import { sastDaysUntil, trialBannerState } from "@/lib/trialLifecycle";
 
 const ANALYSES_COLUMNS = "id, skin_type, concerns, created_at, status, mst_tone, analysis_completeness, result_payload";
+
+const TabFallback = () => (
+  <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <Skeleton className="h-10 w-full max-w-sm rounded-xl" />
+    <Skeleton className="h-64 w-full rounded-2xl" />
+  </div>
+);
 
 const UserDashboard = () => {
   const { user, loading } = useAuth();
@@ -563,6 +572,9 @@ const UserDashboard = () => {
                   secondary={ctx.secondary}
                   busy={trialLoading}
                   onAction={handleAction}
+                  onDismiss={ctx.dismiss}
+                  unavailable={ctx.unavailable}
+                  onRetry={() => void ctx.refresh()}
                 />
               </div>
 
@@ -634,20 +646,23 @@ const UserDashboard = () => {
               <Tabs value={activeGroup} onValueChange={setActiveGroup} className="space-y-6">
                 <TabsList className="flex flex-wrap h-auto">
                   <TabsTrigger value="home">Home</TabsTrigger>
-                  <TabsTrigger value="skin">My Skin</TabsTrigger>
-                  <TabsTrigger value="saved" className="gap-1.5">
+                  <TabsTrigger value="skin" onPointerEnter={() => prefetchDashboardGroup("skin")} onFocus={() => prefetchDashboardGroup("skin")}>My Skin</TabsTrigger>
+                  <TabsTrigger value="saved" onPointerEnter={() => prefetchDashboardGroup("saved")} onFocus={() => prefetchDashboardGroup("saved")} className="gap-1.5">
                     <Bookmark className="h-3.5 w-3.5" />
                     Saved
                     {ctx.facts.journey.savedItems > 0 && (
                       <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{ctx.facts.journey.savedItems}</Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="inbox" className="gap-1.5">
+                  <TabsTrigger value="inbox" onPointerEnter={() => prefetchDashboardGroup("inbox")} onFocus={() => prefetchDashboardGroup("inbox")} className="gap-1.5">
                     Inbox
                     {unreadCount > 0 && <Badge className="ml-0.5 h-4 min-w-4 justify-center px-1 text-[10px]">{unreadCount}</Badge>}
                   </TabsTrigger>
-                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                  <TabsTrigger value="settings" onPointerEnter={() => prefetchDashboardGroup("settings")} onFocus={() => prefetchDashboardGroup("settings")}>Settings</TabsTrigger>
                 </TabsList>
+
+                {/* Sections other than Home load on demand (lazyTabs.ts); the skeleton matches a section's footprint. */}
+                <Suspense fallback={<TabFallback />}>
 
                 <TabsContent value="home" className="space-y-6">
                   {!ctx.checklistDismissedAt && (
@@ -753,6 +768,7 @@ const UserDashboard = () => {
                     </div>
                   )}
                 </TabsContent>
+                </Suspense>
               </Tabs>
             </div>
           </section>

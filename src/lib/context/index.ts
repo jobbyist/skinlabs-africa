@@ -6,3 +6,5 @@ export * from "./navigation";
 export * from "./copy";
 export * from "./facts";
 export * from "./changeEvent";
+export * from "./lastVisit";
+export * from "./contentNext";

@@ -23,8 +23,12 @@ export const useContextualActions = (surface: Surface, options: { secondaryLimit
   const { facts, loading } = ctx;
 
   const resolution = useMemo(
-    () => resolveContext(facts, { surface, ledger, secondaryLimit: options.secondaryLimit }),
-    [facts, surface, ledger, options.secondaryLimit],
+    () =>
+      // If the member's data couldn't be read, say nothing rather than guess (a guess would re-ask for things already done).
+      ctx.unavailable
+        ? { states: new Set<never>() as ReadonlySet<never>, primary: null, secondary: [] as ResolvedAction[], suppressed: [] as { id: string; reason: "completed" }[] }
+        : resolveContext(facts, { surface, ledger, secondaryLimit: options.secondaryLimit }),
+    [facts, surface, ledger, options.secondaryLimit, ctx.unavailable],
   );
 
   // Impressions: once per action per day, only when the member is actually seeing the result.
@@ -40,6 +44,13 @@ export const useContextualActions = (surface: Surface, options: { secondaryLimit
       const discovery = a.feature === "ingredients" || a.feature === "discovery";
       trackContextEvent(discovery ? "feature_discovery_shown" : "contextual_cta_shown", { action: a.id, surface, feature: a.feature });
       if (i === 0 && surface === "dashboard") trackContextEvent("dashboard_primary_action_shown", { action: a.id, feature: a.feature });
+    }
+    // Completed actions are replaced, not repeated: report each replacement once.
+    for (const sup of resolution.suppressed.filter((x) => x.reason === "completed")) {
+      const key = `${surface}:done:${sup.id}`;
+      if (reportedRef.current.has(key)) continue;
+      reportedRef.current.add(key);
+      trackContextEvent("contextual_cta_suppressed", { action: sup.id, surface, reason: "completed" });
     }
     const fatigued = resolution.suppressed.filter((s) => s.reason === "fatigued" || s.reason === "dismissed");
     for (const s of fatigued) {

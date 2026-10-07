@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,6 +15,11 @@ interface NextActionCardProps {
   busy?: boolean;
   /** Runs a non-link action (sign-up, trial, keep membership) and records the click. */
   onAction: (action: ResolvedAction) => void;
+  /** "Not now" on a secondary suggestion; hides it for its cooldown, everywhere. */
+  onDismiss?: (action: ResolvedAction) => void;
+  /** The member's data couldn't be read: say so quietly instead of guessing what they should do. */
+  unavailable?: boolean;
+  onRetry?: () => void;
 }
 
 /**
@@ -22,7 +27,7 @@ interface NextActionCardProps {
  * next, with at most two quieter follow-ups. Everything else on Home informs; this acts.
  * Which action shows is decided by src/lib/context (never in this component).
  */
-const NextActionCard = ({ greeting, badge, primary, secondary, loading = false, busy = false, onAction }: NextActionCardProps) => {
+const NextActionCard = ({ greeting, badge, primary, secondary, loading = false, busy = false, onAction, onDismiss, unavailable = false, onRetry }: NextActionCardProps) => {
   if (loading) {
     return (
       <Card>
@@ -60,6 +65,17 @@ const NextActionCard = ({ greeting, badge, primary, secondary, loading = false, 
         </div>
         <p className="mt-1 text-sm text-secondary-text">{greeting.body}</p>
 
+        {unavailable && (
+          <p className="mt-4 text-sm text-muted-foreground" role="status">
+            We couldn&apos;t load your latest activity just now.{" "}
+            {onRetry && (
+              <button type="button" onClick={onRetry} className="font-medium text-foreground underline underline-offset-4">
+                Try again
+              </button>
+            )}
+          </p>
+        )}
+
         {primary && (
           <div className="mt-5">
             {button(primary)}
@@ -70,7 +86,7 @@ const NextActionCard = ({ greeting, badge, primary, secondary, loading = false, 
         {secondary.length > 0 && (
           <ul className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap sm:gap-x-6" aria-label="Also useful right now">
             {secondary.map((a) => (
-              <li key={a.id} className="min-w-0">
+              <li key={a.id} className="flex min-w-0 items-center gap-1">
                 {a.kind === "link" && a.href ? (
                   <Link
                     to={a.href}
@@ -88,6 +104,16 @@ const NextActionCard = ({ greeting, badge, primary, secondary, loading = false, 
                   >
                     <span className="min-w-0 break-words">{a.label}</span>
                     <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  </button>
+                )}
+                {onDismiss && (
+                  <button
+                    type="button"
+                    onClick={() => onDismiss(a)}
+                    aria-label={`Not now: ${a.label}`}
+                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:h-9 sm:w-9"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
                 )}
               </li>

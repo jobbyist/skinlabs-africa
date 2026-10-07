@@ -482,3 +482,51 @@ describe("contextual analytics payloads", () => {
     }
   });
 });
+
+import { __resetLastVisitForTests, captureLastVisit } from "@/lib/context";
+
+describe("last visit", () => {
+  test("captures the previous visit once per page load and records now", () => {
+    __resetLastVisitForTests();
+    const s = memStore();
+    s.setItem("skinlabs:last-visit:u1", "2026-09-01T08:00:00Z");
+    expect(captureLastVisit("u1", NOW, s)).toBe("2026-09-01T08:00:00Z");
+    expect(s.getItem("skinlabs:last-visit:u1")).toBe(NOW);
+    // A second component in the same page load sees the same previous visit, not "now".
+    expect(captureLastVisit("u1", "2026-10-07T08:00:05Z", s)).toBe("2026-09-01T08:00:00Z");
+    __resetLastVisitForTests();
+  });
+
+  test("first ever visit has no previous; garbage is ignored", () => {
+    __resetLastVisitForTests();
+    const s = memStore();
+    expect(captureLastVisit("u2", NOW, s)).toBeNull();
+    __resetLastVisitForTests();
+    s.setItem("skinlabs:last-visit:u3", "not a date");
+    expect(captureLastVisit("u3", NOW, s)).toBeNull();
+    __resetLastVisitForTests();
+  });
+
+  test("a member who was here yesterday is not inactive even with no check-ins for weeks", () => {
+    const f = facts({ lastActiveAt: newestOf("2026-08-01T00:00:00Z", "2026-10-06T08:00:00Z"), j: { savedAnalyses: 1 } });
+    expect(deriveContextStates(f).has("INACTIVE_USER")).toBe(false);
+    expect(contextualGreeting(f, "T").body).not.toContain("It's been");
+  });
+
+  test("Advanced pending but no Basic: status, not 'take the Basic analysis'", () => {
+    const f = facts({ advancedStatus: "pending", advancedOpen: true });
+    expect(primaryId(f)).toBe("advanced_status");
+  });
+});
+
+import { nextEpisodeAfter } from "@/lib/context";
+
+describe("next episode", () => {
+  const eps = [{ id: 3, slug: "c" }, { id: 1, slug: "a" }, { id: 2, slug: "b" }];
+  test("the next published episode by number; none after the latest; unknown slug gives none", () => {
+    expect(nextEpisodeAfter(eps, "a")?.slug).toBe("b");
+    expect(nextEpisodeAfter(eps, "b")?.slug).toBe("c");
+    expect(nextEpisodeAfter(eps, "c")).toBeNull();
+    expect(nextEpisodeAfter(eps, "zzz")).toBeNull();
+  });
+});
