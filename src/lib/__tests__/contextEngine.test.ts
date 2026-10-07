@@ -530,3 +530,15 @@ describe("next episode", () => {
     expect(nextEpisodeAfter(eps, "zzz")).toBeNull();
   });
 });
+
+import { idsMissingFrom, mergeIds } from "@/lib/savedContent";
+
+describe("saved content persistence rules", () => {
+  test("mergeIds is a first-seen-order union that ignores empties", () => {
+    expect(mergeIds(["a", "b"], ["b", "c"], null, undefined, ["", "a", "d"])).toEqual(["a", "b", "c", "d"]);
+  });
+  test("a like made on this device before signing in is detected as missing from the account", () => {
+    expect(idsMissingFrom(["a", "b", "c"], ["b"])).toEqual(["a", "c"]);
+    expect(idsMissingFrom([], ["x"])).toEqual([]);
+  });
+});

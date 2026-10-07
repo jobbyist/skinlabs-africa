@@ -21,6 +21,7 @@ import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { reconcileBriefingLikes, syncBriefingLike } from "@/lib/savedContent";
 import { extractEditorialDisclaimer } from "@/lib/editorialDisclaimer";
 
 interface InlineImage {
@@ -78,7 +79,15 @@ const NewsroomArticle = () => {
   useEffect(() => {
     if (!article?.id) return;
     setLiked(getLikedBriefingIds().includes(article.id));
-  }, [article?.id]);
+    if (!user || !article?.id) return;
+    let active = true;
+    void reconcileBriefingLikes(user.id).then((ids) => {
+      if (active) setLiked(ids.includes(article.id));
+    });
+    return () => {
+      active = false;
+    };
+  }, [article?.id, user]);
 
   useEffect(() => {
     if (!article?.id || !user) {
@@ -109,6 +118,7 @@ const NewsroomArticle = () => {
       const isLiked = toggleLikedBriefing(article.id).includes(article.id);
       setLiked(isLiked);
       toast.success(wasLiked ? "Like removed" : "Briefing liked");
+      if (user) void syncBriefingLike(user.id, article.id, isLiked);
       return;
     }
     if (!user) {

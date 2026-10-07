@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -310,6 +310,13 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, membership.tier, membership.isTrialing, membership.trialUsed, membership.trialEndsAt, core, setupData, allowance.data, signals, ledger, previousVisit, coreQuery.dataUpdatedAt]);
 
+  // Once a read has failed with nothing cached, stay "unavailable" until data actually arrives: a retry in flight
+  // (react-query flips back to pending) must not briefly fall back to guessing from empty facts.
+  const sawFailure = useRef(false);
+  if (coreQuery.isError && !core) sawFailure.current = true;
+  if (core || !userId) sawFailure.current = false;
+  const unavailable = sawFailure.current;
+
   const states = useMemo(() => deriveContextStates(facts), [facts]);
   const stage = resolveJourneyStage(facts.journey);
   const loading = authLoading || membership.loading || (Boolean(userId) && coreQuery.isLoading) || (setup && Boolean(userId) && setupQuery.isLoading);
@@ -317,7 +324,7 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
   return {
     loading,
     /** The snapshot couldn't be read and there is nothing cached to fall back on: make no claims about the member. */
-    unavailable: coreQuery.isError && !core,
+    unavailable,
     isSignedIn: Boolean(userId),
     facts,
     states,

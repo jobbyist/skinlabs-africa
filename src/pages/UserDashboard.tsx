@@ -105,6 +105,12 @@ const UserDashboard = () => {
   // what has SkinLabs learned, and what should I do next.
   const ctx = useContextualActions("dashboard", { secondaryLimit: 2, setup: true, content: true });
   const profile: MemberProfile | null = ctx.profile;
+
+  // The skeleton is for the first load only: a later background refetch (or a retry after an error) must not blank a page that is already showing.
+  const [booted, setBooted] = useState(false);
+  useEffect(() => {
+    if (!loading && !ctx.loading) setBooted(true);
+  }, [loading, ctx.loading]);
   const dashboardEntered = useRef(false);
   useEffect(() => {
     if (!user || ctx.loading || dashboardEntered.current) return;
@@ -498,7 +504,7 @@ const UserDashboard = () => {
     );
   }
 
-  if (loading || ctx.loading) {
+  if (!booted && (loading || ctx.loading)) {
     // The page frame renders at once with skeletons shaped like the final layout: no blank screen, no jump.
     return (
       <div className="min-h-screen bg-background">
@@ -546,7 +552,11 @@ const UserDashboard = () => {
     );
   }
 
-  const greeting = contextualGreeting(ctx.facts, profile?.full_name ? profile.full_name.split(" ")[0] : null);
+  const firstName = profile?.full_name ? profile.full_name.split(" ")[0] : null;
+  // If the member's data couldn't be read, don't greet them as new: a neutral hello, no claims.
+  const greeting = ctx.unavailable
+    ? { title: firstName ? `Hello, ${firstName}` : "Hello", body: "Your skin profile, routine and what to do next." }
+    : contextualGreeting(ctx.facts, firstName);
 
   return (
     <>
