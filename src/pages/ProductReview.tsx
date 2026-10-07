@@ -15,6 +15,7 @@ import { openSignupDialog } from "@/lib/conversionDialogs";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { useConversionAction } from "@/hooks/use-conversion-action";
 import { recordContentRead } from "@/lib/contentReads";
+import { recordReviewView } from "@/lib/reviewActivity";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
@@ -104,6 +105,11 @@ const ProductReview = () => {
       active = false;
     };
   }, [review]);
+
+  // Local, counts-only: "you've been reading reviews" unlocks product comparison on the dashboard (src/lib/context).
+  useEffect(() => {
+    if (review?.id) recordReviewView(review.id);
+  }, [review?.id]);
 
   useEffect(() => {
     let active = true;

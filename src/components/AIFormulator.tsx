@@ -1,6 +1,6 @@
 import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -90,9 +90,7 @@ import {
   saveDraftState,
 } from "@/lib/starter-analysis/persistence";
 import {
-  ADVANCED_NAME,
   BASIC_NAME,
-  SKYNN_ADVANCED_ROUTE,
   SKYNN_FEATURE_VERSION,
   SKYNN_RELEASE_LABEL,
 } from "@/lib/skynn/terminology";
@@ -123,8 +121,8 @@ const TOTAL_QUESTIONS = QUESTIONS.length;
 //
 // The photo never leaves the device: it only counts toward input completeness.
 // Monk Skin Tone is optional and self-reported — nothing here infers it.
-// Every "Advanced" CTA routes to the one Advanced AI Dermatology Analysis flow
-// at /skynn-ai/advanced (Analysis Pass required, enforced server-side).
+// The Advanced AI Dermatology Analysis is offered once, after a saved result, by the
+// contextual engine (ResultsNextSteps -> /skynn-ai/advanced, Pass required server-side).
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
@@ -149,7 +147,6 @@ const AIFormulator = () => {
   const { isMember } = useMembership();
   const accountState: "anonymous" | "free" | "member" = user ? (isMember ? "member" : "free") : "anonymous";
   const { can: canEntitlement } = useEntitlements();
-  const navigate = useNavigate();
   const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -829,8 +826,7 @@ const AIFormulator = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
                     <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
-                      {BASIC_NAME} · free, no card required •
-                      <a href={SKYNN_ADVANCED_ROUTE} className="text-primary hover:underline ml-1">Go deeper with the {ADVANCED_NAME}</a>
+                      {BASIC_NAME} · free, no card required
                     </span>
                   </div>
                 )}

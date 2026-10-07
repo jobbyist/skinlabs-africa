@@ -1,3 +1,4 @@
+import ContextualEmptyState from "@/components/dashboard/ContextualEmptyState";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bookmark, Heart, Loader2, MapPin, ArrowUpRight } from "lucide-react";
@@ -114,11 +115,13 @@ const SavedContentTab = () => {
 
             <TabsContent value={subTab} className="mt-0">
               {filtered.length === 0 ? (
-                <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                  {subTab === "saved"
-                    ? "No saved briefings yet. Tap the bookmark on any Daily Skinny card while signed in."
-                    : "No liked briefings in your account yet. Likes on cards are stored locally; account likes appear when you like from the full briefing page after signing in."}
-                </p>
+                subTab === "saved" ? (
+                  <ContextualEmptyState kind="saved_content" />
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                    No liked briefings in your account yet. Likes on cards are stored locally; account likes appear when you like from the full briefing page after signing in.
+                  </p>
+                )
               ) : (
                 <ul className="space-y-4">
                   {filtered.map((row) => {

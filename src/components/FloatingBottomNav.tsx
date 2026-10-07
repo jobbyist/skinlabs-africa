@@ -6,7 +6,7 @@ import AuthDialog from "@/components/AuthDialog";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { cn } from "@/lib/utils";
 import { EMPTY_FACTS } from "@/lib/journey";
-import { EMPTY_CONTEXT_FACTS, contextualNavigation, isNavTabActive, readSkinProfileHint, MEMBER_CONTEXT_CHANGED_EVENT, type NavTabId } from "@/lib/context";
+import { EMPTY_CONTEXT_FACTS, contextualNavigation, isNavTabActive, readSkinProfileHint, SKIN_PROFILE_HINT_EVENT, type NavTabId } from "@/lib/context";
 import { resolveDashboardSection } from "@/lib/dashboardTabs";
 import { OPEN_MENU_EVENT } from "@/lib/context/menuEvent";
 import "@/styles/skinlabs-experience.css";
@@ -47,8 +47,8 @@ const FloatingBottomNav = () => {
   useEffect(() => {
     const read = () => setHasProfile(readSkinProfileHint(user?.id));
     read();
-    window.addEventListener(MEMBER_CONTEXT_CHANGED_EVENT, read);
-    return () => window.removeEventListener(MEMBER_CONTEXT_CHANGED_EVENT, read);
+    window.addEventListener(SKIN_PROFILE_HINT_EVENT, read);
+    return () => window.removeEventListener(SKIN_PROFILE_HINT_EVENT, read);
   }, [user?.id]);
   if (hasOwnBottomBar(location.pathname)) return null;
 

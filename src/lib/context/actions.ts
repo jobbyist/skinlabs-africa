@@ -48,7 +48,7 @@ const ROUTINE = "/dashboard?tab=routine";
 const MY_SKIN = "/dashboard?tab=analysis";
 
 const ALL_JOURNEY: Surface[] = ["dashboard", "home_hero", "analysis_results", "welcome"];
-const FOLLOW_UPS: Surface[] = ["dashboard", "home_hero", "analysis_results", "empty_state"];
+const FOLLOW_UPS: Surface[] = ["dashboard", "home_hero", "analysis_results", "empty_state", "welcome"];
 
 const SEASON_LABEL = { summer: "summer", autumn: "autumn", winter: "winter", spring: "spring" } as const;
 
@@ -153,7 +153,7 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "build_routine",
     feature: "routine",
-    surfaces: [...FOLLOW_UPS, "routine"],
+    surfaces: [...FOLLOW_UPS, "routine", "content_end"],
     priority: 88,
     fatigue: { essential: true },
     eligible: (f) => f.journey.signedIn && f.smartRoutineAccess && !hasRoutine(f),
@@ -167,7 +167,7 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "update_routine",
     feature: "routine",
-    surfaces: [...FOLLOW_UPS, "routine"],
+    surfaces: [...FOLLOW_UPS, "routine", "content_end"],
     priority: 78,
     fatigue: { maxDays: 5, windowDays: 14, dismissCooldownDays: 7 },
     eligible: (f) => hasRoutine(f) && f.routineReviewDue,
@@ -292,7 +292,8 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "continue_podcast",
     feature: "content",
-    surfaces: ["dashboard", "home_hero", "content_end"],
+    // Not on content_end: the member is looking at the content, so "continue" would point at itself.
+    surfaces: ["dashboard", "home_hero"],
     priority: 46,
     fatigue: { essential: true },
     eligible: (f) => Boolean(f.podcastInProgress),
@@ -301,7 +302,7 @@ export const ACTIONS: ActionDef[] = [
   {
     id: "continue_reading",
     feature: "content",
-    surfaces: ["dashboard", "home_hero", "content_end"],
+    surfaces: ["dashboard", "home_hero"],
     surfaceLabels: { home_hero: "Continue reading today's briefing" },
     priority: 47,
     fatigue: { essential: true },

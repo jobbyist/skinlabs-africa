@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { notifyMemberContextChanged } from "@/lib/context/changeEvent";
 import {
   AssessmentApiError,
   createAdvancedAssessmentSession,
@@ -183,6 +184,7 @@ export const useAdvancedAssessment = (existingSessionId?: string) => {
     try {
       await persist();
       const result = await submitAdvancedAssessment(session.id);
+      notifyMemberContextChanged();
       setSubmission({
         reportId: result.reportId,
         status: result.status,

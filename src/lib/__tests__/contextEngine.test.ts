@@ -385,3 +385,100 @@ describe("fact derivation", () => {
     expect(newestOf(null, undefined)).toBeNull();
   });
 });
+
+import { readSkinProfileHint, writeSkinProfileHint } from "@/lib/context";
+import { sanitizeContextProps, CONTEXT_EVENTS } from "@/lib/context/analytics";
+import { recentReviewViewCount, recordReviewView } from "@/lib/reviewActivity";
+
+const memStore = () => {
+  const m = new Map<string, string>();
+  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k) };
+};
+
+describe("surfaces", () => {
+  test("home hero: a visitor is asked to take the analysis, with the hero's own wording", () => {
+    const f = { ...facts(), journey: { ...EMPTY_FACTS }, latestEpisode: { slug: "ep-10", title: "Ep 10" }, unreadBriefing: { slug: "b", title: "B", isToday: true } };
+    const r = resolveContext(f, { surface: "home_hero" });
+    expect(r.primary?.id).toBe("start_basic");
+    expect(r.primary?.label).toBe("Get Your Free Basic AI Skin Report");
+    expect(r.secondary.map((a) => a.id)).toEqual(["read_briefing"]); // one per feature: the episode link would be a second "content" suggestion
+  });
+
+  test("home hero: a member who has done the Basic analysis is never sent to 'Try Advanced' without a Pass", () => {
+    const f = facts({ advancedOpen: true, analysisPasses: 0, smartRoutineAccess: true, checkedInToday: true, j: { savedAnalyses: 1, routineSteps: 2 } });
+    const r = resolveContext(f, { surface: "home_hero", secondaryLimit: 9 });
+    expect([r.primary, ...r.secondary].some((a) => a?.feature === "skynn_advanced")).toBe(false);
+  });
+
+  test("content end never points at the content being read", () => {
+    const f = facts({ startedBriefing: { slug: "b", title: "B", isToday: true }, podcastInProgress: { slug: "e", title: "E" }, j: { savedAnalyses: 1 }, smartRoutineAccess: true });
+    const r = resolveContext(f, { surface: "content_end", secondaryLimit: 9 });
+    const ids = [r.primary, ...r.secondary].map((a) => a?.id);
+    expect(ids).not.toContain("continue_reading");
+    expect(ids).not.toContain("continue_podcast");
+    expect(ids).toContain("build_routine");
+  });
+
+  test("welcome hands an onboarded member with a profile straight to their routine", () => {
+    const withProfile = facts({ smartRoutineAccess: true, j: { savedAnalyses: 1 } });
+    expect(resolveContext(withProfile, { surface: "welcome" }).primary?.href).toBe("/dashboard?tab=routine");
+    // No analysis yet: the welcome flow's own first screen asks for it; the handoff is the analysis.
+    expect(resolveContext(facts(), { surface: "welcome" }).primary?.id).toBe("start_basic");
+  });
+
+  test("analysis results: routine first; Pass holders may start Advanced; pending submissions are not re-sold", () => {
+    const base = { advancedOpen: true, smartRoutineAccess: true, j: { savedAnalyses: 1 } };
+    expect(resolveContext(facts({ ...base, analysisPasses: 1 }), { surface: "analysis_results" }).primary?.id).toBe("build_routine");
+    const secondary = resolveContext(facts({ ...base, analysisPasses: 1 }), { surface: "analysis_results" }).secondary.map((a) => a.id);
+    expect(secondary).toContain("advanced_start");
+    const pending = resolveContext(facts({ ...base, analysisPasses: 1, advancedStatus: "pending" }), { surface: "analysis_results", secondaryLimit: 9 });
+    expect([pending.primary, ...pending.secondary].map((a) => a?.id)).not.toContain("advanced_start");
+  });
+});
+
+describe("small stores", () => {
+  test("skin profile hint is per account and clearable", () => {
+    const s = memStore();
+    writeSkinProfileHint("a", true, s);
+    expect(readSkinProfileHint("a", s)).toBe(true);
+    expect(readSkinProfileHint("b", s)).toBe(false);
+    writeSkinProfileHint("a", false, s);
+    expect(readSkinProfileHint("a", s)).toBe(false);
+    expect(readSkinProfileHint(null, s)).toBe(false);
+  });
+
+  test("review activity counts distinct reviews in the last 14 days only", () => {
+    const s = memStore();
+    const now = new Date("2026-10-07T08:00:00Z");
+    recordReviewView("a", s, new Date("2026-09-01T08:00:00Z")); // too old
+    recordReviewView("b", s, new Date("2026-10-01T08:00:00Z"));
+    recordReviewView("b", s, new Date("2026-10-02T08:00:00Z")); // same review again
+    recordReviewView("c", s, new Date("2026-10-06T08:00:00Z"));
+    expect(recentReviewViewCount(s, now)).toBe(2);
+    expect(recentReviewViewCount(memStore(), now)).toBe(0);
+  });
+});
+
+describe("contextual analytics payloads", () => {
+  test("only whitelisted tokens and counts leave the browser", () => {
+    const out = sanitizeContextProps({
+      action: "build_routine",
+      surface: "dashboard",
+      feature: "routine",
+      state: "BASIC_ANALYSIS_COMPLETED",
+      count: 7.4,
+      // Everything below must be dropped.
+      skin_type: "oily",
+      email: "someone@example.com",
+      reason: "I have a rash on my face since June",
+      title: "Podcast episode title",
+    });
+    expect(out).toEqual({ action: "build_routine", surface: "dashboard", feature: "routine", state: "BASIC_ANALYSIS_COMPLETED", count: 7 });
+  });
+
+  test("the event vocabulary covers the contextual funnel", () => {
+    for (const e of ["context_resolved", "contextual_cta_shown", "contextual_cta_clicked", "contextual_cta_dismissed", "cta_repetition_suppressed", "feature_discovery_shown", "journey_state_changed", "onboarding_completed"]) {
+      expect(CONTEXT_EVENTS as readonly string[]).toContain(e);
+    }
+  });
+});

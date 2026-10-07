@@ -53,7 +53,6 @@ import { isPaidSubscriptionStatus } from "@/lib/entitlements";
 import { useNotifications } from "@/hooks/use-notifications";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { trackContextEvent } from "@/lib/context/analytics";
-import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { activatePendingPaypalSubscription, capturePendingPaypalOrder } from "@/lib/payments";
 import { openKeepMembership, openSignupDialog } from "@/lib/conversionDialogs";
 import { sastDaysUntil, trialBannerState } from "@/lib/trialLifecycle";
@@ -447,16 +446,6 @@ const UserDashboard = () => {
     ctx.patchProfile({ weather_city_key: cityKey });
     return true;
   };
-
-  useEffect(() => {
-    const onUpdated = () => {
-      notifyMemberContextChanged();
-      void refreshAllowance();
-    };
-    window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
-    return () => window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onUpdated);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
 
   const handleReactivate = async () => {
     setReactivating(true);

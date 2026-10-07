@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useFormulatorAllowance } from "@/hooks/use-formulator-allowance";
+import { ANALYSIS_PASSES_UPDATED_EVENT } from "@/hooks/use-analysis-passes";
 import { useContentSignals } from "@/hooks/use-content-signals";
 import { PROFILE_REQUIRED_FIELDS } from "@/hooks/use-profile-complete";
 import { getSeasonNow } from "@/lib/context/season";
@@ -197,10 +198,20 @@ export const useAppContext = ({ setup = false, content = false }: AppContextOpti
 
   const refresh = useCallback(() => queryClient.invalidateQueries({ queryKey: ["member-context"] }), [queryClient]);
 
+  const refreshAllowance = allowance.refresh;
   useEffect(() => {
+    // An Analysis Pass bought in a dialog changes the allowance too.
+    const onPasses = () => {
+      void refresh();
+      void refreshAllowance();
+    };
     window.addEventListener(MEMBER_CONTEXT_CHANGED_EVENT, refresh);
-    return () => window.removeEventListener(MEMBER_CONTEXT_CHANGED_EVENT, refresh);
-  }, [refresh]);
+    window.addEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onPasses);
+    return () => {
+      window.removeEventListener(MEMBER_CONTEXT_CHANGED_EVENT, refresh);
+      window.removeEventListener(ANALYSIS_PASSES_UPDATED_EVENT, onPasses);
+    };
+  }, [refresh, refreshAllowance]);
 
   const core = coreQuery.data;
   useEffect(() => {
