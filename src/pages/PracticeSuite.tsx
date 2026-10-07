@@ -180,7 +180,20 @@ const PracticeSuite = () => {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Button asChild size="lg" className="bg-brand-gold text-brand-ink hover:bg-brand-gold/90">
-                    <a href="#access">Request early access</a>
+                    <a
+                      href="#access"
+                      onClick={(e) => {
+                        const section = document.getElementById("access");
+                        if (!section) return;
+                        e.preventDefault();
+                        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                        section.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                        window.history.replaceState(null, "", "#access");
+                        window.setTimeout(() => document.getElementById("ps-name")?.focus({ preventScroll: true }), reduce ? 0 : 400);
+                      }}
+                    >
+                      Request early access
+                    </a>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="border-brand-ink-foreground/30 bg-transparent text-brand-ink-foreground hover:bg-brand-ink-foreground/10 hover:text-brand-ink-foreground">
                     <a href="#features">See what's coming</a>
