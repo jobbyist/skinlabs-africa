@@ -108,3 +108,25 @@ export const fetchUnsplashImage = async (
     return null;
   }
 };
+
+/** Local branded placeholder used whenever Unsplash is unavailable or returns nothing. */
+export const COVER_PLACEHOLDER_URL = "/briefing-placeholder-cover.svg";
+
+const placeholderImage = (searchQuery: string, defaultUrl?: string): ImageData => ({
+  url: defaultUrl || COVER_PLACEHOLDER_URL,
+  alt: searchQuery,
+  creditName: "SkinLabs",
+  creditUrl: "#",
+});
+
+/**
+ * Primary entry point for cover/thumbnail images. Unsplash is the only image API;
+ * if it fails, is unconfigured or has no result, the SkinLabs placeholder is returned.
+ */
+export const fetchCoverImage = async (
+  searchQuery: string,
+  defaultUrl?: string
+): Promise<ImageData> => {
+  const fromUnsplash = await fetchUnsplashImage(searchQuery);
+  return fromUnsplash ?? placeholderImage(searchQuery, defaultUrl);
+};

@@ -117,6 +117,9 @@ const WebStoriesBar = ({ top }: WebStoriesBarProps) => {
                           src={story.coverImageUrl}
                           alt=""
                           loading="lazy"
+                          decoding="async"
+                          width={80}
+                          height={80}
                           onError={(event) => {
                             if (
                               !event.currentTarget.src.endsWith(
