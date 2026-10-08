@@ -97,8 +97,16 @@ async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> 
       }),
     });
     // Account problems stop the run; a flaky 5xx on one shop is retried once, then that shop is skipped.
-    if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429) {
+    if (res.status === 401 || res.status === 402 || res.status === 403) {
       throw new ProviderUnavailable("nimble", `HTTP ${res.status}`);
+    }
+    // Rate limit: back off and retry once; a second 429 means the account is throttled, so stop the run.
+    if (res.status === 429) {
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 2500));
+        return one(domain, 1);
+      }
+      throw new ProviderUnavailable("nimble", "HTTP 429");
     }
     if (res.status >= 500) {
       if (attempt === 0) return one(domain, 1);
@@ -108,7 +116,12 @@ async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> 
     const body = (await res.json()) as { results?: { url: string; title?: string | null; description?: string | null; content?: string | null }[] };
     return (body.results ?? []).map((r) => ({ url: r.url, title: r.title, text: [r.content, r.description].filter(Boolean).join("\n") }));
   };
-  const settled = await Promise.allSettled([...DOMAINS, ...target.brandDomains].map(one));
+  // Three shops at a time keeps a review's 7 searches under Nimble's burst limit.
+  const all = [...DOMAINS, ...target.brandDomains];
+  const settled: PromiseSettledResult<PriceSearchResult[]>[] = [];
+  for (let i = 0; i < all.length; i += 3) {
+    settled.push(...(await Promise.allSettled(all.slice(i, i + 3).map((d) => one(d)))));
+  }
   const unavailable = settled.find((r) => r.status === "rejected" && r.reason instanceof ProviderUnavailable);
   // A limit/auth failure on any call means the account is the problem: stop instead of half-checking.
   if (unavailable && unavailable.status === "rejected") throw unavailable.reason;
