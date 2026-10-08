@@ -23,6 +23,7 @@ import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
 import ReviewPricesPanel from "@/components/admin/ReviewPricesPanel";
+import ReviewImagesPanel from "@/components/admin/ReviewImagesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
 import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
@@ -496,6 +497,7 @@ const AdminDashboard = () => {
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
               <TabsContent value="dataquality">
+                <ReviewImagesPanel />
                 <PairNoteCoverageCard />
                 <p className="text-sm text-muted-foreground mb-4">
                   Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>

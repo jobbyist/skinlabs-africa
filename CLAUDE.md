@@ -518,6 +518,14 @@ targets) are **applied live**; `…200200` cron applied live. Edge function `rev
 - **Human step open**: set Edge secrets `PARALLEL_API_KEY` (+ `NIMBLE_API_KEY`); until then the function answers 503 before claiming anything. First session chunk: 5 reviews / 6 pending listings saved from real Parallel + Nimble results, all pending.
 - Firecrawl is no longer used for reviews (three Firecrawl cron jobs unscheduled). `types.ts` was NOT regenerated; the admin panel uses untyped casts for the new tables.
 
+## Review cover images: real product images, admin-verified (2026-10-08) — standing notes
+
+Branch `claude/review-cover-images`. Detail: **`docs/review-cover-images.md`**. Migrations `20261008220000` (candidates, RPCs, review_images columns) is **applied live**; `…220100` cron applied via SQL. `review-image-sync` deployed as a pinned raw-GitHub entry (**re-pin to a commit on main after merge**); `product-review-sync` change (no Pexels fallback, kicks image sync, never overwrites a verified image) deploys via the GitHub sync from main.
+
+- Cover = the product's own image from the brand website / listed retailer page, found by `review-image-sync` (Parallel Search default, Nimble fallback + Nimble Extract for retailer HTML), saved as `review_image_candidates` (pending). Only `admin_decide_review_images()` (Admin > Data Quality > "Review cover images") publishes one into `review_images` (`source_kind='product'`).
+- Card/detail/SSR priority: verified product image > brand banner > stock. Don't let any pipeline write over a `source_kind='product'` row.
+- Images are hotlinked with attribution; image rights are the brand's/retailer's (see doc).
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own

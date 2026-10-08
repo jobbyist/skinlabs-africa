@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { getCategoryImage } from "@/data/productImages";
+import { useProductCoverImages } from "@/hooks/use-product-cover-images";
 import { useLiveReviewPrices } from "@/hooks/use-live-review-prices";
 import { compareByLivePrice, inPriceBand } from "@/lib/pricing/liveReviewPrices";
 import { checkedLabel, formatRand } from "@/lib/pricing/saRetailPrices";
@@ -60,6 +61,7 @@ const ReviewsGrid = ({
   );
 
   const { data: livePrices } = useLiveReviewPrices();
+  const { data: realCovers } = useProductCoverImages();
   const [category, setCategory] = useState("All");
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
@@ -130,7 +132,8 @@ const ReviewsGrid = ({
   const renderWithAds = () => {
     const nodes: React.ReactNode[] = [];
     pageItems.forEach((review, index) => {
-      const productImage = getCategoryImage(review.category);
+      const realCover = realCovers?.get(review.id);
+      const productImage = realCover ?? getCategoryImage(review.category);
       nodes.push(
         <motion.div
           key={review.id}
@@ -148,9 +151,10 @@ const ReviewsGrid = ({
               loading="lazy"
               width={400}
               height={160}
-              className="h-40 w-full object-cover"
+              className={realCover ? "h-40 w-full bg-white object-contain p-2" : "h-40 w-full object-cover"}
+              referrerPolicy={realCover ? "no-referrer" : undefined}
             />
-            {productImage.creditUrl !== "#" && (
+            {!realCover && productImage.creditUrl !== "#" && (
               <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
                 Photo:{" "}
                 <a

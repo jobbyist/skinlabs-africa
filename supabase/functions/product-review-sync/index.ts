@@ -773,12 +773,10 @@ const SPONSORED_BRAND_BANNERS: Record<string, string> = {
  *  SPONSORED_BRAND_BANNERS, always uses that (see its own doc comment for why --
  *  takes priority over an existing review_images row too, so a stale generic stock
  *  photo already written before a brand's banner was mapped gets corrected on the
- *  next backfill pass rather than staying stuck). Otherwise checks review_images (the
- *  same table src/hooks/use-review-images.ts reads client-side) first; if this review
- *  has none yet and a PEXELS_API_KEY Supabase secret is configured, does one real
- *  Pexels search and writes the result INTO review_images (not just the primary_image
- *  cache column) so the existing client-side image-resolution chain picks it up too,
- *  rather than creating a second, divergent image source. Returns null (never
+ *  next backfill pass rather than staying stuck). A verified REAL product image
+ *  (review_images.source_kind = 'product') beats everything. With no image yet this
+ *  no longer fetches a Pexels/Unsplash stock photo: it nudges review-image-sync, which
+ *  finds the product's real image for a person to approve. Returns null (never
  *  fabricates a URL) if nothing applies. */
 async function resolvePrimaryImage(
   admin: SupabaseAdmin,
@@ -787,6 +785,10 @@ async function resolvePrimaryImage(
   brand: string,
   isSponsored: boolean,
 ): Promise<string | null> {
+  // A verified real product image (approved in Admin > Data Quality) always wins and is never overwritten by a banner or stock photo.
+  const { data: real } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).eq("source_kind", "product").maybeSingle();
+  if (real?.image_url) return real.image_url;
+
   const bannerFile = isSponsored ? SPONSORED_BRAND_BANNERS[brand] : undefined;
   if (bannerFile) {
     const bannerUrl = `https://skinlabs.co.za/brandbanners/${bannerFile}`;
@@ -806,35 +808,27 @@ async function resolvePrimaryImage(
   const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).maybeSingle();
   if (existing?.image_url) return existing.image_url;
 
-  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
-  if (!pexelsKey) return null;
+  // No stock-photo fallback any more (2026-10-08): the cover is the product's REAL image from the brand website or the listed
+  // retailer. review-image-sync finds candidates (a trigger already made this review a target); a person approves one in
+  // Admin > Data Quality, which writes review_images AND this row's primary_image. Until then the page shows its category photo.
+  void kickImageSync(reviewId);
+  return null;
+}
 
+/** Best-effort nudge so a freshly published review gets image candidates within a minute instead of the next 10-minute tick. */
+async function kickImageSync(reviewId: string): Promise<void> {
   try {
-    const query = `${brand} ${category} skincare product bottle`;
-    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
-      headers: { Authorization: pexelsKey },
-    });
-    if (!res.ok) return null;
-    const payload = (await res.json().catch(() => null)) as {
-      photos?: { src?: { large?: string; original?: string }; alt?: string; photographer?: string; photographer_url?: string }[];
-    } | null;
-    const photo = payload?.photos?.[0];
-    const url = photo?.src?.large || photo?.src?.original;
-    if (!url) return null;
-
-    await admin.from("review_images").upsert(
-      {
-        review_id: reviewId,
-        image_url: url,
-        alt: photo?.alt || `${category} product photography`,
-        credit_name: photo?.photographer || "Pexels Contributor",
-        credit_url: photo?.photographer_url || "https://www.pexels.com",
-      },
-      { onConflict: "review_id" },
-    );
-    return url;
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    await fetch(`${url}/functions/v1/review-image-sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ review_id: reviewId, limit: 1 }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => undefined);
   } catch {
-    return null;
+    /* never blocks publishing */
   }
 }
 
