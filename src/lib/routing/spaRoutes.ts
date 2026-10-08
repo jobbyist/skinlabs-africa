@@ -15,7 +15,7 @@ const EXACT = new Set([
   "/marketplace/saved", "/marketplace/shipping-returns", "/marketplace/terms", "/openhaus", "/podcast",
   "/stream", "/briefings", "/newsroom", "/reviews", "/compare", "/pricing", "/consultations", "/consult",
   "/announcements", "/spotlight", "/spotlight/methodology", "/spotlight/archive", "/seasonals",
-  "/seasonals/spring", "/dashboard", "/reset-password", "/newsletter/confirm", "/welcome", "/start", "/giveaways/october-2026",
+  "/seasonals/spring", "/dashboard", "/reset-password", "/newsletter/confirm", "/welcome", "/start", "/giveaways/october-2026", "/offline-reading",
 ]);
 
 /** prefix -> number of extra path segments allowed after it (always exactly one slug). */
@@ -29,6 +29,7 @@ const ONE_SEGMENT_PREFIXES = [
 export function isKnownSpaPath(pathname: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (EXACT.has(path)) return true;
+  if (/^\/offline-reading\/[^/]+\/[^/]+$/.test(path)) return true;
   return ONE_SEGMENT_PREFIXES.some((prefix) => {
     if (!path.startsWith(`${prefix}/`)) return false;
     const rest = path.slice(prefix.length + 1);

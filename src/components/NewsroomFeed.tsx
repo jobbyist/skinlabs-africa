@@ -410,6 +410,7 @@ const NewsroomFeed = ({
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
+                          data-haptic
                           onClick={() => handleLike(article)}
                           aria-label="Like article"
                           aria-pressed={likedIds.includes(article.id)}
@@ -419,6 +420,7 @@ const NewsroomFeed = ({
                         </button>
                         <button
                           type="button"
+                          data-haptic
                           onClick={() => void handleSave(article)}
                           aria-label={savedIds.includes(article.id) ? "Remove from saved briefings" : "Save briefing"}
                           aria-pressed={user ? savedIds.includes(article.id) : undefined}

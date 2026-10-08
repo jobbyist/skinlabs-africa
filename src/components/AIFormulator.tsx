@@ -1479,7 +1479,7 @@ const AIFormulator = () => {
               {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
-                  <Button onClick={handleNext} disabled={footerDisabled} className="gap-2 px-6">
+                  <Button onClick={handleNext} disabled={footerDisabled} data-haptic className="gap-2 px-6">
                     {footerLabel}<ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

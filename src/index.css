@@ -125,6 +125,18 @@
   /* Anchor jumps (#skynn-launchpad, in-page TOCs) land below the fixed header, not under it. */
   html { scroll-padding-top: 5rem; }
   @media (min-width: 768px) { html { scroll-padding-top: 6.5rem; } }
+  /* Smooth in-page jumps (TOCs, FAQ anchors, #deep-links). Route changes scroll with behavior:"instant"
+     (ScrollManager), so this never animates a page change. Reduced-motion visitors keep instant jumps. */
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+
+  /* Bottom collision buffer (mobile): a page whose <main> is the last thing on screen (no footer after it:
+     forms, flows, dashboards' empty states) gets pb-28 so the floating nav / podcast mini-player never covers its
+     last control. Pages that set their own padding, or have a footer (which carries pb-32), are unaffected. */
+  @media (max-width: 767px) {
+    main:not(:has(~ footer)) { padding-bottom: calc(7rem + env(safe-area-inset-bottom)); }
+    /* The fixed podcast mini-player (~5.5rem) sits below the nav: reserve its height at the very end of the page. */
+    html[data-mini-player="1"] body { padding-bottom: 6rem; }
+  }
 
   /* Typography polish: no one-word last lines in headings or paragraphs. */
   h1, h2, h3 { text-wrap: balance; }

@@ -96,4 +96,4 @@ export const INSTALL_PROMPT_EXCLUDED_PREFIXES = [
 
 /** Where SKYNN playback progress is kept in IndexedDB / the account. */
 export const PWA_DB_NAME = "skinlabs-pwa";
-export const PWA_DB_VERSION = 1;
+export const PWA_DB_VERSION = 2; // v2: `reading` store (offline reading queue)

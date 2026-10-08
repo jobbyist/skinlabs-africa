@@ -25,7 +25,8 @@ const Preloader = lazyWithRetry(() => import("./components/Preloader"));
 // Installed-app layer (install prompt, offline banner, update toast, background sync). See docs/pwa.md.
 const PWAProvider = lazyWithRetry(() => import("./components/pwa/PWAProvider"));
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
-import ScrollToTop from "./components/ScrollToTop";
+import ScrollManager from "./components/ScrollManager";
+import BackToTop from "./components/BackToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
@@ -39,6 +40,7 @@ import { CartProvider } from "./contexts/CartContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const OfflineReading = lazyWithRetry(() => import("./pages/OfflineReading"));
 const AIFormulator = lazyWithRetry(() => import("./pages/AIFormulator"));
 const AdvancedAssessment = lazyWithRetry(() => import("./pages/AdvancedAssessment"));
 const QuoteSSBeauty = lazyWithRetry(() => import("./pages/QuoteSSBeauty"));
@@ -159,7 +161,8 @@ const AppContent = () => {
         <Preloader />
         <PWAProvider />
       </Suspense>
-      <ScrollToTop />
+      <ScrollManager />
+      <BackToTop />
       <FloatingBottomNav />
       {/* Resumes a pending sign-in intent (src/lib/pendingIntent.ts) after auth. */}
       <IntentResolver />
@@ -208,6 +211,8 @@ const AppContent = () => {
             <Route path="/shop" element={<Openhaus />} />
             <Route path="/routines" element={<SmartRoutines />} />
             <Route path="/learn" element={<ComingSoon />} />
+            <Route path="/offline-reading" element={<OfflineReading />} />
+            <Route path="/offline-reading/:kind/:slug" element={<OfflineReading />} />
             <Route path="/ingredients" element={<Ingredients />} />
             <Route path="/ingredients/checker" element={<IngredientChecker />} />
             <Route path="/ingredients/:slug" element={<IngredientDetail />} />

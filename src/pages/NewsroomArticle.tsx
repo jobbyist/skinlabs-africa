@@ -16,6 +16,7 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
+import OfflineReadButton from "@/components/OfflineReadButton";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
@@ -310,15 +311,23 @@ const NewsroomArticle = () => {
             <FaithfulToNature placement="briefing-shop" />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
+              <Button variant="outline" size="sm" data-haptic onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
               </Button>
               <Button variant="outline" size="sm" onClick={() => void shareBriefing()}>
                 <Share2 className="mr-2 h-4 w-4" /> Share
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toggleEngagement("save")}>
+              <Button variant="outline" size="sm" data-haptic onClick={() => toggleEngagement("save")}>
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
+              {body && (
+                <OfflineReadButton
+                  kind="briefing"
+                  slug={article.slug}
+                  title={article.title}
+                  snapshot={() => ({ briefing: { title: article.title, excerpt: article.excerpt, body_markdown: body, key_takeaways: article.key_takeaways, published_at: article.publish_date } })}
+                />
+              )}
               {article.source_url && (
                 <Button
                   variant="ghost"

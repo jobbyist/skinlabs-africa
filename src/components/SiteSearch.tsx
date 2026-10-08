@@ -32,6 +32,10 @@ import { allSeasons, seasonHubs } from "@/data/seasonals";
 import { faqEntries } from "@/data/faq";
 import { searchablePages } from "@/lib/search-index";
 import { scoreProductReview, scoreTextItem } from "@/lib/search-engine";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { SEARCH_FILTERS, groupAllowed, reviewMatchesFilter, textMatchesFilter, type SearchFilterId } from "@/lib/searchFilters";
+import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { addRecentSearch, clearRecentSearches, getRecentSearches, removeRecentSearch, type SearchHistoryEntry } from "@/lib/searchHistory";
@@ -105,8 +109,29 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     [generatedComparisons],
   );
   const [rawQuery, setRawQuery] = useState("");
+  const [filter, setFilter] = useState<SearchFilterId>("all");
   const query = useDebouncedValue(rawQuery, 120);
   const hasQuery = query.trim().length > 0;
+  // A chip with no typed query browses that slice (e.g. "Reviews under R250"); typing narrows it.
+  const showResults = hasQuery || filter !== "all";
+
+  // Ingredients come from the alias-aware directory RPC (server-ranked), only when they can be shown.
+  const wantsIngredients = open && (filter === "ingredients" || filter === "highveld-barrier" || (filter === "all" && query.trim().length >= 2));
+  const { data: ingredientRows } = useQuery({
+    queryKey: ["search-ingredients", query.trim().toLowerCase(), filter],
+    enabled: wantsIngredients,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("search_ingredients", {
+        p_search: query.trim() || undefined,
+        p_concern_slug: filter === "highveld-barrier" ? "sensitivity-barrier" : undefined,
+        p_page: 1,
+        p_per_page: 8,
+      });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
   const [recentSearches, setRecentSearches] = useState<SearchHistoryEntry[]>(getRecentSearches);
 
   // Cmd/Ctrl+K opens search from anywhere on the site; Escape closes it; Tab
@@ -207,11 +232,13 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       return { key: `season-${season}`, score: match.score, reasons: match.reasons, icon: Sun, title: hub.h1, subtitle: "Seasonal", href: `/seasonals/${season}` };
     });
 
+    // Chip gating: an item that fails the chip's rule scores 0 (hidden); with no typed query a passing item gets a small base score.
+    const gate = (ok: boolean, score: number, bonus = 0) => (!ok ? 0 : hasQuery ? score : filter === "all" ? 0 : 1 + bonus);
     const reviews: RankedResult[] = allReviews.map((review) => {
       const match = scoreProductReview(query, review);
       return {
         key: `rev-${review.id}`,
-        score: match.score,
+        score: gate(reviewMatchesFilter(review, filter), match.score, review.score_efficacy / 100),
         reasons: match.reasons,
         icon: Star,
         title: `${review.brand} — ${review.product_name}`,
@@ -222,7 +249,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
 
     const news: RankedResult[] = briefings.map((article) => {
       const match = scoreTextItem(query, article.title, `${article.sa_context_tag} ${article.excerpt}`);
-      return { key: `news-${article.id}`, score: match.score, reasons: match.reasons, icon: Newspaper, title: article.title, subtitle: "The Daily Skinny", href: `/briefings/${article.slug}` };
+      return { key: `news-${article.id}`, score: gate(textMatchesFilter(`${article.title} ${article.excerpt}`, filter), match.score), reasons: match.reasons, icon: Newspaper, title: article.title, subtitle: "The Daily Skinny", href: `/briefings/${article.slug}` };
     });
 
     const podcast: RankedResult[] = podcastEpisodes.map((episode) => {
@@ -232,7 +259,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
         `${episode.description} ${episode.showNotes.join(" ")} ${episode.transcript.map((line) => line.text).join(" ")}`,
         episode.topics,
       );
-      return { key: `pod-${episode.id}`, score: match.score, reasons: match.reasons, icon: Mic, title: episode.title, subtitle: "The Skin Deep Podcast", href: `/podcast/${episode.slug}` };
+      return { key: `pod-${episode.id}`, score: gate(true, match.score),  reasons: match.reasons, icon: Mic, title: episode.title, subtitle: "The Skin Deep Podcast", href: `/podcast/${episode.slug}` };
     });
 
     const pages: RankedResult[] = searchablePages.map((page) => {
@@ -244,7 +271,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       const match = scoreTextItem(query, entry.question, entry.answer, entry.tags);
       return {
         key: `faq-${entry.id}`,
-        score: match.score,
+        score: gate(textMatchesFilter(`${entry.question} ${entry.answer} ${entry.tags.join(" ")}`, filter), match.score),
         reasons: match.reasons,
         icon: HelpCircle,
         title: entry.question,
@@ -262,7 +289,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       );
       return {
         key: `mkt-${product.id}`,
-        score: match.score,
+        score: gate(textMatchesFilter(`${product.description} ${product.category} ${[...product.concern, ...product.values, ...product.keyActives].join(" ")}`, filter), match.score),
         reasons: match.reasons,
         icon: ShoppingBag,
         title: `${product.brand.name} — ${product.name}`,
@@ -271,27 +298,38 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
       };
     });
 
-    return { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace };
-  }, [query, briefings, marketplaceProducts, allReviews, allComparisonArticles]);
+    const ingredients: RankedResult[] = (ingredientRows ?? []).map((row, i) => ({
+      key: `ing-${row.slug}`,
+      score: 2 - i * 0.1,
+      reasons: [],
+      icon: Beaker,
+      title: row.common_name || row.inci_name || row.slug,
+      subtitle: row.category ? "Ingredient · " + row.category.replace(/-/g, " ") : "Ingredient",
+      href: `/ingredients/${row.slug}`,
+    }));
+
+    const all = { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace, ingredients };
+    // Groups the active chip doesn't cover are emptied.
+    return Object.fromEntries(Object.entries(all).map(([group, list]) => [group, groupAllowed(filter, group) ? list : []])) as typeof all;
+  }, [query, hasQuery, filter, briefings, marketplaceProducts, allReviews, allComparisonArticles, ingredientRows]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
   const forDisplay = (list: RankedResult[]) => matched(list).slice(0, GROUP_CAP);
 
   const bestMatches = useMemo(() => {
-    if (!hasQuery) return [];
+    if (!hasQuery || filter !== "all") return [];
     return [...ranked.comparisons, ...ranked.spotlight, ...ranked.seasonals, ...ranked.reviews, ...ranked.marketplace, ...ranked.news, ...ranked.podcast, ...ranked.pages, ...ranked.knowledgeHub]
       .filter((r) => r.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, TOP_MATCHES_CAP);
-  }, [ranked, hasQuery]);
+  }, [ranked, hasQuery, filter]);
 
-  const noResults = hasQuery && bestMatches.length === 0;
-
-  const resultGroups = hasQuery
+    const resultGroups = showResults
     ? [
         { heading: "Shelf Showdown", icon: Swords, items: forDisplay(ranked.comparisons) },
         { heading: "Spotlight Brands", icon: Award, items: forDisplay(ranked.spotlight) },
         { heading: "Seasonals", icon: Sun, items: forDisplay(ranked.seasonals) },
+        { heading: "Ingredients", icon: Beaker, items: forDisplay(ranked.ingredients) },
         { heading: "Product Reviews", icon: Star, items: forDisplay(ranked.reviews) },
         { heading: "OpenHaus Marketplace", icon: ShoppingBag, items: forDisplay(ranked.marketplace) },
         { heading: "The Daily Skinny", icon: Newspaper, items: forDisplay(ranked.news) },
@@ -300,6 +338,13 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
         { heading: "Knowledge Hub", icon: HelpCircle, items: forDisplay(ranked.knowledgeHub) },
       ].filter((group) => group.items.length > 0)
     : [];
+
+  const noResults = showResults && resultGroups.length === 0;
+
+  // A fresh open starts from "All".
+  useEffect(() => {
+    if (!open) setFilter("all");
+  }, [open]);
 
   const transition = shouldReduceMotion ? FOLD_TRANSITION_REDUCED : FOLD_TRANSITION;
   const collapsed = { clipPath: "inset(0 0 100% 0)" };
@@ -354,9 +399,28 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
               </button>
             </div>
 
+            {/* Instant filter chips: a chip alone browses that slice; typing narrows it. */}
+            <div role="group" aria-label="Filter results" className="flex shrink-0 gap-2 overflow-x-auto border-b border-border/60 px-4 py-2.5 [scrollbar-width:none] sm:px-8 [&::-webkit-scrollbar]:hidden">
+              {SEARCH_FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={filter === f.id}
+                  data-haptic
+                  onClick={() => setFilter(f.id)}
+                  className={cn(
+                    "shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98]",
+                    filter === f.id ? "border-foreground bg-foreground text-background" : "border-border bg-card text-foreground/80 hover:bg-accent",
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             <CommandList className="max-h-none flex-1 overflow-y-auto overscroll-contain px-4 py-6 sm:px-8 sm:py-8">
               <div className="mx-auto w-full max-w-2xl">
-                {!hasQuery ? (
+                {!showResults ? (
                   <>
                     {recentSearches.length > 0 && (
                       <>
@@ -448,7 +512,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
                         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
                           <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                         </span>
-                        <span className="text-sm font-medium text-foreground">No results for "{query.trim()}"</span>
+                        <span className="text-sm font-medium text-foreground">{query.trim() ? `No results for "${query.trim()}"` : "Nothing matches this filter yet"}</span>
                         <span className="max-w-xs text-sm text-muted-foreground">
                           Try a product, brand, ingredient or skin concern instead.
                         </span>

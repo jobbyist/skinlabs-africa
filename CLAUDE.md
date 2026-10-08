@@ -233,6 +233,20 @@ Branch `claude/contextual-ux-transformation`. Full model, action catalogue, ladd
 - **Tests:** `src/lib/__tests__/contextEngine.test.ts` (state matrix, suppression, membership, fatigue, empty states, nav, analytics whitelist) and `e2e/contextual-dashboard.e2e.ts`. Analytics only through `trackContextEvent()` (whitelisted tokens/counts).
 - Known pre-existing, unrelated: giveaway story unit test (`SEO, routing and story …`) and one `prefer-const` lint error in `previewAuthStorage.ts` fail on main.
 
+## UX enhancement batch 2 (2026-10-08) — standing notes
+
+Branch `claude/ux-enhancements-batch-2`. Migration `20261008100000_shelf_items.sql` is **in the repo, NOT applied live**: until it is, `ShelfPanel` renders nothing (`listShelf()` returns "unavailable" on 42P01/PGRST205); apply it, regenerate `types.ts`, then drop the untyped shim in `src/lib/shelf/db.ts`.
+
+- **Scroll**: `ScrollManager` replaces `ScrollToTop`. New page -> `behavior: "instant"` (the CSS `scroll-behavior: smooth`, reduced-motion aware, would otherwise animate page changes; never use `behavior: "auto"` for a route change). Back/Forward restores the remembered Y per `location.key` (`lib/scrollMemory.ts`, captured on link click / popstate / debounced scroll, NOT on unmount, because the new route clamps scrollY first). `#hash` waits for lazy content then glides. `BackToTop` shows past 1.5 viewports; tapping the active bottom-nav tab also glides to the top. Bottom buffer lives in `index.css` (`main:not(:has(~ footer))` gets pb-28 on phones; `html[data-mini-player="1"]` pads the body).
+- **Haptics**: `lib/haptics.ts`, one `navigator.vibrate([15])`; a delegated listener covers tabs/checkbox/switch/radio/bottom nav plus `data-haptic`. Skipped for reduced-motion, automation and the Settings > App "Touch feedback" switch. iOS Safari has no Vibration API (silent no-op).
+- **Offline reading**: IndexedDB `reading` store (`PWA_DB_VERSION` 2), `lib/pwa/offlineReading.ts`, `OfflineReadButton` on briefing + ingredient pages, reader at `/offline-reading[/kind/slug]`. Text only, max 40 items / 400 kB each. A briefing is only saveable when its body is readable (entitlement); the saved copy is not re-checked against a later lapse.
+- **Ingredient matrix**: `?concerns=a,b` (any-of) + `?sa=1`; more than one concern, or SA, runs `fetchMatrix` (RPC per concern, union, client paginate). SA relevance is a curated name list (`lib/ingredientMatrix.ts`), not data: extend the list, don't guess. There is no "hormonal acne" concern in `skin_concerns`.
+- **Search chips** (`lib/searchFilters.ts`): predicates read real fields only (price < R250, explicit "fragrance-free" text, barrier ingredients + climate score/dry skin); a chip alone browses its slice. Ingredients come from `search_ingredients`.
+- **Climate badges** (`lib/climateRoutine.ts`): city from `profiles.weather_city_key`; live humidity confirms/withholds the alert (Highveld < 40 %, Durban >= 70 %), otherwise worded "typical for your city". Cape Town says "Spring Pollen" only Sep-Nov.
+- **Shelf/PAO** (`lib/shelf/pao.ts`): the label PAO always wins; vitamin C / retinoid / BPO guidance is a hedged general window. Run-out uses linked-step check-ins (28 days) or manual uses/week; default ml-per-use values are rough and editable.
+- **INCI scanner** (`lib/inci/*`, `ProductScanner`): exact-name catalogue matches only; unmatched ingredients are shown as unchecked, never "safe". Routine conflicts use routine steps that have a `product_slug`. MST notes only from the member's self-reported `mst_tone` >= 4. Photo reading uses the browser's `TextDetector` when present (on-device, no OCR dependency); otherwise it asks to paste.
+- Tests: `src/lib/__tests__/uxBatch2.test.ts`. Pre-existing failure: `supabaseTypesGuard`.
+
 ## Performance & hardening (2026-10-08) — standing rules
 
 Branch `claude/perf-and-hardening`. Details: `docs/contextual-ux.md` (perf section).
