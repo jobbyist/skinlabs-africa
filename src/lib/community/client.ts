@@ -12,7 +12,7 @@ import {
 /**
  * Community Forum data access. Reads go through the SECURITY DEFINER RPCs (author names and roles are resolved
  * server-side, so the browser never reads `profiles`); writes use the tables' narrow column grants or small RPCs.
- * `db` is untyped until src/integrations/supabase/types.ts is regenerated after migration 20261008100000.
+ * `db` is deliberately loosely typed: the RPC row shapes are the interfaces in rules.ts / this file (the generated Database types model RPC results as unions).
  */
 const db = supabase as unknown as SupabaseClient;
 
