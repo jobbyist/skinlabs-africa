@@ -68,6 +68,7 @@ export const AD_BLOCK_WALL_EXEMPT_PREFIXES = [
   "/reset-password",
   "/dashboard",
   "/welcome",
+  "/community-forum",
   "/giveaways",
   "/admin",
   "/marketplace/terms",

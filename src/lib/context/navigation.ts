@@ -11,7 +11,7 @@ import type { ContextFacts } from "./types";
  *  - a member with a skin profile: Home · My Skin · Routine · Explore · Account.
  *    "Explore" opens the menu's Explore grid (news, stream, reviews, compare…).
  */
-export type NavTabId = "home" | "news" | "stream" | "reviews" | "compare" | "my_skin" | "routine" | "explore" | "account";
+export type NavTabId = "home" | "news" | "stream" | "reviews" | "compare" | "my_skin" | "routine" | "explore" | "community" | "account";
 
 export interface NavTab {
   id: NavTabId;
@@ -39,6 +39,7 @@ const TAB: Record<NavTabId, NavTab> = {
     label: "Explore",
     matchPrefixes: ["/briefings", "/podcast", "/reviews", "/compare", "/ingredients", "/spotlight", "/seasonals", "/knowledge-hub", "/newsroom", "/stream"],
   },
+  community: { id: "community", label: "Forum", href: "/community-forum", matchPrefixes: ["/community-forum"] },
   account: { id: "account", label: "Account", href: "/dashboard", matchPrefixes: [], dashboardSections: ["home", "saved", "inbox", "profile", "billing", "security", "app", "account"] },
 };
 
@@ -47,7 +48,11 @@ export const PROFILE_NAV: NavTab[] = [TAB.home, TAB.my_skin, TAB.routine, TAB.ex
 
 export const contextualNavigation = (f: ContextFacts): NavTab[] => {
   const s = deriveContextStates(f);
-  return f.journey.signedIn && s.has("BASIC_ANALYSIS_COMPLETED") ? PROFILE_NAV : DEFAULT_NAV;
+  const base = f.journey.signedIn && s.has("BASIC_ANALYSIS_COMPLETED") ? PROFILE_NAV : DEFAULT_NAV;
+  // The community is members-only, so it only gets a slot once signed in: before the Account tab for members with a
+  // skin profile, at the end of the content tabs otherwise (the bottom nav appends Profile after those).
+  if (!f.journey.signedIn) return base;
+  return base === PROFILE_NAV ? [...base.slice(0, -1), TAB.community, TAB.account] : [...base, TAB.community];
 };
 
 export const isNavTabActive = (tab: NavTab, pathname: string, dashboardSection: string | null): boolean => {

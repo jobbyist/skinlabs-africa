@@ -90,6 +90,16 @@ the real one; a tap while the app sat on one of those pages was also lost (no `n
   (`default.fetch(Request)`) or serve `.vercel/output` with a small router emulator; a real-browser check is the only thing that proves the SPA takes over.
 - Pre-existing, unrelated: `giveaway.test.ts` (1 test) fails after the giveaway closes; 3 `e2e/pwa.e2e.ts` push-opt-in tests fail on the base commit too.
 
+## Community Forum (2026-10-08) — standing notes
+
+Members-only `/community-forum` (`?post=<uuid>` deep link). Full detail: **`docs/community-forum.md`**. Migrations `20261008100000/110000/120000` are **in the repo, NOT applied live** (schema, notifications + push category, seed); apply in order, then regenerate `types.ts` (the forum uses the untyped client `src/lib/community/client.ts` until then) and run `supabase/tests/community_forum.sql`.
+
+- **Reads only through the RPCs** (`community_feed`, `community_comments_page`, `community_comment_by_id`): author name/role resolved server-side (staff "First L.", members their handle); the browser never reads `profiles`. Writes use narrow column grants (title/body/category/author_id); counters, status, pinned are trigger/RPC-only. Likes are owner-readable only, so realtime rides on the post/comment counters: ONE channel per page (`useCommunityRealtime`), never per-card subscriptions.
+- **Notifications reuse the engine**: new push category `community` (default on) + 3 templates; `community_notify()` skips self/personas, is idempotent per event, and goes inbox-only if a community push for the same post was sent in the last 10 min. Lock-screen copy is generic; the post title is inbox-only. Adding a category means `notification_categories()`, a preference column, `notification_category_allowed()`, and the TS lists (`notificationManager`, `notificationAdmin`, `pushPayload`).
+- **Seed authors**: "Nicole N."/"Cole O." and the member voices are `community_personas` (no accounts, never notified, removable via `is_seed`); "Michael C." posts from the real admin account. Never add fake `auth.users`.
+- Bottom nav: signed-in members get a "Forum" tab (`navigation.ts`; dense 7-slot sizing in `FloatingBottomNav`); Header Explore has "Community" NEW. Route is noindex, in `PRIVATE_PATH_PREFIXES`, the ad-wall exemptions and `robots.txt`.
+- Posting needs a chosen handle (`handle_required` from the DB, `useRequireHandle()` opens the existing dialog). Tests: `communityRules.test.ts`, `e2e/community-forum.e2e.ts`, SQL probe above.
+
 ## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
 
 Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
