@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { withCategoryCover } from "@/lib/comparisonCover";
 import type { ComparisonArticle, ComparedProduct, ComparisonVerdict, ComparisonFaq } from "@/data/comparisons";
 
 /**
@@ -21,7 +22,7 @@ async function fetchGeneratedComparisons(): Promise<ComparisonArticle[]> {
 
   if (error) throw error;
 
-  return (data ?? []).map((row): ComparisonArticle => ({
+  return (data ?? []).map((row): ComparisonArticle => withCategoryCover({
     slug: row.id,
     title: row.title,
     dek: row.dek,

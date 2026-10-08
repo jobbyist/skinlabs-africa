@@ -536,6 +536,14 @@ Branch `claude/review-cover-images`. Detail: **`docs/review-cover-images.md`**. 
 - Card/detail/SSR priority: verified product image > brand banner > stock. Don't let any pipeline write over a `source_kind='product'` row.
 - Images are hotlinked with attribution; image rights are the brand's/retailer's (see doc).
 
+## Review placeholder + comparison covers (2026-10-08) — standing notes
+
+Branch `claude/review-placeholder-comparison-covers`.
+
+- **A review with no approved product image shows the branded placeholder** (`REVIEW_PLACEHOLDER_IMAGE`, `public/images/review-placeholder.jpg`), never an Unsplash/Pexels category photo: cards (`ReviewsGrid`, `LatestReviews`), the review page + SSR route, the Preloader slides. Priority is verified product image > brand banner (detail page only) > placeholder. Stale non-`product` rows in `review_images` are ignored. `product-review-sync` only reuses an existing `source_kind='product'` image.
+- **Shelf Showdown (comparison) covers are category-specific Unsplash photos**, derived by `comparisonCategory()` / `withCategoryCover()` (`src/lib/comparisonCover.ts`: title + context keywords, then compared product names, else the generic flat-lay) and applied where static (`comparisons.ts`) and generated (`use-generated-comparisons.ts`) articles are built, so every consumer agrees. Per-article thumbnails in the data files are no longer shown; don't edit them. Web-story review frames still use the category photos.
+- Tests: `src/lib/__tests__/reviewCovers.test.ts`.
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own

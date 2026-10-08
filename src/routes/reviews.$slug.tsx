@@ -20,7 +20,7 @@ import {
   type RetailerListing,
 } from '@/data/reviews'
 import { getBrandBanner } from '@/lib/brand-banners'
-import { getProductImage, type CategoryImage } from '@/data/productImages'
+import { REVIEW_PLACEHOLDER_IMAGE, type CategoryImage } from '@/data/productImages'
 import { findMarketplaceMatch, type MarketplaceMatch } from '@/lib/marketplaceCrossLink'
 import { fetchIngredientBreakdown, type IngredientBreakdownEntry } from '@/lib/ingredientBreakdown'
 import { checkedLabel, formatRand, formatSize, groupPrices, type SaRetailPrice } from '@/lib/pricing/saRetailPrices'
@@ -145,7 +145,7 @@ const fetchReview = createServerFn({ method: 'GET' })
     }
     if (!review) return { found: false }
 
-    // Image: verified real product image (review_images.source_kind = 'product') -> brand banner -> review_images row -> category pool.
+    // Image: verified real product image (review_images.source_kind = 'product') -> brand banner -> branded placeholder.
     // Same priority as src/hooks/use-review-images.ts's getImage().
     let image: CategoryImage | null = null
     const { data: imgRow } = await supabase
@@ -160,7 +160,8 @@ const fetchReview = createServerFn({ method: 'GET' })
     } else if (bannerPath) {
       image = { url: bannerPath, alt: `${review.brand} brand banner`, creditName: review.brand, creditUrl: '#' }
     } else {
-      image = row ? { url: row.image_url, alt: row.alt, creditName: row.credit_name, creditUrl: row.credit_url } : getProductImage(review.category, review.id)
+      // No approved product image: the branded placeholder, never a stock photo.
+      image = REVIEW_PLACEHOLDER_IMAGE
     }
 
     // Related reviews: same category, excluding self -- static catalogue plus a
@@ -449,14 +450,14 @@ function ReviewPageContent() {
 
         {image && (
           <figure>
-            <img src={image.url} alt={`${review.category} product photography — ${image.alt}`} width={1200} height={630} loading="lazy" />
+            <img src={image.url} alt={image.alt} width={1200} height={630} loading="lazy" />
             {image.creditUrl !== '#' && (
               <figcaption>
-                Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{' '}
-                <a href={image.creditUrl} target="_blank" rel="noreferrer noopener">
+                Product image from{' '}
+                <a href={image.creditUrl} target="_blank" rel="noreferrer noopener nofollow">
                   {image.creditName}
-                </a>{' '}
-                on Unsplash.
+                </a>
+                . Image rights belong to their owners.
               </figcaption>
             )}
           </figure>

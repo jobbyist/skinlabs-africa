@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
-import { getCategoryImage } from "@/data/productImages";
+import { REVIEW_PLACEHOLDER_IMAGE } from "@/data/productImages";
 import { useProductCoverImages } from "@/hooks/use-product-cover-images";
 import { useLiveReviewPrices } from "@/hooks/use-live-review-prices";
 import { compareByLivePrice, inPriceBand } from "@/lib/pricing/liveReviewPrices";
@@ -133,7 +133,7 @@ const ReviewsGrid = ({
     const nodes: React.ReactNode[] = [];
     pageItems.forEach((review, index) => {
       const realCover = realCovers?.get(review.id);
-      const productImage = realCover ?? getCategoryImage(review.category);
+      const productImage = realCover ?? REVIEW_PLACEHOLDER_IMAGE;
       nodes.push(
         <motion.div
           key={review.id}

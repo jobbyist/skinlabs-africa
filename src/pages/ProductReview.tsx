@@ -366,7 +366,7 @@ const ProductReview = () => {
                 <>
                   <img
                     src={productImage.url}
-                    alt={`${review.category} product photography — ${productImage.alt}`}
+                    alt={productImage.alt}
                     className="h-64 w-full rounded-3xl object-cover sm:h-80"
                     loading="lazy"
                   />
