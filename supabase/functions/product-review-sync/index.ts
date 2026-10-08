@@ -773,12 +773,10 @@ const SPONSORED_BRAND_BANNERS: Record<string, string> = {
  *  SPONSORED_BRAND_BANNERS, always uses that (see its own doc comment for why --
  *  takes priority over an existing review_images row too, so a stale generic stock
  *  photo already written before a brand's banner was mapped gets corrected on the
- *  next backfill pass rather than staying stuck). Otherwise checks review_images (the
- *  same table src/hooks/use-review-images.ts reads client-side) first; if this review
- *  has none yet and a PEXELS_API_KEY Supabase secret is configured, does one real
- *  Pexels search and writes the result INTO review_images (not just the primary_image
- *  cache column) so the existing client-side image-resolution chain picks it up too,
- *  rather than creating a second, divergent image source. Returns null (never
+ *  next backfill pass rather than staying stuck). A verified REAL product image
+ *  (review_images.source_kind = 'product') beats everything. With no image yet this
+ *  no longer fetches a Pexels/Unsplash stock photo: it nudges review-image-sync, which
+ *  finds the product's real image for a person to approve. Returns null (never
  *  fabricates a URL) if nothing applies. */
 async function resolvePrimaryImage(
   admin: SupabaseAdmin,
@@ -787,6 +785,10 @@ async function resolvePrimaryImage(
   brand: string,
   isSponsored: boolean,
 ): Promise<string | null> {
+  // A verified real product image (approved in Admin > Data Quality) always wins and is never overwritten by a banner or stock photo.
+  const { data: real } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).eq("source_kind", "product").maybeSingle();
+  if (real?.image_url) return real.image_url;
+
   const bannerFile = isSponsored ? SPONSORED_BRAND_BANNERS[brand] : undefined;
   if (bannerFile) {
     const bannerUrl = `https://skinlabs.co.za/brandbanners/${bannerFile}`;
