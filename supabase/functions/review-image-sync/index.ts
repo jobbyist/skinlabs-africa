@@ -167,19 +167,25 @@ interface CandidateOut {
 
 const labelFor = (retailer: string, brand: string) => (retailer === "brand-direct" ? `${brand} website` : (REVIEW_RETAILERS.find((r) => r.slug === retailer)?.name ?? retailer));
 
-async function imagesFromPage(page: { url: string; retailer: string; confidence: number | null }, brand: string): Promise<CandidateOut[]> {
+async function imagesFromPage(page: { url: string; retailer: string; confidence: number | null }, brand: string): Promise<{ out: CandidateOut[]; diag: string }> {
   // Brand shops answer plain requests; the retailers (Cloudflare etc.) are read through Nimble. Either may fall back to the other.
   const order = page.retailer === "brand-direct" ? [plainFetchHtml, nimbleFetchHtml] : [nimbleFetchHtml, plainFetchHtml];
   let images: ReturnType<typeof extractProductImages> = [];
+  const notes: string[] = [];
   for (const read of order) {
     const html = await read(page.url);
+    notes.push(`${read === plainFetchHtml ? "plain" : "nimble"}:${html ? html.length : "none"}`);
     if (!html) continue;
     images = extractProductImages(html, page.url);
     if (images.length > 0) break;
   }
   const out: CandidateOut[] = [];
+  let rejected = 0;
   for (const img of images.slice(0, 2)) {
-    if (!(await validImage(img.url))) continue;
+    if (!(await validImage(img.url))) {
+      rejected++;
+      continue;
+    }
     out.push({
       image_url: img.url,
       alt: img.alt,
@@ -190,7 +196,7 @@ async function imagesFromPage(page: { url: string; retailer: string; confidence:
       match_confidence: page.confidence,
     });
   }
-  return out;
+  return { out, diag: `${page.retailer} ${page.url.slice(0, 70)} [${notes.join(" ")}] imgs=${images.length} rejected=${rejected} kept=${out.length}` };
 }
 
 // ---- run ------------------------------------------------------------------------------------------
@@ -212,7 +218,7 @@ async function authorised(req: Request, admin: Admin): Promise<boolean> {
 
 async function runBatch(admin: Admin, runId: string, limit: number, reviewId: string | null) {
   const started = Date.now();
-  const summary = { targets: 0, checked: 0, with_images: 0, candidates_saved: 0, no_page: 0, deferred: 0, errors: [] as string[], stop: null as string | null };
+  const summary = { targets: 0, checked: 0, with_images: 0, candidates_saved: 0, no_page: 0, deferred: 0, errors: [] as string[], stop: null as string | null, diag: [] as string[] };
   const down = new Set<string>();
   const { data: batch, error } = await admin.rpc("get_review_image_targets", { p_limit: limit, p_review_id: reviewId });
   if (error) summary.stop = `batch: ${error.message}`;
@@ -254,7 +260,8 @@ async function runBatch(admin: Admin, runId: string, limit: number, reviewId: st
       if (top.length === 0) summary.no_page++;
 
       const perPage = await Promise.all(top.map((p) => imagesFromPage(p, t.brand)));
-      const candidates = perPage.flat().slice(0, 4);
+      const candidates = perPage.flatMap((p) => p.out).slice(0, 4);
+      if (summary.diag.length < 12) summary.diag.push(`${t.review_id}: ${perPage.map((p) => p.diag).join(" | ") || "no pages"}`.slice(0, 400));
       const { data: saved, error: saveErr } = await admin.rpc("save_review_image_candidates", { p_review_id: t.review_id, p_tool: tool, p_candidates: candidates });
       if (saveErr) throw new Error(saveErr.message);
       summary.checked++;
