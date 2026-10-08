@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import SpotlightRankingCard from "@/components/SpotlightRankingCard";
-import { spotlightTopThisWeek } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
 
 const SpotlightTeaser = () => {
   const { data: edition } = useSpotlightEdition();
+  const { topThisWeek: spotlightTopThisWeek } = useSpotlightRanking();
   return (
     <section id="spotlight" className="bg-background py-20">
       <div className="container mx-auto px-4">

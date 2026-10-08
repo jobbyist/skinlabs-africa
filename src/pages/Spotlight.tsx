@@ -11,7 +11,7 @@ import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
-import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const RANKING_PAGE_SIZE = 5;
@@ -24,6 +24,7 @@ const Spotlight = () => {
   const [submitOpen, setSubmitOpen] = useState(false);
   const [rankingPage, setRankingPage] = usePageParam("page");
   const { data: edition } = useSpotlightEdition();
+  const { all: spotlightRanking, ranked: spotlightRankedBrands, radar: spotlightRisingBrands, topThisWeek: spotlightTopThisWeek } = useSpotlightRanking();
 
   const totalRankingPages = Math.max(1, Math.ceil(spotlightRankedBrands.length / RANKING_PAGE_SIZE));
   const currentRankingPage = Math.min(rankingPage, totalRankingPages);
@@ -107,9 +108,9 @@ const Spotlight = () => {
 
         <section className="container mx-auto mt-6 px-4">
           <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-            The {edition.editionLabel} edition of Brand Spotlight includes {spotlightRanking.length} ranked brands
-            including {spotlightRisingBrands.length} emerging brands under review. The ranked list will expand as
-            SkinLabs® develops more product evidence. The Spotlight list and methodology will be updated at least
+            The {edition.editionLabel} edition of Brand Spotlight ranks {spotlightRankedBrands.length} brands with two or
+            more published SkinLabs reviews, and lists {spotlightRisingBrands.length} emerging {spotlightRisingBrands.length === 1 ? "brand" : "brands"} with
+            one review so far. The ranked list expands as SkinLabs® publishes more product reviews. The Spotlight list and methodology will be updated at least
             once every month.
           </p>
         </section>

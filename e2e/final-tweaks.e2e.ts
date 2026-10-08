@@ -40,13 +40,20 @@ test("pricing: Glow Insider card has the animated gradient border", async ({ pag
   await expect(card).toHaveCount(1);
 });
 
-test("header: Marketplace is marked Coming Soon", async ({ page, context }, info) => {
+test("header: no Marketplace under Explore, and every Coming Soon link sits last in the Explore grid", async ({ page, context }, info) => {
   test.skip(info.project.name.startsWith("mobile"), "desktop menu popover");
   await mockSupabase(context, { signedIn: false });
   await page.goto("/");
   await page.getByRole("button", { name: "Menu", exact: true }).click();
-  const item = page.locator("[data-radix-popper-content-wrapper]").getByRole("link", { name: /Marketplace/ });
-  await expect(item).toContainText(/coming soon/i);
+  const panel = page.locator("[data-radix-popper-content-wrapper]");
+  await expect(panel.getByRole("link", { name: /Marketplace/ })).toHaveCount(0);
+  const cards = panel.locator("a.gradient-border-anim");
+  const texts = await cards.allInnerTexts();
+  const soon = texts.map((t) => /coming soon/i.test(t));
+  expect(soon.some(Boolean)).toBe(true);
+  // once a "Coming Soon" card appears, every card after it is one too
+  expect(soon.slice(soon.indexOf(true)).every(Boolean)).toBe(true);
+  await expect(panel.getByRole("link", { name: /Practice Suite/ })).toContainText(/coming soon/i);
 });
 
 const ANDROID_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36";

@@ -14,7 +14,6 @@ import ComposeSheet from "@/components/community/ComposeSheet";
 import ReportDialog, { type ReportTarget } from "@/components/community/ReportDialog";
 import ConfirmDialog from "@/components/community/ConfirmDialog";
 import GuidelinesDialog from "@/components/community/GuidelinesDialog";
-import AdSlot from "@/components/AdSlot";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { ConnectionBanner, FeedEmpty, FeedError, FeedSkeleton } from "@/components/community/ForumStates";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,7 +28,7 @@ import {
   useContentActions,
   usePostLike,
 } from "@/hooks/use-community";
-import { fetchIsStaff, recordShare } from "@/lib/community/client";
+import { fetchIsStaff, getMySanction, recordShare } from "@/lib/community/client";
 import { FORUM_PATH, parsePostParam, postPath, writeErrorMessage, type CommunityComment, type CommunityPost } from "@/lib/community/rules";
 import { shareContent } from "@/lib/pwa/share";
 import { getSiteOrigin } from "@/lib/siteOrigin";
@@ -79,6 +78,9 @@ const CommunityForum = () => {
   const content = useContentActions();
   const staff = useQuery({ queryKey: [COMMUNITY_KEY, "staff", user?.id], queryFn: () => fetchIsStaff(user!.id), enabled: signedIn, staleTime: 10 * 60_000 });
   const isStaff = staff.data === true;
+  const sanction = useQuery({ queryKey: [COMMUNITY_KEY, "sanction", user?.id], queryFn: getMySanction, enabled: signedIn, staleTime: 60_000 });
+  const suspended = sanction.data?.kind === "suspend";
+  const muted = sanction.data?.kind === "mute";
   const posts = useMemo(() => feed.data?.pages.flatMap((p) => p.posts) ?? [], [feed.data]);
 
   // Signed-out visitors get the normal sign-in dialog in place, and come back to this exact discussion afterwards.
@@ -181,15 +183,11 @@ const CommunityForum = () => {
             <li data-post-id={post.id}>
               <PostCard post={post} isStaff={isStaff} onOpen={openThread} {...actions} />
             </li>
-            {/* A sponsored unit after every second discussion, alternating AdSense and Faithful to Nature. The ad
-                components apply the viewer's plan (full / light / none) and the labelling themselves. */}
+            {/* A Faithful to Nature unit after every second discussion. The forum is login-gated, so no AdSense
+                units run here (AdSense policy). The component applies the viewer's plan and the labelling itself. */}
             {index % 2 === 1 && (
               <li data-feed-ad={index} aria-label="Advertisement" className="empty:hidden">
-                {Math.floor(index / 2) % 2 === 0 ? (
-                  <AdSlot placement={`community-feed-${index}`} format="fluid" />
-                ) : (
-                  <FaithfulToNature placement={`community-feed-${index}`} />
-                )}
+                <FaithfulToNature placement={`community-feed-${index}`} />
               </li>
             )}
           </Fragment>
@@ -233,15 +231,28 @@ const CommunityForum = () => {
               </div>
             ) : (
               <div className="space-y-4">
+                {sanction.data && (
+                  <div role="status" className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-foreground">
+                    <p className="font-semibold">{suspended ? "Your Community access is suspended" : "You're muted"}</p>
+                    <p className="mt-1 text-muted-foreground">
+                      {suspended ? "You can't post, comment or react" : "You can read and react, but you can't post or comment"}
+                      {sanction.data.expires_at ? ` until ${new Date(sanction.data.expires_at).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })}.` : " until a moderator lifts this."}{" "}
+                      See the Community guidelines, or contact support if you think this is a mistake.
+                    </p>
+                  </div>
+                )}
+                {!suspended && (
                 <button
                   type="button"
+                  disabled={muted}
                   onClick={() => setComposeOpen(true)}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-3xl border border-border bg-card px-5 py-3 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-14 w-full items-center gap-3 rounded-3xl border border-border bg-card px-5 py-3 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <PenLine className="size-5 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">Start a discussion…</span>
                   <span className="gradient-bg shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold">New</span>
                 </button>
+                )}
 
                 <nav aria-label="Topics" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <Chip active={category === null} onClick={() => setCategory(null)}>
@@ -265,7 +276,7 @@ const CommunityForum = () => {
                   </div>
                 )}
 
-                {feedBody()}
+                {suspended ? null : feedBody()}
 
                 <div ref={sentinel} aria-hidden="true" />
                 {feed.isFetchingNextPage && (

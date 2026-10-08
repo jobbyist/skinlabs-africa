@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { podcastEpisodes } from "@/data/podcast";
 import { productReviews } from "@/data/reviews";
 import { getSpotlightBrand } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useEngagementStore } from "@/stores/engagementStore";
 import { loadLikedEpisodeSlugs, reconcileBriefingLikes } from "@/lib/savedContent";
@@ -82,9 +83,10 @@ const SavedContentTab = () => {
     const all = [...productReviews, ...generatedReviews];
     return localLikes.filter((id) => !id.startsWith("spotlight:")).map((id) => all.find((r) => r.id === id)).filter((r): r is NonNullable<typeof r> => Boolean(r));
   }, [localLikes, generatedReviews]);
+  const { all: spotlightAll } = useSpotlightRanking();
   const likedBrands = useMemo(
-    () => localLikes.filter((id) => id.startsWith("spotlight:")).map((id) => getSpotlightBrand(id.slice("spotlight:".length))).filter((b): b is NonNullable<typeof b> => Boolean(b)),
-    [localLikes],
+    () => localLikes.filter((id) => id.startsWith("spotlight:")).map((id) => getSpotlightBrand(id.slice("spotlight:".length), spotlightAll)).filter((b): b is NonNullable<typeof b> => Boolean(b)),
+    [localLikes, spotlightAll],
   );
   const likedExtras = episodes.length + likedReviews.length + likedBrands.length;
 

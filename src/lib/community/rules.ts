@@ -131,6 +131,9 @@ export const writeErrorMessage = (error: { message?: string; code?: string } | n
   if (m.includes("handle_required")) return "Choose a public handle first.";
   if (m.includes("rate_limited")) return "You're posting very quickly. Give it a few minutes.";
   if (m.includes("duplicate_content")) return "You've already posted exactly this. Try adding something new.";
+  if (m.includes("account_suspended")) return "Your Community access is suspended.";
+  if (m.includes("account_muted")) return "You're muted and can't post or comment right now.";
+  if (m.includes("media_quota_exceeded")) return "You've used your picture storage. Remove an older post with a picture, or post without one.";
   if (m.includes("invalid_image")) return "That image couldn't be attached. Try uploading it again.";
   if (error?.code === "42501" || /row-level security|permission denied/i.test(m)) return "That isn't available to you.";
   if (error?.code === "23514") return "That doesn't look right. Check the length and try again.";

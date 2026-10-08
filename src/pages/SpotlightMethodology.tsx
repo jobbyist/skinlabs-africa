@@ -1,302 +1,232 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, FileText, TrendingUp } from "lucide-react";
+import { ArrowLeft, Calendar, FileText } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
-import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
+import { useSpotlightEdition, useSpotlightEditionArchive } from "@/hooks/use-spotlight-edition";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
+import { EDITORIAL_INDEPENDENCE_LINE, FUNDING_STATEMENT } from "@/lib/editorialIndependence";
+
+/**
+ * The editorial methodologies page (route kept at /spotlight/methodology so existing links, the sitemap and search keep
+ * working). Every methodology below describes what the code and pipelines actually do today; if a pipeline changes, change
+ * its section here in the same PR. The Spotlight version and edition always come from the live spotlight_editions row
+ * (useSpotlightEdition), never from text typed into this page.
+ */
+const SECTIONS = [
+  { id: "briefings", label: "Briefings" },
+  { id: "reviews", label: "Reviews" },
+  { id: "comparisons", label: "Comparisons" },
+  { id: "seasonals", label: "Seasonals" },
+  { id: "podcast", label: "Podcast" },
+  { id: "ingredients", label: "Ingredients" },
+  { id: "spotlight", label: "Spotlight" },
+] as const;
 
 const SpotlightMethodology = () => {
   const canonical = "https://skinlabs.co.za/spotlight/methodology";
   const { data: edition } = useSpotlightEdition();
+  const archive = useSpotlightEditionArchive();
+  const { ranked, radar } = useSpotlightRanking();
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Spotlight Methodology — How SkinLabs Ranks SA Skincare Brands"
-        description="How Spotlight by SkinLabs ranks South African skincare brands: eligibility, scoring, evidence standards, update cadence and current limitations."
+        title="Editorial Methodologies — How SkinLabs Briefings, Reviews, Comparisons, Seasonals, Podcast, Ingredients and Spotlight Are Made"
+        description="How every SkinLabs content type is researched, scored, checked and updated: Briefings, Reviews, Shelf Showdown comparisons, Seasonals, the Skin Deep podcast, Ingredient profiles and Spotlight brand rankings."
         canonical={canonical}
       />
       <Header />
-      <main className="pt-24 pb-24">
+      <main className="pb-24 pt-24">
         <div className="container mx-auto max-w-3xl px-4">
           <Link to="/spotlight" className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Back to Spotlight
           </Link>
 
-          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Spotlight</p>
-          <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">How the ranking works</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{edition.methodologyVersion} · Effective {edition.editionLabel}</p>
+          <p className="mb-2 text-sm font-medium uppercase tracking-wider text-primary">Methodologies</p>
+          <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">How SkinLabs content is made</h1>
+          <p className="mt-3 text-muted-foreground">
+            One page for every editorial content type: where the information comes from, how it is scored or checked,
+            how often it changes, and what each method cannot tell you. {EDITORIAL_INDEPENDENCE_LINE}
+          </p>
 
-          <div className="prose prose-neutral mt-8 max-w-none dark:prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">
-            <h2>Purpose</h2>
-            <p>
-              Spotlight exists to give readers a credible, review-led starting point for discovering South African
-              skincare brands — not a popularity contest, and not a paid directory. Every score is computed from
-              SkinLabs' own published product reviews, and no brand can buy a higher position.
-            </p>
+          <nav aria-label="Methodologies" className="mt-6 flex flex-wrap gap-2">
+            {SECTIONS.map((s) => (
+              <a
+                key={s.id}
+                href={`#${s.id}`}
+                className="rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {s.label}
+              </a>
+            ))}
+          </nav>
 
-            <h2>What Methodology v1.1 actually measures</h2>
-            <p>
-              A brand's Spotlight score is the average of its <strong>SkinLabs product review score</strong> across
-              every product from that brand SkinLabs has reviewed. Each product review scores four things out of 10:
-            </p>
+          <div className="prose prose-neutral mt-10 max-w-none dark:prose-invert prose-headings:scroll-mt-28 prose-headings:font-heading prose-headings:text-foreground prose-p:text-muted-foreground prose-li:text-muted-foreground prose-strong:text-foreground">
+            <h2>Principles that apply everywhere</h2>
             <ul>
-              <li><strong>Efficacy</strong> — how well the formulation does what it claims, based on disclosed actives and available evidence.</li>
-              <li><strong>Value</strong> — price relative to formulation quality and local market alternatives.</li>
-              <li><strong>Texture</strong> — real-world usability: how the product actually feels and layers.</li>
-              <li><strong>SA climate fit</strong> — how it performs in South African heat, humidity, altitude and UV conditions.</li>
-            </ul>
-            <p>
-              A brand's four-axis average across all its reviewed products becomes its Spotlight score. This is
-              recalculated automatically every time SkinLabs publishes or updates a review — it is never hand-typed.
-              This scoring model is unchanged from v1.0; what v1.1 adds is described below.
-            </p>
-
-            <h2>Weekly Top 3 rotation (new in v1.1)</h2>
-            <p>
-              The homepage and Spotlight page feature a "Top 3 brands this week" module. It is <strong>not</strong> a
-              separate, hand-picked list — it is drawn algorithmically from the same Ranked-tier scores described
-              above, so it can never surface a brand that isn't already genuinely top-scoring:
-            </p>
-            <ul>
-              <li>Take the highest-scoring Ranked brands, up to a pool of 9, and split them into cohorts of 3 in score order (so brands ranked 1–3, 4–6 and 7–9 each form one cohort).</li>
-              <li>The active cohort is chosen by the current rotation week number, so it advances by exactly one cohort each week and cycles back to the top cohort once every cohort has had a turn.</li>
-              <li>The rotation flips at <strong>00:00 SAST every Friday</strong> — never mid-week, never on demand, and never influenced by traffic, votes or payment.</li>
-              <li>If fewer than 9 brands are Ranked, the pool and cohort count shrink accordingly; the top 3 overall are shown until there are enough Ranked brands to rotate meaningfully.</li>
-            </ul>
-            <p>
-              This means every brand that appears in "Top 3 this week" earned that appearance on real review scores —
-              rotation only changes <em>which</em> genuinely top brands are surfaced, and <em>when</em>, never the bar
-              for getting there. The full ranking below the Top 3 module is unaffected by rotation and continues to
-              reflect every Ranked and New on the Radar brand at all times.
-            </p>
-
-            <h2>What this version doesn't measure — yet</h2>
-            <p>
-              A more complete brand-ranking framework could also weigh things like ingredient-transparency
-              disclosure, packaging innovation, customer-service quality or independently audited manufacturing
-              standards. We don't have reliable, independently verifiable evidence for those criteria yet, and
-              publishing invented scores for them would break the "review-led" promise this feature is built on.
-              Methodology v1.0 measures only what SkinLabs has genuinely reviewed. Future versions may expand this
-              scope once we have real evidence to back it — any change will get a new version number and be
-              documented here.
-            </p>
-
-            <h2>Coverage counts</h2>
-            <p>
-              Every brand, Ranked and New on the Radar count referenced on Spotlight — the disclaimer on the
-              Spotlight page, this Methodology page, and the archive — is computed live from the same underlying
-              data as the ranking itself. Nothing is a hand-typed number: add a brand, publish a review that moves it
-              between tiers, and every count updates automatically, everywhere, on the next page load. Only the
-              edition label and this Methodology's version number are updated by hand, since only a person can judge
-              when a new calendar edition begins or when a change is substantial enough to warrant a new methodology
-              version.
-            </p>
-
-            <h2>Eligibility</h2>
-            <ul>
-              <li>The brand sells skincare products to South African consumers.</li>
-              <li>At least one product from the brand has a published SkinLabs review.</li>
-              <li>Brands with <strong>2 or more</strong> reviewed products appear in the main Ranked tier.</li>
-              <li>Brands with exactly <strong>1</strong> reviewed product appear under New on the Radar until we review more of their range.</li>
+              <li><strong>Independence.</strong> {FUNDING_STATEMENT}</li>
+              <li><strong>Nothing invented.</strong> We never fabricate reviews, ratings, prices, ingredient data or performance claims. Where we do not have evidence, a page says so or shows nothing.</li>
+              <li><strong>AI assistance is disclosed.</strong> Several pipelines use AI to research, draft or structure content. Each section below says where, and every pipeline runs automated quality, duplication and compliance checks before anything is published.</li>
+              <li><strong>Cosmetic, not clinical.</strong> Content is educational. We do not diagnose, and checks reject named-diagnosis claims. For anything persistent, see a doctor or dermatologist.</li>
+              <li><strong>Corrections.</strong> If something is wrong, tell us through the <Link to="/corrections-removals">corrections and removals</Link> page. See also the <Link to="/editorial-policy">Editorial Policy</Link>.</li>
             </ul>
 
-            <h2>Movement</h2>
-            <p>
-              Every brand added since the first edition is labelled "New" until we have a genuine prior snapshot to
-              compare it against. Movement will reflect real score changes as SkinLabs publishes new or updated
-              reviews, never a fabricated up/down — the full ranking's movement is assessed monthly; the weekly Top 3
-              module rotates on the schedule above and doesn't carry its own separate movement indicator.
-            </p>
-
-            <h2>Update cadence</h2>
-            <p>
-              The full ranking and all brand profiles refresh as SkinLabs publishes new product reviews, with a
-              complete edition reassessment at least monthly. The Top 3 module rotates weekly as described above.
-              See the <Link to="/spotlight/archive">archive</Link> for past editions once more than one exists.
-            </p>
-
-            <h2>Commercial independence</h2>
-            <p>
-              Inclusion in Spotlight is never paid, and no brand can guarantee or purchase a ranking position or a
-              Top 3 rotation slot — the rotation is a deterministic function of real review scores and the calendar,
-              not a decision anyone at SkinLabs makes edition to edition. If SkinLabs ever has a commercial
-              relationship with a featured brand — a gifted product, an affiliate link, a sponsorship — it will be
-              disclosed clearly on that brand's profile and in the product review it's based on.
-            </p>
-
-            <h2>Access to brand profiles</h2>
-            <p>
-              The full ranking, the Top 3 module and every brand's summary card are visible to all visitors, signed
-              in or not. Opening a full brand profile page is free for the first 3 brands each calendar month for
-              signed-out visitors and Glow Explorer (free) members; Glow Insider and Glow VIP members have unlimited
-              access. This limit exists to support the reporting behind Spotlight — it doesn't affect a brand's score,
-              rank or Top 3 eligibility in any way.
-            </p>
-
-            <h2>Limitations</h2>
-            <p>
-              A brand's Spotlight score reflects only the products SkinLabs has actually reviewed, which may be a
-              small fraction of its full range. A high score means the reviewed products performed well — it isn't
-              a guarantee every product in the brand's catalogue will.
-            </p>
-
-            <h2>Changelog</h2>
+            <h2 id="briefings">Briefings</h2>
+            <p>Briefings are short, South Africa-focused explainers on skincare news, research and seasonal skin concerns.</p>
             <ul>
-            <h2>Archives</h2>
-            <p>
-              Browse past editions of Spotlight by SkinLabs to see how brand rankings and methodology have evolved
-              over time. Each edition represents a snapshot of South African skincare brands at a specific point in time.
-            </p>
-            <div className="my-6 space-y-4 rounded-2xl border border-border bg-card/50 p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  v1.1.2
-                </div>
-                <div className="flex-1">
-                  <div className="mb-1 flex items-baseline gap-2">
-                    <h4 className="font-semibold text-foreground">September 2026 (revised edition) — v1.1.2</h4>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-600">Upcoming</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    A refined, patched update to the current methodology which includes 25 additional brands and new features like Brand Comparison and enhanced search filters.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  v1.1
-                </div>
-                <div className="flex-1">
-                  <h4 className="mb-1 font-semibold text-foreground">September 2026 edition — v1.1</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Expanded brand coverage from 21 to 50 South African skincare brands. Introduced weekly Top 3 rotation. Added pagination and 3-profile-per-month free allowance.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  v1.0
-                </div>
-                <div className="flex-1">
-                  <h4 className="mb-1 font-semibold text-foreground">August 2026 edition — v1.0</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Initial release with 21 brands. Four-axis product-review scoring, Ranked and New on the Radar tiers, monthly full-edition refresh.
-                  </p>
-                </div>
-              </div>
-            </div>
+              <li><strong>Sources.</strong> Each briefing starts from a real, public page chosen from a rotating list of South African and international skincare news and research channels. The source link is kept on the briefing. Some briefings are written by hand from an editorial blueprint; others are drafted with AI assistance from the source page.</li>
+              <li><strong>Local context.</strong> Drafts are written for South African readers: climate, altitude, UV and local product availability come first, not an overseas default.</li>
+              <li><strong>Checks before publishing.</strong> A formatting check (clear headings, short paragraphs, at least one list), a minimum length, a duplicate check (the source link and the title and wording are compared with the last 45 days of briefings, so one source cannot produce several near-identical briefings) and a scan that rejects named-diagnosis language. A draft that fails gets one guided rewrite and is then dropped.</li>
+              <li><strong>Cadence.</strong> At most one new briefing a day. Every briefing ends with an editorial disclaimer. Photographs are credited to their source.</li>
+              <li><strong>Limits.</strong> A briefing summarises its source for general education. It is not medical advice and not a product recommendation.</li>
+            </ul>
 
-              <li>
-                <strong>v1.1 — September 2026:</strong> Expanded brand coverage from 21 to 50 South African skincare
-                brands with published product reviews. Introduced the weekly Top 3 rotation described above (the
-                monthly "Top 3" snapshot from v1.0 is retired in favour of it). Added SEO-friendly, page-numbered
-                pagination to the full ranking. Replaced the previous full members-only gate on brand profiles with a
-                3-profile-per-month free allowance for signed-out visitors and Glow Explorer members.
-              </li>
-              <li>
-                <strong>v1.0 — August 2026:</strong> Initial release. Four-axis product-review scoring, Ranked and New
-                on the Radar tiers, monthly full-edition refresh.
-              </li>
+            <h2 id="reviews">Reviews</h2>
+            <p>A review is SkinLabs&apos; scored assessment of one product, written for South African conditions.</p>
+            <ul>
+              <li><strong>The score.</strong> Four scores out of 10: <strong>Efficacy</strong> (does the formulation do what it claims, judged on its disclosed actives and the available evidence), <strong>Value</strong> (price against formulation quality and local alternatives), <strong>Texture</strong> (how it feels and layers in use) and <strong>SA climate fit</strong> (heat, humidity, altitude and UV). The overall score is their average.</li>
+              <li><strong>Where reviews come from.</strong> A hand-written catalogue, plus reviews researched from brand and retailer product pages and drafted with AI assistance, grounded in what the page actually says. A review never states a fact its source does not support.</li>
+              <li><strong>Sponsored products.</strong> Reviews of products sold through OpenHaus, SkinLabs&apos; own marketplace, and any paid placement carry a <em>Sponsored</em> label. Sponsorship does not change how a review is scored.</li>
+              <li><strong>Prices.</strong> A price appears only if it was read from the retailer&apos;s own product page, the product was matched with confidence and it was checked in the last 14 days. Otherwise we show a dated &ldquo;at review time&rdquo; snapshot or nothing.</li>
+              <li><strong>Ratings.</strong> The editorial score (out of 10) and member ratings (out of 5) are never blended. Member ratings appear only when real members have rated the product.</li>
+              <li><strong>Ingredients.</strong> Key ingredients link to our <a href="#ingredients">ingredient profiles</a>. If a profile does not exist yet, the review says it is coming rather than guessing.</li>
+              <li><strong>Limits.</strong> We assess formulations and published information. A review is not a clinical trial and cannot predict how your skin will react.</li>
+            </ul>
+
+            <h2 id="comparisons">Comparisons (Shelf Showdown)</h2>
+            <p>A Shelf Showdown puts two products from the same category side by side.</p>
+            <ul>
+              <li><strong>Pairing.</strong> Both products have a published SkinLabs review. Each pairing is recorded, so the same two products are never compared twice.</li>
+              <li><strong>Data.</strong> Scores, prices, ingredients and verdicts are taken from those reviews, not re-scored for the comparison.</li>
+              <li><strong>Verdict style.</strong> A comparison says which product is better <em>for what</em> (for example, drier skin, a tighter budget or humid coast). It never crowns a universal winner.</li>
+              <li><strong>Cadence.</strong> New comparisons are generated weekly, with AI assistance and the same checks as reviews, alongside hand-written ones.</li>
+              <li><strong>Limits.</strong> A comparison is only as broad as the two reviews behind it.</li>
+            </ul>
+
+            <h2 id="seasonals">Seasonals</h2>
+            <p>Seasonal hubs gather what matters for skin in each South African season.</p>
+            <ul>
+              <li><strong>Season.</strong> The current season is worked out from today&apos;s date using southern-hemisphere months (SAST), not set by hand.</li>
+              <li><strong>Product edits.</strong> Every product in a seasonal edit is one SkinLabs has reviewed, and links to its review.</li>
+              <li><strong>Guidance.</strong> General, cosmetic advice (for example more sun protection in summer or a richer moisturiser through a dry Highveld winter), never a diagnosis or a treatment plan.</li>
+              <li><strong>Limits.</strong> Seasonal advice is general and cannot reflect your skin, your city or the weather this week. For that, see Skin Weather in your dashboard.</li>
+            </ul>
+
+            <h2 id="podcast">Podcast (The Skin Deep)</h2>
+            <p>The Skin Deep is SkinLabs&apos; audio series on skincare topics.</p>
+            <ul>
+              <li><strong>Format.</strong> Episodes are discussion-format audio that draws on SkinLabs&apos; own published material. They are not interviews with experts, practitioners or brands, and we do not present them as such.</li>
+              <li><strong>Show notes.</strong> Summaries, chapter timestamps and transcript excerpts are written from the final audio, which we transcribe and check. If an episode does not name a product, no product is listed for it.</li>
+              <li><strong>Independence.</strong> The podcast takes no paid mentions. Anything sponsored would be labelled in the episode and its notes.</li>
+              <li><strong>Cadence.</strong> Season 1 is complete. We publish the Season 2 date on the <Link to="/podcast">podcast page</Link> once it is set.</li>
+              <li><strong>Limits.</strong> Spoken summaries are simplified. The written reviews and ingredient profiles are the reference.</li>
+            </ul>
+
+            <h2 id="ingredients">Ingredients</h2>
+            <p>Ingredient profiles explain what an ingredient is, what it does and what to watch for.</p>
+            <ul>
+              <li><strong>Research.</strong> Each profile is built from published sources such as PubMed-indexed studies and DermNet NZ, and lists its citations. Drafting uses AI assistance; the sources decide the content, not the model.</li>
+              <li><strong>What a profile covers.</strong> Function, typical concentration range, evidence level, irritancy and pregnancy notes, usage and formulation notes, related ingredients and known interactions.</li>
+              <li><strong>Verification status.</strong> New profiles are published as <em>partially verified</em>. Only a human reviewer can mark a profile <em>verified</em>, and a profile can be deprecated.</li>
+              <li><strong>Interactions.</strong> Pair notes and routine conflict checks come from sourced interaction records. A pair we have no record for produces nothing, never a guess.</li>
+              <li><strong>Growth and upkeep.</strong> The catalogue grows every week, including ingredients our reviews mention that do not have a profile yet. Older profiles are re-checked oldest first. Generic &ldquo;complex&rdquo; blends and ingredients with no usable literature are skipped rather than filled with invented content.</li>
+              <li><strong>Limits.</strong> Concentrations and evidence describe ingredients in general, not a specific product. Allergy notes are cautions, not a clearance.</li>
+            </ul>
+
+            <h2 id="spotlight">Spotlight</h2>
+            <p className="text-sm">
+              {edition.methodologyVersion} · {edition.editionLabel} edition · {ranked.length} ranked brands, {radar.length} on the radar
+            </p>
+            <h3>Purpose</h3>
+            <p>
+              Spotlight gives readers a review-led starting point for discovering skincare brands sold in South Africa: not a
+              popularity contest and not a paid directory. Every score is computed from SkinLabs&apos; own published product
+              reviews, and no brand can buy a higher position.
+            </p>
+            <h3>What it measures</h3>
+            <p>
+              A brand&apos;s Spotlight score is the average of the overall review score (efficacy, value, texture and SA climate
+              fit, each out of 10) across <strong>every published SkinLabs review of that brand</strong>, whether the review
+              is hand-written or researched by the review pipeline. Spelling variants of a brand name (for example
+              &ldquo;SKOON.&rdquo; and &ldquo;Skoon&rdquo;) count as the same brand. Scores are recalculated whenever a review is
+              published or updated and are never typed in by hand.
+            </p>
+            <h3>Eligibility and tiers</h3>
+            <ul>
+              <li>The brand sells skincare to South African consumers and has at least one published SkinLabs review.</li>
+              <li>Brands with <strong>two or more</strong> published reviews are <strong>Ranked</strong>, ordered by score.</li>
+              <li>Brands with exactly <strong>one</strong> published review appear under <strong>New on the Radar</strong> until we review more of their range.</li>
+              <li>Brands with a hand-written editorial profile show it. A brand without one gets a profile compiled only from facts in its reviews (counts, categories, scores and the verdict of its top-scoring review), with no website, history or positioning claims added.</li>
+              <li>Some ranked brands have products sold through OpenHaus. Those reviews are labelled Sponsored on the review itself and noted on the brand profile. They are scored exactly like any other review.</li>
+            </ul>
+            <h3>Weekly Top 3 rotation</h3>
+            <ul>
+              <li>Take the highest-scoring Ranked brands, up to a pool of nine, and split them into cohorts of three in score order.</li>
+              <li>The cohort on show is chosen by the rotation week number, so it advances one cohort each week and cycles back to the top.</li>
+              <li>It flips at <strong>00:00 SAST every Friday</strong>, never mid-week and never on demand, and is not influenced by traffic, votes or payment.</li>
+              <li>With fewer than nine Ranked brands the pool shrinks; the overall top three show until there are enough to rotate.</li>
+            </ul>
+            <h3>Movement, cadence and counts</h3>
+            <p>
+              Brands are labelled &ldquo;New&rdquo; until a genuine earlier snapshot exists to compare against; movement reflects real
+              score changes, never a made-up arrow. The full ranking refreshes as reviews are published, with a complete
+              reassessment at least monthly. Every count on the Spotlight pages comes from the same live data as the ranking.
+              The edition label and version are recorded in the <Link to="/spotlight/archive">archive</Link> each time the
+              published-review count passes a new milestone of 25.
+            </p>
+            <h3>Access to brand profiles</h3>
+            <p>
+              The ranking, the Top 3 and every brand card are visible to everyone. Opening a full brand profile is free for
+              the first three brands each calendar month for signed-out visitors and Glow Explorer members; Glow Lite, Glow
+              Insider and Glow VIP members have unlimited access. The limit has no effect on any score or rank.
+            </p>
+            <h3>What it does not measure</h3>
+            <p>
+              Spotlight does not score ingredient-transparency disclosure, packaging, customer service or audited
+              manufacturing standards, because we do not have independently verifiable evidence for them. A score reflects
+              only the products SkinLabs has reviewed, which may be a small part of a brand&apos;s range.
+            </p>
+            <h3>Version history</h3>
+            <ul>
+              <li><strong>v1.0 (August 2026):</strong> four-axis review scoring, Ranked and New on the Radar tiers, monthly refresh.</li>
+              <li><strong>v1.1 (September 2026):</strong> weekly Top 3 rotation, paginated ranking and the three-profiles-a-month free allowance.</li>
+              <li><strong>v1.2 onwards:</strong> edition and version numbers advance automatically each time the published-review count passes another 25, with no change to the scoring method.</li>
+              <li><strong>October 2026 update:</strong> the ranking now includes every published review (hand-written and pipeline-researched), merges spelling variants of a brand name, and lists every brand with two or more published reviews as Ranked.</li>
             </ul>
           </div>
 
-          {/* Archives Section */}
-          <div className="mt-16 border-t border-border pt-12">
-            <div className="text-center mb-10">
-              <h2 className="font-heading text-2xl font-bold text-foreground md:text-3xl mb-2">
-                Methodology Archives
-              </h2>
-              <p className="text-muted-foreground">
-                All published methodology versions and their effective dates
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {/* v1.1.2 - Upcoming */}
-              <div className="bg-card border-2 border-primary rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <TrendingUp className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-foreground">v1.1.2</h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white">
-                        Upcoming
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="h-4 w-4" />
-                      <span>September 2026 (revised)</span>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Minor revisions to clarify Top 3 rotation mechanics and add transparency around 
-                      coverage count updates. No changes to scoring methodology or eligibility criteria.
+          <section className="mt-14 border-t border-border pt-10" aria-labelledby="archive-heading">
+            <h2 id="archive-heading" className="font-heading text-2xl font-bold text-foreground">Spotlight editions on record</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Read from the live archive, so it always matches the version shown on Spotlight.</p>
+            <ul className="mt-5 space-y-3">
+              {(archive.data ?? []).map((e) => (
+                <li key={e.id} className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
+                  <FileText className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">
+                      {e.methodologyVersion.replace("Spotlight Methodology ", "")} · {e.editionLabel}
+                      {e.isCurrent && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase text-primary-foreground">Current</span>}
+                    </p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" aria-hidden="true" /> {e.reviewCountAtSnapshot}+ published reviews at snapshot
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* v1.1 - Current */}
-              <div className="bg-card border border-border rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-foreground">v1.1</h3>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
-                        Current
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="h-4 w-4" />
-                      <span>September 2026</span>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Expanded brand coverage from 21 to 50 South African skincare brands. Introduced 
-                      weekly Top 3 rotation, SEO-friendly pagination, and 3-profile-per-month free 
-                      allowance for brand profiles.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* v1.0 - Initial */}
-              <div className="bg-card border border-border rounded-2xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <FileText className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-xl font-bold text-foreground">v1.0</h3>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="h-4 w-4" />
-                      <span>August 2026</span>
-                    </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">
-                      Initial release. Four-axis product-review scoring (Efficacy, Value, Texture, SA 
-                      Climate Match), Ranked and New on the Radar tiers, monthly full-edition refresh.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+                </li>
+              ))}
+              {archive.isLoading && <li className="text-sm text-muted-foreground">Loading editions…</li>}
+              {!archive.isLoading && (archive.data ?? []).length === 0 && (
+                <li className="text-sm text-muted-foreground">
+                  Current edition: {edition.methodologyVersion.replace("Spotlight Methodology ", "")} · {edition.editionLabel}.
+                </li>
+              )}
+            </ul>
             <div className="mt-8 text-center">
-              <Link 
-                to="/spotlight" 
-                className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                View current Spotlight rankings
+              <Link to="/spotlight" className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" /> View current Spotlight rankings
               </Link>
             </div>
-          </div>
+          </section>
         </div>
       </main>
       <Footer />

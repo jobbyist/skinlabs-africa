@@ -9,8 +9,9 @@ import { spotlightBrandJsonLd, breadcrumbJsonLd } from '@/lib/seo/jsonLd'
 import { AUTHOR_NAME } from '@/lib/seo-config'
 import { siteBreadcrumbTrail } from '@/lib/seo/breadcrumbs'
 import { canonicalUrl } from '@/lib/seo/canonical'
-import { getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from '@/data/spotlight'
-import { overallScore } from '@/data/reviews'
+import { computeSpotlightRanking, getSpotlightBrand, SPOTLIGHT_EDITION_MONTH, SPOTLIGHT_METHODOLOGY_VERSION } from '@/data/spotlight'
+import { overallScore, productReviews } from '@/data/reviews'
+import { fetchGeneratedReviews } from '@/lib/generatedReviews'
 import { spotlightComments } from '@/data/articleComments'
 import { useEntitlements } from '@/hooks/use-entitlements'
 import { canViewSpotlightProfile, recordSpotlightProfileView, SPOTLIGHT_FREE_MONTHLY } from '@/lib/access-quotas'
@@ -68,10 +69,13 @@ const fetchSpotlightBrand = createServerFn({ method: 'GET' })
     return slug
   })
   .handler(async ({ data: slug }) => {
-    const entry = getSpotlightBrand(slug)
+    const supabase = createSupabaseServerClient()
+    // Same merged ranking as the client (static catalogue + pipeline-generated reviews), so a brand that only has
+    // generated reviews resolves and every score matches what the SPA shows. A failed read falls back to static.
+    const generated = await fetchGeneratedReviews(supabase).catch(() => [])
+    const entry = getSpotlightBrand(slug, computeSpotlightRanking([...productReviews, ...generated]))
     if (!entry) return { found: false as const }
 
-    const supabase = createSupabaseServerClient()
     const { data: editionRow } = await supabase
       .from('spotlight_editions')
       .select('edition_label, methodology_version')

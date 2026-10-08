@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminModeration, moderate, type AdminHeld, type AdminLogRow, type AdminReport, type AdminTerm } from "@/lib/community/client";
+import { AdminModeration, moderate, type AdminHeld, type AdminLogRow, type AdminMember, type AdminReport, type AdminSanction, type AdminTerm } from "@/lib/community/client";
+import SanctionDialog, { type SanctionTarget } from "@/components/admin/SanctionDialog";
 import { REPORT_REASONS, relativeTime, writeErrorMessage } from "@/lib/community/rules";
 
 const FLAG_LABELS: Record<string, string> = {
@@ -69,6 +70,7 @@ const Excerpt = ({ title, body }: { title: string | null; body: string | null })
 );
 
 const ReportsPanel = ({ onChange }: { onChange: () => void }) => {
+  const [restrict, setRestrict] = useState<SanctionTarget | null>(null);
   const [status, setStatus] = useState<"open" | "actioned" | "dismissed">("open");
   const load = useCallback(() => AdminModeration.reports(status), [status]);
   const { data, loading, error, reload } = useLoad<AdminReport[]>(load, []);
@@ -113,16 +115,19 @@ const ReportsPanel = ({ onChange }: { onChange: () => void }) => {
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="destructive" disabled={busy === r.report_id} onClick={() => void act(r, "remove")}>Remove content</Button>
                 <Button size="sm" variant="outline" disabled={busy === r.report_id} onClick={() => void act(r, "dismiss")}>Dismiss</Button>
+                <Button size="sm" variant="outline" onClick={() => setRestrict({ kind: "content", type: r.target_type, id: r.target_id, label: r.author_name ?? "author" })}>Mute / suspend author</Button>
               </div>
             )}
           </CardContent>
         </Card>
       ))}
+      <SanctionDialog target={restrict} onClose={() => setRestrict(null)} onDone={onChange} />
     </div>
   );
 };
 
 const HeldPanel = ({ onChange }: { onChange: () => void }) => {
+  const [restrict, setRestrict] = useState<SanctionTarget | null>(null);
   const { data, loading, error, reload } = useLoad<AdminHeld[]>(AdminModeration.held, []);
   const [busy, setBusy] = useState<string | null>(null);
   const review = async (h: AdminHeld, approve: boolean) => {
@@ -154,10 +159,12 @@ const HeldPanel = ({ onChange }: { onChange: () => void }) => {
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={busy === h.target_id} onClick={() => void review(h, true)}><Check className="mr-1.5 size-4" /> Approve</Button>
               <Button size="sm" variant="destructive" disabled={busy === h.target_id} onClick={() => void review(h, false)}><X className="mr-1.5 size-4" /> Reject</Button>
+              <Button size="sm" variant="outline" onClick={() => setRestrict({ kind: "content", type: h.target_type, id: h.target_id, label: h.author_name ?? "author" })}>Mute / suspend author</Button>
             </div>
           </CardContent>
         </Card>
       ))}
+      <SanctionDialog target={restrict} onClose={() => setRestrict(null)} onDone={onChange} />
     </div>
   );
 };
@@ -198,6 +205,91 @@ const TermsPanel = () => {
   );
 };
 
+const untilLabel = (iso: string | null) => (iso ? `until ${new Date(iso).toLocaleString("en-ZA", { dateStyle: "medium", timeStyle: "short" })}` : "until lifted");
+
+/** Find a member by handle, restrict them, and lift or review restrictions. Staff accounts can't be restricted (enforced in the database). */
+const MembersPanel = ({ onChange }: { onChange: () => void }) => {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<AdminMember[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [restrict, setRestrict] = useState<SanctionTarget | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const load = useCallback(() => AdminModeration.sanctions(!showAll), [showAll]);
+  const sanctions = useLoad<AdminSanction[]>(load, []);
+
+  const search = async () => {
+    if (query.trim().length < 2) return;
+    setSearching(true);
+    try {
+      setResults(await AdminModeration.searchMembers(query.trim()));
+    } catch (e) {
+      toast.error(writeErrorMessage(e as Error, "Search failed."));
+    } finally {
+      setSearching(false);
+    }
+  };
+  const refresh = async () => {
+    await sanctions.reload();
+    if (results) await search();
+    onChange();
+  };
+  const lift = async (id: string) => {
+    try {
+      await AdminModeration.liftSanction(id);
+      toast.success("Restriction lifted");
+      await refresh();
+    } catch (e) {
+      toast.error(writeErrorMessage(e as Error, "That didn't work."));
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void search(); }}>
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Find a member by handle" aria-label="Member handle" maxLength={40} className="max-w-sm" />
+          <Button type="submit" disabled={searching || query.trim().length < 2}>{searching ? <Loader2 className="size-4 animate-spin" /> : "Search"}</Button>
+        </form>
+        {results && results.length === 0 && <p className="text-sm text-muted-foreground">No members match “{query}”.</p>}
+        <ul className="space-y-2">
+          {(results ?? []).map((m) => (
+            <li key={m.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p className="font-medium">@{m.handle} {m.role !== "member" && <Badge variant="secondary" className="ml-1 capitalize">{m.role}</Badge>}</p>
+                <p className="text-xs text-muted-foreground">{m.posts} posts · {m.comments} comments</p>
+                {m.sanction_kind && <p className="mt-1 text-xs text-destructive">{m.sanction_kind === "mute" ? "Muted" : "Suspended"} {untilLabel(m.sanction_expires_at)}</p>}
+              </div>
+              {m.role === "member" && (
+                <Button size="sm" variant="outline" onClick={() => setRestrict({ kind: "member", userId: m.user_id, label: `@${m.handle}` })}>{m.sanction_kind ? "Change restriction" : "Mute / suspend"}</Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="font-heading text-base font-semibold">{showAll ? "Restriction history" : "Active restrictions"}</h3>
+          <Button size="sm" variant="ghost" onClick={() => setShowAll((v) => !v)}>{showAll ? "Show active only" : "Show history"}</Button>
+        </div>
+        <Status loading={sanctions.loading} error={sanctions.error} onRetry={sanctions.reload} empty={sanctions.data.length === 0 ? (showAll ? "No restrictions yet." : "Nobody is muted or suspended.") : null} />
+        <ul className="divide-y divide-border rounded-xl border border-border">
+          {sanctions.data.map((s) => (
+            <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+              <div className="min-w-0">
+                <p><span className="font-medium">@{s.handle ?? "unknown"}</span> <Badge variant={s.active ? "destructive" : "outline"} className="ml-1 capitalize">{s.kind === "mute" ? "Muted" : "Suspended"}{s.active ? "" : s.lifted_at ? " (lifted)" : " (ended)"}</Badge></p>
+                <p className="mt-0.5 break-words text-xs text-muted-foreground">{s.reason} · by {s.created_by_name ?? "staff"} · {relativeTime(s.created_at)} ago · {s.active ? untilLabel(s.expires_at) : "inactive"}</p>
+              </div>
+              {s.active && <Button size="sm" variant="outline" onClick={() => void lift(s.id)}>Lift</Button>}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <SanctionDialog target={restrict} onClose={() => setRestrict(null)} onDone={() => void refresh()} />
+    </div>
+  );
+};
+
 const LogPanel = () => {
   const { data, loading, error, reload } = useLoad<AdminLogRow[]>(AdminModeration.log, []);
   return (
@@ -228,7 +320,7 @@ const ModerationTab = () => {
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2 font-heading text-lg"><ShieldAlert className="size-5" /> Community moderation</CardTitle>
-            <CardDescription>Review reports and spam-held content. Every action is logged.</CardDescription>
+            <CardDescription>Review reports and spam-held content, restrict members, and watch storage. Discussions are purged automatically 30 days after posting. Every action is logged.</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => void overview.reload()} aria-label="Refresh counts"><RefreshCw className="size-4" /></Button>
         </CardHeader>
@@ -236,13 +328,16 @@ const ModerationTab = () => {
           {overview.error ? (
             <p role="alert" className="text-sm text-destructive">{overview.error}</p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
               <Counter label="Open reports" value={o.open_reports} warn />
               <Counter label="Held posts" value={o.held_posts} warn />
               <Counter label="Held comments" value={o.held_comments} warn />
               <Counter label="Removed (7d)" value={o.removed_7d} />
               <Counter label="Posts (24h)" value={o.posts_24h} />
               <Counter label="Comments (24h)" value={o.comments_24h} />
+              <Counter label="Restricted members" value={o.active_sanctions} />
+              <Counter label="Picture storage (MB)" value={o.media_mb} />
+              <Counter label="Due for 30-day purge" value={o.purge_due} />
             </div>
           )}
         </CardContent>
@@ -251,11 +346,13 @@ const ModerationTab = () => {
         <TabsList className="flex h-auto flex-wrap justify-start">
           <TabsTrigger value="reports">Reports{o.open_reports ? ` (${o.open_reports})` : ""}</TabsTrigger>
           <TabsTrigger value="held">Held{o.held_posts || o.held_comments ? ` (${(o.held_posts ?? 0) + (o.held_comments ?? 0)})` : ""}</TabsTrigger>
+          <TabsTrigger value="members">Members{o.active_sanctions ? ` (${o.active_sanctions})` : ""}</TabsTrigger>
           <TabsTrigger value="terms">Blocked terms</TabsTrigger>
           <TabsTrigger value="log">Action log</TabsTrigger>
         </TabsList>
         <TabsContent value="reports" className="mt-4"><ReportsPanel onChange={() => void overview.reload()} /></TabsContent>
         <TabsContent value="held" className="mt-4"><HeldPanel onChange={() => void overview.reload()} /></TabsContent>
+        <TabsContent value="members" className="mt-4"><MembersPanel onChange={() => void overview.reload()} /></TabsContent>
         <TabsContent value="terms" className="mt-4"><TermsPanel /></TabsContent>
         <TabsContent value="log" className="mt-4"><LogPanel /></TabsContent>
       </Tabs>

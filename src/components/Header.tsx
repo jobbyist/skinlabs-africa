@@ -13,7 +13,6 @@ import {
   Search,
   Award,
   Sun,
-  ShoppingBag,
   Scale,
   Home,
   Target,
@@ -81,21 +80,20 @@ const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
   { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
 ];
 
-/** The "Explore" grid — SkinLabs' editorial + platform sections. */
+/** The "Explore" grid: SkinLabs' live editorial + platform sections first, every "Coming Soon" item last. */
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Community", href: "/community-forum", icon: MessagesSquare, badge: "NEW" },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
   { label: "Podcast", href: "/podcast", icon: Mic },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "Coming Soon" },
   { label: "Ingredients", href: "/ingredients", icon: Beaker, badge: "NEW" },
+  { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
   { label: "Academy", href: "/learn", icon: GraduationCap, badge: "Coming Soon" },
 ];
 

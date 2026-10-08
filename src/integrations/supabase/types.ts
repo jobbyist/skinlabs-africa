@@ -1588,6 +1588,42 @@ export type Database = {
           },
         ]
       }
+      community_sanctions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          lifted_at: string | null
+          lifted_by: string | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       community_spam_terms: {
         Row: {
           created_at: string
@@ -5521,6 +5557,190 @@ export type Database = {
         }
         Relationships: []
       }
+      review_price_history: {
+        Row: {
+          id: string
+          in_stock: boolean | null
+          listing_id: string
+          observed_at: string
+          price_zar: number
+          source_tool: string
+        }
+        Insert: {
+          id?: string
+          in_stock?: boolean | null
+          listing_id: string
+          observed_at?: string
+          price_zar: number
+          source_tool: string
+        }
+        Update: {
+          id?: string
+          in_stock?: boolean | null
+          listing_id?: string
+          observed_at?: string
+          price_zar?: number
+          source_tool?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_price_history_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "review_price_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_price_listings: {
+        Row: {
+          checked_at: string
+          confidence: number | null
+          created_at: string
+          evidence: string | null
+          id: string
+          in_stock: boolean | null
+          listing_size_ml: number | null
+          listing_title: string | null
+          listing_url: string
+          match_reasons: Json
+          needs_attention: boolean
+          previous_price_zar: number | null
+          price_zar: number
+          retailer_slug: string
+          review_id: string
+          source_tool: string
+          special_price_zar: number | null
+          status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          checked_at?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          in_stock?: boolean | null
+          listing_size_ml?: number | null
+          listing_title?: string | null
+          listing_url: string
+          match_reasons?: Json
+          needs_attention?: boolean
+          previous_price_zar?: number | null
+          price_zar: number
+          retailer_slug: string
+          review_id: string
+          source_tool: string
+          special_price_zar?: number | null
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          checked_at?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          in_stock?: boolean | null
+          listing_size_ml?: number | null
+          listing_title?: string | null
+          listing_url?: string
+          match_reasons?: Json
+          needs_attention?: boolean
+          previous_price_zar?: number | null
+          price_zar?: number
+          retailer_slug?: string
+          review_id?: string
+          source_tool?: string
+          special_price_zar?: number | null
+          status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_price_listings_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "review_price_targets"
+            referencedColumns: ["review_id"]
+          },
+        ]
+      }
+      review_price_runs: {
+        Row: {
+          finished_at: string | null
+          id: string
+          source: string | null
+          started_at: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          finished_at?: string | null
+          id?: string
+          source?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          finished_at?: string | null
+          id?: string
+          source?: string | null
+          started_at?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
+      review_price_targets: {
+        Row: {
+          brand: string
+          created_at: string
+          is_sponsored: boolean
+          last_checked_at: string | null
+          last_found: number
+          last_source: string | null
+          next_check_at: string
+          product_name: string
+          review_id: string
+          review_kind: string
+          size_ml: number | null
+          source_type: string | null
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          is_sponsored?: boolean
+          last_checked_at?: string | null
+          last_found?: number
+          last_source?: string | null
+          next_check_at?: string
+          product_name: string
+          review_id: string
+          review_kind: string
+          size_ml?: number | null
+          source_type?: string | null
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          is_sponsored?: boolean
+          last_checked_at?: string | null
+          last_found?: number
+          last_source?: string | null
+          next_check_at?: string
+          product_name?: string
+          review_id?: string
+          review_kind?: string
+          size_ml?: number | null
+          source_type?: string | null
+        }
+        Relationships: []
+      }
       review_ratings: {
         Row: {
           created_at: string
@@ -6679,6 +6899,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_decide_review_prices: {
+        Args: { p_decision: string; p_ids: string[]; p_price_override?: number }
+        Returns: number
+      }
       admin_events_overview: { Args: { p_days?: number }; Returns: Json }
       admin_get_advanced_assessment_review: {
         Args: { p_report_id: string }
@@ -6825,6 +7049,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_platform_overview: { Args: { p_days?: number }; Returns: Json }
       admin_preview_notification_audience: {
         Args: { p_audience: Json; p_category?: string; p_channels?: string[] }
         Returns: Json
@@ -7041,6 +7266,7 @@ export type Database = {
           source: string
         }[]
       }
+      community_active_sanction: { Args: { p_user: string }; Returns: string }
       community_actor_role: { Args: { p_user_id: string }; Returns: string }
       community_admin_held: {
         Args: { p_limit?: number }
@@ -7056,6 +7282,10 @@ export type Database = {
           title: string
         }[]
       }
+      community_admin_lift_sanction: {
+        Args: { p_sanction_id: string }
+        Returns: boolean
+      }
       community_admin_log: {
         Args: { p_limit?: number }
         Returns: {
@@ -7065,6 +7295,18 @@ export type Database = {
           note: string
           target_id: string
           target_type: string
+        }[]
+      }
+      community_admin_member_search: {
+        Args: { p_query: string }
+        Returns: {
+          comments: number
+          handle: string
+          posts: number
+          role: string
+          sanction_expires_at: string
+          sanction_kind: string
+          user_id: string
         }[]
       }
       community_admin_overview: { Args: never; Returns: Json }
@@ -7085,6 +7327,40 @@ export type Database = {
           target_id: string
           target_type: string
           title: string
+        }[]
+      }
+      community_admin_sanction: {
+        Args: {
+          p_hours: number
+          p_kind: string
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      community_admin_sanction_content_author: {
+        Args: {
+          p_hours: number
+          p_id: string
+          p_kind: string
+          p_reason: string
+          p_type: string
+        }
+        Returns: string
+      }
+      community_admin_sanctions: {
+        Args: { p_active_only?: boolean }
+        Returns: {
+          active: boolean
+          created_at: string
+          created_by_name: string
+          expires_at: string
+          handle: string
+          id: string
+          kind: string
+          lifted_at: string
+          reason: string
+          user_id: string
         }[]
       }
       community_admin_set_term: {
@@ -7176,6 +7452,9 @@ export type Database = {
         }[]
       }
       community_is_staff: { Args: { p_user_id: string }; Returns: boolean }
+      community_media_has_room: { Args: never; Returns: boolean }
+      community_media_quota_bytes: { Args: never; Returns: number }
+      community_media_used: { Args: { p_user: string }; Returns: number }
       community_moderate: {
         Args: {
           p_action: string
@@ -7185,6 +7464,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      community_my_media_usage: { Args: never; Returns: Json }
+      community_my_sanction: { Args: never; Returns: Json }
       community_notify: {
         Args: {
           p_actor: string
@@ -7203,6 +7484,28 @@ export type Database = {
       community_require_staff: { Args: never; Returns: string }
       community_resolve_report: {
         Args: { p_report_id: string; p_status: string }
+        Returns: boolean
+      }
+      community_retention_candidates: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          image_path: string
+        }[]
+      }
+      community_retention_days: { Args: never; Returns: number }
+      community_retention_orphans: {
+        Args: { p_limit?: number }
+        Returns: {
+          name: string
+        }[]
+      }
+      community_retention_purge: {
+        Args: { p_post_ids: string[] }
+        Returns: Json
+      }
+      community_retention_secret_matches: {
+        Args: { p_secret: string }
         Returns: boolean
       }
       community_review_held: {
@@ -7296,6 +7599,10 @@ export type Database = {
         Returns: undefined
       }
       deactivate_account: { Args: never; Returns: boolean }
+      defer_review_price_check: {
+        Args: { p_hours?: number; p_review_id: string }
+        Returns: undefined
+      }
       delete_advanced_assessment_for_user: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: Json
@@ -7474,6 +7781,15 @@ export type Database = {
           listing_url: string
           pending_price_zar: number
           retailer_product_id: string
+        }[]
+      }
+      get_review_price_batch: {
+        Args: { p_limit: number; p_review_id?: string }
+        Returns: {
+          brand: string
+          product_name: string
+          review_id: string
+          size_ml: number
         }[]
       }
       get_routine_conflicts: {
@@ -7732,6 +8048,10 @@ export type Database = {
         }
         Returns: string
       }
+      save_review_price_check: {
+        Args: { p_listings: Json; p_review_id: string; p_source: string }
+        Returns: Json
+      }
       save_smart_routine: {
         Args: {
           p_advanced_session_id?: string
@@ -7907,6 +8227,10 @@ export type Database = {
       }
       username_reserved: { Args: { p_username: string }; Returns: boolean }
       verify_price_sync_secret: { Args: { p_secret: string }; Returns: boolean }
+      verify_review_price_secret: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }
         Returns: boolean
