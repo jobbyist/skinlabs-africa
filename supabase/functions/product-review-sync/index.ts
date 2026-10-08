@@ -805,12 +805,13 @@ async function resolvePrimaryImage(
     return bannerUrl;
   }
 
-  const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).maybeSingle();
+  // Only a person-approved product image counts; an older stock-photo row must not become the cover again.
+  const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).eq("source_kind", "product").maybeSingle();
   if (existing?.image_url) return existing.image_url;
 
   // No stock-photo fallback any more (2026-10-08): the cover is the product's REAL image from the brand website or the listed
   // retailer. review-image-sync finds candidates (a trigger already made this review a target); a person approves one in
-  // Admin > Data Quality, which writes review_images AND this row's primary_image. Until then the page shows its category photo.
+  // Admin > Data Quality, which writes review_images AND this row's primary_image. Until then the site shows the branded SkinLabs placeholder.
   void kickImageSync(reviewId);
   return null;
 }

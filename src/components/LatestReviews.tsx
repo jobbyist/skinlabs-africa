@@ -4,7 +4,7 @@ import { m } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { overallScore } from "@/data/reviews";
 import { pickLatestReviews } from "@/lib/latestReviews";
-import { getCategoryImage } from "@/data/productImages";
+import { REVIEW_PLACEHOLDER_IMAGE } from "@/data/productImages";
 import { useProductCoverImages } from "@/hooks/use-product-cover-images";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 
@@ -34,7 +34,7 @@ const LatestReviews = () => {
         <div className="grid gap-6 md:grid-cols-3">
           {reviews.map((review, index) => {
             const realCover = realCovers?.get(review.id);
-            const image = realCover ?? getCategoryImage(review.category);
+            const image = realCover ?? REVIEW_PLACEHOLDER_IMAGE;
             return (
               <m.div
                 key={review.id}

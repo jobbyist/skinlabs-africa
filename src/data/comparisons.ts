@@ -14,6 +14,7 @@ import { comparisonArticlesPart2 } from "./comparisons-part2";
 import { comparisonArticlesPart3 } from "./comparisons-part3";
 import { comparisonArticlesPart4 } from "./comparisons-part4";
 import { comparisonArticlesPart5 } from "./comparisons-part5";
+import { withCategoryCover } from "@/lib/comparisonCover";
 
 export const comparisonArticles = [
   ...comparisonArticlesPart1,
@@ -21,7 +22,7 @@ export const comparisonArticles = [
   ...comparisonArticlesPart3,
   ...comparisonArticlesPart4,
   ...comparisonArticlesPart5,
-];
+].map(withCategoryCover);
 
 export const getComparison = (slug: string) =>
   comparisonArticles.find((article) => article.slug === slug);

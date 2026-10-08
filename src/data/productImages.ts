@@ -130,3 +130,18 @@ export const getCategoryImage = (category: string): CategoryImage => {
   const photo = categoryImages[category]?.[0];
   return photo ? { ...photo, alt: `${category} — ${photo.alt}` } : GENERIC_CATEGORY_IMAGE;
 };
+
+/**
+ * Default cover for a review that has no approved product image. Deliberately NOT a stock photo: a category
+ * Unsplash shot implied a picture of the product, the branded placeholder does not. Site-relative; callers that
+ * need an absolute URL (OG/JSON-LD) prefix SITE_URL.
+ */
+export const REVIEW_PLACEHOLDER_IMAGE: CategoryImage = {
+  url: "/images/review-placeholder.jpg",
+  alt: "SkinLabs product review",
+  creditName: "SkinLabs",
+  creditUrl: "#",
+};
+
+/** Category-specific Unsplash cover for Shelf Showdown (comparison) articles. */
+export const getComparisonCoverImage = (category: string): CategoryImage => getCategoryImage(category);

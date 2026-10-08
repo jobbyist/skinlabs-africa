@@ -18,7 +18,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { markEntryGateResolved } from "@/lib/entry-gate";
 import { pickDaily, pickDailySlice } from "@/lib/dailyRotation";
 import { getApplicationWindowStatus } from "@/data/brandAmbassador";
-import { getProductImage } from "@/data/productImages";
+import { REVIEW_PLACEHOLDER_IMAGE } from "@/data/productImages";
 import { useLaunchSplash } from "@/hooks/use-launch-splash";
 
 interface GateSlide {
@@ -80,14 +80,14 @@ const buildAmbassadorSlide = (): GateSlide | null => {
 const buildDailyReviewSlides = (): GateSlide[] => {
   const picks = pickDailySlice(productReviews, 3, new Date(), 0);
   return picks.map((review) => {
-    const img = getProductImage(review.category, review.id);
+    const img = REVIEW_PLACEHOLDER_IMAGE;
     return {
       key: `review-${review.id}`,
       tag: `${overallScore(review)}/10 · ${review.brand}`,
       title: review.product_name,
       href: `/reviews/${review.id}`,
-      image: img?.url ?? null,
-      imageAlt: img?.alt ?? `${review.brand} ${review.product_name}`,
+      image: img.url,
+      imageAlt: `${review.brand} ${review.product_name}`,
     };
   });
 };
