@@ -87,6 +87,7 @@
       "permanent": true
     },
     { "source": "/consultations", "destination": "/consult", "permanent": true },
+    { "source": "/spotlight/methodology", "destination": "/spotlight", "permanent": true },
     {
       "source": "/faq",
       "destination": "/knowledge-hub",

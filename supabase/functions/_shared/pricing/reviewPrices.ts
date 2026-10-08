@@ -86,10 +86,10 @@ export function canonicalReviewListingUrl(raw: string, brandDomains: string[] = 
 
 // ---- price reading -------------------------------------------------------------------------------
 
-const RAND = /\bR\s?(\d{1,3}(?:[  ,]\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\d)/g;
+const RAND = /\bR\s?(\d{1,3}(?:[ \u00a0,]\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\d)/g;
 
 export function parseRandToken(token: string): number | null {
-  const n = Number(token.replace(/[  ,]/g, ""));
+  const n = Number(token.replace(/[ \u00a0,]/g, ""));
   return Number.isFinite(n) ? n : null;
 }
 

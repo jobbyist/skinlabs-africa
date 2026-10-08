@@ -25,7 +25,6 @@ export const sitemapUrls: SitemapUrl[] = [
   { loc: "/routines", changefreq: "monthly", priority: 0.4 },
   { loc: "/marketplace", changefreq: "monthly", priority: 0.4 },
   { loc: "/announcements", changefreq: "weekly", priority: 0.5 },
-  { loc: "/spotlight/methodology", changefreq: "monthly", priority: 0.5 },
   { loc: "/spotlight/archive", changefreq: "monthly", priority: 0.5 },
   { loc: "/contact", changefreq: "monthly", priority: 0.5 },
   { loc: "/privacy-policy", changefreq: "yearly", priority: 0.3 },

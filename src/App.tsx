@@ -74,7 +74,7 @@ const ProductReview = lazyWithRetry(() => import("./pages/ProductReview"));
 const ComparisonArticle = lazyWithRetry(() => import("./pages/ComparisonArticle"));
 const Compare = lazyWithRetry(() => import("./pages/Compare"));
 const Spotlight = lazyWithRetry(() => import("./pages/Spotlight"));
-const SpotlightMethodology = lazyWithRetry(() => import("./pages/SpotlightMethodology"));
+const PlatformApi = lazyWithRetry(() => import("./pages/PlatformApi"));
 const SpotlightArchive = lazyWithRetry(() => import("./pages/SpotlightArchive"));
 const SpotlightBrandProfile = lazyWithRetry(() => import("./pages/SpotlightBrandProfile"));
 const Seasonals = lazyWithRetry(() => import("./pages/Seasonals"));
@@ -247,7 +247,7 @@ const AppContent = () => {
             <Route path="/consult" element={<DermatologistDirectory />} />
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/spotlight" element={<Spotlight />} />
-            <Route path="/spotlight/methodology" element={<SpotlightMethodology />} />
+            <Route path="/api" element={<PlatformApi />} />
             <Route path="/spotlight/archive" element={<SpotlightArchive />} />
             <Route path="/spotlight/:brandSlug" element={<SpotlightBrandProfile />} />
             <Route path="/seasonals" element={<Seasonals />} />

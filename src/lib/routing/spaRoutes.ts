@@ -14,7 +14,7 @@ const EXACT = new Set([
   "/ingredients", "/ingredients/checker", "/marketplace", "/marketplace/brands", "/marketplace/categories",
   "/marketplace/saved", "/marketplace/shipping-returns", "/marketplace/terms", "/openhaus", "/podcast",
   "/stream", "/briefings", "/newsroom", "/reviews", "/compare", "/pricing", "/consultations", "/consult",
-  "/announcements", "/spotlight", "/spotlight/methodology", "/spotlight/archive", "/seasonals",
+  "/announcements", "/api", "/spotlight", "/spotlight/archive", "/seasonals",
   "/seasonals/spring", "/dashboard", "/reset-password", "/newsletter/confirm", "/welcome", "/start", "/community-forum", "/giveaways/october-2026", "/offline-reading",
 ]);
 

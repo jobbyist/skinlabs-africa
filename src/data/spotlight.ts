@@ -4,7 +4,7 @@
  * Not a popularity list, not a paid directory — every score is computed live from
  * SkinLabs' own published product review data (never hand-typed), and every
  * editorial note below is grounded in real, already-published verdict text. See
- * /spotlight/methodology for what the methodology actually measures. The live version
+ * the Spotlight page for how the ranking works. The live version
  * and edition label come from the spotlight_editions table (use-spotlight-edition.ts);
  * the two constants further down are only its offline fallback and must track it.
  */
@@ -847,7 +847,7 @@ export function spotlightRotationWeekIndex(date: Date = new Date()): number {
  * "Top 3 brands this week": drawn only from the highest-scoring Ranked brands (never an
  * arbitrary or paid pick), grouped into rotation cohorts of 3 and cycled weekly so the
  * spotlight moves across real, evidence-backed top performers rather than freezing on the
- * same three every edition. See /spotlight/methodology, "Weekly Top 3 rotation".
+ * same three every edition. See the "How the ranking works" section on /spotlight.
  */
 export function computeSpotlightTopThisWeek(
   ranked: SpotlightBrandRanking[] = spotlightRankedBrands,
