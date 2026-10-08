@@ -125,9 +125,10 @@
   /* Anchor jumps (#skynn-launchpad, in-page TOCs) land below the fixed header, not under it. */
   html { scroll-padding-top: 5rem; }
   @media (min-width: 768px) { html { scroll-padding-top: 6.5rem; } }
-  /* Smooth in-page jumps (TOCs, FAQ anchors, #deep-links). Route changes scroll with behavior:"instant"
-     (ScrollManager), so this never animates a page change. Reduced-motion visitors keep instant jumps. */
-  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  /* Smooth in-page jumps (TOCs, FAQ anchors, #deep-links). Smoothness is scoped to the moment of an anchor click
+     (ScrollManager sets data-anchor-jump for ~1.2 s) rather than being global, so programmatic scrolls (quiz steps, route
+     changes, test runners' scrollIntoView) are never animated. Reduced-motion visitors keep instant jumps. */
+  @media (prefers-reduced-motion: no-preference) { html[data-anchor-jump] { scroll-behavior: smooth; } }
 
   /* Bottom collision buffer (mobile): a page whose <main> is the last thing on screen (no footer after it:
      forms, flows, dashboards' empty states) gets pb-28 so the floating nav / podcast mini-player never covers its

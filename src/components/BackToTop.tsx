@@ -6,7 +6,7 @@ import { haptic } from "@/lib/haptics";
 import { shouldShowBackToTop } from "@/lib/scrollMemory";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 
-const HIDDEN_PREFIXES = ["/skynn-ai/advanced", "/giveaways", "/marketplace", "/brand-ambassadors"];
+const HIDDEN_PREFIXES = ["/skynn-ai", "/welcome", "/giveaways", "/marketplace", "/brand-ambassadors"];
 
 /**
  * Featherweight circular "Back to top". The ring is the reading progress (the header bar's twin), so one glance says how
@@ -16,16 +16,24 @@ const BackToTop = () => {
   const { pathname } = useLocation();
   const { current: episode } = usePodcastPlayer();
   const [visible, setVisible] = useState(false);
+  // Not in the DOM at all until the visitor first scrolls far enough: most visits never pay for a fixed, blurred layer.
+  const [everShown, setEverShown] = useState(false);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let raf = 0;
+    // Cheap by design: no layout reads while the button is hidden (the common case), and state only changes when the
+    // visible/step value does (progress is quantised to 5% steps), so scrolling never re-renders this on every frame.
     const update = () => {
       raf = 0;
+      const show = shouldShowBackToTop(window.scrollY, window.innerHeight);
+      setVisible((cur) => (cur === show ? cur : show));
+      if (show) setEverShown(true);
+      if (!show) return;
       const { scrollHeight, clientHeight } = document.documentElement;
       const scrollable = scrollHeight - clientHeight;
-      setVisible(shouldShowBackToTop(window.scrollY, window.innerHeight));
-      setProgress(scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 0);
+      const step = scrollable > 0 ? Math.round(Math.min(1, window.scrollY / scrollable) * 20) / 20 : 0;
+      setProgress((cur) => (cur === step ? cur : step));
     };
     const onScroll = () => {
       if (!raf) raf = window.requestAnimationFrame(update);
@@ -40,7 +48,7 @@ const BackToTop = () => {
     };
   }, [pathname]);
 
-  if (HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
+  if (!everShown || HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return null;
 
   const goTop = () => {
     haptic();

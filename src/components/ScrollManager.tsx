@@ -43,8 +43,17 @@ const ScrollManager = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(save, 120);
     };
+    let jumpTimer: number | undefined;
     const onClick = (event: MouseEvent) => {
-      if ((event.target as Element | null)?.closest?.("a[href]")) save();
+      const link = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link) return;
+      save();
+      // A same-page #anchor: let the browser jump natively, but smoothly (see index.css).
+      if (link.hash && link.origin === window.location.origin && link.pathname === window.location.pathname) {
+        document.documentElement.dataset.anchorJump = "1";
+        window.clearTimeout(jumpTimer);
+        jumpTimer = window.setTimeout(() => delete document.documentElement.dataset.anchorJump, 1200);
+      }
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("popstate", save);
@@ -56,11 +65,12 @@ const ScrollManager = () => {
       window.removeEventListener("pagehide", save);
       document.removeEventListener("click", onClick, true);
       window.clearTimeout(timer);
+      window.clearTimeout(jumpTimer);
     };
   }, []);
 
   useLayoutEffect(() => {
-    const intent = resolveScrollIntent({ navType, hash, remembered: recallScroll(key) });
+    const intent = resolveScrollIntent({ navType, hash, remembered: recallScroll(keyRef.current) });
     if (intent.type === "top") {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" });
       return;
@@ -98,8 +108,8 @@ const ScrollManager = () => {
       el.scrollIntoView({ behavior: reduced() ? "instant" : "smooth", block: "start" });
       return true;
     }, 4000);
-    // pathname/hash/key identify a navigation; search-only changes (filters, tabs) must not move the page.
-  }, [pathname, hash, key, navType]);
+    // pathname/hash identify a page change. NOT `key`: search-only changes (quiz steps, filters, tabs) get a new key too and must never move the page.
+  }, [pathname, hash, navType]);
 
   return null;
 };
