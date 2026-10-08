@@ -314,6 +314,11 @@ self.addEventListener("push", (event) => {
   // Defensive: a malformed/empty/non-JSON payload still yields a generic "SkinLabs®" notification
   // (a push that shows nothing gets the subscription revoked on iOS/Safari).
   const parsed = notificationFromPush(() => (event.data ? event.data.json() : null), self.location.origin);
+  let trackTag: string | undefined;
+  try {
+    const raw = event.data ? (event.data.json() as { s?: unknown }) : null;
+    if (raw && typeof raw.s === "string" && raw.s.length <= 64) trackTag = raw.s;
+  } catch { /* malformed payload: no tracking tag */ }
   event.waitUntil(
     (async () => {
       const windows = await listWindows().catch(() => [] as WindowClient[]);
@@ -332,7 +337,7 @@ self.addEventListener("push", (event) => {
         icon: parsed.icon,
         badge: parsed.badge,
         tag: parsed.tag,
-        data: { url: parsed.url, d: parsed.deliveryId },
+        data: { url: parsed.url, d: parsed.deliveryId, s: trackTag },
         ...(actions.length > 0 ? { actions } : {}),
         lang: "en-ZA",
       } as NotificationOptions & { actions?: NotificationAction[] });
@@ -346,13 +351,13 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const data = (event.notification.data ?? {}) as { url?: unknown; d?: unknown };
+  const data = (event.notification.data ?? {}) as { url?: unknown; d?: unknown; s?: unknown };
   const target = safeClickTarget(data.url, self.location.origin) ?? PWA_START_PATH;
 
   // Tap beacon: delivery id only, no credentials. Never awaited before navigation.
   if (TRACK_URL && typeof data.d === "string") {
     event.waitUntil(
-      fetch(TRACK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ d: data.d }), keepalive: true }).catch(() => undefined),
+      fetch(TRACK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ d: data.d, s: data.s }), keepalive: true }).catch(() => undefined),
     );
   }
 

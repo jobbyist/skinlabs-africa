@@ -49,6 +49,7 @@ const ALLOWED_CALLBACK_ORIGINS = [
   "https://skinlabs.co.za",
   "https://www.skinlabs.co.za",
   "https://skinlabsza.lovable.app",
+  "https://id-preview--3a7fffe1-a651-4cb0-9824-839db53d00ae.lovable.app",
 ];
 
 function safeCallback(url: unknown, fallback = "https://skinlabs.co.za/dashboard?payment=success"): string {
@@ -57,10 +58,7 @@ function safeCallback(url: unknown, fallback = "https://skinlabs.co.za/dashboard
     const u = new URL(url);
     if (u.protocol !== "https:") return fallback;
     const origin = `${u.protocol}//${u.host}`;
-    const allowed =
-      ALLOWED_CALLBACK_ORIGINS.includes(origin) ||
-      u.hostname.endsWith(".lovable.app") ||
-      u.hostname.endsWith(".lovableproject.com");
+    const allowed = ALLOWED_CALLBACK_ORIGINS.includes(origin);
     return allowed ? url : fallback;
   } catch {
     return fallback;
@@ -463,7 +461,7 @@ Deno.serve(async (req) => {
               ((fetched.json.data as Record<string, unknown> | undefined)?.response as Record<string, unknown> | undefined)?.status_text ?? "",
             ).toUpperCase();
             if (statusText !== "CANCELLED") {
-              console.error("payfast cancel failed", { token, status: res.status, body: res.json });
+              console.error("payfast cancel failed", { status: res.status });
               return json({ error: "We couldn't cancel your PayFast subscription right now. Please try again." }, 502);
             }
           }

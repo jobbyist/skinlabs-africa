@@ -7,6 +7,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import { parseTrackBody } from "../_shared/push/notificationDispatch.ts";
+import { verifyDelivery } from "../_shared/push/trackSignature.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,10 +22,14 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       const declared = Number(req.headers.get("content-length") ?? "0");
       if (!(declared > 512)) {
-        const deliveryId = parseTrackBody(await req.text());
+        const text = await req.text();
+        const deliveryId = parseTrackBody(text);
         const url = Deno.env.get("SUPABASE_URL");
         const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-        if (deliveryId && url && key) {
+        let tag: unknown = null;
+        try { tag = (JSON.parse(text) as { s?: unknown })?.s; } catch { /* ignore */ }
+        // Only the device that received the push holds the HMAC tag for its delivery id.
+        if (deliveryId && url && key && (await verifyDelivery(key, deliveryId, tag))) {
           const db = createClient(url, key, { auth: { persistSession: false } });
           await db.rpc("record_push_click", { p_delivery_id: deliveryId });
         }
