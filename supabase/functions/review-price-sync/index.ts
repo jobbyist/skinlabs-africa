@@ -84,7 +84,7 @@ async function searchParallel(target: SearchTarget): Promise<PriceSearchResult[]
 /** Nimble answers best when asked one shop at a time, so each domain gets its own (cheap) search, run in parallel. */
 async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> {
   if (!NIMBLE_KEY) throw new ProviderUnavailable("nimble", "no NIMBLE_API_KEY");
-  const one = async (domain: string): Promise<PriceSearchResult[]> => {
+  const one = async (domain: string, attempt = 0): Promise<PriceSearchResult[]> => {
     const res = await fetch("https://sdk.nimbleway.com/v2/search", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${NIMBLE_KEY}` },
@@ -96,8 +96,13 @@ async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> 
         output_format: "plain_text",
       }),
     });
-    if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429 || res.status >= 500) {
+    // Account problems stop the run; a flaky 5xx on one shop is retried once, then that shop is skipped.
+    if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429) {
       throw new ProviderUnavailable("nimble", `HTTP ${res.status}`);
+    }
+    if (res.status >= 500) {
+      if (attempt === 0) return one(domain, 1);
+      throw new Error(`Nimble HTTP ${res.status} for ${domain}`);
     }
     if (!res.ok) throw new Error(`Nimble HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const body = (await res.json()) as { results?: { url: string; title?: string | null; description?: string | null; content?: string | null }[] };
@@ -108,7 +113,8 @@ async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> 
   // A limit/auth failure on any call means the account is the problem: stop instead of half-checking.
   if (unavailable && unavailable.status === "rejected") throw unavailable.reason;
   const results = settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
-  if (results.length === 0 && settled.some((r) => r.status === "rejected")) {
+  // Every shop failed (e.g. Nimble down): nothing was learned, so the review is retried later instead of recorded empty.
+  if (settled.every((r) => r.status === "rejected")) {
     const first = settled.find((r) => r.status === "rejected") as PromiseRejectedResult;
     throw first.reason instanceof Error ? first.reason : new Error(String(first.reason));
   }
