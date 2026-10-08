@@ -413,7 +413,7 @@ function buildNotificationHtml(submission: QuoteSubmission, estimate: ReturnType
   const rows = estimate.lines
     .map(
       (l) =>
-        `<tr><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${l.label} (${l.fillSize})</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${l.quantity} units</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${l.formulationApproach === "full_custom" ? "Full custom" : "Stock-base"}</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;">${formatZar(l.lineTotal)}</td></tr>`,
+        `<tr><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${esc(l.label)} (${esc(l.fillSize)})</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${l.quantity} units</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;">${l.formulationApproach === "full_custom" ? "Full custom" : "Stock-base"}</td><td style="padding:6px 8px;border-bottom:1px solid #e2e8f0;text-align:right;">${formatZar(l.lineTotal)}</td></tr>`,
     )
     .join("");
 
@@ -421,7 +421,7 @@ function buildNotificationHtml(submission: QuoteSubmission, estimate: ReturnType
   <div style="font-family:Arial,sans-serif;color:#1e293b;max-width:640px;margin:0 auto;">
     <div style="background:#1e293b;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0;">
       <h1 style="margin:0;font-size:18px;">SKINLABS® Business Suite</h1>
-      <p style="margin:4px 0 0;font-size:13px;opacity:0.85;">New quote request — ${esc(submission.fullName}${esc(submission.businessName ? ` (${esc(submission.businessName})` : ""}</p>
+      <p style="margin:4px 0 0;font-size:13px;opacity:0.85;">New quote request — ${esc(submission.fullName)}${submission.businessName ? ` (${esc(submission.businessName)})` : ""}</p>
     </div>
     <div style="border:1px solid #e2e8f0;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
       <p style="font-size:13px;color:#64748b;margin-top:0;">
@@ -438,19 +438,19 @@ function buildNotificationHtml(submission: QuoteSubmission, estimate: ReturnType
       <p style="font-size:14px;font-weight:bold;">Estimated total (incl. VAT): ${formatZar(estimate.total)}</p>
       <hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0;" />
       <table style="font-size:13px;width:100%;">
-        <tr><td style="padding:4px 0;color:#64748b;width:160px;">Email</td><td>${esc(submission.email}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Phone</td><td>${esc(submission.phone || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Hair concerns</td><td>${submission.hairConcerns.join(", ") || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Formulation notes</td><td>${esc(submission.formulationNotes || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Existing branding</td><td>${esc(submission.hasBranding || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;width:160px;">Email</td><td>${esc(submission.email)}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Phone</td><td>${esc(submission.phone) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Hair concerns</td><td>${esc(submission.hairConcerns.join(", ")) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Formulation notes</td><td>${esc(submission.formulationNotes) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Existing branding</td><td>${esc(submission.hasBranding) || "—"}</td></tr>
         <tr><td style="padding:4px 0;color:#64748b;">Needs logo</td><td>${submission.needsLogo ? "Yes" : "No"}</td></tr>
         <tr><td style="padding:4px 0;color:#64748b;">Needs label design</td><td>${submission.needsLabelDesign ? "Yes" : "No"}</td></tr>
         <tr><td style="padding:4px 0;color:#64748b;">Needs compliance help</td><td>${submission.needsComplianceHelp ? "Yes" : "No"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Packaging</td><td>${esc(submission.packagingRoute}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">White-labelling</td><td>${esc(submission.whiteLabelInterest || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Timeline</td><td>${esc(submission.timeline || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Budget range</td><td>${esc(submission.budgetRange || "—"}</td></tr>
-        <tr><td style="padding:4px 0;color:#64748b;">Additional notes</td><td>${esc(submission.additionalNotes || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Packaging</td><td>${esc(submission.packagingRoute)}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">White-labelling</td><td>${esc(submission.whiteLabelInterest) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Timeline</td><td>${esc(submission.timeline) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Budget range</td><td>${esc(submission.budgetRange) || "—"}</td></tr>
+        <tr><td style="padding:4px 0;color:#64748b;">Additional notes</td><td>${esc(submission.additionalNotes) || "—"}</td></tr>
       </table>
     </div>
   </div>`;
@@ -494,6 +494,8 @@ async function sendEmail(html: string, pdfBase64: string, subject: string): Prom
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
+
+const esc = (v: unknown): string => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
