@@ -21,6 +21,7 @@ import { lazyWithRetry } from "@/lib/chunkRecovery";
 // bundle no longer ships ~400 kB of content data. Each placeholder reserves the section's height so nothing shifts.
 const SeasonalsTeaser = lazyWithRetry(() => import("@/components/SeasonalsTeaser"));
 const SpotlightTeaser = lazyWithRetry(() => import("@/components/SpotlightTeaser"));
+const LatestReviews = lazyWithRetry(() => import("@/components/LatestReviews"));
 const PodcastSection = lazyWithRetry(() => import("@/components/PodcastSection"));
 const Reserve = ({ h }: { h: number }) => <div aria-hidden="true" style={{ minHeight: h }} />;
 
@@ -74,6 +75,11 @@ const Index = () => {
 
           <Suspense fallback={<Reserve h={520} />}>
             <SeasonalsTeaser />
+          </Suspense>
+
+          {/* Latest 3 product reviews sit directly above the Comparisons (Shelf Showdown) section. */}
+          <Suspense fallback={<Reserve h={620} />}>
+            <LatestReviews />
           </Suspense>
 
           <Editorials />

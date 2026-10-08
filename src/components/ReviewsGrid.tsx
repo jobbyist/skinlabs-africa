@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { overallScore, productReviews, reviewCategories } from "@/data/reviews";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
-import { useReviewImages } from "@/hooks/use-review-images";
+import { getCategoryImage } from "@/data/productImages";
 import { useLiveReviewPrices } from "@/hooks/use-live-review-prices";
 import { compareByLivePrice, inPriceBand } from "@/lib/pricing/liveReviewPrices";
 import { checkedLabel, formatRand } from "@/lib/pricing/saRetailPrices";
@@ -53,7 +53,6 @@ const ReviewsGrid = ({
   paginate = false,
 }: ReviewsGridProps) => {
   const { likedIds, toggleLike } = useEngagementStore();
-  const { getImage: getReviewImage } = useReviewImages();
   const { data: generatedReviews } = useGeneratedReviews();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
@@ -131,7 +130,7 @@ const ReviewsGrid = ({
   const renderWithAds = () => {
     const nodes: React.ReactNode[] = [];
     pageItems.forEach((review, index) => {
-      const productImage = getReviewImage(review.id, review.category, review.brand);
+      const productImage = getCategoryImage(review.category);
       nodes.push(
         <motion.div
           key={review.id}
@@ -142,32 +141,30 @@ const ReviewsGrid = ({
           whileHover={{ y: -4 }}
           className="mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-card md:max-w-none"
         >
-          {productImage && (
-            <figure className="relative">
-              <img
-                src={productImage.url}
-                alt={`${review.category} product photography — ${productImage.alt}`}
-                loading="lazy"
-                width={400}
-                height={160}
-                className="h-40 w-full object-cover"
-              />
-              {productImage.creditUrl !== "#" && (
-                <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
-                  Photo:{" "}
-                  <a
-                    href={productImage.creditUrl}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    className="underline underline-offset-2"
-                  >
-                    {productImage.creditName}
-                  </a>{" "}
-                  / {productImage.creditUrl?.includes("pexels") ? "Pexels" : productImage.creditUrl?.includes("unsplash") ? "Unsplash" : "Photo"}
-                </figcaption>
-              )}
-            </figure>
-          )}
+          <figure className="relative">
+            <img
+              src={productImage.url}
+              alt={productImage.alt}
+              loading="lazy"
+              width={400}
+              height={160}
+              className="h-40 w-full object-cover"
+            />
+            {productImage.creditUrl !== "#" && (
+              <figcaption className="absolute bottom-0 right-0 rounded-tl-lg bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground">
+                Photo:{" "}
+                <a
+                  href={productImage.creditUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="underline underline-offset-2"
+                >
+                  {productImage.creditName}
+                </a>{" "}
+                / {productImage.creditUrl?.includes("pexels") ? "Pexels" : productImage.creditUrl?.includes("unsplash") ? "Unsplash" : "Photo"}
+              </figcaption>
+            )}
+          </figure>
 
           <div className="flex flex-1 flex-col p-6">
             <div className="mb-4 flex items-start justify-between gap-3">

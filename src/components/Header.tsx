@@ -51,7 +51,8 @@ import { lazyWithRetry } from "@/lib/chunkRecovery";
 const SiteSearch = lazyWithRetry(() => import("@/components/SiteSearch"));
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
-import PromoAnnouncementBar, { PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import PromoAnnouncementBar, { GetAppButton, GetAppChip, PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import { useGetAppCta } from "@/hooks/use-get-app-cta";
 import { showStoryRail } from "@/lib/mobileChrome";
 import WebStoriesBar from "@/components/WebStoriesBar";
 import { useAuth } from "@/hooks/use-auth";
@@ -93,7 +94,7 @@ const exploreLinks: NavItem[] = [
   { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
   { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
   { label: "Podcast", href: "/podcast", icon: Mic },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "NEW" },
+  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "Coming Soon" },
   { label: "Ingredients", href: "/ingredients", icon: Beaker, badge: "NEW" },
   { label: "Academy", href: "/learn", icon: GraduationCap, badge: "Coming Soon" },
 ];
@@ -253,7 +254,10 @@ const Header = () => {
     window.addEventListener(OPEN_MENU_EVENT, openMenu);
     return () => window.removeEventListener(OPEN_MENU_EVENT, openMenu);
   }, []);
-  const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
+  const { visible: promoVisible, dismiss: dismissPromoBar } = usePromoBar();
+  // A signed-in member who hasn't installed the app sees "Get the app" instead of the free-trial promo.
+  const showGetApp = useGetAppCta();
+  const promoBarVisible = promoVisible && !showGetApp;
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
   const storyRailVisible = useScrollReveal(storyRail);
@@ -327,7 +331,7 @@ const Header = () => {
           </Link>
           {/* Below md the promo message lives here, in the header row, instead of its own bar
               (hidden under 370px, where the row has no room for it). */}
-          {promoBarVisible && <PromoHeaderChip />}
+          {showGetApp ? <GetAppChip /> : promoBarVisible && <PromoHeaderChip />}
 
           {/* Desktop Menu button (replaces individual primary links) */}
           <div className="hidden lg:flex items-center">
@@ -412,6 +416,8 @@ const Header = () => {
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               SKYNN AI
             </Link>
+
+            {showGetApp && <GetAppButton />}
 
             {/* Auth */}
             {user ? (
