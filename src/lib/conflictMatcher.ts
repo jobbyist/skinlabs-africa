@@ -13,7 +13,7 @@
  * tracker, which has no product linkage to scan safely) — see CLAUDE.md.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@/integrations/supabase/productionClient";
 import type { GroundedPick, GroundedRoutine } from "@/lib/skynnProductMatch";
 
 type InteractionType = Database["public"]["Enums"]["ingredient_interaction_type"];

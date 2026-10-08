@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn, Sparkles, ListChecks, Compass, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialog from "@/components/AuthDialog";
+import { Button } from "@/components/ui/button";
 import { usePodcastPlayer } from "@/components/PodcastPlayer";
 import { cn } from "@/lib/utils";
 import { EMPTY_FACTS } from "@/lib/journey";
@@ -23,10 +24,11 @@ const TAB_ICONS: Record<NavTabId, LucideIcon> = {
   account: User,
 };
 
-const NAV_ITEM = "group relative z-10 flex min-h-11 min-w-[44px] flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-full px-1.5 py-1.5 text-[10px] font-medium leading-[12px] transition-[color,transform] duration-150 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation min-[360px]:px-2 min-[380px]:px-2.5 sm:px-4";
+const NAV_ITEM = "group relative z-10 flex h-12 w-11 shrink-0 flex-col items-center justify-center gap-0 whitespace-nowrap rounded-full p-0 text-[10px] font-medium leading-[12px] transition-[color,transform] duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation hover:bg-transparent min-[360px]:w-12 sm:w-16 [&_svg]:size-5";
 const TAB_IDLE = "text-foreground/80 hover:text-foreground";
 const TAB_ACTIVE = "font-semibold text-foreground";
-const INDICATOR_TRANSITION = "pointer-events-none absolute inset-y-1 left-0 z-0 rounded-full bg-foreground/[0.07] shadow-sm transition-[transform,width,opacity] duration-200 ease-out";
+const ICON_STYLE = "relative size-5 -translate-y-1.5 transition-[transform,stroke-width] duration-200 ease-out group-aria-[current=page]:translate-y-0 group-aria-[current=page]:scale-150 group-aria-[current=page]:[stroke-width:2.75]";
+const LABEL_STYLE = "absolute bottom-1 transition-opacity duration-200 ease-out group-aria-[current=page]:opacity-0";
 // The Advanced AI Dermatology Analysis has its own sticky action bar.
 const hasOwnBottomBar = (pathname: string) =>
   pathname.startsWith("/marketplace") || pathname.startsWith("/brand-ambassadors") || pathname.startsWith("/skynn-ai/advanced") || pathname.startsWith("/giveaways");
@@ -42,10 +44,7 @@ const FloatingBottomNav = () => {
   const location = useLocation();
   const [authOpen, setAuthOpen] = useState(false);
   const [navVisible, setNavVisible] = useState(true);
-  const [indicator, setIndicator] = useState({ x: 0, width: 0, visible: false });
   const { current: currentEpisode } = usePodcastPlayer();
-  const navRef = useRef<HTMLElement | null>(null);
-  const itemRefs = useRef<Record<string, HTMLElement | null>>({});
   const lastScrollY = useRef(0);
   const rafId = useRef<number | null>(null);
 
@@ -109,55 +108,14 @@ const FloatingBottomNav = () => {
   const personalised = tabs.some((t) => t.id === "account");
   const accountActive = location.pathname.startsWith("/dashboard");
 
-  const activeId = personalised
-    ? tabs.find((tab) => isNavTabActive(tab, location.pathname, section))?.id ?? null
-    : user && accountActive
-      ? "profile"
-      : null;
-
-  useEffect(() => {
-    if (!activeId) {
-      setIndicator((current) => current.visible ? { ...current, visible: false } : current);
-      return;
-    }
-
-    const updateIndicator = () => {
-      const item = itemRefs.current[activeId];
-      const nav = navRef.current;
-      if (!item || !nav) return;
-
-      const itemRect = item.getBoundingClientRect();
-      const navRect = nav.getBoundingClientRect();
-      const x = itemRect.left - navRect.left;
-
-      setIndicator({ x, width: itemRect.width, visible: true });
-    };
-
-    updateIndicator();
-    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateIndicator) : null;
-    if (observer) {
-      if (navRef.current) observer.observe(navRef.current);
-      const item = itemRefs.current[activeId];
-      if (item) observer.observe(item);
-    }
-
-    window.addEventListener("resize", updateIndicator);
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", updateIndicator);
-    };
-  }, [activeId, hasProfile, personalised, location.pathname, location.search, user?.id]);
-
-  const setItemRef = (id: string) => (element: HTMLElement | null) => {
-    itemRefs.current[id] = element;
-  };
+  const activeId = tabs.find((tab) => isNavTabActive(tab, location.pathname, section))?.id
+    ?? (!personalised && user && accountActive ? "profile" : null);
 
   if (hasOwnBottomBar(location.pathname)) return null;
 
   return (
     <>
       <nav
-        ref={navRef}
         aria-label="Primary"
         className={cn(
           "fixed inset-x-0 bottom-0 z-40 flex justify-center px-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] transition-transform duration-200 ease-out min-[360px]:px-4 sm:pb-[calc(env(safe-area-inset-bottom)+1.5rem)]",
@@ -165,19 +123,14 @@ const FloatingBottomNav = () => {
           !navVisible && "translate-y-[120%]",
         )}
       >
-        <div className="relative flex max-w-full items-center gap-0 rounded-full p-[1px] shadow-xl backdrop-blur-xl backdrop-saturate-150 gradient-border-anim min-[380px]:gap-0.5 sm:px-[1px]">\n          <div className="relative flex max-w-full items-center gap-0 rounded-full border border-border/60 bg-background/90 px-1.5 py-1.5 supports-[backdrop-filter]:bg-background/85 min-[380px]:gap-0.5 sm:px-2">
-          <span
-            className={cn(INDICATOR_TRANSITION, !indicator.visible && "opacity-0")}
-            style={{ width: indicator.width, transform: `translateX(${indicator.x}px)` }}
-            aria-hidden="true"
-          />
+        <div className="gradient-border-anim relative flex max-w-full items-center rounded-full bg-background/90 p-2 shadow-xl backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-background/85">
           {tabs.map((tab) => {
-            const active = isNavTabActive(tab, location.pathname, section);
+            const active = activeId === tab.id;
             const Icon = TAB_ICONS[tab.id];
             const inner = (
               <>
-                <Icon className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", active && "scale-110")} />
-                <span className="relative">{tab.label}</span>
+                <Icon className={ICON_STYLE} aria-hidden="true" />
+                <span className={LABEL_STYLE} aria-hidden={active}>{tab.label}</span>
               </>
             );
             const className = cn(NAV_ITEM, active ? TAB_ACTIVE : TAB_IDLE);
@@ -185,7 +138,6 @@ const FloatingBottomNav = () => {
             return tab.href ? (
               <Link
                 key={tab.id}
-                ref={setItemRef(tab.id)}
                 to={tab.href}
                 aria-label={tab.label}
                 aria-current={active ? "page" : undefined}
@@ -194,9 +146,9 @@ const FloatingBottomNav = () => {
                 {inner}
               </Link>
             ) : (
-              <button
+              <Button
+                variant="ghost"
                 key={tab.id}
-                ref={setItemRef(tab.id)}
                 type="button"
                 aria-label={tab.label}
                 aria-current={active ? "page" : undefined}
@@ -204,25 +156,24 @@ const FloatingBottomNav = () => {
                 className={className}
               >
                 {inner}
-              </button>
+              </Button>
             );
           })}
           {!personalised && (user ? (
             <Link
-              ref={setItemRef("profile")}
               to="/dashboard"
               aria-label="Profile"
               aria-current={accountActive ? "page" : undefined}
               className={cn(NAV_ITEM, accountActive ? TAB_ACTIVE : TAB_IDLE)}
             >
-              <User className={cn("relative h-5 w-5 transition-transform duration-200 ease-out", accountActive && "scale-110")} />
-              <span className="relative">Profile</span>
+              <User className={ICON_STYLE} aria-hidden="true" />
+              <span className={LABEL_STYLE} aria-hidden={accountActive}>Profile</span>
             </Link>
           ) : (
-            <button type="button" onClick={() => setAuthOpen(true)} aria-label="Sign in" className={cn(NAV_ITEM, TAB_IDLE)}>
-              <LogIn className="relative h-5 w-5" />
-              <span className="relative">Sign In</span>
-            </button>
+            <Button variant="ghost" type="button" onClick={() => setAuthOpen(true)} aria-label="Sign in" className={cn(NAV_ITEM, TAB_IDLE)}>
+              <LogIn className={ICON_STYLE} aria-hidden="true" />
+              <span className={LABEL_STYLE}>Sign In</span>
+            </Button>
           ))}
         </div>
       </nav>

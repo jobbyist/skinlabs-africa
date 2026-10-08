@@ -117,6 +117,8 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
+      "@/integrations/supabase/client": path.resolve(__dirname, "./src/integrations/supabase/productionClient.ts"),
+      "@/integrations/supabase/types": path.resolve(__dirname, "./supabase/types.baseline.ts"),
       "@": path.resolve(__dirname, "./src"),
     },
   },
