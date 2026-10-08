@@ -242,10 +242,7 @@ const SpotlightBrandProfile = () => {
 
           <p className="mt-6 text-xs text-muted-foreground">
             Assessed for the {edition.editionLabel} edition under{" "}
-            <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              {edition.methodologyVersion}
-            </Link>
-            .
+            {edition.methodologyVersion}.
           </p>
 
           <div className="mt-6 flex gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">

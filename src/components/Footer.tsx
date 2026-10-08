@@ -87,6 +87,7 @@ const Footer = () => {
       { label: "Partnerships", href: "/partners" },
       { label: "Ambassadors", href: "/brand-ambassadors" },
       { label: "Announcements", href: "/announcements" },
+      { label: "Platform API", href: "/api" },
       { label: "Contact Us", href: "/contact" },
     ],
   };

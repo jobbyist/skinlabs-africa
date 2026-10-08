@@ -21,7 +21,7 @@ import {
   Stethoscope,
   Megaphone,
   BookOpenCheck,
-  Compass,
+  FileText,
   GraduationCap,
   Beaker,
   UserPlus,
@@ -80,6 +80,7 @@ const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
   { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "BETA" },
 ];
 
 /** The "Explore" grid: SkinLabs' live editorial + platform sections first, every "Coming Soon" item last. */
@@ -87,13 +88,12 @@ const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
   { label: "Community", href: "/community-forum", icon: MessagesSquare, badge: "NEW" },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
-  { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
-  { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
+  { label: "Spotlight", href: "/spotlight", icon: Award },
+  { label: "Seasonals", href: "/seasonals", icon: Sun },
+  { label: "Comparisons", href: "/compare", icon: Scale },
   { label: "Podcast", href: "/podcast", icon: Mic },
   { label: "Ingredients", href: "/ingredients", icon: Beaker, badge: "NEW" },
   { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
-  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
   { label: "Academy", href: "/learn", icon: GraduationCap, badge: "Coming Soon" },
 ];
 
@@ -101,7 +101,7 @@ const exploreLinks: NavItem[] = [
 const resourceLinks: NavItem[] = [
   { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Knowledge Hub", href: "/knowledge-hub", icon: BookOpenCheck },
-  { label: "Methodologies", href: "/spotlight/methodology", icon: Compass },
+  { label: "Whitepaper 2026/27", href: "/whitepaper", icon: FileText },
   { label: "Partner Program", href: "/partners", icon: Users },
 ];
 

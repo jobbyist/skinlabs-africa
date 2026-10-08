@@ -224,7 +224,7 @@ function SpotlightBrandPage() {
 
           <p>
             Assessed for the {loaderEdition.editionLabel} edition under{' '}
-            <Link to="/spotlight/methodology">{loaderEdition.methodologyVersion}</Link>.
+            {loaderEdition.methodologyVersion}.
           </p>
 
           <p>

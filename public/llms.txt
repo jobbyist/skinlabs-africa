@@ -27,9 +27,9 @@
   education content.
 - [Spotlight](https://skinlabs.co.za/spotlight): a recurring, methodology-
   versioned brand ranking/editorial feature.
-- [Editorial methodologies](https://skinlabs.co.za/spotlight/methodology): how
-  briefings, reviews, comparisons, seasonals, the podcast, ingredient profiles
-  and Spotlight are researched, scored, checked and updated.
+- [Platform API](https://skinlabs.co.za/api): documentation for the SkinLabs
+  Platform API (live skin weather by South African city; further endpoints are
+  proposed and not yet available).
 - [Seasonal Guides](https://skinlabs.co.za/seasonals): climate- and season-
   specific skincare guidance for South Africa's four seasons.
 - [The Skin Deep podcast](https://skinlabs.co.za/podcast): editorial audio

@@ -16,6 +16,14 @@ export interface Announcement {
 
 export const announcements: Announcement[] = [
   {
+    date: "2026-10-08",
+    tag: "Platform",
+    icon: "sparkles",
+    title: "SkinLabs® Platform API preview, Practice Suite in beta, and a tidier menu",
+    description:
+      "The new Platform API page documents the one endpoint that is live today (skin weather by South African city) and lays out what is proposed for v1: product reviews, ingredients and compatibility checks. Nothing marked proposed can be called yet. Practice Suite now carries a BETA badge in the main menu, and the Whitepaper 2026/27 sits in the menu resources. Also this month: the Community Forum for members, a sharper vector logo, and Spotlight now ranks from every published review. The standalone Methodologies page has been retired; how Spotlight ranks brands is explained on the Spotlight page itself.",
+  },
+  {
     date: "2026-09-28",
     tag: "New",
     icon: "mic",
