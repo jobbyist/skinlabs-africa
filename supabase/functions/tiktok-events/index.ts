@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
   const accessToken = Deno.env.get("TIKTOK_EVENTS_ACCESS_TOKEN");
   if (!accessToken) {
     await log("not_configured");
-    return json({ error: "not_configured" }, 503);
+    return json({ unavailable: true, reason: "not_configured" }, 200);
   }
 
   // Optional: a signed-in caller's email comes from the verified JWT, never the body.
