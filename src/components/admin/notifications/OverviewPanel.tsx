@@ -45,7 +45,7 @@ const OverviewPanel = ({ overview, loading, days, onDays, onChanged }: Props) =>
   const [cap, setCap] = useState<number | null>(null);
 
   const pushOn = overview?.settings?.push_enabled ?? true;
-  const savedCap = overview?.settings?.default_daily_cap ?? 2;
+  const savedCap = overview?.settings?.default_daily_cap ?? 10;
   const shownCap = cap ?? savedCap;
 
   const setPush = async (enabled: boolean) => {

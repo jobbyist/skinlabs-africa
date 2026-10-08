@@ -111,7 +111,7 @@ export const DEFAULT_DELIVERY: DeliveryPreferences = {
   quiet_hours_enabled: true,
   quiet_hours_start: "21:00",
   quiet_hours_end: "07:00",
-  daily_cap: 2,
+  daily_cap: 10,
   routine_reminder_time: null,
 };
 
