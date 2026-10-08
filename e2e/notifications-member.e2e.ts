@@ -134,7 +134,7 @@ test.describe("Settings → App → Notifications", () => {
   const open = (page: import("@playwright/test").Page) => page.goto("/dashboard?tab=app");
   const card = (page: import("@playwright/test").Page) => page.locator("#notification-settings");
 
-  test("shows all ten categories with an example, 'On by default' on the three essentials, and Offers and news off", async ({ page, context }) => {
+  test("shows all eleven categories with an example, 'On by default' on the four defaults, and Offers and news off", async ({ page, context }) => {
     await setup(context, {});
     await open(page);
     const c = card(page);
@@ -149,11 +149,12 @@ test.describe("Settings → App → Notifications", () => {
       "New podcast episodes",
       "Offers and news",
       "Price alerts",
+      "Community activity",
     ]) {
       await expect(c.getByLabel(new RegExp(label)).first()).toBeVisible();
     }
     await expect(c.getByText("e.g. “Your SkinLabs® report is ready”")).toBeVisible();
-    await expect(c.getByText("On by default", { exact: true })).toHaveCount(3);
+    await expect(c.getByText("On by default", { exact: true })).toHaveCount(4);
     await expect(c.getByText("Offers and news - you can turn this off any time.")).toBeVisible();
     await expect(c.getByRole("switch", { name: /Offers and news/ })).not.toBeChecked();
     await expect(c.getByRole("switch", { name: /Report ready/ })).toBeChecked();
