@@ -25,6 +25,7 @@ import LeadsTab from "@/components/admin/LeadsTab";
 import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
 import NotificationsTab from "@/components/admin/notifications/NotificationsTab";
+import ModerationTab from "@/components/admin/ModerationTab";
 
 type Submission = {
   id: string;
@@ -349,6 +350,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
                 <TabsTrigger value="ads">Ads</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="moderation">Moderation</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -606,6 +608,11 @@ const AdminDashboard = () => {
               {/* Notifications — the notification engine's admin RPCs only. See components/admin/notifications. */}
               <TabsContent value="notifications">
                 <NotificationsTab />
+              </TabsContent>
+
+              {/* Moderation — Community Forum reports, spam-held content, blocked terms and the action log. See components/admin/ModerationTab. */}
+              <TabsContent value="moderation">
+                <ModerationTab />
               </TabsContent>
 
               <TabsContent value="sa-prices">

@@ -31,6 +31,7 @@ export const PRIVATE_PATH_PREFIXES = [
   "/dashboard",
   "/admin",
   "/welcome",
+  "/community-forum",
   "/reset-password",
   "/skynn-ai/advanced",
   "/marketplace/saved",

@@ -83,6 +83,7 @@ const UserDashboard = lazyWithRetry(() => import("./pages/UserDashboard"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
+const CommunityForum = lazyWithRetry(() => import("./pages/CommunityForum"));
 const Start = lazyWithRetry(() => import("./pages/Start"));
 const GiveawayOctober2026 = lazyWithRetry(() => import("./pages/GiveawayOctober2026"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
@@ -143,7 +144,7 @@ const usePurgePrivateCacheOnSignOut = () => {
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_OUT") return;
-      for (const key of ["member-context", "formulator-allowance", "preorders"]) queryClient.removeQueries({ queryKey: [key] });
+      for (const key of ["member-context", "formulator-allowance", "preorders", "community"]) queryClient.removeQueries({ queryKey: [key] });
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -251,6 +252,7 @@ const AppContent = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/community-forum" element={<CommunityForum />} />
             {/* Installed-app entry point (manifest start_url): restores the session, then routes onward. */}
             <Route path="/start" element={<Start />} />
             <Route path="*" element={<NotFound />} />

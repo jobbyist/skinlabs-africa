@@ -324,11 +324,21 @@ describe("empty states and greeting", () => {
 describe("navigation", () => {
   test("visitors and members without a profile get the content tabs", () => {
     expect(contextualNavigation({ ...facts(), journey: { ...EMPTY_FACTS } }).map((t) => t.id)).toEqual(["home", "news", "stream", "reviews", "compare"]);
-    expect(contextualNavigation(facts()).map((t) => t.id)).toEqual(["home", "news", "stream", "reviews", "compare"]);
+    // Signed in (facts() is a signed-in member): the members-only Forum gets a slot after the content tabs.
+    expect(contextualNavigation(facts()).map((t) => t.id)).toEqual(["home", "news", "stream", "reviews", "compare", "community"]);
   });
 
   test("a member with a skin profile gets Home · My Skin · Routine · Explore · Account", () => {
-    expect(contextualNavigation(facts({ j: { savedAnalyses: 1 } })).map((t) => t.id)).toEqual(["home", "my_skin", "routine", "explore", "account"]);
+    expect(contextualNavigation(facts({ j: { savedAnalyses: 1 } })).map((t) => t.id)).toEqual(["home", "my_skin", "routine", "explore", "community", "account"]);
+  });
+
+  test("the Forum tab is members-only and is active on /community-forum", () => {
+    expect(contextualNavigation({ ...facts(), journey: { ...EMPTY_FACTS } }).some((t) => t.id === "community")).toBe(false);
+    const tab = contextualNavigation(facts()).find((t) => t.id === "community")!;
+    expect(tab.href).toBe("/community-forum");
+    expect(isNavTabActive(tab, "/community-forum", null)).toBe(true);
+    expect(isNavTabActive(tab, "/community-forum-fake", null)).toBe(false);
+    expect(isNavTabActive(tab, "/reviews", null)).toBe(false);
   });
 
   test("active-tab matching follows ?tab= on the dashboard", () => {
