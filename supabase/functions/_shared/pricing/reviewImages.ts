@@ -37,7 +37,7 @@ export function rankProductPages(target: MatchTarget, results: PriceSearchResult
 export interface ExtractedImage {
   url: string;
   /** Where on the page it came from, best source first. */
-  via: "og:image" | "twitter:image" | "json-ld" | "image_src";
+  via: "og:image" | "twitter:image" | "json-ld" | "image_src" | "page-img";
   alt: string | null;
 }
 
@@ -116,6 +116,22 @@ export function extractProductImages(html: string, pageUrl: string): ExtractedIm
   for (const j of jsonLdImages(html)) found.push({ url: j.url, via: "json-ld", alt: j.alt ?? title });
   const link = /<link\b[^>]*rel\s*=\s*["']image_src["'][^>]*>/i.exec(html);
   if (link) found.push({ url: attr(link[0], "href") ?? "", via: "image_src", alt: title });
+
+  // Pages with no usable meta/JSON-LD (e.g. Clicks builds its structured data in a script): the page's own primary product <img>.
+  if (found.length === 0 || !found.some((f) => resolveImageUrl(f.url, pageUrl))) {
+    const imgRe = /<img\b[^>]*>/gi;
+    let im: RegExpExecArray | null;
+    while ((im = imgRe.exec(html)) !== null) {
+      const tag = im[0];
+      const hint = `${attr(tag, "class") ?? ""} ${attr(tag, "id") ?? ""} ${attr(tag, "itemprop") ?? ""}`;
+      if (!/(productImagePrimary|primary[-_ ]?image|product[-_ ]?image|main[-_ ]?image|\bimage\b)/i.test(hint)) continue;
+      const src = attr(tag, "src") ?? attr(tag, "data-src");
+      if (!src) continue;
+      const alt = attr(tag, "alt");
+      found.push({ url: src, via: "page-img", alt: alt && !/not_available|placeholder/i.test(alt) ? alt : title });
+      break;
+    }
+  }
 
   const seen = new Set<string>();
   const out: ExtractedImage[] = [];

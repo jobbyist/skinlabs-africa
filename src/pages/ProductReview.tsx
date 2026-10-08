@@ -340,20 +340,43 @@ const ProductReview = () => {
 
           {productImage && (
             <figure className="mt-6">
-              <img
-                src={productImage.url}
-                alt={`${review.category} product photography — ${productImage.alt}`}
-                className="h-64 w-full rounded-3xl object-cover sm:h-80"
-                loading="lazy"
-              />
-              {productImage.creditUrl !== "#" && (
-                <figcaption className="mt-2 text-xs text-muted-foreground">
-                  Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
-                  <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
-                    {productImage.creditName}
-                  </a>{" "}
-                  on Unsplash.
-                </figcaption>
+              {(productImage as { isProduct?: boolean }).isProduct ? (
+                <>
+                  <div className="flex h-64 items-center justify-center overflow-hidden rounded-3xl border border-border bg-white sm:h-80">
+                    <img
+                      src={productImage.url}
+                      alt={`${review.brand} ${review.product_name}`}
+                      className="max-h-full max-w-full object-contain p-4"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <figcaption className="mt-2 text-xs text-muted-foreground">
+                    Product image from{" "}
+                    <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener nofollow" className="underline">
+                      {productImage.creditName}
+                    </a>
+                    . Image rights belong to their owners.
+                  </figcaption>
+                </>
+              ) : (
+                <>
+                  <img
+                    src={productImage.url}
+                    alt={`${review.category} product photography — ${productImage.alt}`}
+                    className="h-64 w-full rounded-3xl object-cover sm:h-80"
+                    loading="lazy"
+                  />
+                  {productImage.creditUrl !== "#" && (
+                    <figcaption className="mt-2 text-xs text-muted-foreground">
+                      Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
+                      <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
+                        {productImage.creditName}
+                      </a>{" "}
+                      on Unsplash.
+                    </figcaption>
+                  )}
+                </>
               )}
             </figure>
           )}

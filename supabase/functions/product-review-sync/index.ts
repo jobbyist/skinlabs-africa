@@ -806,35 +806,27 @@ async function resolvePrimaryImage(
   const { data: existing } = await admin.from("review_images").select("image_url").eq("review_id", reviewId).maybeSingle();
   if (existing?.image_url) return existing.image_url;
 
-  const pexelsKey = Deno.env.get("PEXELS_API_KEY");
-  if (!pexelsKey) return null;
+  // No stock-photo fallback any more (2026-10-08): the cover is the product's REAL image from the brand website or the listed
+  // retailer. review-image-sync finds candidates (a trigger already made this review a target); a person approves one in
+  // Admin > Data Quality, which writes review_images AND this row's primary_image. Until then the page shows its category photo.
+  void kickImageSync(reviewId);
+  return null;
+}
 
+/** Best-effort nudge so a freshly published review gets image candidates within a minute instead of the next 10-minute tick. */
+async function kickImageSync(reviewId: string): Promise<void> {
   try {
-    const query = `${brand} ${category} skincare product bottle`;
-    const res = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`, {
-      headers: { Authorization: pexelsKey },
-    });
-    if (!res.ok) return null;
-    const payload = (await res.json().catch(() => null)) as {
-      photos?: { src?: { large?: string; original?: string }; alt?: string; photographer?: string; photographer_url?: string }[];
-    } | null;
-    const photo = payload?.photos?.[0];
-    const url = photo?.src?.large || photo?.src?.original;
-    if (!url) return null;
-
-    await admin.from("review_images").upsert(
-      {
-        review_id: reviewId,
-        image_url: url,
-        alt: photo?.alt || `${category} product photography`,
-        credit_name: photo?.photographer || "Pexels Contributor",
-        credit_url: photo?.photographer_url || "https://www.pexels.com",
-      },
-      { onConflict: "review_id" },
-    );
-    return url;
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    await fetch(`${url}/functions/v1/review-image-sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ review_id: reviewId, limit: 1 }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => undefined);
   } catch {
-    return null;
+    /* never blocks publishing */
   }
 }
 

@@ -5,10 +5,12 @@ import { ArrowRight } from "lucide-react";
 import { overallScore } from "@/data/reviews";
 import { pickLatestReviews } from "@/lib/latestReviews";
 import { getCategoryImage } from "@/data/productImages";
+import { useProductCoverImages } from "@/hooks/use-product-cover-images";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 
 const LatestReviews = () => {
   const { data: generated } = useGeneratedReviews();
+  const { data: realCovers } = useProductCoverImages();
   const reviews = useMemo(() => pickLatestReviews(generated), [generated]);
   if (reviews.length === 0) return null;
 
@@ -31,7 +33,8 @@ const LatestReviews = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {reviews.map((review, index) => {
-            const image = getCategoryImage(review.category);
+            const realCover = realCovers?.get(review.id);
+            const image = realCover ?? getCategoryImage(review.category);
             return (
               <m.div
                 key={review.id}
@@ -46,7 +49,7 @@ const LatestReviews = () => {
                   aria-label={`Full breakdown: ${review.brand} ${review.product_name}`}
                 >
                   <div className="relative">
-                    <img src={image.url} alt={image.alt} loading="lazy" width={400} height={176} className="h-44 w-full object-cover" />
+                    <img src={image.url} alt={image.alt} loading="lazy" width={400} height={176} className={realCover ? "h-44 w-full bg-white object-contain p-2" : "h-44 w-full object-cover"} referrerPolicy={realCover ? "no-referrer" : undefined} />
                     <span className="absolute left-3 top-3 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-background">
                       {review.category}
                     </span>

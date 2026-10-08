@@ -145,21 +145,22 @@ const fetchReview = createServerFn({ method: 'GET' })
     }
     if (!review) return { found: false }
 
-    // Image: brand banner (static, highest priority) -> review_images row -> category pool.
-    // Same three-tier priority as src/hooks/use-review-images.ts's getImage().
+    // Image: verified real product image (review_images.source_kind = 'product') -> brand banner -> review_images row -> category pool.
+    // Same priority as src/hooks/use-review-images.ts's getImage().
     let image: CategoryImage | null = null
+    const { data: imgRow } = await supabase
+      .from('review_images')
+      .select('image_url, alt, credit_name, credit_url, source_kind' as never)
+      .eq('review_id', review.id)
+      .maybeSingle()
+    const row = imgRow as unknown as { image_url: string; alt: string; credit_name: string; credit_url: string; source_kind?: string } | null
     const bannerPath = getBrandBanner(review.brand)
-    if (bannerPath) {
+    if (row?.source_kind === 'product') {
+      image = { url: row.image_url, alt: row.alt, creditName: row.credit_name, creditUrl: row.credit_url }
+    } else if (bannerPath) {
       image = { url: bannerPath, alt: `${review.brand} brand banner`, creditName: review.brand, creditUrl: '#' }
     } else {
-      const { data: imgRow } = await supabase
-        .from('review_images')
-        .select('image_url, alt, credit_name, credit_url')
-        .eq('review_id', review.id)
-        .maybeSingle()
-      image = imgRow
-        ? { url: imgRow.image_url, alt: imgRow.alt, creditName: imgRow.credit_name, creditUrl: imgRow.credit_url }
-        : getProductImage(review.category, review.id)
+      image = row ? { url: row.image_url, alt: row.alt, creditName: row.credit_name, creditUrl: row.credit_url } : getProductImage(review.category, review.id)
     }
 
     // Related reviews: same category, excluding self -- static catalogue plus a

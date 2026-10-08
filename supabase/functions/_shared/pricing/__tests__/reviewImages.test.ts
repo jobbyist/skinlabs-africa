@@ -33,6 +33,21 @@ describe("extractProductImages", () => {
   });
 });
 
+describe("page <img> fallback", () => {
+  test("Clicks-style primary product image with a context URL and no extension", () => {
+    const html = `<img class="clubLogoMob" src="https://clicks.co.za/medias/?context=LOGO" alt="club-card-1.jpg">
+      <img class="productImagePrimaryLink" id="imageLink" href="/x/p/1/zoomImages"
+        src="/medias/?context=bWFzdGVy123" alt="img_not_available"/>`;
+    const imgs = extractProductImages(html, "https://www.clicks.co.za/cerave_moisturising-cream-454g/p/360501");
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toMatchObject({ via: "page-img", url: "https://www.clicks.co.za/medias/?context=bWFzdGVy123" });
+  });
+  test("meta image present -> the <img> scan is not used", () => {
+    const imgs = extractProductImages(`<meta property="og:image" content="https://a.com/p.jpg"><img class="product-image" src="/other.jpg">`, "https://a.com/p");
+    expect(imgs.map((i) => i.via)).toEqual(["og:image"]);
+  });
+});
+
 describe("helpers", () => {
   test("resolveImageUrl upgrades http and rejects odd schemes", () => {
     expect(resolveImageUrl("http://a.com/i.jpg", "https://a.com/p")).toBe("https://a.com/i.jpg");

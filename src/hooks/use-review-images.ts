@@ -7,6 +7,8 @@ import { fetchCoverImage } from "@/lib/pexels";
 
 export interface ReviewImage extends CategoryImage {
   reviewId: string;
+  /** 'product' = a real brand/retailer image approved in Admin > Data Quality; anything else is a stock photo. */
+  sourceKind?: string;
 }
 
 type ImageMap = Record<string, ReviewImage>;
@@ -23,15 +25,16 @@ const load = async (): Promise<ImageMap> => {
     inflight = (async () => {
       const { data } = await supabase
         .from("review_images")
-        .select("review_id, image_url, alt, credit_name, credit_url");
+        .select("review_id, image_url, alt, credit_name, credit_url, source_kind" as never);
       const map: ImageMap = {};
-      for (const row of data ?? []) {
+      for (const row of (data ?? []) as unknown as { review_id: string; image_url: string; alt: string; credit_name: string; credit_url: string; source_kind?: string }[]) {
         map[row.review_id] = {
           reviewId: row.review_id,
           url: row.image_url,
           alt: row.alt,
           creditName: row.credit_name,
           creditUrl: row.credit_url,
+          sourceKind: row.source_kind,
         };
       }
       cache = map;
@@ -43,6 +46,7 @@ const load = async (): Promise<ImageMap> => {
 
 /**
  * Per-review images with brand banner priority:
+ * 0. Verified real product image (review_images.source_kind = 'product')
  * 1. Brand-specific banner
  * 2. review_images DB row
  * 3. Category pool (static)
@@ -82,7 +86,11 @@ export const useReviewImages = () => {
     });
   }, []);
 
-  const getImage = (reviewId: string, category: string, brandName?: string): CategoryImage | null => {
+  const getImage = (reviewId: string, category: string, brandName?: string): (CategoryImage & { isProduct?: boolean }) | null => {
+    // A verified real product image (brand website / retailer) always wins over a brand banner or stock photo.
+    const real = images[reviewId];
+    if (real?.sourceKind === "product") return { ...real, url: real.url, isProduct: true };
+
     if (brandName) {
       const bannerPath = getBrandBanner(brandName);
       if (bannerPath) {
