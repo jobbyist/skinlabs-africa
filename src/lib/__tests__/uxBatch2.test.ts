@@ -236,3 +236,12 @@ describe("haptics", () => {
     delete g.window;
   });
 });
+
+describe("photo OCR helpers", () => {
+  test("downscales large photos, never upscales", async () => {
+    const { fitWithin, cleanOcrText } = await import("@/lib/inci/ocr");
+    expect(fitWithin(4000, 3000)).toEqual({ width: 1800, height: 1350 });
+    expect(fitWithin(800, 600)).toEqual({ width: 800, height: 600 });
+    expect(cleanOcrText("Aqua, Hyaluro-\nnate,\nGlycerin  |  Niacinamide")).toBe("Aqua, Hyaluronate, Glycerin I Niacinamide");
+  });
+});

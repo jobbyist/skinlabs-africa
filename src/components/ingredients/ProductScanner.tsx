@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { openSignupDialog } from "@/lib/conversionDialogs";
 import { parseInci, matchAllergies, groupConflicts, higherIrritancy, mstConsiderations, isCaution, MAX_TOKENS, type ConflictFinding, type RawConflict, type RoutineSource, type ScannedIngredient } from "@/lib/inci/scanner";
 import { resolveTokens } from "@/lib/inci/resolve";
-import { photoReadingSupported, readTextFromPhoto } from "@/lib/inci/ocr";
+import { cleanOcrText, photoReadingSupported, readTextFromPhoto } from "@/lib/inci/ocr";
 import { haptic } from "@/lib/haptics";
 
 /** The member's routine ingredients: steps linked to a reviewed product (product_slug) -> that product's current formulation. */
@@ -106,15 +106,23 @@ const ProductScanner = () => {
     onSettled: () => setProgress(null),
   });
 
+  const [reading, setReading] = useState<string | null>(null);
   const onPhoto = async (file: File | undefined) => {
     if (!file) return;
+    setReading("Preparing…");
     try {
-      const read = await readTextFromPhoto(file);
-      if (!read.trim()) return toast.error("We couldn't read any text in that photo. Try a closer, well-lit shot of the ingredient list, or paste it instead.");
+      const raw = await readTextFromPhoto(file, (status, fraction) =>
+        setReading(status.includes("recogniz") ? `Reading the label… ${Math.round(fraction * 100)}%` : "Loading the reader (first time only)…"),
+      );
+      const read = cleanOcrText(raw);
+      if (!read) return void toast.error("We couldn't read any text in that photo. Try a closer, well-lit shot of the ingredient list, or paste it instead.");
       setText(read);
-      toast.success("Read on your device. Check the list before scanning: photos misread letters.");
-    } catch {
-      toast.error("Your browser can't read photos on-device yet. Paste the ingredient list instead.");
+      toast.success("Read on your device. Check the list before analysing: photos can misread letters.");
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      toast.error(code === "too_large" ? "That photo is too large. Try a smaller one, or paste the list." : code === "unsupported" ? "Your browser can't read photos on-device. Paste the ingredient list instead." : "We couldn't read that photo. Paste the ingredient list instead.");
+    } finally {
+      setReading(null);
     }
   };
 
@@ -145,14 +153,15 @@ const ProductScanner = () => {
         </Button>
         {photoReadingSupported() && (
           <>
-            <Button type="button" variant="outline" className="gap-2" onClick={() => fileRef.current?.click()}><Camera className="h-4 w-4" /> Read from a photo</Button>
+            <Button type="button" variant="outline" className="gap-2" disabled={reading !== null} onClick={() => fileRef.current?.click()}><Camera className="h-4 w-4" /> Read from a photo</Button>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Photo of the ingredient list" onChange={(e) => { void onPhoto(e.target.files?.[0]); e.target.value = ""; }} />
           </>
         )}
+        {reading && <span role="status" className="text-xs text-muted-foreground">{reading}</span>}
         {progress && <span role="status" className="text-xs text-muted-foreground">Matching {progress.done} of {progress.total}…</span>}
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
-        {photoReadingSupported() ? "Photos are read on your device and are never uploaded." : "Reading a photo needs a browser with on-device text detection; paste the list instead. Nothing you paste is saved."}
+        {photoReadingSupported() ? "Photos are read on your device and are never uploaded. The first photo downloads a small reader (about 12 MB) once." : "This browser can't read photos; paste the list instead. Nothing you paste is saved."}
       </p>
 
       {result && (

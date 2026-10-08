@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.shelf_items (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_shelf_items_user ON public.shelf_items(user_id, finished_on);
+CREATE INDEX IF NOT EXISTS idx_shelf_items_step ON public.shelf_items(routine_step_id);
 
 ALTER TABLE public.shelf_items ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Members manage their own shelf"
