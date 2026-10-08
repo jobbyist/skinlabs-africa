@@ -24,6 +24,8 @@ import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { MemberNextStepCard } from "@/components/briefings/SkynnMiniCta";
 import SaPricesPanel from "@/components/SaPricesPanel";
 import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
+import { usePriceStats } from "@/hooks/use-price-tracking";
+import PriceAlertBell from "@/components/PriceAlertBell";
 import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
 import { formatRand } from "@/lib/pricing/saRetailPrices";
 import NewsletterSignup from "@/components/NewsletterSignup";
@@ -73,6 +75,7 @@ const ProductReview = () => {
   const review = useMemo(() => allReviews.find((item) => item.id === slug), [allReviews, slug]);
   // Live, verified South African prices (a hook, so it sits with the others above any early return).
   const { data: livePrices = [] } = useSaRetailPrices(review?.id);
+  const { data: priceStats } = usePriceStats(review?.id);
   const { getImage: getReviewImage } = useReviewImages();
   const productImage = useMemo(
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
@@ -482,7 +485,12 @@ const ProductReview = () => {
 
           <AdSlot placement="product-review-top" compact priority="primary" />
 
-          <SaPricesPanel rows={livePrices} snapshot={priceSnapshot} />
+          <SaPricesPanel rows={livePrices} snapshot={priceSnapshot} stats={priceStats} />
+          <PriceAlertBell
+            productSlug={review.id}
+            productName={review.product_name}
+            currentLowest={livePrices.filter((r) => r.in_stock !== false).reduce<number | null>((min, r) => (min === null || r.price_zar < min ? r.price_zar : min), null)}
+          />
 
           {marketplaceMatch && (
             <Link

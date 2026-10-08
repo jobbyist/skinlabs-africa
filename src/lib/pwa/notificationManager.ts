@@ -91,7 +91,7 @@ export const PREFERENCE_LABELS: Record<PreferenceCategory, PreferenceMeta> = {
   journal_reminder: { label: "Progress check-ins", description: "A reminder when a progress photo is due, plus a monthly check-in on the 1st. We stop after 3 you haven't answered.", example: "e.g. “Time for a progress photo”", defaultOn: false },
   podcast_episode: { label: "New podcast episodes", description: "When a new episode of The Skin Deep is published.", example: "e.g. “New episode: Sunscreen myths”", defaultOn: false },
   promotional: { label: "Offers and news", description: "Offers and news - you can turn this off any time.", example: "e.g. “Member offer: 20% off Analysis Passes”", defaultOn: false },
-  price_alert: { label: "Price alerts", description: "When a product you follow drops in price at a South African retailer.", example: "e.g. “A product you saved is cheaper at Clicks”", defaultOn: false },
+  price_alert: { label: "Price alerts", description: "When a product you track reaches the target price you set at a South African retailer.", example: "e.g. “A product you saved is cheaper at Clicks”", defaultOn: false },
   community: { label: "Community activity", description: "When someone likes or comments on your post or comment in the SkinLabs® Community. Replies stay in your inbox either way.", example: "e.g. “Cole commented on your post”", defaultOn: true },
 };
 

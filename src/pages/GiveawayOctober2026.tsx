@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { CalendarClock, CheckCircle2, Gift, Sparkles, Ticket } from "lucide-react";
 import SEO from "@/components/SEO";
 import GiveawayCta from "@/components/giveaway/GiveawayCta";
-import GiveawayStoryPlayer from "@/components/giveaway/GiveawayStoryPlayer";
+import GiveawaySkinStoryCard from "@/components/giveaway/GiveawaySkinStoryCard";
 import GiveawayTerms from "@/components/giveaway/GiveawayTerms";
 import {
   GIVEAWAY_CLOSING_TIME_LABEL,
@@ -118,7 +118,7 @@ const GiveawayOctober2026 = () => {
             </div>
 
             <div className="hidden lg:block">
-              <GiveawayStoryPlayer onEnter={scrollToEntry} />
+              <GiveawaySkinStoryCard onEnter={scrollToEntry} />
             </div>
           </div>
         </section>
@@ -171,9 +171,9 @@ const GiveawayOctober2026 = () => {
           </div>
         </section>
 
-        {/* STORY VIDEO (phones; desktop shows it in the hero) */}
-        <section aria-label="Giveaway video" className="px-4 pb-14 lg:hidden">
-          <GiveawayStoryPlayer onEnter={scrollToEntry} />
+        {/* EXAMPLE SKIN STORY (phones; desktop shows it in the hero) */}
+        <section aria-label="Example Skin Story" className="px-4 pb-14 lg:hidden">
+          <GiveawaySkinStoryCard onEnter={scrollToEntry} />
         </section>
 
         {/* WHAT YOU GET */}

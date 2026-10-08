@@ -34,7 +34,7 @@ test("landing page: hero, prizes, steps, story, deadline and terms render withou
   await expect(page.getByRole("link", { name: "Get started with the free skin assessment" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Start the free dermatology analysis" }).first()).toBeVisible();
   await expect(page.getByRole("heading", { name: "Two Winners. Two Big SkinLabs® Rewards." })).toBeVisible();
-  await expect(page.getByText("Entries close 15 October 2026.")).toBeVisible();
+  await expect(page.getByText("Entries close 31 October 2026.")).toBeVisible();
   await expect(page.getByText("isn't a giveaway entry")).toBeVisible();
   await expect(page.getByText("You do not have to leave a positive review.", { exact: false })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Your skin has a story. Tell us yours." })).toBeVisible();
@@ -51,7 +51,7 @@ test("SEO: exact title, description, canonical and social tags", async ({ page, 
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://skinlabs.co.za/giveaways/october-2026");
   const desc = await page.locator('meta[name="description"]').getAttribute("content");
   expect(desc).toContain("R500 Takealot voucher");
-  expect(desc).toContain("15 Oct 2026");
+  expect(desc).toContain("31 Oct 2026");
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", /Win R500/);
   await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /og-giveaway-october-2026\.jpg/);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
@@ -79,7 +79,7 @@ test("page view is logged once per visit with only whitelisted campaign fields (
   await page.waitForTimeout(800);
   expect(c.analytics.filter((e) => e.event_name === "giveaway_page_view")).toHaveLength(1);
   const view = c.analytics.find((e) => e.event_name === "giveaway_page_view")!;
-  expect(view.payload).toMatchObject({ campaign: "skinlabs_october_2026_giveaway", landing_page: PATH, campaign_deadline: "2026-10-15" });
+  expect(view.payload).toMatchObject({ campaign: "skinlabs_october_2026_giveaway", landing_page: PATH, campaign_deadline: "2026-10-31" });
   expect(JSON.stringify(c.analytics)).not.toMatch(/skinType|concern|acne|mst_tone|answers|result_payload/);
 });
 
@@ -102,19 +102,17 @@ test("terms are collapsible, contain the required rules, and opening them is rep
   await expect.poll(() => c.analytics.filter((e) => e.event_name === "giveaway_terms_viewed").length).toBe(1);
 });
 
-test("story video: poster first, video never loaded until visible, with working story CTAs", async ({ page, context }) => {
+test("example Skin Story image replaces the video, with a working entry CTA", async ({ page, context }) => {
   await mockSupabase(context, { signedIn: false });
   const videoRequests: string[] = [];
-  page.on("request", (r) => r.url().endsWith("october-2026.mp4") && videoRequests.push(r.url()));
+  page.on("request", (r) => r.url().endsWith(".mp4") && videoRequests.push(r.url()));
   await page.goto(PATH);
-  await page.waitForTimeout(600);
-  // Phones show the player below the hero: nothing is fetched until it scrolls into view. (On desktop it is in the hero.)
-  if (test.info().project.name.startsWith("mobile")) expect(videoRequests).toHaveLength(0);
-  const player = page.getByLabel("Open the story full screen").locator("visible=true").first();
-  await player.scrollIntoViewIfNeeded();
-  await expect(page.locator("video[aria-label='SkinLabs® October giveaway video']").first()).toBeAttached();
+  const img = page.getByRole("img", { name: /Example SkinLabs® Skin Story/ }).locator("visible=true").first();
+  await img.scrollIntoViewIfNeeded();
+  await expect(img).toBeVisible();
+  await expect(page.locator("video")).toHaveCount(0);
+  expect(videoRequests).toHaveLength(0);
   await expect(page.getByRole("button", { name: "Enter the Giveaway" }).locator("visible=true").first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Start Your Free Assessment" }).locator("visible=true").first()).toBeVisible();
 });
 
 test.describe("entry confirmation", () => {
