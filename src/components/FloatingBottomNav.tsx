@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn, Sparkles, ListChecks, Compass, type LucideIcon } from "lucide-react";
+import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn, Sparkles, ListChecks, Compass, MessagesSquare, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
@@ -22,10 +22,13 @@ const TAB_ICONS: Record<NavTabId, LucideIcon> = {
   my_skin: Sparkles,
   routine: ListChecks,
   explore: Compass,
+  community: MessagesSquare,
   account: User,
 };
 
 const NAV_ITEM = "group relative z-10 flex h-12 w-11 shrink-0 flex-col items-center justify-center gap-0 whitespace-nowrap rounded-full p-0 text-[10px] font-medium leading-[12px] transition-[color,transform] duration-200 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation hover:bg-transparent min-[360px]:w-12 sm:w-16 [&_svg]:size-5";
+// Signed-in members on the content tabs get seven slots (five tabs + Forum + Profile): slightly narrower items so it still fits 320px.
+const NAV_ITEM_DENSE = "w-10 text-[9px] min-[360px]:w-11 min-[360px]:text-[10px] min-[400px]:w-12 sm:w-16";
 const TAB_IDLE = "text-foreground/80 hover:text-foreground";
 const TAB_ACTIVE = "font-semibold text-foreground";
 const ICON_STYLE = "relative size-5 -translate-y-1.5 transition-[transform,stroke-width] duration-200 ease-out group-aria-[current=page]:translate-y-0 group-aria-[current=page]:scale-150 group-aria-[current=page]:[stroke-width:2.75]";
@@ -133,6 +136,7 @@ const FloatingBottomNav = () => {
   const onDashboard = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
   const section = onDashboard ? resolveDashboardSection(new URLSearchParams(location.search).get("tab")) : null;
   const personalised = tabs.some((t) => t.id === "account");
+  const dense = tabs.length + (personalised ? 0 : 1) >= 7;
   const accountActive = location.pathname.startsWith("/dashboard");
 
   const activeId = tabs.find((tab) => isNavTabActive(tab, location.pathname, section))?.id
@@ -160,7 +164,7 @@ const FloatingBottomNav = () => {
                 <span className={LABEL_STYLE} aria-hidden={active}>{tab.label}</span>
               </>
             );
-            const className = cn(NAV_ITEM, active ? TAB_ACTIVE : TAB_IDLE);
+            const className = cn(NAV_ITEM, dense && NAV_ITEM_DENSE, active ? TAB_ACTIVE : TAB_IDLE);
             // "Explore" opens the menu's Explore grid; every other tab is a plain link.
             return tab.href ? (
               <Link
@@ -193,13 +197,13 @@ const FloatingBottomNav = () => {
               aria-label="Profile"
               aria-current={accountActive ? "page" : undefined}
               onClick={glideTopIfActive(accountActive && location.pathname === "/dashboard" && !location.search)}
-              className={cn(NAV_ITEM, accountActive ? TAB_ACTIVE : TAB_IDLE)}
+              className={cn(NAV_ITEM, dense && NAV_ITEM_DENSE, accountActive ? TAB_ACTIVE : TAB_IDLE)}
             >
               <User className={ICON_STYLE} aria-hidden="true" />
               <span className={LABEL_STYLE} aria-hidden={accountActive}>Profile</span>
             </Link>
           ) : (
-            <Button variant="ghost" type="button" onClick={() => setAuthOpen(true)} aria-label="Sign in" className={cn(NAV_ITEM, TAB_IDLE)}>
+            <Button variant="ghost" type="button" onClick={() => setAuthOpen(true)} aria-label="Sign in" className={cn(NAV_ITEM, dense && NAV_ITEM_DENSE, TAB_IDLE)}>
               <LogIn className={ICON_STYLE} aria-hidden="true" />
               <span className={LABEL_STYLE}>Sign In</span>
             </Button>

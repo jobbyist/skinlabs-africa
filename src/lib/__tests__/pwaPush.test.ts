@@ -226,10 +226,10 @@ describe("helpers", () => {
   });
 });
 
-describe("notification preferences (all ten categories + delivery)", () => {
-  test("the model covers the engine's ten categories, promotional off by default, copy as specified", () => {
+describe("notification preferences (all eleven categories + delivery)", () => {
+  test("the model covers the engine's eleven categories, promotional off by default, copy as specified", () => {
     expect([...manager.PREFERENCE_CATEGORIES].sort()).toEqual(
-      ["account_update", "briefing", "journal_reminder", "podcast_episode", "price_alert", "promotional", "report_ready", "routine_reminder", "service", "skin_weather"].sort(),
+      ["account_update", "briefing", "journal_reminder", "podcast_episode", "price_alert", "promotional", "report_ready", "routine_reminder", "service", "skin_weather", "community"].sort(),
     );
     for (const key of manager.PREFERENCE_CATEGORIES) {
       expect(manager.PREFERENCE_LABELS[key].defaultOn).toBe(manager.DEFAULT_PREFERENCES[key]);

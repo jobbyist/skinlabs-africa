@@ -1,10 +1,18 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { m } from "framer-motion";
 import { ArrowRight, Atom } from "lucide-react";
 import { featuredEditorials } from "@/data/editorials";
+import { pickRotatingEditorials } from "@/lib/homepageSelection";
+
+const FEATURED_COUNT = 3;
 
 const Editorials = () => {
-  const cards = featuredEditorials.slice(0, 3);
+  // First paint (and prerendered HTML) is stable; each page load then swaps in a fresh random 3 once.
+  const [cards, setCards] = useState(() => featuredEditorials.slice(0, FEATURED_COUNT));
+  useEffect(() => {
+    setCards(pickRotatingEditorials(featuredEditorials));
+  }, []);
 
   return (
     <section id="editorials" className="bg-background py-20">

@@ -278,10 +278,12 @@ const Pricing = () => {
                           // every card wider than a 320px screen.
                           "relative flex min-w-0 flex-col rounded-3xl border bg-card p-6 sm:p-8",
                           plan.badge ? "border-primary shadow-lg lg:-mt-4 lg:mb-4" : "border-border",
+                          // Glow Insider: the animated brand-gradient ring (paused by prefers-reduced-motion in index.css).
+                          plan.plan_id === "insider" && "gradient-border-anim border-transparent",
                         )}
                       >
                         {plan.badge && (
-                          <span className="absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+                          <span className="!absolute -top-3 left-8 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                             <Atom className="h-3 w-3" /> {plan.badge}
                           </span>
                         )}

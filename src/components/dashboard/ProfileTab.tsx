@@ -13,6 +13,8 @@ import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { toast } from "sonner";
 import { SA_CITIES } from "@/lib/skinWeather/cities";
+import UsernameCard from "@/components/dashboard/UsernameCard";
+import AvatarUploader from "@/components/dashboard/AvatarUploader";
 
 const NO_WEATHER_CITY = "none";
 
@@ -90,13 +92,7 @@ const ProfileTab = () => {
   const save = async () => {
     if (!user) return;
     setSaving(true);
-    const handle = form.username.trim();
-    if (!/^[a-zA-Z0-9_]{3,20}$/.test(handle)) {
-      setSaving(false);
-      return toast.error("Username must be 3-20 characters: letters, numbers or underscores.");
-    }
     const { error } = await supabase.from("profiles").update({
-      username: handle,
       full_name: form.full_name || null,
       phone: form.phone || null,
       date_of_birth: form.date_of_birth || null,
@@ -118,9 +114,7 @@ const ProfileTab = () => {
     setSaving(false);
     if (error) {
       return toast.error(
-        error.message?.includes("profiles_username")
-          ? "That username is already taken."
-          : "Could not save profile",
+        "Could not save profile",
       );
     }
     refresh();
@@ -130,6 +124,16 @@ const ProfileTab = () => {
   if (loading) return <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
+    <div className="space-y-6">
+    <AvatarUploader username={form.username} />
+    <UsernameCard
+      username={form.username}
+      fullName={form.full_name}
+      onSaved={(username) => {
+        setForm((f) => ({ ...f, username }));
+        refresh();
+      }}
+    />
     <Card>
       <CardHeader>
         <CardTitle>Your Profile</CardTitle>
@@ -150,7 +154,6 @@ const ProfileTab = () => {
           </div>
         )}
         <div className="grid md:grid-cols-2 gap-4">
-          <div><Label>Username</Label><Input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="glowseeker" /></div>
           <div><Label>Full name</Label><Input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} /></div>
           <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
           <div><Label>Date of birth</Label><Input type="date" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
@@ -224,6 +227,7 @@ const ProfileTab = () => {
         <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save profile</Button>
       </CardContent>
     </Card>
+    </div>
   );
 };
 
