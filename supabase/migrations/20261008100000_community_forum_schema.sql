@@ -1,5 +1,5 @@
--- SkinLabs Community Forum — schema, RLS, read/moderation RPCs, counters, realtime.  (1 of 3: schema)
--- Companion migrations: 20261008110000 (notifications + push) and 20261008120000 (seed content).
+-- SkinLabs Community Forum — schema, RLS, read/moderation RPCs, counters, realtime.  (1 of 5: schema)
+-- Companions: 110000 notifications + push, 130000 media + avatars, 140000 spam protection + moderation RPCs, 150000 seed content.
 -- Idempotent: safe to run twice.
 --
 -- Design notes
@@ -13,6 +13,13 @@
 --    Exactly one of author_id / persona_id is set. Real members always use author_id.
 --  * `parent_id` (replies), `category`, reports and the moderation log are in place so mentions / replies /
 --    bookmarks can be added later without a rewrite.
+
+-- Member avatar (a storage path inside the member's own folder of the `avatars` bucket; see migration 20261008130000).
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_path text;
+DO $av$ BEGIN
+  ALTER TABLE public.profiles ADD CONSTRAINT profiles_avatar_path_own_folder
+    CHECK (avatar_path IS NULL OR avatar_path ~ ('^' || user_id::text || '/[0-9a-f-]{36}\.(webp|png|jpg|jpeg)$'));
+EXCEPTION WHEN duplicate_object THEN NULL; END $av$;
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Reference tables
@@ -58,17 +65,22 @@ CREATE TABLE IF NOT EXISTS public.community_posts (
   category text REFERENCES public.community_categories(slug) ON UPDATE CASCADE ON DELETE SET NULL,
   title text NOT NULL CHECK (char_length(btrim(title)) BETWEEN 4 AND 140),
   body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 10 AND 4000),
-  status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'removed', 'deleted')),
+  status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'held', 'removed', 'deleted')),
   pinned boolean NOT NULL DEFAULT false,
   like_count integer NOT NULL DEFAULT 0 CHECK (like_count >= 0),
   comment_count integer NOT NULL DEFAULT 0 CHECK (comment_count >= 0),
   share_count integer NOT NULL DEFAULT 0 CHECK (share_count >= 0),
+  image_path text CHECK (image_path IS NULL OR image_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}\.(webp|png|jpg|jpeg|gif)$'),
+  image_w integer CHECK (image_w IS NULL OR image_w BETWEEN 1 AND 8192),
+  image_h integer CHECK (image_h IS NULL OR image_h BETWEEN 1 AND 8192),
+  spam_flags text[] NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   edited_at timestamptz,
   last_activity_at timestamptz NOT NULL DEFAULT now(),
   deleted_at timestamptz,
-  CONSTRAINT community_posts_one_author CHECK (num_nonnulls(author_id, persona_id) = 1)
+  CONSTRAINT community_posts_one_author CHECK (num_nonnulls(author_id, persona_id) = 1),
+  CONSTRAINT community_posts_image_dims CHECK ((image_path IS NULL) = (image_w IS NULL AND image_h IS NULL))
 );
 CREATE INDEX IF NOT EXISTS community_posts_feed_idx
   ON public.community_posts (created_at DESC, id DESC) WHERE status = 'published' AND NOT pinned;
@@ -85,7 +97,8 @@ CREATE TABLE IF NOT EXISTS public.community_comments (
   author_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   persona_id uuid REFERENCES public.community_personas(id) ON DELETE CASCADE,
   body text NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 1500),
-  status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'removed', 'deleted')),
+  status text NOT NULL DEFAULT 'published' CHECK (status IN ('published', 'held', 'removed', 'deleted')),
+  spam_flags text[] NOT NULL DEFAULT '{}',
   like_count integer NOT NULL DEFAULT 0 CHECK (like_count >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -156,7 +169,7 @@ CREATE TABLE IF NOT EXISTS public.community_moderation_log (
   actor_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   target_type text NOT NULL CHECK (target_type IN ('post', 'comment')),
   target_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('remove', 'restore', 'pin', 'unpin', 'delete_own')),
+  action text NOT NULL CHECK (action IN ('remove', 'restore', 'pin', 'unpin', 'delete_own', 'approve', 'reject', 'hold')),
   note text CHECK (note IS NULL OR char_length(note) <= 300),
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -312,7 +325,7 @@ REVOKE ALL ON public.community_categories, public.community_personas, public.com
 GRANT SELECT ON public.community_categories TO authenticated;
 GRANT SELECT ON public.community_personas TO authenticated;
 GRANT SELECT ON public.community_posts TO authenticated;
-GRANT INSERT (title, body, category, author_id) ON public.community_posts TO authenticated;
+GRANT INSERT (title, body, category, author_id, image_path, image_w, image_h) ON public.community_posts TO authenticated;
 GRANT UPDATE (title, body, category) ON public.community_posts TO authenticated;
 GRANT SELECT ON public.community_comments TO authenticated;
 GRANT INSERT (post_id, parent_id, body, author_id) ON public.community_comments TO authenticated;
@@ -421,7 +434,8 @@ CREATE OR REPLACE FUNCTION public.community_feed(
 ) RETURNS TABLE (
   id uuid, author_name text, author_role text, is_mine boolean, title text, body text, category text, category_name text,
   status text, pinned boolean, like_count integer, comment_count integer, share_count integer,
-  created_at timestamptz, edited_at timestamptz, liked_by_me boolean
+  created_at timestamptz, edited_at timestamptz, liked_by_me boolean,
+  author_avatar text, image_path text, image_w integer, image_h integer
 ) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_uid uuid := auth.uid(); v_staff boolean; v_limit integer := least(greatest(coalesce(p_limit, 15), 1), 30);
 BEGIN
@@ -433,6 +447,12 @@ BEGIN
     SELECT p.* FROM public.community_posts p
      WHERE p_post_id IS NOT NULL AND p.id = p_post_id AND p.status <> 'deleted'
        AND (p.status = 'published' OR p.author_id = v_uid OR v_staff)
+    UNION ALL
+    -- Your own posts awaiting moderator review stay visible to you (first page only).
+    (SELECT p.* FROM public.community_posts p
+      WHERE p_post_id IS NULL AND p_cursor_at IS NULL AND p.status = 'held' AND p.author_id = v_uid
+        AND (p_category IS NULL OR p.category = p_category)
+      ORDER BY p.created_at DESC LIMIT 5)
     UNION ALL
     -- Pinned posts lead the first page only.
     (SELECT p.* FROM public.community_posts p
@@ -452,11 +472,13 @@ BEGIN
          (b.author_id IS NOT NULL AND b.author_id = v_uid),
          b.title, b.body, b.category, cat.name, b.status, b.pinned, b.like_count, b.comment_count, b.share_count,
          b.created_at, b.edited_at,
-         EXISTS (SELECT 1 FROM public.community_post_likes l WHERE l.post_id = b.id AND l.user_id = v_uid)
+         EXISTS (SELECT 1 FROM public.community_post_likes l WHERE l.post_id = b.id AND l.user_id = v_uid),
+         pr.avatar_path, b.image_path, b.image_w, b.image_h
     FROM base b
+    LEFT JOIN public.profiles pr ON pr.user_id = b.author_id
     LEFT JOIN public.community_personas pe ON pe.id = b.persona_id
     LEFT JOIN public.community_categories cat ON cat.slug = b.category
-   ORDER BY b.pinned DESC, b.created_at DESC, b.id DESC;
+   ORDER BY (b.status = 'held') DESC, b.pinned DESC, b.created_at DESC, b.id DESC;
 END $$;
 
 CREATE OR REPLACE FUNCTION public.community_comments_page(
@@ -466,7 +488,7 @@ CREATE OR REPLACE FUNCTION public.community_comments_page(
   p_cursor_id uuid DEFAULT NULL
 ) RETURNS TABLE (
   id uuid, post_id uuid, parent_id uuid, author_name text, author_role text, is_mine boolean, body text,
-  like_count integer, created_at timestamptz, edited_at timestamptz, liked_by_me boolean
+  like_count integer, created_at timestamptz, edited_at timestamptz, liked_by_me boolean, author_avatar text
 ) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_uid uuid := auth.uid(); v_limit integer := least(greatest(coalesce(p_limit, 30), 1), 60);
 BEGIN
@@ -481,8 +503,10 @@ BEGIN
          coalesce(pe.role, public.community_actor_role(c.author_id)),
          (c.author_id IS NOT NULL AND c.author_id = v_uid),
          c.body, c.like_count, c.created_at, c.edited_at,
-         EXISTS (SELECT 1 FROM public.community_comment_likes l WHERE l.comment_id = c.id AND l.user_id = v_uid)
+         EXISTS (SELECT 1 FROM public.community_comment_likes l WHERE l.comment_id = c.id AND l.user_id = v_uid),
+         pr.avatar_path
     FROM public.community_comments c
+    LEFT JOIN public.profiles pr ON pr.user_id = c.author_id
     LEFT JOIN public.community_personas pe ON pe.id = c.persona_id
    WHERE c.post_id = p_post_id AND c.status = 'published'
      AND (p_cursor_at IS NULL OR (c.created_at, c.id) > (p_cursor_at, coalesce(p_cursor_id, '00000000-0000-0000-0000-000000000000'::uuid)))
@@ -494,7 +518,7 @@ END $$;
 CREATE OR REPLACE FUNCTION public.community_comment_by_id(p_comment_id uuid)
 RETURNS TABLE (
   id uuid, post_id uuid, parent_id uuid, author_name text, author_role text, is_mine boolean, body text,
-  like_count integer, created_at timestamptz, edited_at timestamptz, liked_by_me boolean
+  like_count integer, created_at timestamptz, edited_at timestamptz, liked_by_me boolean, author_avatar text
 ) LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_uid uuid := auth.uid();
 BEGIN
@@ -505,8 +529,10 @@ BEGIN
          coalesce(pe.role, public.community_actor_role(c.author_id)),
          (c.author_id IS NOT NULL AND c.author_id = v_uid),
          c.body, c.like_count, c.created_at, c.edited_at,
-         EXISTS (SELECT 1 FROM public.community_comment_likes l WHERE l.comment_id = c.id AND l.user_id = v_uid)
+         EXISTS (SELECT 1 FROM public.community_comment_likes l WHERE l.comment_id = c.id AND l.user_id = v_uid),
+         pr.avatar_path
     FROM public.community_comments c
+    LEFT JOIN public.profiles pr ON pr.user_id = c.author_id
     JOIN public.community_posts p ON p.id = c.post_id AND p.status = 'published'
     LEFT JOIN public.community_personas pe ON pe.id = c.persona_id
    WHERE c.id = p_comment_id AND c.status = 'published';

@@ -1,4 +1,4 @@
--- SkinLabs Community Forum — initial editorial content.  (3 of 3: seed data)
+-- SkinLabs Community Forum — initial editorial content.  (5 of 5: seed data)
 -- Idempotent: does nothing if the seed personas already exist.
 --
 -- What this is: a small starter set (14 discussions, ~40 comments, ~100 likes) so the forum doesn't open empty.

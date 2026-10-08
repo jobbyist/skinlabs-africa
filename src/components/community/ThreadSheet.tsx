@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Flag, Heart, Loader2, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { useCommentLike, useCommunityComments, useContentActions, useCreateComment } from "@/hooks/use-community";
 import { COMMENT_MAX, needsHandle, relativeTime, validateCommentDraft, writeErrorMessage, type CommunityComment, type CommunityPost } from "@/lib/community/rules";
 import PostCard, { type PostActions } from "./PostCard";
+import EmojiPicker from "./EmojiPicker";
+import { insertAtSelection } from "@/lib/community/emoji";
 import { AuthorAvatar, RoleBadge } from "./RoleBadge";
 import { CommentsSkeleton, FeedError, PostUnavailable } from "./ForumStates";
 
@@ -38,7 +40,7 @@ const CommentItem = ({
   onRemove: (c: CommunityComment) => void;
 }) => (
   <li className="flex gap-3">
-    <AuthorAvatar name={comment.author_name} role={comment.author_role} size="sm" />
+    <AuthorAvatar name={comment.author_name} role={comment.author_role} avatarPath={comment.author_avatar} size="sm" />
     <div className="min-w-0 flex-1">
       <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm">
         <span className="max-w-[10rem] truncate font-semibold text-foreground">{comment.author_name}</span>
@@ -88,6 +90,7 @@ const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, on
   const likeComment = useCommentLike(postId ?? "");
   const content = useContentActions();
   const [draft, setDraft] = useState("");
+  const composer = useRef<HTMLTextAreaElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const list = useMemo(() => comments.data?.pages.flatMap((p) => p.comments) ?? [], [comments.data]);
 
@@ -101,8 +104,9 @@ const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, on
     setError(null);
     if (!(await ensureHandle())) return;
     try {
-      await create.mutateAsync(draft);
+      const result = await create.mutateAsync(draft);
       setDraft("");
+      if (result === null) toast.message("Thanks. A moderator will review your comment before it appears.");
     } catch (e) {
       // The handle may have been cleared server-side; the message tells the member what to do.
       setError(needsHandle(e as Error) ? "Choose a public handle to comment." : writeErrorMessage(e as Error, "Your comment didn't post. Check your connection and try again."));
@@ -174,9 +178,19 @@ const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, on
             <label htmlFor="community-comment" className="sr-only">
               Add a comment
             </label>
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-1">
+              <EmojiPicker
+                className="shrink-0"
+                onPick={(emoji) => {
+                  const el = composer.current;
+                  const next = insertAtSelection(draft, emoji, el?.selectionStart ?? null, el?.selectionEnd ?? null, COMMENT_MAX);
+                  setDraft(next.text);
+                  requestAnimationFrame(() => el?.setSelectionRange(next.caret, next.caret));
+                }}
+              />
               <Textarea
                 id="community-comment"
+                ref={composer}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value.slice(0, COMMENT_MAX))}
                 placeholder="Add to the conversation…"

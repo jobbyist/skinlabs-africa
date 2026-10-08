@@ -13,11 +13,13 @@ import {
   fetchFeed,
   fetchPost,
   moderate,
+  removeMedia,
   setCommentLike,
   setPostLike,
   type CommentPage,
   type Cursor,
   type FeedPage,
+  type PostImage,
 } from "@/lib/community/client";
 import {
   insertPostSorted,
@@ -124,7 +126,7 @@ export const useCreatePost = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { title: string; body: string; category: string | null }) => {
+    mutationFn: async (input: { title: string; body: string; category: string | null; image?: PostImage | null }) => {
       if (!user) throw new Error("Sign in first.");
       const id = await createPost(user.id, input);
       const post = await fetchPost(id);
@@ -149,11 +151,11 @@ export const useCreateComment = (postId: string) => {
     mutationFn: async (body: string) => {
       if (!user) throw new Error("Sign in first.");
       const id = await createComment(user.id, postId, body);
-      const comment = await fetchComment(id);
-      if (!comment) throw new Error("Posted, but couldn't load it.");
-      return comment;
+      // null = saved but held for moderator review (it isn't visible yet, to anyone including its author's thread view)
+      return fetchComment(id);
     },
     onSuccess: (comment) => {
+      if (!comment) return;
       qc.setQueriesData<CommentData>({ queryKey: [COMMUNITY_KEY, "comments", postId] }, (old) => {
         if (!old || old.pages.length === 0) return old;
         if (old.pages.some((p) => p.comments.some((c) => c.id === comment.id))) return old;
@@ -169,9 +171,10 @@ export const useContentActions = () => {
   const qc = useQueryClient();
   const removeFromFeeds = (id: string) => mapPosts(qc, (posts) => posts.filter((p) => p.id !== id));
   return {
-    deletePost: async (id: string) => {
+    deletePost: async (id: string, imagePath?: string | null) => {
       await deleteOwn("post", id);
       removeFromFeeds(id);
+      if (imagePath) removeMedia("community-media", [imagePath]);
     },
     deleteComment: async (postId: string, id: string) => {
       await deleteOwn("comment", id);

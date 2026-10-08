@@ -13,6 +13,7 @@ import { useProfileComplete } from "@/hooks/use-profile-complete";
 import { computeProfileStrength } from "@/lib/profileStrength";
 import { toast } from "sonner";
 import { SA_CITIES } from "@/lib/skinWeather/cities";
+import AvatarUploader from "@/components/dashboard/AvatarUploader";
 
 const NO_WEATHER_CITY = "none";
 
@@ -130,6 +131,8 @@ const ProfileTab = () => {
   if (loading) return <div className="py-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
+    <div className="space-y-6">
+    <AvatarUploader username={form.username} />
     <Card>
       <CardHeader>
         <CardTitle>Your Profile</CardTitle>
@@ -224,6 +227,7 @@ const ProfileTab = () => {
         <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Save profile</Button>
       </CardContent>
     </Card>
+    </div>
   );
 };
 

@@ -1,5 +1,7 @@
 import { ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { mediaUrl } from "@/lib/community/client";
 import { initialsOf, roleLabel, type CommunityRole } from "@/lib/community/rules";
 
 /** Understated role marker. The word is always shown, so it never relies on colour alone. */
@@ -20,15 +22,24 @@ export const RoleBadge = ({ role, className }: { role: CommunityRole; className?
   );
 };
 
-export const AuthorAvatar = ({ name, role, size = "md" }: { name: string; role: CommunityRole; size?: "sm" | "md" }) => (
-  <span
-    aria-hidden="true"
-    className={cn(
-      "flex shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-xs font-semibold text-secondary-foreground",
-      role !== "member" && "ring-2 ring-foreground/15",
-      size === "md" ? "size-10" : "size-8 text-[11px]",
-    )}
-  >
-    {initialsOf(name)}
-  </span>
-);
+/** Profile picture when the member has one (public avatars bucket), otherwise their initials. */
+export const AuthorAvatar = ({ name, role, avatarPath, size = "md" }: { name: string; role: CommunityRole; avatarPath?: string | null; size?: "sm" | "md" }) => {
+  const [failed, setFailed] = useState(false);
+  const url = failed ? null : mediaUrl("avatars", avatarPath);
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-xs font-semibold text-secondary-foreground",
+        role !== "member" && "ring-2 ring-foreground/15",
+        size === "md" ? "size-10" : "size-8 text-[11px]",
+      )}
+    >
+      {url ? (
+        <img src={url} alt="" width={40} height={40} loading="lazy" decoding="async" className="size-full object-cover" onError={() => setFailed(true)} />
+      ) : (
+        initialsOf(name)
+      )}
+    </span>
+  );
+};

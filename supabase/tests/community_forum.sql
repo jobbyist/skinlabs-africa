@@ -3,7 +3,7 @@
 DO $$
 DECLARE
   v_a uuid := gen_random_uuid(); v_b uuid := gen_random_uuid(); v_mod uuid := gen_random_uuid(); v_nohandle uuid := gen_random_uuid();
-  v_post uuid; v_post_b uuid; v_comment uuid; n int := 0; c int; v_raised boolean; v_text text; v_rows int;
+  v_post uuid; v_post_b uuid; v_spam uuid; v_staffpost uuid; v_r1 uuid := gen_random_uuid(); v_r2 uuid := gen_random_uuid(); v_r3 uuid := gen_random_uuid(); v_comment uuid; n int := 0; c int; v_raised boolean; v_text text; v_rows int;
 BEGIN
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
   SELECT x, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cf-' || x || '@example.invalid', '', now(), now(), '{}', '{}'
@@ -106,6 +106,12 @@ BEGIN
   SELECT count(*) INTO c FROM public.notifications WHERE user_id = v_b AND category = 'community';
   IF c <> 0 THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: B notified about own actions'; END IF; n := n + 1;
 
+  -- (a post of B's, used by the report test later)
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_b, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  INSERT INTO public.community_posts (title, body, author_id) VALUES ('B asks about toners', 'Which toners suit combination skin in humid weather?', v_b) RETURNING id INTO v_post_b;
+  EXECUTE 'RESET ROLE';
+
   -- unlike + re-like does not notify twice (idempotent key)
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_b, 'role', 'authenticated')::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
@@ -164,17 +170,87 @@ BEGIN
   IF v_text IS DISTINCT FROM 'removed' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: author view of removed post was %', v_text; END IF; n := n + 1;
   EXECUTE 'RESET ROLE';
 
-  -- rate limit: the 6th post inside an hour is refused
+  -- burst limit: the 4th post (B already made one) inside two minutes is refused (distinct bodies, so this is the rate limit, not the duplicate rule)
   PERFORM set_config('request.jwt.claims', json_build_object('sub', v_b, 'role', 'authenticated')::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
-  FOR c IN 1..5 LOOP
-    INSERT INTO public.community_posts (title, body, author_id) VALUES ('Rate limit post ' || c, 'Filling up the hourly allowance for the probe.', v_b);
+  FOR c IN 1..2 LOOP
+    INSERT INTO public.community_posts (title, body, author_id) VALUES ('Burst post ' || c, 'Distinct body number ' || c || ' about layering moisturisers.', v_b);
   END LOOP;
   v_raised := false;
-  BEGIN INSERT INTO public.community_posts (title, body, author_id) VALUES ('Rate limit post 6', 'This one should be refused as too fast.', v_b);
+  BEGIN INSERT INTO public.community_posts (title, body, author_id) VALUES ('Burst post 3', 'Distinct body number 3 about sunscreen finishes.', v_b);
   EXCEPTION WHEN OTHERS THEN v_raised := SQLERRM = 'rate_limited'; END;
-  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: rate limit not enforced'; END IF; n := n + 1;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: burst limit not enforced'; END IF; n := n + 1;
   EXECUTE 'RESET ROLE';
+
+  -- spam screening: A is a brand-new account, so a link is held (visible to A + staff only), and a duplicate is refused
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  INSERT INTO public.community_posts (title, body, author_id) VALUES ('Great offer inside', 'Check this out https://example.com/deal for a lovely discount.', v_a) RETURNING id INTO v_spam;
+  EXECUTE 'RESET ROLE';
+  IF (SELECT status FROM public.community_posts WHERE id = v_spam) <> 'held' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: link from new account not held'; END IF; n := n + 1;
+  IF NOT ('new_account_link' = ANY (SELECT unnest(spam_flags) FROM public.community_posts WHERE id = v_spam)) THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: flag missing'; END IF; n := n + 1;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_b, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  SELECT count(*) INTO c FROM public.community_feed(p_post_id => v_spam);
+  IF c <> 0 THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: held post visible to other members'; END IF; n := n + 1;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  SELECT status INTO v_text FROM public.community_feed(p_post_id => v_spam);
+  IF v_text IS DISTINCT FROM 'held' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: author cannot see own held post (%)', v_text; END IF; n := n + 1;
+  v_raised := false;
+  BEGIN INSERT INTO public.community_posts (title, body, author_id) VALUES ('Great offer inside again', 'Check this out https://example.com/deal for a lovely discount.', v_a);
+  EXCEPTION WHEN OTHERS THEN v_raised := SQLERRM = 'duplicate_content'; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: duplicate content allowed'; END IF; n := n + 1;
+  -- image path must be inside the author's own folder
+  v_raised := false;
+  BEGIN INSERT INTO public.community_posts (title, body, author_id, image_path, image_w, image_h)
+        VALUES ('Image from elsewhere', 'Trying to attach somebody else''s file here.', v_a, v_b || '/' || gen_random_uuid() || '.webp', 100, 100);
+  EXCEPTION WHEN OTHERS THEN v_raised := SQLERRM = 'invalid_image'; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: foreign image path allowed'; END IF; n := n + 1;
+  INSERT INTO public.community_posts (title, body, author_id, image_path, image_w, image_h)
+  VALUES ('Image post of mine', 'My own picture with lots of useful context.', v_a, v_a || '/' || gen_random_uuid() || '.webp', 640, 480);
+  n := n + 1;
+  -- avatar: only inside own folder
+  v_raised := false;
+  BEGIN UPDATE public.profiles SET avatar_path = v_b || '/' || gen_random_uuid() || '.webp' WHERE user_id = v_a; EXCEPTION WHEN check_violation THEN v_raised := true; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: avatar outside own folder allowed'; END IF; n := n + 1;
+  UPDATE public.profiles SET avatar_path = v_a || '/' || gen_random_uuid() || '.webp' WHERE user_id = v_a;
+  GET DIAGNOSTICS v_rows = ROW_COUNT;
+  IF v_rows <> 1 THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: own avatar update blocked'; END IF; n := n + 1;
+  EXECUTE 'RESET ROLE';
+
+  -- staff content is never held; admin RPCs are staff-only; moderator approves the held post
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_mod, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  INSERT INTO public.community_posts (title, body, author_id) VALUES ('Staff link post', 'Official guide: https://skinlabs.co.za/briefings for everyone.', v_mod) RETURNING id INTO v_staffpost;
+  IF (SELECT (public.community_admin_overview() ->> 'held_posts')::int) < 1 THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: overview misses held post'; END IF; n := n + 1;
+  IF NOT EXISTS (SELECT 1 FROM public.community_admin_held() WHERE target_id = v_spam) THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: held list misses post'; END IF; n := n + 1;
+  IF NOT public.community_review_held('post', v_spam, true) THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: approve failed'; END IF; n := n + 1;
+  v_raised := false;
+  BEGIN PERFORM public.community_admin_set_term('probe term', true); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: moderator changed blocked terms'; END IF; n := n + 1;
+  EXECUTE 'RESET ROLE';
+  IF (SELECT status FROM public.community_posts WHERE id = v_staffpost) <> 'published' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: staff post held'; END IF; n := n + 1;
+  IF (SELECT status FROM public.community_posts WHERE id = v_spam) <> 'published' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: approved post not published'; END IF; n := n + 1;
+  PERFORM set_config('request.jwt.claims', json_build_object('sub', v_b, 'role', 'authenticated')::text, true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  v_raised := false;
+  BEGIN PERFORM public.community_admin_overview(); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: member read admin overview'; END IF; n := n + 1;
+  v_raised := false;
+  BEGIN PERFORM * FROM public.community_admin_held(); EXCEPTION WHEN insufficient_privilege THEN v_raised := true; END;
+  IF NOT v_raised THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: member read held list'; END IF; n := n + 1;
+  EXECUTE 'RESET ROLE';
+
+  -- three different reporters hold a post for review
+  INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at, raw_app_meta_data, raw_user_meta_data)
+  SELECT x, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'cf-' || x || '@example.invalid', '', now(), now(), '{}', '{}'
+    FROM unnest(ARRAY[v_r1, v_r2, v_r3]) x;
+  INSERT INTO public.community_reports (reporter_id, post_id, reason) VALUES (v_r1, v_post_b, 'spam'), (v_r2, v_post_b, 'spam');
+  IF (SELECT status FROM public.community_posts WHERE id = v_post_b) <> 'published' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: held after only 2 reports'; END IF; n := n + 1;
+  INSERT INTO public.community_reports (reporter_id, post_id, reason) VALUES (v_r3, v_post_b, 'spam');
+  IF (SELECT status FROM public.community_posts WHERE id = v_post_b) <> 'held' THEN RAISE EXCEPTION 'COMMUNITY_TEST_FAILED: not auto-held after 3 reports'; END IF; n := n + 1;
 
   RAISE EXCEPTION 'COMMUNITY_FORUM_PASSED %', n;
 END $$;

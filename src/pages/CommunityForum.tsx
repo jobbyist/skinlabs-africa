@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { ArrowUp, Loader2, PenLine } from "lucide-react";
@@ -13,6 +13,9 @@ import ThreadSheet from "@/components/community/ThreadSheet";
 import ComposeSheet from "@/components/community/ComposeSheet";
 import ReportDialog, { type ReportTarget } from "@/components/community/ReportDialog";
 import ConfirmDialog from "@/components/community/ConfirmDialog";
+import GuidelinesDialog from "@/components/community/GuidelinesDialog";
+import AdSlot from "@/components/AdSlot";
+import FaithfulToNature from "@/components/FaithfulToNature";
 import { ConnectionBanner, FeedEmpty, FeedError, FeedSkeleton } from "@/components/community/ForumStates";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -63,6 +66,7 @@ const CommunityForum = () => {
   const [category, setCategory] = useState<string | null>(null);
   const [report, setReport] = useState<ReportTarget | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
+  const [guidelinesOpen, setGuidelinesOpen] = useState(false);
 
   const signedIn = Boolean(user);
   const openPostId = parsePostParam(`?${params.toString()}`);
@@ -145,7 +149,7 @@ const CommunityForum = () => {
     setConfirm(null);
     void guarded(
       async () => {
-        if (kind === "delete") await content.deletePost(post.id);
+        if (kind === "delete") await content.deletePost(post.id, post.image_path);
         else await content.removePost(post.id);
         if (openPostId === post.id) closeThread();
       },
@@ -159,7 +163,8 @@ const CommunityForum = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const onPublished = (id: string) => {
+  const onPublished = (id: string, held: boolean) => {
+    if (held) return;
     window.scrollTo({ top: 0, behavior: "smooth" });
     // Move focus to the new discussion once it has rendered.
     window.setTimeout(() => document.querySelector<HTMLElement>(`[data-post-id="${id}"] button`)?.focus({ preventScroll: true }), 350);
@@ -171,10 +176,23 @@ const CommunityForum = () => {
     if (posts.length === 0) return <FeedEmpty filtered={Boolean(category)} onAction={() => setComposeOpen(true)} />;
     return (
       <ul className="space-y-4">
-        {posts.map((post) => (
-          <li key={post.id} data-post-id={post.id}>
-            <PostCard post={post} isStaff={isStaff} onOpen={openThread} {...actions} />
-          </li>
+        {posts.map((post, index) => (
+          <Fragment key={post.id}>
+            <li data-post-id={post.id}>
+              <PostCard post={post} isStaff={isStaff} onOpen={openThread} {...actions} />
+            </li>
+            {/* A sponsored unit after every second discussion, alternating AdSense and Faithful to Nature. The ad
+                components apply the viewer's plan (full / light / none) and the labelling themselves. */}
+            {index % 2 === 1 && (
+              <li data-feed-ad={index} aria-label="Advertisement" className="empty:hidden">
+                {Math.floor(index / 2) % 2 === 0 ? (
+                  <AdSlot placement={`community-feed-${index}`} format="fluid" />
+                ) : (
+                  <FaithfulToNature placement={`community-feed-${index}`} />
+                )}
+              </li>
+            )}
+          </Fragment>
         ))}
       </ul>
     );
@@ -197,9 +215,9 @@ const CommunityForum = () => {
               <h1 className="mt-2 font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl">Skin talk, South African style.</h1>
               <p className="mt-3 max-w-xl text-base text-muted-foreground [text-wrap:pretty]">
                 Real routines, honest product questions and what's actually working in Highveld winters and coastal summers. Share experience, not diagnoses: for anything persistent, see a doctor.{" "}
-                <a href="/community-guidelines" className="underline underline-offset-2 hover:text-foreground">
+                <button type="button" onClick={() => setGuidelinesOpen(true)} className="rounded underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                   Community guidelines
-                </a>
+                </button>
               </p>
             </section>
 
@@ -303,6 +321,7 @@ const CommunityForum = () => {
         confirmLabel={confirm?.kind === "delete" ? "Delete" : "Remove"}
         onConfirm={runConfirm}
       />
+      <GuidelinesDialog open={guidelinesOpen} onOpenChange={setGuidelinesOpen} />
       {handleDialog}
       <AuthDialog open={authOpen && !user} onOpenChange={setAuthOpen} returnTo={`${FORUM_PATH}${params.toString() ? `?${params.toString()}` : ""}`} />
     </>

@@ -90,10 +90,22 @@ export const fetchCategories = async (): Promise<CommunityCategory[]> => {
 };
 
 /** Insert then read back through the feed RPC (the table row has no author name). Returns the new post id. */
-export const createPost = async (userId: string, input: { title: string; body: string; category: string | null }): Promise<string> => {
+export interface PostImage {
+  path: string;
+  width: number;
+  height: number;
+}
+
+export const createPost = async (userId: string, input: { title: string; body: string; category: string | null; image?: PostImage | null }): Promise<string> => {
   const { data, error } = await db
     .from("community_posts")
-    .insert({ title: input.title.trim(), body: input.body.trim(), category: input.category, author_id: userId })
+    .insert({
+      title: input.title.trim(),
+      body: input.body.trim(),
+      category: input.category,
+      author_id: userId,
+      ...(input.image ? { image_path: input.image.path, image_w: input.image.width, image_h: input.image.height } : {}),
+    })
     .select("id")
     .single();
   if (error) return fail(error);
@@ -161,3 +173,105 @@ export const fetchIsStaff = async (userId: string): Promise<boolean> => {
   if (error) return false;
   return data === true;
 };
+
+export type MediaBucket = "community-media" | "avatars";
+
+/** Public URL of an uploaded picture (both buckets are public-read; object names are unguessable). */
+export const mediaUrl = (bucket: MediaBucket, path: string | null | undefined): string | null =>
+  path ? supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl : null;
+
+/** Uploads a prepared blob into the caller's own folder and returns its storage path. */
+export const uploadMedia = async (bucket: MediaBucket, userId: string, prepared: { blob: Blob; ext: string; contentType: string }): Promise<string> => {
+  const path = `${userId}/${crypto.randomUUID()}.${prepared.ext}`;
+  const { error } = await supabase.storage.from(bucket).upload(path, prepared.blob, { contentType: prepared.contentType, cacheControl: "31536000", upsert: false });
+  if (error) throw new CommunityError(error.message);
+  return path;
+};
+
+/** Best effort: an orphaned or replaced file is cleaned up, but a failure never blocks the member. */
+export const removeMedia = (bucket: MediaBucket, paths: string[]): void => {
+  if (paths.length === 0) return;
+  void supabase.storage.from(bucket).remove(paths).then(() => undefined, () => undefined);
+};
+
+export const AdminModeration = {
+  overview: async () => {
+    const { data, error } = await db.rpc("community_admin_overview");
+    if (error) return fail(error);
+    return data as Record<string, number>;
+  },
+  reports: async (status: string | null, limit = 50) => {
+    const { data, error } = await db.rpc("community_admin_reports", { p_status: status, p_limit: limit });
+    if (error) return fail(error);
+    return (data ?? []) as AdminReport[];
+  },
+  held: async () => {
+    const { data, error } = await db.rpc("community_admin_held", { p_limit: 50 });
+    if (error) return fail(error);
+    return (data ?? []) as AdminHeld[];
+  },
+  review: async (type: "post" | "comment", id: string, approve: boolean) => {
+    const { error } = await db.rpc("community_review_held", { p_type: type, p_id: id, p_approve: approve });
+    if (error) fail(error);
+  },
+  resolveReport: async (id: string, status: "dismissed" | "actioned") => {
+    const { error } = await db.rpc("community_resolve_report", { p_report_id: id, p_status: status });
+    if (error) fail(error);
+  },
+  log: async () => {
+    const { data, error } = await db.rpc("community_admin_log", { p_limit: 50 });
+    if (error) return fail(error);
+    return (data ?? []) as AdminLogRow[];
+  },
+  terms: async () => {
+    const { data, error } = await db.rpc("community_admin_terms");
+    if (error) return fail(error);
+    return (data ?? []) as AdminTerm[];
+  },
+  setTerm: async (pattern: string, enabled: boolean) => {
+    const { error } = await db.rpc("community_admin_set_term", { p_pattern: pattern, p_enabled: enabled });
+    if (error) fail(error);
+  },
+};
+
+export interface AdminReport {
+  report_id: string;
+  created_at: string;
+  reason: string;
+  details: string | null;
+  status: string;
+  target_type: "post" | "comment";
+  target_id: string;
+  post_id: string;
+  title: string | null;
+  body: string | null;
+  content_status: string | null;
+  author_name: string | null;
+  reporter_name: string | null;
+  report_count: number;
+}
+export interface AdminHeld {
+  target_type: "post" | "comment";
+  target_id: string;
+  post_id: string;
+  title: string | null;
+  body: string;
+  author_name: string | null;
+  flags: string[];
+  created_at: string;
+  image_path: string | null;
+}
+export interface AdminLogRow {
+  created_at: string;
+  actor_name: string;
+  target_type: string;
+  target_id: string;
+  action: string;
+  note: string | null;
+}
+export interface AdminTerm {
+  id: string;
+  pattern: string;
+  enabled: boolean;
+  created_at: string;
+}

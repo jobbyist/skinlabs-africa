@@ -1,9 +1,10 @@
 import { memo } from "react";
-import { Flag, Heart, MessageCircle, MoreHorizontal, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { Clock, Flag, Heart, MessageCircle, MoreHorizontal, Pin, PinOff, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { relativeTime, type CommunityPost } from "@/lib/community/rules";
+import { mediaUrl } from "@/lib/community/client";
 import { AuthorAvatar, RoleBadge } from "./RoleBadge";
 
 export interface PostActions {
@@ -33,7 +34,7 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
       className={cn("rounded-3xl border border-border bg-card p-5 transition-colors", !detail && "hover:border-foreground/20", post.pinned && "border-foreground/25")}
     >
       <header className="flex items-start gap-3">
-        <AuthorAvatar name={post.author_name} role={post.author_role} />
+        <AuthorAvatar name={post.author_name} role={post.author_role} avatarPath={post.author_avatar} />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="truncate text-sm font-semibold text-foreground" title={label}>
@@ -103,6 +104,27 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
         </h2>
       )}
       <p className={cn("mt-2 whitespace-pre-line break-words text-[15px] leading-relaxed text-foreground/85 [text-wrap:pretty]", !detail && "line-clamp-4")}>{post.body}</p>
+
+      {post.image_path && (
+        <a href={mediaUrl("community-media", post.image_path) ?? undefined} target="_blank" rel="noopener noreferrer" className="mt-3 block overflow-hidden rounded-2xl border border-border bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <img
+            src={mediaUrl("community-media", post.image_path) ?? undefined}
+            alt={`Image shared with “${post.title}”`}
+            width={post.image_w ?? undefined}
+            height={post.image_h ?? undefined}
+            loading="lazy"
+            decoding="async"
+            className="mx-auto max-h-[28rem] w-full object-contain"
+          />
+        </a>
+      )}
+
+      {post.status === "held" && (
+        <p role="status" className="mt-3 flex items-start gap-2 rounded-2xl border border-border bg-muted px-3 py-2.5 text-sm text-muted-foreground">
+          <Clock className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          Awaiting moderator review. Only you and moderators can see this for now.
+        </p>
+      )}
 
       <footer className="-mx-2 mt-3 flex items-center gap-1 border-t border-border/60 pt-2">
         <Button

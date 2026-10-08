@@ -1,4 +1,4 @@
--- SkinLabs Community Forum — notifications + push.  (2 of 3)
+-- SkinLabs Community Forum — notifications + push.  (2 of 5)
 -- Plugs forum engagement into the EXISTING notification engine (enqueue_notification -> notification_dispatches ->
 -- notifications inbox + notification-dispatcher web push). No parallel system.
 --
@@ -109,7 +109,7 @@ CREATE OR REPLACE FUNCTION public.community_trg_comment_added()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
 DECLARE v_author uuid; v_title text;
 BEGIN
-  IF NEW.author_id IS NULL THEN RETURN NULL; END IF;
+  IF NEW.author_id IS NULL OR NEW.status <> 'published' THEN RETURN NULL; END IF;
   SELECT author_id, title INTO v_author, v_title FROM public.community_posts WHERE id = NEW.post_id;
   PERFORM public.community_notify(v_author, NEW.author_id, 'community_post_commented', NEW.post_id,
     'community:comment:' || NEW.id,

@@ -15,7 +15,7 @@ export interface CommunityPost {
   body: string;
   category: string | null;
   category_name: string | null;
-  status: "published" | "removed" | "deleted";
+  status: "published" | "held" | "removed" | "deleted";
   pinned: boolean;
   like_count: number;
   comment_count: number;
@@ -23,6 +23,10 @@ export interface CommunityPost {
   created_at: string;
   edited_at: string | null;
   liked_by_me: boolean;
+  author_avatar: string | null;
+  image_path: string | null;
+  image_w: number | null;
+  image_h: number | null;
 }
 
 export interface CommunityComment {
@@ -37,6 +41,7 @@ export interface CommunityComment {
   created_at: string;
   edited_at: string | null;
   liked_by_me: boolean;
+  author_avatar: string | null;
 }
 
 export interface CommunityCategory {
@@ -125,6 +130,8 @@ export const writeErrorMessage = (error: { message?: string; code?: string } | n
   const m = error?.message ?? "";
   if (m.includes("handle_required")) return "Choose a public handle first.";
   if (m.includes("rate_limited")) return "You're posting very quickly. Give it a few minutes.";
+  if (m.includes("duplicate_content")) return "You've already posted exactly this. Try adding something new.";
+  if (m.includes("invalid_image")) return "That image couldn't be attached. Try uploading it again.";
   if (error?.code === "42501" || /row-level security|permission denied/i.test(m)) return "That isn't available to you.";
   if (error?.code === "23514") return "That doesn't look right. Check the length and try again.";
   return fallback;
