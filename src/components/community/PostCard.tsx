@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Clock, Flag, Heart, MessageCircle, MoreHorizontal, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { ArrowBigUp, Clock, Flag, MessageCircle, MoreHorizontal, Pin, PinOff, Share2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -24,15 +24,30 @@ interface PostCardProps extends PostActions {
   detail?: boolean;
 }
 
-const ACTION = "h-11 min-w-11 gap-1.5 rounded-full px-3 text-sm text-muted-foreground hover:text-foreground";
+const ACTION = "h-9 min-w-9 gap-1.5 rounded-full bg-muted/60 px-3 text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground";
 
 const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) => {
   const label = `${post.author_name}${post.author_role !== "member" ? `, ${post.author_role}` : ""}`;
   return (
     <article
       aria-label={post.title}
-      className={cn("rounded-3xl border border-border bg-card p-5 transition-colors", !detail && "hover:border-foreground/20", post.pinned && "border-foreground/25")}
+      className={cn("flex overflow-hidden rounded-2xl border border-border bg-card transition-colors", !detail && "hover:border-foreground/30", post.pinned && "border-foreground/30")}
     >
+      <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 bg-muted/50 px-1 py-3 sm:w-12">
+        <button
+          type="button"
+          aria-pressed={post.liked_by_me}
+          aria-label={`${post.liked_by_me ? "Remove upvote from" : "Upvote"} this post, ${post.like_count} ${post.like_count === 1 ? "upvote" : "upvotes"}`}
+          onClick={() => actions.onLike(post)}
+          className={cn("flex size-9 items-center justify-center rounded-full transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", post.liked_by_me ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+        >
+          <ArrowBigUp className={cn("size-6 transition-transform active:scale-90", post.liked_by_me && "fill-current")} aria-hidden="true" />
+        </button>
+        <span className={cn("text-xs font-bold tabular-nums", post.liked_by_me ? "text-primary" : "text-foreground")} aria-hidden="true">
+          {post.like_count}
+        </span>
+      </div>
+      <div className="min-w-0 flex-1 p-4 sm:p-5">
       <header className="flex items-start gap-3">
         <AuthorAvatar name={post.author_name} role={post.author_role} avatarPath={post.author_avatar} />
         <div className="min-w-0 flex-1">
@@ -91,9 +106,9 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
       </header>
 
       {detail ? (
-        <h2 className="mt-4 break-words font-heading text-xl font-semibold leading-snug tracking-tight text-foreground">{post.title}</h2>
+        <h2 className="mt-3 break-words font-heading text-xl font-semibold leading-snug tracking-tight text-foreground">{post.title}</h2>
       ) : (
-        <h2 className="mt-4 font-heading text-lg font-semibold leading-snug tracking-tight text-foreground">
+        <h2 className="mt-3 font-heading text-lg font-semibold leading-snug tracking-tight text-foreground">
           <button
             type="button"
             onClick={() => actions.onOpen(post)}
@@ -126,32 +141,23 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
         </p>
       )}
 
-      <footer className="-mx-2 mt-3 flex items-center gap-1 border-t border-border/60 pt-2">
-        <Button
-          variant="ghost"
-          className={cn(ACTION, post.liked_by_me && "text-foreground")}
-          aria-pressed={post.liked_by_me}
-          aria-label={`${post.liked_by_me ? "Unlike" : "Like"} this post, ${post.like_count} ${post.like_count === 1 ? "like" : "likes"}`}
-          onClick={() => actions.onLike(post)}
-        >
-          <Heart className={cn("size-5 transition-transform", post.liked_by_me && "scale-110 fill-current")} aria-hidden="true" />
-          <span className="tabular-nums">{post.like_count}</span>
-          {post.liked_by_me && <span className="sr-only">Liked</span>}
-        </Button>
+      <footer className="mt-3 flex flex-wrap items-center gap-2">
         <Button
           variant="ghost"
           className={ACTION}
           aria-label={`${post.comment_count} ${post.comment_count === 1 ? "comment" : "comments"}${detail ? "" : ", open discussion"}`}
           onClick={() => actions.onOpen(post)}
         >
-          <MessageCircle className="size-5" aria-hidden="true" />
+          <MessageCircle className="size-4" aria-hidden="true" />
           <span className="tabular-nums">{post.comment_count}</span>
+          <span className="hidden min-[400px]:inline">{post.comment_count === 1 ? "comment" : "comments"}</span>
         </Button>
-        <Button variant="ghost" className={cn(ACTION, "ml-auto")} aria-label="Share this discussion" onClick={() => actions.onShare(post)}>
-          <Share2 className="size-5" aria-hidden="true" />
-          <span className="hidden min-[400px]:inline">Share</span>
+        <Button variant="ghost" className={ACTION} aria-label="Share this discussion" onClick={() => actions.onShare(post)}>
+          <Share2 className="size-4" aria-hidden="true" />
+          <span>Share</span>
         </Button>
       </footer>
+      </div>
     </article>
   );
 };

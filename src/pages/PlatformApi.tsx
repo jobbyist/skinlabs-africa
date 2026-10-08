@@ -65,17 +65,17 @@ const faqJsonLd = {
 };
 
 const Code = ({ children }: { children: ReactNode }) => (
-  <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground">{children}</code>
+  <code className="break-words rounded bg-muted px-1.5 py-0.5 font-mono text-[13px] text-foreground [overflow-wrap:anywhere]">{children}</code>
 );
 
 const Pre = ({ children, label }: { children: string; label: string }) => (
-  <pre aria-label={label} className="my-3 overflow-x-auto rounded-xl bg-brand-ink p-4 font-mono text-[13px] leading-relaxed text-brand-ink-foreground">
+  <pre aria-label={label} className="my-3 max-w-full overflow-x-auto rounded-xl bg-brand-ink p-4 font-mono text-[13px] leading-relaxed text-brand-ink-foreground">
     {children}
   </pre>
 );
 
 const Table = ({ head, rows }: { head: string[]; rows: ReactNode[][] }) => (
-  <div className="my-3 overflow-x-auto">
+  <div className="my-3 max-w-full overflow-x-auto">
     <table className="w-full min-w-[480px] border-collapse text-sm">
       <thead>
         <tr>
@@ -174,15 +174,15 @@ const PlatformApi = () => {
         canonical="https://skinlabs.co.za/api"
         jsonLd={faqJsonLd}
       />
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen overflow-x-clip bg-background">
         <Header />
-        <main className="pt-20">
+        <main className="min-w-0 pt-20">
           {/* Hero */}
           <section className="bg-brand-ink text-brand-ink-foreground">
-            <div className="container mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:py-24 lg:grid-cols-2">
+            <div className="container mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 md:py-24 lg:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-6">
                 <p className="text-sm font-medium uppercase tracking-wider text-brand-gold">Platform API · v0 preview · October 2026</p>
-                <h1 className="text-balance font-heading text-4xl font-bold leading-tight md:text-6xl">
+                <h1 className="text-balance font-heading text-3xl font-bold leading-tight [overflow-wrap:anywhere] min-[400px]:text-4xl md:text-6xl">
                   South African skin data, <span className="text-brand-gold">ready to build on.</span>
                 </h1>
                 <p className="max-w-xl text-lg text-brand-ink-foreground/80 md:text-xl">
@@ -206,7 +206,7 @@ const PlatformApi = () => {
                     <p className="font-heading font-semibold">GET /skin-weather</p>
                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs uppercase tracking-wider text-muted-foreground">Illustrative values</span>
                   </div>
-                  <pre className="mt-3 overflow-x-auto font-mono text-[12.5px] leading-relaxed text-foreground">{`?city=johannesburg
+                  <pre className="mt-3 max-w-full overflow-x-auto font-mono text-[12.5px] leading-relaxed text-foreground">{`?city=johannesburg
 
 {
   "cityLabel": "Johannesburg",
@@ -243,7 +243,7 @@ const PlatformApi = () => {
                 <h2 className="text-balance font-heading text-3xl font-bold text-foreground md:text-4xl">Four steps, no ceremony.</h2>
                 <p className="text-lg text-muted-foreground">Here's the thing: most integrations need one good endpoint, handled properly. So that's where we started.</p>
               </div>
-              <ol className="grid gap-6 border-t border-foreground pt-6 sm:grid-cols-2 lg:grid-cols-4">
+              <ol className="grid gap-6 border-t border-foreground pt-6 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
                 {LOOP.map((l) => (
                   <li key={l.n} className="space-y-2">
                     <span className="text-sm tabular-nums text-primary">{l.n}</span>
@@ -263,7 +263,7 @@ const PlatformApi = () => {
                 <h2 className="text-balance font-heading text-3xl font-bold text-foreground md:text-4xl">What's ready today, and what isn't.</h2>
                 <p className="text-lg text-muted-foreground">Every resource carries one of two labels. Select a label to filter the reference below.</p>
               </div>
-              <div role="group" aria-label="Filter endpoints by status" className="grid gap-3 sm:grid-cols-2">
+              <div role="group" aria-label="Filter endpoints by status" className="grid gap-3 sm:grid-cols-2 [&>*]:min-w-0">
                 {(["live", "proposed"] as Status[]).map((st) => (
                   <button
                     key={st}
@@ -281,7 +281,7 @@ const PlatformApi = () => {
                   </button>
                 ))}
               </div>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
                 {RESOURCES.filter((r) => show(r.status)).map((r) => (
                   <a key={r.title} href={r.href} className="card-interactive space-y-3 rounded-2xl border border-border bg-card p-6">
                     <div className="flex items-center justify-between gap-3">
@@ -300,7 +300,7 @@ const PlatformApi = () => {
 
           {/* Getting started */}
           <Block id="start" eyebrow="Getting started" title="Base URL, keys and conventions." >
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
               <div className="rounded-2xl border border-border bg-card p-6">
                 <h3 className="font-heading text-lg font-semibold">Base URL</h3>
                 <Table
@@ -468,7 +468,7 @@ Content-Type: application/json
 
           {/* Errors, caching, limits */}
           <Block id="errors" eyebrow="Reference" title="Errors, caching and limits" tint intro="Every error response is JSON with an error field holding a stable, machine-readable code. Branch on the code, not on the message text.">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
               <div className="rounded-2xl border border-border bg-card p-6">
                 <Pre label="Error body">{`{ "error": "unknown_city" }`}</Pre>
                 <h3 className="font-heading text-lg font-semibold">Caching</h3>
@@ -495,7 +495,7 @@ Content-Type: application/json
 
           {/* Usage rules + not yet */}
           <section id="terms" className="scroll-mt-24 py-16 md:py-24">
-            <div className="container mx-auto grid max-w-6xl gap-10 px-4 lg:grid-cols-2">
+            <div className="container mx-auto grid max-w-6xl gap-10 px-4 lg:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-4">
                 <p className="text-sm font-medium uppercase tracking-wider text-primary">Usage rules</p>
                 <h2 className="text-balance font-heading text-3xl font-bold text-foreground">Credit, disclosure and privacy come with the data.</h2>
@@ -522,7 +522,7 @@ Content-Type: application/json
                   {NOT_YET.map((r) => (
                     <li key={r.item} className="flex justify-between gap-4 border-t border-brand-ink-foreground/15 py-3 last:border-b">
                       <span>{r.item}</span>
-                      <span className="whitespace-nowrap text-sm text-brand-gold">{r.when}</span>
+                      <span className="shrink-0 text-right text-sm text-brand-gold sm:whitespace-nowrap">{r.when}</span>
                     </li>
                   ))}
                 </ul>
@@ -539,7 +539,7 @@ Content-Type: application/json
                 <h2 className="text-balance font-heading text-3xl font-bold text-foreground md:text-4xl">What has to exist first.</h2>
                 <p className="text-lg text-muted-foreground">None of this is built yet, and there is no launch date. We'll publish one when there is one.</p>
               </div>
-              <ol className="grid gap-6 border-t border-foreground pt-6 sm:grid-cols-2 lg:grid-cols-5">
+              <ol className="grid gap-6 border-t border-foreground pt-6 sm:grid-cols-2 lg:grid-cols-5 [&>*]:min-w-0">
                 {READINESS.map((r, i) => (
                   <li key={r.title} className="space-y-2">
                     <span className="text-sm tabular-nums text-primary">{String(i + 1).padStart(2, "0")}</span>
@@ -553,7 +553,7 @@ Content-Type: application/json
 
           {/* Contact */}
           <section id="access" className="py-16 md:py-24">
-            <div className="container mx-auto grid max-w-6xl items-center gap-8 px-4 lg:grid-cols-2">
+            <div className="container mx-auto grid max-w-6xl items-center gap-8 px-4 lg:grid-cols-2 [&>*]:min-w-0">
               <div className="space-y-4">
                 <p className="text-sm font-medium uppercase tracking-wider text-primary">Early access</p>
                 <h2 className="text-balance font-heading text-3xl font-bold text-foreground md:text-4xl">Want v1 when it opens?</h2>
