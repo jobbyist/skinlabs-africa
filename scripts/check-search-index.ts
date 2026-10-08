@@ -36,6 +36,8 @@ const KNOWN_EXCLUSIONS = new Set([
   "/marketplace/saved",
   // Utility step of the password-recovery email flow, not content.
   "/reset-password",
+  // Per-device offline reading list (text the visitor saved), no independent content.
+  "/offline-reading",
   // Utility step of the newsletter double opt-in email, not content.
   "/newsletter/confirm",
   // Signed-in, noindex first-run onboarding (onboarding overhaul 07).

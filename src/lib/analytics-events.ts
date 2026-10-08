@@ -165,6 +165,7 @@ export type ConversionEvent =
   | "podcast_download_started"
   | "podcast_download_completed"
   | "podcast_download_removed"
+  | "offline_reading_saved"
   | "podcast_offline_play"
   // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
   // which whitelists the payload, never directly.

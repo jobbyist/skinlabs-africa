@@ -61,6 +61,12 @@ export interface MockOptions {
   /** SKYNN AI v2.1: Analysis Passes held, and the last free Basic AI Skin Analysis. */
   /** list_my_push_devices(): the member's push devices on the server (server truth for "reminders on"). */
   pushDevices?: Partial<PushDeviceRow>[];
+  /** Extra RPC answers by function name (body in, JSON out). Checked before the built-in handlers. */
+  rpc?: Record<string, (body: Record<string, unknown>) => unknown>;
+  /** Edge function answers by name (body in, JSON out). */
+  functions?: Record<string, (body: Record<string, unknown>) => unknown>;
+  /** Tables that answer like a missing relation (PGRST205), e.g. a migration not applied yet. */
+  missingTables?: string[];
   skynn?: { passes?: number; lastFreeAnalysisAt?: string | null; unlimited?: boolean; submitted?: boolean };
 }
 
@@ -292,6 +298,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
       /* GET */
     }
     state.functionCalls.push({ name, action: body.action as string | undefined });
+    if (opts.functions?.[name]) return r.fulfill({ json: opts.functions[name](body) as object });
     if (name === "payfast-payment" && body.action === "subscription_quote") {
       const kind = opts.quoteStartKind ?? (state.profile.subscription_status === "trial" ? "existing_trial" : state.profile.trial_used_at ? "immediate" : "new_trial");
       return r.fulfill({
@@ -366,6 +373,17 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
           : table === "routine_steps" && state.routineSteps.length
             ? state.routineSteps
             : (tables[table] ?? []);
+    if (opts.missingTables?.includes(table)) return r.fulfill({ status: 404, json: { code: "PGRST205", message: `Could not find the table 'public.${table}' in the schema cache` } });
+    if (table === "shelf_items") {
+      const list = (tables.shelf_items ??= []);
+      const idEq = (url.searchParams.get("id") ?? "").replace(/^eq\./, "");
+      let body: Record<string, unknown> = {};
+      try { body = (req.postDataJSON() as Record<string, unknown>) ?? {}; } catch { /* GET/DELETE */ }
+      if (req.method() === "POST") { list.push({ id: `shelf-${list.length + 1}`, looks_oxidised: false, finished_on: null, ...body }); return r.fulfill({ status: 201, body: "" }); }
+      if (req.method() === "PATCH") { for (const row of list) if (row.id === idEq) Object.assign(row, body); return r.fulfill({ status: 204, body: "" }); }
+      if (req.method() === "DELETE") { tables.shelf_items = list.filter((row) => row.id !== idEq); return r.fulfill({ status: 204, body: "" }); }
+      return r.fulfill({ json: list.filter((row) => (url.searchParams.get("finished_on") === "is.null" ? !row.finished_on : true)) });
+    }
     if (req.method() === "HEAD" || (req.headers()["prefer"] ?? "").includes("count=exact")) {
       return r.fulfill({ status: 200, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}`, "content-type": "application/json", "access-control-expose-headers": "content-range" }, body: "[]" });
     }
@@ -421,6 +439,11 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
   await context.route(/supabase\.co\/rest\/v1\/rpc\/([a-z_]+)/, (r) => {
     const fn = /rpc\/([a-z_]+)/.exec(r.request().url())?.[1] ?? "";
     state.rpcCalls.push(fn);
+    if (opts.rpc?.[fn]) {
+      let rpcBody: Record<string, unknown> = {};
+      try { rpcBody = (r.request().postDataJSON() as Record<string, unknown>) ?? {}; } catch { /* ignore */ }
+      return r.fulfill({ json: opts.rpc[fn](rpcBody) as object });
+    }
     if (fn === "start_free_trial") {
       state.profile = { ...state.profile, subscription_status: "trial", trial_plan: "insider", trial_ends_at: PROMO_TRIAL_END, trial_used_at: new Date().toISOString(), trial_started_at: new Date().toISOString() };
       return r.fulfill({ json: true });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, Newspaper, Mic, Star, ArrowLeftRight, User, LogIn, Sparkles, ListChecks, Compass, MessagesSquare, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +10,7 @@ import { EMPTY_FACTS } from "@/lib/journey";
 import { EMPTY_CONTEXT_FACTS, contextualNavigation, isNavTabActive, readSkinProfileHint, SKIN_PROFILE_HINT_EVENT, type NavTabId } from "@/lib/context";
 import { resolveDashboardSection } from "@/lib/dashboardTabs";
 import { OPEN_MENU_EVENT } from "@/lib/context/menuEvent";
+import { prefetchPath } from "@/lib/routePrefetch";
 import "@/styles/skinlabs-experience.css";
 
 const TAB_ICONS: Record<NavTabId, LucideIcon> = {
@@ -103,9 +104,35 @@ const FloatingBottomNav = () => {
     };
   }, []);
 
+  // Lets CSS reserve room for the fixed podcast mini-player at the end of every page (index.css).
+  useEffect(() => {
+    document.documentElement.dataset.miniPlayer = currentEpisode ? "1" : "0";
+    return () => {
+      delete document.documentElement.dataset.miniPlayer;
+    };
+  }, [currentEpisode]);
+
+  // Tapping the tab you're already on glides back to the top (the usual native-app gesture).
+  const glideTopIfActive = (active: boolean) => (event: MouseEvent) => {
+    if (!active) return;
+    event.preventDefault();
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" });
+  };
+
   const tabs = contextualNavigation({
     ...EMPTY_CONTEXT_FACTS({ ...EMPTY_FACTS, signedIn: Boolean(user), savedAnalyses: hasProfile ? 1 : 0 }),
   });
+  // The five primary destinations are one tap away: have their chunks ready when the page settles.
+  const tabHrefs = tabs.map((t) => t.href ?? "").join("|");
+  useEffect(() => {
+    const warm = () => tabHrefs.split("|").filter(Boolean).forEach(prefetchPath);
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+    const handle = ric ? ric(warm, { timeout: 3000 }) : window.setTimeout(warm, 2000);
+    return () => {
+      if (!ric) window.clearTimeout(handle);
+    };
+  }, [tabHrefs]);
   const onDashboard = location.pathname === "/dashboard" || location.pathname.startsWith("/dashboard/");
   const section = onDashboard ? resolveDashboardSection(new URLSearchParams(location.search).get("tab")) : null;
   const personalised = tabs.some((t) => t.id === "account");
@@ -145,6 +172,7 @@ const FloatingBottomNav = () => {
                 to={tab.href}
                 aria-label={tab.label}
                 aria-current={active ? "page" : undefined}
+                onClick={glideTopIfActive(active && location.pathname === tab.href)}
                 className={className}
               >
                 {inner}
@@ -168,6 +196,7 @@ const FloatingBottomNav = () => {
               to="/dashboard"
               aria-label="Profile"
               aria-current={accountActive ? "page" : undefined}
+              onClick={glideTopIfActive(accountActive && location.pathname === "/dashboard" && !location.search)}
               className={cn(NAV_ITEM, dense && NAV_ITEM_DENSE, accountActive ? TAB_ACTIVE : TAB_IDLE)}
             >
               <User className={ICON_STYLE} aria-hidden="true" />

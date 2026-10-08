@@ -18,6 +18,11 @@ const loaders: Record<string, () => Promise<unknown>> = {
   spotlight: () => import("@/pages/Spotlight"),
   ingredients: () => import("@/pages/Ingredients"),
   seasonals: () => import("@/pages/Seasonals"),
+  routines: () => import("@/pages/SmartRoutines"),
+  knowledge: () => import("@/pages/KnowledgeHub"),
+  ingredient: () => import("@/pages/IngredientDetail"),
+  checker: () => import("@/pages/IngredientChecker"),
+  offlineReading: () => import("@/pages/OfflineReading"),
 };
 
 /** Which page chunk a pathname belongs to (pure, tested). */
@@ -36,6 +41,11 @@ export const chunkForPath = (pathname: string): string | null => {
   if (p === "/pricing") return "pricing";
   if (p === "/spotlight") return "spotlight";
   if (p === "/ingredients") return "ingredients";
+  if (p === "/ingredients/checker") return "checker";
+  if (p.startsWith("/ingredients/")) return "ingredient";
+  if (p === "/routines") return "routines";
+  if (p === "/knowledge-hub" || p.startsWith("/knowledge-hub/")) return "knowledge";
+  if (p === "/offline-reading" || p.startsWith("/offline-reading/")) return "offlineReading";
   if (p === "/seasonals") return "seasonals";
   return null;
 };
@@ -48,9 +58,16 @@ export const prefetchChunk = (key: string | null) => {
   void loaders[key]().catch(() => started.delete(key));
 };
 
+/** Warm a destination's chunk from code (hero CTAs, the bottom nav) when a tap is imminent or the page is idle. */
 const saveData = (): boolean => {
   const c = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
   return Boolean(c?.saveData) || c?.effectiveType === "slow-2g" || c?.effectiveType === "2g";
+};
+
+/** Warm a destination's chunk from code (the bottom nav, hero CTAs). Same guards as the intent listeners. */
+export const prefetchPath = (pathname: string) => {
+  if (typeof navigator === "undefined" || saveData() || navigator.webdriver) return;
+  prefetchChunk(chunkForPath(pathname));
 };
 
 /** Wire intent listeners once (main.tsx). Returns a cleanup for tests. */
@@ -64,6 +81,8 @@ export const installRoutePrefetch = (): (() => void) => {
   };
   const opts = { capture: true, passive: true } as const;
   document.addEventListener("pointerover", onIntent, opts);
+  document.addEventListener("pointerenter", onIntent, opts);
+  document.addEventListener("pointerdown", onIntent, opts);
   document.addEventListener("touchstart", onIntent, opts);
   document.addEventListener("focusin", onIntent, opts);
 
@@ -73,6 +92,8 @@ export const installRoutePrefetch = (): (() => void) => {
   const handle = idle ? idle(warm, { timeout: 6000 }) : window.setTimeout(warm, 4000);
   return () => {
     document.removeEventListener("pointerover", onIntent, opts);
+    document.removeEventListener("pointerenter", onIntent, opts);
+    document.removeEventListener("pointerdown", onIntent, opts);
     document.removeEventListener("touchstart", onIntent, opts);
     document.removeEventListener("focusin", onIntent, opts);
     if (!idle) window.clearTimeout(handle);

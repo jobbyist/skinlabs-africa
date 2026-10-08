@@ -5727,6 +5727,68 @@ export type Database = {
           },
         ]
       }
+      shelf_items: {
+        Row: {
+          actives: string[]
+          amount_per_use_ml: number | null
+          brand: string | null
+          category: string
+          created_at: string
+          finished_on: string | null
+          id: string
+          looks_oxidised: boolean
+          name: string
+          opened_on: string
+          pao_months: number
+          routine_step_id: string | null
+          size_ml: number | null
+          user_id: string
+          uses_per_week: number | null
+        }
+        Insert: {
+          actives?: string[]
+          amount_per_use_ml?: number | null
+          brand?: string | null
+          category?: string
+          created_at?: string
+          finished_on?: string | null
+          id?: string
+          looks_oxidised?: boolean
+          name: string
+          opened_on: string
+          pao_months: number
+          routine_step_id?: string | null
+          size_ml?: number | null
+          user_id: string
+          uses_per_week?: number | null
+        }
+        Update: {
+          actives?: string[]
+          amount_per_use_ml?: number | null
+          brand?: string | null
+          category?: string
+          created_at?: string
+          finished_on?: string | null
+          id?: string
+          looks_oxidised?: boolean
+          name?: string
+          opened_on?: string
+          pao_months?: number
+          routine_step_id?: string | null
+          size_ml?: number | null
+          user_id?: string
+          uses_per_week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_items_routine_step_id_fkey"
+            columns: ["routine_step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skin_concerns: {
         Row: {
           description: string | null
@@ -6371,6 +6433,39 @@ export type Database = {
           },
         ]
       }
+      weekly_featured_brands: {
+        Row: {
+          avg_score: number
+          brand: string
+          rank: number
+          review_count: number
+          theme: string
+          top_product: string | null
+          top_product_id: string | null
+          week_label: string
+        }
+        Insert: {
+          avg_score: number
+          brand: string
+          rank: number
+          review_count: number
+          theme: string
+          top_product?: string | null
+          top_product_id?: string | null
+          week_label: string
+        }
+        Update: {
+          avg_score?: number
+          brand?: string
+          rank?: number
+          review_count?: number
+          theme?: string
+          top_product?: string | null
+          top_product_id?: string | null
+          week_label?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       conversion_funnel_daily: {
@@ -6856,6 +6951,13 @@ export type Database = {
         Returns: boolean
       }
       cancel_subscription: { Args: never; Returns: boolean }
+      check_usernames: {
+        Args: { p_usernames: string[] }
+        Returns: {
+          status: string
+          username: string
+        }[]
+      }
       claim_advanced_assessment_jobs: {
         Args: { p_limit: number; p_worker: string }
         Returns: {
@@ -7198,6 +7300,7 @@ export type Database = {
         Args: { p_session_id: string; p_user_id: string }
         Returns: Json
       }
+      enqueue_daily_briefing_email: { Args: never; Returns: number }
       enqueue_email: {
         Args: {
           p_category: string
@@ -7258,7 +7361,13 @@ export type Database = {
       }
       enqueue_trial_expiring_events: { Args: never; Returns: number }
       enqueue_trial_lifecycle_emails: { Args: never; Returns: number }
+      enqueue_weekly_analysis_reminders: { Args: never; Returns: number }
       enqueue_weekly_newsletter_digest: { Args: never; Returns: number }
+      enqueue_weekly_top_brands_email: { Args: never; Returns: number }
+      enqueue_welcome_series_emails: {
+        Args: { p_today?: string }
+        Returns: number
+      }
       enter_giveaway: {
         Args: {
           p_campaign: string
@@ -7466,6 +7575,7 @@ export type Database = {
         Args: { p_note: string; p_retailer_slug: string; p_variant_id: string }
         Returns: undefined
       }
+      marketing_unsubscribe_url: { Args: { p_token: string }; Returns: string }
       notification_admin_audit: {
         Args: { p_action: string; p_detail: Json }
         Returns: undefined
@@ -7795,6 +7905,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      username_reserved: { Args: { p_username: string }; Returns: boolean }
       verify_price_sync_secret: { Args: { p_secret: string }; Returns: boolean }
       verify_skynn_worker_secret: {
         Args: { p_secret: string }

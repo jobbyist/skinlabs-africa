@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import NotificationSettingsCard from "./NotificationSettingsCard";
+import { Switch } from "@/components/ui/switch";
+import { haptic, hapticsPreference, hapticsSupported, setHapticsPreference } from "@/lib/haptics";
 import { useOfflinePodcasts } from "@/hooks/use-offline-podcasts";
 import { usePWAStatus } from "@/hooks/use-pwa-status";
 import { getDownloadedBytes, removeAllDownloads, removeDownload } from "@/lib/pwa/podcastCache";
@@ -134,11 +136,34 @@ const OfflineStorageCard = () => {
   );
 };
 
+/** Touch feedback preference. Hidden where the browser has no Vibration API (iOS Safari). */
+const HapticsCard = () => {
+  const [on, setOn] = useState(hapticsPreference);
+  if (!hapticsSupported()) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Touch feedback</CardTitle>
+        <CardDescription>A very short vibration when you tick a routine step, move through the quiz, like or save, or tap the bottom bar. It stays off when your device asks for reduced motion.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between gap-4">
+        <label htmlFor="haptics-switch" className="text-sm font-medium">Vibration feedback</label>
+        <Switch
+          id="haptics-switch"
+          checked={on}
+          onCheckedChange={(next) => { setHapticsPreference(next); setOn(next); if (next) haptic(); }}
+        />
+      </CardContent>
+    </Card>
+  );
+};
+
 /** Dashboard → Settings → App: install, notifications and offline storage. Lazy-loaded by UserDashboard. */
 const AppSettingsPanel = () => (
   <div className="space-y-6">
     <InstallCard />
     <NotificationSettingsCard />
+    <HapticsCard />
     <OfflineStorageCard />
   </div>
 );

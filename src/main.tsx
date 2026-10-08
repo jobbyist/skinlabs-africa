@@ -5,6 +5,7 @@ import { installDomResilience } from "./lib/domResilience";
 import { reloadForNewDeployment } from "./lib/chunkRecovery";
 import { initPwa } from "./lib/pwa/init";
 import { installRoutePrefetch } from "./lib/routePrefetch";
+import { installHaptics } from "./lib/haptics";
 
 installDomResilience();
 
@@ -19,5 +20,6 @@ window.addEventListener("vite:preloadError", (event) => {
 // caches on each load — which would also have wiped members' offline podcast downloads.
 initPwa();
 installRoutePrefetch();
+installHaptics();
 
 createRoot(document.getElementById("root")!).render(<App />);
