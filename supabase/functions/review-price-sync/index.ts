@@ -1,7 +1,7 @@
 /**
  * review-price-sync — real South African retail prices for EVERY published product review
  * (static catalogue, AI-generated and Sponsored/OpenHaus) from Takealot, Dis-Chem, Clicks, Dermastore,
- * SkinMiles and Faithful to Nature.
+ * SkinMiles, Faithful to Nature and the brand's own website (table brand_websites).
  *
  * Replaces Firecrawl for review pricing. One web search per product covers all six shops:
  *   1. Parallel Search (default, token-efficient excerpts, allow-listed to the six domains);
@@ -51,16 +51,23 @@ class ProviderUnavailable extends Error {
   }
 }
 
-async function searchParallel(target: { brand: string; name: string; sizeMl?: number | null }): Promise<PriceSearchResult[]> {
+interface SearchTarget {
+  brand: string;
+  name: string;
+  sizeMl?: number | null;
+  brandDomains: string[];
+}
+
+async function searchParallel(target: SearchTarget): Promise<PriceSearchResult[]> {
   if (!PARALLEL_KEY) throw new ProviderUnavailable("parallel_search", "no PARALLEL_API_KEY");
   const res = await fetch("https://api.parallel.ai/v1/search", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": PARALLEL_KEY },
     body: JSON.stringify({
       objective: searchObjective(target),
-      search_queries: buildSearchQueries(target),
+      search_queries: [...buildSearchQueries(target), ...target.brandDomains.map((d) => `${target.brand} ${target.name} ${d}`)],
       advanced_settings: {
-        source_policy: { include_domains: DOMAINS },
+        source_policy: { include_domains: [...DOMAINS, ...target.brandDomains] },
         excerpt_settings: { max_chars_per_result: 1500 },
         max_results: 20,
       },
@@ -74,25 +81,38 @@ async function searchParallel(target: { brand: string; name: string; sizeMl?: nu
   return (body.results ?? []).map((r) => ({ url: r.url, title: r.title, text: (r.excerpts ?? []).join("\n") }));
 }
 
-async function searchNimble(target: { brand: string; name: string }): Promise<PriceSearchResult[]> {
+/** Nimble answers best when asked one shop at a time, so each domain gets its own (cheap) search, run in parallel. */
+async function searchNimble(target: SearchTarget): Promise<PriceSearchResult[]> {
   if (!NIMBLE_KEY) throw new ProviderUnavailable("nimble", "no NIMBLE_API_KEY");
-  const res = await fetch("https://sdk.nimbleway.com/v2/search", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${NIMBLE_KEY}` },
-    body: JSON.stringify({
-      query: `${target.brand} ${target.name} price rand`,
-      include_domains: DOMAINS,
-      max_results: 20,
-      search_depth: "fast",
-      output_format: "plain_text",
-    }),
-  });
-  if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429 || res.status >= 500) {
-    throw new ProviderUnavailable("nimble", `HTTP ${res.status}`);
+  const one = async (domain: string): Promise<PriceSearchResult[]> => {
+    const res = await fetch("https://sdk.nimbleway.com/v2/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${NIMBLE_KEY}` },
+      body: JSON.stringify({
+        query: `${target.brand} ${target.name} price rand`,
+        include_domains: [domain],
+        max_results: 5,
+        search_depth: "fast",
+        output_format: "plain_text",
+      }),
+    });
+    if (res.status === 401 || res.status === 402 || res.status === 403 || res.status === 429 || res.status >= 500) {
+      throw new ProviderUnavailable("nimble", `HTTP ${res.status}`);
+    }
+    if (!res.ok) throw new Error(`Nimble HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = (await res.json()) as { results?: { url: string; title?: string | null; description?: string | null; content?: string | null }[] };
+    return (body.results ?? []).map((r) => ({ url: r.url, title: r.title, text: [r.content, r.description].filter(Boolean).join("\n") }));
+  };
+  const settled = await Promise.allSettled([...DOMAINS, ...target.brandDomains].map(one));
+  const unavailable = settled.find((r) => r.status === "rejected" && r.reason instanceof ProviderUnavailable);
+  // A limit/auth failure on any call means the account is the problem: stop instead of half-checking.
+  if (unavailable && unavailable.status === "rejected") throw unavailable.reason;
+  const results = settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+  if (results.length === 0 && settled.some((r) => r.status === "rejected")) {
+    const first = settled.find((r) => r.status === "rejected") as PromiseRejectedResult;
+    throw first.reason instanceof Error ? first.reason : new Error(String(first.reason));
   }
-  if (!res.ok) throw new Error(`Nimble HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const body = (await res.json()) as { results?: { url: string; title?: string | null; description?: string | null; content?: string | null }[] };
-  return (body.results ?? []).map((r) => ({ url: r.url, title: r.title, text: [r.content, r.description].filter(Boolean).join("\n") }));
+  return results;
 }
 
 interface RunState {
@@ -101,7 +121,7 @@ interface RunState {
   stop: string | null;
 }
 
-async function search(state: RunState, source: string, target: { brand: string; name: string; sizeMl?: number | null }) {
+async function search(state: RunState, source: string, target: SearchTarget) {
   const order: Provider[] = source === "nimble" ? ["nimble"] : source === "parallel" ? ["parallel_search"] : ["parallel_search", "nimble"];
   const errors: string[] = [];
   for (const provider of order) {
@@ -146,11 +166,11 @@ async function runBatch(admin: Admin, runId: string, limit: number, reviewId: st
   const state: RunState = { down: new Set(), perProvider: {}, stop: null };
   const summary = { targets: 0, checked: 0, with_listings: 0, listings_saved: 0, refreshed: 0, sent_back_to_review: 0, empty: 0, deferred: 0, errors: [] as string[] };
 
-  const { data: batch, error } = await admin.rpc("get_review_price_batch", { p_limit: limit, p_review_id: reviewId });
+  const { data: batch, error } = await admin.rpc("get_review_price_targets", { p_limit: limit, p_review_id: reviewId });
   if (error) {
     state.stop = `batch: ${error.message}`;
   }
-  const targets = (batch ?? []) as { review_id: string; product_name: string; brand: string; size_ml: number | null }[];
+  const targets = (batch ?? []) as { review_id: string; product_name: string; brand: string; size_ml: number | null; brand_domains: string[] | null }[];
   summary.targets = targets.length;
 
   for (const t of targets) {
@@ -159,9 +179,9 @@ async function runBatch(admin: Admin, runId: string, limit: number, reviewId: st
       break;
     }
     try {
-      const target = { brand: t.brand, name: t.product_name, sizeMl: t.size_ml };
+      const target: SearchTarget = { brand: t.brand, name: t.product_name, sizeMl: t.size_ml, brandDomains: t.brand_domains ?? [] };
       const { provider, results } = await search(state, source, target);
-      const candidates = buildReviewPriceCandidates(target, results);
+      const candidates = buildReviewPriceCandidates(target, results, target.brandDomains);
       const listings = candidates.map((c) => ({
         retailer: c.retailer,
         url: c.url,

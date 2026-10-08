@@ -50,6 +50,7 @@ const RETAILER_NAMES: Record<string, string> = {
   dermastore: "Dermastore",
   skinmiles: "SkinMiles",
   "faithful-to-nature": "Faithful to Nature",
+  "brand-direct": "Brand website",
 };
 
 const reasonsOf = (value: unknown): string[] => (Array.isArray(value) ? value.filter((r): r is string => typeof r === "string") : []);

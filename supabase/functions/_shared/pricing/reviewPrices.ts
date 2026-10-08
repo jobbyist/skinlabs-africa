@@ -8,7 +8,7 @@
 // the strict matcher (match.ts) accepts as the same product; anything ambiguous is dropped.
 import { parseSizeMl, scoreMatch, type MatchTarget } from "./match.ts";
 
-export type ReviewRetailerSlug = "takealot" | "dis-chem" | "clicks" | "dermastore" | "skinmiles" | "faithful-to-nature";
+export type ReviewRetailerSlug = "takealot" | "dis-chem" | "clicks" | "dermastore" | "skinmiles" | "faithful-to-nature" | "brand-direct";
 
 export interface ReviewRetailer {
   slug: ReviewRetailerSlug;
@@ -47,8 +47,15 @@ export interface CanonicalReviewUrl {
   url: string;
 }
 
-/** https, no query/fragment/userinfo, a known host, and a path shaped like ONE product page. */
-export function canonicalReviewListingUrl(raw: string): CanonicalReviewUrl | null {
+/** Product pages on a brand's own shop: /products/x (Shopify), /product/x (WooCommerce), /shop/x, or one slug. */
+const BRAND_PRODUCT_PATH = /^\/(?:(?:collections\/[a-z0-9-]+\/)?products?|shop|store)\/[a-z0-9][a-z0-9-]*$|^\/[a-z0-9][a-z0-9-]{3,}$/i;
+const BRAND_NON_PRODUCT = /^(collections?|cart|checkout|pages?|blogs?|policies|account|search|shop|store|products?|brands?|about|contact|faqs?|blog|login|register|stockists|wishlist)$/i;
+
+/**
+ * https, no query/fragment/userinfo, a known retailer host (or one of the brand's own domains),
+ * and a path shaped like ONE product page.
+ */
+export function canonicalReviewListingUrl(raw: string, brandDomains: string[] = []): CanonicalReviewUrl | null {
   let u: URL;
   try {
     u = new URL(raw);
@@ -57,13 +64,24 @@ export function canonicalReviewListingUrl(raw: string): CanonicalReviewUrl | nul
   }
   if (u.protocol !== "https:" || u.username || u.password || (u.port && u.port !== "443")) return null;
   const host = u.hostname.toLowerCase();
-  const retailer = REVIEW_RETAILERS.find((r) => r.hosts.includes(host));
-  if (!retailer) return null;
   const path = u.pathname.replace(/\/+$/, "");
-  if (!retailer.productPath.test(path)) return null;
-  const first = path.split("/")[1] ?? "";
-  if (retailer.slug !== "takealot" && retailer.slug !== "clicks" && NON_PRODUCT_SEGMENT.test(first.replace(/\.html$/, ""))) return null;
-  return { retailer: retailer.slug, url: `https://${host}${path}` };
+  const retailer = REVIEW_RETAILERS.find((r) => r.hosts.includes(host));
+  if (retailer) {
+    if (!retailer.productPath.test(path)) return null;
+    const first = path.split("/")[1] ?? "";
+    if (retailer.slug !== "takealot" && retailer.slug !== "clicks" && NON_PRODUCT_SEGMENT.test(first.replace(/\.html$/, ""))) return null;
+    return { retailer: retailer.slug, url: `https://${host}${path}` };
+  }
+  const bare = host.replace(/^www\./, "");
+  if (brandDomains.some((d) => d.toLowerCase().replace(/^www\./, "") === bare)) {
+    if (!BRAND_PRODUCT_PATH.test(path)) return null;
+    const segs = path.split("/").filter(Boolean);
+    if (segs.length === 1 && BRAND_NON_PRODUCT.test(segs[0])) return null;
+    // Shopify serves one product under /collections/x/products/y; the product path is its identity.
+    const canonicalPath = /\/products\/[^/]+$/.test(path) ? path.slice(path.lastIndexOf("/products/")) : path;
+    return { retailer: "brand-direct", url: `https://${host}${canonicalPath}` };
+  }
+  return null;
 }
 
 // ---- price reading -------------------------------------------------------------------------------
@@ -156,11 +174,11 @@ const MAX_PER_RETAILER = 2;
  * For each retailer: the product pages that (a) are real product URLs, (b) pass the strict matcher and
  * (c) show a readable price. At most two per retailer (two pack sizes); a person picks.
  */
-export function buildReviewPriceCandidates(target: MatchTarget, results: PriceSearchResult[]): ReviewPriceCandidate[] {
+export function buildReviewPriceCandidates(target: MatchTarget, results: PriceSearchResult[], brandDomains: string[] = []): ReviewPriceCandidate[] {
   const seen = new Set<string>();
   const pages: { retailer: ReviewRetailerSlug; url: string; title: string; text: string }[] = [];
   for (const r of results) {
-    const canon = canonicalReviewListingUrl(r.url);
+    const canon = canonicalReviewListingUrl(r.url, brandDomains);
     if (!canon) continue;
     const key = canon.retailer === "takealot" ? (/PLID\d+/i.exec(canon.url)?.[0].toUpperCase() ?? canon.url) : canon.url;
     if (seen.has(key)) continue;
@@ -169,7 +187,7 @@ export function buildReviewPriceCandidates(target: MatchTarget, results: PriceSe
   }
 
   const out: ReviewPriceCandidate[] = [];
-  for (const slug of REVIEW_RETAILER_SLUGS) {
+  for (const slug of [...REVIEW_RETAILER_SLUGS, "brand-direct" as ReviewRetailerSlug]) {
     const mine = pages.filter((p) => p.retailer === slug);
     // Sizes on offer at this retailer feed the matcher so an unsized target with several sizes goes to a person.
     const scored = mine.map((p) => {

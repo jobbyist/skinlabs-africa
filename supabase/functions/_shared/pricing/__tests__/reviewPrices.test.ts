@@ -79,3 +79,25 @@ describe("schedule rules", () => {
     expect(canAutoRefresh(100, 200)).toBe(false);
   });
 });
+
+describe("brand's own website", () => {
+  const brand = ["leliveafrica.com"];
+  test("accepts product pages on the brand domain, strips collections prefix, rejects collections", () => {
+    expect(canonicalReviewListingUrl("https://leliveafrica.com/products/jelly-splash", brand)).toEqual({ retailer: "brand-direct", url: "https://leliveafrica.com/products/jelly-splash" });
+    expect(canonicalReviewListingUrl("https://leliveafrica.com/collections/cleansers/products/jelly-splash?x=1", brand)?.url).toBe("https://leliveafrica.com/products/jelly-splash");
+    expect(canonicalReviewListingUrl("https://leliveafrica.com/collections/all", brand)).toBeNull();
+    expect(canonicalReviewListingUrl("https://leliveafrica.com/", brand)).toBeNull();
+    expect(canonicalReviewListingUrl("https://leliveafrica.com/products/jelly-splash")).toBeNull(); // no domain registered
+    expect(canonicalReviewListingUrl("https://evil.example/products/jelly-splash", brand)).toBeNull();
+  });
+  test("reads a Shopify price", () => {
+    const c = buildReviewPriceCandidates(
+      { brand: "Lelive", name: "Rooibos & Aloe Jelly Splash Cleanser", sizeMl: null },
+      [{ url: "https://leliveafrica.com/products/jelly-splash", title: "Jelly Splash | Salicylic Acid Cleanser | lelive", text: "jelly splash | brighten + renew cleanser\nR 349.00\nsize: 200ml / 6.76 fl.oz\nAdd to Cart" }],
+      brand,
+    );
+    expect(c).toHaveLength(1);
+    expect(c[0].retailer).toBe("brand-direct");
+    expect(c[0].priceZar).toBe(349);
+  });
+});
