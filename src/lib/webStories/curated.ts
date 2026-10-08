@@ -261,8 +261,78 @@ export const giveawayOctober2026Story = (): Story => {
   };
 };
 
+
+export const PRACTICE_SUITE_BETA_SLUG = "practice-suite-beta-intake";
+const PRACTICE_SUITE_MEDIA = "/stories-media/practice-suite";
+
+/**
+ * "Practice Suite Beta intake now live!": every claim is taken from the Practice Suite page (src/pages/PracticeSuite.tsx).
+ * The INTAKE form is live; the product is not, and the first page says so. Backgrounds are generated brand gradients
+ * (no photography), so nothing implies a finished product.
+ */
+export const practiceSuiteBetaStory = (): Story => {
+  const bg = (n: number) => `${PRACTICE_SUITE_MEDIA}/bg-${n}.jpg`;
+  const alt = "Dark SkinLabs® brand gradient";
+  return {
+    key: PRACTICE_SUITE_BETA_SLUG,
+    source: "curated",
+    slug: PRACTICE_SUITE_BETA_SLUG,
+    title: "Practice Suite Beta intake now live!",
+    kind: "editorial",
+    coverImageUrl: bg(1),
+    coverImageAlt: "Practice Suite Beta intake now live",
+    ctaLabel: "Request early access",
+    ctaUrl: "/practice-suite#access",
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-10-08",
+    pages: [
+      page({
+        mediaUrl: bg(1),
+        mediaAlt: alt,
+        headline: "Practice Suite Beta intake now live!",
+        body: "Early-access intake is open for the Practice Suite private beta. The product is still in development, and 25 practices get in first.",
+        ctaLabel: "Request early access",
+        ctaUrl: "/practice-suite#access",
+      }),
+      page({
+        mediaUrl: bg(2),
+        mediaAlt: alt,
+        headline: "Practice admin, without the nonsense",
+        body: "One loop, done properly: book, consult, note, invoice, get paid. Diary, notes, billing and reminders in one place, built around how South African practices work.",
+        ctaLabel: "See the loop",
+        ctaUrl: "/practice-suite",
+      }),
+      page({
+        mediaUrl: bg(3),
+        mediaAlt: alt,
+        headline: "What's in the beta",
+        body: "Diary and online booking. Intake and consent with e-signature. Notes with your name, a timestamp and an edit history. Invoicing in rand. Reminders by SMS and email.",
+        ctaLabel: "See what's coming",
+        ctaUrl: "/practice-suite#features",
+      }),
+      page({
+        mediaUrl: bg(4),
+        mediaAlt: alt,
+        headline: "And what isn't",
+        body: "Not in the beta: live medical aid claims, stock and dispensing, telehealth video, and lab and imaging links. Built for private-pay clinics first, and we'd rather say so now.",
+      }),
+      page({
+        mediaUrl: bg(5),
+        mediaAlt: alt,
+        headline: "Twenty-five places. Waves of five.",
+        body: "The private beta opens 11 January 2027. It's free during the beta, with no card. Tell us about your practice. Please don't put patient details in the form.",
+        ctaLabel: "Request early access",
+        ctaUrl: "/practice-suite#access",
+      }),
+    ],
+  };
+};
+
 export const curatedStories = (now: Date | number = Date.now()): Story[] => [
   ...(isGiveawayOpen(now) ? [giveawayOctober2026Story()] : []),
+  practiceSuiteBetaStory(),
   ...(ICYMI_SEPTEMBER_2026_VIDEO_READY ? [icymiSeptember2026Story()] : []),
   podcastSeasonOneStory(),
   springResetStory(),

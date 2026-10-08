@@ -111,6 +111,10 @@ export type ConversionEvent =
   // that had no analytics instrumentation at all before this pass.
   | "newsletter_subscribed"
   | "sa_price_link_clicked"
+  // Price tracking on review pages (counts/tokens only, never the target price or email)
+  | "price_alert_opened"
+  | "price_alert_set"
+  | "price_alert_removed"
   // Weekly-digest double opt-in funnel (growth engine). Payloads: source only, never the email.
   | "newsletter_signup_submitted"
   | "newsletter_signup_failed"

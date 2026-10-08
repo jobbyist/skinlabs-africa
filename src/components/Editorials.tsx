@@ -6,6 +6,7 @@ import { featuredEditorials } from "@/data/editorials";
 import { pickRotatingEditorials } from "@/lib/homepageSelection";
 
 const FEATURED_COUNT = 3;
+const FALLBACK_THUMBNAIL = "/og-image.png";
 
 const Editorials = () => {
   // First paint (and prerendered HTML) is stable; each page load then swaps in a fresh random 3 once.
@@ -51,8 +52,16 @@ const Editorials = () => {
                   <img
                     src={editorial.thumbnailUrl}
                     alt={editorial.thumbnailAlt}
+                    width={800}
+                    height={528}
                     loading="lazy"
-                    className="h-44 w-full object-cover"
+                    decoding="async"
+                    onError={(e) => {
+                      // A dead remote photo must not leave a blank card: fall back once to a known-good local image.
+                      const img = e.currentTarget;
+                      if (!img.src.endsWith(FALLBACK_THUMBNAIL)) img.src = FALLBACK_THUMBNAIL;
+                    }}
+                    className="h-44 w-full bg-muted object-cover"
                   />
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-background">
                     {editorial.comingSoon ? (

@@ -508,6 +508,16 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
 - **CI**: every GitHub Actions run (PRs and main) has been failing within ~3 s since at least run 77 today; logs 404. Treat as an account/runner problem, not code, and verify locally (`bun test`, `npx playwright test`, `npx eslint .`).
 - `e2e/smart-routines.e2e.ts` + the mock now follow the 3 Oct rule (a delivered Basic analysis unlocks Smart Routines; mock `get_smart_routine_access` mirrors `has_smart_routine_access()`).
 
+## Price alerts, giveaway dates, /api rebuild (2026-10-08) — standing notes
+
+Branch `claude/skinlabs-platform-updates-9be1ik`. Migrations `20261008230000` (giveaway close) and `20261008240000` (price alerts) are **applied live**; probe `supabase/tests/price_alerts.sql` (13 assertions, rolled back, passes live).
+
+- **Price alerts**: `PriceAlertBell` on review pages -> `set_price_alert()` / `remove_price_alert()` (SECURITY DEFINER; table `price_alerts` is read-only to members; removal = status `off`, no row delete). Setting one switches the member's `price_alert` notification category on (explicit request). `evaluate_price_alerts()` runs hourly (cron `price-alerts-evaluate`), reads ONLY `sa_retail_prices` (verified, in-stock-not-false), fires once via `enqueue_notification('price_alert_hit')` (lock-screen copy generic, details in the inbox) and marks the alert `triggered`. Max 25 active per member.
+- **"Lowest in 30 days"**: `sa_price_stats_30d(slug)` returns aggregates only for the product's current public listings (history tables stay private). `isLowestIn30Days()` (`lib/pricing/priceTracking.ts`) requires >= 7 days of history, >= 2 observations and a price that really was higher in the window; a flat price gets no badge.
+- **Giveaway** now closes **31 Oct 2026 12:00 SAST** (winners announced and prizes awarded 1 Nov 2026); promoter is named as SkinLabs South Africa (Pty) Ltd with no individual. The page shows the example Skin Story image (`public/giveaway/skin-story-example.webp`); the web story still carries the video.
+- Homepage Shelf Showdown cards: 6 Unsplash photos in `data/editorials.ts` were 404 (blank cards). Replaced with verified ones; the card image also falls back once on error. Briefing seed data still references other dead Unsplash ids (`1461896836934`, `1516426122078`, `1584305574647`), untouched.
+- `/api` is rebuilt in the Practice Suite page style; same honest Live / Proposed content. New curated web story `practice-suite-beta-intake` (5 pages, generated gradient backgrounds). Whitepaper SKYNN section now has the MST fairness explainer and the compressed video (`public/whitepaper/`).
+
 ## Review prices: Parallel Search + admin verification (2026-10-08) — standing notes
 
 Branch `claude/review-price-verification`. Detail: **`docs/sa-retail-prices.md`** (last section). Migrations `20261008200000` (schema/RPCs/trigger/view), `…200100` (160 static

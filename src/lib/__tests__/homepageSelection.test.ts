@@ -47,3 +47,16 @@ describe("category review images", () => {
     expect(getCategoryImage("Serum").url).not.toBe(getCategoryImage("Cleanser").url);
   });
 });
+
+describe("homepage comparison card thumbnails", () => {
+  // These Unsplash photos were removed upstream (HTTP 404 on 2026-10-08) and left blank cards on the homepage.
+  const DEAD = ["1570194065650-d99fb4b38b17", "1596755094514-f87e34085b85", "1596755389378-c31d21fd2863", "1620916297397-a8b05e6567d4", "1620916569875-d4fa85f58255", "1631730486572-226b1e126018"];
+  test("no featured editorial points at a known-dead photo and every card has a thumbnail with alt text", async () => {
+    const { featuredEditorials } = await import("../../data/editorials");
+    for (const e of featuredEditorials) {
+      expect(e.thumbnailUrl.startsWith("https://")).toBe(true);
+      expect(e.thumbnailAlt.length).toBeGreaterThan(10);
+      for (const id of DEAD) expect(e.thumbnailUrl).not.toContain(id);
+    }
+  });
+});
