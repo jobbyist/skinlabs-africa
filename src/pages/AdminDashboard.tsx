@@ -22,6 +22,7 @@ import TikTokAdsPanel from "@/components/admin/TikTokAdsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
+import ReviewPricesPanel from "@/components/admin/ReviewPricesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
 import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
@@ -639,7 +640,8 @@ const AdminDashboard = () => {
                 <ModerationTab />
               </TabsContent>
 
-              <TabsContent value="sa-prices">
+              <TabsContent value="sa-prices" className="space-y-8">
+                <ReviewPricesPanel />
                 <PriceMatchesPanel />
               </TabsContent>
 

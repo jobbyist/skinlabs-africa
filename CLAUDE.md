@@ -507,6 +507,16 @@ mentions a `20261006100000_…` file that does not exist, don't go looking for i
 - **CI**: every GitHub Actions run (PRs and main) has been failing within ~3 s since at least run 77 today; logs 404. Treat as an account/runner problem, not code, and verify locally (`bun test`, `npx playwright test`, `npx eslint .`).
 - `e2e/smart-routines.e2e.ts` + the mock now follow the 3 Oct rule (a delivered Basic analysis unlocks Smart Routines; mock `get_smart_routine_access` mirrors `has_smart_routine_access()`).
 
+## Review prices: Parallel Search + admin verification (2026-10-08) — standing notes
+
+Branch `claude/review-price-verification`. Detail: **`docs/sa-retail-prices.md`** (last section). Migrations `20261008200000` (schema/RPCs/trigger/view), `…200100` (160 static
+targets) are **applied live**; `…200200` cron applied live. Edge function `review-price-sync` deployed (one-line entry pinned to `964950a`; **re-pin to a commit on main after merge**).
+
+- Every published review (static, generated, Sponsored/OpenHaus) is a row in `review_price_targets`; new generated reviews get one from a DB trigger, so review-generation pipelines need no changes.
+- **Parallel Search is the default, Nimble the fallback** (only when Parallel is unavailable). Candidates are saved `pending`; **nothing is public until approved** in Admin > SA Prices > "Review prices". Public = `approved` AND checked within 30 days (view `sa_retail_prices` now unions these in); re-check every 25 days; an approved listing auto-refreshes on a <=50% move, bigger goes back to review.
+- **Human step open**: set Edge secrets `PARALLEL_API_KEY` (+ `NIMBLE_API_KEY`); until then the function answers 503 before claiming anything. First session chunk: 5 reviews / 6 pending listings saved from real Parallel + Nimble results, all pending.
+- Firecrawl is no longer used for reviews (three Firecrawl cron jobs unscheduled). `types.ts` was NOT regenerated; the admin panel uses untyped casts for the new tables.
+
 ## Major systems
 
 - **Growth engine: SA retail prices (2026-10-03)** — Clicks / Dis-Chem / Takealot prices read from each retailer's own
