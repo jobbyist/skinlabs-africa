@@ -15,7 +15,7 @@ const EXACT = new Set([
   "/marketplace/saved", "/marketplace/shipping-returns", "/marketplace/terms", "/openhaus", "/podcast",
   "/stream", "/briefings", "/newsroom", "/reviews", "/compare", "/pricing", "/consultations", "/consult",
   "/announcements", "/spotlight", "/spotlight/methodology", "/spotlight/archive", "/seasonals",
-  "/seasonals/spring", "/dashboard", "/reset-password", "/newsletter/confirm", "/welcome", "/start", "/giveaways/october-2026",
+  "/seasonals/spring", "/dashboard", "/reset-password", "/newsletter/confirm", "/welcome", "/start", "/community-forum", "/giveaways/october-2026",
 ]);
 
 /** prefix -> number of extra path segments allowed after it (always exactly one slug). */

@@ -30,6 +30,7 @@ import {
   ChevronRight,
   Sparkles,
   Users,
+  MessagesSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,6 +87,7 @@ const primaryLinks: NavItem[] = [
 /** The "Explore" grid — SkinLabs' editorial + platform sections. */
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
+  { label: "Community", href: "/community-forum", icon: MessagesSquare, badge: "NEW" },
   { label: "Reviews", href: "/reviews", icon: Star },
   { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
   { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },

@@ -14,6 +14,7 @@ import { computeProfileStrength } from "@/lib/profileStrength";
 import { toast } from "sonner";
 import { SA_CITIES } from "@/lib/skinWeather/cities";
 import UsernameCard from "@/components/dashboard/UsernameCard";
+import AvatarUploader from "@/components/dashboard/AvatarUploader";
 
 const NO_WEATHER_CITY = "none";
 
@@ -124,6 +125,7 @@ const ProfileTab = () => {
 
   return (
     <div className="space-y-6">
+    <AvatarUploader username={form.username} />
     <UsernameCard
       username={form.username}
       fullName={form.full_name}
