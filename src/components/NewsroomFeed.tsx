@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/AuthDialog";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 
-const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
+const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
 
 const NEWSROOM_PAGE_SIZE = 5;
 type SortOption = "newest" | "oldest" | "popular" | "reading";
@@ -38,15 +38,18 @@ interface NewsroomFeedProps {
 const BriefingCover = ({ article }: { article: NewsArticleSummary }) => {
   const query = `${article.sa_context_tag || "skincare"} ${article.title.split(" ").slice(0, 4).join(" ")} south africa skin`;
   const { image, loading } = useUnsplashImage(query, article.cover_image_url || "/briefing-placeholder-cover.svg");
-  const src = article.cover_image_url || image?.url || PEXELS_FALLBACK_COVER;
+  const src = article.cover_image_url || image?.url || PLACEHOLDER_COVER;
   const alt = article.cover_image_alt || image?.alt || article.title;
   return (
     <img
       src={src}
       alt={alt}
       loading="lazy"
+      decoding="async"
+      width={1600}
+      height={900}
       onError={(event) => {
-        if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER;
+        if (!event.currentTarget.src.endsWith(PLACEHOLDER_COVER)) event.currentTarget.src = PLACEHOLDER_COVER;
       }}
       className={`h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-105 ${loading && !article.cover_image_url ? "opacity-70" : ""}`}
     />

@@ -141,7 +141,7 @@ const Footer = () => {
                 className="h-16 w-auto hidden dark:block"
               />
             </Link>
-            <p className="text-background/60 text-sm leading-relaxed mb-4">
+            <p className="text-background/75 text-sm leading-relaxed mb-4">
               South Africa's Skin Intelligence Platform. Evidence-led skincare education,
               product intelligence and tools built for local climate, shelves and skin.
             </p>
@@ -167,17 +167,17 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Editorial</h4>
+            <h2 className="font-semibold mb-4 text-base">Editorial</h2>
             <ul className="space-y-2">
               {footerLinks.products.map((link) => (
                 <li key={link.label}>
                   <Link
                     to={link.href}
-                    className="text-background/60 text-sm hover:text-background transition-colors"
+                    className="text-background/75 text-sm hover:text-background transition-colors"
                   >
                     {link.label}
                     {"isNew" in link && link.isNew ? (
-                      <span className="ml-2 text-[10px] uppercase tracking-wide text-primary">New</span>
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-background">New</span>
                     ) : null}
                   </Link>
                 </li>
@@ -186,17 +186,17 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Platform</h4>
+            <h2 className="font-semibold mb-4 text-base">Platform</h2>
             <ul className="space-y-2">
               {footerLinks.platform.map((link) => (
                 <li key={link.label}>
                   <Link
                     to={link.href}
-                    className="text-background/60 text-sm hover:text-background transition-colors"
+                    className="text-background/75 text-sm hover:text-background transition-colors"
                   >
                     {link.label}
                     {"isComingSoon" in link && link.isComingSoon ? (
-                      <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-400">Soon</span>
+                      <span className="ml-2 text-[10px] uppercase tracking-wide text-amber-400 dark:text-amber-700">Soon</span>
                     ) : null}
                   </Link>
                 </li>
@@ -205,13 +205,13 @@ const Footer = () => {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Company</h4>
+            <h2 className="font-semibold mb-4 text-base">Company</h2>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.label}>
                   <Link
                     to={link.href}
-                    className="text-background/60 text-sm hover:text-background transition-colors"
+                    className="text-background/75 text-sm hover:text-background transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -222,10 +222,10 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-background/10 pt-8 flex flex-col items-center gap-4 text-center">
-          <p className="text-background/40 text-sm">
+          <p className="text-background/70 text-sm">
             © {new Date().getFullYear()} SkinLabs®. All rights reserved.
           </p>
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-background/40">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-background/70">
             <Link to="/privacy-policy" className="hover:text-background transition-colors">
               Privacy Policy
             </Link>

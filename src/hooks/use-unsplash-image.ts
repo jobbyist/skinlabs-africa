@@ -1,10 +1,10 @@
 /**
  * React hook for fetching cover/thumbnail images with caching.
- * Uses Pexels as the primary source (VITE_PEXELS_API_KEY) and falls back
- * to Unsplash. Automatically handles loading states and attribution.
+ * Unsplash is the sole image API; on failure it falls back to the local
+ * SkinLabs placeholder. Automatically handles loading states and attribution.
  */
 import { useState, useEffect } from "react";
-import { fetchCoverImage, type ImageData } from "@/lib/pexels";
+import { fetchCoverImage, type ImageData } from "@/lib/unsplash";
 
 type UseCoverImageResult = {
   image: ImageData | null;

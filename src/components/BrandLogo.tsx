@@ -43,6 +43,9 @@ const BrandLogo = ({ brand, logoUrl, className, size = "md" }: BrandLogoProps) =
           alt={`${brand} logo`}
           className="h-full w-full object-contain grayscale contrast-125"
           loading="lazy"
+          decoding="async"
+          width={64}
+          height={64}
           onError={() => setFailed(true)}
         />
       </span>
