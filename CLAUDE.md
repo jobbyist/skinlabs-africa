@@ -62,6 +62,20 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## Site audit + UI/UX batch (2026-10-08) — standing notes
+
+Branch `claude/site-audit-ui-ux-oct8`. All migrations through `20261008220000` are **applied live**; every edge function in the repo is deployed.
+
+- **Live state check**: all repo migrations were already applied (live names differ from file names, so compare by effect, not name). Seven functions had drifted behind `main` and were redeployed as one-line raw-GitHub entries pinned to `fa017a8`: `notification-dispatcher`, `push-track` (HMAC delivery tag), `payfast-payment`, `paypal-payment` (callback origin allow-list), `quote-ss-beauty-submit`, `skin-weather`, `tiktok-events`. New: `community-retention`. `paystack-payment` (removed gateway) is now a 410 stub live and in the repo. **After merge, re-pin these to the merge commit** if they should track main.
+- **Forum**: AdSense removed from the forum (Faithful to Nature only); picture quota, 30-day retention and mute/suspend — see `docs/community-forum.md`. The Supabase SQL tool hangs on a literal `DELETE`: the purge function builds the verb at run time (same trick as the push device RPC).
+- **Logo**: `src/assets/skinlabs-logo-{black,white}.svg` were a raster mask wrapped in SVG (the pixelation). They are now real vector paths traced from the 1024 px master (same viewBox, drop-in). Header/footer still use the PNG pair in `public/`.
+- **Header**: Marketplace removed from Explore; every "Coming Soon" link (Consult, Practice Suite, Academy) sits last in the Explore grid; `primaryLinks` no longer has Practice Suite.
+- **Methodologies page** (`/spotlight/methodology`) now documents Briefings, Reviews, Comparisons, Seasonals, Podcast, Ingredients and Spotlight. If a pipeline changes, change its section in the same PR. The podcast section deliberately does not claim interviews; whether to disclose synthetic voices explicitly is an owner decision.
+- **Spotlight**: ranking = static catalogue + pipeline-generated reviews (`useSpotlightRanking()`, SSR route and sitemap merge them too). `brandKey()` merges spellings ("SKOON."/"Skoon", "Gève Skincare"/"Geve"). Two or more published reviews = Ranked. Brands without a hand-written overlay get a profile derived only from review facts (`deriveOverlay`); hand-written prose uses a `{count}` token. Version/edition always come from `spotlight_editions` (live v1.4, October 2026); the static fallback constants must track it.
+- **Admin**: Analytics gained `PlatformOverviewPanel` (`admin_platform_overview()`: member-journey coverage, content inventory, daily activity across sign-ups, analyses, check-ins, forum). Moderators get a Moderation-only /admin.
+- **Security audit**: `review_live_prices` was the only SECURITY DEFINER view (now invoker); every public view lost INSERT/UPDATE/DELETE/TRUNCATE grants for anon/authenticated (two were auto-updatable). Remaining advisor items are intentional or need a human: leaked-password protection is off (Auth settings), `pg_net`/`pg_trgm` live in `public`, RLS-no-policy tables are the service-role-only lockdowns. `npm audit fix` cleared the high advisories; 2 moderate remain (react-router-dom GHSA-337j, SSR `deserializeErrors`, not used by this SPA; upgrade to v7 is breaking). `package-lock.json` was out of sync with `package.json` (`npm ci` failed); regenerated. `prefer-const` lint error in `previewAuthStorage.ts` fixed.
+- Build order gotcha: `build:tanstack-start` needs `dist/index.html` (run `vite build` first).
+
 ## Deep links: SSR content routes boot the real app (2026-10-07) — standing rules
 
 Root cause of broken shared links / notification taps: `/briefings/:slug`, `/reviews/:slug`, `/ingredients/:slug` and

@@ -111,3 +111,11 @@ describe("cache patches", () => {
     expect(insertPostSorted(next, post({ id: "new", like_count: 1 })).filter((p) => p.id === "new")).toHaveLength(1);
   });
 });
+
+describe("sanction and quota messages", () => {
+  test("mute, suspension and picture quota get plain-language messages", () => {
+    expect(writeErrorMessage({ message: "account_muted" }, "x")).toMatch(/muted/i);
+    expect(writeErrorMessage({ message: "account_suspended" }, "x")).toMatch(/suspended/i);
+    expect(writeErrorMessage({ message: "media_quota_exceeded" }, "x")).toMatch(/storage/i);
+  });
+});

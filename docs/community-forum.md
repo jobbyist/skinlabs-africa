@@ -86,9 +86,7 @@ The "Community guidelines" link on the forum opens `GuidelinesDialog` (scrollabl
 (which gained section 6, "Posting in the Community Forum"; effective date moved to 8 October 2026 — worth a legal read).
 
 ## Ads in the feed
-After every second discussion the feed renders a unit, alternating `AdSlot` (AdSense) and `FaithfulToNature`, never adjacent and never before the first post. Both components apply the
-viewer's plan (full / Insider light / VIP none) themselves. **Policy risk:** AdSense generally does not allow ad units on pages that require sign-in or on user-generated content that
-Google's crawler can't review; watch the AdSense policy centre after this ships and be ready to remove `data-feed-ad` units.
+After every second discussion the feed renders a `FaithfulToNature` unit (never adjacent, never before the first post; plan-aware: full / Insider light / VIP none). AdSense units were removed from the forum on 2026-10-08 because AdSense does not allow ads on login-gated or user-generated pages Google can't review.
 
 ## Moderation (foundation)
 Members: Report (post or comment), delete own. Moderators/admins: pin/unpin, remove post/comment (closes open reports on it, logged).
@@ -102,3 +100,13 @@ persona (comments and likes cascade), then the seed personas.
 ## Follow-ups
 Replies (`parent_id`) and mentions, bookmarks, member suspension/mutes, a per-member storage quota (storage is capped per file, not per member), GIF search (needs a provider key),
 linking ingredient mentions to `/ingredients/:slug`, and a real-device check of push delivery.
+
+
+## Quota, 30-day retention and mute/suspend (2026-10-08)
+
+Migration `20261008200000_community_quota_retention_sanctions.sql` (applied live; probe `supabase/tests/community_quota_sanctions.sql`).
+
+- **Picture quota**: 20 MB per member in `community-media` (`community_media_quota_bytes()`). The storage INSERT policy calls `community_media_has_room()`, so an upload is refused once the member is at the quota (one in-flight upload, max 3 MB, can overshoot). `uploadMedia()` also pre-checks `community_my_media_usage()` and throws `media_quota_exceeded` (plain-language message in `writeErrorMessage`). The compose sheet shows "x of 20 MB used".
+- **30-day retention**: member posts older than 30 days, plus posts deleted/removed more than 7 days ago, are purged daily at 02:20 UTC by the `community-retention` edge function (pg_cron `community-retention-daily`; auth = Vault secret `community_retention_cron_secret`, verified in SQL, no Edge secret). Pictures are removed through the Storage API first (SQL deletes leave the file behind); a post whose picture could not be removed is kept for the next run. Member comments older than 30 days go too. Pinned posts and seed-persona content are never purged; `community_retention_purge()` re-checks eligibility itself. Abandoned uploads (no post references them, >1 day old) are swept as well. The compose sheet tells members posts expire after 30 days.
+- **Mute / suspend**: table `community_sanctions` (service-role only). Mute = cannot post or comment (can read and like); suspend = also cannot like, and the forum feed is hidden in the UI (`useQuery` on `community_my_sanction()`; members see type and end date, never the reason). Enforced in `community_guard_insert()` and a like trigger (`account_muted` / `account_suspended`). One sanction in force per member (a new one replaces the old); durations 24 h / 7 d / 30 d / until lifted; expiry is automatic. Staff cannot be sanctioned, nor can anyone sanction themselves.
+- **Admin UI**: Admin -> Moderation -> Members (search by handle, restrict, lift, history), plus "Mute / suspend author" on report and held cards (`SanctionDialog`). Moderators (not only admins) can open /admin: they see the Moderation tab only. Overview counters show restricted members, picture storage (MB) and posts due for the next purge.

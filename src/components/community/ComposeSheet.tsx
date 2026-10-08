@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
@@ -9,13 +10,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useCreatePost } from "@/hooks/use-community";
-import { removeMedia, uploadMedia, type PostImage } from "@/lib/community/client";
+import { getMyMediaUsage, removeMedia, uploadMedia, type PostImage } from "@/lib/community/client";
 import { insertAtSelection } from "@/lib/community/emoji";
 import { ImageError, prepareCommunityImage, type PreparedImage } from "@/lib/community/image";
 import { BODY_MAX, TITLE_MAX, needsHandle, validatePostDraft, writeErrorMessage, type CommunityCategory, type FieldErrors } from "@/lib/community/rules";
 import EmojiPicker from "./EmojiPicker";
 
 const NO_TOPIC = "none";
+const mb = (bytes: number) => (bytes / 1048576).toFixed(1).replace(/\.0$/, "");
 const DRAFT_KEY = "skinlabs:community-draft";
 /** Anything submitted faster than this after opening the sheet, with a long body, is a script, not a person. */
 const MIN_FILL_MS = 1500;
@@ -161,6 +163,7 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
   };
 
   const busy = publishing || processing;
+  const usage = useQuery({ queryKey: ["community", "media-usage", user?.id], queryFn: getMyMediaUsage, enabled: open && Boolean(user), staleTime: 30_000 });
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} repositionInputs>
@@ -261,6 +264,11 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
               <label htmlFor="community-website">Website</label>
               <input id="community-website" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
             </div>
+
+            <p className="text-xs text-muted-foreground">
+              Discussions are removed automatically 30 days after you post them.
+              {usage.data ? ` Picture storage: ${mb(usage.data.used)} of ${mb(usage.data.quota)} MB used.` : ""}
+            </p>
 
             {formError && (
               <p role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">

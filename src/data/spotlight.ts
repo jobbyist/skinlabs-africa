@@ -3,14 +3,15 @@
  * refreshed monthly as a full edition, with a Top 3 module that rotates weekly.
  * Not a popularity list, not a paid directory — every score is computed live from
  * SkinLabs' own published product review data (never hand-typed), and every
- * editorial note below is grounded in real, already-published verdict text from
- * src/data/reviews.ts. See /spotlight/methodology for what Methodology v1.1
- * actually measures.
+ * editorial note below is grounded in real, already-published verdict text. See
+ * /spotlight/methodology for what the methodology actually measures. The live version
+ * and edition label come from the spotlight_editions table (use-spotlight-edition.ts);
+ * the two constants further down are only its offline fallback and must track it.
  */
 import { productReviews, overallScore, type ProductReview } from "./reviews";
 
 export interface BrandEditorialOverlay {
-  /** Must exactly match a `brand` value in productReviews. */
+  /** Matched to review brands by brandKey(), so spelling variants ("SKOON." / "Skoon") resolve to one entry. */
   brand: string;
   slug: string;
   positioningStatement: string;
@@ -33,9 +34,9 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     positioningStatement: "South Africa's original affordable, evidence-led actives brand.",
     knownFor: "Ceramide barrier creams, niacinamide and entry-strength retinol at pharmacy prices.",
     skinlabsTake:
-      "Standard Beauty is the brand we point beginners to first. Twelve products in our review set, and the pattern holds across nearly all of them: real, disclosed active concentrations, formulated with SA's climate in mind, priced like a brand that wants you to actually finish the bottle. The CERious PrOATection Moisturiser is the standout — a ceramide, panthenol and squalane barrier cream we called one of the best-value moisturisers we've tested locally, full stop.",
+      "Standard Beauty is the brand we point beginners to first. {count} products in our review set, and the pattern holds across nearly all of them: real, disclosed active concentrations, formulated with SA's climate in mind, priced like a brand that wants you to actually finish the bottle. The CERious PrOATection Moisturiser is the standout — a ceramide, panthenol and squalane barrier cream we called one of the best-value moisturisers we've tested locally, full stop.",
     whyTheyMadeTheList:
-      "Twelve reviewed products, consistently strong efficacy-to-price ratios, and formulas built around SA humidity and Highveld dryness rather than a generic global routine. Read that again: a R195 moisturiser out-performing serums three times its price is worth knowing about.",
+      "{count} reviewed products, consistently strong efficacy-to-price ratios, and formulas built around SA humidity and Highveld dryness rather than a generic global routine. Read that again: a R195 moisturiser out-performing serums three times its price is worth knowing about.",
     officialWebsite: "https://standard-beauty.co.za",
     logoUrl: "https://cdn.brandfetch.io/standard-beauty.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
@@ -59,7 +60,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Lelive's formulas are genuinely pleasant to use — the tinted SPF30 gives real broad-spectrum protection with no white cast across SA skin tones, and the shea moisturiser performs beautifully on the dry Highveld and Cape. Where it consistently loses points is value: USD-linked import pricing means you're often paying a real premium over local alternatives with comparable actives.",
     whyTheyMadeTheList:
-      "Eight reviewed products across sunscreen, cleansers, serums and moisturisers. Worth knowing before you buy: check a Skin Functional or Standard Beauty equivalent first if budget matters more than the botanical story.",
+      "{count} reviewed products across sunscreen, cleansers, serums and moisturisers. Worth knowing before you buy: check a Skin Functional or Standard Beauty equivalent first if budget matters more than the botanical story.",
     officialWebsite: "https://leliveafrica.com",
     logoUrl: "https://cdn.brandfetch.io/leliveafrica.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
   },
@@ -121,7 +122,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Esse, founded by organic chemist Trevor Steyn, takes a genuinely different approach — feeding and rebalancing your skin's microbiome rather than exfoliating or resurfacing it. Four Lactobacillus species at 1 billion CFU/ml is a genuinely innovative delivery format. Worth knowing: Esse cites a brand-supplied German Dermatest study showing +16% firmness in 28 days — a real data point, but not independently verified, and the clinical evidence base for microbiome skincare generally is still niche.",
     whyTheyMadeTheList:
-      "Five reviewed products spanning serum, cleanser and moisturiser, certified organic and carbon neutral — a distinct scientific angle few other SA brands are working.",
+      "{count} reviewed products spanning serum, cleanser and moisturiser, certified organic and carbon neutral — a distinct scientific angle few other SA brands are working.",
     brandStory: "Founded in South Africa by organic chemist Trevor Steyn, built around microbiome science.",
     officialWebsite: "https://www.esseskincare.co.za",
     logoUrl: "https://cdn.brandfetch.io/esseskincare.co.za/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
@@ -232,7 +233,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Founder Stella Ciolli built Skoon around natural, home-remedy-inspired formulas made scientific. Its polyglutamic acid serum holds even more water than standard hyaluronic acid — a genuinely good layered hydrator, best sealed with an occlusive if you're inland. Its niacinamide-barrier serum uses a novel waterless, electrospun-nanofibre delivery format — genuinely innovative, though the premium format pricing is a hard sell against simpler alternatives doing a similar job.",
     whyTheyMadeTheList:
-      "Two reviewed serums, both genuinely differentiated on formulation format rather than just ingredient list — worth watching as evidence builds.",
+      "{count} reviewed products, including two serums that are both genuinely differentiated on formulation format rather than just ingredient list — worth watching as evidence builds.",
     brandStory: "Founded by engineer Stella Ciolli in Cape Town, blending natural ingredients with formulation science.",
     officialWebsite: "https://www.skoonskin.com",
     logoUrl: "https://cdn.brandfetch.io/skoonskin.com/w/128/theme/light/fallback/404?c=1idRUZaGIxsHRZL8WVX",
@@ -435,7 +436,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Hey Gorgeous sits in the same affordable-botanical lane as several other brands in this file, and it earns its place with a vitamin C serum that performs respectably at a lower price point than the clinic-tier options here. The clay cleanser draws out congestion well for oily and combination skin without the tightness some clay formulas leave behind.",
     whyTheyMadeTheList:
-      "Two reviewed products with a genuinely accessible price point for a vitamin C and clay-cleanser pairing.",
+      "{count} reviewed products with a genuinely accessible price point for a vitamin C and clay-cleanser pairing.",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -458,7 +459,7 @@ export const brandEditorial: BrandEditorialOverlay[] = [
     skinlabsTake:
       "Eco Diva's clean-beauty positioning doesn't come at the expense of function — the HA serum uses a genuinely reasonable multi-weight approach to hydration, and the foaming cleanser is gentle enough for daily use without the drying effect some sulfate-free foaming cleansers struggle to avoid.",
     whyTheyMadeTheList:
-      "Two reviewed products from a brand built explicitly around paraben- and sulfate-free formulation, without sacrificing basic efficacy.",
+      "{count} reviewed products from a brand built explicitly around paraben- and sulfate-free formulation, without sacrificing basic efficacy.",
     evidenceLimitation: "Currently 2 reviewed products — enough for our Ranked tier, but a smaller sample than our longer-reviewed brands.",
   },
   {
@@ -658,25 +659,104 @@ export interface SpotlightBrandRanking {
   movement: "New";
 }
 
-const editorialBySlug = new Map(brandEditorial.map((entry) => [entry.brand, entry]));
+/**
+ * Brand names arrive spelled differently across the static catalogue and the pipeline-generated reviews ("SKOON." vs
+ * "Skoon", "Gève Skincare" vs "Geve", "Lelive." vs "Lelive"). This key folds case, accents, punctuation and a trailing
+ * "skincare"/"skin care" so every spelling of a brand lands in the same Spotlight entry.
+ */
+export const brandKey = (name: string): string =>
+  name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\b(?:skin ?care)$/, "")
+    .trim();
 
+const editorialByKey = new Map(brandEditorial.map((entry) => [brandKey(entry.brand), entry]));
+
+const slugify = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+/** The cleanest spelling in use: the most common one, ties going to the longer (fuller) name, trailing punctuation dropped. */
+const displayName = (products: ProductReview[]): string => {
+  const counts = new Map<string, number>();
+  for (const p of products) {
+    const name = p.brand.trim().replace(/[.\s]+$/, "");
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)[0][0];
+};
+
+const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, max).replace(/\s+\S*$/, "")}…`);
+
+/**
+ * A brand with no hand-written editorial overlay (it reached Spotlight through the review pipeline) still gets a
+ * profile, built ONLY from facts already in its published reviews: counts, categories, scores and the verdict text of
+ * its top-scoring review. Nothing is invented: no website, no brand story, no positioning claims.
+ */
+function deriveOverlay(brand: string, products: ProductReview[]): BrandEditorialOverlay {
+  const top = [...products].sort((a, b) => overallScore(b) - overallScore(a))[0];
+  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))].slice(0, 3);
+  const n = products.length;
+  const sponsored = products.some((p) => p.is_sponsored);
+  const avg = (products.reduce((sum, p) => sum + overallScore(p), 0) / n).toFixed(1);
+  return {
+    brand,
+    slug: slugify(brand),
+    positioningStatement: `Reviewed by SkinLabs across ${n} product${n === 1 ? "" : "s"}${categories.length ? `, including ${categories.join(", ").toLowerCase()}` : ""}.`,
+    knownFor: categories.length ? `${categories.join(", ")}.` : "Skincare products reviewed by SkinLabs.",
+    skinlabsTake: `Our highest-scoring review of ${brand} is ${top.product_name}, at ${overallScore(top).toFixed(1)}/10. ${clip(top.verdict ?? "", 320)}`.trim(),
+    whyTheyMadeTheList: `${n} published SkinLabs reviews averaging ${avg}/10 across efficacy, value, texture and SA climate fit. Position is set by review scores alone.`,
+    evidenceLimitation: `Profile compiled from our published reviews of ${brand}; no separate editorial write-up yet.${
+      sponsored ? " Some of these products are sold through OpenHaus, SkinLabs' own marketplace, and their reviews are labelled Sponsored." : ""
+    }`,
+  };
+}
+
+/** Swaps the "{count}" token and keeps "Currently N reviewed products" caveats true as a brand's review count grows. */
+function withLiveCounts(overlay: BrandEditorialOverlay, count: number): BrandEditorialOverlay {
+  const fill = (text: string) => text.replace(/\{count\}/g, String(count));
+  let evidenceLimitation = overlay.evidenceLimitation;
+  if (evidenceLimitation && /^Currently \d+ reviewed products?/.test(evidenceLimitation)) {
+    evidenceLimitation = count > 3 ? undefined : evidenceLimitation.replace(/^Currently \d+ reviewed products?/, `Currently ${count} reviewed product${count === 1 ? "" : "s"}`);
+  }
+  return {
+    ...overlay,
+    skinlabsTake: fill(overlay.skinlabsTake),
+    whyTheyMadeTheList: fill(overlay.whyTheyMadeTheList),
+    evidenceLimitation: evidenceLimitation ? fill(evidenceLimitation) : undefined,
+  };
+}
+
+/**
+ * Ranks every brand with a published review. Pass the static catalogue merged with the pipeline-generated reviews
+ * (use-spotlight-ranking.ts) for the live ranking; with no argument it ranks the static catalogue only.
+ * Two or more published reviews = Ranked; exactly one = New on the Radar.
+ */
 export function computeSpotlightRanking(reviews: ProductReview[] = productReviews): SpotlightBrandRanking[] {
   const byBrand = new Map<string, ProductReview[]>();
   for (const review of reviews) {
-    const list = byBrand.get(review.brand) ?? [];
+    const key = brandKey(review.brand);
+    if (!key) continue;
+    const list = byBrand.get(key) ?? [];
     list.push(review);
-    byBrand.set(review.brand, list);
+    byBrand.set(key, list);
   }
 
   const entries: SpotlightBrandRanking[] = [];
-  for (const [brand, products] of byBrand) {
-    const editorial = editorialBySlug.get(brand);
-    if (!editorial) {
-      if (import.meta.env.DEV) {
-        throw new Error(`Spotlight: "${brand}" has reviewed products but no BrandEditorialOverlay entry.`);
-      }
-      continue;
-    }
+  for (const [key, products] of byBrand) {
+    const overlay = editorialByKey.get(key);
+    const brand = overlay?.brand ?? displayName(products);
+    const editorial = withLiveCounts(overlay ?? deriveOverlay(brand, products), products.length);
     const sortedProducts = [...products].sort((a, b) => overallScore(b) - overallScore(a));
     const avgOverallScore = Number(
       (products.reduce((sum, review) => sum + overallScore(review), 0) / products.length).toFixed(2),
@@ -695,7 +775,7 @@ export function computeSpotlightRanking(reviews: ProductReview[] = productReview
     });
   }
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && reviews === productReviews) {
     for (const editorial of brandEditorial) {
       if (!entries.some((entry) => entry.brand === editorial.brand)) {
         throw new Error(`Spotlight: BrandEditorialOverlay "${editorial.brand}" has no matching productReviews entries.`);
@@ -721,7 +801,14 @@ export const spotlightRanking = computeSpotlightRanking();
 export const spotlightRankedBrands = spotlightRanking.filter((entry) => entry.tier === "ranked");
 export const spotlightRisingBrands = spotlightRanking.filter((entry) => entry.tier === "new-on-the-radar");
 
-export const getSpotlightBrand = (slug: string) => spotlightRanking.find((entry) => entry.slug === slug);
+export const getSpotlightBrand = (slug: string, ranking: SpotlightBrandRanking[] = spotlightRanking) =>
+  ranking.find((entry) => entry.slug === slug);
+
+/** The Spotlight entry for a review's brand, whichever way the brand is spelled. */
+export const findSpotlightBrandFor = (brandName: string, ranking: SpotlightBrandRanking[] = spotlightRanking) => {
+  const key = brandKey(brandName);
+  return ranking.find((entry) => brandKey(entry.brand) === key);
+};
 
 /**
  * These two strings are the ONLY hand-curated identifiers in this file — bump them
@@ -732,11 +819,11 @@ export const getSpotlightBrand = (slug: string) => spotlightRanking.find((entry)
  * spotlightRankedBrands / spotlightRisingBrands so it can never drift out of sync
  * with the actual data below.
  */
-export const SPOTLIGHT_METHODOLOGY_VERSION = "Spotlight Methodology v1.1";
-export const SPOTLIGHT_EDITION_MONTH = "September 2026";
+export const SPOTLIGHT_METHODOLOGY_VERSION = "Spotlight Methodology v1.4";
+export const SPOTLIGHT_EDITION_MONTH = "October 2026";
 
 /**
- * Weekly Top 3 rotation (Methodology v1.1). SAST has no DST, so it is always UTC+2.
+ * Weekly Top 3 rotation (since Methodology v1.1). SAST has no DST, so it is always UTC+2.
  * The rotation flips every Friday at 00:00 SAST — never mid-week, never on demand.
  */
 const SAST_OFFSET_MS = 2 * 60 * 60 * 1000;
@@ -760,7 +847,7 @@ export function spotlightRotationWeekIndex(date: Date = new Date()): number {
  * "Top 3 brands this week": drawn only from the highest-scoring Ranked brands (never an
  * arbitrary or paid pick), grouped into rotation cohorts of 3 and cycled weekly so the
  * spotlight moves across real, evidence-backed top performers rather than freezing on the
- * same three every edition. See Spotlight Methodology v1.1, "Weekly Top 3 rotation".
+ * same three every edition. See /spotlight/methodology, "Weekly Top 3 rotation".
  */
 export function computeSpotlightTopThisWeek(
   ranked: SpotlightBrandRanking[] = spotlightRankedBrands,

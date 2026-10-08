@@ -27,7 +27,7 @@ import { useGeneratedComparisons } from "@/hooks/use-generated-comparisons";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
 import { podcastEpisodes } from "@/data/podcast";
-import { spotlightRanking } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { allSeasons, seasonHubs } from "@/data/seasonals";
 import { faqEntries } from "@/data/faq";
 import { searchablePages } from "@/lib/search-index";
@@ -99,6 +99,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
   const { articles: briefings } = useNewsArticles(30);
   const { data: marketplaceProducts } = useMarketplaceProducts();
   const { data: generatedReviews } = useGeneratedReviews();
+  const { all: spotlightRanking } = useSpotlightRanking();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
     [generatedReviews],
@@ -311,7 +312,7 @@ const SiteSearch = ({ open, onOpenChange }: SiteSearchProps) => {
     const all = { comparisons, spotlight, seasonals, reviews, news, podcast, pages, knowledgeHub, marketplace, ingredients };
     // Groups the active chip doesn't cover are emptied.
     return Object.fromEntries(Object.entries(all).map(([group, list]) => [group, groupAllowed(filter, group) ? list : []])) as typeof all;
-  }, [query, hasQuery, filter, briefings, marketplaceProducts, allReviews, allComparisonArticles, ingredientRows]);
+  }, [query, hasQuery, filter, briefings, marketplaceProducts, allReviews, allComparisonArticles, ingredientRows, spotlightRanking]);
 
   const matched = (list: RankedResult[]) => list.filter((r) => r.score > 0).sort((a, b) => b.score - a.score);
   const forDisplay = (list: RankedResult[]) => matched(list).slice(0, GROUP_CAP);

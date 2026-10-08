@@ -83,3 +83,9 @@ verify_jwt = false
 
 [functions.username-login]
 verify_jwt = false
+
+[functions.community-retention]
+verify_jwt = false
+
+[functions.paystack-payment]
+verify_jwt = false

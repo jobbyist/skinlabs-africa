@@ -20,7 +20,7 @@ export const searchablePages: SearchablePage[] = [
   { title: "Product Reviews", description: "Independent SA skincare product reviews and scores", href: "/reviews", keywords: "reviews scores ratings ingredients hyaluronic acid niacinamide retinol vitamin c" },
   { title: "Compare Products", description: "Compare skincare products side by side", href: "/compare", keywords: "compare versus shelf showdown" },
   { title: "Spotlight by SkinLabs", description: "A monthly, review-led ranking of South African skincare brands", href: "/spotlight", keywords: "spotlight brands ranking top brands" },
-  { title: "Spotlight Methodology", description: "How Spotlight ranks South African skincare brands", href: "/spotlight/methodology", keywords: "spotlight methodology scoring" },
+  { title: "Editorial Methodologies", description: "How SkinLabs briefings, reviews, comparisons, seasonals, podcast, ingredients and Spotlight are made", href: "/spotlight/methodology", keywords: "methodology methodologies spotlight scoring briefings reviews comparisons seasonals podcast ingredients" },
   { title: "Spotlight Archive", description: "Past Spotlight brand rankings by month", href: "/spotlight/archive", keywords: "spotlight archive past rankings" },
   { title: "Seasonals by SkinLabs", description: "Skincare for the season you're actually living in", href: "/seasonals", keywords: "seasonals seasonal skincare" },
   { title: "The Skin Deep Podcast", description: "Weekly SA skincare conversations and ingredient science", href: "/podcast", keywords: "podcast episodes audio" },

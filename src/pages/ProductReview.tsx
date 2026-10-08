@@ -44,7 +44,8 @@ import {
   overallScore,
   productReviews,
 } from "@/data/reviews";
-import { spotlightRanking } from "@/data/spotlight";
+import { findSpotlightBrandFor } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
@@ -64,6 +65,7 @@ const ProductReview = () => {
   const { user } = useAuth();
   const { isMember } = useMembership();
   const { data: generatedReviews } = useGeneratedReviews();
+  const { all: spotlightAll } = useSpotlightRanking();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
     [generatedReviews],
@@ -240,7 +242,7 @@ const ProductReview = () => {
   // Real comments only — the seeded placeholder discussion was fabricated social proof.
   const displayComments = comments;
   const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
-  const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
+  const spotlightEntry = findSpotlightBrandFor(review.brand, spotlightAll);
   const seasonalFeature = allSeasons
     .map((season) => seasonHubs[season])
     .find((hub) => hub.productEdit.picks.some((pick) => pick.reviewId === review.id));

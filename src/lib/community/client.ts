@@ -174,6 +174,32 @@ export const fetchIsStaff = async (userId: string): Promise<boolean> => {
   return data === true;
 };
 
+export interface MediaUsage {
+  used: number;
+  quota: number;
+}
+
+/** The member's picture storage use against their quota (null when it can't be read; uploads then rely on the server check). */
+export const getMyMediaUsage = async (): Promise<MediaUsage | null> => {
+  const { data, error } = await db.rpc("community_my_media_usage");
+  if (error || !data) return null;
+  const d = data as { used?: number; quota?: number };
+  return typeof d.used === "number" && typeof d.quota === "number" ? { used: d.used, quota: d.quota } : null;
+};
+
+export interface MySanction {
+  kind: "mute" | "suspend";
+  expires_at: string | null;
+}
+
+/** The member's own mute/suspension, if one is in force. Reason and moderator are never exposed to the member. */
+export const getMySanction = async (): Promise<MySanction | null> => {
+  const { data, error } = await db.rpc("community_my_sanction");
+  const d = data as Partial<MySanction> | null;
+  if (error || !d || (d.kind !== "mute" && d.kind !== "suspend")) return null;
+  return { kind: d.kind, expires_at: d.expires_at ?? null };
+};
+
 export type MediaBucket = "community-media" | "avatars";
 
 /** Public URL of an uploaded picture (both buckets are public-read; object names are unguessable). */
@@ -182,9 +208,15 @@ export const mediaUrl = (bucket: MediaBucket, path: string | null | undefined): 
 
 /** Uploads a prepared blob into the caller's own folder and returns its storage path. */
 export const uploadMedia = async (bucket: MediaBucket, userId: string, prepared: { blob: Blob; ext: string; contentType: string }): Promise<string> => {
+  if (bucket === "community-media") {
+    // The server refuses uploads once a member is at their quota; checking first gives the member a clear message and
+    // stops a single large file from taking them well over it.
+    const usage = await getMyMediaUsage();
+    if (usage && usage.used + prepared.blob.size > usage.quota) throw new CommunityError("media_quota_exceeded", "media_quota_exceeded");
+  }
   const path = `${userId}/${crypto.randomUUID()}.${prepared.ext}`;
   const { error } = await supabase.storage.from(bucket).upload(path, prepared.blob, { contentType: prepared.contentType, cacheControl: "31536000", upsert: false });
-  if (error) throw new CommunityError(error.message);
+  if (error) throw new CommunityError(/row-level security|violates|unauthorized/i.test(error.message) && bucket === "community-media" ? "media_quota_exceeded" : error.message);
   return path;
 };
 
@@ -232,7 +264,52 @@ export const AdminModeration = {
     const { error } = await db.rpc("community_admin_set_term", { p_pattern: pattern, p_enabled: enabled });
     if (error) fail(error);
   },
+  searchMembers: async (query: string) => {
+    const { data, error } = await db.rpc("community_admin_member_search", { p_query: query });
+    if (error) return fail(error);
+    return (data ?? []) as AdminMember[];
+  },
+  sanction: async (userId: string, kind: SanctionKind, hours: number | null, reason: string) => {
+    const { error } = await db.rpc("community_admin_sanction", { p_user_id: userId, p_kind: kind, p_hours: hours, p_reason: reason });
+    if (error) fail(error);
+  },
+  sanctionAuthor: async (type: "post" | "comment", id: string, kind: SanctionKind, hours: number | null, reason: string) => {
+    const { error } = await db.rpc("community_admin_sanction_content_author", { p_type: type, p_id: id, p_kind: kind, p_hours: hours, p_reason: reason });
+    if (error) fail(error);
+  },
+  liftSanction: async (id: string) => {
+    const { error } = await db.rpc("community_admin_lift_sanction", { p_sanction_id: id });
+    if (error) fail(error);
+  },
+  sanctions: async (activeOnly = true) => {
+    const { data, error } = await db.rpc("community_admin_sanctions", { p_active_only: activeOnly });
+    if (error) return fail(error);
+    return (data ?? []) as AdminSanction[];
+  },
 };
+
+export type SanctionKind = "mute" | "suspend";
+export interface AdminMember {
+  user_id: string;
+  handle: string;
+  role: string;
+  posts: number;
+  comments: number;
+  sanction_kind: SanctionKind | null;
+  sanction_expires_at: string | null;
+}
+export interface AdminSanction {
+  id: string;
+  user_id: string;
+  handle: string | null;
+  kind: SanctionKind;
+  reason: string;
+  created_by_name: string | null;
+  created_at: string;
+  expires_at: string | null;
+  lifted_at: string | null;
+  active: boolean;
+}
 
 export interface AdminReport {
   report_id: string;
