@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { ArrowUp, Loader2, PenLine } from "lucide-react";
+import { ArrowUp, Flame, Loader2, PenLine, Sparkles, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -33,6 +33,13 @@ import { FORUM_PATH, parsePostParam, postPath, writeErrorMessage, type Community
 import { shareContent } from "@/lib/pwa/share";
 import { getSiteOrigin } from "@/lib/siteOrigin";
 import { cn } from "@/lib/utils";
+
+type Sort = "hot" | "new" | "top";
+const SORTS: { key: Sort; label: string; icon: typeof Flame }[] = [
+  { key: "hot", label: "Hot", icon: Flame },
+  { key: "new", label: "New", icon: Sparkles },
+  { key: "top", label: "Top", icon: TrendingUp },
+];
 
 type Confirm = { kind: "delete" | "remove"; post: CommunityPost } | null;
 
@@ -66,6 +73,7 @@ const CommunityForum = () => {
   const [report, setReport] = useState<ReportTarget | null>(null);
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [guidelinesOpen, setGuidelinesOpen] = useState(false);
+  const [sort, setSort] = useState<Sort>("hot");
 
   const signedIn = Boolean(user);
   const openPostId = parsePostParam(`?${params.toString()}`);
@@ -81,7 +89,14 @@ const CommunityForum = () => {
   const sanction = useQuery({ queryKey: [COMMUNITY_KEY, "sanction", user?.id], queryFn: getMySanction, enabled: signedIn, staleTime: 60_000 });
   const suspended = sanction.data?.kind === "suspend";
   const muted = sanction.data?.kind === "mute";
-  const posts = useMemo(() => feed.data?.pages.flatMap((p) => p.posts) ?? [], [feed.data]);
+  const loaded = useMemo(() => feed.data?.pages.flatMap((p) => p.posts) ?? [], [feed.data]);
+  // Sorting reorders the discussions already loaded (pinned always first); the server order is newest first.
+  const posts = useMemo(() => {
+    if (sort === "new") return loaded;
+    const score = (p: CommunityPost) => (sort === "top" ? p.like_count : p.like_count * 2 + p.comment_count);
+    const weight = (p: CommunityPost) => (p.pinned ? 1 : 0);
+    return [...loaded].sort((a, b) => weight(b) - weight(a) || score(b) - score(a) || Date.parse(b.created_at) - Date.parse(a.created_at));
+  }, [loaded, sort]);
 
   // Signed-out visitors get the normal sign-in dialog in place, and come back to this exact discussion afterwards.
   useEffect(() => {
@@ -177,7 +192,7 @@ const CommunityForum = () => {
     if (feed.isError) return <FeedError onAction={() => void feed.refetch()} />;
     if (posts.length === 0) return <FeedEmpty filtered={Boolean(category)} onAction={() => setComposeOpen(true)} />;
     return (
-      <ul className="space-y-4">
+      <ul className="space-y-3">
         {posts.map((post, index) => (
           <Fragment key={post.id}>
             <li data-post-id={post.id}>
@@ -207,10 +222,10 @@ const CommunityForum = () => {
       <div className="min-h-screen bg-background">
         <Header />
         <main className="pb-32 pt-20 md:pt-24">
-          <div className="container mx-auto max-w-2xl px-4">
-            <section className="pb-6 pt-6 md:pt-10">
+          <div className="container mx-auto max-w-5xl px-4">
+            <section className="pb-5 pt-6 md:pt-8">
               <p className="eyebrow">Community</p>
-              <h1 className="mt-2 font-heading text-3xl font-bold tracking-tight text-foreground md:text-4xl">Skin talk, South African style.</h1>
+              <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">Skin talk, South African style.</h1>
               <p className="mt-3 max-w-xl text-base text-muted-foreground [text-wrap:pretty]">
                 Real routines, honest product questions and what's actually working in Highveld winters and coastal summers. Share experience, not diagnoses: for anything persistent, see a doctor.{" "}
                 <button type="button" onClick={() => setGuidelinesOpen(true)} className="rounded underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -230,7 +245,8 @@ const CommunityForum = () => {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
+              <div className="min-w-0 space-y-3">
                 {sanction.data && (
                   <div role="status" className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-foreground">
                     <p className="font-semibold">{suspended ? "Your Community access is suspended" : "You're muted"}</p>
@@ -246,7 +262,7 @@ const CommunityForum = () => {
                   type="button"
                   disabled={muted}
                   onClick={() => setComposeOpen(true)}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-3xl border border-border bg-card px-5 py-3 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <PenLine className="size-5 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">Start a discussion…</span>
@@ -254,7 +270,7 @@ const CommunityForum = () => {
                 </button>
                 )}
 
-                <nav aria-label="Topics" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <nav aria-label="Topics" className="-mx-4 flex lg:hidden gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <Chip active={category === null} onClick={() => setCategory(null)}>
                     All
                   </Chip>
@@ -264,6 +280,24 @@ const CommunityForum = () => {
                     </Chip>
                   ))}
                 </nav>
+
+                <div role="tablist" aria-label="Sort discussions" className="flex items-center gap-1 rounded-2xl border border-border bg-card p-1">
+                  {SORTS.map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={sort === key}
+                      onClick={() => setSort(key)}
+                      className={cn(
+                        "flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        sort === key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="size-4" aria-hidden="true" /> {label}
+                    </button>
+                  ))}
+                </div>
 
                 <ConnectionBanner state={realtime.state} />
 
@@ -290,6 +324,42 @@ const CommunityForum = () => {
                   </Button>
                 )}
                 {!feed.hasNextPage && posts.length > 0 && <p className="py-6 text-center text-sm text-muted-foreground">You're all caught up.</p>}
+              </div>
+
+              <aside aria-label="About this community" className="hidden space-y-4 lg:sticky lg:top-28 lg:block">
+                <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                  <div className="gradient-bg h-10" aria-hidden="true" />
+                  <div className="space-y-3 p-4">
+                    <h2 className="font-heading text-base font-semibold">SkinLabs® Community</h2>
+                    <p className="text-sm text-muted-foreground">Routines, products and honest questions for South African skin.</p>
+                    {!suspended && (
+                      <Button className="w-full" disabled={muted} onClick={() => setComposeOpen(true)}>
+                        Create a post
+                      </Button>
+                    )}
+                    <button type="button" onClick={() => setGuidelinesOpen(true)} className="w-full rounded text-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      Community guidelines
+                    </button>
+                  </div>
+                </div>
+                <nav aria-label="Topics" className="rounded-2xl border border-border bg-card p-2">
+                  <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Topics</p>
+                  {[{ slug: null as string | null, name: "All" }, ...(categories.data ?? [])].map((c) => (
+                    <button
+                      key={c.slug ?? "all"}
+                      type="button"
+                      aria-pressed={category === c.slug}
+                      onClick={() => setCategory(c.slug)}
+                      className={cn(
+                        "block w-full truncate rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        category === c.slug ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                      )}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </nav>
+              </aside>
               </div>
             )}
           </div>
