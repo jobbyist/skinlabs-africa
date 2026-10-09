@@ -1,11 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
 /** One owner of sheet geometry; Vaul's input repositioning must be disabled. */
 export function useForumViewport(open: boolean) {
-  const ref = useRef<HTMLDivElement>(null);
+  // Portalled drawer content can mount after the parent's opening effect.
+  const [element, setElement] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const element = ref.current;
     const viewport = window.visualViewport;
     if (!open || !element || !viewport) return;
     let frame = 0;
@@ -34,7 +34,7 @@ export function useForumViewport(open: boolean) {
       element.style.removeProperty("--forum-viewport-bottom");
       delete element.dataset.keyboardOpen;
     };
-  }, [open]);
+  }, [open, element]);
 
-  return ref;
+  return setElement;
 }

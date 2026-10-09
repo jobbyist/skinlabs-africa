@@ -276,13 +276,13 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
               <span id="community-body-count" className="ml-auto text-xs tabular-nums text-muted-foreground">{body.length}/{BODY_MAX}</span>
             </div>
             <div className="flex gap-2">
-            <Button type="button" variant="outline" className="h-11 flex-1" onClick={() => onOpenChange(false)} disabled={publishing}>
-              Cancel
-            </Button>
-            <Button type="submit" className="gradient-bg h-11 flex-[2] border-0 hover:opacity-90" disabled={busy}>
-              {publishing ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}
-              {publishing ? "Publishing…" : "Publish"}
-            </Button>
+              <Button type="button" variant="outline" className="h-11 flex-1" onClick={() => onOpenChange(false)} disabled={publishing}>
+                Cancel
+              </Button>
+              <Button type="submit" className="gradient-bg h-11 flex-[2] border-0 hover:opacity-90" disabled={busy}>
+                {publishing ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}
+                {publishing ? "Publishing…" : "Publish"}
+              </Button>
             </div>
           </div>
         </form>
