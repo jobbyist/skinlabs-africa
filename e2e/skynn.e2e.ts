@@ -242,3 +242,26 @@ test("Share my skin story: cancelling the native sheet is silent and the button 
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText(/couldn't create your skin story/)).toHaveCount(0);
 });
+
+test("results hub: identity card, three tabs with hash memory, AM/PM toggle, cadence tracker", async ({ page, context }) => {
+  await mockSupabase(context, { profile: freeProfile() });
+  await completeBasicAnalysis(page);
+  await expect(page.getByRole("heading", { name: "Your Basic AI Skin Analysis", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Skin profile" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("region", { name: "Your skin identity" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Read complete analysis story" })).toBeVisible();
+  await expect(page.getByText("How close is this to what you need?")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Routine" }).click();
+  expect(new URL(page.url()).hash).toBe("#results-routine");
+  await expect(page.getByRole("list", { name: "Morning routine" })).toBeVisible();
+  await page.getByRole("tab", { name: "Evening" }).click();
+  await expect(page.getByRole("list", { name: "Evening routine" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Weekly actives schedule" })).toBeVisible();
+  await page.getByRole("tab", { name: /Ongoing/ }).click();
+  await expect(page.getByText("How close is this to what you need?")).toBeVisible();
+
+  await page.getByRole("tab", { name: "Confidence" }).click();
+  await expect(page.getByText("Analysis completeness")).toBeVisible();
+  await expect(page.getByText("Non-diagnostic.")).toBeVisible();
+});
