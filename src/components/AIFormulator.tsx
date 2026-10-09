@@ -51,6 +51,11 @@ import ConfidencePanel from "@/components/ai-formulator/ConfidencePanel";
 import ChangeQuestionStep from "@/components/ai-formulator/ChangeQuestionStep";
 import RoutinePreferenceStep from "@/components/ai-formulator/RoutinePreferenceStep";
 import SkinStoryCard from "@/components/ai-formulator/SkinStoryCard";
+import ResultsTabNav from "@/components/ai-formulator/ResultsTabNav";
+import ResultsIdentityCard from "@/components/ai-formulator/ResultsIdentityCard";
+import RoutineStepCard from "@/components/ai-formulator/RoutineStepCard";
+import WeeklyCadenceTracker from "@/components/ai-formulator/WeeklyCadenceTracker";
+import { hashForTab, tabFromHash, weeklyScheduleText, type ResultsTab } from "@/lib/starter-analysis/resultsView";
 import PriorityList from "@/components/ai-formulator/PriorityList";
 import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
@@ -194,6 +199,28 @@ const AIFormulator = () => {
   const progressPctRef = useRef(0);
   const funnelViewedRef = useRef(false);
   const completedFiredRef = useRef(false);
+
+  // Results hub: tab + AM/PM period. The tab is remembered in the URL hash (#results-routine) without adding history entries.
+  const [resultsTab, setResultsTab] = useState<ResultsTab>(() =>
+    typeof window === "undefined" ? "profile" : (tabFromHash(window.location.hash) ?? "profile"),
+  );
+  const [routinePeriod, setRoutinePeriod] = useState<"am" | "pm">("am");
+  const selectResultsTab = (tab: ResultsTab) => {
+    setResultsTab(tab);
+    try {
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}${hashForTab(tab)}`);
+    } catch {
+      /* hash memory is a convenience only */
+    }
+  };
+  useEffect(() => {
+    const onHash = () => {
+      const t = tabFromHash(window.location.hash);
+      if (t) setResultsTab(t);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -810,6 +837,13 @@ const AIFormulator = () => {
   const starterSummary = starterResult ? summarizeStarterResult(starterResult) : null;
   const introLocked = Boolean(user && !isMember && allowance?.locked);
 
+  const refinementPanel = starterResult ? (
+    <RefinementPanel
+      onSubmit={handleRefinementSubmit}
+      lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
+    />
+  ) : null;
+
   return (
     <>
       <section id="skynn-ai" className="py-20 bg-background">
@@ -1206,83 +1240,105 @@ const AIFormulator = () => {
 
                   {showFullResult ? (
                   <>
-                  {/* Skin Snapshot strip */}
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    {skinImage && (
-                      <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
-                    )}
-                    <span className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium capitalize">
-                      {derivedSkinType} skin
-                    </span>
-                    {mstSwatch && (
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
-                        <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: mstSwatch.hex }} />
-                        MST {mstSwatch.level}
-                      </span>
-                    )}
-                    {completeness && (
-                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                        {completeness.overall}% complete profile
-                      </span>
-                    )}
-                    {starterResult?.context.status && starterResult.context.status !== "always_like_this" && (
-                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                        {CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label}
-                      </span>
-                    )}
-                  </div>
+                  {starterResult && (
+                    <ResultsTabNav value={resultsTab} onChange={selectResultsTab} />
+                  )}
 
-                  {starterResult && <SkinStoryCard skinStory={starterResult.skinStory} />}
-                  {starterResult && <PriorityList priorities={starterResult.priorities} />}
+                  {starterResult && resultsTab === "profile" && (
+                    <div role="tabpanel" id="results-panel-profile" aria-labelledby="results-tab-profile" className="space-y-5 animate-in fade-in-0 duration-200">
+                      <ResultsIdentityCard
+                        skinType={derivedSkinType}
+                        concern={starterResult.primaryConcern}
+                        barrier={starterResult.profile.barrierTendency}
+                        mst={mstSwatch ? { level: mstSwatch.level, hex: mstSwatch.hex } : null}
+                        photo={skinImage}
+                        extra={[
+                          ...(starterResult.context.status && starterResult.context.status !== "always_like_this"
+                            ? [CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label ?? ""]
+                            : []),
+                        ].filter(Boolean)}
+                      />
+                      <SkinStoryCard result={starterResult} />
+                      <PriorityList priorities={starterResult.priorities} />
+                      {refinementPanel}
+                    </div>
+                  )}
 
-                  <div className="grid gap-4 lg:grid-cols-[1fr_280px] items-start">
-                    <div className="space-y-4">
+                  {starterResult && resultsTab === "routine" && (
+                    <div role="tabpanel" id="results-panel-routine" aria-labelledby="results-tab-routine" className="space-y-5 animate-in fade-in-0 duration-200">
+                      <div role="tablist" aria-label="Routine time of day" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+                        {(["am", "pm"] as const).map((period) => (
+                          <button
+                            key={period}
+                            type="button"
+                            role="tab"
+                            aria-selected={routinePeriod === period}
+                            onClick={() => setRoutinePeriod(period)}
+                            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                              routinePeriod === period ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {period === "am" ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+                            {period === "am" ? "Morning" : "Evening"}
+                          </button>
+                        ))}
+                      </div>
+                      <ol className="space-y-3" aria-label={routinePeriod === "am" ? "Morning routine" : "Evening routine"} key={routinePeriod}>
+                        {(routinePeriod === "am" ? ["Cleanser", "Serum", "Moisturiser", "SPF"] : ["Cleanser", "Treatment", "Moisturiser"]).map((slot, i) => (
+                          <RoutineStepCard
+                            key={slot}
+                            index={i + 1}
+                            slot={slot}
+                            pick={starterResult.groundedRoutine[routinePeriod].find((p) => p.slot === slot)}
+                            productsUnlocked={canEntitlement("ai_analysis.routine_builder")}
+                          />
+                        ))}
+                      </ol>
+                      <WeeklyCadenceTracker concern={starterResult.primaryConcern} fullText={weeklyScheduleText(recommendation)} />
                       {recommendationSections(recommendation)
                         .filter((section) => {
-                          if (!starterResult || !section.heading) return true;
-                          // Rendered above via SkinStoryCard/PriorityList/the snapshot strip instead — avoid showing it twice.
+                          if (!section.heading) return false;
                           const h = section.heading.toLowerCase();
-                          return !(h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") || h.includes("about your skin analysis"));
+                          // Shown above (identity, story, priorities, routine cards, cadence) or in the Confidence tab.
+                          return !(
+                            h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") ||
+                            h.includes("about your skin analysis") || h.includes("your skin profile") ||
+                            h.startsWith("am routine") || h.startsWith("pm routine") || h.includes("weekly actives")
+                          );
                         })
                         .map((section, idx) => {
                           const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
                           return (
                             <div key={idx} className="rounded-xl border border-border bg-secondary/20 p-5">
-                              {section.heading && (
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Icon className="h-4 w-4 text-primary shrink-0" />
-                                  <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-2 mb-2">
+                                <Icon className="h-4 w-4 text-primary shrink-0" />
+                                <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
+                              </div>
                               <div>{formatRecommendation(section.body)}</div>
                             </div>
                           );
                         })}
+                      <OpenHausShopLinks routine={starterResult.groundedRoutine} />
+                      {refinementPanel}
                     </div>
-                    {completeness && (
-                      <div className="lg:sticky lg:top-4">
+                  )}
+
+                  {starterResult && resultsTab === "integrity" && (
+                    <div role="tabpanel" id="results-panel-integrity" aria-labelledby="results-tab-integrity" className="space-y-5 animate-in fade-in-0 duration-200">
+                      {completeness && (
                         <ConfidencePanel
                           completeness={completeness}
                           limitations={[
-                            "Built from your answers only — your photo is not analysed.",
-                            "Some concerns can look different across skin tones — your optional, self-reported MST helps us check for this.",
-                            "Not a substitute for professional medical advice.",
+                            { lead: "Answers only", text: "Built from your answers — your photo is not analysed." },
+                            { lead: "Melanin-tone checked", text: "Some concerns can look different across skin tones — your optional, self-reported MST helps us check for this." },
+                            { lead: "Non-diagnostic", text: "Not a substitute for professional medical advice." },
                           ]}
                         />
-                      </div>
-                    )}
-                  </div>
-
-                  {starterResult && <OpenHausShopLinks routine={starterResult.groundedRoutine} />}
-
-                  {starterResult && (
-                    <RefinementPanel
-                      onSubmit={handleRefinementSubmit}
-                      lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
-                    />
+                      )}
+                      <AboutYourAnalysisSection />
+                      {refinementPanel}
+                    </div>
                   )}
-
-                  {starterResult && <AboutYourAnalysisSection />}
 
                   <div className="flex flex-wrap justify-center gap-2">
                     <Button

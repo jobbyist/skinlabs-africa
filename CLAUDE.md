@@ -245,6 +245,14 @@ Audit + hardening release (PR #161). Details: `docs/skynn-terminology.md`,
 - e2e: `ui-enhancements.e2e.ts` used to abort the whole Playwright run (non-destructured `beforeEach`); newsletter submit presses Enter (review page shifts while ads settle).
 - **Edge deploys 2026-10-03**: `skynn-advanced-worker` and `email-processor` redeployed as one-line raw-GitHub entries pinned to the merge commit of PR #190 on `main` (intake PDF + intake email say v2.2). The next deploy of either must pin a commit containing it.
 
+## SKYNN AI Basic results hub (2026-10-09) — standing notes
+
+Branch `claude/skynn-results-page-redesign-8bt2ux`. Presentation only: `StarterAnalysisResult`, `GroundedRoutine` and `CompletenessBreakdown` are unchanged (no schema/backend).
+
+- Results are three tabs (`ResultsTabNav`): **Skin profile** (identity card, 3 takeaway cards + "Read complete analysis story", priorities), **Routine** (Morning/Evening toggle of `RoutineStepCard`s, `WeeklyCadenceTracker`, remaining text sections, OpenHaus links), **Confidence** (`ConfidencePanel` gauge beside the input metrics, limitation callouts, About). The refinement panel ("How close is this to what you need?") is rendered inside every tab. The tab lives in `#results-profile|routine|integrity` via `history.replaceState` (no history entries).
+- All derivations are pure in `src/lib/starter-analysis/resultsView.ts` (tested in `resultsView.test.ts`). `cadenceForConcern()` mirrors `CONCERN_PROFILE[...].weeklySchedule` in `formulaResults.ts`, which stays the full-text source of truth and is printed under the tracker: change both together.
+- Named products in step cards still follow `canEntitlement("ai_analysis.routine_builder")`; others see a locked note, never the product.
+
 ## Contextual UX (2026-10-07) — standing rules
 
 Branch `claude/contextual-ux-transformation`. Full model, action catalogue, ladder and "how to add an action": **`docs/contextual-ux.md`**.
