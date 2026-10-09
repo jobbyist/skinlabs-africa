@@ -42,7 +42,7 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
           aria-pressed={post.liked_by_me}
           aria-label={`${post.liked_by_me ? "Remove upvote from" : "Upvote"} this post, ${post.like_count} ${post.like_count === 1 ? "upvote" : "upvotes"}`}
           onClick={() => actions.onLike(post)}
-          className={cn("forum-vote size-11 shrink-0 rounded-full hover:bg-background active:scale-100", post.liked_by_me ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+          className={cn("forum-vote size-11 shrink-0 rounded-full hover:bg-background active:scale-100 [&_svg]:size-6", post.liked_by_me ? "text-primary" : "text-muted-foreground hover:text-foreground")}
         >
           <ArrowBigUp className="forum-vote-icon size-6" aria-hidden="true" />
         </Button>

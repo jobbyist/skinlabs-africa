@@ -113,7 +113,7 @@ test("vote targets and composers stay usable above a resized and panned keyboard
   const target = await vote.boundingBox();
   expect(target?.width).toBe(44);
   expect(target?.height).toBe(44);
-  await expect(vote).toHaveAttribute("data-haptic", "");
+  await expect(vote).toHaveAttribute("data-haptic", "true");
   await page.getByRole("button", { name: /Start a discussion/ }).first().click();
   const sheet = page.getByRole("dialog");
   for (const label of ["Title", "Details", "Topic (optional)"]) {
