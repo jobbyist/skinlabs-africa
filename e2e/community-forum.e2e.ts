@@ -155,7 +155,7 @@ test("a discussion opens with its comments, and a new comment appears at once", 
   await sheet.getByLabel("Add a comment").fill("I keep a stick sunscreen in my bag.");
   await sheet.getByRole("button", { name: "Post comment" }).click();
   await expect(sheet.getByText("I keep a stick sunscreen in my bag.")).toBeVisible();
-  expect(forum.calls).toContain("create-comment");
+  await expect.poll(() => forum.calls).toContain("create-comment");
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/post=/);
 });
@@ -173,7 +173,7 @@ test("starting a discussion validates, publishes, and shows it at the top", asyn
   await sheet.getByLabel("Details").fill("Cape Town, tight after most cleansers but oily nose and chin.");
   await sheet.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.locator("[data-post-id]").first().getByRole("button", { name: "Best gentle cleanser for combination skin?", exact: true })).toBeVisible();
+  await expect(page.locator("[data-post-id]").getByRole("button", { name: "Best gentle cleanser for combination skin?", exact: true })).toBeVisible();
   expect(forum.calls).toContain("create-post");
 });
 

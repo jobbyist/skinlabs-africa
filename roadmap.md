@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Polish community side voting, composer focus, and keyboard-aware toolbar (current request)
+- [x] Polish community side voting, composer focus, and keyboard-aware toolbar
 
 - [ ] Create verified user webmaster@skinlabs.co.za with active Glow VIP
 - [ ] Deploy payfast-payment/paypal-payment, verify webhook URLs reachable, wire Pricing buttons -> dashboard
