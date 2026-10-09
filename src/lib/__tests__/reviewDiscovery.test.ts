@@ -12,6 +12,7 @@ import {
   pickBrands,
   planOrigins,
   priceMatchesPage,
+  productMatchesPage,
   resolveDailyCap,
   seedFromString,
 } from "../../../supabase/functions/_shared/pipelines/reviewDiscovery";
@@ -173,5 +174,24 @@ describe("candidate filtering", () => {
       new Set(),
     );
     expect(out.map((c) => c.retailerName)).toEqual(["SkinMiles"]);
+  });
+
+  test("the product the model names must be the product on the page", () => {
+    expect(
+      productMatchesPage("CeraVe Moisturizing Cream For Normal To Dry Skin 340g", "CeraVe", "CeraVe Moisturizing Cream 340g | Clicks", "https://clicks.co.za/cerave_moisturizing-cream-for-normal-to-dry-skin-340g/p/360500"),
+    ).toBe(true);
+    expect(
+      productMatchesPage("The Ordinary The Daily Set", "The Ordinary", "Gluta White Glutathione Serum Set of Two 60ml", "https://www.takealot.com/gluta-white-glutathione-serum-set-of-two-60ml/PLID92902014"),
+    ).toBe(false);
+  });
+
+  test("the brand must be in the page title or URL, not just somewhere in the text", () => {
+    const ordinary = IMPORT_BRANDS.find((b) => b.name === "The Ordinary")!;
+    const out = buildDiscoveredCandidates(
+      ordinary,
+      [{ url: "https://www.takealot.com/gluta-white-serum/PLID92902014", title: "Gluta White Serum Set", text: "Gluta White Serum R 205. Similar to The Ordinary." }],
+      new Set(),
+    );
+    expect(out).toEqual([]);
   });
 });

@@ -138,6 +138,7 @@ import {
   discoveryObjective,
   discoveryQueries,
   priceMatchesPage,
+  productMatchesPage,
   needsFullPage,
   pickBrands,
   planOrigins,
@@ -1762,6 +1763,8 @@ Deno.serve(async (req) => {
       retailerHint: Retailer | null;
       /** Brand we searched for; the model's brand must match it. Absent for OpenHaus rows and older retry payloads. */
       brandName?: string;
+      /** Title of the source page, used to check the model described the product on it. */
+      pageTitle?: string;
       /** Rand prices read from the page; the model's price is checked against them. */
       prices?: number[];
       retryQueueId?: number;
@@ -1818,6 +1821,7 @@ Deno.serve(async (req) => {
             isSponsored: c.brand.sponsored === true,
             retailerHint: c.retailerName as Retailer,
             brandName: c.brand.name,
+            pageTitle: c.title,
             prices: c.prices,
           });
         }
@@ -1895,6 +1899,10 @@ Deno.serve(async (req) => {
         // 60/40 mix and the editorial scope would drift.
         if (candidate.brandName && !brandMatches(candidate.brandName, fields.brand)) {
           errors.push(`Brand mismatch for ${candidate.sourceUrl}: searched "${candidate.brandName}", page was "${fields.brand}" -- skipped`);
+          continue;
+        }
+        if (candidate.pageTitle && !productMatchesPage(fields.product_name, fields.brand, candidate.pageTitle, candidate.sourceUrl)) {
+          errors.push(`Product "${fields.product_name}" does not match the page "${candidate.pageTitle.slice(0, 80)}" -- skipped ${candidate.sourceUrl}`);
           continue;
         }
         if (!fields.is_skincare_product) {
@@ -2095,6 +2103,7 @@ Deno.serve(async (req) => {
                   isSponsored: candidate.isSponsored,
                   retailerHint: candidate.retailerHint,
                   brandName: candidate.brandName,
+                  pageTitle: candidate.pageTitle,
                   prices: candidate.prices,
                 },
                 reason: err.message.slice(0, 300),

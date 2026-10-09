@@ -284,7 +284,8 @@ export function buildDiscoveredCandidates(brand: BrandSeed, hits: RawHit[], seen
     const canon = canonicalReviewListingUrl(hit.url, brandDomains);
     if (!canon || taken.has(canon.url) || seenUrls.has(canon.url)) continue;
     const title = (hit.title ?? "").trim();
-    if (!brandKey(`${title} ${hit.text.slice(0, 600)} ${canon.url}`).includes(key)) continue;
+    // The brand must be in the page title or URL: a mention somewhere in the text is often just a related product.
+    if (!brandKey(`${title} ${canon.url}`).includes(key)) continue;
     if (looksLikeListing(canon.url, brand, hit.text)) continue;
     const prices = detectPrices(hit.text);
     if (prices.length === 0) continue;
@@ -321,4 +322,28 @@ export function candidatePromptText(c: DiscoveredCandidate): string {
 /** Does this excerpt need a full-page read (Firecrawl) before it is worth a model call? */
 export function needsFullPage(text: string): boolean {
   return text.length < 1200;
+}
+
+const NAME_STOPWORDS = new Set(["the", "and", "for", "with", "set", "kit", "duo", "pack", "of", "in", "to", "a", "ml", "g"]);
+
+function nameTokens(value: string): string[] {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !NAME_STOPWORDS.has(t) && !/^\d+$/.test(t));
+}
+
+/**
+ * Is the product the model wrote about the product on the page? At least 60% of the distinctive words in the
+ * product name (brand words and filler removed) must appear in the page title or URL.
+ */
+export function productMatchesPage(productName: string, brand: string, pageTitle: string, url: string): boolean {
+  const brandWords = new Set(nameTokens(brand));
+  const wanted = nameTokens(productName).filter((t) => !brandWords.has(t));
+  if (wanted.length === 0) return true;
+  const haystack = new Set(nameTokens(`${pageTitle} ${decodeURIComponent(url)}`));
+  const hits = wanted.filter((t) => haystack.has(t)).length;
+  return hits / wanted.length >= 0.6;
 }
