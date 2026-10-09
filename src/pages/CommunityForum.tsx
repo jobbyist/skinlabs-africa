@@ -9,6 +9,7 @@ import SEO from "@/components/SEO";
 import AuthDialog from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import PostCard from "@/components/community/PostCard";
+import CommunitySidebar from "@/components/community/CommunitySidebar";
 import ThreadSheet from "@/components/community/ThreadSheet";
 import ComposeSheet from "@/components/community/ComposeSheet";
 import ReportDialog, { type ReportTarget } from "@/components/community/ReportDialog";
@@ -49,7 +50,7 @@ const Chip = ({ active, onClick, children }: { active: boolean; onClick: () => v
     onClick={onClick}
     aria-pressed={active}
     className={cn(
-      "h-10 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+      "h-10 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary",
       active ? "border-foreground bg-foreground text-background" : "border-border bg-card text-foreground/80 hover:border-foreground/30",
     )}
   >
@@ -219,7 +220,7 @@ const CommunityForum = () => {
         canonical={`https://skinlabs.co.za${FORUM_PATH}`}
         noindex
       />
-      <div className="min-h-screen bg-background">
+      <div className="forum-ui min-h-screen bg-background">
         <Header />
         <main className="pb-32 pt-20 md:pt-24">
           <div className="container mx-auto max-w-5xl px-4">
@@ -228,7 +229,7 @@ const CommunityForum = () => {
               <h1 className="mt-2 font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">Skin talk, South African style.</h1>
               <p className="mt-3 max-w-xl text-base text-muted-foreground [text-wrap:pretty]">
                 Real routines, honest product questions and what's actually working in Highveld winters and coastal summers. Share experience, not diagnoses: for anything persistent, see a doctor.{" "}
-                <button type="button" onClick={() => setGuidelinesOpen(true)} className="rounded underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button type="button" onClick={() => setGuidelinesOpen(true)} className="rounded underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary">
                   Community guidelines
                 </button>
               </p>
@@ -262,7 +263,7 @@ const CommunityForum = () => {
                   type="button"
                   disabled={muted}
                   onClick={() => setComposeOpen(true)}
-                  className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5 text-left text-muted-foreground transition-colors hover:border-foreground/30 focus-visible:outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <PenLine className="size-5 shrink-0" aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">Start a discussion…</span>
@@ -290,7 +291,7 @@ const CommunityForum = () => {
                       aria-selected={sort === key}
                       onClick={() => setSort(key)}
                       className={cn(
-                        "flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "flex h-9 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary",
                         sort === key ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
                       )}
                     >
@@ -326,40 +327,15 @@ const CommunityForum = () => {
                 {!feed.hasNextPage && posts.length > 0 && <p className="py-6 text-center text-sm text-muted-foreground">You're all caught up.</p>}
               </div>
 
-              <aside aria-label="About this community" className="hidden space-y-4 lg:sticky lg:top-28 lg:block">
-                <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                  <div className="gradient-bg h-10" aria-hidden="true" />
-                  <div className="space-y-3 p-4">
-                    <h2 className="font-heading text-base font-semibold">SkinLabs® Community</h2>
-                    <p className="text-sm text-muted-foreground">Routines, products and honest questions for South African skin.</p>
-                    {!suspended && (
-                      <Button className="w-full" disabled={muted} onClick={() => setComposeOpen(true)}>
-                        Create a post
-                      </Button>
-                    )}
-                    <button type="button" onClick={() => setGuidelinesOpen(true)} className="w-full rounded text-center text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      Community guidelines
-                    </button>
-                  </div>
-                </div>
-                <nav aria-label="Topics" className="rounded-2xl border border-border bg-card p-2">
-                  <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Topics</p>
-                  {[{ slug: null as string | null, name: "All" }, ...(categories.data ?? [])].map((c) => (
-                    <button
-                      key={c.slug ?? "all"}
-                      type="button"
-                      aria-pressed={category === c.slug}
-                      onClick={() => setCategory(c.slug)}
-                      className={cn(
-                        "block w-full truncate rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        category === c.slug ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                      )}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </nav>
-              </aside>
+              <CommunitySidebar
+                categories={categories.data ?? []}
+                category={category}
+                onCategory={setCategory}
+                onCompose={() => setComposeOpen(true)}
+                onGuidelines={() => setGuidelinesOpen(true)}
+                canPost={!suspended && !muted}
+                enabled={signedIn}
+              />
               </div>
             )}
           </div>

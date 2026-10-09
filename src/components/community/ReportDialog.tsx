@@ -43,7 +43,7 @@ const ReportDialog = ({ userId, target, onClose }: { userId: string; target: Rep
 
   return (
     <Dialog open={Boolean(target)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="forum-ui max-w-md">
         <form onSubmit={submit} className="space-y-4">
           <DialogHeader>
             <DialogTitle>Report this {target?.kind}</DialogTitle>

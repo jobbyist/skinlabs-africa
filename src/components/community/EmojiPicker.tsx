@@ -41,7 +41,7 @@ const EmojiPicker = ({ onPick, disabled, className }: EmojiPickerProps) => {
         </div>
         <div role="tabpanel" aria-label={active.label} className="grid max-h-48 grid-cols-7 gap-0.5 overflow-y-auto">
           {active.emojis.map((e) => (
-            <button key={e} type="button" onClick={() => onPick(e)} className="flex size-10 items-center justify-center rounded-lg text-2xl transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Insert ${e}`}>
+            <button key={e} type="button" onClick={() => onPick(e)} className="flex size-10 items-center justify-center rounded-lg text-2xl transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-[1.5px] focus-visible:ring-primary" aria-label={`Insert ${e}`}>
               {e}
             </button>
           ))}

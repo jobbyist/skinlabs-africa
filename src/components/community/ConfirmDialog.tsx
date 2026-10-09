@@ -20,7 +20,7 @@ interface ConfirmDialogProps {
 
 const ConfirmDialog = ({ open, onOpenChange, title, description, confirmLabel, onConfirm }: ConfirmDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
+    <AlertDialogContent className="forum-ui">
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>{description}</AlertDialogDescription>

@@ -13,7 +13,7 @@ interface Post {
   status: string; pinned: boolean; like_count: number; comment_count: number; share_count: number; created_at: string; edited_at: string | null; liked_by_me: boolean;
   author_avatar: string | null; image_path: string | null; image_w: number | null; image_h: number | null;
 }
-interface Comment { id: string; post_id: string; parent_id: null; author_name: string; author_role: string; is_mine: boolean; body: string; like_count: number; created_at: string; edited_at: null; liked_by_me: boolean; author_avatar: string | null }
+interface Comment { id: string; post_id: string; parent_id: string | null; author_name: string; author_role: string; is_mine: boolean; body: string; like_count: number; created_at: string; edited_at: null; liked_by_me: boolean; author_avatar: string | null }
 
 const P1 = "11111111-1111-4111-8111-111111111111";
 const SUN = "Sunscreen and hyperpigmentation: how much, how often?";
@@ -24,13 +24,24 @@ const seedPosts = (): Post[] => [
   { id: P2, author_name: "Thandi M.", author_role: "member", is_mine: false, title: "Winter dryness on the Highveld", body: "What layering works for you in July?", category: "seasonal", category_name: "Seasonal skin", status: "published", pinned: false, like_count: 0, comment_count: 0, share_count: 0, created_at: new Date(Date.now() - 7_200_000).toISOString(), edited_at: null, liked_by_me: false, author_avatar: null, image_path: null, image_w: null, image_h: null },
 ];
 
-async function mockForum(context: BrowserContext, opts: { staff?: boolean; extraPosts?: number } = {}) {
+async function mockForum(context: BrowserContext, opts: { staff?: boolean; extraPosts?: number; threaded?: boolean; sidebar?: boolean } = {}) {
   const posts = seedPosts();
   for (let i = 0; i < (opts.extraPosts ?? 0); i++) posts.push({ ...seedPosts()[1], id: `44444444-4444-4444-8444-${String(i).padStart(12, "0")}`, title: `Extra discussion ${i + 1}`, created_at: new Date(Date.now() - (3 + i) * 3_600_000).toISOString() });
   const uploads: string[] = [];
   const created: Record<string, unknown>[] = [];
   const comments: Comment[] = [{ id: "c1", post_id: P1, parent_id: null, author_name: "Cole O.", author_role: "moderator", is_mine: false, body: "Great question, reapplication is the part people skip.", like_count: 1, created_at: new Date(Date.now() - 1_800_000).toISOString(), edited_at: null, liked_by_me: false, author_avatar: null }];
+  if (opts.threaded) {
+    const at = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+    const base = { post_id: P1, is_mine: false, like_count: 0, edited_at: null, liked_by_me: false, author_avatar: null } as const;
+    comments.push(
+      { ...base, id: "c2", parent_id: "c1", author_name: "Nicole N.", author_role: "moderator", body: "Thanks! I'll add a **stick** to my bag.", created_at: at(20) },
+      { ...base, id: "c3", parent_id: "c2", author_name: "Thandi M.", author_role: "member", body: "Stick SPF is a lifesaver.", created_at: at(10) },
+      { ...base, id: "c4", parent_id: null, author_name: "Lerato K.", author_role: "member", body: "What SPF do you all use?", created_at: at(5) },
+    );
+    posts[0].comment_count = 4;
+  }
   const calls: string[] = [];
+  const createdComments: Record<string, unknown>[] = [];
   const json = (r: Route, body: unknown, status = 200) => r.fulfill({ status, json: body });
   const bodyOf = (r: Route): Record<string, unknown> => { try { return (r.request().postDataJSON() as Record<string, unknown>) ?? {}; } catch { return {}; } };
 
@@ -49,6 +60,8 @@ async function mockForum(context: BrowserContext, opts: { staff?: boolean; extra
   });
   await context.route(/supabase\.co\/rest\/v1\/rpc\/community_comments_page/, (r) => json(r, comments.filter((c) => c.post_id === bodyOf(r).p_post_id)));
   await context.route(/supabase\.co\/rest\/v1\/rpc\/community_comment_by_id/, (r) => json(r, comments.filter((c) => c.id === bodyOf(r).p_comment_id)));
+  await context.route(/supabase\.co\/rest\/v1\/rpc\/community_overview/, (r) => (opts.sidebar ? json(r, [{ member_count: 1280, discussions_today: 6, replies_today: 19 }]) : json(r, { message: "not found" }, 404)));
+  await context.route(/supabase\.co\/rest\/v1\/rpc\/community_staff_list/, (r) => (opts.sidebar ? json(r, [{ display_name: "Michael C.", role: "admin", avatar_path: null }, { display_name: "Cole O.", role: "moderator", avatar_path: null }]) : json(r, { message: "not found" }, 404)));
   await context.route(/supabase\.co\/rest\/v1\/rpc\/community_is_staff/, (r) => json(r, Boolean(opts.staff)));
   await context.route(/supabase\.co\/rest\/v1\/rpc\/community_record_share/, (r) => { calls.push("share"); return json(r, null); });
   await context.route(/supabase\.co\/rest\/v1\/community_post_likes/, (r) => {
@@ -69,14 +82,15 @@ async function mockForum(context: BrowserContext, opts: { staff?: boolean; extra
   });
   await context.route(/supabase\.co\/rest\/v1\/community_comments/, (r) => {
     const b = bodyOf(r);
-    const c: Comment = { id: `c${comments.length + 1}`, post_id: String(b.post_id), parent_id: null, author_name: "qa_user", author_role: "member", is_mine: true, body: String(b.body), like_count: 0, created_at: new Date().toISOString(), edited_at: null, liked_by_me: false, author_avatar: null };
+    const c: Comment = { id: `c${comments.length + 1}`, post_id: String(b.post_id), parent_id: (b.parent_id as string) ?? null, author_name: "qa_user", author_role: "member", is_mine: true, body: String(b.body), like_count: 0, created_at: new Date().toISOString(), edited_at: null, liked_by_me: false, author_avatar: null };
     comments.push(c);
+    createdComments.push(b);
     const post = posts.find((p) => p.id === c.post_id);
     if (post) post.comment_count += 1;
     calls.push("create-comment");
     return json(r, { id: c.id }, 201);
   });
-  return { calls, posts, uploads, created };
+  return { calls, posts, uploads, created, createdComments };
 }
 
 const member = freeProfile({ username: "qa_user", username_generated: false, full_name: "QA User" });
@@ -96,11 +110,11 @@ test("liking is a real write and toggles back", async ({ page, context }) => {
   await mockSupabase(context, { profile: member });
   const forum = await mockForum(context);
   await page.goto("/community-forum");
-  const like = page.getByRole("button", { name: /Like this post, 3 likes/ });
+  const like = page.getByRole("button", { name: /Upvote this post, 3 upvotes/ });
   await like.click();
-  await expect(page.getByRole("button", { name: /Unlike this post, 4 likes/ })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: /Unlike this post, 4 likes/ }).click();
-  await expect(page.getByRole("button", { name: /Like this post, 3 likes/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ }).click();
+  await expect(page.getByRole("button", { name: /Upvote this post, 3 upvotes/ })).toBeVisible();
   expect(forum.calls).toContain("POST:like");
   expect(forum.calls).toContain("DELETE:like");
 });
@@ -134,6 +148,7 @@ test("starting a discussion validates, publishes, and shows it at the top", asyn
   await sheet.getByLabel("Details").fill("Cape Town, tight after most cleansers but oily nose and chin.");
   await sheet.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("tab", { name: "New" }).click();
   await expect(page.locator("[data-post-id]").first().getByRole("button", { name: "Best gentle cleanser for combination skin?", exact: true })).toBeVisible();
   expect(forum.calls).toContain("create-post");
 });
@@ -241,6 +256,7 @@ test("emoji go in at the caret, and a photo is optimised, uploaded to the member
   await expect(sheet.getByAltText("Preview of your attached image")).toBeVisible();
   await sheet.getByRole("button", { name: "Publish" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("tab", { name: "New" }).click();
   expect(forum.uploads).toHaveLength(1);
   expect(forum.uploads[0]).toMatch(/^community-media\/00000000-0000-4000-8000-000000000001\/[0-9a-f-]{36}\.(webp|png)$/);
   expect(String(forum.created[0].image_path)).toMatch(/^00000000-0000-4000-8000-000000000001\/[0-9a-f-]{36}\.(webp|png)$/);
@@ -397,4 +413,190 @@ test.describe("Admin → Moderation", () => {
     await expect(page.getByRole("tab", { name: "Moderation", exact: true })).toHaveCount(0);
     expect(calls).toEqual([]);
   });
+});
+
+
+test("the vote rail keeps its narrow column but gives a 44px touch target", async ({ page, context }) => {
+  await mockSupabase(context, { profile: member });
+  await mockForum(context);
+  await page.goto("/community-forum");
+  const rail = page.locator("[data-post-id]").first().locator("article > div").first();
+  const upvote = page.getByRole("button", { name: /Upvote this post, 3 upvotes/ });
+  const [railBox, buttonBox] = [await rail.boundingBox(), await upvote.boundingBox()];
+  expect(railBox!.width).toBeLessThanOrEqual(48);
+  expect(buttonBox!.width).toBeGreaterThanOrEqual(44);
+  expect(buttonBox!.height).toBeGreaterThanOrEqual(44);
+  // Centred on the rail's thumb line.
+  expect(Math.abs(buttonBox!.x + buttonBox!.width / 2 - (railBox!.x + railBox!.width / 2))).toBeLessThan(1.5);
+  await upvote.click();
+  const pressed = page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ });
+  await expect(pressed).toHaveAttribute("aria-pressed", "true");
+  // The fill follows the --primary token (a transition target, not a hard-coded colour).
+  await expect(pressed.locator("svg")).toHaveClass(/fill-primary/);
+});
+
+test("formatting: the toolbar writes the syntax and the feed renders it as typography, never as HTML", async ({ page, context }) => {
+  await mockSupabase(context, { profile: member });
+  const forum = await mockForum(context);
+  await page.goto("/community-forum");
+  await page.getByRole("button", { name: /Start a discussion/ }).first().click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Title").fill("My evening routine in three steps");
+  const details = sheet.getByLabel("Details");
+  await details.fill("Evening routine\nCleanse then moisturise\nSPF tomorrow <script>alert(1)</script>");
+  await details.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(0, 0));
+  await sheet.getByRole("button", { name: "Heading 2" }).click();
+  await expect(details).toHaveValue(/^## Evening routine\n/);
+  await details.evaluate((el: HTMLTextAreaElement) => { const i = el.value.indexOf("Cleanse"); el.setSelectionRange(i, i + 7); });
+  await sheet.getByRole("button", { name: "Bold" }).click();
+  await expect(details).toHaveValue(/\*\*Cleanse\*\* then moisturise/);
+  await details.evaluate((el: HTMLTextAreaElement) => { const i = el.value.indexOf("SPF tomorrow"); el.setSelectionRange(i, i); });
+  await sheet.getByRole("button", { name: "Bulleted list" }).click();
+  await expect(details).toHaveValue(/- SPF tomorrow/);
+  await sheet.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(String(forum.created[0].body)).toContain("## Evening routine");
+  await page.getByRole("tab", { name: "New" }).click();
+  const card = page.locator("[data-post-id]").first();
+  await expect(card.getByRole("heading", { level: 4, name: "Evening routine" })).toBeVisible();
+  await expect(card.locator("strong", { hasText: "Cleanse" })).toBeVisible();
+  await expect(card.locator("ul li")).toContainText("SPF tomorrow");
+  await expect(card.getByText("<script>alert(1)</script>")).toBeVisible();
+  expect(await card.locator("script").count()).toBe(0);
+});
+
+test("threads nest, collapse from the header or the guide line, and mark the original poster", async ({ page, context }) => {
+  await mockSupabase(context, { profile: member });
+  const forum = await mockForum(context, { threaded: true });
+  await page.goto("/community-forum");
+  await page.getByRole("button", { name: SUN, exact: true }).click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByText("Stick SPF is a lifesaver.")).toBeVisible();
+  // Nicole N. wrote the post, so her reply carries the OP pill; nobody else does.
+  await expect(sheet.getByLabel("Original poster")).toHaveCount(1);
+  await expect(sheet.locator("strong", { hasText: "stick" })).toBeVisible();
+
+  // Header tap collapses the whole sub-thread (2 replies) into a summary line.
+  await sheet.getByRole("button", { name: /Collapse Cole O\.'s comment and 2 replies/ }).click();
+  await expect(sheet.getByText("[ + ]")).toBeVisible();
+  await expect(sheet.getByText("Cole O. (2 replies collapsed)")).toBeVisible();
+  await expect(sheet.getByText("Stick SPF is a lifesaver.")).toHaveCount(0);
+  await expect(sheet.getByText("What SPF do you all use?")).toBeVisible();
+  await sheet.getByRole("button", { name: /Cole O\. \(2 replies collapsed\)/ }).click();
+  await expect(sheet.getByText("Stick SPF is a lifesaver.")).toBeVisible();
+
+  // The guide line collapses a level on its own.
+  await sheet.getByRole("button", { name: "Collapse the 1 reply to Nicole N." }).click();
+  await expect(sheet.getByText("Nicole N. (1 reply collapsed)")).toBeVisible();
+  await expect(sheet.getByText("Stick SPF is a lifesaver.")).toHaveCount(0);
+  await sheet.getByRole("button", { name: /Nicole N\. \(1 reply collapsed\)/ }).click();
+
+  // Replying posts with a parent_id and lands inside the right thread.
+  await sheet.getByRole("button", { name: "Reply to Thandi M." }).click();
+  await expect(sheet.getByText("Replying to")).toContainText("Thandi M.");
+  await sheet.locator("#community-comment").fill("Agreed, the stick is easier to reapply.");
+  await sheet.getByRole("button", { name: "Post reply" }).click();
+  await expect(sheet.locator("li").getByText("Agreed, the stick is easier to reapply.")).toBeVisible();
+  await expect.poll(() => forum.createdComments.length).toBe(1);
+  expect(forum.createdComments[0]).toMatchObject({ parent_id: "c3" });
+  await expect(sheet.getByText("Replying to")).toHaveCount(0);
+});
+
+test("the sheet follows the visual viewport so the composer floats above the keyboard", async ({ page, context }) => {
+  await mockSupabase(context, { profile: member });
+  await mockForum(context);
+  await page.addInitScript(() => {
+    const vv = Object.assign(new EventTarget(), { height: window.innerHeight, offsetTop: 0, width: window.innerWidth, scale: 1 });
+    Object.defineProperty(window, "visualViewport", { value: vv, configurable: true });
+    (window as unknown as { __vv: typeof vv }).__vv = vv;
+  });
+  await page.goto("/community-forum");
+  await page.getByRole("button", { name: /Start a discussion/ }).first().click();
+  const sheet = page.getByRole("dialog");
+  await expect(sheet.getByRole("button", { name: "Publish" })).toBeVisible();
+  // A 320px keyboard appears.
+  await page.evaluate(() => {
+    const vv = (window as unknown as { __vv: { height: number } & EventTarget }).__vv;
+    vv.height = window.innerHeight - 320;
+    vv.dispatchEvent(new Event("resize"));
+  });
+  await expect.poll(async () => sheet.evaluate((el) => (el as HTMLElement).style.bottom)).toBe("320px");
+  await expect.poll(async () => sheet.evaluate((el) => parseInt((el as HTMLElement).style.maxHeight))).toBeLessThan(await page.evaluate(() => window.innerHeight - 320));
+  // The footer actions make room: the toolbar carries a compact Publish while the keyboard is up.
+  await expect(sheet.getByRole("toolbar", { name: "Text formatting" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Cancel" })).toBeHidden();
+  await expect(sheet.getByRole("toolbar").getByRole("button", { name: "Publish" })).toBeVisible();
+  // Keyboard goes away: back to a normal sheet.
+  await page.evaluate(() => {
+    const vv = (window as unknown as { __vv: { height: number } & EventTarget }).__vv;
+    vv.height = window.innerHeight;
+    vv.dispatchEvent(new Event("resize"));
+  });
+  await expect.poll(async () => sheet.evaluate((el) => (el as HTMLElement).style.bottom)).toBe("");
+  await expect(sheet.getByRole("button", { name: "Cancel" })).toBeVisible();
+});
+
+test.describe("desktop sidebar", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 1024, "the sidebar is a desktop (lg+) rail");
+
+  test("shows real counts, etiquette, moderators and filters by topic", async ({ page, context }) => {
+    await mockSupabase(context, { profile: member });
+    await mockForum(context, { sidebar: true });
+    await page.goto("/community-forum");
+    const side = page.getByRole("complementary", { name: "About this community" });
+    await expect(side.getByLabel("Community activity")).toContainText(/1[\s\u00a0,]?280/);
+    await expect(side.getByLabel("Community activity")).toContainText("Discussions today");
+    await expect(side.getByText("Posting etiquette")).toBeVisible();
+    await expect(side.getByText(/not diagnoses/)).toBeVisible();
+    await expect(side.getByRole("heading", { name: "Moderators" })).toBeVisible();
+    await expect(side.getByText("Michael C.")).toBeVisible();
+    await expect(page.getByText("Thandi M.")).toBeVisible();
+    await side.getByRole("button", { name: "Sun care" }).click();
+    await expect(side.getByRole("button", { name: "Sun care" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByText("Thandi M.")).toHaveCount(0);
+    await side.getByRole("button", { name: "Read the full guidelines" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  test("without the stats the numbers and the moderator list are left out, not guessed", async ({ page, context }) => {
+    await mockSupabase(context, { profile: member });
+    await mockForum(context);
+    await page.goto("/community-forum");
+    const side = page.getByRole("complementary", { name: "About this community" });
+    await expect(side.getByText("Posting etiquette")).toBeVisible();
+    await expect(side.getByLabel("Community activity")).toHaveCount(0);
+    await expect(side.getByRole("heading", { name: "Moderators" })).toHaveCount(0);
+  });
+});
+
+test("GIF search: pick a GIF and it enters the normal upload pipeline", async ({ page, context }) => {
+  test.skip(!process.env.VITE_GIPHY_API_KEY, "needs a build with VITE_GIPHY_API_KEY set (any value; GIPHY is mocked)");
+  await mockSupabase(context, { profile: member });
+  const forum = await mockForum(context);
+  const gif = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
+  const queries: string[] = [];
+  const img = (id: string) => ({ url: `https://media1.giphy.com/media/${id}/giphy.gif`, width: "200", height: "150", size: "1000" });
+  await context.route(/api\.giphy\.com\/v1\/gifs\//, (r) => {
+    const url = new URL(r.request().url());
+    queries.push(`${url.pathname.split("/").pop()}:${url.searchParams.get("q") ?? ""}:${url.searchParams.get("rating")}`);
+    return r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ pagination: { total_count: 2 }, data: [{ id: "g1", title: "glow up", images: { fixed_width_small: img("g1"), downsized: img("g1") } }, { id: "g2", title: "wow", images: { fixed_width_small: img("g2"), downsized: img("g2") } }] }) });
+  });
+  await context.route(/media1\.giphy\.com\//, (r) => r.fulfill({ status: 200, contentType: "image/gif", headers: { "access-control-allow-origin": "*" }, body: gif }));
+  await page.goto("/community-forum");
+  await page.getByRole("button", { name: /Start a discussion/ }).first().click();
+  const sheet = page.getByRole("dialog");
+  await sheet.getByLabel("Title").fill("Post-sunscreen glow, no filter");
+  await sheet.getByLabel("Details").fill("This is the glow I get with a hydrating base layer.");
+  await sheet.getByRole("button", { name: "Search for a GIF" }).click();
+  const picker = sheet.getByRole("dialog", { name: "Choose a GIF" });
+  await expect(picker.getByRole("button", { name: "Add GIF: glow up" })).toBeVisible();
+  await expect(picker.getByText("Powered by GIPHY")).toBeVisible();
+  await picker.getByRole("button", { name: "Hydrated" }).click();
+  await expect.poll(() => queries.some((q) => q.startsWith("search:hydrated skin:pg"))).toBe(true);
+  await picker.getByRole("button", { name: "Add GIF: glow up" }).click();
+  await expect(picker).toHaveCount(0);
+  await expect(sheet.getByAltText("Preview of your attached image")).toBeVisible();
+  await sheet.getByRole("button", { name: "Publish" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(forum.uploads[0]).toMatch(/community-media\/.*\.gif$/);
 });

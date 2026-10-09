@@ -79,6 +79,12 @@ export default {
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		keyframes: {
+  			'vote-bounce': {
+  				'0%': { transform: 'scale(1)' },
+  				'35%': { transform: 'scale(1.3) translateY(-2px)' },
+  				'70%': { transform: 'scale(0.95)' },
+  				'100%': { transform: 'scale(1)' }
+  			},
   			'accordion-down': {
   				from: {
   					height: '0'
@@ -98,7 +104,8 @@ export default {
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'vote-bounce': 'vote-bounce 0.32s cubic-bezier(0.34, 1.56, 0.64, 1)'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',

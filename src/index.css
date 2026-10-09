@@ -147,6 +147,30 @@
   a, button, summary, label, select, [role="button"], [role="tab"] { touch-action: manipulation; }
 }
 
+/* Community Forum: no grey flash on tap, and 16px form controls on phones so iOS Safari doesn't zoom on focus. */
+.forum-ui button,
+.forum-ui a,
+.forum-ui summary,
+.forum-ui [role="button"],
+.forum-ui [role="tab"],
+.forum-ui [role="menuitem"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+/* Subtle token focus ring (1.5px, --primary) in place of the stock 2px offset ring. */
+.forum-ui :is(button, a, input, textarea, select, [role="tab"], [role="combobox"], [role="menuitem"], [role="switch"]):focus-visible {
+  outline: none;
+  --tw-ring-offset-width: 0px;
+  --tw-ring-shadow: 0 0 0 1.5px hsl(var(--primary));
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+@media (max-width: 767px) {
+  .forum-ui input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .forum-ui textarea,
+  .forum-ui select,
+  .forum-ui [role="combobox"] { font-size: 16px; }
+}
+
 @property --gradient-angle {
   syntax: '<angle>';
   initial-value: 0deg;
@@ -243,6 +267,7 @@
   .animate-in, .animate-out { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .animate-accordion-down, .animate-accordion-up { animation-duration: .01ms !important; }
   .animate-pulse { animation: none; }
+  .animate-vote-bounce { animation: none; }
   .sl-reveal, .sl-page-shell main > section, .sl-page-shell main > .container, .sl-page-shell main > div > section { animation: none; }
   *, *::before, *::after { transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }

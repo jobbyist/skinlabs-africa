@@ -112,10 +112,10 @@ export const createPost = async (userId: string, input: { title: string; body: s
   return (data as { id: string }).id;
 };
 
-export const createComment = async (userId: string, postId: string, body: string): Promise<string> => {
+export const createComment = async (userId: string, postId: string, body: string, parentId: string | null = null): Promise<string> => {
   const { data, error } = await db
     .from("community_comments")
-    .insert({ post_id: postId, body: body.trim(), author_id: userId })
+    .insert({ post_id: postId, body: body.trim(), author_id: userId, ...(parentId ? { parent_id: parentId } : {}) })
     .select("id")
     .single();
   if (error) return fail(error);
@@ -352,3 +352,30 @@ export interface AdminTerm {
   enabled: boolean;
   created_at: string;
 }
+
+export interface CommunityOverview {
+  member_count: number;
+  discussions_today: number;
+  replies_today: number;
+}
+
+/** Aggregate numbers for the sidebar. Resolves null when the RPC isn't available, so the sidebar shows nothing rather than a guess. */
+export const fetchOverview = async (): Promise<CommunityOverview | null> => {
+  const { data, error } = await db.rpc("community_overview");
+  if (error) return null;
+  const row = (Array.isArray(data) ? data[0] : data) as Partial<CommunityOverview> | undefined;
+  if (!row || ![row.member_count, row.discussions_today, row.replies_today].every((n) => typeof n === "number")) return null;
+  return row as CommunityOverview;
+};
+
+export interface CommunityStaffMember {
+  display_name: string;
+  role: "admin" | "moderator";
+  avatar_path: string | null;
+}
+
+export const fetchStaffList = async (): Promise<CommunityStaffMember[]> => {
+  const { data, error } = await db.rpc("community_staff_list");
+  if (error) return [];
+  return ((data ?? []) as CommunityStaffMember[]).filter((s) => s.display_name && (s.role === "admin" || s.role === "moderator"));
+};
