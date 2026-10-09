@@ -30,7 +30,8 @@ export const REVIEW_RETAILERS: ReviewRetailer[] = [
   { slug: "dis-chem", name: "Dis-Chem", domain: "dischem.co.za", hosts: ["dischem.co.za", "www.dischem.co.za"], productPath: /^\/[a-z0-9][a-z0-9-]*-\d+$/ },
   { slug: "clicks", name: "Clicks", domain: "clicks.co.za", hosts: ["clicks.co.za", "www.clicks.co.za"], productPath: /^\/[^/]+\/p\/\d+$/ },
   { slug: "dermastore", name: "Dermastore", domain: "dermastore.co.za", hosts: ["dermastore.co.za", "www.dermastore.co.za"], productPath: singleSegmentProduct(/^\/[a-z0-9][a-z0-9-]+$/) },
-  { slug: "skinmiles", name: "SkinMiles", domain: "skinmiles.co.za", hosts: ["skinmiles.co.za", "www.skinmiles.co.za"], productPath: /^\/(?:products\/)?[a-z0-9][a-z0-9-]+(?:\.html)?$/ },
+  // skinmiles.com is the live shop (product pages are /product/<slug>); the .co.za host is kept for older stored listings.
+  { slug: "skinmiles", name: "SkinMiles", domain: "skinmiles.com", hosts: ["skinmiles.com", "www.skinmiles.com", "skinmiles.co.za", "www.skinmiles.co.za"], productPath: /^\/(?:products?\/)?[a-z0-9][a-z0-9-]+(?:\.html)?$/ },
   {
     slug: "faithful-to-nature",
     name: "Faithful to Nature",

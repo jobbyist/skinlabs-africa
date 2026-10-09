@@ -1,8 +1,12 @@
 /**
- * Daily South African skincare product review sync.
+ * Daily skincare product review sync: 60% local South African brands, 40% "Imports"
+ * (international brands sold in South Africa).
  *
- * Four clean roles, each doing only its own job:
- *   - Firecrawl  = researcher       (finds and fetches real source pages)
+ * Roles, each doing only its own job:
+ *   - Parallel Search = researcher (default): finds product pages for a brand on the trusted
+ *     SA retailers / the brand's own shop. Nimble Search is the fallback when Parallel is
+ *     unavailable (401/402/403/429/5xx or no key).
+ *   - Firecrawl  = page reader      (full product page when the search excerpt is too thin)
  *   - Gemini     = analyst + writer (turns a source into a scored, grounded verdict)
  *   - Supabase   = memory + orchestration + publication (dedup, cache, quota, storage)
  *   - SkinLabs   = editorial presentation (ReviewsGrid/ProductReview/SiteSearch render
@@ -18,7 +22,16 @@
  *   - A Supabase Auth JWT for a user holding the `admin` role.
  *
  * Required Supabase Edge Function secrets: GEMINI_API_KEY_REVIEWS, FIRECRAWL_API_KEY,
- * PRODUCT_REVIEW_CRON_SECRET. SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are reserved.
+ * PRODUCT_REVIEW_CRON_SECRET, and PARALLEL_API_KEY and/or NIMBLE_API_KEY (at least one).
+ * SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY are reserved.
+ *
+ * Volume (2026-10-09): DAILY_REVIEW_CAP defaults to 8 (env DAILY_REVIEW_CAP, clamped to 5-10);
+ * one invocation publishes at most MAX_REVIEWS_PER_RUN (3) and stops starting new candidates
+ * after RUN_TIME_BUDGET_MS, and cron fires five times a day (05, 07, 09, 11, 13 UTC) until the
+ * cap is met. The local/import mix is planned per day (_shared/pipelines/reviewDiscovery.ts).
+ * Prices and images: a review keeps the page's own price as its "at review time" figure; live
+ * prices and real product images are searched right after publishing by review-price-sync /
+ * review-image-sync and stay PENDING until a person approves them in Admin.
  *
  * Manual backfill (new reviews): POST with ?backfillDate=YYYY-MM-DD publishes up to
  * DAILY_REVIEW_CAP reviews dated that day instead of today.
@@ -117,21 +130,46 @@ import {
   type GeminiAttemptLog,
 } from "../_shared/pipelines/geminiFallback.ts";
 import { scanComplianceFlags } from "../_shared/pipelines/complianceTerms.ts";
+import {
+  brandMatches,
+  buildDiscoveredCandidates,
+  candidatePromptText,
+  countReviewsByBrand,
+  discoveryObjective,
+  discoveryQueries,
+  priceMatchesPage,
+  productMatchesPage,
+  needsFullPage,
+  pickBrands,
+  planOrigins,
+  resolveDailyCap,
+  seedFromString,
+  type BrandSeed,
+  type DiscoveredCandidate,
+  type Origin,
+  type RawHit,
+} from "../_shared/pipelines/reviewDiscovery.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
-const DAILY_REVIEW_CAP = 3;
-const MAX_FIRECRAWL_SOURCES_PER_RUN = 5;
-const SA_SHARE_TARGET = 0.7;
+/** 5-10 per day (default 8). Gemini use is ~2-3 calls per review, far inside the free tier. */
+const DAILY_REVIEW_CAP = resolveDailyCap(Deno.env.get("DAILY_REVIEW_CAP"));
+/** One invocation stays inside the edge function wall-clock limit; cron re-fires through the morning. */
+const MAX_REVIEWS_PER_RUN = 3;
+const RUN_TIME_BUDGET_MS = 100_000;
+const MAX_FIRECRAWL_SCRAPES_PER_RUN = 4;
+const BRANDS_SEARCHED_PER_ORIGIN_PER_RUN = 3;
 const SPOTLIGHT_BUMP_INTERVAL = 25;
 const STATIC_REVIEW_BASELINE = 160;
 const BACKFILL_BATCH_SIZE = 6;
 const MAX_FIRECRAWL_BACKFILL_PER_RUN = 3;
 
-const FIRECRAWL_DAILY_LIMIT = Number(Deno.env.get("FIRECRAWL_DAILY_LIMIT")) || 20;
+const FIRECRAWL_DAILY_LIMIT = Number(Deno.env.get("FIRECRAWL_DAILY_LIMIT")) || 40;
+const PARALLEL_DAILY_LIMIT = Number(Deno.env.get("PARALLEL_DAILY_LIMIT")) || 60;
+const NIMBLE_DAILY_LIMIT = Number(Deno.env.get("NIMBLE_DAILY_LIMIT")) || 60;
 /** Raised from the original 100 placeholder on 2026-09-22: the one-off full_review
  *  backfill across ~190 pre-existing reviews (roughly 2-3 Gemini attempts each once
  *  retries are counted) genuinely needs several hundred real calls to finish, on top
@@ -161,36 +199,7 @@ type Retailer = (typeof KNOWN_RETAILERS)[number];
 
 const KNOWN_CATEGORIES = ["Moisturiser", "Serum", "Cleanser", "Sunscreen", "Exfoliant", "Eye Cream", "Body", "Mist"] as const;
 
-type SourceType = "faithful_to_nature" | "brand_direct" | "sponsored" | "openhaus_marketplace";
-type Origin = "south_africa" | "global_available_in_sa";
-
-interface SourceSite {
-  url: string;
-  sourceType: SourceType;
-  origin: Origin;
-  isSponsored: boolean;
-  retailerHint: Retailer;
-}
-
-const SOURCE_SITES: SourceSite[] = [
-  {
-    url: "https://www.faithful-to-nature.co.za/body-beauty/facial-skincare",
-    sourceType: "faithful_to_nature",
-    origin: "south_africa",
-    isSponsored: false,
-    retailerHint: "Faithful to Nature",
-  },
-  { url: "https://geveskincare.com", sourceType: "brand_direct", origin: "south_africa", isSponsored: false, retailerHint: "Brand Direct" },
-  { url: "https://orobaa.africa", sourceType: "brand_direct", origin: "south_africa", isSponsored: false, retailerHint: "Brand Direct" },
-  { url: "https://kloom.co.za", sourceType: "brand_direct", origin: "south_africa", isSponsored: false, retailerHint: "Brand Direct" },
-  {
-    url: "https://www.timelessha.com",
-    sourceType: "sponsored",
-    origin: "global_available_in_sa",
-    isSponsored: true,
-    retailerHint: "Brand Direct",
-  },
-];
+type SourceType = "faithful_to_nature" | "brand_direct" | "sponsored" | "openhaus_marketplace" | "retailer";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -209,7 +218,9 @@ const clampScore = (value: unknown): number => {
 
 type SupabaseAdmin = SupabaseClient;
 
-async function recordApiUsage(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", purpose: string, success: boolean) {
+type UsageProvider = "firecrawl" | "gemini" | "parallel-search" | "nimble-search";
+
+async function recordApiUsage(admin: SupabaseAdmin, provider: UsageProvider, purpose: string, success: boolean) {
   try {
     await admin.from("pipeline_api_usage").insert({ provider, purpose, success });
   } catch {
@@ -217,7 +228,7 @@ async function recordApiUsage(admin: SupabaseAdmin, provider: "firecrawl" | "gem
   }
 }
 
-async function withinDailyQuota(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", limit: number): Promise<boolean> {
+async function withinDailyQuota(admin: SupabaseAdmin, provider: UsageProvider, limit: number): Promise<boolean> {
   const sinceUtcMidnight = new Date();
   sinceUtcMidnight.setUTCHours(0, 0, 0, 0);
   const { count } = await admin
@@ -228,7 +239,7 @@ async function withinDailyQuota(admin: SupabaseAdmin, provider: "firecrawl" | "g
   return (count ?? 0) < limit;
 }
 
-async function withinPerMinuteQuota(admin: SupabaseAdmin, provider: "firecrawl" | "gemini", limit: number): Promise<boolean> {
+async function withinPerMinuteQuota(admin: SupabaseAdmin, provider: UsageProvider, limit: number): Promise<boolean> {
   const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
   const { count } = await admin
     .from("pipeline_api_usage")
@@ -272,6 +283,8 @@ interface GeneratedReviewFields {
   verdict: string;
   key_ingredients: string[];
   full_review: string;
+  /** False when the source page is not a skincare product (makeup, hair, a gift set...). */
+  is_skincare_product: boolean;
 }
 
 const REVIEW_SCHEMA = {
@@ -289,6 +302,7 @@ const REVIEW_SCHEMA = {
     verdict: { type: "string" },
     key_ingredients: { type: "array", items: { type: "string" } },
     full_review: { type: "string" },
+    is_skincare_product: { type: "boolean" },
   },
   required: [
     "product_name",
@@ -303,6 +317,7 @@ const REVIEW_SCHEMA = {
     "verdict",
     "key_ingredients",
     "full_review",
+    "is_skincare_product",
   ],
 } as const;
 
@@ -323,6 +338,13 @@ key_ingredients: the real actives/ingredients named in the source, 2-6 items.
 local_price_zar: the ZAR price from the source. If the source gives a different
 currency, convert at a reasonable approximate rate and note nothing extra -- just the number.
 category: pick the single best fit from the provided enum.
+is_skincare_product: true only when the source is ONE skincare product (face or body skincare,
+sunscreen). False for makeup, hair, fragrance, tools, gift sets or pages listing many products.
+local_price_zar: when the source lists "Rand prices read from the page", use the product's own
+price from that list, not a related product's.
+Origin: when the source says the brand is an Import, say plainly in full_review that it is an
+imported brand sold in South Africa and weigh price and availability accordingly; never claim a
+local manufacturing or ingredient-sourcing story the source does not state.
 full_review: a single, longer paragraph (roughly 90-180 words, plain prose, no markdown,
 no headings) for members -- this is SkinLabs' members-only "complete ingredient
 analysis, long-form verdict and skin-type match notes" for this product. Expand on
@@ -348,6 +370,7 @@ function parseReviewResponse(text: string): GeneratedReviewFields {
     verdict: String(parsed.verdict ?? "").slice(0, 500),
     key_ingredients: Array.isArray(parsed.key_ingredients) ? parsed.key_ingredients.slice(0, 6) : [],
     full_review: String(parsed.full_review ?? "").slice(0, 2000),
+    is_skincare_product: parsed.is_skincare_product !== false,
   };
 }
 
@@ -544,67 +567,118 @@ async function firecrawlScrape(url: string, apiKey: string): Promise<FirecrawlPa
   };
 }
 
-interface FirecrawlSearchRow {
-  url?: string;
-  title?: string;
-  markdown?: string;
-}
-interface FirecrawlSearchResponse {
-  data?: FirecrawlSearchRow[] | { web?: FirecrawlSearchRow[] };
-}
+// ---------------------------------------------------------------------------
+// DISCOVERY: Parallel Search (default) -> Nimble Search (fallback) -> Firecrawl page read.
+// Pure filtering/ratio rules live in _shared/pipelines/reviewDiscovery.ts (unit-tested).
+// ---------------------------------------------------------------------------
 
-async function firecrawlSearchProductPages(site: SourceSite, apiKey: string, limit: number): Promise<FirecrawlPage[]> {
-  const host = new URL(site.url).hostname.replace(/^www\./, "");
-  const res = await fetch("https://api.firecrawl.dev/v2/search", {
+const PARALLEL_KEY = (Deno.env.get("PARALLEL_API_KEY") ?? "").trim();
+const NIMBLE_KEY = (Deno.env.get("NIMBLE_API_KEY") ?? "").trim();
+
+/** A search provider cannot serve us right now (auth, credit, rate limit, outage): try the next one. */
+class ProviderUnavailable extends Error {}
+
+async function searchParallel(brand: BrandSeed): Promise<RawHit[]> {
+  if (!PARALLEL_KEY) throw new ProviderUnavailable("no PARALLEL_API_KEY");
+  const res = await fetch("https://api.parallel.ai/v1/search", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+    headers: { "Content-Type": "application/json", "x-api-key": PARALLEL_KEY },
     body: JSON.stringify({
-      query: `site:${host} skincare product price`,
-      limit,
-      scrapeOptions: { formats: ["markdown"], onlyMainContent: true },
+      objective: discoveryObjective(brand),
+      search_queries: discoveryQueries(brand),
+      advanced_settings: { excerpt_settings: { max_chars_per_result: 2500 }, max_results: 15 },
     }),
+    signal: AbortSignal.timeout(30_000),
   });
-  const payload = (await res.json().catch(() => null)) as FirecrawlSearchResponse | null;
-  if (!res.ok) return [];
-  const rows: FirecrawlSearchRow[] = Array.isArray(payload?.data)
-    ? payload.data
-    : Array.isArray(payload?.data?.web)
-      ? (payload?.data as { web: FirecrawlSearchRow[] }).web
-      : [];
-  return rows
-    .filter((r) => typeof r.url === "string" && typeof r.markdown === "string" && r.markdown.length > 300)
-    .map((r) => ({ url: r.url as string, title: r.title ?? r.url!, markdown: r.markdown!.slice(0, 14000) }));
+  if ([401, 402, 403, 429].includes(res.status) || res.status >= 500) throw new ProviderUnavailable(`Parallel HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Parallel Search HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const body = (await res.json()) as { results?: { url: string; title?: string | null; excerpts?: string[] }[] };
+  return (body.results ?? []).map((r) => ({ url: r.url, title: r.title, text: (r.excerpts ?? []).join("\n") }));
 }
 
-const cacheKeyFor = (site: SourceSite): string =>
-  site.sourceType === "faithful_to_nature" ? `scrape:${site.url}` : `search:${new URL(site.url).hostname.replace(/^www\./, "")}`;
-
-interface ResearchResult {
-  pages: FirecrawlPage[];
-  madeRealCall: boolean;
-  skippedReason?: string;
+async function searchNimble(brand: BrandSeed): Promise<RawHit[]> {
+  if (!NIMBLE_KEY) throw new ProviderUnavailable("no NIMBLE_API_KEY");
+  const hits: RawHit[] = [];
+  for (const query of discoveryQueries(brand).slice(0, 2)) {
+    const res = await fetch("https://sdk.nimbleway.com/v2/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${NIMBLE_KEY}` },
+      body: JSON.stringify({ query, max_results: 8, search_depth: "fast", output_format: "plain_text" }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if ([401, 402, 403, 429].includes(res.status) || res.status >= 500) throw new ProviderUnavailable(`Nimble HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`Nimble HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const body = (await res.json()) as { results?: { url: string; title?: string | null; description?: string | null; content?: string | null }[] };
+    for (const r of body.results ?? []) hits.push({ url: r.url, title: r.title, text: [r.content, r.description].filter(Boolean).join("\n") });
+  }
+  return hits;
 }
 
-async function researchSource(admin: SupabaseAdmin, site: SourceSite, apiKey: string, runBudgetRemaining: boolean): Promise<ResearchResult> {
-  const cacheKey = cacheKeyFor(site);
-  const cached = await getCachedSource(admin, cacheKey);
-  if (cached) return { pages: cached as FirecrawlPage[], madeRealCall: false };
-
-  if (!runBudgetRemaining) {
-    return { pages: [], madeRealCall: false, skippedReason: `Firecrawl run budget (${MAX_FIRECRAWL_SOURCES_PER_RUN}) exhausted` };
+/** Parallel first; Nimble only when Parallel cannot serve (or has nothing). Every real call is counted against its daily budget. */
+async function searchBrand(admin: SupabaseAdmin, brand: BrandSeed, errors: string[]): Promise<RawHit[]> {
+  const providers: Array<{ id: "parallel-search" | "nimble-search"; limit: number; run: (b: BrandSeed) => Promise<RawHit[]> }> = [
+    { id: "parallel-search", limit: PARALLEL_DAILY_LIMIT, run: searchParallel },
+    { id: "nimble-search", limit: NIMBLE_DAILY_LIMIT, run: searchNimble },
+  ];
+  for (const provider of providers) {
+    if (!(await withinDailyQuota(admin, provider.id, provider.limit))) {
+      errors.push(`${provider.id} daily budget (${provider.limit}) reached`);
+      continue;
+    }
+    try {
+      const hits = await provider.run(brand);
+      await recordApiUsage(admin, provider.id, `discover:${brand.name}`, true);
+      if (hits.length > 0) return hits;
+    } catch (err) {
+      if (err instanceof ProviderUnavailable) {
+        errors.push(`${provider.id} unavailable for ${brand.name}: ${err.message}`);
+        continue;
+      }
+      await recordApiUsage(admin, provider.id, `discover:${brand.name}`, false);
+      errors.push(`${provider.id} ${brand.name}: ${String(err).slice(0, 160)}`);
+    }
   }
-  if (!(await withinDailyQuota(admin, "firecrawl", FIRECRAWL_DAILY_LIMIT))) {
-    return { pages: [], madeRealCall: false, skippedReason: `Firecrawl daily quota (${FIRECRAWL_DAILY_LIMIT}) reached` };
+  return [];
+}
+
+/** Searches the least-reviewed brands of one origin and returns product pages ready for the model. */
+async function discoverForOrigin(
+  admin: SupabaseAdmin,
+  brands: BrandSeed[],
+  seenUrls: ReadonlySet<string>,
+  firecrawlKey: string,
+  scrapeBudget: { remaining: number },
+  errors: string[],
+  diagnostics: Array<{ brand: string; hits: number; kept: number }>,
+): Promise<DiscoveredCandidate[]> {
+  const perBrand = await Promise.all(
+    brands.map(async (brand) => {
+      const hits = await searchBrand(admin, brand, errors);
+      const kept = buildDiscoveredCandidates(brand, hits, seenUrls);
+      diagnostics.push({ brand: brand.name, hits: hits.length, kept: kept.length });
+      return kept;
+    }),
+  );
+  const found: DiscoveredCandidate[] = [];
+  // Round-robin across brands so one brand's many pages cannot crowd out the others.
+  for (let i = 0; perBrand.some((list) => i < list.length); i++) {
+    for (const list of perBrand) if (list[i]) found.push(list[i]);
   }
-
-  const pages =
-    site.sourceType === "faithful_to_nature"
-      ? [await firecrawlScrape(site.url, apiKey)].filter((p): p is FirecrawlPage => Boolean(p))
-      : await firecrawlSearchProductPages(site, apiKey, 3);
-
-  await recordApiUsage(admin, "firecrawl", site.url, pages.length > 0);
-  if (pages.length > 0) await setCachedSource(admin, cacheKey, pages);
-  return { pages, madeRealCall: true };
+  const out: DiscoveredCandidate[] = [];
+  for (const candidate of found) {
+    let c = candidate;
+    if (needsFullPage(c.text) && scrapeBudget.remaining > 0 && (await withinDailyQuota(admin, "firecrawl", FIRECRAWL_DAILY_LIMIT))) {
+      scrapeBudget.remaining -= 1;
+      const page = await firecrawlScrape(c.url, firecrawlKey).catch(() => null);
+      await recordApiUsage(admin, "firecrawl", `read:${c.url}`, Boolean(page));
+      if (page && page.markdown.length > c.text.length) {
+        const rebuilt = buildDiscoveredCandidates(c.brand, [{ url: c.url, title: page.title, text: page.markdown }], new Set());
+        if (rebuilt[0]) c = rebuilt[0];
+      }
+    }
+    out.push(c);
+  }
+  return out;
 }
 
 interface MarketplaceProductRow {
@@ -814,6 +888,27 @@ async function resolvePrimaryImage(
   // Admin > Data Quality, which writes review_images AND this row's primary_image. Until then the site shows the branded SkinLabs placeholder.
   void kickImageSync(reviewId);
   return null;
+}
+
+/** Same nudge for live prices: review-price-sync searches the six retailers and saves PENDING candidates. */
+async function kickPriceSync(reviewId: string): Promise<void> {
+  try {
+    const url = Deno.env.get("SUPABASE_URL");
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !key) return;
+    await fetch(`${url}/functions/v1/review-price-sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ review_id: reviewId, limit: 1 }),
+      signal: AbortSignal.timeout(3000),
+    }).catch(() => undefined);
+  } catch {
+    /* never blocks publishing */
+  }
+}
+
+async function kickReviewEnrichment(reviewId: string): Promise<void> {
+  await Promise.all([kickPriceSync(reviewId), kickImageSync(reviewId)]);
 }
 
 /** Best-effort nudge so a freshly published review gets image candidates within a minute instead of the next 10-minute tick. */
@@ -1627,14 +1722,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { count: publishedToday } = await admin
-      .from("ai_generated_product_reviews")
-      .select("id", { count: "exact", head: true })
-      .eq("published_date", today);
-    if ((publishedToday ?? 0) >= DAILY_REVIEW_CAP) {
-      return jsonResponse({ ok: true, created: 0, message: "Daily review cap already met" });
+    const { data: todayRows } = await admin.from("ai_generated_product_reviews").select("origin").eq("published_date", today);
+    const publishedToday = (todayRows ?? []).length;
+    if (publishedToday >= DAILY_REVIEW_CAP) {
+      return jsonResponse({ ok: true, created: 0, dailyCap: DAILY_REVIEW_CAP, message: "Daily review cap already met" });
     }
-    const target = DAILY_REVIEW_CAP - (publishedToday ?? 0);
+    const target = Math.min(DAILY_REVIEW_CAP - publishedToday, MAX_REVIEWS_PER_RUN);
+    const todayLocal = (todayRows ?? []).filter((r: { origin: string }) => r.origin === "south_africa").length;
+    const todayCounts = { local: todayLocal, imports: publishedToday - todayLocal };
+    const originPlan = planOrigins(todayCounts, target);
 
     const { data: dueRetries } = await admin
       .from("pipeline_retry_queue")
@@ -1644,10 +1740,9 @@ Deno.serve(async (req) => {
       .lte("retry_after", new Date().toISOString())
       .limit(target * 2);
 
-    const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("source_url, origin");
+    const { data: existingRows } = await admin.from("ai_generated_product_reviews").select("id, source_url, brand");
     const seenUrls = new Set((existingRows ?? []).map((r: { source_url: string }) => r.source_url));
-    const saCount = (existingRows ?? []).filter((r: { origin: string }) => r.origin === "south_africa").length;
-    const globalCount = (existingRows ?? []).length - saCount;
+    const reviewedByBrand = countReviewsByBrand((existingRows ?? []).map((r: { brand: string }) => r.brand));
 
     const { data: marketplaceRows } = await admin
       .from("marketplace_products")
@@ -1659,28 +1754,6 @@ Deno.serve(async (req) => {
       (p) => !seenUrls.has(`https://skinlabs.co.za/marketplace/product/${p.slug}`),
     );
 
-    const firecrawlCandidates: Array<{ site: SourceSite; page: FirecrawlPage }> = [];
-    let firecrawlCallsThisRun = 0;
-    for (const site of SOURCE_SITES) {
-      if (firecrawlCandidates.length >= target * 2) break;
-      try {
-        const result = await researchSource(admin, site, firecrawlKey as string, firecrawlCallsThisRun < MAX_FIRECRAWL_SOURCES_PER_RUN);
-        if (result.madeRealCall) firecrawlCallsThisRun += 1;
-        if (result.skippedReason) errors.push(`Firecrawl skipped ${site.url}: ${result.skippedReason}`);
-        for (const page of result.pages) {
-          if (seenUrls.has(page.url)) continue;
-          firecrawlCandidates.push({ site, page });
-        }
-      } catch (err) {
-        errors.push(`Firecrawl ${site.url}: ${String(err).slice(0, 200)}`);
-      }
-      await sleep(500);
-    }
-
-    let runningSa = saCount;
-    let runningGlobal = globalCount;
-    const wantsSa = () => runningSa / Math.max(1, runningSa + runningGlobal) < SA_SHARE_TARGET;
-
     interface QueueItem {
       text: string;
       origin: Origin;
@@ -1688,19 +1761,76 @@ Deno.serve(async (req) => {
       sourceType: SourceType;
       isSponsored: boolean;
       retailerHint: Retailer | null;
+      /** Brand we searched for; the model's brand must match it. Absent for OpenHaus rows and older retry payloads. */
+      brandName?: string;
+      /** Title of the source page, used to check the model described the product on it. */
+      pageTitle?: string;
+      /** Rand prices read from the page; the model's price is checked against them. */
+      prices?: number[];
       retryQueueId?: number;
       retryAttemptCount?: number;
     }
-    const queue: QueueItem[] = [];
+    const discovery: Array<{ brand: string; hits: number; kept: number }> = [];
+    const pools: Record<Origin, QueueItem[]> = { south_africa: [], global_available_in_sa: [] };
 
     for (const row of dueRetries ?? []) {
       const payload = row.candidate_payload as Omit<QueueItem, "retryQueueId" | "retryAttemptCount"> | null;
       if (!payload?.sourceUrl || seenUrls.has(payload.sourceUrl)) continue;
-      queue.push({ ...payload, retryQueueId: row.id, retryAttemptCount: row.attempt_count });
+      pools[payload.origin === "global_available_in_sa" ? "global_available_in_sa" : "south_africa"].push({
+        ...payload,
+        retryQueueId: row.id,
+        retryAttemptCount: row.attempt_count,
+      });
     }
 
+    // Discovery: Parallel Search -> Nimble -> Firecrawl page read, per origin, least-reviewed brands first.
+    if (!PARALLEL_KEY && !NIMBLE_KEY) {
+      errors.push("No search provider configured (set PARALLEL_API_KEY and/or NIMBLE_API_KEY) -- discovery skipped");
+    } else {
+      const runSeed = seedFromString(`${runId}:${today}`);
+      const scrapeBudget = { remaining: MAX_FIRECRAWL_SCRAPES_PER_RUN };
+      const wanted: Record<Origin, number> = {
+        south_africa: originPlan.filter((o) => o === "south_africa").length,
+        global_available_in_sa: originPlan.filter((o) => o === "global_available_in_sa").length,
+      };
+      const origins = (Object.keys(wanted) as Origin[]).filter((o) => wanted[o] > 0);
+      const discovered = await Promise.all(
+        origins.map((origin) =>
+          discoverForOrigin(
+            admin,
+            pickBrands(origin, reviewedByBrand, origin === "global_available_in_sa" ? Math.min(5, wanted[origin] + 4) : Math.min(BRANDS_SEARCHED_PER_ORIGIN_PER_RUN + 1, wanted[origin] + 2), runSeed),
+            seenUrls,
+            firecrawlKey as string,
+            scrapeBudget,
+            errors,
+            discovery,
+          ).catch((err) => {
+            errors.push(`Discovery (${origin}) failed: ${String(err).slice(0, 200)}`);
+            return [] as DiscoveredCandidate[];
+          }),
+        ),
+      );
+      origins.forEach((origin, i) => {
+        for (const c of discovered[i]) {
+          const isFtn = c.retailer === "faithful-to-nature";
+          pools[origin].push({
+            text: candidatePromptText(c),
+            origin,
+            sourceUrl: c.url,
+            sourceType: c.brand.sponsored ? "sponsored" : isFtn ? "faithful_to_nature" : c.retailer === "brand-direct" ? "brand_direct" : "retailer",
+            isSponsored: c.brand.sponsored === true,
+            retailerHint: c.retailerName as Retailer,
+            brandName: c.brand.name,
+            pageTitle: c.title,
+            prices: c.prices,
+          });
+        }
+      });
+    }
+
+    // OpenHaus products are local, disclosed-sponsored filler once discovered pages run out.
     for (const p of marketplaceCandidates) {
-      queue.push({
+      pools.south_africa.push({
         text: `Product: ${p.name}\nBrand: ${p.brand?.name ?? "Unknown"}\nCategory: ${p.category}\nPrice: R${p.marked_up_price_zar}\nDescription: ${p.description}\nKey actives: ${(p.key_actives ?? []).join(", ")}\nConcerns addressed: ${(p.concern ?? []).join(", ")}`,
         origin: "south_africa",
         sourceUrl: `https://skinlabs.co.za/marketplace/product/${p.slug}`,
@@ -1715,25 +1845,28 @@ Deno.serve(async (req) => {
         retailerHint: null,
       });
     }
-    for (const { site, page } of firecrawlCandidates) {
-      queue.push({
-        text: `Source page title: ${page.title}\nSource URL: ${page.url}\n\n${page.markdown}`,
-        origin: site.origin,
-        sourceUrl: page.url,
-        sourceType: site.sourceType,
-        isSponsored: site.isSponsored,
-        retailerHint: site.retailerHint,
-      });
-    }
 
-    queue.sort((a, b) => {
-      const aWanted = wantsSa() ? a.origin === "south_africa" : a.origin === "global_available_in_sa";
-      const bWanted = wantsSa() ? b.origin === "south_africa" : b.origin === "global_available_in_sa";
-      return Number(bWanted) - Number(aWanted);
-    });
+    const takenProductIds = new Set((existingRows ?? []).map((r: { id: string }) => r.id));
+    const runCounts = { ...todayCounts };
+    const runStartedAt = Date.now();
+    /** The origin the day's mix needs next; falls back to the other pool (noted) so volume holds if one pool is empty. */
+    const takeCandidate = (): QueueItem | null => {
+      const wantedOrigin = planOrigins(runCounts, 1)[0];
+      const other: Origin = wantedOrigin === "south_africa" ? "global_available_in_sa" : "south_africa";
+      const item = pools[wantedOrigin].shift();
+      if (item) return item;
+      const fallback = pools[other].shift();
+      if (fallback) errors.push(`No ${wantedOrigin} candidate left -- used a ${other} one so the day's volume holds`);
+      return fallback ?? null;
+    };
 
-    for (const candidate of queue) {
-      if (created >= target) break;
+    while (created < target) {
+      const candidate = takeCandidate();
+      if (!candidate) break;
+      if (Date.now() - runStartedAt > RUN_TIME_BUDGET_MS) {
+        errors.push(`Run time budget (${RUN_TIME_BUDGET_MS / 1000}s) reached -- the next scheduled run continues`);
+        break;
+      }
 
       if (!(await withinDailyQuota(admin, "gemini", GEMINI_DAILY_LIMIT))) {
         errors.push(`Gemini daily quota (${GEMINI_DAILY_LIMIT}) reached -- stopping run`);
@@ -1762,16 +1895,45 @@ Deno.serve(async (req) => {
 
         if (!fields.product_name || !fields.brand) continue;
 
+        // The model must be describing the brand we searched for and a skincare product, or the
+        // 60/40 mix and the editorial scope would drift.
+        if (candidate.brandName && !brandMatches(candidate.brandName, fields.brand)) {
+          errors.push(`Brand mismatch for ${candidate.sourceUrl}: searched "${candidate.brandName}", page was "${fields.brand}" -- skipped`);
+          continue;
+        }
+        if (candidate.pageTitle && !productMatchesPage(fields.product_name, fields.brand, candidate.pageTitle, candidate.sourceUrl)) {
+          errors.push(`Product "${fields.product_name}" does not match the page "${candidate.pageTitle.slice(0, 80)}" -- skipped ${candidate.sourceUrl}`);
+          continue;
+        }
+        if (!fields.is_skincare_product) {
+          errors.push(`Not a skincare product, skipped: ${candidate.sourceUrl}`);
+          continue;
+        }
+
         const qa = qaProductReview(fields);
         if (!qa.passed) {
           errors.push(`QA rejected ${candidate.sourceUrl}: ${qa.reasons.join("; ")}`);
           continue;
         }
 
-        const slug = slugify(`${fields.brand}-${fields.product_name}`);
-        const id = `${slug || Date.now()}`;
-        const { data: idTaken } = await admin.from("ai_generated_product_reviews").select("id").eq("id", id).maybeSingle();
-        const finalId = idTaken ? `${id}-${Math.floor(Math.random() * 9000 + 1000)}` : id;
+        // The model's price must be a price that is actually on the page (never invented, never a unit conversion).
+        if (!priceMatchesPage(fields.local_price_zar, candidate.prices ?? [])) {
+          errors.push(`Price R${fields.local_price_zar} is not on the page (${(candidate.prices ?? []).join(", ")}) -- skipped ${candidate.sourceUrl}`);
+          continue;
+        }
+
+        const finalId = slugify(`${fields.brand}-${fields.product_name}`) || `${Date.now()}`;
+        if (takenProductIds.has(finalId)) {
+          errors.push(`Already reviewed (${finalId}) -- skipped ${candidate.sourceUrl}`);
+          seenUrls.add(candidate.sourceUrl);
+          continue;
+        }
+        const { data: idTaken } = await admin.from("ai_generated_product_reviews").select("id").eq("id", finalId).maybeSingle();
+        if (idTaken) {
+          takenProductIds.add(finalId);
+          errors.push(`Already reviewed (${finalId}) -- skipped ${candidate.sourceUrl}`);
+          continue;
+        }
 
         const retailers = candidate.retailerHint
           ? [{ retailer: candidate.retailerHint, price_zar: fields.local_price_zar, in_stock: true, url: candidate.sourceUrl }]
@@ -1809,8 +1971,11 @@ Deno.serve(async (req) => {
         } else {
           created += 1;
           seenUrls.add(candidate.sourceUrl);
-          if (candidate.origin === "south_africa") runningSa += 1;
-          else runningGlobal += 1;
+          takenProductIds.add(finalId);
+          if (candidate.origin === "south_africa") runCounts.local += 1;
+          else runCounts.imports += 1;
+          // Live prices and real product images are searched next (Parallel/Nimble); both stay pending until a person approves them.
+          void kickReviewEnrichment(finalId);
           // Members-only long-form write-up (ingredient deep-dive + expanded verdict +
           // skin-type-match notes), generated in the same Gemini call as the short
           // verdict above -- see the REVIEW_INSTRUCTIONS full_review section.
@@ -1937,6 +2102,9 @@ Deno.serve(async (req) => {
                   sourceType: candidate.sourceType,
                   isSponsored: candidate.isSponsored,
                   retailerHint: candidate.retailerHint,
+                  brandName: candidate.brandName,
+                  pageTitle: candidate.pageTitle,
+                  prices: candidate.prices,
                 },
                 reason: err.message.slice(0, 300),
                 retry_after: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
@@ -1985,7 +2153,7 @@ Deno.serve(async (req) => {
       errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
     }
 
-    return jsonResponse({ ok: true, created, target, modelUsage, backfillDate, errors });
+    return jsonResponse({ ok: true, created, target, dailyCap: DAILY_REVIEW_CAP, plan: originPlan, discovery, modelUsage, backfillDate, errors });
   } catch (err) {
     return jsonResponse({ error: String(err).slice(0, 500), created, errors }, 500);
   }

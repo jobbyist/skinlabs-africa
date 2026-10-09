@@ -62,6 +62,15 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## Review pipeline scale-up: 5-10/day, 60% local / 40% Imports (2026-10-09) — standing notes
+
+Branch `claude/product-review-pipeline-scaling-0q894e`. Migration `20261009140000_review_pipeline_volume_and_imports.sql` (source_type gains `retailer`, usage providers `parallel-search`/`nimble-search`, cron `0 5,7,9,11,13 * * *`).
+
+- **Volume**: `DAILY_REVIEW_CAP` defaults to 8 (env, clamped 5-10 by `resolveDailyCap`); one invocation publishes <=3 (`MAX_REVIEWS_PER_RUN`) and stops starting candidates after 100 s, cron re-fires five times a morning until the cap is met. Gemini cost is ~2-3 calls/review, far inside the free tier.
+- **Mix**: planned per day by `planOrigins()` (`_shared/pipelines/reviewDiscovery.ts`, tested): 8 -> 5 local + 3 import. `origin = global_available_in_sa` is labelled **Import** on cards, the review page and the SSR page. If one origin's pool is empty the other fills the slot (noted in `errors`) so volume holds.
+- **Discovery** replaced the old category-page scrape: least-reviewed brands from `LOCAL_BRANDS`/`IMPORT_BRANDS` -> Parallel Search (default) -> Nimble (fallback on 401/402/403/429/5xx) -> Firecrawl reads a page only when the excerpt is thin (<=4/run). A candidate must be ONE product page (`canonicalReviewListingUrl`, trusted retailers or the brand's own shop), name the brand and carry a Rand price; the model's brand must match the searched brand, `is_skincare_product` must be true, and the page's price overrides a disagreeing model price. Duplicates (by URL or brand+product id) are skipped, never suffixed. Also required: the brand in the page title/URL, the model's product name matching the page title/URL (`productMatchesPage`), the model's price being a price actually on the page, and no brand/range/listing pages (`looksLikeListing`). Imports are harder to find than local products, so 5 import brands are searched per run. `skinmiles.com` (not .co.za) is the real SkinMiles shop; fixed in `REVIEW_RETAILERS`. The response of a run carries `plan`, `discovery` (hits/kept per brand) and `errors` for diagnosis. Verified live 2026-10-09 (3 manual runs): local + import (CeraVe via Clicks) reviews published, price/image candidates created pending.
+- **Prices and images** stay behind the human gate: after publishing, `review-price-sync` and `review-image-sync` are kicked and save PENDING candidates; nothing is public until approved in Admin. Secrets needed: `PARALLEL_API_KEY` and/or `NIMBLE_API_KEY` (plus the existing Gemini/Firecrawl ones). Daily search budgets are `PARALLEL_DAILY_LIMIT`/`NIMBLE_DAILY_LIMIT` (60) and `FIRECRAWL_DAILY_LIMIT` (40); all are placeholders, tune to the real plans.
+
 ## Site audit + UI/UX batch (2026-10-08) — standing notes
 
 Branch `claude/site-audit-ui-ux-oct8`. All migrations through `20261008220000` are **applied live**; every edge function in the repo is deployed.
