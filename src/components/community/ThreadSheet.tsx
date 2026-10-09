@@ -12,6 +12,7 @@ import EmojiPicker from "./EmojiPicker";
 import { insertAtSelection } from "@/lib/community/emoji";
 import { AuthorAvatar, RoleBadge } from "./RoleBadge";
 import { CommentsSkeleton, FeedError, PostUnavailable } from "./ForumStates";
+import { useForumViewport } from "@/hooks/use-forum-viewport";
 
 interface ThreadSheetProps extends Omit<PostActions, "onOpen"> {
   postId: string | null;
@@ -84,6 +85,7 @@ const CommentItem = ({
 /** The discussion: post, comments and a composer, in a bottom sheet (full-height on phones, centred column on desktop). */
 const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, onReportComment, ...actions }: ThreadSheetProps) => {
   const open = Boolean(postId);
+  const viewportRef = useForumViewport(open);
   const visible = Boolean(post && post.status === "published");
   const comments = useCommunityComments(postId, open && visible);
   const create = useCreateComment(postId ?? "");
@@ -122,8 +124,8 @@ const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, on
   };
 
   return (
-    <Drawer open={open} onOpenChange={(next) => !next && onClose()} repositionInputs>
-      <DrawerContent className="mx-auto mt-0 flex max-h-[94dvh] min-h-[60dvh] flex-col md:max-w-2xl" aria-describedby={undefined}>
+    <Drawer open={open} onOpenChange={(next) => !next && onClose()} repositionInputs={false}>
+      <DrawerContent ref={viewportRef} className="forum-sheet forum-thread-sheet forum-touch mx-auto mt-0 flex flex-col md:max-w-2xl" aria-describedby={undefined}>
         <DrawerHeader className="sr-only">
           <DrawerTitle>Discussion</DrawerTitle>
           <DrawerDescription>Discussion and comments</DrawerDescription>
@@ -174,7 +176,7 @@ const ThreadSheet = ({ postId, post, loading, isStaff, onClose, ensureHandle, on
         </div>
 
         {visible && (
-          <form onSubmit={submit} className="border-t border-border bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3" data-vaul-no-drag>
+          <form onSubmit={submit} className="forum-composer-footer shrink-0 border-t border-border bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3" data-vaul-no-drag>
             <label htmlFor="community-comment" className="sr-only">
               Add a comment
             </label>

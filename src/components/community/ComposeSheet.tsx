@@ -15,6 +15,7 @@ import { insertAtSelection } from "@/lib/community/emoji";
 import { ImageError, prepareCommunityImage, type PreparedImage } from "@/lib/community/image";
 import { BODY_MAX, TITLE_MAX, needsHandle, validatePostDraft, writeErrorMessage, type CommunityCategory, type FieldErrors } from "@/lib/community/rules";
 import EmojiPicker from "./EmojiPicker";
+import { useForumViewport } from "@/hooks/use-forum-viewport";
 
 const NO_TOPIC = "none";
 const mb = (bytes: number) => (bytes / 1048576).toFixed(1).replace(/\.0$/, "");
@@ -71,6 +72,7 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const photoInput = useRef<HTMLInputElement | null>(null);
   const gifInput = useRef<HTMLInputElement | null>(null);
+  const viewportRef = useForumViewport(open);
 
   const clearAttachment = () =>
     setAttachment((current) => {
@@ -166,8 +168,8 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
   const usage = useQuery({ queryKey: ["community", "media-usage", user?.id], queryFn: getMyMediaUsage, enabled: open && Boolean(user), staleTime: 30_000 });
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs>
-      <DrawerContent className="mx-auto mt-0 flex max-h-[94dvh] flex-col md:max-w-2xl" aria-describedby={undefined}>
+    <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
+      <DrawerContent ref={viewportRef} className="forum-sheet forum-touch mx-auto mt-0 flex flex-col md:max-w-2xl" aria-describedby={undefined}>
         <DrawerHeader className="text-left">
           <DrawerTitle className="font-heading text-xl">Start a discussion</DrawerTitle>
           <DrawerDescription>Ask a question or share what's worked. Be kind, and see a doctor for anything persistent.</DrawerDescription>
@@ -223,20 +225,6 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
                 aria-invalid={Boolean(errors.body)}
                 aria-describedby={errors.body ? "community-body-error" : "community-body-count"}
               />
-              <div className="-ml-2 flex items-center gap-1">
-                <EmojiPicker onPick={addEmoji} disabled={busy} />
-                <Button type="button" variant="ghost" className="h-11 gap-1.5 rounded-full px-3 text-sm text-muted-foreground" disabled={busy || Boolean(attachment)} onClick={() => photoInput.current?.click()}>
-                  <ImagePlus className="size-5" aria-hidden="true" /> Photo
-                </Button>
-                <Button type="button" variant="ghost" className="h-11 rounded-full px-3 text-sm font-semibold tracking-wide text-muted-foreground" disabled={busy || Boolean(attachment)} onClick={() => gifInput.current?.click()} aria-label="Add a GIF">
-                  GIF
-                </Button>
-                <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label="Choose a photo" onChange={onFile} />
-                <input ref={gifInput} type="file" accept="image/gif" className="sr-only" tabIndex={-1} aria-label="Choose a GIF" onChange={onFile} />
-                <span id="community-body-count" className="ml-auto pr-2 text-xs tabular-nums text-muted-foreground">
-                  {body.length}/{BODY_MAX}
-                </span>
-              </div>
               {errors.body && (
                 <p id="community-body-error" role="alert" className="text-sm text-destructive">
                   {errors.body}
@@ -262,7 +250,7 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
             {/* Honeypot: invisible to people and assistive tech, irresistible to form-filling bots. */}
             <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
               <label htmlFor="community-website">Website</label>
-              <input id="community-website" name="website" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+              <input id="community-website" name="website" className="text-base" tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -276,7 +264,18 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
               </p>
             )}
           </div>
-          <div className="flex gap-2 border-t border-border px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3">
+          <div className="forum-composer-footer shrink-0 border-t border-border bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2">
+            <div className="-ml-2 mb-2 flex items-center gap-1" role="toolbar" aria-label="Discussion attachments">
+              <EmojiPicker onPick={addEmoji} disabled={busy} />
+              <Button type="button" variant="ghost" className="h-11 gap-1.5 rounded-full px-3 text-sm text-muted-foreground" disabled={busy || Boolean(attachment)} onClick={() => photoInput.current?.click()}>
+                <ImagePlus className="size-5" aria-hidden="true" /> Photo
+              </Button>
+              <Button type="button" variant="ghost" className="h-11 rounded-full px-3 text-sm font-semibold text-muted-foreground" disabled={busy || Boolean(attachment)} onClick={() => gifInput.current?.click()} aria-label="Add a GIF">GIF</Button>
+              <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label="Choose a photo" onChange={onFile} />
+              <input ref={gifInput} type="file" accept="image/gif" className="sr-only" tabIndex={-1} aria-label="Choose a GIF" onChange={onFile} />
+              <span id="community-body-count" className="ml-auto text-xs tabular-nums text-muted-foreground">{body.length}/{BODY_MAX}</span>
+            </div>
+            <div className="flex gap-2">
             <Button type="button" variant="outline" className="h-11 flex-1" onClick={() => onOpenChange(false)} disabled={publishing}>
               Cancel
             </Button>
@@ -284,6 +283,7 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
               {publishing ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" /> : null}
               {publishing ? "Publishing…" : "Publish"}
             </Button>
+            </div>
           </div>
         </form>
       </DrawerContent>
