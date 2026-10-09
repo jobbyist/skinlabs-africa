@@ -31,7 +31,7 @@ Exactly one of `author_id` / `persona_id` is set on posts, comments and likes. R
   (`rate_limited`).
 * Reads go through `community_feed()` / `community_comments_page()` / `community_comment_by_id()` (keyset pagination, author name + role
   resolved server-side). Staff display "First L."; members display their public handle. `profiles` is never read by the browser.
-* User text is rendered as plain text (`whitespace-pre-line`), never as HTML.
+* User text is parsed into data and rendered as React elements by `src/lib/community/markdown.tsx` (no HTML strings, no `dangerouslySetInnerHTML`); links are limited to http(s).
 
 ## Realtime
 One channel per page (`useCommunityRealtime`) on `community_posts` and `community_comments`. Events patch the react-query cache
@@ -59,7 +59,7 @@ On reconnect everything is refetched. Private query keys (`community`) are remov
   are removed; JPEGs with a rotation tag are re-encoded instead). **Animated GIFs are uploaded untouched** (re-encoding would drop the animation). The one
   non-lossless step is a safety net: a picture over 4096 px or over the per-file limit (3 MB posts / 1 MB avatars) is scaled down and the member is told.
   Lossless encoding of photos can be larger than a camera JPEG, which is why the original (stripped) competes in the pick.
-* GIFs are **upload only**. A GIF search (Giphy/Tenor) needs a provider API key that this project does not have.
+* GIFs: **upload**, or **search GIPHY** through the rate-limited proxy `api/giphy.ts` (see "GIPHY rate limiting"). Tenor's API is closed to new integrations.
 * Storage: public-read buckets `community-media` (3 MB, webp/png/jpeg/gif) and `avatars` (1 MB, webp/png/jpeg); object names are `<user-id>/<uuid>.<ext>` and cannot
   be listed; writes/deletes are limited to the caller's own folder (storage RLS), and `community_posts.image_path` must sit in the author's folder (trigger).
   Deleting your own post removes its image; replacing/removing an avatar deletes the old file.
@@ -110,3 +110,26 @@ Migration `20261008200000_community_quota_retention_sanctions.sql` (applied live
 - **30-day retention**: member posts older than 30 days, plus posts deleted/removed more than 7 days ago, are purged daily at 02:20 UTC by the `community-retention` edge function (pg_cron `community-retention-daily`; auth = Vault secret `community_retention_cron_secret`, verified in SQL, no Edge secret). Pictures are removed through the Storage API first (SQL deletes leave the file behind); a post whose picture could not be removed is kept for the next run. Member comments older than 30 days go too. Pinned posts and seed-persona content are never purged; `community_retention_purge()` re-checks eligibility itself. Abandoned uploads (no post references them, >1 day old) are swept as well. The compose sheet tells members posts expire after 30 days.
 - **Mute / suspend**: table `community_sanctions` (service-role only). Mute = cannot post or comment (can read and like); suspend = also cannot like, and the forum feed is hidden in the UI (`useQuery` on `community_my_sanction()`; members see type and end date, never the reason). Enforced in `community_guard_insert()` and a like trigger (`account_muted` / `account_suspended`). One sanction in force per member (a new one replaces the old); durations 24 h / 7 d / 30 d / until lifted; expiry is automatic. Staff cannot be sanctioned, nor can anyone sanction themselves.
 - **Admin UI**: Admin -> Moderation -> Members (search by handle, restrict, lift, history), plus "Mute / suspend author" on report and held cards (`SanctionDialog`). Moderators (not only admins) can open /admin: they see the Moderation tab only. Overview counters show restricted members, picture storage (MB) and posts due for the next purge.
+
+
+## Formatting, replies, GIFs, sidebar (2026-10-09)
+* **Formatting** (`src/lib/community/markdown.tsx`, pure parser + renderer, tested in `communityFormatting.test.ts`): `# H1`, `## H2`, `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `- `/`* ` and `1. ` lists, `> quote`,
+  `[text](https://…)`, `---` divider, and alignment with `-> centred <-` / `-> right ->`. Single line breaks are kept, so older plain posts render unchanged. Headings render as h3/h4 (below the post title).
+  Feed cards show a clipped preview; the thread shows everything. Composer toolbar (`FormatToolbar`, transforms in `formatting.ts`) writes exactly this syntax.
+* **Vote rail**: column stays `w-11 sm:w-12`; the button fills it (44px target). Haptic via the app's delegated `data-haptic` listener (touch only, respects the Settings switch). Bounce is the `vote-bounce` keyframe; fill follows `--primary`.
+* **Replies**: comments carry `parent_id`; `buildCommentTree()` groups them (orphans/cycles surface at top level). Header tap or guide line collapses a sub-thread to `[ + ] name (N replies collapsed)`. Indent stops at depth 5. `OP` is matched by displayed name + role (comments carry no author id).
+  Replying sets `parent_id` through the existing column grant; the database does not yet check that the parent belongs to the same post (a mismatch just shows as a top-level comment) and reply notifications still go to the post author only.
+* **GIF search** (`giphy.ts`, `GifPicker`, `api/giphy.ts`): see "GIPHY rate limiting" below. A picked GIF is downloaded and goes through the normal upload pipeline (own bucket, 3 MB limit, quota), so readers never load from GIPHY. "Powered by GIPHY" is shown.
+* **Keyboard**: `useKeyboardSheet()` tracks `visualViewport` (rAF-coalesced) and moves/limits `ThreadSheet` and `ComposeSheet`; vaul's own `repositionInputs` is off when the API exists. While the keyboard is up the compose footer collapses and Publish sits at the end of the toolbar.
+* **Sidebar** (`CommunitySidebar`, lg+): counts from `community_overview()`, moderators from `community_staff_list()` (migration `20261009100000`, probe `supabase/tests/community_sidebar.sql`). **Migration not applied live**: until it is, the numbers and moderator list are simply left out.
+* Forum UI carries `.forum-ui` (index.css): no tap highlight, 16px form controls on phones, 1.5px `--primary` focus ring.
+
+## GIPHY rate limiting (2026-10-09)
+GIPHY's beta key allows **100 calls per hour for the whole app**, so the browser never calls GIPHY. `api/giphy.ts` (Vercel function, key from `GIPHY_API_KEY` or `VITE_GIPHY_API_KEY`) is the only caller:
+1. a signed-in member's bearer token is verified; 2. an identical search from the last hour is answered from `giphy_response_cache` (free); 3. otherwise `giphy_take_quota()` (service role, advisory-locked, **rolling** one-hour window in `giphy_api_calls`) allows at most **95 calls/hour across everyone and 20/hour per member**, else the proxy answers `429` with `Retry-After` and the composer says "GIF search is busy… try again in about N minutes, or upload your own". If counting fails, the call is refused (fails closed).
+The client also remembers searches for 10 minutes per tab and asks `?action=status` (no GIPHY call) to decide whether to offer search at all; no key = upload only. Only the fields the composer reads are passed through and cached. Privacy: typed words go to our server and GIPHY, not the member's IP or account; the Privacy Policy still needs a legal read.
+
+## Seed content and the scheduled publisher (2026-10-09)
+`scripts/community-seed/content.ts` (28 backfilled discussions dated 15 Sep - 9 Oct 2026, 33 queued ones) is turned into `20261009130000_community_seed_content.sql` by `scripts/generate-community-seed.ts` (deterministic; re-run after editing, a test checks they match). Authors are 30 display-only personas with South African handles (`community_personas`, `is_seed`, no login or email, never notified), plus the existing moderator personas. Backfilled comments are threaded (`re` = index of the parent) with likes spread over the following hours, all in the past.
+`community-seed-tick` (pg_cron, every 20 minutes, `community_seed_tick()`) publishes the next queued discussion at 08:05 and 18:25 SAST (two a day, about 16 days of content) and releases its comments and likes over the next hours (never between 23:00 and 06:30 SAST). Stop it with `SELECT cron.unschedule('community-seed-tick')`; add more by inserting payloads into `community_seed_queue`. Seed posts are exempt from the 30-day retention (persona posts are never purged). Remove all seed content by deleting the posts of seed personas (comments and likes cascade), then the personas.
+Replies must now belong to the same post as their parent (`community_comments_validate_parent`).

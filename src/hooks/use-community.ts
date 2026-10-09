@@ -148,9 +148,9 @@ export const useCreateComment = (postId: string) => {
   const { user } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: string) => {
+    mutationFn: async ({ body, parentId = null }: { body: string; parentId?: string | null }) => {
       if (!user) throw new Error("Sign in first.");
-      const id = await createComment(user.id, postId, body);
+      const id = await createComment(user.id, postId, body, parentId);
       // null = saved but held for moderator review (it isn't visible yet, to anyone including its author's thread view)
       return fetchComment(id);
     },

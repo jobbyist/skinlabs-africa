@@ -5,7 +5,7 @@ import GuidelinesContent, { GUIDELINES_EFFECTIVE } from "./GuidelinesContent";
 /** The Community Guidelines in a scrollable popup, so reading them never takes a member away from the forum. */
 const GuidelinesDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="flex max-h-[88dvh] w-[calc(100%-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
+    <DialogContent className="forum-ui flex max-h-[88dvh] w-[calc(100%-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl">
       <DialogHeader className="shrink-0 border-b border-border px-5 py-4 text-left sm:px-6">
         <DialogTitle className="flex items-center gap-2 font-heading text-xl">
           <Users className="size-5 text-primary" aria-hidden="true" /> Community Guidelines
