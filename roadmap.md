@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Polish community side voting, composer focus, and keyboard-aware toolbar
+
 - [ ] Create verified user webmaster@skinlabs.co.za with active Glow VIP
 - [ ] Deploy payfast-payment/paypal-payment, verify webhook URLs reachable, wire Pricing buttons -> dashboard
 - [ ] Verify Firecrawl+Gemini newsroom pipeline, trigger 3 briefings, cap 1-2/day at 6am SAST

@@ -31,20 +31,23 @@ const PostCard = ({ post, isStaff, detail = false, ...actions }: PostCardProps) 
   return (
     <article
       aria-label={post.title}
-      className={cn("flex overflow-hidden rounded-2xl border border-border bg-card transition-colors", !detail && "hover:border-foreground/30", post.pinned && "border-foreground/30")}
+      className={cn("forum-touch flex overflow-hidden rounded-2xl border border-border bg-card transition-colors", !detail && "hover:border-foreground/30", post.pinned && "border-foreground/30")}
     >
-      <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 bg-muted/50 px-1 py-3 sm:w-12">
-        <button
+      <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 border-r border-border/50 bg-muted/50 py-3 sm:w-12">
+        <Button
+          variant="ghost"
+          size="icon"
           type="button"
+          data-haptic
           aria-pressed={post.liked_by_me}
           aria-label={`${post.liked_by_me ? "Remove upvote from" : "Upvote"} this post, ${post.like_count} ${post.like_count === 1 ? "upvote" : "upvotes"}`}
           onClick={() => actions.onLike(post)}
-          className={cn("flex size-9 items-center justify-center rounded-full transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", post.liked_by_me ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+          className={cn("forum-vote size-11 shrink-0 rounded-full hover:bg-background active:scale-100 [&_svg]:size-6", post.liked_by_me ? "text-primary" : "text-muted-foreground hover:text-foreground")}
         >
-          <ArrowBigUp className={cn("size-6 transition-transform active:scale-90", post.liked_by_me && "fill-current")} aria-hidden="true" />
-        </button>
-        <span className={cn("text-xs font-bold tabular-nums", post.liked_by_me ? "text-primary" : "text-foreground")} aria-hidden="true">
-          {post.like_count}
+          <ArrowBigUp className="forum-vote-icon size-6" aria-hidden="true" />
+        </Button>
+        <span className={cn("flex h-5 w-full items-center justify-center overflow-hidden text-xs font-bold tabular-nums transition-colors", post.liked_by_me ? "text-primary" : "text-foreground")} aria-hidden="true">
+          <span key={post.like_count} className="forum-vote-count">{post.like_count}</span>
         </span>
       </div>
       <div className="min-w-0 flex-1 p-4 sm:p-5">

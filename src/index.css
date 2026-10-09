@@ -155,6 +155,26 @@
 
 .ad-disclosure::after { content: attr(data-text); }
 
+/* Forum sheets have one geometry owner, including Safari viewport panning. */
+.forum-sheet {
+  bottom: var(--forum-viewport-bottom, 0px);
+  max-height: min(94dvh, calc(var(--forum-viewport-height, 100dvh) - 12px));
+}
+.forum-thread-sheet { min-height: min(60dvh, calc(var(--forum-viewport-height, 100dvh) - 12px)); }
+.forum-sheet[data-keyboard-open="true"] .forum-composer-footer { padding-bottom: .75rem; }
+.forum-touch, .forum-touch * { -webkit-tap-highlight-color: transparent; }
+.forum-touch :is(button, input, textarea, select, [role="combobox"]) { touch-action: manipulation; }
+.forum-touch :is(input, textarea, [role="combobox"]) { font-size: 1rem; }
+.forum-vote-icon { fill: transparent; transition: fill 160ms ease, transform 160ms ease-out; }
+.forum-vote[aria-pressed="true"] .forum-vote-icon { fill: currentColor; }
+.forum-vote:active .forum-vote-icon { transform: scale(.92); }
+@media (prefers-reduced-motion: no-preference) {
+  .forum-vote[aria-pressed="true"] .forum-vote-icon { animation: forum-vote-bounce 180ms ease-out; }
+  .forum-vote-count { animation: forum-count-enter 160ms ease-out; }
+}
+@keyframes forum-vote-bounce { 0% { transform: scale(.94); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes forum-count-enter { from { opacity: .4; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+
 @layer utilities {
   /* The small uppercase label that opens a card or section (launchpad, weather notch, surveys). */
   .eyebrow { font-size: 0.6875rem; line-height: 1rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
