@@ -101,8 +101,8 @@ test("liking is a real write and toggles back", async ({ page, context }) => {
   await expect(page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ }).click();
   await expect(page.getByRole("button", { name: /Upvote this post, 3 upvotes/ })).toBeVisible();
-  expect(forum.calls).toContain("POST:like");
-  expect(forum.calls).toContain("DELETE:like");
+  await expect.poll(() => forum.calls).toContain("POST:like");
+  await expect.poll(() => forum.calls).toContain("DELETE:like");
 });
 
 test("vote targets and composers stay usable above a resized and panned keyboard viewport", async ({ page, context }) => {
