@@ -137,7 +137,7 @@ import {
   countReviewsByBrand,
   discoveryObjective,
   discoveryQueries,
-  groundedPrice,
+  priceMatchesPage,
   needsFullPage,
   pickBrands,
   planOrigins,
@@ -648,9 +648,15 @@ async function discoverForOrigin(
   firecrawlKey: string,
   scrapeBudget: { remaining: number },
   errors: string[],
+  diagnostics: Array<{ brand: string; hits: number; kept: number }>,
 ): Promise<DiscoveredCandidate[]> {
   const perBrand = await Promise.all(
-    brands.map(async (brand) => buildDiscoveredCandidates(brand, await searchBrand(admin, brand, errors), seenUrls)),
+    brands.map(async (brand) => {
+      const hits = await searchBrand(admin, brand, errors);
+      const kept = buildDiscoveredCandidates(brand, hits, seenUrls);
+      diagnostics.push({ brand: brand.name, hits: hits.length, kept: kept.length });
+      return kept;
+    }),
   );
   const found: DiscoveredCandidate[] = [];
   // Round-robin across brands so one brand's many pages cannot crowd out the others.
@@ -1761,6 +1767,7 @@ Deno.serve(async (req) => {
       retryQueueId?: number;
       retryAttemptCount?: number;
     }
+    const discovery: Array<{ brand: string; hits: number; kept: number }> = [];
     const pools: Record<Origin, QueueItem[]> = { south_africa: [], global_available_in_sa: [] };
 
     for (const row of dueRetries ?? []) {
@@ -1793,6 +1800,7 @@ Deno.serve(async (req) => {
             firecrawlKey as string,
             scrapeBudget,
             errors,
+            discovery,
           ).catch((err) => {
             errors.push(`Discovery (${origin}) failed: ${String(err).slice(0, 200)}`);
             return [] as DiscoveredCandidate[];
@@ -1848,7 +1856,9 @@ Deno.serve(async (req) => {
       return fallback ?? null;
     };
 
-    for (let candidate = takeCandidate(); candidate !== null && created < target; candidate = takeCandidate()) {
+    while (created < target) {
+      const candidate = takeCandidate();
+      if (!candidate) break;
       if (Date.now() - runStartedAt > RUN_TIME_BUDGET_MS) {
         errors.push(`Run time budget (${RUN_TIME_BUDGET_MS / 1000}s) reached -- the next scheduled run continues`);
         break;
@@ -1898,8 +1908,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // The page's own Rand price beats the model's figure when they disagree.
-        fields.local_price_zar = groundedPrice(fields.local_price_zar, candidate.prices ?? []);
+        // The model's price must be a price that is actually on the page (never invented, never a unit conversion).
+        if (!priceMatchesPage(fields.local_price_zar, candidate.prices ?? [])) {
+          errors.push(`Price R${fields.local_price_zar} is not on the page (${(candidate.prices ?? []).join(", ")}) -- skipped ${candidate.sourceUrl}`);
+          continue;
+        }
 
         const finalId = slugify(`${fields.brand}-${fields.product_name}`) || `${Date.now()}`;
         if (takenProductIds.has(finalId)) {
@@ -2131,7 +2144,7 @@ Deno.serve(async (req) => {
       errors.push(`Spotlight edition bump: ${String(err).slice(0, 200)}`);
     }
 
-    return jsonResponse({ ok: true, created, target, modelUsage, backfillDate, errors });
+    return jsonResponse({ ok: true, created, target, dailyCap: DAILY_REVIEW_CAP, plan: originPlan, discovery, modelUsage, backfillDate, errors });
   } catch (err) {
     return jsonResponse({ error: String(err).slice(0, 500), created, errors }, 500);
   }

@@ -5,7 +5,7 @@ import {
   candidatePromptText,
   countReviewsByBrand,
   detectPrices,
-  groundedPrice,
+  looksLikeListing,
   IMPORT_BRANDS,
   LOCAL_BRANDS,
   nextOrigin,
@@ -94,11 +94,10 @@ describe("price reading", () => {
     expect(detectPrices("no price here")).toEqual([]);
   });
 
-  test("the page's price wins when the model's disagrees", () => {
+  test("a model price must be a price on the page", () => {
     expect(priceMatchesPage(205, [199])).toBe(true);
-    expect(groundedPrice(205, [199])).toBe(205);
-    expect(groundedPrice(450, [199, 259])).toBe(199);
-    expect(groundedPrice(450, [])).toBe(450);
+    expect(priceMatchesPage(450, [199, 259])).toBe(false);
+    expect(priceMatchesPage(450, [])).toBe(true);
   });
 });
 
@@ -154,5 +153,25 @@ describe("candidate filtering", () => {
       new Set(),
     );
     expect(candidatePromptText(imp[0])).toContain("Import (an international brand sold in South Africa)");
+  });
+
+  test("brand and range pages on single-slug shops are not products", () => {
+    const skinbliss = LOCAL_BRANDS.find((b) => b.name === "SkinBliss")!;
+    expect(looksLikeListing("https://www.faithful-to-nature.co.za/skinbliss-brand", skinbliss, "SkinBliss R 215")).toBe(true);
+    expect(looksLikeListing("https://www.faithful-to-nature.co.za/skinbliss", skinbliss, "SkinBliss R 215")).toBe(true);
+    expect(looksLikeListing("https://dermastore.co.za/bioderma-range", skinbliss, "x")).toBe(true);
+    expect(looksLikeListing("https://www.faithful-to-nature.co.za/skinbliss-bakuchiol-serum", skinbliss, "SkinBliss Bakuchiol R 215")).toBe(false);
+    const grid = Array.from({ length: 14 }, (_, i) => `Product ${i} R ${100 + i * 10}`).join(" ");
+    expect(looksLikeListing("https://dermastore.co.za/some-product", skinbliss, grid)).toBe(true);
+  });
+
+  test("SkinMiles product pages (skinmiles.com/product/...) are recognised", () => {
+    const bioderma = IMPORT_BRANDS.find((b) => b.name === "Bioderma")!;
+    const out = buildDiscoveredCandidates(
+      bioderma,
+      [{ url: "https://skinmiles.com/product/bioderma-pigmentbio-c-concentrate", title: "BIODERMA Pigmentbio C-Concentrate", text: "BIODERMA Pigmentbio C-Concentrate R 680.00 In stock Add to cart" }],
+      new Set(),
+    );
+    expect(out.map((c) => c.retailerName)).toEqual(["SkinMiles"]);
   });
 });

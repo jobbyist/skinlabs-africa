@@ -226,6 +226,32 @@ const RETAILER_NAME: Record<ReviewRetailerSlug, string> = {
   "brand-direct": "Brand Direct",
 };
 
+/**
+ * Brand, category and "shop by" pages pass the URL shape check on single-slug shops (Faithful to Nature serves
+ * /skinbliss-brand and /simply-bee). Reject a slug that is the brand itself or a brand/range page, and any page that
+ * lists many different prices (a grid of products, not one product).
+ */
+export function looksLikeListing(url: string, brand: BrandSeed, text: string): boolean {
+  let slug = "";
+  try {
+    slug = new URL(url).pathname.split("/").filter(Boolean).pop()?.replace(/\.html$/, "") ?? "";
+  } catch {
+    return true;
+  }
+  const slugKey = brandKey(slug);
+  const brandK = brandKey(brand.name);
+  if (slugKey === brandK || slugKey === `${brandK}brand` || /(^|-)(brands?|range|collections?|category|categories)(-|$)/.test(slug)) return true;
+  const grid = new Set<number>();
+  RAND_TOKEN.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  const head = text.slice(0, 6000);
+  while ((m = RAND_TOKEN.exec(head)) !== null) {
+    const v = parseRandToken(m[1]);
+    if (v !== null) grid.add(v);
+  }
+  return grid.size >= 12;
+}
+
 /** Hosts in the hits that look like this brand's own shop ("sundaeskin.co.za" for "Sundae Skin"). */
 export function brandDomainsFromHits(brand: BrandSeed, hits: RawHit[]): string[] {
   const key = brandKey(brand.name);
@@ -259,6 +285,7 @@ export function buildDiscoveredCandidates(brand: BrandSeed, hits: RawHit[], seen
     if (!canon || taken.has(canon.url) || seenUrls.has(canon.url)) continue;
     const title = (hit.title ?? "").trim();
     if (!brandKey(`${title} ${hit.text.slice(0, 600)} ${canon.url}`).includes(key)) continue;
+    if (looksLikeListing(canon.url, brand, hit.text)) continue;
     const prices = detectPrices(hit.text);
     if (prices.length === 0) continue;
     taken.add(canon.url);
@@ -271,12 +298,6 @@ export function buildDiscoveredCandidates(brand: BrandSeed, hits: RawHit[], seen
 export function priceMatchesPage(modelPrice: number, detected: number[]): boolean {
   if (detected.length === 0) return true;
   return detected.some((p) => Math.abs(modelPrice - p) / p <= 0.1);
-}
-
-/** What the review is grounded on: the page's own price when the model's disagrees, else the model's figure. */
-export function groundedPrice(modelPrice: number, detected: number[]): number {
-  if (detected.length === 0 || priceMatchesPage(modelPrice, detected)) return modelPrice;
-  return detected[0];
 }
 
 /** Prompt text handed to the model for a discovered page. */
