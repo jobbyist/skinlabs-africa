@@ -96,13 +96,52 @@ test("liking is a real write and toggles back", async ({ page, context }) => {
   await mockSupabase(context, { profile: member });
   const forum = await mockForum(context);
   await page.goto("/community-forum");
-  const like = page.getByRole("button", { name: /Like this post, 3 likes/ });
+  const like = page.getByRole("button", { name: /Upvote this post, 3 upvotes/ });
   await like.click();
-  await expect(page.getByRole("button", { name: /Unlike this post, 4 likes/ })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: /Unlike this post, 4 likes/ }).click();
-  await expect(page.getByRole("button", { name: /Like this post, 3 likes/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: /Remove upvote from this post, 4 upvotes/ }).click();
+  await expect(page.getByRole("button", { name: /Upvote this post, 3 upvotes/ })).toBeVisible();
   expect(forum.calls).toContain("POST:like");
   expect(forum.calls).toContain("DELETE:like");
+});
+
+test("vote targets and composers stay usable above a resized and panned keyboard viewport", async ({ page, context }) => {
+  await mockSupabase(context, { profile: member });
+  await mockForum(context);
+  await page.goto("/community-forum");
+  const vote = page.getByRole("button", { name: /Upvote this post, 3 upvotes/ });
+  const target = await vote.boundingBox();
+  expect(target?.width).toBe(44);
+  expect(target?.height).toBe(44);
+  await expect(vote).toHaveAttribute("data-haptic", "");
+  await page.getByRole("button", { name: /Start a discussion/ }).first().click();
+  const sheet = page.getByRole("dialog");
+  for (const label of ["Title", "Details", "Topic (optional)"]) {
+    expect(await sheet.getByLabel(label, { exact: true }).evaluate(el => getComputedStyle(el).fontSize)).toBe("16px");
+  }
+  await sheet.getByLabel("Details").fill("A keyboard-safe skincare discussion draft.");
+  await sheet.getByLabel("Details").focus();
+  await page.evaluate(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) throw new Error("visualViewport unavailable");
+    Object.defineProperty(viewport, "height", { configurable: true, value: window.innerHeight - 300 });
+    Object.defineProperty(viewport, "offsetTop", { configurable: true, value: 50 });
+    viewport.dispatchEvent(new Event("resize"));
+    viewport.dispatchEvent(new Event("scroll"));
+  });
+  await expect(sheet).toHaveAttribute("data-keyboard-open", "true");
+  await expect.poll(() => sheet.evaluate(el => Math.round(el.getBoundingClientRect().bottom))).toBe((page.viewportSize()?.height ?? 0) - 250);
+  await expect(sheet.getByRole("toolbar", { name: "Discussion attachments" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Publish", exact: true })).toBeInViewport();
+  await sheet.screenshot({ path: `/tmp/browser/forum-composer-${test.info().project.name}.png` });
+  await sheet.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await page.getByRole("button", { name: SUN, exact: true }).click();
+  const thread = page.getByRole("dialog");
+  expect(await thread.getByLabel("Add a comment").evaluate(el => getComputedStyle(el).fontSize)).toBe("16px");
+  await thread.getByLabel("Add a comment").fill("My comment stays above the keyboard.");
+  await expect(thread.getByRole("button", { name: "Post comment", exact: true })).toBeInViewport();
+  await thread.screenshot({ path: `/tmp/browser/forum-thread-${test.info().project.name}.png` });
 });
 
 test("a discussion opens with its comments, and a new comment appears at once", async ({ page, context }) => {
