@@ -1798,7 +1798,7 @@ Deno.serve(async (req) => {
         origins.map((origin) =>
           discoverForOrigin(
             admin,
-            pickBrands(origin, reviewedByBrand, Math.min(BRANDS_SEARCHED_PER_ORIGIN_PER_RUN + 1, wanted[origin] + 2), runSeed),
+            pickBrands(origin, reviewedByBrand, origin === "global_available_in_sa" ? Math.min(5, wanted[origin] + 4) : Math.min(BRANDS_SEARCHED_PER_ORIGIN_PER_RUN + 1, wanted[origin] + 2), runSeed),
             seenUrls,
             firecrawlKey as string,
             scrapeBudget,
