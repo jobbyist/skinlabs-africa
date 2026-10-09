@@ -71,7 +71,7 @@ ${names.map((n) => `    ('${n}', 'member')`).join(",\n")}
   END LOOP;
 
   INSERT INTO public.community_seed_queue (due_at, payload)
-  SELECT ((((now() AT TIME ZONE 'Africa/Johannesburg')::date + 1 + ((o - 1) / 2))::timestamp
+  SELECT ((((now() AT TIME ZONE 'Africa/Johannesburg')::date + 1 + ((o - 1) / 2)::integer)::timestamp
            + CASE WHEN (o - 1) % 2 = 0 THEN time '08:05' ELSE time '18:25' END
            + (abs(hashtext(e ->> 'title')) % 40) * interval '1 minute') AT TIME ZONE 'Africa/Johannesburg'), e
     FROM jsonb_array_elements($json$${j(pool)}$json$::jsonb) WITH ORDINALITY AS t(e, o);
