@@ -49,6 +49,8 @@ export interface ProductReview {
    *  marketplace) as well as the existing disclosed Timeless placements -- see
    *  supabase/functions/product-review-sync/index.ts's 2026-09-22 header note. */
   is_sponsored?: boolean;
+  /** Pipeline reviews only: `global_available_in_sa` = an international brand sold in South Africa, labelled "Import". */
+  origin?: "south_africa" | "global_available_in_sa";
 }
 
 export interface SeededComment {

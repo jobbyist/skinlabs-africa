@@ -328,6 +328,9 @@ const ProductReview = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
+            {review.origin === "global_available_in_sa" && (
+              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Import</Badge>
+            )}
             {review.is_sponsored && (
               <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Sponsored</Badge>
             )}

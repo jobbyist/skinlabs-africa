@@ -87,7 +87,7 @@ import { clampAtWord, endsMidSentence } from '@/lib/seo/text'
 // routes and the SPA.
 
 const BASIC_COLUMNS =
-  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored'
+  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored, origin'
 
 function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
   const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000
@@ -114,6 +114,7 @@ function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
     seo_title: row.seo_title as string | null,
     seo_description: row.seo_description as string | null,
     is_sponsored: (row.is_sponsored as boolean | null) ?? false,
+    origin: row.origin === 'global_available_in_sa' ? 'global_available_in_sa' : 'south_africa',
   }
 }
 
@@ -441,6 +442,11 @@ function ReviewPageContent() {
           {review.product_name} <span>{score} / 10</span>
         </h1>
         <p>Reviewed by {AUTHOR_NAME}</p>
+        {review.origin === 'global_available_in_sa' && (
+          <p>
+            <em>Import — an international brand sold in South Africa.</em>
+          </p>
+        )}
         {review.is_sponsored && (
           <p>
             <em>Sponsored — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.</em>

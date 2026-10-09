@@ -12,7 +12,7 @@ export async function fetchGeneratedReviews(client: SupabaseClient): Promise<Pro
   const { data, error } = await (client as SupabaseClient)
     .from("ai_generated_product_reviews")
     .select(
-      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, product_size, product_format, country_of_origin, am_pm_usage, skin_concerns, benefits, cautions, faq, seo_title, seo_description, key_ingredients_structured, related_ingredients_slugs, primary_image, related_reviews, related_knowledge_articles, community_rating, community_rating_count, is_sponsored",
+      "id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, product_size, product_format, country_of_origin, am_pm_usage, skin_concerns, benefits, cautions, faq, seo_title, seo_description, key_ingredients_structured, related_ingredients_slugs, primary_image, related_reviews, related_knowledge_articles, community_rating, community_rating_count, is_sponsored, origin",
     )
     .order("published_date", { ascending: false });
 
@@ -58,5 +58,6 @@ export async function fetchGeneratedReviews(client: SupabaseClient): Promise<Pro
     community_rating: row.community_rating !== null && row.community_rating !== undefined ? Number(row.community_rating) : null,
     community_rating_count: row.community_rating_count ?? 0,
     is_sponsored: row.is_sponsored ?? false,
+    origin: row.origin === "global_available_in_sa" ? "global_available_in_sa" : "south_africa",
   }));
 }
