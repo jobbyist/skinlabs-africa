@@ -569,17 +569,19 @@ test.describe("desktop sidebar", () => {
   });
 });
 
-test("GIF search: pick a GIF and it enters the normal upload pipeline", async ({ page, context }) => {
-  test.skip(!process.env.VITE_GIPHY_API_KEY, "needs a build with VITE_GIPHY_API_KEY set (any value; GIPHY is mocked)");
+test("GIF search goes through our rate-limited proxy; picking a GIF enters the normal upload pipeline", async ({ page, context }) => {
   await mockSupabase(context, { profile: member });
   const forum = await mockForum(context);
   const gif = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
-  const queries: string[] = [];
+  const calls: string[] = [];
+  let limited = false;
   const img = (id: string) => ({ url: `https://media1.giphy.com/media/${id}/giphy.gif`, width: "200", height: "150", size: "1000" });
-  await context.route(/api\.giphy\.com\/v1\/gifs\//, (r) => {
+  await context.route(/\/api\/giphy/, (r) => {
     const url = new URL(r.request().url());
-    queries.push(`${url.pathname.split("/").pop()}:${url.searchParams.get("q") ?? ""}:${url.searchParams.get("rating")}`);
-    return r.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ pagination: { total_count: 2 }, data: [{ id: "g1", title: "glow up", images: { fixed_width_small: img("g1"), downsized: img("g1") } }, { id: "g2", title: "wow", images: { fixed_width_small: img("g2"), downsized: img("g2") } }] }) });
+    if (url.searchParams.get("action") === "status") return r.fulfill({ status: 200, json: { ok: true, enabled: true } });
+    calls.push(`${url.searchParams.get("q") ?? ""}|${r.request().headers().authorization ? "auth" : "anon"}`);
+    if (limited) return r.fulfill({ status: 429, headers: { "retry-after": "1200" }, json: { ok: false, error: "rate_limited", reason: "global", retry_after: 1200 } });
+    return r.fulfill({ status: 200, json: { ok: true, cached: false, data: { pagination: { total_count: 2 }, data: [{ id: "g1", title: "glow up", images: { fixed_width_small: img("g1"), downsized: img("g1") } }, { id: "g2", title: "wow", images: { fixed_width_small: img("g2"), downsized: img("g2") } }] } } });
   });
   await context.route(/media1\.giphy\.com\//, (r) => r.fulfill({ status: 200, contentType: "image/gif", headers: { "access-control-allow-origin": "*" }, body: gif }));
   await page.goto("/community-forum");
@@ -592,7 +594,19 @@ test("GIF search: pick a GIF and it enters the normal upload pipeline", async ({
   await expect(picker.getByRole("button", { name: "Add GIF: glow up" })).toBeVisible();
   await expect(picker.getByText("Powered by GIPHY")).toBeVisible();
   await picker.getByRole("button", { name: "Hydrated" }).click();
-  await expect.poll(() => queries.some((q) => q.startsWith("search:hydrated skin:pg"))).toBe(true);
+  await expect.poll(() => calls.includes("hydrated skin|auth")).toBe(true);
+  // A search repeated in the same tab is answered from memory: no second request.
+  await picker.getByRole("button", { name: "Hydrated" }).click();
+  await picker.getByRole("button", { name: "Hydrated" }).click();
+  await expect(picker.getByRole("button", { name: "Add GIF: glow up" })).toBeVisible();
+  expect(calls.filter((c) => c.startsWith("hydrated skin"))).toHaveLength(1);
+  // When the hourly limit is reached the member is told plainly and can still upload.
+  limited = true;
+  await picker.getByRole("button", { name: "Shock" }).click();
+  await expect(picker.getByRole("alert")).toContainText(/busy right now.*20 minutes/);
+  await expect(picker.getByRole("button", { name: "Upload a GIF" })).toBeVisible();
+  limited = false;
+  await picker.getByRole("button", { name: "Hydrated" }).click();
   await picker.getByRole("button", { name: "Add GIF: glow up" }).click();
   await expect(picker).toHaveCount(0);
   await expect(sheet.getByAltText("Preview of your attached image")).toBeVisible();

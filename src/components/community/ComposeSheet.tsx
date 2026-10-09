@@ -13,7 +13,7 @@ import { useCreatePost } from "@/hooks/use-community";
 import { getMyMediaUsage, removeMedia, uploadMedia, type PostImage } from "@/lib/community/client";
 import { insertAtSelection } from "@/lib/community/emoji";
 import { applyAlign, applyLineFormat, currentAlign, insertDivider, insertLink, toggleInline, type AlignFormat, type Edit } from "@/lib/community/formatting";
-import { giphyConfigured } from "@/lib/community/giphy";
+import { useGifSearchAvailable } from "@/hooks/use-gif-search";
 import { useKeyboardSheet } from "@/hooks/use-keyboard-sheet";
 import { cn } from "@/lib/utils";
 import { ImageError, prepareCommunityImage, type PreparedImage } from "@/lib/community/image";
@@ -82,7 +82,7 @@ const ComposeSheet = ({ open, onOpenChange, categories, defaultCategory, ensureH
   const [align, setAlign] = useState<AlignFormat>("left");
   const sheet = useKeyboardSheet(open);
   const ownsKeyboard = typeof window !== "undefined" && Boolean(window.visualViewport);
-  const gifSearch = giphyConfigured();
+  const gifSearch = useGifSearchAvailable(open);
 
   const clearAttachment = () =>
     setAttachment((current) => {

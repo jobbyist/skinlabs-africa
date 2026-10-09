@@ -1,17 +1,16 @@
 import { MEDIA_MAX_BYTES } from "./image";
 
 /**
- * GIF search for the composer, straight from the browser to GIPHY (Tenor's API is closed to new integrations).
- * Needs `VITE_GIPHY_API_KEY`; GIPHY keys are public by design (they identify the app, they are not secrets). Without one,
- * the picker is not offered and the composer keeps its "upload a GIF" button, so nothing looks available that isn't.
+ * GIF search for the composer (Tenor's API is closed to new integrations). Searches go through our own proxy, `api/giphy.ts`:
+ * the key stays on the server and GIPHY's 100-calls-per-hour beta limit is shared and enforced there (see that file). If the proxy
+ * says GIF search isn't set up, the picker is not offered and the composer keeps its "upload a GIF" button, so nothing looks
+ * available that isn't.
  *
- * Privacy: searching sends the typed words and the visitor's IP to GIPHY, so nothing is requested until the member opens the
+ * Privacy: searching sends the typed words to our server and on to GIPHY (not the member's IP or account), so nothing is requested until the member opens the
  * picker. A chosen GIF is downloaded and then goes through the SAME upload pipeline as any picture (our own storage bucket,
  * size limits, quota), so readers never load anything from GIPHY and the post does not depend on it staying online.
  */
 
-const API = "https://api.giphy.com/v1/gifs";
-const PAGE = 24;
 
 export const GIF_CATEGORIES: { label: string; query: string }[] = [
   { label: "Glow", query: "glowing skin" },
@@ -33,8 +32,6 @@ export interface GifResult {
   width: number;
   height: number;
 }
-
-export const giphyConfigured = (): boolean => Boolean(import.meta.env.VITE_GIPHY_API_KEY);
 
 const HOST = /^(?:media\d*|i)\.giphy\.com$/;
 /** Only GIPHY's own media hosts over https are ever fetched. */
@@ -92,28 +89,67 @@ export const parseGifResults = (json: unknown): { results: GifResult[]; total: n
   return { results, total: num(root?.pagination?.total_count) };
 };
 
-export class GifError extends Error {}
+export class GifError extends Error {
+  /** Seconds until a rate-limited search may be retried. */
+  retryAfter?: number;
+  constructor(message: string, retryAfter?: number) {
+    super(message);
+    this.retryAfter = retryAfter;
+  }
+}
 
-const call = async (path: string, params: Record<string, string>, signal?: AbortSignal) => {
-  const key = import.meta.env.VITE_GIPHY_API_KEY as string | undefined;
-  if (!key) throw new GifError("GIF search isn't available right now.");
-  const qs = new URLSearchParams({ api_key: key, limit: String(PAGE), rating: "pg", lang: "en", bundle: "messaging_non_clips", ...params });
+const ENDPOINT = "/api/giphy";
+/** Repeat searches in this tab (a chip toggled back and forth) are answered here and never leave the browser. */
+const memo = new Map<string, { at: number; value: { results: GifResult[]; total: number } }>();
+const MEMO_MS = 10 * 60_000;
+
+/** Whether the proxy has a GIPHY key. Never throws: any failure means "not available". */
+export const fetchGifSearchEnabled = async (): Promise<boolean> => {
+  try {
+    const res = await fetch(`${ENDPOINT}?action=status`);
+    if (!res.ok) return false;
+    return ((await res.json()) as { enabled?: unknown }).enabled === true;
+  } catch {
+    return false;
+  }
+};
+
+export const rateLimitMessage = (seconds: number | undefined, reason?: string): string => {
+  const minutes = Math.max(1, Math.ceil((seconds ?? 600) / 60));
+  return reason === "user"
+    ? `You've searched a lot of GIFs this hour. Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}, or upload your own.`
+    : `GIF search is busy right now. Try again in about ${minutes} minute${minutes === 1 ? "" : "s"}, or upload your own.`;
+};
+
+export const searchGifs = async (query: string, offset: number, signal?: AbortSignal): Promise<{ results: GifResult[]; total: number }> => {
+  const q = query.trim().replace(/\s+/g, " ").toLowerCase().slice(0, 50);
+  const key = `${q}|${offset}`;
+  const hit = memo.get(key);
+  if (hit && Date.now() - hit.at < MEMO_MS) return hit.value;
+
+  const { supabase } = await import("@/integrations/supabase/client");
+  const { data: session } = await supabase.auth.getSession();
+  const token = session.session?.access_token;
+  if (!token) throw new GifError("Sign in to search GIFs.");
   let res: Response;
   try {
-    res = await fetch(`${API}/${path}?${qs}`, { signal });
+    res = await fetch(`${ENDPOINT}?${new URLSearchParams({ q, offset: String(offset) })}`, { headers: { Authorization: `Bearer ${token}` }, signal });
   } catch (e) {
     if ((e as Error).name === "AbortError") throw e;
     throw new GifError("Couldn't reach the GIF library. Check your connection.");
   }
-  if (res.status === 429) throw new GifError("GIF search is busy. Try again in a minute.");
+  if (res.status === 429) {
+    const body = (await res.json().catch(() => ({}))) as { retry_after?: number; reason?: string };
+    const retry = body.retry_after ?? (Number(res.headers.get("Retry-After")) || undefined);
+    throw new GifError(rateLimitMessage(retry, body.reason), retry);
+  }
   if (!res.ok) throw new GifError("GIF search isn't available right now.");
-  return parseGifResults(await res.json());
+  const body = (await res.json()) as { data?: unknown };
+  const value = parseGifResults(body.data);
+  memo.set(key, { at: Date.now(), value });
+  return value;
 };
 
-export const searchGifs = (query: string, offset: number, signal?: AbortSignal) =>
-  query.trim() ? call("search", { q: query.trim().slice(0, 50), offset: String(offset) }, signal) : call("trending", { offset: String(offset) }, signal);
-
-/** Downloads the chosen GIF as a File so it can enter the normal image pipeline. */
 export const fetchGifFile = async (gif: GifResult, signal?: AbortSignal): Promise<File> => {
   if (!isGiphyMediaUrl(gif.fileUrl)) throw new GifError("That GIF couldn't be added.");
   let res: Response;

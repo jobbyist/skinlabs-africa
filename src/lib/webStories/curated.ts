@@ -330,8 +330,79 @@ export const practiceSuiteBetaStory = (): Story => {
   };
 };
 
+export const JOIN_THE_DISCUSSION_SLUG = "join-the-discussion";
+const UNSPLASH = "https://images.unsplash.com/photo-";
+/** Free-licence Unsplash photos already used across the site (each checked to resolve); cropped to 9:16 by `portrait()`. */
+const JOIN_THE_DISCUSSION_PHOTOS = [
+  { url: `${UNSPLASH}1773700596401-61bc77e0b436`, alt: "A skincare serum bottle on a soft neutral surface. Photo from Unsplash." },
+  { url: `${UNSPLASH}1556228578-0d85b1a4d571`, alt: "Moisturiser and skincare products arranged together. Photo from Unsplash." },
+  { url: `${UNSPLASH}1556228453-efd6c1ff04f6`, alt: "Sunscreen and skincare bottles in natural light. Photo from Unsplash." },
+  { url: `${UNSPLASH}1715702130909-a5b2942a411b`, alt: "A tub of moisturiser on a calm background. Photo from Unsplash." },
+  { url: `${UNSPLASH}1512496015851-a90fb38ba796`, alt: "A glowing, healthy-looking skincare flat lay. Photo from Unsplash." },
+] as const;
+
+/**
+ * "Join the discussion": introduces the Community Forum. Access wording follows the product decision: full access is for Glow Lite,
+ * Insider and VIP members, and until further notice the Community is open to every signed-in member. Nothing here promises a feature
+ * that doesn't exist: photo/GIF posts, upvotes, nested replies and formatting are all live.
+ */
+export const joinTheDiscussionStory = (): Story => {
+  const photo = (n: number) => ({ mediaUrl: portrait(JOIN_THE_DISCUSSION_PHOTOS[n].url), mediaAlt: JOIN_THE_DISCUSSION_PHOTOS[n].alt });
+  return {
+    key: JOIN_THE_DISCUSSION_SLUG,
+    source: "curated",
+    slug: JOIN_THE_DISCUSSION_SLUG,
+    title: "Join the discussion",
+    kind: "editorial",
+    coverImageUrl: photo(0).mediaUrl,
+    coverImageAlt: photo(0).mediaAlt,
+    ctaLabel: "Open the Community",
+    ctaUrl: "/community-forum",
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-10-09",
+    pages: [
+      page({
+        ...photo(0),
+        headline: "Join the discussion",
+        body: "The SkinLabs® Community Forum is here: a members' space to swap routines, ask honest questions and share what's working for South African skin.",
+        ctaLabel: "Open the Community",
+        ctaUrl: "/community-forum",
+      }),
+      page({
+        ...photo(1),
+        headline: "Skin talk, South African style",
+        body: "Highveld winters, coastal humidity, load-shedding showers and rand-friendly routines. Start a discussion, or add your experience to someone else's.",
+        ctaLabel: "See what's being discussed",
+        ctaUrl: "/community-forum",
+      }),
+      page({
+        ...photo(2),
+        headline: "Upvote, reply, show and tell",
+        body: "Upvote what helps, reply in threads you can collapse, format your post with bold, lists and quotes, and add a photo or GIF.",
+      }),
+      page({
+        ...photo(3),
+        headline: "Kind, careful and private",
+        body: "Share experience, not diagnoses, and see a doctor for anything persistent. Keep photos free of other people's faces and contact details. Moderators are here to help.",
+        ctaLabel: "Read the guidelines",
+        ctaUrl: "/community-guidelines",
+      }),
+      page({
+        ...photo(4),
+        headline: "Who can join",
+        body: "Full access to the Community is for Glow Lite, Insider and VIP members. Until further notice it's open to every member, so sign in and say hello.",
+        ctaLabel: "Join the Community",
+        ctaUrl: "/community-forum",
+      }),
+    ],
+  };
+};
+
 export const curatedStories = (now: Date | number = Date.now()): Story[] => [
   ...(isGiveawayOpen(now) ? [giveawayOctober2026Story()] : []),
+  joinTheDiscussionStory(),
   practiceSuiteBetaStory(),
   ...(ICYMI_SEPTEMBER_2026_VIDEO_READY ? [icymiSeptember2026Story()] : []),
   podcastSeasonOneStory(),

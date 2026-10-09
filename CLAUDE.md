@@ -117,7 +117,7 @@ Members-only `/community-forum` (`?post=<uuid>` deep link). Full detail: **`docs
 - Posting needs a chosen handle (`handle_required` from the DB, `useRequireHandle()` opens the existing dialog). Tests: `communityRules.test.ts`, `e2e/community-forum.e2e.ts`, SQL probe above.
 
 ### Community redesign (2026-10-09)
-Markdown-style formatting (safe parser, no HTML), reddit-style vote rail, nested/collapsible replies, toolbar + GIPHY search, keyboard-aware sheets, desktop sidebar. Detail: `docs/community-forum.md` (last section). **Not applied live**: `20261009100000_community_sidebar_stats.sql` (sidebar hides stats until then). GIF search is off until `VITE_GIPHY_API_KEY` is set. Never render post text with HTML injection; extend `markdown.tsx` + its tests instead.
+Markdown-style formatting (safe parser, no HTML), reddit-style vote rail, nested/collapsible replies, toolbar + GIPHY search, keyboard-aware sheets, desktop sidebar. Detail: `docs/community-forum.md` (last section). **Not applied live**: `20261009100000_community_sidebar_stats.sql` (sidebar hides stats until then). GIF search goes through `api/giphy.ts` (shared 95/hour + 20/member/hour limit in the DB, cached 1 h; key from `GIPHY_API_KEY`/`VITE_GIPHY_API_KEY` on Vercel). Seed personas/posts + the `community-seed-tick` publisher: `docs/community-forum.md` (last sections). Story `join-the-discussion` is curated in `curated.ts`. Never render post text with HTML injection; extend `markdown.tsx` + its tests instead.
 
 ## SKYNN AI v2.1 — beta (2026-09-28) — standing rules
 
