@@ -113,3 +113,35 @@ export const getProductImage = (category: string, productId: string): CategoryIm
   if (!pool || pool.length === 0) return null;
   return pool[hashString(productId) % pool.length];
 };
+
+/**
+ * Review cards use ONE photo per product category (not one per review), so a grid reads as a consistent set and
+ * no card implies its photo shows that exact SKU. Categories without their own photo (e.g. Accessories, Toner,
+ * Mask) fall back to the generic skincare flat-lay below rather than an unrelated product shot.
+ */
+const GENERIC_CATEGORY_IMAGE: CategoryImage = {
+  url: `https://images.unsplash.com/photo-1672749489615-2eb286c851e5?${UNSPLASH_PARAMS}`,
+  alt: "Skincare products arranged for photography",
+  creditName: "Mina Rad",
+  creditUrl: "https://unsplash.com/@miinrad",
+};
+
+export const getCategoryImage = (category: string): CategoryImage => {
+  const photo = categoryImages[category]?.[0];
+  return photo ? { ...photo, alt: `${category} — ${photo.alt}` } : GENERIC_CATEGORY_IMAGE;
+};
+
+/**
+ * Default cover for a review that has no approved product image. Deliberately NOT a stock photo: a category
+ * Unsplash shot implied a picture of the product, the branded placeholder does not. Site-relative; callers that
+ * need an absolute URL (OG/JSON-LD) prefix SITE_URL.
+ */
+export const REVIEW_PLACEHOLDER_IMAGE: CategoryImage = {
+  url: "/images/review-placeholder.jpg",
+  alt: "SkinLabs product review",
+  creditName: "SkinLabs",
+  creditUrl: "#",
+};
+
+/** Category-specific Unsplash cover for Shelf Showdown (comparison) articles. */
+export const getComparisonCoverImage = (category: string): CategoryImage => getCategoryImage(category);

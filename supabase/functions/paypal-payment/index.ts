@@ -59,6 +59,7 @@ const ALLOWED_CALLBACK_ORIGINS = [
   "https://skinlabs.co.za",
   "https://www.skinlabs.co.za",
   "https://skinlabsza.lovable.app",
+  "https://id-preview--3a7fffe1-a651-4cb0-9824-839db53d00ae.lovable.app",
 ];
 
 function safeCallback(url: unknown): string {
@@ -68,10 +69,7 @@ function safeCallback(url: unknown): string {
     const u = new URL(url);
     if (u.protocol !== "https:") return fallback;
     const origin = `${u.protocol}//${u.host}`;
-    const allowed =
-      ALLOWED_CALLBACK_ORIGINS.includes(origin) ||
-      u.hostname.endsWith(".lovable.app") ||
-      u.hostname.endsWith(".lovableproject.com");
+    const allowed = ALLOWED_CALLBACK_ORIGINS.includes(origin);
     return allowed ? url : fallback;
   } catch {
     return fallback;

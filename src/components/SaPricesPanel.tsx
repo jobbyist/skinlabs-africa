@@ -1,7 +1,8 @@
-import { MapPin, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink, TrendingDown } from "lucide-react";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { checkedLabel, formatRand, formatSize, groupPrices, stockLabel, type SaRetailPrice } from "@/lib/pricing/saRetailPrices";
 import type { ReviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
+import { isLowestIn30Days, statKey, type PriceStat } from "@/lib/pricing/priceTracking";
 import { cn } from "@/lib/utils";
 
 interface SaPricesPanelProps {
@@ -9,6 +10,8 @@ interface SaPricesPanelProps {
   rows: SaRetailPrice[];
   /** A dated snapshot from the review itself, shown only when there are no live rows. */
   snapshot?: ReviewTimeSnapshot | null;
+  /** 30-day price stats per listing (RPC sa_price_stats_30d), keyed by retailer|url. Drives the "Lowest in 30 days" badge. */
+  stats?: Map<string, PriceStat>;
   className?: string;
 }
 
@@ -18,7 +21,7 @@ interface SaPricesPanelProps {
  * dated review-time snapshot may appear, worded as such; with neither, nothing renders
  * (an invented or stale price is worse than none).
  */
-const SaPricesPanel = ({ rows, snapshot, className }: SaPricesPanelProps) => {
+const SaPricesPanel = ({ rows, snapshot, stats, className }: SaPricesPanelProps) => {
   if (rows.length === 0 && !snapshot) return null;
 
   if (rows.length === 0 && snapshot) {
@@ -73,6 +76,7 @@ const SaPricesPanel = ({ rows, snapshot, className }: SaPricesPanelProps) => {
               <div className="overflow-hidden rounded-2xl border border-border">
                 {group.rows.map((row, i) => {
                   const stock = stockLabel(row.in_stock);
+                  const lowest = isLowestIn30Days(stats?.get(statKey(row.retailer_slug, row.listing_url)), row.price_zar, now);
                   return (
                     <a
                       key={row.retailer_slug}
@@ -86,6 +90,11 @@ const SaPricesPanel = ({ rows, snapshot, className }: SaPricesPanelProps) => {
                         <span className="inline-flex items-center gap-2 font-medium text-foreground">
                           <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /> {row.retailer_name}
                           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          {lowest && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100">
+                              <TrendingDown className="h-3 w-3" aria-hidden="true" /> Lowest in 30 days
+                            </span>
+                          )}
                         </span>
                         <span className="block text-xs text-muted-foreground">
                           {checkedLabel(new Date(row.checked_at), now)}

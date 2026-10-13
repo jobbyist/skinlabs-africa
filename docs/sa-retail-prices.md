@@ -111,3 +111,44 @@ by unit tests on real markup so far; confirm the first morning run in `retailer_
   shell without the buy-box. Those stay Firecrawl-only (Takealot paused) or have no live price.
 - **OpenHaus products** (59 of the 65 generated reviews): the price is first-party and fresh (`openhaus-price-sync`, daily), exposed per
   review by `review_live_prices` and copied into `local_price_zar` daily by `sync_openhaus_review_prices()`.
+
+
+## Update 2026-10-08: review prices via Parallel Search (Nimble fallback), verified by a person, re-checked every 25 days
+
+Replaces Firecrawl for **published product reviews** (static catalogue, AI-generated and Sponsored/OpenHaus): real prices from
+Takealot, Dis-Chem, Clicks, Dermastore, SkinMiles and Faithful to Nature.
+
+```
+review_price_targets (one per review; trigger adds new generated reviews, static ones seeded by scripts/generate-review-price-targets.ts)
+  -> cron `review-price-sync` every 10 min, only when a target is due  -> edge function review-price-sync (4 reviews / run)
+  -> ONE Parallel Search call per review (6 site queries, include_domains = the six shops, 1500 chars/result)
+       unavailable (no key / 401 / 402 / 403 / 429 / 5xx)  ->  Nimble Search (include_domains, fast depth)
+  -> _shared/pricing/reviewPrices.ts: product-page URLs only + strict matcher (match.ts) + deterministic price read (no model reads prices)
+  -> save_review_price_check()  ->  review_price_listings.status = pending   (NOT public)
+  -> Admin > SA Prices > "Review prices": approve / reject / correct price  (admin_decide_review_prices)
+  -> approved + checked <= 30 days  ->  view sa_retail_prices  ->  existing SaPricesPanel, JSON-LD offers, At-a-Glance (no frontend change)
+```
+
+- **Nothing is public until approved.** The public RLS policy / view serve `status = 'approved'` AND `checked_at >= now() - 30 days`, so a price
+  that is not re-verified simply disappears at 30 days. Targets are re-checked every **25 days** (a gap-free margin); a review with nothing found
+  retries after 7 days. A deferred (provider down) target retries in 6 h.
+- **Re-check keeps the person's verification of the LISTING**: an approved listing whose price moves <= 50% refreshes itself (history row
+  appended); a bigger move goes back to `pending` (hidden) for a person. A rejected listing is never re-proposed.
+- **Dis-Chem "Special Price"** (10-20% member discounts) is stored as `special_price_zar` and NOT shown; the list price is the price.
+- **Future review generation is priced automatically**: the trigger `trg_review_price_target_generated` on `ai_generated_product_reviews` makes
+  every new review a due target, so `product-review-sync` (and anything else that inserts reviews) needs no changes. New *static* reviews:
+  re-run `scripts/generate-review-price-targets.ts` and apply the emitted SQL (idempotent).
+- **Provider order / limits**: Parallel first. The Parallel *MCP* free tier rate-limited 3 of 6 concurrent calls in the first session run, which is
+  exactly the case the Nimble fallback covers (verified: Nimble returned usable listings). The edge function uses the REST API with its own key.
+- **Secrets a human must set (Supabase Edge Function secrets)**: `PARALLEL_API_KEY` (required) and `NIMBLE_API_KEY` (fallback). Until
+  `PARALLEL_API_KEY` or `NIMBLE_API_KEY` exists the function answers 503 `blocked_not_configured` *before claiming anything* and the targets stay due.
+  Cron auth needs no secret (Vault `review_price_sync_cron_secret`, verified in the database).
+- **Firecrawl retired for reviews**: cron jobs `retailer-price-discover-clicks`, `retailer-price-refresh-dischem`, `retailer-price-discover-dischem`
+  were unscheduled (re-add from `20261003130000_retailer_price_cron.sql`). `retailer-price-refresh-clicks` (direct fetch, no credits) stays.
+- **Manual run** (secret never leaves the DB):
+  `select net.http_post(url := 'https://gnkpzijxuciiaamakgzm.supabase.co/functions/v1/review-price-sync', headers := jsonb_build_object('Content-Type','application/json','x-cron-secret',(select decrypted_secret from vault.decrypted_secrets where name='review_price_sync_cron_secret')), body := '{"limit":2,"wait":true}'::jsonb, timeout_milliseconds := 120000);`
+  or "Check 3 reviews now" in the admin panel; one review: `{"review_id":"<id>","wait":true}`. Runs are logged in `review_price_runs`.
+- **Known limits**: many SA-brand products (Lelive, SKOON, Standard Beauty, Esse) are mainly sold by Faithful to Nature and the brands' own shops
+  (not among the six), so coverage per review will often be 1-2 shops. Category/brand pages and aggregator results are ignored by design. Dermastore,
+  SkinMiles and FTN product-page URL shapes are matched by "single slug, not a known category word" plus the title matcher and a readable price;
+  tune `productPath` in `reviewPrices.ts` if a shop's URL scheme proves different. Probe: `supabase/tests/review_price_verification.sql` (9 checks, rolled back).

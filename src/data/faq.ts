@@ -264,7 +264,7 @@ export const faqEntries: FAQEntry[] = [
     category: "about",
     tags: ["retailer", "independence", "commercial relationships"],
     relatedQuestions: ["products-where-to-buy", "products-authentic-brands"],
-    relatedPages: [{ label: "Our scoring methodology", href: "/spotlight/methodology" }],
+    relatedPages: [{ label: "Our editorial policy", href: "/editorial-policy" }],
     evidence: [],
     lastReviewed: KNOWLEDGE_HUB_REVIEW_DATE,
     reviewedBy: REVIEWER,

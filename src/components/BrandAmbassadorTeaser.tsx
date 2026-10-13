@@ -27,8 +27,11 @@ const BrandAmbassadorTeaser = () => {
               <img
                 src="/og-brand-ambassadors.jpg"
                 alt="SkinLabs Brand Ambassador Programme 2026 — TikTok & Instagram creators"
+                width={1280}
+                height={720}
                 className="h-full w-full object-contain object-center"
                 loading="lazy"
+                decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/40 via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-background/10" />
             </div>
@@ -70,12 +73,12 @@ const BrandAmbassadorTeaser = () => {
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" className="gap-2" asChild disabled={!isOpen}>
                   <Link to="/brand-ambassadors">
-                    {isOpen ? "Apply now" : "View programme"}
+                    {isOpen ? "Apply now" : "See how it works"}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <Link to="/brand-ambassadors">Learn more</Link>
+                  <Link to="/brand-ambassadors">Become an ambassador</Link>
                 </Button>
               </div>
             </div>

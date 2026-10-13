@@ -1,7 +1,8 @@
 import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User, Session } from "@supabase/supabase-js";
+import { AuthError, type User, type Session } from "@supabase/supabase-js";
+import { isEmailIdentifier } from "@/lib/username";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -26,9 +27,33 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    return { data, error };
+  /** `identifier` is an email address or a username; usernames are resolved server-side (username-login). */
+  const signIn = async (identifier: string, password: string) => {
+    const value = identifier.trim();
+    if (isEmailIdentifier(value)) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: value, password });
+      return { data, error };
+    }
+    const { data: tokens, error: fnError } = await supabase.functions.invoke<{
+      access_token?: string;
+      refresh_token?: string;
+      error?: string;
+    }>("username-login", { body: { username: value, password } });
+    if (fnError || !tokens?.access_token || !tokens.refresh_token) {
+      let message = "Invalid login credentials";
+      try {
+        const body = await (fnError as { context?: Response } | null)?.context?.json();
+        if (body?.error) message = body.error;
+      } catch {
+        /* keep the generic message */
+      }
+      return { data: { user: null, session: null }, error: new AuthError(message, 400, "invalid_credentials") };
+    }
+    const { data, error } = await supabase.auth.setSession({
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+    });
+    return { data: { user: data.user, session: data.session }, error };
   };
 
   /**

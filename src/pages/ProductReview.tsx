@@ -15,13 +15,17 @@ import { openSignupDialog } from "@/lib/conversionDialogs";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 import { useConversionAction } from "@/hooks/use-conversion-action";
 import { recordContentRead } from "@/lib/contentReads";
+import { recordReviewView } from "@/lib/reviewActivity";
 import RoutineBuilder from "@/components/RoutineBuilder";
 import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
+import { MemberNextStepCard } from "@/components/briefings/SkynnMiniCta";
 import SaPricesPanel from "@/components/SaPricesPanel";
 import { useSaRetailPrices } from "@/hooks/use-sa-retail-prices";
+import { usePriceStats } from "@/hooks/use-price-tracking";
+import PriceAlertBell from "@/components/PriceAlertBell";
 import { reviewTimeSnapshot } from "@/lib/pricing/editorialPrices";
 import { formatRand } from "@/lib/pricing/saRetailPrices";
 import NewsletterSignup from "@/components/NewsletterSignup";
@@ -42,7 +46,8 @@ import {
   overallScore,
   productReviews,
 } from "@/data/reviews";
-import { spotlightRanking } from "@/data/spotlight";
+import { findSpotlightBrandFor } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { useGeneratedReviews } from "@/hooks/use-generated-reviews";
 import { useReviewImages } from "@/hooks/use-review-images";
 import { seasonHubs, allSeasons } from "@/data/seasonals";
@@ -62,6 +67,7 @@ const ProductReview = () => {
   const { user } = useAuth();
   const { isMember } = useMembership();
   const { data: generatedReviews } = useGeneratedReviews();
+  const { all: spotlightAll } = useSpotlightRanking();
   const allReviews = useMemo(
     () => (generatedReviews?.length ? [...generatedReviews, ...productReviews] : productReviews),
     [generatedReviews],
@@ -69,6 +75,7 @@ const ProductReview = () => {
   const review = useMemo(() => allReviews.find((item) => item.id === slug), [allReviews, slug]);
   // Live, verified South African prices (a hook, so it sits with the others above any early return).
   const { data: livePrices = [] } = useSaRetailPrices(review?.id);
+  const { data: priceStats } = usePriceStats(review?.id);
   const { getImage: getReviewImage } = useReviewImages();
   const productImage = useMemo(
     () => (review ? getReviewImage(review.id, review.category, review.brand) : null),
@@ -104,6 +111,11 @@ const ProductReview = () => {
       active = false;
     };
   }, [review]);
+
+  // Local, counts-only: "you've been reading reviews" unlocks product comparison on the dashboard (src/lib/context).
+  useEffect(() => {
+    if (review?.id) recordReviewView(review.id);
+  }, [review?.id]);
 
   useEffect(() => {
     let active = true;
@@ -233,7 +245,7 @@ const ProductReview = () => {
   // Real comments only — the seeded placeholder discussion was fabricated social proof.
   const displayComments = comments;
   const relatedReviews = allReviews.filter((item) => item.category === review.category && item.id !== review.id).slice(0, 3);
-  const spotlightEntry = spotlightRanking.find((entry) => entry.brand === review.brand);
+  const spotlightEntry = findSpotlightBrandFor(review.brand, spotlightAll);
   const seasonalFeature = allSeasons
     .map((season) => seasonHubs[season])
     .find((hub) => hub.productEdit.picks.some((pick) => pick.reviewId === review.id));
@@ -316,6 +328,9 @@ const ProductReview = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">{review.brand} · {review.category}</p>
+            {review.origin === "global_available_in_sa" && (
+              <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Import</Badge>
+            )}
             {review.is_sponsored && (
               <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">Sponsored</Badge>
             )}
@@ -331,20 +346,43 @@ const ProductReview = () => {
 
           {productImage && (
             <figure className="mt-6">
-              <img
-                src={productImage.url}
-                alt={`${review.category} product photography — ${productImage.alt}`}
-                className="h-64 w-full rounded-3xl object-cover sm:h-80"
-                loading="lazy"
-              />
-              {productImage.creditUrl !== "#" && (
-                <figcaption className="mt-2 text-xs text-muted-foreground">
-                  Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
-                  <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
-                    {productImage.creditName}
-                  </a>{" "}
-                  on Unsplash.
-                </figcaption>
+              {(productImage as { isProduct?: boolean }).isProduct ? (
+                <>
+                  <div className="flex h-64 items-center justify-center overflow-hidden rounded-3xl border border-border bg-white sm:h-80">
+                    <img
+                      src={productImage.url}
+                      alt={`${review.brand} ${review.product_name}`}
+                      className="max-h-full max-w-full object-contain p-4"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <figcaption className="mt-2 text-xs text-muted-foreground">
+                    Product image from{" "}
+                    <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener nofollow" className="underline">
+                      {productImage.creditName}
+                    </a>
+                    . Image rights belong to their owners.
+                  </figcaption>
+                </>
+              ) : (
+                <>
+                  <img
+                    src={productImage.url}
+                    alt={productImage.alt}
+                    className="h-64 w-full rounded-3xl object-cover sm:h-80"
+                    loading="lazy"
+                  />
+                  {productImage.creditUrl !== "#" && (
+                    <figcaption className="mt-2 text-xs text-muted-foreground">
+                      Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{" "}
+                      <a href={productImage.creditUrl} target="_blank" rel="noreferrer noopener" className="underline">
+                        {productImage.creditName}
+                      </a>{" "}
+                      on Unsplash.
+                    </figcaption>
+                  )}
+                </>
               )}
             </figure>
           )}
@@ -450,7 +488,12 @@ const ProductReview = () => {
 
           <AdSlot placement="product-review-top" compact priority="primary" />
 
-          <SaPricesPanel rows={livePrices} snapshot={priceSnapshot} />
+          <SaPricesPanel rows={livePrices} snapshot={priceSnapshot} stats={priceStats} />
+          <PriceAlertBell
+            productSlug={review.id}
+            productName={review.product_name}
+            currentLowest={livePrices.filter((r) => r.in_stock !== false).reduce<number | null>((min, r) => (min === null || r.price_zar < min ? r.price_zar : min), null)}
+          />
 
           {marketplaceMatch && (
             <Link
@@ -474,6 +517,7 @@ const ProductReview = () => {
           <FaithfulToNature placement="product-review-shop" />
 
           <RelatedKnowledgeHub keywords={[...review.key_ingredients, review.category, review.brand]} />
+          <MemberNextStepCard source="product_review" />
 
           <NewsletterSignup source="review-end" />
 

@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return json({ error: "not_configured" }, 503);
+  if (!supabaseUrl || !serviceKey) return json({ unavailable: true, reason: "not_configured" }, 200);
   const db = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const { data: cached } = await db
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
   }
   if (!provider) {
     if (cached && age < STALE_MAX_MS) return respond(cached, true, "Weather data © OpenWeather");
-    return json({ error: "not_configured" }, 503);
+    return json({ unavailable: true, reason: "not_configured" }, 200);
   }
 
   try {

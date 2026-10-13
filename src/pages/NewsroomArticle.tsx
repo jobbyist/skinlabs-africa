@@ -16,11 +16,13 @@ import NewsletterSignup from "@/components/NewsletterSignup";
 import ConversionCta from "@/components/ConversionCta";
 import BriefingBody from "@/components/briefings/BriefingBody";
 import EditorialDisclaimer from "@/components/briefings/EditorialDisclaimer";
+import OfflineReadButton from "@/components/OfflineReadButton";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import FaithfulToNature from "@/components/FaithfulToNature";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { reconcileBriefingLikes, syncBriefingLike } from "@/lib/savedContent";
 import { extractEditorialDisclaimer } from "@/lib/editorialDisclaimer";
 
 interface InlineImage {
@@ -31,7 +33,7 @@ interface InlineImage {
   after_paragraph?: number;
 }
 
-const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1600";
+const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
 
 const NewsroomArticle = () => {
   const { slug } = useParams();
@@ -78,7 +80,15 @@ const NewsroomArticle = () => {
   useEffect(() => {
     if (!article?.id) return;
     setLiked(getLikedBriefingIds().includes(article.id));
-  }, [article?.id]);
+    if (!user || !article?.id) return;
+    let active = true;
+    void reconcileBriefingLikes(user.id).then((ids) => {
+      if (active) setLiked(ids.includes(article.id));
+    });
+    return () => {
+      active = false;
+    };
+  }, [article?.id, user]);
 
   useEffect(() => {
     if (!article?.id || !user) {
@@ -109,6 +119,7 @@ const NewsroomArticle = () => {
       const isLiked = toggleLikedBriefing(article.id).includes(article.id);
       setLiked(isLiked);
       toast.success(wasLiked ? "Like removed" : "Briefing liked");
+      if (user) void syncBriefingLike(user.id, article.id, isLiked);
       return;
     }
     if (!user) {
@@ -212,7 +223,7 @@ const NewsroomArticle = () => {
 
             {article.cover_image_url && (
               <figure className="mt-8">
-                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} onError={(event) => { if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER; }} className="w-full rounded-3xl object-cover shadow-lg" />
+                <img src={article.cover_image_url} alt={article.cover_image_alt || article.title} onError={(event) => { if (!event.currentTarget.src.endsWith(PLACEHOLDER_COVER)) event.currentTarget.src = PLACEHOLDER_COVER; }} className="w-full rounded-3xl object-cover shadow-lg" />
                 {article.cover_credit_name && (
                   <figcaption className="mt-2 text-xs text-muted-foreground">
                     Photo by{" "}
@@ -300,15 +311,23 @@ const NewsroomArticle = () => {
             <FaithfulToNature placement="briefing-shop" />
 
             <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:flex-wrap sm:items-center">
-              <Button variant="outline" size="sm" onClick={() => toggleEngagement("like")}>
+              <Button variant="outline" size="sm" data-haptic onClick={() => toggleEngagement("like")}>
                 <Heart className={cn("mr-2 h-4 w-4", liked && "fill-primary text-primary")} /> Like
               </Button>
               <Button variant="outline" size="sm" onClick={() => void shareBriefing()}>
                 <Share2 className="mr-2 h-4 w-4" /> Share
               </Button>
-              <Button variant="outline" size="sm" onClick={() => toggleEngagement("save")}>
+              <Button variant="outline" size="sm" data-haptic onClick={() => toggleEngagement("save")}>
                 <Bookmark className={cn("mr-2 h-4 w-4", saved && "fill-primary text-primary")} /> Save
               </Button>
+              {body && (
+                <OfflineReadButton
+                  kind="briefing"
+                  slug={article.slug}
+                  title={article.title}
+                  snapshot={() => ({ briefing: { title: article.title, excerpt: article.excerpt, body_markdown: body, key_takeaways: article.key_takeaways, published_at: article.publish_date } })}
+                />
+              )}
               {article.source_url && (
                 <Button
                   variant="ghost"

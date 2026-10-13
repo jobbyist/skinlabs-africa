@@ -158,7 +158,7 @@ const Hero = () => {
                 className="h-auto min-h-11 gap-2 whitespace-normal text-base px-8 py-3 shadow-lg shadow-primary/10 transition-transform motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98] hover:shadow-xl hover:shadow-primary/15"
                 asChild
               >
-                <Link to={ctas.primary.href} onClick={() => trackCta(ctas.primary.id, "primary")}>
+                <Link to={ctas.primary.href} onClick={() => { ctas.onClick(ctas.primary.id); trackCta(ctas.primary.id, "primary"); }}>
                   {ctas.primary.label}
                   <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
                 </Link>
@@ -167,8 +167,8 @@ const Hero = () => {
                 <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
                   {ctas.secondary.map((c) => (
                     <Button key={c.id} variant="outline" size="sm" className="gap-1.5 bg-background/60 backdrop-blur" asChild>
-                      <Link to={c.href} onClick={() => trackCta(c.id, "secondary")}>
-                        {c.id === "podcast" ? <Headphones className="h-3.5 w-3.5" aria-hidden /> : <BookOpen className="h-3.5 w-3.5" aria-hidden />}
+                      <Link to={c.href} onClick={() => { ctas.onClick(c.id); trackCta(c.id, "secondary"); }}>
+                        {c.icon === "podcast" ? <Headphones className="h-3.5 w-3.5" aria-hidden /> : <BookOpen className="h-3.5 w-3.5" aria-hidden />}
                         {c.label}
                       </Link>
                     </Button>

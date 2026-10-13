@@ -28,7 +28,6 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   { path: "/compare", changefreq: "weekly", priority: "0.9" },
   { path: "/podcast", changefreq: "weekly", priority: "0.9" },
   { path: "/spotlight", changefreq: "monthly", priority: "0.9" },
-  { path: "/spotlight/methodology", changefreq: "monthly", priority: "0.5" },
   { path: "/spotlight/archive", changefreq: "monthly", priority: "0.4" },
   { path: "/seasonals", changefreq: "weekly", priority: "0.9" },
   { path: "/seasonals/spring", changefreq: "weekly", priority: "0.85" },
@@ -51,6 +50,7 @@ export const STATIC_SITEMAP_ROUTES: StaticSitemapRoute[] = [
   // feature as if it were public content. Removed until marketplace access
   // itself is public.
   { path: "/whitepapers", changefreq: "monthly", priority: "0.5" },
+  { path: "/api", changefreq: "monthly", priority: "0.5" },
   { path: "/editorial-policy", changefreq: "yearly", priority: "0.3" },
   { path: "/community-guidelines", changefreq: "yearly", priority: "0.3" },
   { path: "/refund-policy", changefreq: "yearly", priority: "0.2" },

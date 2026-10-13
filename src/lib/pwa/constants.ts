@@ -15,7 +15,7 @@ export const OFFLINE_FALLBACK_PATH = "/offline.html";
  * activate. The podcast audio cache is NOT versioned: it holds downloads the
  * member chose to keep, so it must survive every service-worker update.
  */
-export const CACHE_VERSION = "v1";
+export const CACHE_VERSION = "v2"; // v2: purges cached bare-SSR content pages (deep-link fix)
 export const CACHE_PREFIX = "skinlabs-";
 export const CACHE_NAMES = {
   assets: `${CACHE_PREFIX}assets-${CACHE_VERSION}`,
@@ -96,4 +96,4 @@ export const INSTALL_PROMPT_EXCLUDED_PREFIXES = [
 
 /** Where SKYNN playback progress is kept in IndexedDB / the account. */
 export const PWA_DB_NAME = "skinlabs-pwa";
-export const PWA_DB_VERSION = 1;
+export const PWA_DB_VERSION = 2; // v2: `reading` store (offline reading queue)

@@ -1,9 +1,10 @@
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FileText, Sparkles, Shield, TrendingUp, Globe, Cpu, Play } from "lucide-react";
+import { FileText, Sparkles, Shield, TrendingUp, Globe, Cpu } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { ADVANCED_NAME, ANALYSIS_PASS, BASIC_NAME, BASIC_WINDOW_DAYS, SKYNN_RELEASE_LABEL } from "@/lib/skynn/terminology";
 
 const Whitepaper = () => {
   return (
@@ -136,34 +137,48 @@ const Whitepaper = () => {
                     </div>
                   </div>
 
-                  {/* Instagram Reel-sized video placeholder */}
+                  {/* Monk Skin Tone as a fairness measure */}
+                  <div className="mb-8 rounded-2xl border border-border bg-card/60 p-6">
+                    <h3 className="font-semibold text-foreground">Skin tone fairness: the Monk Skin Tone (MST) scale</h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Skincare guidance has historically been written around lighter skin. SKYNN AI treats skin tone as a fairness input rather than something to be guessed: you choose your own shade on the 10-point Monk Skin Tone scale, or skip it. The scale and its swatch colours come from Google’s open Monk Skin Tone research with Dr Ellis Monk.
+                    </p>
+                    <ul className="mt-3 list-disc list-inside space-y-1.5 text-sm text-muted-foreground ml-1">
+                      <li><strong className="text-foreground">Self-reported and optional.</strong> The selection is stored only as <em>user reported</em>. SKYNN AI never estimates, infers or “corrects” your tone, and no photo is analysed.</li>
+                      <li><strong className="text-foreground">Used as context, not a diagnosis.</strong> Your MST can add general guidance, such as a higher risk of lingering dark marks after breakouts (post-inflammatory hyperpigmentation) on deeper tones or a note on sunscreen textures. It never changes your skin type or concerns.</li>
+                      <li><strong className="text-foreground">Measured, not assumed.</strong> A no-personal-data fairness log groups results by MST band (light 1–3, medium 4–7, deep 8–10), so a gap such as fewer matched local products for deeper tones shows up as a catalogue or logic gap we must fix, not a hidden average.</li>
+                      <li><strong className="text-foreground">Honest limits.</strong> “Analysis completeness” measures how much of the questionnaire you filled in. It is not an accuracy score, and SkinLabs makes no claim of clinical or bias-free performance.</li>
+                    </ul>
+                  </div>
+
+                  <div className="mb-8 rounded-2xl border border-border bg-card/60 p-6">
+                    <h3 className="font-semibold text-foreground">Where SKYNN AI is today: {SKYNN_RELEASE_LABEL}</h3>
+                    <ul className="mt-3 list-disc list-inside space-y-1.5 text-sm text-muted-foreground ml-1">
+                      <li><strong className="text-foreground">{BASIC_NAME}:</strong> free, about two minutes, deterministic and based on your own answers. Free accounts get one every {BASIC_WINDOW_DAYS} days; Glow Insider and VIP are unlimited. Visitors can start without an account and see a preview before saving.</li>
+                      <li><strong className="text-foreground">Smart Routines:</strong> built from your saved analysis using SkinLabs-reviewed products only, with extra caution for pregnancy and breastfeeding.</li>
+                      <li><strong className="text-foreground">{ADVANCED_NAME}:</strong> an optional, longer questionnaire that uses an {ANALYSIS_PASS}. It is a submission that waits for manual review, and until that review is released it is shown as pending, never as a finished report.</li>
+                      <li><strong className="text-foreground">Still in beta.</strong> Photos never leave your device, and nothing here is medical advice or a diagnosis.</li>
+                    </ul>
+                  </div>
+
+                  {/* SKYNN AI skin-tone fairness video (9:16) */}
                   <div className="flex flex-col items-center">
-                    <p className="text-sm font-medium text-foreground mb-3">Watch the SKYNN AI overview</p>
+                    <p className="text-sm font-medium text-foreground mb-3">Watch: how SKYNN AI approaches skin tone fairness</p>
                     <div
-                      className="relative w-full max-w-[320px] aspect-[9/16] rounded-2xl overflow-hidden bg-black/90 border border-border shadow-lg"
+                      className="relative w-full max-w-[320px] aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-border shadow-lg"
                       style={{ maxHeight: "568px" }}
                     >
-                      {/* Placeholder — replace src when video is uploaded */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
-                        <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
-                          <Play className="h-8 w-8 text-white ml-1" />
-                        </div>
-                        <p className="text-white/90 font-medium text-sm mb-1">SKYNN AI demo</p>
-                        <p className="text-white/50 text-xs">Instagram Reel format (9:16)</p>
-                        <p className="text-white/40 text-[10px] mt-3">Video will appear here once uploaded</p>
-                      </div>
-                      {/*
-                        When ready, replace the placeholder div above with:
-                        <video
-                          className="absolute inset-0 w-full h-full object-cover"
-                          controls
-                          playsInline
-                          poster="/path-to-poster.jpg"
-                          src="/path-to-skynn-ai-reel.mp4"
-                        />
-                      */}
+                      <video
+                        className="absolute inset-0 h-full w-full object-cover"
+                        controls
+                        playsInline
+                        preload="none"
+                        poster="/whitepaper/skynn-ai-skin-tone-fairness.jpg"
+                        src="/whitepaper/skynn-ai-skin-tone-fairness.mp4"
+                        aria-label="How SKYNN AI ensures skin tone fairness"
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-3">Aspect ratio 9:16 · max-width 320px (Reel-ready)</p>
+                    <p className="text-xs text-muted-foreground mt-3">About 70 seconds. Sound on for narration.</p>
                   </div>
 
                   <div className="mt-8 flex flex-wrap gap-3 justify-center">

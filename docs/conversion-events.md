@@ -181,7 +181,7 @@ Counts and short source tokens only (`count`, `routine_source`, `source`); never
 | `subscription_started` | `UserDashboard.tsx`: poll sees a paid status | `plan`, `interval` (from the query string) |
 | `credit_pack_purchased` | `UserDashboard.tsx` poll, `AnalysisPassPurchaseModal.tsx` and `Pricing.tsx` inline PayPal approval | `packId` |
 | `founding_member_purchased` | Retired 2026-10-03 (the Founding Member offer was withdrawn); never fires | `offerId` |
-| `upgrade_viewed` | `FeatureGate.tsx` (overlay), `UpgradePrompt.tsx` (inline) | `feature`, `accountState`, `style` |
+| `upgrade_viewed` | `FeatureGate.tsx` (overlay) | `feature`, `accountState`, `style` |
 | `upgrade_click` | Every gate CTA via `useConversionAction` (list below) | `source`, `kind` (`signup`/`trial`/`subscribe`), `feature` (undefined = general membership); includes `promo_modal` (`PromoTrialModal`) |
 
 ### Engagement and other site-wide events
@@ -250,7 +250,6 @@ Insider trial in place, then `trial_activation_*` fire with the same `source`) o
 | Source | Where |
 |---|---|
 | `feature_gate:<feature>` / `consultations_directory` | `FeatureGate` (default / Consultations) |
-| `upgrade_prompt:<feature>` | `UpgradePrompt` default |
 | `product_review_gate`, `product_review_cta` | `ProductReview.tsx` overlay and promo card |
 | `product_review_gate_ssr`, `product_review_cta_ssr` | `routes/reviews.$slug.tsx` (SSR hard loads) |
 | `routine_builder_gate` | `RoutineBuilder.tsx` |

@@ -137,6 +137,6 @@ export interface BreadcrumbItem {
  * `scripts` entries are FLAT {type, children}, not {attrs, children}). */
 export interface HeadTags {
   meta: Array<Record<string, string>>;
-  links: Array<{ rel: string; href: string }>;
-  scripts: Array<{ type: string; children: string }>;
+  links: Array<{ rel: string; href: string; "data-rh"?: string }>;
+  scripts: Array<{ type: string; children: string; "data-rh"?: string }>;
 }

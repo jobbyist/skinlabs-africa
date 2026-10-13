@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { CalendarClock, CheckCircle2, Gift, Sparkles, Ticket } from "lucide-react";
 import SEO from "@/components/SEO";
 import GiveawayCta from "@/components/giveaway/GiveawayCta";
-import GiveawayStoryPlayer from "@/components/giveaway/GiveawayStoryPlayer";
+import GiveawaySkinStoryCard from "@/components/giveaway/GiveawaySkinStoryCard";
 import GiveawayTerms from "@/components/giveaway/GiveawayTerms";
 import {
   GIVEAWAY_CLOSING_TIME_LABEL,
@@ -118,7 +118,7 @@ const GiveawayOctober2026 = () => {
             </div>
 
             <div className="hidden lg:block">
-              <GiveawayStoryPlayer onEnter={scrollToEntry} />
+              <GiveawaySkinStoryCard onEnter={scrollToEntry} />
             </div>
           </div>
         </section>
@@ -171,9 +171,9 @@ const GiveawayOctober2026 = () => {
           </div>
         </section>
 
-        {/* STORY VIDEO (phones; desktop shows it in the hero) */}
-        <section aria-label="Giveaway video" className="px-4 pb-14 lg:hidden">
-          <GiveawayStoryPlayer onEnter={scrollToEntry} />
+        {/* EXAMPLE SKIN STORY (phones; desktop shows it in the hero) */}
+        <section aria-label="Example Skin Story" className="px-4 pb-14 lg:hidden">
+          <GiveawaySkinStoryCard onEnter={scrollToEntry} />
         </section>
 
         {/* WHAT YOU GET */}
@@ -231,26 +231,6 @@ const GiveawayOctober2026 = () => {
           </div>
         </section>
 
-        {/* DEADLINE + ENTRY */}
-        <section id="enter" aria-labelledby="enter-heading" className="scroll-mt-4 bg-muted/40 px-4 py-14 sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-3xl text-center">
-            <CalendarClock className="mx-auto h-8 w-8" aria-hidden="true" />
-            <h2 id="enter-heading" className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              {open ? `Entries close ${GIVEAWAY_DEADLINE_LABEL}` : "This giveaway has closed"}
-            </h2>
-            {open && left !== null && (
-              <p className="mt-2 text-muted-foreground">{left === 0 ? "Today is the last day." : left === 1 ? "1 day left." : `${left} days left.`}</p>
-            )}
-            <div ref={entryAnchor} className="mt-8 min-h-[12rem]">
-              {showEntry && (
-                <Suspense fallback={<div className="mx-auto h-48 max-w-xl animate-pulse rounded-3xl bg-muted" aria-hidden="true" />}>
-                  <GiveawayEntryPanel />
-                </Suspense>
-              )}
-            </div>
-          </div>
-        </section>
-
         {/* COMPLETION CHECKLIST */}
         <section aria-labelledby="checklist-heading" className="px-4 py-14 sm:px-8 sm:py-20">
           <div className="mx-auto max-w-3xl rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-8">
@@ -271,6 +251,26 @@ const GiveawayOctober2026 = () => {
               ))}
             </div>
             <p className="mt-5 text-sm text-muted-foreground">Entries close {GIVEAWAY_DEADLINE_LABEL} at {GIVEAWAY_CLOSING_TIME_LABEL.toLowerCase()}.</p>
+          </div>
+        </section>
+
+        {/* DEADLINE + ENTRY */}
+        <section id="enter" aria-labelledby="enter-heading" className="scroll-mt-4 bg-muted/40 px-4 py-14 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <CalendarClock className="mx-auto h-8 w-8" aria-hidden="true" />
+            <h2 id="enter-heading" className="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+              {open ? `Entries close ${GIVEAWAY_DEADLINE_LABEL}` : "This giveaway has closed"}
+            </h2>
+            {open && left !== null && (
+              <p className="mt-2 text-muted-foreground">{left === 0 ? "Today is the last day." : left === 1 ? "1 day left." : `${left} days left.`}</p>
+            )}
+            <div ref={entryAnchor} className="mt-8 min-h-[12rem]">
+              {showEntry && (
+                <Suspense fallback={<div className="mx-auto h-48 max-w-xl animate-pulse rounded-3xl bg-muted" aria-hidden="true" />}>
+                  <GiveawayEntryPanel />
+                </Suspense>
+              )}
+            </div>
           </div>
         </section>
 

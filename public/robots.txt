@@ -13,24 +13,28 @@ User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 # Named AI crawlers, explicitly welcomed -- editorial content (Briefings,
@@ -40,48 +44,56 @@ User-agent: GPTBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: ClaudeBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Claude-SearchBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: anthropic-ai
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: PerplexityBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Google-Extended
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 # Further AI assistants and answer engines, named explicitly so the intent is
@@ -90,30 +102,35 @@ User-agent: Applebot-Extended
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Amazonbot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: meta-externalagent
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: DuckAssistBot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: MistralAI-User
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 # User-triggered fetchers (an assistant reading a page because a person asked it to).
@@ -121,18 +138,21 @@ User-agent: Claude-User
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Perplexity-User
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 User-agent: Applebot
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 # Catch-all for every other crawler, including AI crawlers not named above.
@@ -140,6 +160,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /dashboard
+Disallow: /community-forum
 Disallow: /marketplace
 
 Sitemap: https://skinlabs.co.za/sitemap.xml

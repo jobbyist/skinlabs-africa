@@ -21,11 +21,16 @@ export const useSkinWeather = (cityKey: string | null) =>
     enabled: Boolean(cityKey),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
-    retry: 1,
-    queryFn: async (): Promise<SkinWeatherResponse> => {
-      const { data, error } = await supabase.functions.invoke("skin-weather", { body: { city: cityKey } });
-      if (error) throw new Error(error.message);
-      if (!data || typeof data.uvMax !== "number") throw new Error("Weather unavailable");
-      return data as SkinWeatherResponse;
+    retry: false,
+    // An unconfigured or failing weather service is expected (e.g. no API key in this backend):
+    // resolve to null so every caller simply shows nothing instead of surfacing an error.
+    queryFn: async (): Promise<SkinWeatherResponse | null> => {
+      try {
+        const { data, error } = await supabase.functions.invoke("skin-weather", { body: { city: cityKey } });
+        if (error || !data || typeof data.uvMax !== "number") return null;
+        return data as SkinWeatherResponse;
+      } catch {
+        return null;
+      }
     },
   });

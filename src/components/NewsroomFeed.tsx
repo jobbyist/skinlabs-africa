@@ -1,13 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import {
   ArrowUpDown, ArrowUpRight, Bookmark, Clock, Filter, Heart, Loader2, MapPin, Search, Share2, X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useNewsArticles, useSaContextTags, type NewsArticleSummary } from "@/hooks/use-news-articles";
-import { scoreTextItem } from "@/lib/search-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import PaginationControls from "@/components/PaginationControls";
@@ -16,12 +15,13 @@ import AdSlot from "@/components/AdSlot";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 import { useUnsplashImage } from "@/hooks/use-unsplash-image";
 import { getLikedBriefingIds, toggleLikedBriefing } from "@/lib/briefing-engagement";
+import { reconcileBriefingLikes, syncBriefingLike } from "@/lib/savedContent";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import AuthDialog from "@/components/AuthDialog";
 import { currentReturnTo, setPendingIntent } from "@/lib/pendingIntent";
 
-const PEXELS_FALLBACK_COVER = "https://images.pexels.com/photos/3764014/pexels-photo-3764014.jpeg?auto=compress&cs=tinysrgb&w=1200";
+const PLACEHOLDER_COVER = "/briefing-placeholder-cover.svg";
 
 const NEWSROOM_PAGE_SIZE = 5;
 type SortOption = "newest" | "oldest" | "popular" | "reading";
@@ -38,15 +38,18 @@ interface NewsroomFeedProps {
 const BriefingCover = ({ article }: { article: NewsArticleSummary }) => {
   const query = `${article.sa_context_tag || "skincare"} ${article.title.split(" ").slice(0, 4).join(" ")} south africa skin`;
   const { image, loading } = useUnsplashImage(query, article.cover_image_url || "/briefing-placeholder-cover.svg");
-  const src = article.cover_image_url || image?.url || PEXELS_FALLBACK_COVER;
+  const src = article.cover_image_url || image?.url || PLACEHOLDER_COVER;
   const alt = article.cover_image_alt || image?.alt || article.title;
   return (
     <img
       src={src}
       alt={alt}
       loading="lazy"
+      decoding="async"
+      width={1600}
+      height={900}
       onError={(event) => {
-        if (event.currentTarget.src !== PEXELS_FALLBACK_COVER) event.currentTarget.src = PEXELS_FALLBACK_COVER;
+        if (!event.currentTarget.src.endsWith(PLACEHOLDER_COVER)) event.currentTarget.src = PLACEHOLDER_COVER;
       }}
       className={`h-full w-full object-cover transition-transform duration-500 motion-safe:group-hover:scale-105 ${loading && !article.cover_image_url ? "opacity-70" : ""}`}
     />
@@ -126,9 +129,24 @@ const NewsroomFeed = ({
 
   const regions = allRegionTags;
 
+  // The search scorer lives with the review catalogue (search-engine.ts imports it), so it is fetched the first time
+  // someone actually searches, not with the homepage.
+  const searching = (searchable || paginate) && query.trim() !== "";
+  const [scoreTextItem, setScoreTextItem] = useState<typeof import("@/lib/search-engine").scoreTextItem | null>(null);
+  useEffect(() => {
+    if (!searching || scoreTextItem) return;
+    let active = true;
+    void import("@/lib/search-engine").then((m) => {
+      if (active) setScoreTextItem(() => m.scoreTextItem);
+    });
+    return () => {
+      active = false;
+    };
+  }, [searching, scoreTextItem]);
+
   const articles = useMemo(() => {
     let list = [...fetchedArticles];
-    if ((searchable || paginate) && query.trim()) {
+    if (searching && scoreTextItem) {
       list = list
         .map((article) => ({
           article,
@@ -156,13 +174,27 @@ const NewsroomFeed = ({
         list.sort((a, b) => new Date(b.publish_date).getTime() - new Date(a.publish_date).getTime());
     }
     return list;
-  }, [fetchedArticles, query, searchable, paginate, sort]);
+  }, [fetchedArticles, query, searching, scoreTextItem, sort]);
 
   const handleLike = (article: NewsArticleSummary) => {
     const wasLiked = likedIds.includes(article.id);
     setLikedIds(toggleLikedBriefing(article.id));
     toast.success(wasLiked ? "Like removed" : "Briefing liked");
+    // Signed in: the like also goes to the account, so it appears in Saved on every device.
+    if (user) void syncBriefingLike(user.id, article.id, !wasLiked);
   };
+
+  // Signed in: merge this device's likes with the account's (a like made before signing in isn't lost).
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    void reconcileBriefingLikes(user.id).then((ids) => {
+      if (active) setLikedIds(ids);
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const handleSave = async (article: NewsArticleSummary) => {
     if (!user) {
@@ -328,7 +360,7 @@ const NewsroomFeed = ({
           <div className="grid grid-cols-1 place-items-center gap-6 md:grid-cols-2 md:place-items-stretch lg:grid-cols-3">
             {articles.map((article, index) => (
               <Fragment key={article.id}>
-                <motion.article
+                <m.article
                   initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -381,6 +413,7 @@ const NewsroomFeed = ({
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
+                          data-haptic
                           onClick={() => handleLike(article)}
                           aria-label="Like article"
                           aria-pressed={likedIds.includes(article.id)}
@@ -390,6 +423,7 @@ const NewsroomFeed = ({
                         </button>
                         <button
                           type="button"
+                          data-haptic
                           onClick={() => void handleSave(article)}
                           aria-label={savedIds.includes(article.id) ? "Remove from saved briefings" : "Save briefing"}
                           aria-pressed={user ? savedIds.includes(article.id) : undefined}
@@ -413,7 +447,7 @@ const NewsroomFeed = ({
                       </div>
                     </div>
                   </div>
-                </motion.article>
+                </m.article>
                 {(index + 1) % 3 === 0 && index < articles.length - 1 ? (
                   <div className="col-span-full">
                     {(index + 1) % 6 === 0 ? (

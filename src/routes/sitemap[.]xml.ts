@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from "@/lib/content/supabaseServerClient";
 import { STATIC_SITEMAP_ROUTES } from "@/lib/sitemap/staticRoutes";
 import { productReviews } from "@/data/reviews";
 import { comparisonArticles } from "@/data/comparisons";
-import { spotlightRanking } from "@/data/spotlight";
+import { computeSpotlightRanking, spotlightRanking } from "@/data/spotlight";
+import type { ProductReview } from "@/data/reviews";
 import { publishedPodcastEpisodes } from "@/data/podcast";
 import { faqEntries } from "@/data/faq";
 import { isDuplicateReview } from "@/lib/sitemap/duplicateReviews";
@@ -65,7 +66,7 @@ async function buildSitemapXml(): Promise<string> {
     const [briefings, ingredientRows, generatedReviews, webStories] = await Promise.all([
       supabase.from("news_articles_public").select("slug, publish_date").order("publish_date", { ascending: false }),
       supabase.from("ingredients").select("slug, updated_at").neq("verification_status", "deprecated"),
-      supabase.from("ai_generated_product_reviews").select("id, published_date"),
+      supabase.from("ai_generated_product_reviews").select("id, published_date, brand, product_name, category, verdict, score_efficacy, score_value, score_texture, score_climate, is_sponsored"),
       supabase.from("web_stories").select(WEB_STORY_SELECT),
     ]);
 
@@ -90,6 +91,11 @@ async function buildSitemapXml(): Promise<string> {
         add(`/reviews/${review.id}`, "monthly", "0.75", review.published_date?.slice(0, 10) || undefined);
       }
     }
+    // Spotlight brands that only exist through the pipeline-generated reviews (same ranking the site renders).
+    const generatedForRanking = (generatedReviews.data ?? []).map(
+      (r) => ({ ...r, score_efficacy: Number(r.score_efficacy), score_value: Number(r.score_value), score_texture: Number(r.score_texture), score_climate: Number(r.score_climate) }) as unknown as ProductReview,
+    );
+    for (const entry of computeSpotlightRanking([...productReviews, ...generatedForRanking])) add(`/spotlight/${entry.slug}`, "monthly", "0.75");
   } catch (error) {
     // Fall through with the static + data-file URLs already collected above
     // rather than 500ing the whole sitemap over a transient DB error.

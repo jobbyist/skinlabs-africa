@@ -121,7 +121,9 @@ test("without a saved Basic analysis Smart Routines stay locked and point to the
   await page.goto("/dashboard?tab=routine");
   await expect(page.getByText(/Smart Routines are free with your Basic AI Skin Analysis/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Build my Smart Routine" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /Start my Advanced AI Dermatology Analysis/ })).toBeVisible();
+  // The unlock is the free Basic analysis, never a Pass-gated Advanced one.
+  await expect(page.getByRole("link", { name: /Take the Basic AI Skin Analysis/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Start my Advanced AI Dermatology Analysis/ })).toHaveCount(0);
   expect(state.rpcCalls).not.toContain("save_smart_routine");
 });
 

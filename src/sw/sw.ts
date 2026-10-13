@@ -51,6 +51,8 @@ import { notificationFromPush } from "../lib/pwa/pushPayload";
 
 declare const self: ServiceWorkerGlobalScope;
 
+/** How long a focused window has to confirm it will route a tapped notification itself. */
+const CLICK_ACK_TIMEOUT_MS = 1500;
 const SHELL_REFRESH_AFTER_MS = 6 * 60 * 60 * 1000;
 const SHELL_STATIC_URLS = [OFFLINE_FALLBACK_PATH, "/manifest.webmanifest", "/pwa-192.png", "/pwa-512.png", "/logosvg.png", "/logosvgwhite.png"];
 
@@ -312,6 +314,11 @@ self.addEventListener("push", (event) => {
   // Defensive: a malformed/empty/non-JSON payload still yields a generic "SkinLabs®" notification
   // (a push that shows nothing gets the subscription revoked on iOS/Safari).
   const parsed = notificationFromPush(() => (event.data ? event.data.json() : null), self.location.origin);
+  let trackTag: string | undefined;
+  try {
+    const raw = event.data ? (event.data.json() as { s?: unknown }) : null;
+    if (raw && typeof raw.s === "string" && raw.s.length <= 64) trackTag = raw.s;
+  } catch { /* malformed payload: no tracking tag */ }
   event.waitUntil(
     (async () => {
       const windows = await listWindows().catch(() => [] as WindowClient[]);
@@ -330,7 +337,7 @@ self.addEventListener("push", (event) => {
         icon: parsed.icon,
         badge: parsed.badge,
         tag: parsed.tag,
-        data: { url: parsed.url, d: parsed.deliveryId },
+        data: { url: parsed.url, d: parsed.deliveryId, s: trackTag },
         ...(actions.length > 0 ? { actions } : {}),
         lang: "en-ZA",
       } as NotificationOptions & { actions?: NotificationAction[] });
@@ -344,31 +351,60 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "dismiss") return;
-  const data = (event.notification.data ?? {}) as { url?: unknown; d?: unknown };
+  const data = (event.notification.data ?? {}) as { url?: unknown; d?: unknown; s?: unknown };
   const target = safeClickTarget(data.url, self.location.origin) ?? PWA_START_PATH;
 
   // Tap beacon: delivery id only, no credentials. Never awaited before navigation.
   if (TRACK_URL && typeof data.d === "string") {
     event.waitUntil(
-      fetch(TRACK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ d: data.d }), keepalive: true }).catch(() => undefined),
+      fetch(TRACK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ d: data.d, s: data.s }), keepalive: true }).catch(() => undefined),
     );
   }
 
-  event.waitUntil(
-    (async () => {
-      const windows = await listWindows();
-      const index = pickWindowIndexForClick(windows.map(windowInfo), self.location.origin);
-      if (index >= 0) {
-        const existing = windows[index];
-        await existing.focus().catch(() => undefined);
-        // The page routes inside the running app (no reload, no second window).
-        existing.postMessage({ type: SW_MESSAGES.notificationClick, url: target });
-        return;
-      }
-      await self.clients.openWindow(target);
-    })(),
-  );
+  event.waitUntil(openTarget(target));
 });
+
+/**
+ * Takes the member to `target` with exactly one window and no home-page detour:
+ *  1. an open SkinLabs window is focused and asked (MessageChannel) to route inside the running app;
+ *  2. if it does not acknowledge in time (an old page, a frozen tab, a page without the app runtime),
+ *     WindowClient.navigate() loads the exact URL in that same window;
+ *  3. no window at all (cold start, installed app closed) -> openWindow(target), which loads the URL directly.
+ */
+const openTarget = async (target: string): Promise<void> => {
+  const windows = await listWindows().catch(() => [] as WindowClient[]);
+  const index = pickWindowIndexForClick(windows.map(windowInfo), self.location.origin);
+  if (index < 0) {
+    await self.clients.openWindow(target);
+    return;
+  }
+  const existing = windows[index];
+  const focused = await existing.focus().catch(() => existing);
+  const client = (focused ?? existing) as WindowClient;
+  if (await askWindowToNavigate(client, target)) return;
+  try {
+    await client.navigate(target);
+  } catch {
+    // navigate() is refused for uncontrolled/cross-scope clients: a fresh window is the last resort.
+    await self.clients.openWindow(target);
+  }
+};
+
+const askWindowToNavigate = (client: WindowClient, url: string): Promise<boolean> =>
+  new Promise<boolean>((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(false), CLICK_ACK_TIMEOUT_MS);
+    channel.port1.onmessage = () => {
+      clearTimeout(timer);
+      resolve(true);
+    };
+    try {
+      client.postMessage({ type: SW_MESSAGES.notificationClick, url }, [channel.port2]);
+    } catch {
+      clearTimeout(timer);
+      resolve(false);
+    }
+  });
 
 self.addEventListener("pushsubscriptionchange", (event) => {
   // The browser rotated/expired the subscription. The worker holds no credentials (by design: nothing

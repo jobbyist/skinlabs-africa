@@ -12,6 +12,8 @@ import FirstCheckinNudge from "./FirstCheckinNudge";
 import { useRoutine, type RoutineStep } from "@/hooks/use-routine";
 import LayeringGuide from "@/components/dashboard/LayeringGuide";
 import SmartRoutinePanel from "@/components/dashboard/SmartRoutinePanel";
+import RoutineClimateBadge from "@/components/dashboard/RoutineClimateBadge";
+import ShelfPanel from "@/components/dashboard/ShelfPanel";
 
 const StepRow = ({
   step,
@@ -118,6 +120,8 @@ const RoutineTrackerTab = () => {
             <Progress value={pct} />
           </div>
 
+          <RoutineClimateBadge />
+
           <div className="grid gap-5 md:grid-cols-2 md:gap-4">
             <div className="min-w-0">
               <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold leading-snug text-foreground">
@@ -191,6 +195,8 @@ const RoutineTrackerTab = () => {
         </CardContent>
       </Card>
       <LayeringGuide amSteps={amSteps} pmSteps={pmSteps} />
+
+      <ShelfPanel steps={[...amSteps, ...pmSteps]} />
     </div>
   );
 };

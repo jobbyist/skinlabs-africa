@@ -1,3 +1,4 @@
+import ContextualEmptyState from "@/components/dashboard/ContextualEmptyState";
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,7 +79,7 @@ const SkinJourneyTab = () => {
         <CardHeader><CardTitle>Journey timeline</CardTitle></CardHeader>
         <CardContent>
           {loading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> :
-            entries.length === 0 ? <p className="text-sm text-muted-foreground">No entries yet — add your first check-in above.</p> :
+            entries.length === 0 ? <ContextualEmptyState kind="journey" /> :
             <div className="space-y-3">
               {entries.map((e) => (
                 <div key={e.id} className="flex items-start justify-between gap-3 py-3 border-b border-border last:border-0">

@@ -20,7 +20,7 @@ import {
   type RetailerListing,
 } from '@/data/reviews'
 import { getBrandBanner } from '@/lib/brand-banners'
-import { getProductImage, type CategoryImage } from '@/data/productImages'
+import { REVIEW_PLACEHOLDER_IMAGE, type CategoryImage } from '@/data/productImages'
 import { findMarketplaceMatch, type MarketplaceMatch } from '@/lib/marketplaceCrossLink'
 import { fetchIngredientBreakdown, type IngredientBreakdownEntry } from '@/lib/ingredientBreakdown'
 import { checkedLabel, formatRand, formatSize, groupPrices, type SaRetailPrice } from '@/lib/pricing/saRetailPrices'
@@ -87,7 +87,7 @@ import { clampAtWord, endsMidSentence } from '@/lib/seo/text'
 // routes and the SPA.
 
 const BASIC_COLUMNS =
-  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored'
+  'id, product_name, brand, local_price_zar, where_to_buy, category, skin_type_match, score_efficacy, score_value, score_texture, score_climate, verdict, key_ingredients, retailers, published_date, seo_intro, review_body, faq, seo_title, seo_description, is_sponsored, origin'
 
 function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
   const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000
@@ -114,6 +114,7 @@ function mapGeneratedRow(row: Record<string, unknown>): ProductReview {
     seo_title: row.seo_title as string | null,
     seo_description: row.seo_description as string | null,
     is_sponsored: (row.is_sponsored as boolean | null) ?? false,
+    origin: row.origin === 'global_available_in_sa' ? 'global_available_in_sa' : 'south_africa',
   }
 }
 
@@ -138,26 +139,30 @@ const fetchReview = createServerFn({ method: 'GET' })
 
     let review: ProductReview | undefined = productReviews.find((r) => r.id === slug)
     if (!review) {
-      const { data } = await supabase.from('ai_generated_product_reviews').select(BASIC_COLUMNS).eq('id', slug).maybeSingle()
+      const { data, error } = await supabase.from('ai_generated_product_reviews').select(BASIC_COLUMNS).eq('id', slug).maybeSingle()
+      // A failed lookup is not a missing review (see briefings.$slug.tsx): 5xx, never a cached/indexed 404.
+      if (error) throw new Error(`review lookup failed for "${slug}": ${error.message}`)
       if (data) review = mapGeneratedRow(data)
     }
     if (!review) return { found: false }
 
-    // Image: brand banner (static, highest priority) -> review_images row -> category pool.
-    // Same three-tier priority as src/hooks/use-review-images.ts's getImage().
+    // Image: verified real product image (review_images.source_kind = 'product') -> brand banner -> branded placeholder.
+    // Same priority as src/hooks/use-review-images.ts's getImage().
     let image: CategoryImage | null = null
+    const { data: imgRow } = await supabase
+      .from('review_images')
+      .select('image_url, alt, credit_name, credit_url, source_kind' as never)
+      .eq('review_id', review.id)
+      .maybeSingle()
+    const row = imgRow as unknown as { image_url: string; alt: string; credit_name: string; credit_url: string; source_kind?: string } | null
     const bannerPath = getBrandBanner(review.brand)
-    if (bannerPath) {
+    if (row?.source_kind === 'product') {
+      image = { url: row.image_url, alt: row.alt, creditName: row.credit_name, creditUrl: row.credit_url }
+    } else if (bannerPath) {
       image = { url: bannerPath, alt: `${review.brand} brand banner`, creditName: review.brand, creditUrl: '#' }
     } else {
-      const { data: imgRow } = await supabase
-        .from('review_images')
-        .select('image_url, alt, credit_name, credit_url')
-        .eq('review_id', review.id)
-        .maybeSingle()
-      image = imgRow
-        ? { url: imgRow.image_url, alt: imgRow.alt, creditName: imgRow.credit_name, creditUrl: imgRow.credit_url }
-        : getProductImage(review.category, review.id)
+      // No approved product image: the branded placeholder, never a stock photo.
+      image = REVIEW_PLACEHOLDER_IMAGE
     }
 
     // Related reviews: same category, excluding self -- static catalogue plus a
@@ -437,6 +442,11 @@ function ReviewPageContent() {
           {review.product_name} <span>{score} / 10</span>
         </h1>
         <p>Reviewed by {AUTHOR_NAME}</p>
+        {review.origin === 'global_available_in_sa' && (
+          <p>
+            <em>Import — an international brand sold in South Africa.</em>
+          </p>
+        )}
         {review.is_sponsored && (
           <p>
             <em>Sponsored — SkinLabs earns a margin when you buy this product via OpenHaus Marketplace or a disclosed brand partner.</em>
@@ -446,14 +456,14 @@ function ReviewPageContent() {
 
         {image && (
           <figure>
-            <img src={image.url} alt={`${review.category} product photography — ${image.alt}`} width={1200} height={630} loading="lazy" />
+            <img src={image.url} alt={image.alt} width={1200} height={630} loading="lazy" />
             {image.creditUrl !== '#' && (
               <figcaption>
-                Representative {review.category.toLowerCase()} photography, not the exact product. Photo by{' '}
-                <a href={image.creditUrl} target="_blank" rel="noreferrer noopener">
+                Product image from{' '}
+                <a href={image.creditUrl} target="_blank" rel="noreferrer noopener nofollow">
                   {image.creditName}
-                </a>{' '}
-                on Unsplash.
+                </a>
+                . Image rights belong to their owners.
               </figcaption>
             )}
           </figure>

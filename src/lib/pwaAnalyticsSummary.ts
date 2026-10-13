@@ -118,5 +118,6 @@ export const EVENT_DESCRIPTIONS: Record<string, string> = {
   podcast_download_started: "Offline download started",
   podcast_download_completed: "Offline download finished",
   podcast_download_removed: "Offline download removed",
+  offline_reading_saved: "Briefing or ingredient saved for offline reading",
   podcast_offline_play: "Played a downloaded episode",
 };

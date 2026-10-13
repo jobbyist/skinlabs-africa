@@ -1,8 +1,9 @@
 /**
  * The member journey (onboarding overhaul 08): one pure model of where an
- * account is in the free → trial → paid funnel, and the single most useful
- * next step for it. Pure and unit tested (src/lib/__tests__/journey.test.ts);
- * src/hooks/use-journey.ts gathers the facts from existing hooks and tables.
+ * account is in the free → trial → paid funnel, plus the Getting Started
+ * checklist. WHAT to do next is no longer decided here: that is the contextual
+ * action engine (src/lib/context, docs/contextual-ux.md). Pure and unit tested (src/lib/__tests__/journey.test.ts);
+ * src/hooks/use-app-context.ts gathers the facts from existing hooks and tables.
  * Never authorization — entitlements stay in entitlements.ts / the server.
  */
 
@@ -83,44 +84,7 @@ export const resolveJourneyStage = (f: JourneyFacts): JourneyStage => {
   return "member";
 };
 
-export type NextActionKind = "link" | "signup" | "start_trial" | "keep_membership";
-
-export interface NextBestAction {
-  id: string;
-  label: string;
-  kind: NextActionKind;
-  /** For kind "link". */
-  href?: string;
-}
-
-const ANALYSIS: NextBestAction = { id: "analysis", label: "Take the 2-minute skin analysis", kind: "link", href: "/skynn-ai" };
-const ROUTINE: NextBestAction = { id: "routine", label: "Save your routine", kind: "link", href: "/dashboard?tab=routine" };
-const CHECK_IN: NextBestAction = { id: "check_in", label: "Check in on today's routine", kind: "link", href: "/dashboard?tab=routine" };
-
-/** The one thing worth doing next. Deliberately a single action, never a list. */
-export const nextBestAction = (stage: JourneyStage, f: JourneyFacts): NextBestAction => {
-  switch (stage) {
-    case "visitor":
-      return ANALYSIS;
-    case "analysed":
-      return { id: "save_analysis", label: "Save your results — free", kind: "signup" };
-    case "member":
-      if (f.savedAnalyses === 0) return ANALYSIS;
-      return { id: "start_trial", label: "Start your free trial", kind: "start_trial" };
-    case "trialing":
-      if (f.savedAnalyses === 0) return ANALYSIS;
-      return f.routineSteps === 0 ? ROUTINE : CHECK_IN;
-    case "activated":
-      return { id: "keep_membership", label: "Keep my membership", kind: "keep_membership" };
-    case "payment_on_file":
-    case "paid":
-      return f.routineSteps === 0 ? ROUTINE : CHECK_IN;
-    case "lapsed":
-      return { id: "resubscribe", label: "Keep your membership", kind: "keep_membership" };
-  }
-};
-
-export type ChecklistItemId = "analysis" | "routine" | "weather" | "checkins" | "reminders" | "content" | "mfa" | "keep_membership";
+export type ChecklistItemId = "analysis" | "routine" | "weather" | "checkins" | "reminders" | "content" | "mfa";
 
 export interface ChecklistItem {
   id: ChecklistItemId;
@@ -135,8 +99,9 @@ export interface ChecklistItem {
 export const remindersDone = (f: JourneyFacts): boolean => f.reminderDeviceActive && (!f.reminderIosDevice || f.appInstalled);
 
 /**
- * The Getting Started checklist, completion read from real data. "Keep my
- * membership" is added only for an activated trialist without a payment method.
+ * The Getting Started checklist, completion read from real data. Membership
+ * prompts ("Keep my membership") are deliberately NOT here: the dashboard's trial
+ * banner owns them, so there is one place that asks.
  */
 export const gettingStartedChecklist = (f: JourneyFacts): ChecklistItem[] => {
   const items: ChecklistItem[] = [
@@ -155,9 +120,6 @@ export const gettingStartedChecklist = (f: JourneyFacts): ChecklistItem[] => {
     // Exactly one reminders step, and only where it could ever be completed (the push API exists, or it is already done).
     (item) => item.id !== "reminders" || item.done || f.reminderPushAvailable,
   ) as ChecklistItem[];
-  if (resolveJourneyStage(f) === "activated") {
-    items.push({ id: "keep_membership", label: "Keep my membership", done: false });
-  }
   return items;
 };
 

@@ -13,7 +13,7 @@ export interface SpotlightEdition {
 const FALLBACK: SpotlightEdition = {
   editionLabel: SPOTLIGHT_EDITION_MONTH,
   methodologyVersion: SPOTLIGHT_METHODOLOGY_VERSION,
-  reviewCountAtSnapshot: 160,
+  reviewCountAtSnapshot: 225,
 };
 
 async function fetchCurrentEdition(): Promise<SpotlightEdition> {

@@ -100,6 +100,9 @@ const PodcastSection = ({
                     src={episode.image}
                     alt={`${episode.title} cover art`}
                     loading="lazy"
+                    decoding="async"
+                    width={1080}
+                    height={1350}
                     className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
                   />
                   {episode.slug === latestPublishedEpisode?.slug && (

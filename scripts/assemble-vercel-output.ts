@@ -66,7 +66,7 @@ const vercelJsonPath = resolve(root, "vercel.json");
  * - `POST_FILESYSTEM`: spliced in *after* filesystem instead. Ingredients
  *   and Spotlight each have a single-segment sibling *static* route under
  *   the exact same prefix as their slug pattern (/ingredients/checker vs.
- *   /ingredients/:slug; /spotlight/methodology and /spotlight/archive vs.
+ *   /ingredients/:slug; /spotlight/archive vs.
  *   /spotlight/:brandSlug -- see src/App.tsx), so a bare
  *   `^/prefix/([^/]+)$` placed before filesystem would swallow them into
  *   the SSR route (a false ingredient/brand-slug 404) -- confirmed live on

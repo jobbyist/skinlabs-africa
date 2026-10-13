@@ -18,7 +18,7 @@ export const NOTIFICATION_CATEGORIES = [
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 /** Every category the notification engine can send. The preference UI keeps the six above; the worker accepts all. */
-export const ENGINE_NOTIFICATION_CATEGORIES = [...NOTIFICATION_CATEGORIES, "report_ready", "skin_weather", "journal_reminder", "price_alert"] as const;
+export const ENGINE_NOTIFICATION_CATEGORIES = [...NOTIFICATION_CATEGORIES, "report_ready", "skin_weather", "journal_reminder", "price_alert", "community"] as const;
 export type EngineNotificationCategory = (typeof ENGINE_NOTIFICATION_CATEGORIES)[number];
 
 export interface ParsedNotification {

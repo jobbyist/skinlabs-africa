@@ -26,7 +26,7 @@ export interface TermsSection {
  */
 export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGAL): TermsSection[] => {
   const promoter = legal.promoterLegalName
-    ? `${legal.promoterLegalName}${legal.promoterRegistration ? ` (${legal.promoterRegistration})` : ""}, trading as SkinLabs®`
+    ? `${legal.promoterRepresentative ? `${legal.promoterRepresentative} on behalf of ` : ""}${legal.promoterLegalName}${legal.promoterRegistration ? ` (${legal.promoterRegistration})` : ""}, trading as SkinLabs®${legal.promoterAddress ? `, ${legal.promoterAddress}` : ""}`
     : "SkinLabs®";
 
   return [
@@ -72,9 +72,9 @@ export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGA
       title: "Prizes",
       paragraphs: [
         `There are ${GIVEAWAY_PRIZES.winners === 2 ? "two" : GIVEAWAY_PRIZES.winners} winners. Each winner receives one ${GIVEAWAY_PRIZES.voucher} and ${GIVEAWAY_PRIZES.subscription} access to SkinLabs®, so the total prize pool is two vouchers and two lifetime Glow Insider memberships. Taking part does not mean you will win. Not every participant receives a prize.`,
-        ...(legal.prizeAwardDate ? [`Prizes are awarded on ${legal.prizeAwardDate}.`] : []),
+        ...(legal.prizeAwardDate ? [`The voucher and the lifetime membership are delivered to both winners on ${legal.prizeAwardDate}.`] : []),
         ...(legal.lifetimeActivation ? [`Lifetime Glow Insider is activated ${legal.lifetimeActivation}.`] : []),
-        ...(legal.lifetimeDefinition ? [`Lifetime Glow Insider: ${legal.lifetimeDefinition}`] : []),
+        ...(legal.lifetimeDefinition ? [`Lifetime access means ${legal.lifetimeDefinition}`] : []),
         ...(legal.voucherExpiryNote ? [`Takealot voucher: ${legal.voucherExpiryNote}`] : []),
       ],
     },
@@ -87,8 +87,8 @@ export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGA
           : "Winners are chosen from valid entries received before the closing time.",
         `Winners are announced ${GIVEAWAY_WINNER_ANNOUNCEMENT}${legal.winnerAnnouncementDate ? ` on ${legal.winnerAnnouncementDate}` : ""}, and contacted at the email address on their SkinLabs® account.`,
         "To receive a prize, a winner must give us the information we need to deliver it (for example, where to send the voucher).",
-        legal.prizeClaimWindowDays !== null
-          ? `If we can’t reach a winner, or they don’t respond within ${legal.prizeClaimWindowDays} days, we may choose another winner from the valid entries.`
+        legal.prizeClaimWindowWorkingDays !== null
+          ? `A winner has ${legal.prizeClaimWindowWorkingDays} working days from being contacted to respond. If they don’t, the prize is forfeited in full and we may choose another winner from the valid entries.`
           : "If we can’t reach a winner, or they don’t respond within a reasonable time, we may choose another winner from the valid entries.",
       ],
     },
@@ -104,7 +104,7 @@ export const giveawayTermsSections = (legal: GiveawayLegalConfig = GIVEAWAY_LEGA
       title: "Your content",
       paragraphs: [
         legal.ugcRepostLicence === true
-          ? "By entering you allow SkinLabs® to view, verify and share your TikTok Story (with credit to you) on our own channels. You keep ownership of your content."
+          ? "By entering you allow SkinLabs® to view and verify your TikTok Story, and to repost it for promotional purposes. You keep ownership of your content."
           : "By entering you allow SkinLabs® to view your TikTok Story to verify your entry. We will not repost or use your Story in advertising without asking you first. You keep ownership of your content.",
         "You confirm the Story is your own and doesn’t break TikTok’s rules or anyone else’s rights.",
       ],

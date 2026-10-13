@@ -14,6 +14,7 @@ import ArticleComments from "@/components/ArticleComments";
 import AffiliateAdSlot from "@/components/AffiliateAdSlot";
 import RelatedKnowledgeHub from "@/components/RelatedKnowledgeHub";
 import { getSpotlightBrand } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import { overallScore } from "@/data/reviews";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
@@ -32,7 +33,8 @@ const SpotlightBrandProfile = () => {
   // Glow Lite and above get full Spotlight profiles — no separate quota beyond that.
   const { can, loading: membershipLoading } = useEntitlements();
   const isMember = can("spotlight.full_profiles");
-  const entry = getSpotlightBrand(brandSlug ?? "");
+  const { all: ranking, loading: rankingLoading } = useSpotlightRanking();
+  const entry = getSpotlightBrand(brandSlug ?? "", ranking);
   const [viewRecorded, setViewRecorded] = useState(false);
   const canView = canViewSpotlightProfile(brandSlug ?? "");
   const locked = Boolean(entry) && !membershipLoading && !isMember && !canView;
@@ -43,6 +45,19 @@ const SpotlightBrandProfile = () => {
       setViewRecorded(true);
     }
   }, [entry, isMember, brandSlug, canView, viewRecorded]);
+
+  if (!entry && rankingLoading) {
+    // A brand that only exists in the pipeline-generated reviews can't be resolved until they arrive.
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 pb-24 pt-32 text-center" aria-busy="true">
+          <p className="text-sm text-muted-foreground">Loading brand profile…</p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!entry) {
     return (
@@ -227,10 +242,7 @@ const SpotlightBrandProfile = () => {
 
           <p className="mt-6 text-xs text-muted-foreground">
             Assessed for the {edition.editionLabel} edition under{" "}
-            <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              {edition.methodologyVersion}
-            </Link>
-            .
+            {edition.methodologyVersion}.
           </p>
 
           <div className="mt-6 flex gap-3 rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">

@@ -261,8 +261,149 @@ export const giveawayOctober2026Story = (): Story => {
   };
 };
 
+
+export const PRACTICE_SUITE_BETA_SLUG = "practice-suite-beta-intake";
+const PRACTICE_SUITE_MEDIA = "/stories-media/practice-suite";
+
+/**
+ * "Practice Suite Beta intake now live!": every claim is taken from the Practice Suite page (src/pages/PracticeSuite.tsx).
+ * The INTAKE form is live; the product is not, and the first page says so. Backgrounds are generated brand gradients
+ * (no photography), so nothing implies a finished product.
+ */
+export const practiceSuiteBetaStory = (): Story => {
+  const bg = (n: number) => `${PRACTICE_SUITE_MEDIA}/bg-${n}.jpg`;
+  const alt = "Dark SkinLabs® brand gradient";
+  return {
+    key: PRACTICE_SUITE_BETA_SLUG,
+    source: "curated",
+    slug: PRACTICE_SUITE_BETA_SLUG,
+    title: "Practice Suite Beta intake now live!",
+    kind: "editorial",
+    coverImageUrl: bg(1),
+    coverImageAlt: "Practice Suite Beta intake now live",
+    ctaLabel: "Request early access",
+    ctaUrl: "/practice-suite#access",
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-10-08",
+    pages: [
+      page({
+        mediaUrl: bg(1),
+        mediaAlt: alt,
+        headline: "Practice Suite Beta intake now live!",
+        body: "Early-access intake is open for the Practice Suite private beta. The product is still in development, and 25 practices get in first.",
+        ctaLabel: "Request early access",
+        ctaUrl: "/practice-suite#access",
+      }),
+      page({
+        mediaUrl: bg(2),
+        mediaAlt: alt,
+        headline: "Practice admin, without the nonsense",
+        body: "One loop, done properly: book, consult, note, invoice, get paid. Diary, notes, billing and reminders in one place, built around how South African practices work.",
+        ctaLabel: "See the loop",
+        ctaUrl: "/practice-suite",
+      }),
+      page({
+        mediaUrl: bg(3),
+        mediaAlt: alt,
+        headline: "What's in the beta",
+        body: "Diary and online booking. Intake and consent with e-signature. Notes with your name, a timestamp and an edit history. Invoicing in rand. Reminders by SMS and email.",
+        ctaLabel: "See what's coming",
+        ctaUrl: "/practice-suite#features",
+      }),
+      page({
+        mediaUrl: bg(4),
+        mediaAlt: alt,
+        headline: "And what isn't",
+        body: "Not in the beta: live medical aid claims, stock and dispensing, telehealth video, and lab and imaging links. Built for private-pay clinics first, and we'd rather say so now.",
+      }),
+      page({
+        mediaUrl: bg(5),
+        mediaAlt: alt,
+        headline: "Twenty-five places. Waves of five.",
+        body: "The private beta opens 11 January 2027. It's free during the beta, with no card. Tell us about your practice. Please don't put patient details in the form.",
+        ctaLabel: "Request early access",
+        ctaUrl: "/practice-suite#access",
+      }),
+    ],
+  };
+};
+
+export const JOIN_THE_DISCUSSION_SLUG = "join-the-discussion";
+const UNSPLASH = "https://images.unsplash.com/photo-";
+/** Free-licence Unsplash photos already used across the site (each checked to resolve); cropped to 9:16 by `portrait()`. */
+const JOIN_THE_DISCUSSION_PHOTOS = [
+  { url: `${UNSPLASH}1773700596401-61bc77e0b436`, alt: "A skincare serum bottle on a soft neutral surface. Photo from Unsplash." },
+  { url: `${UNSPLASH}1556228578-0d85b1a4d571`, alt: "Moisturiser and skincare products arranged together. Photo from Unsplash." },
+  { url: `${UNSPLASH}1556228453-efd6c1ff04f6`, alt: "Sunscreen and skincare bottles in natural light. Photo from Unsplash." },
+  { url: `${UNSPLASH}1715702130909-a5b2942a411b`, alt: "A tub of moisturiser on a calm background. Photo from Unsplash." },
+  { url: `${UNSPLASH}1512496015851-a90fb38ba796`, alt: "A glowing, healthy-looking skincare flat lay. Photo from Unsplash." },
+] as const;
+
+/**
+ * "Join the discussion": introduces the Community Forum. Access wording follows the product decision: full access is for Glow Lite,
+ * Insider and VIP members, and until further notice the Community is open to every signed-in member. Nothing here promises a feature
+ * that doesn't exist: photo/GIF posts, upvotes, nested replies and formatting are all live.
+ */
+export const joinTheDiscussionStory = (): Story => {
+  const photo = (n: number) => ({ mediaUrl: portrait(JOIN_THE_DISCUSSION_PHOTOS[n].url), mediaAlt: JOIN_THE_DISCUSSION_PHOTOS[n].alt });
+  return {
+    key: JOIN_THE_DISCUSSION_SLUG,
+    source: "curated",
+    slug: JOIN_THE_DISCUSSION_SLUG,
+    title: "Join the discussion",
+    kind: "editorial",
+    coverImageUrl: photo(0).mediaUrl,
+    coverImageAlt: photo(0).mediaAlt,
+    ctaLabel: "Open the Community",
+    ctaUrl: "/community-forum",
+    isSponsored: false,
+    sponsorName: null,
+    railPosition: null,
+    publishAt: "2026-10-09",
+    pages: [
+      page({
+        ...photo(0),
+        headline: "Join the discussion",
+        body: "The SkinLabs® Community Forum is here: a members' space to swap routines, ask honest questions and share what's working for South African skin.",
+        ctaLabel: "Open the Community",
+        ctaUrl: "/community-forum",
+      }),
+      page({
+        ...photo(1),
+        headline: "Skin talk, South African style",
+        body: "Highveld winters, coastal humidity, load-shedding showers and rand-friendly routines. Start a discussion, or add your experience to someone else's.",
+        ctaLabel: "See what's being discussed",
+        ctaUrl: "/community-forum",
+      }),
+      page({
+        ...photo(2),
+        headline: "Upvote, reply, show and tell",
+        body: "Upvote what helps, reply in threads you can collapse, format your post with bold, lists and quotes, and add a photo or GIF.",
+      }),
+      page({
+        ...photo(3),
+        headline: "Kind, careful and private",
+        body: "Share experience, not diagnoses, and see a doctor for anything persistent. Keep photos free of other people's faces and contact details. Moderators are here to help.",
+        ctaLabel: "Read the guidelines",
+        ctaUrl: "/community-guidelines",
+      }),
+      page({
+        ...photo(4),
+        headline: "Who can join",
+        body: "Full access to the Community is for Glow Lite, Insider and VIP members. Until further notice it's open to every member, so sign in and say hello.",
+        ctaLabel: "Join the Community",
+        ctaUrl: "/community-forum",
+      }),
+    ],
+  };
+};
+
 export const curatedStories = (now: Date | number = Date.now()): Story[] => [
   ...(isGiveawayOpen(now) ? [giveawayOctober2026Story()] : []),
+  joinTheDiscussionStory(),
+  practiceSuiteBetaStory(),
   ...(ICYMI_SEPTEMBER_2026_VIDEO_READY ? [icymiSeptember2026Story()] : []),
   podcastSeasonOneStory(),
   springResetStory(),

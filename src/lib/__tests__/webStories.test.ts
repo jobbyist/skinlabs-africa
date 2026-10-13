@@ -168,3 +168,26 @@ describe("rail order with every source", () => {
     expect(rail.map((s) => s.source)).toEqual(["db", "briefing", ...curatedStories().map(() => "curated" as const)]);
   });
 });
+
+describe("Practice Suite beta story and page assets (2026-10-08)", () => {
+  test("has 4+ pages, an in-site CTA to the intake form, and all media exists", async () => {
+    const { practiceSuiteBetaStory } = await import("../webStories/curated");
+    const { existsSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const story = practiceSuiteBetaStory();
+    expect(story.title).toBe("Practice Suite Beta intake now live!");
+    expect(story.pages.length).toBeGreaterThanOrEqual(4);
+    expect(story.ctaUrl).toBe("/practice-suite#access");
+    for (const p of story.pages) expect(existsSync(join(import.meta.dir, "..", "..", "..", "public", p.mediaUrl))).toBe(true);
+    // never claims the product itself is live
+    expect(JSON.stringify(story.pages)).not.toMatch(/is now live|available now|launched/i);
+  });
+
+  test("whitepaper video and giveaway image exist and the video is small", async () => {
+    const { statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const root = join(import.meta.dir, "..", "..", "..", "public");
+    expect(statSync(join(root, "whitepaper/skynn-ai-skin-tone-fairness.mp4")).size).toBeLessThan(1_500_000);
+    expect(statSync(join(root, "giveaway/skin-story-example.webp")).size).toBeLessThan(120_000);
+  });
+});

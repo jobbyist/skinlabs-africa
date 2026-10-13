@@ -5310,6 +5310,68 @@ export type Database = {
           },
         ]
       }
+      shelf_items: {
+        Row: {
+          actives: string[]
+          amount_per_use_ml: number | null
+          brand: string | null
+          category: string
+          created_at: string
+          finished_on: string | null
+          id: string
+          looks_oxidised: boolean
+          name: string
+          opened_on: string
+          pao_months: number
+          routine_step_id: string | null
+          size_ml: number | null
+          user_id: string
+          uses_per_week: number | null
+        }
+        Insert: {
+          actives?: string[]
+          amount_per_use_ml?: number | null
+          brand?: string | null
+          category?: string
+          created_at?: string
+          finished_on?: string | null
+          id?: string
+          looks_oxidised?: boolean
+          name: string
+          opened_on: string
+          pao_months: number
+          routine_step_id?: string | null
+          size_ml?: number | null
+          user_id: string
+          uses_per_week?: number | null
+        }
+        Update: {
+          actives?: string[]
+          amount_per_use_ml?: number | null
+          brand?: string | null
+          category?: string
+          created_at?: string
+          finished_on?: string | null
+          id?: string
+          looks_oxidised?: boolean
+          name?: string
+          opened_on?: string
+          pao_months?: number
+          routine_step_id?: string | null
+          size_ml?: number | null
+          user_id?: string
+          uses_per_week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_items_routine_step_id_fkey"
+            columns: ["routine_step_id"]
+            isOneToOne: false
+            referencedRelation: "routine_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skin_concerns: {
         Row: {
           description: string | null

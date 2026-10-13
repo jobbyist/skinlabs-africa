@@ -36,10 +36,14 @@ const KNOWN_EXCLUSIONS = new Set([
   "/marketplace/saved",
   // Utility step of the password-recovery email flow, not content.
   "/reset-password",
+  // Per-device offline reading list (text the visitor saved), no independent content.
+  "/offline-reading",
   // Utility step of the newsletter double opt-in email, not content.
   "/newsletter/confirm",
   // Signed-in, noindex first-run onboarding (onboarding overhaul 07).
   "/welcome",
+  // Members-only, noindex Community Forum (user-generated, private to signed-in members).
+  "/community-forum",
   // Temporary, unlisted, noindex single-client quote form (see CLAUDE.md).
   "/quote-ss-beauty",
   // Member-only, noindex SKYNN AI Advanced Dermatology Report flow; reached

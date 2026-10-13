@@ -11,7 +11,7 @@ export interface ProfileCompletion {
   refresh: () => void;
 }
 
-const REQUIRED: { key: string; label: string }[] = [
+export const PROFILE_REQUIRED_FIELDS: { key: string; label: string }[] = [
   { key: "username", label: "Username" },
   { key: "full_name", label: "Full name" },
   { key: "date_of_birth", label: "Date of birth" },
@@ -38,7 +38,7 @@ export const useProfileComplete = (): ProfileCompletion => {
         if (!active) return;
         setIsComplete(false);
         setUsername(null);
-        setMissing(REQUIRED.map((r) => r.label));
+        setMissing(PROFILE_REQUIRED_FIELDS.map((r) => r.label));
         setLoading(false);
         return;
       }
@@ -49,7 +49,7 @@ export const useProfileComplete = (): ProfileCompletion => {
         .maybeSingle();
       if (!active) return;
       const row = (data ?? {}) as Record<string, string | null>;
-      const gaps = REQUIRED.filter((field) => !String(row[field.key] ?? "").trim()).map((f) => f.label);
+      const gaps = PROFILE_REQUIRED_FIELDS.filter((field) => !String(row[field.key] ?? "").trim()).map((f) => f.label);
       setUsername(row.username ?? null);
       setMissing(gaps);
       setIsComplete(gaps.length === 0);

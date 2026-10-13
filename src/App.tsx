@@ -1,6 +1,8 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { LazyMotion } from "framer-motion";
 import { lazyWithRetry } from "@/lib/chunkRecovery";
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,7 +25,8 @@ const Preloader = lazyWithRetry(() => import("./components/Preloader"));
 // Installed-app layer (install prompt, offline banner, update toast, background sync). See docs/pwa.md.
 const PWAProvider = lazyWithRetry(() => import("./components/pwa/PWAProvider"));
 import { PodcastPlayerProvider } from "./components/PodcastPlayer";
-import ScrollToTop from "./components/ScrollToTop";
+import ScrollManager from "./components/ScrollManager";
+import BackToTop from "./components/BackToTop";
 import FloatingBottomNav from "./components/FloatingBottomNav";
 import IntentResolver from "./components/IntentResolver";
 import ConversionDialogs from "./components/ConversionDialogs";
@@ -37,6 +40,7 @@ import { CartProvider } from "./contexts/CartContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const OfflineReading = lazyWithRetry(() => import("./pages/OfflineReading"));
 const AIFormulator = lazyWithRetry(() => import("./pages/AIFormulator"));
 const AdvancedAssessment = lazyWithRetry(() => import("./pages/AdvancedAssessment"));
 const QuoteSSBeauty = lazyWithRetry(() => import("./pages/QuoteSSBeauty"));
@@ -70,7 +74,7 @@ const ProductReview = lazyWithRetry(() => import("./pages/ProductReview"));
 const ComparisonArticle = lazyWithRetry(() => import("./pages/ComparisonArticle"));
 const Compare = lazyWithRetry(() => import("./pages/Compare"));
 const Spotlight = lazyWithRetry(() => import("./pages/Spotlight"));
-const SpotlightMethodology = lazyWithRetry(() => import("./pages/SpotlightMethodology"));
+const PlatformApi = lazyWithRetry(() => import("./pages/PlatformApi"));
 const SpotlightArchive = lazyWithRetry(() => import("./pages/SpotlightArchive"));
 const SpotlightBrandProfile = lazyWithRetry(() => import("./pages/SpotlightBrandProfile"));
 const Seasonals = lazyWithRetry(() => import("./pages/Seasonals"));
@@ -81,6 +85,7 @@ const UserDashboard = lazyWithRetry(() => import("./pages/UserDashboard"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const NewsletterConfirm = lazyWithRetry(() => import("./pages/NewsletterConfirm"));
 const Welcome = lazyWithRetry(() => import("./pages/Welcome"));
+const CommunityForum = lazyWithRetry(() => import("./pages/CommunityForum"));
 const Start = lazyWithRetry(() => import("./pages/Start"));
 const GiveawayOctober2026 = lazyWithRetry(() => import("./pages/GiveawayOctober2026"));
 import { MarketplaceGate } from "./components/marketplace/MarketplaceGate";
@@ -119,18 +124,46 @@ const queryClient = new QueryClient({
 });
 const LegacyStreamRedirect = () => { const { slug } = useParams(); return <Navigate to={`/podcast/${slug}`} replace />; };
 const LegacyNewsroomArticleRedirect = () => { const { slug } = useParams(); return <Navigate to={`/briefings/${slug}`} replace />; };
-const RouteFallback = () => (<div className="flex min-h-screen items-center justify-center bg-background"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>);
+// While a lazy route chunk loads: a quiet page-shaped skeleton (header height reserved, content blocks where the
+// page will put them) rather than a full-screen spinner, so the layout doesn't jump when the page arrives.
+const RouteFallback = () => (
+  <div className="min-h-screen bg-background" aria-busy="true" aria-label="Loading">
+    <div className="container mx-auto max-w-5xl space-y-6 px-4 pt-28">
+      <Skeleton className="h-9 w-2/3 max-w-md rounded-lg" />
+      <Skeleton className="h-4 w-full max-w-xl rounded" />
+      <Skeleton className="h-64 w-full rounded-2xl" />
+      <Skeleton className="h-40 w-full rounded-2xl" />
+    </div>
+  </div>
+);
+
+/**
+ * Private, per-member query data (the contextual snapshot, allowance, pre-orders) must not outlive the
+ * session in memory: on sign-out the cache for those keys is dropped, so the next person on a shared
+ * device can never see it. Every such key also carries the user id, so a different account never reads it.
+ */
+const usePurgePrivateCacheOnSignOut = () => {
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      for (const key of ["member-context", "formulator-allowance", "preorders", "community"]) queryClient.removeQueries({ queryKey: [key] });
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+};
 
 const AppContent = () => {
   const { pathname } = useLocation();
   useDeploymentSkewGuard();
+  usePurgePrivateCacheOnSignOut();
   return (
     <>
       <Suspense fallback={null}>
         <Preloader />
         <PWAProvider />
       </Suspense>
-      <ScrollToTop />
+      <ScrollManager />
+      <BackToTop />
       <FloatingBottomNav />
       {/* Resumes a pending sign-in intent (src/lib/pendingIntent.ts) after auth. */}
       <IntentResolver />
@@ -179,6 +212,8 @@ const AppContent = () => {
             <Route path="/shop" element={<Openhaus />} />
             <Route path="/routines" element={<SmartRoutines />} />
             <Route path="/learn" element={<ComingSoon />} />
+            <Route path="/offline-reading" element={<OfflineReading />} />
+            <Route path="/offline-reading/:kind/:slug" element={<OfflineReading />} />
             <Route path="/ingredients" element={<Ingredients />} />
             <Route path="/ingredients/checker" element={<IngredientChecker />} />
             <Route path="/ingredients/:slug" element={<IngredientDetail />} />
@@ -212,7 +247,7 @@ const AppContent = () => {
             <Route path="/consult" element={<DermatologistDirectory />} />
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/spotlight" element={<Spotlight />} />
-            <Route path="/spotlight/methodology" element={<SpotlightMethodology />} />
+            <Route path="/api" element={<PlatformApi />} />
             <Route path="/spotlight/archive" element={<SpotlightArchive />} />
             <Route path="/spotlight/:brandSlug" element={<SpotlightBrandProfile />} />
             <Route path="/seasonals" element={<Seasonals />} />
@@ -222,6 +257,7 @@ const AppContent = () => {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/newsletter/confirm" element={<NewsletterConfirm />} />
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/community-forum" element={<CommunityForum />} />
             {/* Installed-app entry point (manifest start_url): restores the session, then routes onward. */}
             <Route path="/start" element={<Start />} />
             <Route path="*" element={<NotFound />} />
@@ -233,6 +269,9 @@ const AppContent = () => {
   );
 };
 
+// Animation features load on demand (src/lib/motionFeatures.ts) so the entry script doesn't carry the motion runtime.
+const loadMotionFeatures = () => import("@/lib/motionFeatures").then((mod) => mod.default);
+
 const App = () => (
   // attribute="class" matches tailwind.config.ts's darkMode: ["class"] and index.css's
   // .dark selector. defaultTheme="system" + enableSystem (both next-themes defaults,
@@ -243,6 +282,7 @@ const App = () => (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
+          <LazyMotion features={loadMotionFeatures}>
           <TooltipProvider>
             <Toaster />
             <Sonner />
@@ -258,6 +298,7 @@ const App = () => (
             <Analytics />
             <SpeedInsights />
           </TooltipProvider>
+          </LazyMotion>
         </QueryClientProvider>
       </HelmetProvider>
     </ThemeProvider>

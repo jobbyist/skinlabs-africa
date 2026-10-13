@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Plus, ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
@@ -11,7 +11,7 @@ import AdSlot from "@/components/AdSlot";
 import PaginationControls from "@/components/PaginationControls";
 import { usePageParam } from "@/hooks/use-page-param";
 import { useSpotlightEdition } from "@/hooks/use-spotlight-edition";
-import { spotlightRanking, spotlightRankedBrands, spotlightRisingBrands, spotlightTopThisWeek } from "@/data/spotlight";
+import { useSpotlightRanking } from "@/hooks/use-spotlight-ranking";
 import AdSlotAutorelaxed from "@/components/AdSlotAutorelaxed";
 
 const RANKING_PAGE_SIZE = 5;
@@ -24,6 +24,7 @@ const Spotlight = () => {
   const [submitOpen, setSubmitOpen] = useState(false);
   const [rankingPage, setRankingPage] = usePageParam("page");
   const { data: edition } = useSpotlightEdition();
+  const { all: spotlightRanking, ranked: spotlightRankedBrands, radar: spotlightRisingBrands, topThisWeek: spotlightTopThisWeek } = useSpotlightRanking();
 
   const totalRankingPages = Math.max(1, Math.ceil(spotlightRankedBrands.length / RANKING_PAGE_SIZE));
   const currentRankingPage = Math.min(rankingPage, totalRankingPages);
@@ -85,9 +86,7 @@ const Spotlight = () => {
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
             <span className="rounded-full bg-accent px-3 py-1 font-semibold text-foreground">{edition.editionLabel} edition</span>
-            <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              {edition.methodologyVersion}
-            </Link>
+            <span>{edition.methodologyVersion}</span>
             <Link to="/spotlight/archive" className="underline hover:text-foreground">
               Archive
             </Link>
@@ -107,9 +106,9 @@ const Spotlight = () => {
 
         <section className="container mx-auto mt-6 px-4">
           <p className="mx-auto max-w-2xl text-center text-xs leading-relaxed text-muted-foreground">
-            The {edition.editionLabel} edition of Brand Spotlight includes {spotlightRanking.length} ranked brands
-            including {spotlightRisingBrands.length} emerging brands under review. The ranked list will expand as
-            SkinLabs® develops more product evidence. The Spotlight list and methodology will be updated at least
+            The {edition.editionLabel} edition of Brand Spotlight ranks {spotlightRankedBrands.length} brands with two or
+            more published SkinLabs reviews, and lists {spotlightRisingBrands.length} emerging {spotlightRisingBrands.length === 1 ? "brand" : "brands"} with
+            one review so far. The ranked list expands as SkinLabs® publishes more product reviews. The Spotlight list will be updated at least
             once every month.
           </p>
         </section>
@@ -118,11 +117,7 @@ const Spotlight = () => {
         <section className="container mx-auto mt-12 px-4">
           <h2 className="mb-1 text-center font-heading text-2xl font-bold text-foreground">Top 3 brands this week</h2>
           <p className="mb-6 text-center text-xs text-muted-foreground">
-            Rotates every Friday at 12am SAST among the highest-scoring Ranked brands — see{" "}
-            <Link to="/spotlight/methodology" className="underline hover:text-foreground">
-              Methodology
-            </Link>
-            .
+            Rotates every Friday at 12am SAST among the highest-scoring Ranked brands.
           </p>
           <div className="mx-auto grid max-w-4xl gap-6 sm:grid-cols-3">
             {spotlightTopThisWeek.map((entry) => (
@@ -168,7 +163,7 @@ const Spotlight = () => {
         )}
 
         <div className="container mx-auto px-4">
-          <AdSlotAutorelaxed placement="spotlight-before-methodology" compact />
+          <AdSlotAutorelaxed placement="spotlight-before-how-it-works" compact />
         </div>
 
         {/* Methodology + why Spotlight exists — one surface, two sections */}
@@ -182,9 +177,6 @@ const Spotlight = () => {
                 Brands with two or more reviewed products are Ranked; brands with one are New on the Radar. There is
                 no paid placement, no vote count and no way to buy a higher position.
               </p>
-              <Link to="/spotlight/methodology" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-                Read the full methodology <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
             </div>
             <div className="p-6 md:p-8">
               <h2 className="font-heading text-lg font-bold text-foreground">Why Spotlight exists</h2>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { OPEN_MENU_EVENT } from "@/lib/context/menuEvent";
 import { Link, useLocation } from "react-router-dom";
 import {
   Menu,
@@ -12,7 +13,6 @@ import {
   Search,
   Award,
   Sun,
-  ShoppingBag,
   Scale,
   Home,
   Target,
@@ -21,7 +21,7 @@ import {
   Stethoscope,
   Megaphone,
   BookOpenCheck,
-  Compass,
+  FileText,
   GraduationCap,
   Beaker,
   UserPlus,
@@ -29,6 +29,7 @@ import {
   ChevronRight,
   Sparkles,
   Users,
+  MessagesSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,10 +43,15 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import AuthDialog from "@/components/AuthDialog";
-import SiteSearch from "@/components/SiteSearch";
+import { lazyWithRetry } from "@/lib/chunkRecovery";
+
+// The search drawer pulls in the whole content catalogue (reviews, comparisons, FAQ…) and a briefings
+// query. It is loaded the first time someone opens search, not on every page view.
+const SiteSearch = lazyWithRetry(() => import("@/components/SiteSearch"));
 import ScrollProgressBar from "@/components/ScrollProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
-import PromoAnnouncementBar, { PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import PromoAnnouncementBar, { GetAppButton, GetAppChip, PromoHeaderChip } from "@/components/PromoAnnouncementBar";
+import { useGetAppCta } from "@/hooks/use-get-app-cta";
 import { showStoryRail } from "@/lib/mobileChrome";
 import WebStoriesBar from "@/components/WebStoriesBar";
 import { useAuth } from "@/hooks/use-auth";
@@ -74,20 +80,20 @@ const primaryLinks: NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Smart Routines", href: "/routines", icon: Target },
   { label: "AI Skin Analysis", href: "/skynn-ai", icon: FlaskConical, badge: "BETA" },
-  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "Coming Soon" },
+  { label: "Practice Suite", href: "/practice-suite", icon: Stethoscope, badge: "BETA" },
 ];
 
-/** The "Explore" grid — SkinLabs' editorial + platform sections. */
+/** The "Explore" grid: SkinLabs' live editorial + platform sections first, every "Coming Soon" item last. */
 const exploreLinks: NavItem[] = [
   { label: "Briefings", href: "/briefings", icon: Newspaper },
+  { label: "Community", href: "/community-forum", icon: MessagesSquare, badge: "NEW" },
   { label: "Reviews", href: "/reviews", icon: Star },
-  { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
-  { label: "Spotlight", href: "/spotlight", icon: Award, badge: "NEW" },
-  { label: "Seasonals", href: "/seasonals", icon: Sun, badge: "NEW" },
-  { label: "Comparisons", href: "/compare", icon: Scale, badge: "NEW" },
+  { label: "Spotlight", href: "/spotlight", icon: Award },
+  { label: "Seasonals", href: "/seasonals", icon: Sun },
+  { label: "Comparisons", href: "/compare", icon: Scale },
   { label: "Podcast", href: "/podcast", icon: Mic },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, badge: "NEW" },
   { label: "Ingredients", href: "/ingredients", icon: Beaker, badge: "NEW" },
+  { label: "Consult", href: "/consult", icon: Calendar, badge: "Coming Soon" },
   { label: "Academy", href: "/learn", icon: GraduationCap, badge: "Coming Soon" },
 ];
 
@@ -95,7 +101,7 @@ const exploreLinks: NavItem[] = [
 const resourceLinks: NavItem[] = [
   { label: "Announcements", href: "/announcements", icon: Megaphone },
   { label: "Knowledge Hub", href: "/knowledge-hub", icon: BookOpenCheck },
-  { label: "Methodologies", href: "/spotlight/methodology", icon: Compass },
+  { label: "Whitepaper 2026/27", href: "/whitepaper", icon: FileText },
   { label: "Partner Program", href: "/partners", icon: Users },
 ];
 
@@ -216,13 +222,40 @@ const DesktopMenuPanel = ({
 const Header = () => {
   const [open, setOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpenState] = useState(false);
+  const [searchMounted, setSearchMounted] = useState(false);
+  const setSearchOpen = (open: boolean) => {
+    if (open) setSearchMounted(true);
+    setSearchOpenState(open);
+  };
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [exploreOpen, setExploreOpen] = useState(true);
   const { user, signOut } = useAuth();
   useCrossDomainAuth();
-  const { visible: promoBarVisible, dismiss: dismissPromoBar } = usePromoBar();
+  // Cmd/Ctrl+K opens search before its chunk has loaded; once mounted, the drawer's own handler takes over.
+  useEffect(() => {
+    if (searchMounted) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setSearchMounted(true);
+        setSearchOpenState(true);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [searchMounted]);
+  // The bottom nav's "Explore" tab opens this menu (its Explore grid carries every content section).
+  useEffect(() => {
+    const openMenu = () => setOpen(true);
+    window.addEventListener(OPEN_MENU_EVENT, openMenu);
+    return () => window.removeEventListener(OPEN_MENU_EVENT, openMenu);
+  }, []);
+  const { visible: promoVisible, dismiss: dismissPromoBar } = usePromoBar();
+  // A signed-in member who hasn't installed the app sees "Get the app" instead of the free-trial promo.
+  const showGetApp = useGetAppCta();
+  const promoBarVisible = promoVisible && !showGetApp;
   const { pathname } = useLocation();
   const storyRail = showStoryRail(pathname);
   const storyRailVisible = useScrollReveal(storyRail);
@@ -296,7 +329,7 @@ const Header = () => {
           </Link>
           {/* Below md the promo message lives here, in the header row, instead of its own bar
               (hidden under 370px, where the row has no room for it). */}
-          {promoBarVisible && <PromoHeaderChip />}
+          {showGetApp ? <GetAppChip /> : promoBarVisible && <PromoHeaderChip />}
 
           {/* Desktop Menu button (replaces individual primary links) */}
           <div className="hidden lg:flex items-center">
@@ -381,6 +414,8 @@ const Header = () => {
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               SKYNN AI
             </Link>
+
+            {showGetApp && <GetAppButton />}
 
             {/* Auth */}
             {user ? (
@@ -522,7 +557,11 @@ const Header = () => {
       </Sheet>
 
       <AuthDialog open={authOpen} onOpenChange={setAuthOpen} mode={authMode} onModeChange={setAuthMode} />
-      <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      {searchMounted && (
+        <Suspense fallback={null}>
+          <SiteSearch open={searchOpen} onOpenChange={setSearchOpen} />
+        </Suspense>
+      )}
     </>
   );
 };

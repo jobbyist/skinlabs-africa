@@ -16,15 +16,19 @@ import AuthDialog from "@/components/AuthDialog";
 import AnalyticsTab from "@/components/admin/AnalyticsTab";
 import ConversionFunnelPanel from "@/components/admin/ConversionFunnelPanel";
 import EventsAnalyticsPanel from "@/components/admin/EventsAnalyticsPanel";
+import PlatformOverviewPanel from "@/components/admin/PlatformOverviewPanel";
 import PwaAnalyticsPanel from "@/components/admin/PwaAnalyticsPanel";
 import TikTokAdsPanel from "@/components/admin/TikTokAdsPanel";
 import UsersTab from "@/components/admin/UsersTab";
 import SkynnReviewsTab from "@/components/admin/SkynnReviewsTab";
 import PriceMatchesPanel from "@/components/admin/PriceMatchesPanel";
+import ReviewPricesPanel from "@/components/admin/ReviewPricesPanel";
+import ReviewImagesPanel from "@/components/admin/ReviewImagesPanel";
 import LeadsTab from "@/components/admin/LeadsTab";
 import AnalysisPassesTab from "@/components/admin/AnalysisPassesTab";
 import PairNoteCoverageCard from "@/components/admin/PairNoteCoverageCard";
 import NotificationsTab from "@/components/admin/notifications/NotificationsTab";
+import ModerationTab from "@/components/admin/ModerationTab";
 
 type Submission = {
   id: string;
@@ -123,6 +127,8 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("submissions");
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  // Moderators get the Moderation tab only (the community RPCs re-check the role server-side).
+  const [isModerator, setIsModerator] = useState(false);
 
   // Data states
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -155,6 +161,10 @@ const AdminDashboard = () => {
 
   const checkAdmin = async () => {
     const { data } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "admin" });
+    if (!data) {
+      const { data: mod } = await supabase.rpc("has_role", { _user_id: user!.id, _role: "moderator" });
+      setIsModerator(!!mod);
+    }
     setIsAdmin(!!data);
     if (data) fetchAllData();
     else setLoading(false);
@@ -245,6 +255,23 @@ const AdminDashboard = () => {
         <Header />
         <main className="pt-20 flex items-center justify-center min-h-[60vh]">
           <Loader2 className="h-12 w-12 text-primary animate-spin" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (user && !isAdmin && isModerator) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Moderation | SkinLabs®</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <Header />
+        <main className="container mx-auto max-w-5xl px-4 pb-24 pt-24">
+          <h1 className="mb-6 font-heading text-2xl font-bold">Community moderation</h1>
+          <ModerationTab />
         </main>
         <Footer />
       </div>
@@ -349,6 +376,7 @@ const AdminDashboard = () => {
                 <TabsTrigger value="analysis-passes">Analysis Passes</TabsTrigger>
                 <TabsTrigger value="ads">Ads</TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="moderation">Moderation</TabsTrigger>
               </TabsList>
 
               {/* Submissions Tab */}
@@ -469,6 +497,7 @@ const AdminDashboard = () => {
 
               {/* Data Quality Tab — skincare intelligence database verification queue (supabase/SCHEMA.md) */}
               <TabsContent value="dataquality">
+                <ReviewImagesPanel />
                 <PairNoteCoverageCard />
                 <p className="text-sm text-muted-foreground mb-4">
                   Brands, ingredients and products imported from editorial content start as <Badge variant="secondary" className="mx-1">unverified</Badge>
@@ -608,12 +637,19 @@ const AdminDashboard = () => {
                 <NotificationsTab />
               </TabsContent>
 
-              <TabsContent value="sa-prices">
+              {/* Moderation — Community Forum reports, spam-held content, blocked terms and the action log. See components/admin/ModerationTab. */}
+              <TabsContent value="moderation">
+                <ModerationTab />
+              </TabsContent>
+
+              <TabsContent value="sa-prices" className="space-y-8">
+                <ReviewPricesPanel />
                 <PriceMatchesPanel />
               </TabsContent>
 
               <TabsContent value="analytics" className="space-y-6">
                 <ConversionFunnelPanel />
+                <PlatformOverviewPanel />
                 <PwaAnalyticsPanel />
                 <EventsAnalyticsPanel />
                 <AnalyticsTab />

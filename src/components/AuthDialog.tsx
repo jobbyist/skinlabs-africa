@@ -401,15 +401,19 @@ const AuthDialog = ({
                   ) : (
                     <form onSubmit={handleSignIn} className="space-y-4" noValidate>
                       <div className="space-y-2">
-                        <Label htmlFor="email-signin">Email</Label>
+                        <Label htmlFor="email-signin">Email or username</Label>
                         <Input
                           id="email-signin"
-                          type="email"
-                          placeholder="you@example.com"
+                          type="text"
+                          inputMode="email"
+                          placeholder="you@example.com or username"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
-                          autoComplete="email"
+                          autoComplete="username"
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           autoFocus
                         />
                       </div>
@@ -420,6 +424,8 @@ const AuthDialog = ({
                             type="button"
                             onClick={() => {
                               setFormError(null);
+                              // A username can't receive the reset link; start the email field fresh.
+                              if (!email.includes("@")) setEmail("");
                               setView("forgot");
                             }}
                             className="text-xs font-medium text-primary hover:underline underline-offset-2"

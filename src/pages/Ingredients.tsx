@@ -10,6 +10,7 @@ import IngredientCard from "@/components/ingredients/IngredientCard";
 import IngredientFilters from "@/components/ingredients/IngredientFilters";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import { useIngredients, INGREDIENTS_PER_PAGE, type IngredientFilters as Filters } from "@/hooks/use-ingredients";
+import { parseConcernsParam } from "@/lib/ingredientMatrix";
 import { SITE_URL } from "@/lib/seo-config";
 import AdSlot from "@/components/AdSlot";
 
@@ -22,6 +23,8 @@ const Ingredients = () => {
       search: searchParams.get("search") || undefined,
       category: searchParams.get("category") || undefined,
       concernSlug: searchParams.get("concern") || undefined,
+      concerns: parseConcernsParam([searchParams.get("concern"), searchParams.get("concerns")].filter(Boolean).join(",")),
+      saOnly: searchParams.get("sa") === "1",
       evidence: (searchParams.get("evidence") as Filters["evidence"]) || undefined,
     }),
     [searchParams],
@@ -35,7 +38,8 @@ const Ingredients = () => {
     const params = new URLSearchParams();
     if (next.search) params.set("search", next.search);
     if (next.category) params.set("category", next.category);
-    if (next.concernSlug) params.set("concern", next.concernSlug);
+    if (next.concerns?.length) params.set("concerns", next.concerns.join(","));
+    if (next.saOnly) params.set("sa", "1");
     if (next.evidence) params.set("evidence", next.evidence);
     setSearchParams(params);
   };

@@ -2,7 +2,7 @@
  * SkinLabs entitlement system — the single source of truth for what each
  * account state can access.
  *
- * Every feature gate in the app (FeatureGate, UpgradePrompt, and any
+ * Every feature gate in the app (FeatureGate and any
  * page-level check) should resolve through `hasCapability`/`minimumTierFor`
  * rather than re-implementing its own tier comparison, so frontend gating
  * can never silently drift from the plan definitions in src/data/plans.ts

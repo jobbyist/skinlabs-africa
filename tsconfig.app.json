@@ -22,6 +22,12 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
+      "@/integrations/supabase/client": [
+        "./src/integrations/supabase/productionClient.ts"
+      ],
+      "@/integrations/supabase/types": [
+        "./supabase/types.baseline.ts"
+      ],
       "@/*": [
         "./src/*"
       ]

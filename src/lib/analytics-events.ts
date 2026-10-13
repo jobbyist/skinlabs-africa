@@ -111,6 +111,10 @@ export type ConversionEvent =
   // that had no analytics instrumentation at all before this pass.
   | "newsletter_subscribed"
   | "sa_price_link_clicked"
+  // Price tracking on review pages (counts/tokens only, never the target price or email)
+  | "price_alert_opened"
+  | "price_alert_set"
+  | "price_alert_removed"
   // Weekly-digest double opt-in funnel (growth engine). Payloads: source only, never the email.
   | "newsletter_signup_submitted"
   | "newsletter_signup_failed"
@@ -165,12 +169,15 @@ export type ConversionEvent =
   | "podcast_download_started"
   | "podcast_download_completed"
   | "podcast_download_removed"
+  | "offline_reading_saved"
   | "podcast_offline_play"
   // SKYNN AI v2.1 funnel — fire through trackSkynnEvent() (src/lib/skynn/analytics.ts),
   // which whitelists the payload, never directly.
   | import("@/lib/skynn/analytics").SkynnEvent
   // October 2026 giveaway funnel — fire through src/lib/giveaway/analytics.ts (whitelisted payload), never directly.
-  | import("@/lib/giveaway/analytics").GiveawayEvent;
+  | import("@/lib/giveaway/analytics").GiveawayEvent
+  // Contextual UX (next best action, CTA suppression) — fire through trackContextEvent() (src/lib/context/analytics.ts).
+  | import("@/lib/context/analytics").ContextEvent;
 
 type ConversionPayload = Record<string, string | number | boolean | undefined>;
 

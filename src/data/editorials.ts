@@ -17,25 +17,25 @@ export interface FeaturedEditorial {
 
 const thumb = {
   vitaminC: "https://images.unsplash.com/photo-1640625696922-1fd63c0b97c9?auto=format&fit=crop&w=800&q=80",
-  serum: "https://images.unsplash.com/photo-1620916297397-a8b05e6567d4?auto=format&fit=crop&w=800&q=80",
+  serum: "https://images.unsplash.com/photo-1773700596401-61bc77e0b436?auto=format&fit=crop&w=800&q=80",
   cream: "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?auto=format&fit=crop&w=800&q=80",
   oil: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?auto=format&fit=crop&w=800&q=80",
   oil2: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=800&q=80",
   cleanser: "https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=800&q=80",
   spf: "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=800&q=80",
   niacinamide: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=800&q=80",
-  niacinamide2: "https://images.unsplash.com/photo-1620916569875-d4fa85f58255?auto=format&fit=crop&w=800&q=80",
-  moisturiser: "https://images.unsplash.com/photo-1570194065650-d99fb4b38b17?auto=format&fit=crop&w=800&q=80",
+  niacinamide2: "https://images.unsplash.com/photo-1741896135490-4062a3b21abf?auto=format&fit=crop&w=800&q=80",
+  moisturiser: "https://images.unsplash.com/photo-1715702130909-a5b2942a411b?auto=format&fit=crop&w=800&q=80",
   barrier: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&w=800&q=80",
   clinic: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=800&q=80",
   clinic2: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80",
   retinoid: "https://images.unsplash.com/photo-1613803745799-ba6c10aace85?auto=format&fit=crop&w=800&q=80",
-  retinoid2: "https://images.unsplash.com/photo-1631730486572-226b1e126018?auto=format&fit=crop&w=800&q=80",
+  retinoid2: "https://images.unsplash.com/photo-1700104495010-2e961cd6141f?auto=format&fit=crop&w=800&q=80",
   brightening: "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=800&q=80",
-  brightening2: "https://images.unsplash.com/photo-1596755094514-f87e34085b85?auto=format&fit=crop&w=800&q=80",
-  probiotic: "https://images.unsplash.com/photo-1596755389378-c31d21fd2863?auto=format&fit=crop&w=800&q=80",
+  brightening2: "https://images.unsplash.com/photo-1741896135490-4062a3b21abf?auto=format&fit=crop&w=800&q=80",
+  probiotic: "https://images.unsplash.com/photo-1599847987657-881f11b92a75?auto=format&fit=crop&w=800&q=80",
   tinted: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80",
-  vitaminC2: "https://images.unsplash.com/photo-1620916569875-d4fa85f58255?auto=format&fit=crop&w=800&q=80",
+  vitaminC2: "https://images.unsplash.com/photo-1773700596401-61bc77e0b436?auto=format&fit=crop&w=800&q=80",
 };
 
 export const featuredEditorials: FeaturedEditorial[] = [
@@ -118,7 +118,7 @@ export const featuredEditorials: FeaturedEditorial[] = [
     dek: "A fast-growing SA brand's vitamin C stack against Skin Functional's disclosed ascorbic-and-ferulic approach — stability and Highveld UV.",
     saContext: "Brightening",
     thumbnailUrl: thumb.vitaminC2,
-    thumbnailAlt: "Vitamin C serums with citrus accents",
+    thumbnailAlt: "Amber glass serum bottle with a dropper",
   },
   {
     slug: "optiphi-vs-skinphd-retinoid-night",
@@ -127,7 +127,7 @@ export const featuredEditorials: FeaturedEditorial[] = [
     dek: "Peptide-retinol professional serum against a franchise cosmeceutical night treatment — irritation runway and Rand value.",
     saContext: "Retinoids",
     thumbnailUrl: thumb.retinoid2,
-    thumbnailAlt: "Night treatment serum bottles in low light",
+    thumbnailAlt: "Night treatment cream tube beside its packaging box",
   },
   {
     slug: "esse-vs-skoon-hydration",
@@ -136,7 +136,7 @@ export const featuredEditorials: FeaturedEditorial[] = [
     dek: "Live Lactobacillus probiotic serum against vitamin-C-and-triple-hyaluronic-acid layering — two Cape Town approaches to barrier comfort.",
     saContext: "Hydration",
     thumbnailUrl: thumb.probiotic,
-    thumbnailAlt: "Hydrating skincare serums with water droplets",
+    thumbnailAlt: "Facial mist being sprayed for hydration",
   },
   {
     slug: "lelive-vs-nimue-tinted-spf",
@@ -154,7 +154,7 @@ export const featuredEditorials: FeaturedEditorial[] = [
     dek: "Rooibos night cream value against Cape Town 'Slow Beauty' everyday cream — texture, climate fit and price per gram.",
     saContext: "Moisturisers",
     thumbnailUrl: thumb.moisturiser,
-    thumbnailAlt: "Two moisturiser jars on a marble surface",
+    thumbnailAlt: "Jar of face moisturiser cream",
   },
   {
     slug: "vitaderm-vs-skinphd-clinical-range",
@@ -181,7 +181,7 @@ export const featuredEditorials: FeaturedEditorial[] = [
     dek: "Brite-Lite / Brighter against Nimue Radiance — professional pigmentation protocols, price and who actually needs clinic gating.",
     saContext: "Pigmentation",
     thumbnailUrl: thumb.brightening2,
-    thumbnailAlt: "Brightening serums with droppers",
+    thumbnailAlt: "Skincare serum bottles with droppers",
   },
 ];
 

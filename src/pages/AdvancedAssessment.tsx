@@ -14,6 +14,7 @@ import AssessmentFlow from "@/components/advanced-assessment/AssessmentFlow";
 import AdvancedIntro from "@/components/advanced-assessment/AdvancedIntro";
 import ProcessingState from "@/components/advanced-assessment/ProcessingState";
 import ReportView from "@/components/advanced-assessment/ReportView";
+import MarkResultViewed from "@/components/advanced-assessment/MarkResultViewed";
 import ReportReadyOptIn from "@/components/pwa/ReportReadyOptIn";
 import IntakeConfirmation, { IntakeDisclaimer, PendingBadge, ReferenceBlock } from "@/components/advanced-assessment/IntakeConfirmation";
 import DeleteSubmissionButton from "@/components/advanced-assessment/DeleteSubmissionButton";
@@ -292,6 +293,7 @@ const ReportStatusView = ({ sessionId, onBack }: { sessionId: string; onBack: ()
     return (
       <div>
         {back}
+        <MarkResultViewed />
         <ReportView report={row.report} sessionId={row.session_id} releasedAt={row.released_at} />
         <div className="mt-6 flex justify-center">{del}</div>
       </div>

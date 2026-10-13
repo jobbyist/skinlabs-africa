@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import type { PodcastEpisode } from "@/data/podcast";
 import { recordContentRead } from "@/lib/contentReads";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { loadLikedEpisodeSlugs } from "@/lib/savedContent";
 
 const LIKES_KEY = "skinlabs-podcast-likes";
 const EXTRA_PLAYS_KEY = "skinlabs-podcast-extra-plays";
@@ -35,6 +36,21 @@ export function usePodcastEngagement(episodes: PodcastEpisode[]) {
   const [likes, setLikes] = useState<CountMap>({});
   const [likedByMe, setLikedByMe] = useState<Record<string, boolean>>({});
   const [extraShares, setExtraShares] = useState<CountMap>({});
+
+  // Restore the member's liked episodes from their account, so a heart stays filled after a reload or on another device.
+  useEffect(() => {
+    if (!user) {
+      setLikedByMe({});
+      return;
+    }
+    let active = true;
+    void loadLikedEpisodeSlugs(user.id).then((slugs) => {
+      if (active) setLikedByMe(Object.fromEntries(slugs.map((slug) => [slug, true])));
+    });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   useEffect(() => {
     setExtraPlays(readMap(EXTRA_PLAYS_KEY));

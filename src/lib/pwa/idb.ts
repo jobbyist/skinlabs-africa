@@ -1,5 +1,5 @@
 /**
- * Minimal promise wrapper over IndexedDB (one database, three stores), so the
+ * Minimal promise wrapper over IndexedDB (one database, four stores), so the
  * PWA layer needs no dependency. Everything resolves to a safe default when
  * IndexedDB is unavailable (some private modes, locked-down webviews): callers
  * treat `null`/empty as "feature unavailable", never as an error.
@@ -8,12 +8,13 @@
  *   downloads  podcast download metadata/state (audio bytes live in Cache Storage, never here)
  *   queue      offline action queue (idempotent, keyed — see offlineQueue.ts)
  *   kv         small values (e.g. last storage report)
+ *   reading    offline reading queue: saved public briefings / ingredient profiles (text only; see offlineReading.ts)
  *
  * No auth tokens, session data or personal skin data are ever written here.
  */
 import { PWA_DB_NAME, PWA_DB_VERSION } from "./constants";
 
-export type StoreName = "downloads" | "queue" | "kv";
+export type StoreName = "downloads" | "queue" | "kv" | "reading";
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
@@ -32,6 +33,7 @@ export const openPwaDb = (): Promise<IDBDatabase | null> => {
       if (!db.objectStoreNames.contains("downloads")) db.createObjectStore("downloads", { keyPath: "slug" });
       if (!db.objectStoreNames.contains("queue")) db.createObjectStore("queue", { keyPath: "key" });
       if (!db.objectStoreNames.contains("kv")) db.createObjectStore("kv", { keyPath: "key" });
+      if (!db.objectStoreNames.contains("reading")) db.createObjectStore("reading", { keyPath: "id" });
     };
     request.onsuccess = () => {
       const db = request.result;

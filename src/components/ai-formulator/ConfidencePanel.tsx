@@ -1,10 +1,15 @@
 import { RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer } from "recharts";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock, ShieldAlert } from "lucide-react";
 import { withoutPhotoFactor, type CompletenessBreakdown } from "@/data/formulaResults";
+
+export interface Limitation {
+  lead: string;
+  text: string;
+}
 
 interface ConfidencePanelProps {
   completeness: CompletenessBreakdown;
-  limitations: string[];
+  limitations: Limitation[];
 }
 
 /**
@@ -16,74 +21,73 @@ interface ConfidencePanelProps {
 const ConfidencePanel = ({ completeness: storedCompleteness, limitations }: ConfidencePanelProps) => {
   const completeness = withoutPhotoFactor(storedCompleteness);
   return (
-  <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
+  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-6">
     <h4 className="font-heading font-semibold text-card-foreground">Confidence &amp; Limitations</h4>
 
-    <div className="flex items-center gap-4">
-      <div className="relative h-24 w-24 shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            innerRadius="72%"
-            outerRadius="100%"
-            data={[{ value: completeness.overall }]}
-            startAngle={90}
-            endAngle={-270}
-          >
-            <defs>
-              <linearGradient id="skynn-confidence-gradient" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#22c55e" />
-                <stop offset="50%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#a855f7" />
-              </linearGradient>
-            </defs>
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-            <RadialBar
-              background={{ fill: "hsl(var(--muted))" }}
-              dataKey="value"
-              cornerRadius={12}
-              fill="url(#skynn-confidence-gradient)"
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="gradient-text text-lg font-heading font-bold">{completeness.overall}%</span>
-        </div>
-      </div>
-      <div>
-        <p className="text-sm font-medium text-card-foreground">Analysis completeness</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          How much we had to work with — not a clinical accuracy score.
-        </p>
-      </div>
-    </div>
-
-    <div className="space-y-2.5">
-      {completeness.factors.map((factor) => (
-        <div key={factor.label}>
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-muted-foreground">{factor.label}</span>
-            <span className="text-card-foreground font-medium">{factor.value}%</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${factor.value}%` }} />
+    <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+      <div className="flex items-center gap-4 sm:flex-col sm:text-center">
+        <div className="relative h-28 w-28 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadialBarChart
+              innerRadius="72%"
+              outerRadius="100%"
+              data={[{ value: completeness.overall }]}
+              startAngle={90}
+              endAngle={-270}
+            >
+              <defs>
+                <linearGradient id="skynn-confidence-gradient" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#22c55e" />
+                  <stop offset="50%" stopColor="#3b82f6" />
+                  <stop offset="100%" stopColor="#a855f7" />
+                </linearGradient>
+              </defs>
+              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
+              <RadialBar
+                background={{ fill: "hsl(var(--muted))" }}
+                dataKey="value"
+                cornerRadius={12}
+                fill="url(#skynn-confidence-gradient)"
+                isAnimationActive
+                animationDuration={900}
+              />
+            </RadialBarChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="gradient-text text-2xl font-heading font-bold">{completeness.overall}%</span>
           </div>
         </div>
-      ))}
-    </div>
-
-    <div className="rounded-lg bg-muted/50 p-3 space-y-1.5">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <AlertTriangle className="h-3.5 w-3.5" />
-        Limitations to note
+        <div className="sm:max-w-[9rem]">
+          <p className="text-sm font-medium text-card-foreground">Analysis completeness</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">How much we had to work with — not a clinical accuracy score.</p>
+        </div>
       </div>
-      <ul className="space-y-1">
-        {limitations.map((l) => (
-          <li key={l} className="text-xs text-muted-foreground pl-1">
-            • {l}
-          </li>
+
+      <div className="space-y-3">
+        {completeness.factors.map((factor) => (
+          <div key={factor.label}>
+            <div className="mb-1 flex justify-between text-xs">
+              <span className="text-muted-foreground">{factor.label}</span>
+              <span className="font-medium text-card-foreground">{factor.value}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${factor.value}%` }} />
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
+
+    <ul className="space-y-2" aria-label="Limitations to note">
+      {limitations.map((l) => (
+        <li key={l.lead} className="flex items-start gap-3 rounded-xl bg-muted/50 p-3">
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            <strong className="font-semibold text-card-foreground">{l.lead}.</strong> {l.text}
+          </p>
+        </li>
+      ))}
+    </ul>
 
     <div className="flex items-start gap-2 border-t border-border pt-3">
       <Lock className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />

@@ -13,7 +13,7 @@ export const INBOX_BODY_MAX = 600;
 /** Above this many recipients the server demands the typed audience size (`p_confirm_recipients`). */
 export const BULK_CONFIRM_ABOVE = 50;
 
-export const CATEGORIES = ["podcast_episode", "briefing", "routine_reminder", "account_update", "promotional", "service", "report_ready", "skin_weather", "journal_reminder", "price_alert"] as const;
+export const CATEGORIES = ["podcast_episode", "briefing", "routine_reminder", "account_update", "promotional", "service", "report_ready", "skin_weather", "journal_reminder", "price_alert", "community"] as const;
 export type Category = (typeof CATEGORIES)[number];
 export const CHANNELS = ["inbox", "push"] as const;
 export type Channel = (typeof CHANNELS)[number];

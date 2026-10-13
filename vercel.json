@@ -67,6 +67,10 @@
       ]
     },
     {
+      "source": "/tesseract/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=2592000, immutable" }]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         {
@@ -83,6 +87,7 @@
       "permanent": true
     },
     { "source": "/consultations", "destination": "/consult", "permanent": true },
+    { "source": "/spotlight/methodology", "destination": "/spotlight", "permanent": true },
     {
       "source": "/faq",
       "destination": "/knowledge-hub",

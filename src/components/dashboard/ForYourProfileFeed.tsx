@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, FlaskConical, Newspaper, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { productReviews } from "@/data/reviews";
 import { useNewsArticles } from "@/hooks/use-news-articles";
 import { useMemberSources } from "@/hooks/use-smart-routine";
 import { profileSignals, rankItems, rankReviews } from "@/lib/profileFeed";
+import { trackContextEvent } from "@/lib/context/analytics";
 
 /**
  * "For your profile": briefings, reviews and ingredients ranked against the
@@ -29,6 +30,14 @@ const ForYourProfileFeed = () => {
     return [...counts.keys()].filter(Boolean).slice(0, 5);
   }, [reviews]);
 
+  const reported = useRef(false);
+  const shownCount = briefings.length + reviews.length;
+  useEffect(() => {
+    if (loading || reported.current || shownCount === 0) return;
+    reported.current = true;
+    trackContextEvent("recommendation_shown", { surface: "dashboard", feature: "content", count: shownCount });
+  }, [loading, shownCount]);
+
   if (loading || !profile || signals.length === 0) return null;
   if (!briefings.length && !reviews.length) return null;
 
@@ -45,7 +54,7 @@ const ForYourProfileFeed = () => {
             <ul className="space-y-2">
               {briefings.map(({ item, reason }) => (
                 <li key={item.id}>
-                  <Link to={`/briefings/${item.slug}`} className="card-interactive block rounded-xl border border-border px-3 py-2">
+                  <Link to={`/briefings/${item.slug}`} onClick={() => trackContextEvent("recommendation_clicked", { surface: "dashboard", feature: "briefing" })} className="card-interactive block rounded-xl border border-border px-3 py-2">
                     <p className="line-clamp-1 text-sm font-medium">{item.title}</p>
                     <p className="text-xs text-muted-foreground">Because of your {reason} · {item.reading_time}</p>
                   </Link>
@@ -60,7 +69,7 @@ const ForYourProfileFeed = () => {
             <ul className="space-y-2">
               {reviews.map(({ item, reason }) => (
                 <li key={item.id}>
-                  <Link to={`/reviews/${item.id}`} className="card-interactive flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
+                  <Link to={`/reviews/${item.id}`} onClick={() => trackContextEvent("recommendation_clicked", { surface: "dashboard", feature: "review" })} className="card-interactive flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{item.brand} {item.product_name}</p>
                       <p className="text-xs text-muted-foreground">For your {reason}</p>

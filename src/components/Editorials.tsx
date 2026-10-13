@@ -1,10 +1,19 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ArrowRight, Atom } from "lucide-react";
 import { featuredEditorials } from "@/data/editorials";
+import { pickRotatingEditorials } from "@/lib/homepageSelection";
+
+const FEATURED_COUNT = 3;
+const FALLBACK_THUMBNAIL = "/og-image.png";
 
 const Editorials = () => {
-  const cards = featuredEditorials.slice(0, 3);
+  // First paint (and prerendered HTML) is stable; each page load then swaps in a fresh random 3 once.
+  const [cards, setCards] = useState(() => featuredEditorials.slice(0, FEATURED_COUNT));
+  useEffect(() => {
+    setCards(pickRotatingEditorials(featuredEditorials));
+  }, []);
 
   return (
     <section id="editorials" className="bg-background py-20">
@@ -28,7 +37,7 @@ const Editorials = () => {
 
         <div className="grid gap-6 md:grid-cols-3">
           {cards.map((editorial, index) => (
-            <motion.div
+            <m.div
               key={editorial.slug}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -43,8 +52,16 @@ const Editorials = () => {
                   <img
                     src={editorial.thumbnailUrl}
                     alt={editorial.thumbnailAlt}
+                    width={800}
+                    height={528}
                     loading="lazy"
-                    className="h-44 w-full object-cover"
+                    decoding="async"
+                    onError={(e) => {
+                      // A dead remote photo must not leave a blank card: fall back once to a known-good local image.
+                      const img = e.currentTarget;
+                      if (!img.src.endsWith(FALLBACK_THUMBNAIL)) img.src = FALLBACK_THUMBNAIL;
+                    }}
+                    className="h-44 w-full bg-muted object-cover"
                   />
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-background">
                     {editorial.comingSoon ? (
@@ -68,7 +85,7 @@ const Editorials = () => {
                   </span>
                 </div>
               </Link>
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>

@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import IngredientCombobox from "@/components/ingredients/IngredientCombobox";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
+import ProductScanner from "@/components/ingredients/ProductScanner";
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
 import { Button } from "@/components/ui/button";
 import { useIngredientCompatibility, useIngredientOptionBySlug } from "@/hooks/use-ingredient-compatibility";
@@ -183,6 +184,7 @@ const IngredientChecker = () => {
           )}
 
           <div className="mt-10">
+            <div className="mb-10"><ProductScanner /></div>
             <IngredientDisclaimer />
           </div>
         </div>

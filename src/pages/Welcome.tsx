@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, CalendarCheck, Loader2, LocateFixed, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, LocateFixed, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import AuthDialog from "@/components/AuthDialog";
@@ -15,8 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useMembership } from "@/hooks/use-membership";
 import { useStartTrial } from "@/hooks/use-start-trial";
+import { useContextualActions } from "@/hooks/use-contextual-actions";
 import ReminderOptIn from "@/components/pwa/ReminderOptIn";
 import { trackConversionEvent } from "@/lib/analytics-events";
+import { trackContextEvent } from "@/lib/context/analytics";
 import { reminderClockTime, saveReminderPreference } from "@/lib/pwa/pushOptIn";
 import { TIER_LABELS } from "@/lib/entitlements";
 import { headlineForSavedAnalysis, type SavedAnalysisHeadline } from "@/lib/formulator/summary";
@@ -46,6 +48,11 @@ const Welcome = () => {
   const [searchParams] = useSearchParams();
   const membership = useMembership();
   const { start: startTrial, loading: trialLoading } = useStartTrial();
+  // Onboarding hands the member straight to their next useful step (e.g. "Build my routine" once an
+  // analysis is attached) instead of the dashboard and a second ask; the dashboard is the fallback.
+  const handoff = useContextualActions("welcome", { secondaryLimit: 0 });
+  const handoffTo = handoff.primary?.kind === "link" && handoff.primary.href ? handoff.primary : null;
+  const doneLabel = handoffTo?.label ?? "Go to my dashboard";
 
   const [authOpen, setAuthOpen] = useState(false);
   const [step, setStep] = useState(1);
@@ -132,7 +139,9 @@ const Welcome = () => {
       return;
     }
     trackConversionEvent("welcome_finished", { how, step });
-    navigate("/dashboard", { replace: true });
+    trackContextEvent("onboarding_completed", { action: how === "finished" && handoffTo ? handoffTo.id : "dashboard", surface: "welcome" });
+    if (how === "finished" && handoffTo) handoff.click(handoffTo);
+    navigate(how === "finished" && handoffTo?.href ? handoffTo.href : "/dashboard", { replace: true });
   };
 
   const next = (skipped: boolean) => {
@@ -378,7 +387,7 @@ const Welcome = () => {
                             <div className="mt-6 grid gap-3 sm:grid-cols-3">
                               {["Full reviews", "Podcast library", "Skin-aware guidance"].map((item) => <div key={item} className="rounded-2xl border border-border bg-muted/35 p-4 text-sm font-medium">{item}</div>)}
                             </div>
-                            <Button className="mt-6 min-h-11 w-full" disabled={finishing} onClick={() => void finish("finished")}>Go to my dashboard</Button>
+                            <Button className="mt-6 min-h-11 w-full" disabled={finishing} onClick={() => void finish("finished")}>{doneLabel}</Button>
                           </CardContent>
                         </Card>
                       ) : membership.trialUsed ? (
@@ -387,7 +396,7 @@ const Welcome = () => {
                             <span className="rounded-full bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary-foreground">Free account</span>
                             <h2 id="welcome-trial" className="mt-5 font-heading text-2xl font-bold sm:text-3xl">You’re in.</h2>
                             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary-text">Your free account keeps your skin profile, Skin Weather and routine. Membership adds full reviews and more when you’re ready.</p>
-                            <Button className="mt-6 min-h-11 w-full" disabled={finishing} onClick={() => void finish("finished")}>Go to my dashboard</Button>
+                            <Button className="mt-6 min-h-11 w-full" disabled={finishing} onClick={() => void finish("finished")}>{doneLabel}</Button>
                             <Button asChild variant="ghost" className="mt-2 min-h-11 w-full"><Link to="/pricing">See membership plans</Link></Button>
                           </CardContent>
                         </Card>

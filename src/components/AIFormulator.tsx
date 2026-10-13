@@ -1,6 +1,6 @@
 import { getSiteOrigin } from "@/lib/siteOrigin";
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Sparkles,
   ChevronRight,
@@ -51,9 +51,15 @@ import ConfidencePanel from "@/components/ai-formulator/ConfidencePanel";
 import ChangeQuestionStep from "@/components/ai-formulator/ChangeQuestionStep";
 import RoutinePreferenceStep from "@/components/ai-formulator/RoutinePreferenceStep";
 import SkinStoryCard from "@/components/ai-formulator/SkinStoryCard";
+import ResultsTabNav from "@/components/ai-formulator/ResultsTabNav";
+import ResultsIdentityCard from "@/components/ai-formulator/ResultsIdentityCard";
+import RoutineStepCard from "@/components/ai-formulator/RoutineStepCard";
+import WeeklyCadenceTracker from "@/components/ai-formulator/WeeklyCadenceTracker";
+import { hashForTab, tabFromHash, weeklyScheduleText, type ResultsTab } from "@/lib/starter-analysis/resultsView";
 import PriorityList from "@/components/ai-formulator/PriorityList";
 import RefinementPanel from "@/components/ai-formulator/RefinementPanel";
 import PremiumUpsellSection from "@/components/ai-formulator/PremiumUpsellSection";
+import ResultsNextSteps from "@/components/ai-formulator/ResultsNextSteps";
 import AboutYourAnalysisSection from "@/components/ai-formulator/AboutYourAnalysisSection";
 import OpenHausShopLinks from "@/components/ai-formulator/OpenHausShopLinks";
 import SkynnVideoModal from "@/components/skynn/SkynnVideoModal";
@@ -89,9 +95,7 @@ import {
   saveDraftState,
 } from "@/lib/starter-analysis/persistence";
 import {
-  ADVANCED_NAME,
   BASIC_NAME,
-  SKYNN_ADVANCED_ROUTE,
   SKYNN_FEATURE_VERSION,
   SKYNN_RELEASE_LABEL,
 } from "@/lib/skynn/terminology";
@@ -122,8 +126,8 @@ const TOTAL_QUESTIONS = QUESTIONS.length;
 //
 // The photo never leaves the device: it only counts toward input completeness.
 // Monk Skin Tone is optional and self-reported — nothing here infers it.
-// Every "Advanced" CTA routes to the one Advanced AI Dermatology Analysis flow
-// at /skynn-ai/advanced (Analysis Pass required, enforced server-side).
+// The Advanced AI Dermatology Analysis is offered once, after a saved result, by the
+// contextual engine (ResultsNextSteps -> /skynn-ai/advanced, Pass required server-side).
 const STEP_INTRO = 0;
 const STEP_CONSENT = 1;
 const STEP_PHOTO = 2;
@@ -148,7 +152,6 @@ const AIFormulator = () => {
   const { isMember } = useMembership();
   const accountState: "anonymous" | "free" | "member" = user ? (isMember ? "member" : "free") : "anonymous";
   const { can: canEntitlement } = useEntitlements();
-  const navigate = useNavigate();
   const { data: allowance, refresh: refreshAllowance } = useFormulatorAllowance();
   const [step, setStep] = useState(STEP_INTRO);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -178,9 +181,6 @@ const AIFormulator = () => {
   const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
-  const preAnalysisUpsellViewedRef = useRef(false);
-  const midQuizUpsellViewedRef = useRef(false);
-  const resultsUpsellViewedRef = useRef(false);
   // Starter Analysis 2.0 — What Changed / Routine Reality Check answers, the
   // deterministic result object, and its refinement history.
   const [analysisId, setAnalysisId] = useState<string>(() => crypto.randomUUID());
@@ -199,6 +199,28 @@ const AIFormulator = () => {
   const progressPctRef = useRef(0);
   const funnelViewedRef = useRef(false);
   const completedFiredRef = useRef(false);
+
+  // Results hub: tab + AM/PM period. The tab is remembered in the URL hash (#results-routine) without adding history entries.
+  const [resultsTab, setResultsTab] = useState<ResultsTab>(() =>
+    typeof window === "undefined" ? "profile" : (tabFromHash(window.location.hash) ?? "profile"),
+  );
+  const [routinePeriod, setRoutinePeriod] = useState<"am" | "pm">("am");
+  const selectResultsTab = (tab: ResultsTab) => {
+    setResultsTab(tab);
+    try {
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}${hashForTab(tab)}`);
+    } catch {
+      /* hash memory is a convenience only */
+    }
+  };
+  useEffect(() => {
+    const onHash = () => {
+      const t = tabFromHash(window.location.hash);
+      if (t) setResultsTab(t);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const derivedSkinType = (() => {
     const q1 = answers["q1"];
@@ -390,17 +412,6 @@ const AIFormulator = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  /**
-   * Every Advanced CTA on this page lands on the single Advanced AI Dermatology
-   * Analysis flow. That page handles sign-in, the Analysis Pass gate (server-side
-   * via get_advanced_assessment_access) and purchase — nothing is spent here.
-   */
-  const goToAdvanced = (funnelLocation: string) => {
-    trackConversionEvent("advanced_assessment_upsell_clicked", { funnelLocation });
-    trackSkynnEvent("skynn_mode_selected", { mode: "advanced", source: funnelLocation });
-    navigate(SKYNN_ADVANCED_ROUTE);
   };
 
   // Kick off generation the moment the visitor reaches the Analysis step.
@@ -826,6 +837,13 @@ const AIFormulator = () => {
   const starterSummary = starterResult ? summarizeStarterResult(starterResult) : null;
   const introLocked = Boolean(user && !isMember && allowance?.locked);
 
+  const refinementPanel = starterResult ? (
+    <RefinementPanel
+      onSubmit={handleRefinementSubmit}
+      lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
+    />
+  ) : null;
+
   return (
     <>
       <section id="skynn-ai" className="py-20 bg-background">
@@ -842,8 +860,7 @@ const AIFormulator = () => {
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-2xl sm:rounded-full text-xs font-medium mb-3 text-left">
                     <Shield className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                     <span className="text-muted-foreground">
-                      {BASIC_NAME} · free, no card required •
-                      <a href={SKYNN_ADVANCED_ROUTE} className="text-primary hover:underline ml-1">Go deeper with the {ADVANCED_NAME}</a>
+                      {BASIC_NAME} · free, no card required
                     </span>
                   </div>
                 )}
@@ -969,39 +986,6 @@ const AIFormulator = () => {
                     </button>
                   )}
 
-                  <div
-                    ref={(el) => {
-                      if (el && !preAnalysisUpsellViewedRef.current) {
-                        preAnalysisUpsellViewedRef.current = true;
-                        trackConversionEvent("advanced_assessment_upsell_viewed", {
-                          funnelLocation: "pre_analysis",
-                          accessState: isMember ? "member" : "none",
-                        });
-                      }
-                    }}
-                    className="rounded-xl border border-background/15 bg-background/5 p-4 space-y-3"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-background/90">Want to go deeper?</p>
-                      <p className="text-xs text-background/60 mt-1">
-                        The {BASIC_NAME} gives you a quick snapshot of your skin. The {ADVANCED_NAME} is a
-                        longer, more detailed questionnaire that uses one Analysis Pass. During this beta, submissions
-                        are received and queued with a reference number while the full report workflow is finalised.
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-auto min-h-9 max-w-full gap-2 whitespace-normal border-background/30 bg-transparent py-2 text-left text-background hover:bg-background/10 hover:text-background"
-                        onClick={() => goToAdvanced("pre_analysis")}
-                      >
-                        <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                        Get an {ADVANCED_NAME}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -1179,28 +1163,6 @@ const AIFormulator = () => {
                 </div>
               )}
 
-              {step === STEP_CHANGE && !isMember && (
-                <div
-                  ref={(el) => {
-                    if (el && !midQuizUpsellViewedRef.current) {
-                      midQuizUpsellViewedRef.current = true;
-                      trackConversionEvent("advanced_assessment_upsell_viewed", { funnelLocation: "during_analysis" });
-                    }
-                  }}
-                  className="mb-5 rounded-xl border border-primary/20 bg-accent/30 p-4 space-y-2"
-                >
-                  <p className="text-sm text-card-foreground">
-                    <span className="font-medium">You're building your skin profile.</span> Want the full picture? The{" "}
-                    {ADVANCED_NAME} asks in more depth about the factors behind your skin concerns. You can finish this{" "}
-                    {BASIC_NAME} first — nothing here is lost.
-                  </p>
-                  <Button type="button" size="sm" variant="outline" className="h-auto min-h-9 max-w-full gap-2 whitespace-normal py-2 text-left" onClick={() => goToAdvanced("during_analysis")}>
-                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                    See the {ADVANCED_NAME}
-                  </Button>
-                </div>
-              )}
-
               {step === STEP_CHANGE && (
                 <ChangeQuestionStep status={changeStatus} detail={changeDetail} onStatusChange={setChangeStatus} onDetailChange={setChangeDetail} />
               )}
@@ -1278,83 +1240,105 @@ const AIFormulator = () => {
 
                   {showFullResult ? (
                   <>
-                  {/* Skin Snapshot strip */}
-                  <div className="flex flex-wrap items-center justify-center gap-3">
-                    {skinImage && (
-                      <img src={skinImage} alt="Your uploaded skin photo" className="h-14 w-14 rounded-full object-cover border border-border" />
-                    )}
-                    <span className="px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium capitalize">
-                      {derivedSkinType} skin
-                    </span>
-                    {mstSwatch && (
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-xs font-medium">
-                        <span className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: mstSwatch.hex }} />
-                        MST {mstSwatch.level}
-                      </span>
-                    )}
-                    {completeness && (
-                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                        {completeness.overall}% complete profile
-                      </span>
-                    )}
-                    {starterResult?.context.status && starterResult.context.status !== "always_like_this" && (
-                      <span className="px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                        {CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label}
-                      </span>
-                    )}
-                  </div>
+                  {starterResult && (
+                    <ResultsTabNav value={resultsTab} onChange={selectResultsTab} />
+                  )}
 
-                  {starterResult && <SkinStoryCard skinStory={starterResult.skinStory} />}
-                  {starterResult && <PriorityList priorities={starterResult.priorities} />}
+                  {starterResult && resultsTab === "profile" && (
+                    <div role="tabpanel" id="results-panel-profile" aria-labelledby="results-tab-profile" className="space-y-5 animate-in fade-in-0 duration-200">
+                      <ResultsIdentityCard
+                        skinType={derivedSkinType}
+                        concern={starterResult.primaryConcern}
+                        barrier={starterResult.profile.barrierTendency}
+                        mst={mstSwatch ? { level: mstSwatch.level, hex: mstSwatch.hex } : null}
+                        photo={skinImage}
+                        extra={[
+                          ...(starterResult.context.status && starterResult.context.status !== "always_like_this"
+                            ? [CHANGE_QUESTION.options.find((o) => o.value === starterResult.context.status)?.label ?? ""]
+                            : []),
+                        ].filter(Boolean)}
+                      />
+                      <SkinStoryCard result={starterResult} />
+                      <PriorityList priorities={starterResult.priorities} />
+                      {refinementPanel}
+                    </div>
+                  )}
 
-                  <div className="grid gap-4 lg:grid-cols-[1fr_280px] items-start">
-                    <div className="space-y-4">
+                  {starterResult && resultsTab === "routine" && (
+                    <div role="tabpanel" id="results-panel-routine" aria-labelledby="results-tab-routine" className="space-y-5 animate-in fade-in-0 duration-200">
+                      <div role="tablist" aria-label="Routine time of day" className="grid grid-cols-2 gap-1 rounded-full bg-muted p-1">
+                        {(["am", "pm"] as const).map((period) => (
+                          <button
+                            key={period}
+                            type="button"
+                            role="tab"
+                            aria-selected={routinePeriod === period}
+                            onClick={() => setRoutinePeriod(period)}
+                            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                              routinePeriod === period ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {period === "am" ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+                            {period === "am" ? "Morning" : "Evening"}
+                          </button>
+                        ))}
+                      </div>
+                      <ol className="space-y-3" aria-label={routinePeriod === "am" ? "Morning routine" : "Evening routine"} key={routinePeriod}>
+                        {(routinePeriod === "am" ? ["Cleanser", "Serum", "Moisturiser", "SPF"] : ["Cleanser", "Treatment", "Moisturiser"]).map((slot, i) => (
+                          <RoutineStepCard
+                            key={slot}
+                            index={i + 1}
+                            slot={slot}
+                            pick={starterResult.groundedRoutine[routinePeriod].find((p) => p.slot === slot)}
+                            productsUnlocked={canEntitlement("ai_analysis.routine_builder")}
+                          />
+                        ))}
+                      </ol>
+                      <WeeklyCadenceTracker concern={starterResult.primaryConcern} fullText={weeklyScheduleText(recommendation)} />
                       {recommendationSections(recommendation)
                         .filter((section) => {
-                          if (!starterResult || !section.heading) return true;
-                          // Rendered above via SkinStoryCard/PriorityList/the snapshot strip instead — avoid showing it twice.
+                          if (!section.heading) return false;
                           const h = section.heading.toLowerCase();
-                          return !(h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") || h.includes("about your skin analysis"));
+                          // Shown above (identity, story, priorities, routine cards, cadence) or in the Confidence tab.
+                          return !(
+                            h.includes("skin story") || h.includes("top skin priorities") || h.includes("what's changed") ||
+                            h.includes("about your skin analysis") || h.includes("your skin profile") ||
+                            h.startsWith("am routine") || h.startsWith("pm routine") || h.includes("weekly actives")
+                          );
                         })
                         .map((section, idx) => {
                           const Icon = section.heading ? sectionIcon(section.heading) : Sparkles;
                           return (
                             <div key={idx} className="rounded-xl border border-border bg-secondary/20 p-5">
-                              {section.heading && (
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Icon className="h-4 w-4 text-primary shrink-0" />
-                                  <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-2 mb-2">
+                                <Icon className="h-4 w-4 text-primary shrink-0" />
+                                <h4 className="font-heading font-semibold text-card-foreground">{section.heading}</h4>
+                              </div>
                               <div>{formatRecommendation(section.body)}</div>
                             </div>
                           );
                         })}
+                      <OpenHausShopLinks routine={starterResult.groundedRoutine} />
+                      {refinementPanel}
                     </div>
-                    {completeness && (
-                      <div className="lg:sticky lg:top-4">
+                  )}
+
+                  {starterResult && resultsTab === "integrity" && (
+                    <div role="tabpanel" id="results-panel-integrity" aria-labelledby="results-tab-integrity" className="space-y-5 animate-in fade-in-0 duration-200">
+                      {completeness && (
                         <ConfidencePanel
                           completeness={completeness}
                           limitations={[
-                            "Built from your answers only — your photo is not analysed.",
-                            "Some concerns can look different across skin tones — your optional, self-reported MST helps us check for this.",
-                            "Not a substitute for professional medical advice.",
+                            { lead: "Answers only", text: "Built from your answers — your photo is not analysed." },
+                            { lead: "Melanin-tone checked", text: "Some concerns can look different across skin tones — your optional, self-reported MST helps us check for this." },
+                            { lead: "Non-diagnostic", text: "Not a substitute for professional medical advice." },
                           ]}
                         />
-                      </div>
-                    )}
-                  </div>
-
-                  {starterResult && <OpenHausShopLinks routine={starterResult.groundedRoutine} />}
-
-                  {starterResult && (
-                    <RefinementPanel
-                      onSubmit={handleRefinementSubmit}
-                      lastAppliedAt={starterResult.refinementHistory[starterResult.refinementHistory.length - 1]?.appliedAt ?? null}
-                    />
+                      )}
+                      <AboutYourAnalysisSection />
+                      {refinementPanel}
+                    </div>
                   )}
-
-                  {starterResult && <AboutYourAnalysisSection />}
 
                   <div className="flex flex-wrap justify-center gap-2">
                     <Button
@@ -1406,37 +1390,8 @@ const AIFormulator = () => {
                     </div>
                   ) : null}
 
-                  {starterResult && (
-                    <div
-                      ref={(el) => {
-                        if (el && !resultsUpsellViewedRef.current) {
-                          resultsUpsellViewedRef.current = true;
-                          trackConversionEvent("advanced_assessment_upsell_viewed", {
-                            funnelLocation: "results",
-                            accessState: isMember ? "member" : "none",
-                          });
-                        }
-                      }}
-                      className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-3"
-                    >
-                      <p className="text-sm font-medium text-card-foreground">
-                        This is your starting point. There's more to your skin story.
-                      </p>
-                      <div>
-                        <h4 className="font-heading font-semibold text-card-foreground">Go deeper with the {ADVANCED_NAME}</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          A longer, more detailed questionnaire about how your skin behaves, your concerns and your
-                          day-to-day. It uses one Analysis Pass. During this beta your submission is received and
-                          queued with a reference number; your report follows once the review workflow is finalised.
-                        </p>
-                      </div>
-                      {/* Long product name: let the label wrap instead of overflowing on phones. */}
-                      <Button size="lg" className="h-auto min-h-11 max-w-full gap-2 whitespace-normal py-2.5 text-center" onClick={() => goToAdvanced("results")}>
-                        <Sparkles className="h-4 w-4 shrink-0" />
-                        Get an {ADVANCED_NAME}
-                      </Button>
-                    </div>
-                  )}
+                  {/* What to do with this result, chosen for this member (src/lib/context): routine first, Advanced only when it fits. */}
+                  <ResultsNextSteps saved={fullResultVisible} />
 
                   {starterResult && <PremiumUpsellSection hasGroundedMatches={starterResult.groundedRoutine.matchStats.matched > 0} />}
 
@@ -1580,7 +1535,7 @@ const AIFormulator = () => {
               {footerVisible && (
                 <div className="flex justify-between mt-8 pt-6 border-t border-border">
                   <Button variant="ghost" onClick={handleBack} className="gap-2"><ArrowLeft className="h-4 w-4" />Back</Button>
-                  <Button onClick={handleNext} disabled={footerDisabled} className="gap-2 px-6">
+                  <Button onClick={handleNext} disabled={footerDisabled} data-haptic className="gap-2 px-6">
                     {footerLabel}<ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>

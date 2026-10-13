@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { notifyMemberContextChanged } from "@/lib/context/changeEvent";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { trackSkynnEvent } from "@/lib/skynn/analytics";
 
@@ -128,6 +129,7 @@ export const useRoutine = () => {
     });
     if (error) return toast.error("Could not add that step");
     trackConversionEvent("routine_saved", { routine_source: "manual" });
+    notifyMemberContextChanged();
     void load();
   };
 
@@ -141,12 +143,14 @@ export const useRoutine = () => {
     }
     trackConversionEvent("routine_saved", { routine_source: "starter" });
     toast.success("Routine saved. Tick steps off each day to build your streak.");
+    notifyMemberContextChanged();
     await load();
     return true;
   };
 
   const removeStep = async (id: string) => {
     await supabase.from("routine_steps").delete().eq("id", id);
+    notifyMemberContextChanged();
     void load();
   };
 
@@ -214,6 +218,8 @@ export const useRoutine = () => {
         trackSkynnEvent("skynn_smart_routine_step_checked", { step: slot });
       }
     }
+    // Home's next action moves on from "check in" once today's routine has been ticked.
+    notifyMemberContextChanged();
     void load();
   };
 

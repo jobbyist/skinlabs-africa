@@ -5,7 +5,7 @@ TikTok paid-traffic landing page. Primary conversion: **start/complete the free 
 
 ## Campaign facts (all in `src/lib/giveaway/campaign.ts`)
 
-- Entries close **15 Oct 2026 23:59:59 SAST** (`GIVEAWAY_CLOSES_AT`; mirrored by `giveaway_closes_at()` in the migration, a test checks both; the time of day is an assumption, the owner gave the date only). Winners announced **16 Oct 2026**, prizes awarded **31 Oct 2026** (owner, 2026-10-04).
+- Entries close **31 Oct 2026 12:00 SAST** (`GIVEAWAY_CLOSES_AT`; mirrored by `giveaway_closes_at()` in migration `20261008230000`, a test checks both). Winners announced **1 Nov 2026**, prizes awarded **1 Nov 2026** (owner, 2026-10-08; was 15 Oct / 16 Oct / 31 Oct). The promoter is named as SkinLabs South Africa (Pty) Ltd (no individual).
 - Eligibility (owner, 2026-10-04): **18 or older, and a legal resident or citizen of South Africa**; the entry form has a required confirmation tick, the T&Cs state it.
 - **Lifetime Glow Insider** is activated on the winner's account after the current extended free trial period ends on **1 November 2026** (owner).
 - 2 winners, each: R500 Takealot voucher + Lifetime Glow Insider. Winners announced on the website and TikTok (as the video says).
@@ -20,7 +20,7 @@ TikTok paid-traffic landing page. Primary conversion: **start/complete the free 
 | T&Cs (accordion; built from config) | `src/lib/giveaway/terms.ts`, `GiveawayTerms.tsx` |
 | Tracking | `src/lib/giveaway/analytics.ts` |
 | Web story (rail, full-screen viewer, AMP `/web-stories/skin-story-giveaway-october-2026`) | `giveawayOctober2026Story()` in `src/lib/webStories/curated.ts`; listed only while the giveaway is open |
-| Inline video card (poster first, video mounts when ≥50 % visible, muted/playsInline/loop) | `GiveawayStoryPlayer.tsx` |
+| Example Skin Story image + entry button | `GiveawaySkinStoryCard.tsx` (2026-10-08: the video was replaced on the page by the example Skin Story image `public/giveaway/skin-story-example.webp`; the web story still uses the video) |
 | Entry confirmation | `GiveawayEntryPanel.tsx` + `supabase/migrations/20261006100000_giveaway_entries.sql` |
 | After-assessment nudge back to the page | `GiveawayResultsNudge.tsx` (SKYNN AI results; only for visitors who came through the giveaway) |
 | Media | `public/stories-media/giveaway/` (video 0.87 MB, down from 7.7 MB), `public/og-giveaway-october-2026.jpg` |
@@ -63,10 +63,8 @@ update public.giveaway_entries set status = 'verified' where id = '<entry id>';
 ## Still needs business / legal confirmation (T&Cs degrade to true-regardless wording until supplied)
 
 `GIVEAWAY_LEGAL` in `campaign.ts`; `giveawayOpenQuestions()` lists what is still `null`:
-promoter legal name + registration + address · how the two winners are selected (random draw or judged) · how long a winner has to respond ·
-whether SkinLabs® may repost Stories (copy promises it will NOT without asking) · what "lifetime" means (account vs plan lifetime; activation timing is now supplied) ·
-Takealot voucher expiry/delivery · legal sign-off, including the assumed 23:59 SAST closing time on 15 Oct.
-Interpretation to confirm: "over the age of 18" is written as "18 years old or older".
+Supplied by the owner 2026-10-04 (now in the T&Cs): promoter = Michael Chigbu on behalf of SkinLabs South Africa (Pty) Ltd (Reg. 2024/627587/07) · 18+ and SA citizens/legal residents · random winner selection by an electronic prize draw system · 10 working days to respond or the prize is forfeited · SkinLabs® may repost entrants' Stories for promotional purposes · "lifetime" = free, unrestricted access to Glow Insider (valued at R790 per year) at no cost · voucher and membership delivered 31 Oct 2026 (membership active from 1 Nov, when the extended trial ends).
+Still open: promoter's physical address · Takealot voucher expiry · what happens to "lifetime" if the Glow Insider plan is ever renamed or withdrawn · legal sign-off, including the assumed 23:59 SAST closing time on 15 Oct and "unrestricted" (Glow Insider does not include Analysis Passes).
 Also: there is still no tool that grants Lifetime Glow Insider to a winner (the founding-member entitlement looks closest, confirm first) and the activation must be done on/after 1 Nov 2026.
 
 ## Naming note

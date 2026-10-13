@@ -80,3 +80,12 @@ verify_jwt = false
 # Notification-tap beacon from the service worker (no session available). Always answers 200.
 [functions.push-track]
 verify_jwt = false
+
+[functions.username-login]
+verify_jwt = false
+
+[functions.community-retention]
+verify_jwt = false
+
+[functions.paystack-payment]
+verify_jwt = false

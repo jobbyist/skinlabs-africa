@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { curatedStories } from "@/lib/webStories/curated";
 import {
   arrangeRail,
   storyFromBriefing,
@@ -18,17 +17,21 @@ const DAILY_BRIEFINGS = 3;
 interface RailSources {
   authored: Story[];
   briefings: Story[];
+  curated: Story[];
 }
 
 const fetchRailSources = async (): Promise<RailSources> => {
   // RLS already limits web_stories to published, in-window rows.
-  const [authored, briefings] = await Promise.all([
+  // The curated stories are built from the review / podcast / season catalogue; that module is fetched with the rail's data,
+  // not bundled into every page's entry script.
+  const [authored, briefings, curated] = await Promise.all([
     supabase.from("web_stories").select(WEB_STORY_SELECT).order("publish_at", { ascending: false }).limit(20),
     supabase
       .from("news_articles_public")
       .select("slug, title, excerpt, key_takeaways, cover_image_url, cover_image_alt, publish_date")
       .order("publish_date", { ascending: false })
       .limit(DAILY_BRIEFINGS),
+    import("@/lib/webStories/curated").then((m) => m.curatedStories()),
   ]);
   if (authored.error) console.error("web_stories fetch failed:", authored.error);
   if (briefings.error) console.error("briefing stories fetch failed:", briefings.error);
@@ -36,6 +39,7 @@ const fetchRailSources = async (): Promise<RailSources> => {
   return {
     authored: ((authored.data ?? []) as unknown as WebStoryRow[]).map(storyFromRow),
     briefings: ((briefings.data ?? []) as unknown as BriefingStorySource[]).map(storyFromBriefing),
+    curated,
   };
 };
 
@@ -50,8 +54,8 @@ export const useWebStories = () => {
 
   const data = useMemo(() => {
     if (!sources.data) return undefined;
-    const { authored, briefings } = sources.data;
-    return arrangeRail(authored, [...briefings, ...curatedStories()]);
+    const { authored, briefings, curated } = sources.data;
+    return arrangeRail(authored, [...briefings, ...curated]);
   }, [sources.data]);
 
   return { data, isLoading: sources.isLoading };

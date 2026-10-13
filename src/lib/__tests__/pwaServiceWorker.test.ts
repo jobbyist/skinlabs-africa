@@ -155,9 +155,9 @@ describe("Range requests for offline audio", () => {
 });
 
 describe("push payloads are untrusted input", () => {
-  test("click targets are same-origin relative paths only", () => {
+  test("click targets are same-origin paths only (our own absolute URLs are normalised)", () => {
     expect(safeNotificationUrl("/podcast/ep-1", SELF)).toBe("/podcast/ep-1");
-    expect(safeNotificationUrl("https://skinlabs.co.za/briefings/x?y=1#z", SELF)).toBe("/start"); // absolute URLs are refused: relative "/…" only
+    expect(safeNotificationUrl("https://skinlabs.co.za/briefings/x?y=1#z", SELF)).toBe("/briefings/x?y=1#z"); // our own absolute URL is normalised to a path
     expect(safeNotificationUrl("https://evil.example/phish", SELF)).toBe("/start");
     expect(safeNotificationUrl("//evil.example", SELF)).toBe("/start");
     expect(safeNotificationUrl("javascript:alert(1)", SELF)).toBe("/start");
@@ -190,8 +190,15 @@ describe("notification click validation", () => {
     expect(safeClickTarget("/dashboard?tab=inbox", SELF)).toBe("/dashboard?tab=inbox");
     expect(safeClickTarget("/podcast/ep-1#notes", SELF)).toBe("/podcast/ep-1#notes");
   });
+  test("accepts an absolute URL on our own origin and normalises it to a path (trailing slash dropped)", () => {
+    expect(safeClickTarget("https://skinlabs.co.za/briefings/some-slug", SELF)).toBe("/briefings/some-slug");
+    expect(safeClickTarget("https://www.skinlabs.co.za/reviews/x/?utm_source=push#a", SELF)).toBe("/reviews/x?utm_source=push#a");
+    expect(safeClickTarget("https://preview.vercel.app/podcast/ep-1", "https://preview.vercel.app")).toBe("/podcast/ep-1");
+    expect(safeClickTarget("/briefings/some-slug/", SELF)).toBe("/briefings/some-slug");
+    expect(safeClickTarget("/", SELF)).toBe("/");
+  });
   test("rejects //host, backslashes, absolute and scheme URLs, control characters, empties and non-strings", () => {
-    for (const bad of ["//evil.example", "/\\evil.example", "/a\\b", "https://skinlabs.co.za/x", "https://evil.example", "javascript:alert(1)", "data:text/html,x", "", "dashboard", "/ok\u0000x", "/ok\nx", `/${"a".repeat(400)}`, undefined, null, 42, {}]) {
+    for (const bad of ["//evil.example", "/\\evil.example", "/a\\b", "https://evil.example", "https://skinlabs.co.za.evil.example/x", "https://user@evil.example/x", "ftp://skinlabs.co.za/x", "javascript:alert(1)", "data:text/html,x", "", "dashboard", "/ok\u0000x", "/ok\nx", `/${"a".repeat(400)}`, undefined, null, 42, {}]) {
       expect(safeClickTarget(bad as unknown, SELF)).toBeNull();
     }
   });
@@ -251,5 +258,29 @@ describe("action buttons and build config", () => {
     expect(pushTrackUrl("https://abc.supabase.co")).toBe("https://abc.supabase.co/functions/v1/push-track");
     expect(pushTrackUrl("https://abc.supabase.co/")).toBe("https://abc.supabase.co/functions/v1/push-track");
     for (const bad of [undefined, null, "", "http://abc.supabase.co", "not a url", 7]) expect(pushTrackUrl(bad as unknown)).toBeNull();
+  });
+});
+
+describe("deep-link navigations (briefings, reviews, podcast, spotlight)", () => {
+  test("content pages are network-first navigations; their server-rendered HTML may be cached only as a fallback copy", () => {
+    for (const path of ["/briefings/some-slug", "/reviews/some-product", "/podcast/ep-1", "/spotlight/some-brand"]) {
+      expect(classify(`${SELF}${path}`, { mode: "navigate" })).toBe("navigation");
+      expect(
+        shouldCachePage(new URL(`${SELF}${path}`), {
+          ok: true,
+          status: 200,
+          headers: { get: (n: string) => ({ "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=0, s-maxage=120" })[n.toLowerCase()] ?? null },
+        }),
+      ).toBe(true);
+    }
+  });
+  test("a 404 or 5xx document is never stored as a page", () => {
+    const res = (status: number) => ({ ok: status < 400, status, headers: { get: () => "text/html" } });
+    expect(shouldCachePage(new URL(`${SELF}/briefings/gone`), res(404))).toBe(false);
+    expect(shouldCachePage(new URL(`${SELF}/briefings/x`), res(500))).toBe(false);
+  });
+  test("a new worker version removes the previous version's cached pages (stale bare-SSR documents)", () => {
+    const old = `${CACHE_PREFIX}pages-v1`;
+    expect(cachesToDelete([old, CACHE_NAMES.pages, AUDIO_CACHE_NAME], Object.values(CACHE_NAMES), CACHE_PREFIX, AUDIO_CACHE_NAME)).toEqual([old]);
   });
 });

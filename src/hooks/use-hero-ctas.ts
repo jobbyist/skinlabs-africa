@@ -1,65 +1,44 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
-import { useNewsArticles } from "@/hooks/use-news-articles";
-import { getSavedPosition } from "@/components/PodcastPlayer";
-import { latestPublishedEpisode, publishedPodcastEpisodes } from "@/data/podcast";
-import { loadCompletedState, loadDraftState } from "@/lib/starter-analysis/persistence";
-import { useEngagementStore } from "@/stores/engagementStore";
-import { resolveHeroCtas, type HeroCtaFacts } from "@/lib/heroCta";
+import { useMemo } from "react";
+import { useContextualActions } from "@/hooks/use-contextual-actions";
+import type { ResolvedAction } from "@/lib/context";
 
-const sastToday = () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Johannesburg" });
+export interface HeroCta {
+  id: string;
+  label: string;
+  href: string;
+  /** Icon hint for secondary links. */
+  icon: "podcast" | "article";
+}
 
-/** Gathers the visitor's activity and resolves the hero CTAs (src/lib/heroCta.ts). */
+const DEFAULT_PRIMARY: HeroCta = { id: "start_basic", label: "Get Your Free Basic AI Skin Report", href: "/skynn-ai", icon: "article" };
+
+const toHero = (a: ResolvedAction): HeroCta => ({
+  id: a.id,
+  label: a.label,
+  // Sign-up style actions (save your results) are finished on the analysis page.
+  href: a.href ?? "/skynn-ai",
+  icon: a.id.includes("podcast") || a.id === "listen_latest" ? "podcast" : "article",
+});
+
+/**
+ * The homepage hero's actions, chosen by the contextual engine (src/lib/context) for the
+ * `home_hero` surface: a visitor is asked to take the analysis, a member is asked for what
+ * is next for them (build the routine, check in, review their results…) and is never
+ * told to start something they have finished. The default renders instantly, so the
+ * prerendered hero never shifts.
+ */
 export const useHeroCtas = () => {
-  const { user } = useAuth();
-  const { articles } = useNewsArticles(1);
-  const viewed = useEngagementStore((s) => s.viewedArticleIds);
-  const [local, setLocal] = useState({ draft: false, completed: false, podcast: null as HeroCtaFacts["podcastInProgress"] });
-  const [savedAnalysis, setSavedAnalysis] = useState(false);
-
-  // Browser-only signals, read after mount so prerendered HTML stays stable.
-  useEffect(() => {
-    let podcast: HeroCtaFacts["podcastInProgress"] = null;
-    for (const ep of [...publishedPodcastEpisodes].sort((a, b) => b.id - a.id)) {
-      const pos = getSavedPosition(ep.slug);
-      const total = ep.durationSeconds ?? 0;
-      if (pos && pos > 15 && (!total || pos < total - 10)) {
-        podcast = { slug: ep.slug, title: ep.title };
-        break;
-      }
-    }
-    setLocal({ draft: Boolean(loadDraftState()), completed: Boolean(loadCompletedState()), podcast });
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setSavedAnalysis(false);
-      return;
-    }
-    let cancelled = false;
-    void supabase
-      .from("skincare_recommendations")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("status", "delivered")
-      .then(({ count }) => {
-        if (!cancelled) setSavedAnalysis((count ?? 0) > 0);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  return useMemo(() => {
-    const a = articles[0];
-    return resolveHeroCtas({
-      analysisDraft: local.draft,
-      hasBasicAnalysis: local.completed || savedAnalysis,
-      briefing: a ? { slug: a.slug, title: a.title, isToday: a.publish_date === sastToday() } : null,
-      briefingStarted: Boolean(a && viewed.includes(a.id)),
-      podcastInProgress: local.podcast,
-      latestEpisode: latestPublishedEpisode ? { slug: latestPublishedEpisode.slug, title: latestPublishedEpisode.title } : null,
-    });
-  }, [articles, viewed, local, savedAnalysis]);
+  const { primary, secondary, loading, click } = useContextualActions("home_hero", { secondaryLimit: 2, content: true });
+  return useMemo(
+    () => ({
+      primary: !loading && primary ? toHero(primary) : DEFAULT_PRIMARY,
+      secondary: loading ? [] : secondary.map(toHero),
+      /** Records the click against the CTA ledger (fatigue + analytics). */
+      onClick: (id: string) => {
+        const a = [primary, ...secondary].find((x) => x?.id === id);
+        if (a) click(a);
+      },
+    }),
+    [primary, secondary, loading, click],
+  );
 };

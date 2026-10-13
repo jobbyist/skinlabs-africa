@@ -9,6 +9,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { notifyMemberContextChanged } from "@/lib/context/changeEvent";
 import type { Json } from "@/integrations/supabase/types";
 import type { ChangeContext, PriorityPreference, StarterAnalysisResult } from "@/lib/starter-analysis/types";
 import { isFormulatorLimitError } from "@/lib/formulator/limits";
@@ -228,6 +229,8 @@ export const persistStarterResultToAccount = async (params: {
       }
     }
 
+    // The member now has a skin profile: let the dashboard, hero and navigation catch up at once.
+    notifyMemberContextChanged();
     return {
       error: null,
       limitReached: false,

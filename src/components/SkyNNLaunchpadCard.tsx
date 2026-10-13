@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { trackConversionEvent } from "@/lib/analytics-events";
 import { MST_SCALE } from "@/data/mstScale";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { readSkinProfileHint } from "@/lib/context/changeEvent";
 
 /**
  * Homepage SKYNN AI launchpad.
@@ -80,7 +82,7 @@ const STEPS: {
 
 const TRUST_POINTS = ["Free to start", "Built for South African skin + climate", "About 2 minutes"];
 
-const SkyNNLaunchpadCard = () => {
+const LaunchpadCard = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -260,6 +262,17 @@ const SkyNNLaunchpadCard = () => {
       </div>
     </section>
   );
+};
+
+/**
+ * The homepage invitation to take the Basic AI Skin Analysis. A member who already has a skin profile
+ * has nothing left to be invited to (the hero and dashboard point them at their next step instead),
+ * so it disappears for them rather than repeating the ask.
+ */
+const SkyNNLaunchpadCard = () => {
+  const { user } = useAuth();
+  if (user && readSkinProfileHint(user.id)) return null;
+  return <LaunchpadCard />;
 };
 
 export default SkyNNLaunchpadCard;

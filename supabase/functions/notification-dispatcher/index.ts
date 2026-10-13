@@ -22,6 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.87.1";
 import webpush from "npm:web-push@3.6.7";
 import { resolveAuthedUser } from "../_shared/payments/authedUser.ts";
 import { safeCompare } from "../_shared/push/dispatch.ts";
+import { signDelivery } from "../_shared/push/trackSignature.ts";
 import {
   authoriseDispatcher,
   buildPushPayload,
@@ -68,7 +69,7 @@ const sendOne = async (
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify(buildPushPayload(dispatch, deliveryId)),
+      JSON.stringify({ ...buildPushPayload(dispatch, deliveryId), s: await signDelivery(Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", deliveryId) }),
       { TTL: PUSH_TTL_SECONDS, urgency: urgencyFor(dispatch.d_category), timeout: SEND_TIMEOUT_MS },
     );
     return { sub, deliveryId, outcome: classifyDelivery(undefined) };

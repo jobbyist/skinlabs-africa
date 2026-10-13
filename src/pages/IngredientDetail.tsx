@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import EvidenceBadge from "@/components/ingredients/EvidenceBadge";
 import IngredientDisclaimer from "@/components/ingredients/IngredientDisclaimer";
 import SourceCitationList from "@/components/ingredients/SourceCitationList";
+import OfflineReadButton from "@/components/OfflineReadButton";
 import { useIngredientDetail, type IngredientInteractionLink } from "@/hooks/use-ingredient-detail";
 import { useEntitlements } from "@/hooks/use-entitlements";
 import { useAllergyFlags } from "@/hooks/use-allergy-flags";
@@ -181,6 +182,20 @@ const IngredientDetail = () => {
             {ingredient.common_name && ingredient.common_name !== ingredient.inci_name && (
               <p className="mt-1 italic text-muted-foreground">INCI: {ingredient.inci_name}</p>
             )}
+            <div className="mt-3">
+              <OfflineReadButton
+                kind="ingredient"
+                slug={ingredient.slug}
+                title={name}
+                snapshot={() => ({
+                  ingredient: {
+                    name, inci_name: ingredient.inci_name, category: ingredient.category, description: ingredient.description,
+                    function_summary: ingredient.function_summary, typical_concentration_range: ingredient.typical_concentration_range,
+                    formulation_notes: ingredient.formulation_notes, evidence_level: ingredient.evidence_level, irritancy_risk: ingredient.irritancy_risk,
+                  },
+                })}
+              />
+            </div>
             {allergyFlags.has(ingredient.id) && (
               <div className="mt-3">
                 <AllergyCautionNote matchedTerm={allergyFlags.get(ingredient.id) as string} />

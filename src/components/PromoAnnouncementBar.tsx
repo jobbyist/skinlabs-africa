@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { Download, Sparkles, X } from "lucide-react";
+import { openInstallPrompt } from "@/lib/pwa/uiEvents";
 import PromoOfferDialog from "@/components/PromoOfferDialog";
 import { PROMO_END_AT, PROMO_END_DATE_LABEL } from "@/lib/promo";
 import PromoTrialModal from "@/components/PromoTrialModal";
@@ -77,3 +78,29 @@ export const PromoHeaderChip = () => {
     </>
   );
 };
+
+/** Signed-in members who haven't installed the PWA: replaces the promo chip in the mobile header row (below md). */
+export const GetAppChip = () => (
+  <button
+    type="button"
+    onClick={openInstallPrompt}
+    className="ml-0.5 mr-auto inline-flex min-h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-2.5 text-[10px] font-semibold tracking-tight text-white md:hidden"
+    aria-label="Get the SkinLabs app"
+  >
+    <Download className="h-3 w-3" aria-hidden />
+    Get the app
+  </button>
+);
+
+/** Same call to action as a header pill from md up (the full-width promo bar is hidden for these members). */
+export const GetAppButton = () => (
+  <button
+    type="button"
+    onClick={openInstallPrompt}
+    className="hidden h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-[image:var(--gradient-brand)] px-3.5 text-sm font-medium text-white shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98] md:inline-flex"
+    aria-label="Get the SkinLabs app"
+  >
+    <Download className="h-3.5 w-3.5" aria-hidden />
+    Get the app
+  </button>
+);
