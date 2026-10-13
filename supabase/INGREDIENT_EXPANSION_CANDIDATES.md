@@ -67,7 +67,7 @@ already represented, and matter for the Ingredient Combination Checker
 ## Exfoliant — Enzyme
 
 - [x] Papain — Papain — exfoliant-enzyme — proteolytic enzyme from papaya, used for enzymatic exfoliation
-- [ ] Bromelain — Bromelain — exfoliant-enzyme — proteolytic enzyme from pineapple, used for enzymatic exfoliation
+- [x] Bromelain — Bromelain — exfoliant-enzyme — proteolytic enzyme from pineapple, used for enzymatic exfoliation
 - [ ] Pumpkin Enzyme — Cucurbita Pepo (Pumpkin) Fruit Ferment Extract — exfoliant-enzyme — fruit-enzyme exfoliant, popular in gentle at-home peels
 
 ## Antioxidant
@@ -75,7 +75,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Resveratrol — Resveratrol — antioxidant — polyphenol antioxidant, often paired with ferulic acid/vitamin E in serums
 - [x] Astaxanthin — Astaxanthin — antioxidant — carotenoid antioxidant derived from algae
 - [x] Alpha Lipoic Acid — Thioctic Acid — antioxidant — both water- and fat-soluble antioxidant
-- [ ] Idebenone — Idebenone — antioxidant — synthetic antioxidant related to CoQ10
+- [x] Idebenone — Idebenone — antioxidant — synthetic antioxidant related to CoQ10
 - [x] Ergothioneine — Ergothioneine — antioxidant — amino-acid-derived antioxidant, naturally occurring in fungi
 - [x] Glutathione — Glutathione — antioxidant — tripeptide antioxidant, also marketed for skin brightening
 - [x] Epigallocatechin Gallate (EGCG) — EGCG / Green Tea Catechins — antioxidant — the primary active catechin in green tea extract, distinct entry from the existing generic "green tea extract" row
@@ -83,7 +83,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Grape Seed Extract — Vitis Vinifera Seed Extract — antioxidant — proanthocyanidin-rich antioxidant botanical
 - [x] Sea Buckthorn Oil — Hippophae Rhamnoides Fruit Oil — antioxidant — carotenoid- and omega-7-rich oil, dual antioxidant/barrier function
 - [x] Rosemary Extract — Rosmarinus Officinalis Leaf Extract — antioxidant — polyphenol antioxidant, also used as a natural preservative booster
-- [ ] Beta Carotene — Beta Carotene — antioxidant — carotenoid antioxidant/pigment
+- [x] Beta Carotene — Beta Carotene — antioxidant — carotenoid antioxidant/pigment
 - [ ] Lycopene — Lycopene — antioxidant — carotenoid antioxidant, often tomato-derived
 - [ ] Superoxide Dismutase — Superoxide Dismutase (SOD) — antioxidant — enzymatic antioxidant studied for oxidative-stress protection
 - [ ] Schisandra Extract — Schisandra Chinensis Fruit Extract — antioxidant — adaptogenic botanical with antioxidant evidence
@@ -102,7 +102,7 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Peptide
 
-- [ ] Palmitoyl Tripeptide-1 — Palmitoyl Tripeptide-1 — peptide — signal peptide, part of the widely studied "Matrixyl" family
+- [x] Palmitoyl Tripeptide-1 — Palmitoyl Tripeptide-1 — peptide — signal peptide, part of the widely studied "Matrixyl" family
 - [ ] Palmitoyl Pentapeptide-4 — Palmitoyl Pentapeptide-4 — peptide — signal peptide (Matrixyl 3000 component), collagen-signaling claims
 - [ ] Acetyl Octapeptide-3 — Acetyl Octapeptide-3 (SNAP-8-type) — peptide — neurotransmitter-inhibiting "Botox-like" peptide
 - [ ] Palmitoyl Tetrapeptide-7 — Palmitoyl Tetrapeptide-7 — peptide — signal peptide targeting inflammation/collagen pathways
@@ -124,11 +124,11 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Evening Primrose Oil — Oenothera Biennis Oil — barrier-lipid — gamma-linolenic-acid-rich emollient oil
 - [x] Squalene — Squalene — barrier-lipid — plant/olive-derived precursor to squalane, distinct entry from the existing hydrogenated "squalane" row
 - [ ] Cetyl Alcohol — Cetyl Alcohol — barrier-lipid — fatty alcohol emollient/emulsion-stabilizer
-- [ ] Glyceryl Stearate — Glyceryl Stearate — barrier-lipid — emollient/emulsifier derived from glycerin and stearic acid
+- [x] Glyceryl Stearate — Glyceryl Stearate — barrier-lipid — emollient/emulsifier derived from glycerin and stearic acid
 - [ ] Caprylic/Capric Triglyceride — Caprylic/Capric Triglyceride — barrier-lipid — lightweight, non-comedogenic emollient ester
-- [ ] Cocoa Butter — Theobroma Cacao Seed Butter — barrier-lipid — occlusive plant butter, long-used emollient
+- [x] Cocoa Butter — Theobroma Cacao Seed Butter — barrier-lipid — occlusive plant butter, long-used emollient
 - [ ] Mango Butter — Mangifera Indica Seed Butter — barrier-lipid — occlusive plant butter emollient
-- [ ] Macadamia Oil — Macadamia Ternifolia Seed Oil — barrier-lipid — palmitoleic-acid-rich emollient oil
+- [x] Macadamia Oil — Macadamia Ternifolia Seed Oil — barrier-lipid — palmitoleic-acid-rich emollient oil
 - [ ] Camellia Oil — Camellia Oleifera Seed Oil — barrier-lipid — oleic-acid-rich emollient oil, traditionally used in East Asian skincare
 
 ## Brightening
@@ -215,13 +215,19 @@ already represented, and matter for the Ingredient Combination Checker
 
 ---
 
-**Running total added from this list**: 42 / 123 processed (2026-10-06, weekly
-pipeline firing 2 processed 10 more — Grape Seed Extract, Sea Buckthorn Oil,
+**Running total added from this list**: 49 / 123 processed (2026-10-13, weekly
+pipeline firing 3 processed 7 more — Bromelain, Idebenone, Beta Carotene,
+Palmitoyl Tripeptide-1, Glyceryl Stearate, Cocoa Butter, Macadamia Oil; several
+other candidates searched this firing (Propanediol, Mango Butter, Tartaric
+Acid, Inulin, Pentylene Glycol, Cetyl Alcohol, Superoxide Dismutase) returned
+no usable citation and were left unprocessed rather than forced — the
+remaining budget went to an 22-row demand-queue backlog instead of the full
+25+ new-ingredient target — see `INGREDIENT_CONTENT_STATUS.md` for the live
+cursor and full batch log). Previously: 42/123 as of 2026-10-06 (weekly
+pipeline firing 2 processed 10 — Grape Seed Extract, Sea Buckthorn Oil,
 Rosemary Extract, Squalene, Evening Primrose Oil, Beta-Glucan, Tea Tree Oil,
-Titanium Dioxide, Octocrylene, Disodium EDTA; the remaining budget this
-firing went to an unusually large 23-row demand-queue backlog instead of the
-full 25+ new-ingredient target — see `INGREDIENT_CONTENT_STATUS.md` for the
-live cursor and full batch log). Previously: 32/123 as of 2026-09-29 (weekly
+Titanium Dioxide, Octocrylene, Disodium EDTA). Before that: 32/123 as of
+2026-09-29 (weekly
 pipeline firing 1 processed 20 — Sodium Lactate, Lactobionic Acid,
 Astaxanthin, Ergothioneine, Glutathione, EGCG, Quercetin, Linoleic Acid, Oleic
 Acid, Phytosphingosine, Dimethicone, Petrolatum, Magnesium Ascorbyl Phosphate,
