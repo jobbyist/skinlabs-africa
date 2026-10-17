@@ -9,15 +9,14 @@ const PENDING_PAYPAL_SUBSCRIPTION_KEY = "skinlabs_paypal_pending_subscription_id
 export type PaymentGateway = "payfast" | "paypal";
 
 /**
- * PayFast is TEMPORARILY switched off as a payment option (2026-09-28): every
- * checkout (one-off purchases in PaymentGatewayDialog and "Keep my membership")
- * offers PayPal / debit or credit card only, and PayFast shows as
- * "Temporarily unavailable". Existing PayFast subscriptions are unaffected:
- * Billing still shows and cancels them. Flip to `true` to bring it back — no
- * other change needed (the server-side payfast-payment function was not
- * touched).
+ * PayFast is ON (re-enabled 2026-10-17 after the 2026-09-28 pause): checkouts
+ * offer PayFast (ZAR) alongside PayPal / debit or credit card. It only works
+ * once the PayFast Edge Function secrets are set (see CLAUDE.md, overhaul 06);
+ * without them "Pay with PayFast" stays hidden in Keep membership and one-off
+ * checkouts answer 503. Set to `false` to switch it off again client-side
+ * (the server-side payfast-payment function is not affected).
  */
-export const PAYFAST_ENABLED = false;
+export const PAYFAST_ENABLED = true;
 
 export const isGatewayEnabled = (gateway: PaymentGateway): boolean => (gateway === "payfast" ? PAYFAST_ENABLED : true);
 export type PaymentPlan = Exclude<PlanId, "explorer">;
