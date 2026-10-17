@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Loader2, CreditCard, Wallet, type LucideIcon } from "lucide-react";
+import { ArrowLeft, Check, Loader2, CreditCard, Wallet, type LucideIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,19 +35,24 @@ interface PaymentGatewayDialogProps {
  * Every one-off purchase flow (Analysis Pass credit packs) routes through this one picker: PayPal — PayPal balance or any
  * debit/credit card — charged in USD at a live rate, or PayFast for South
  * African Rand (shown as "Temporarily unavailable" while PAYFAST_ENABLED is
- * false). Recurring memberships use MembershipCheckoutDialog instead.
+ * false). PayFast is listed first and preselected; choosing is a radio
+ * selection confirmed with "Continue". Recurring memberships use
+ * MembershipCheckoutDialog instead.
  */
 const PaymentGatewayDialog = ({ open, onOpenChange, onSelect, paypal, onPaypalApproved }: PaymentGatewayDialogProps) => {
   const [loading, setLoading] = useState<PaymentGateway | null>(null);
   const [showPaypal, setShowPaypal] = useState(false);
   const [paypalBusy, setPaypalBusy] = useState(false);
   const [paypalAvailable, setPaypalAvailable] = useState(true);
+  // PayFast is the default; PayPal only when PayFast is switched off.
+  const [selected, setSelected] = useState<PaymentGateway>(PAYFAST_ENABLED ? "payfast" : "paypal");
 
   useEffect(() => {
     if (!open) {
       setShowPaypal(false);
       return;
     }
+    setSelected(PAYFAST_ENABLED ? "payfast" : "paypal");
     void getPaypalConfig().then((c) => setPaypalAvailable(c.configured));
   }, [open]);
 
@@ -63,6 +68,8 @@ const PaymentGatewayDialog = ({ open, onOpenChange, onSelect, paypal, onPaypalAp
   };
 
   const busy = !!loading || paypalBusy;
+  const effective: PaymentGateway = selected === "paypal" && !paypalAvailable ? "payfast" : selected;
+  const canContinue = !busy && (effective === "payfast" ? PAYFAST_ENABLED : paypalAvailable);
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
@@ -95,32 +102,42 @@ const PaymentGatewayDialog = ({ open, onOpenChange, onSelect, paypal, onPaypalAp
             </Button>
           </div>
         ) : (
-          <div className="grid min-w-0 gap-3">
-            {paypalAvailable && (
+          <div className="grid min-w-0 gap-4">
+            <div role="radiogroup" aria-label="Payment method" className="grid min-w-0 gap-3">
               <GatewayOption
-                icon={Wallet}
-                title="PayPal or debit/credit card"
-                subtitle="Charged in USD at today's live exchange rate."
-                marks={["paypal", "visa", "mastercard", "amex"]}
-                loading={loading === "paypal"}
-                disabled={busy}
-                onClick={() => void choose("paypal")}
+                icon={CreditCard}
+                title="PayFast"
+                subtitle="South African Rand (ZAR) — pay by card or Apple Pay."
+                markRows={[["visa", "mastercard"], ["apple-pay"]]}
+                badge={PAYFAST_ENABLED ? "Default" : undefined}
+                selected={effective === "payfast"}
+                loading={loading === "payfast"}
+                disabled={busy || !PAYFAST_ENABLED}
+                unavailable={!PAYFAST_ENABLED}
+                onClick={() => setSelected("payfast")}
               />
-            )}
-            <GatewayOption
-              icon={CreditCard}
-              title="PayFast"
-              subtitle="South African Rand (ZAR) — card, EFT or Instant EFT."
-              marks={["visa", "mastercard", "amex", "instant-eft"]}
-              loading={loading === "payfast"}
-              disabled={busy || !PAYFAST_ENABLED}
-              unavailable={!PAYFAST_ENABLED}
-              onClick={() => void choose("payfast")}
-            />
-            {!paypalAvailable && !PAYFAST_ENABLED && (
+              {paypalAvailable && (
+                <GatewayOption
+                  icon={Wallet}
+                  title="PayPal or debit/credit card"
+                  subtitle="Charged in USD at today's live exchange rate."
+                  markRows={[["paypal", "visa", "mastercard", "amex"]]}
+                  selected={effective === "paypal"}
+                  loading={loading === "paypal"}
+                  disabled={busy}
+                  onClick={() => setSelected("paypal")}
+                />
+              )}
+            </div>
+            {!paypalAvailable && !PAYFAST_ENABLED ? (
               <p role="status" className="text-center text-sm text-muted-foreground">
                 Online payments are temporarily unavailable. Please try again soon or contact support@skinlabs.co.za.
               </p>
+            ) : (
+              <Button size="lg" className="w-full" disabled={!canContinue} onClick={() => void choose(effective)}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                {effective === "payfast" ? "Continue with PayFast" : "Continue with PayPal"}
+              </Button>
             )}
           </div>
         )}
@@ -133,7 +150,10 @@ interface GatewayOptionProps {
   icon: LucideIcon;
   title: string;
   subtitle: string;
-  marks: PaymentMark[];
+  /** Rows of accepted marks, shown one row per line under the subtitle. */
+  markRows: PaymentMark[][];
+  badge?: string;
+  selected: boolean;
   loading: boolean;
   disabled: boolean;
   /** Shown but switched off (e.g. PayFast while PAYFAST_ENABLED is false). */
@@ -141,19 +161,21 @@ interface GatewayOptionProps {
   onClick: () => void;
 }
 
-/** One selectable gateway card: outline icon, title + subtitle, accepted marks. Text always wraps. */
-const GatewayOption = ({ icon: Icon, title, subtitle, marks, loading, disabled, unavailable = false, onClick }: GatewayOptionProps) => (
+/** One selectable gateway card (radio): outline icon, title + subtitle, accepted marks. Text always wraps. */
+const GatewayOption = ({ icon: Icon, title, subtitle, markRows, badge, selected, loading, disabled, unavailable = false, onClick }: GatewayOptionProps) => (
   <button
     type="button"
+    role="radio"
+    aria-checked={selected}
     onClick={onClick}
     disabled={disabled}
-    aria-disabled={disabled}
     className={cn(
-      "group w-full min-w-0 rounded-2xl border border-border bg-card p-4 text-left transition-[border-color,box-shadow,transform] duration-150 ease-out sm:p-5",
+      "group w-full min-w-0 rounded-2xl border bg-card p-4 text-left transition-[border-color,box-shadow,transform] duration-150 ease-out sm:p-5",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+      selected ? "border-foreground shadow-md ring-1 ring-foreground" : "border-border",
       unavailable
         ? "cursor-not-allowed opacity-60"
-        : "hover:border-foreground/40 hover:shadow-md active:scale-[0.99] disabled:cursor-wait disabled:opacity-70",
+        : "hover:border-foreground/40 active:scale-[0.99] disabled:cursor-wait disabled:opacity-70",
     )}
   >
     <span className="flex min-w-0 items-start gap-3.5">
@@ -163,6 +185,11 @@ const GatewayOption = ({ icon: Icon, title, subtitle, marks, loading, disabled, 
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-heading text-base font-semibold leading-snug text-foreground sm:text-lg">{title}</span>
+          {badge && !unavailable && (
+            <span className="whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-background">
+              {badge}
+            </span>
+          )}
           {unavailable && (
             <span className="whitespace-nowrap rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               Temporarily unavailable
@@ -171,8 +198,21 @@ const GatewayOption = ({ icon: Icon, title, subtitle, marks, loading, disabled, 
         </span>
         <span className="mt-0.5 block break-words text-sm leading-snug text-muted-foreground">{subtitle}</span>
       </span>
+      <span
+        aria-hidden="true"
+        className={cn(
+          "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors",
+          selected ? "border-foreground bg-foreground text-background" : "border-border",
+        )}
+      >
+        {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+      </span>
     </span>
-    <PaymentMarks marks={marks} className="mt-3.5" />
+    <span className="mt-3.5 flex flex-col gap-1.5">
+      {markRows.map((row) => (
+        <PaymentMarks key={row.join("-")} marks={row} />
+      ))}
+    </span>
   </button>
 );
 
