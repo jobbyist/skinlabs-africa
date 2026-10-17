@@ -108,7 +108,7 @@ const PaymentGatewayDialog = ({ open, onOpenChange, onSelect, paypal, onPaypalAp
                 icon={CreditCard}
                 title="PayFast"
                 subtitle="South African Rand (ZAR) — pay by card or Apple Pay."
-                markRows={[["visa", "mastercard"], ["apple-pay"]]}
+                markRows={[["visa", "mastercard", "apple-pay"]]}
                 badge={PAYFAST_ENABLED ? "Default" : undefined}
                 selected={effective === "payfast"}
                 loading={loading === "payfast"}
