@@ -343,7 +343,7 @@ export async function mockSupabase(context: BrowserContext, opts: MockOptions = 
     if (name === "payfast-payment" && body.action === "initialize_subscription") {
       return r.fulfill({ json: { paymentUrl: "https://sandbox.payfast.co.za/eng/process", paymentData: { merchant_id: "10000100" }, subscriptionId: "sub_test" } });
     }
-    // PayPal is the live gateway (PayFast is switched off client-side, PAYFAST_ENABLED).
+    // PayPal config (PayFast availability comes from the mocked subscription_quote above).
     if (name === "paypal-payment" && body.action === "config") {
       return r.fulfill({ json: { configured: true, clientId: "test-client-id", env: "sandbox" } });
     }
