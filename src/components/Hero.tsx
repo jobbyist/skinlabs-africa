@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowRight, Atom, BookOpen, Headphones, Loader2, Users, Newspaper, Star } from "lucide-react";
+import { ArrowRight, Atom, BookOpen, FlaskConical, Headphones, Loader2, Newspaper, ClipboardCheck } from "lucide-react";
 import { useHeroCtas } from "@/hooks/use-hero-ctas";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -25,11 +25,19 @@ const ALL_HERO_VIDEOS: HeroVideo[] = [
   ...remoteHeroVideos,
 ];
 
+// Content, not audience: what a visitor can actually read, listen to and use.
+// Counts are deliberate floors ("200+") so they stay true as the pipelines publish
+// more; never swap them for member counts or ratings.
 const stats = [
   {
-    icon: Users,
-    value: "3.7K+",
-    label: "Community Members",
+    icon: ClipboardCheck,
+    value: "200+",
+    label: "Evidence-graded Reviews",
+  },
+  {
+    icon: FlaskConical,
+    value: "125+",
+    label: "Ingredient Profiles",
   },
   {
     icon: Newspaper,
@@ -37,9 +45,9 @@ const stats = [
     label: "SA Skin Briefings",
   },
   {
-    icon: Star,
-    value: "4.75/5",
-    label: "Member Rating",
+    icon: Headphones,
+    value: "10",
+    label: "Podcast Episodes",
   },
 ];
 
@@ -201,7 +209,7 @@ const Hero = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-2 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4 sm:gap-4">
               {stats.map((stat) => (
                 <div
                   key={stat.label}
