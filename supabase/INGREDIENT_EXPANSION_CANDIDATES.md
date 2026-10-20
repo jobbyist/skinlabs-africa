@@ -48,8 +48,8 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Urea — Urea — humectant — natural moisturizing factor component, also mild keratolytic at higher concentrations
 - [x] Sodium Lactate — Sodium Lactate — humectant — natural moisturizing factor component, pH-adjusting humectant
 - [ ] Saccharide Isomerate — Saccharide Isomerate — humectant — plant-sugar-derived humectant studied for sustained hydration
-- [ ] Mel Extract (Honey) — Mel — humectant — long-used natural humectant with documented moisture-retention properties
-- [ ] Pentylene Glycol — Pentylene Glycol — humectant — humectant/solvent, also mild preservative-boosting co-ingredient
+- [x] Mel Extract (Honey) — Mel — humectant — long-used natural humectant with documented moisture-retention properties
+- [x] Pentylene Glycol — Pentylene Glycol — humectant — humectant/solvent, also mild preservative-boosting co-ingredient
 - [ ] Chlorella Vulgaris Extract — Algae Extract — humectant — algae-derived extract used for hydration/conditioning claims
 
 ## Exfoliant — AHA / PHA
@@ -84,7 +84,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Sea Buckthorn Oil — Hippophae Rhamnoides Fruit Oil — antioxidant — carotenoid- and omega-7-rich oil, dual antioxidant/barrier function
 - [x] Rosemary Extract — Rosmarinus Officinalis Leaf Extract — antioxidant — polyphenol antioxidant, also used as a natural preservative booster
 - [x] Beta Carotene — Beta Carotene — antioxidant — carotenoid antioxidant/pigment
-- [ ] Lycopene — Lycopene — antioxidant — carotenoid antioxidant, often tomato-derived
+- [x] Lycopene — Lycopene — antioxidant — carotenoid antioxidant, often tomato-derived
 - [ ] Superoxide Dismutase — Superoxide Dismutase (SOD) — antioxidant — enzymatic antioxidant studied for oxidative-stress protection
 - [ ] Schisandra Extract — Schisandra Chinensis Fruit Extract — antioxidant — adaptogenic botanical with antioxidant evidence
 - [ ] Baicalin — Scutellaria Baicalensis Root Extract — antioxidant — flavonoid antioxidant, also studied for soothing properties
@@ -103,8 +103,8 @@ already represented, and matter for the Ingredient Combination Checker
 ## Peptide
 
 - [x] Palmitoyl Tripeptide-1 — Palmitoyl Tripeptide-1 — peptide — signal peptide, part of the widely studied "Matrixyl" family
-- [ ] Palmitoyl Pentapeptide-4 — Palmitoyl Pentapeptide-4 — peptide — signal peptide (Matrixyl 3000 component), collagen-signaling claims
-- [ ] Acetyl Octapeptide-3 — Acetyl Octapeptide-3 (SNAP-8-type) — peptide — neurotransmitter-inhibiting "Botox-like" peptide
+- [x] Palmitoyl Pentapeptide-4 — Palmitoyl Pentapeptide-4 — peptide — signal peptide (Matrixyl 3000 component), collagen-signaling claims
+- [x] Acetyl Octapeptide-3 — Acetyl Octapeptide-3 (SNAP-8-type) — peptide — neurotransmitter-inhibiting "Botox-like" peptide
 - [ ] Palmitoyl Tetrapeptide-7 — Palmitoyl Tetrapeptide-7 — peptide — signal peptide targeting inflammation/collagen pathways
 - [ ] sh-Oligopeptide-1 — sh-Oligopeptide-1 (EGF) — peptide — recombinant epidermal growth factor analogue
 - [ ] Palmitoyl Hexapeptide-12 — Palmitoyl Hexapeptide-12 — peptide — signal peptide marketed for firmness/collagen-signaling claims
@@ -120,12 +120,12 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Dimethicone — Dimethicone — barrier-lipid — silicone-based occlusive, forms a breathable barrier film
 - [x] Petrolatum — Petrolatum — barrier-lipid — classic, extensively studied occlusive barrier agent
 - [ ] Meadowfoam Seed Oil — Limnanthes Alba Seed Oil — barrier-lipid — highly oxidative-stable emollient oil
-- [ ] Sunflower Seed Oil — Helianthus Annuus Seed Oil — barrier-lipid — linoleic-acid-rich emollient, studied for barrier support
+- [x] Sunflower Seed Oil — Helianthus Annuus Seed Oil — barrier-lipid — linoleic-acid-rich emollient, studied for barrier support
 - [x] Evening Primrose Oil — Oenothera Biennis Oil — barrier-lipid — gamma-linolenic-acid-rich emollient oil
 - [x] Squalene — Squalene — barrier-lipid — plant/olive-derived precursor to squalane, distinct entry from the existing hydrogenated "squalane" row
-- [ ] Cetyl Alcohol — Cetyl Alcohol — barrier-lipid — fatty alcohol emollient/emulsion-stabilizer
+- [x] Cetyl Alcohol — Cetyl Alcohol — barrier-lipid — fatty alcohol emollient/emulsion-stabilizer
 - [x] Glyceryl Stearate — Glyceryl Stearate — barrier-lipid — emollient/emulsifier derived from glycerin and stearic acid
-- [ ] Caprylic/Capric Triglyceride — Caprylic/Capric Triglyceride — barrier-lipid — lightweight, non-comedogenic emollient ester
+- [x] Caprylic/Capric Triglyceride — Caprylic/Capric Triglyceride — barrier-lipid — lightweight, non-comedogenic emollient ester
 - [x] Cocoa Butter — Theobroma Cacao Seed Butter — barrier-lipid — occlusive plant butter, long-used emollient
 - [ ] Mango Butter — Mangifera Indica Seed Butter — barrier-lipid — occlusive plant butter emollient
 - [x] Macadamia Oil — Macadamia Ternifolia Seed Oil — barrier-lipid — palmitoleic-acid-rich emollient oil
@@ -134,19 +134,19 @@ already represented, and matter for the Ingredient Combination Checker
 ## Brightening
 
 - [x] Azelaic Acid — Azelaic Acid — brightening — dicarboxylic acid, dual brightening/anti-inflammatory/anti-acne evidence base
-- [ ] 4-Butylresorcinol — 4-Butylresorcinol — brightening — tyrosinase-inhibiting brightening agent
+- [x] 4-Butylresorcinol — 4-Butylresorcinol — brightening — tyrosinase-inhibiting brightening agent
 - [ ] Phenylethyl Resorcinol — Phenylethyl Resorcinol — brightening — tyrosinase-inhibiting brightening agent (marketed as "Symwhite")
 - [ ] Mulberry Extract — Morus Alba Root Extract — brightening — botanical tyrosinase inhibitor
 - [ ] Bearberry Extract — Arctostaphylos Uva-Ursi Leaf Extract — brightening — natural source of arbutin, tyrosinase-inhibiting botanical
 - [ ] Ethyl Ascorbic Acid — 3-O-Ethyl Ascorbic Acid — brightening — stable vitamin C derivative, distinct entry from the existing ascorbic acid/L-ascorbic acid rows
 - [x] Magnesium Ascorbyl Phosphate — Magnesium Ascorbyl Phosphate — brightening — stable, water-soluble vitamin C derivative
-- [ ] Ascorbyl Glucoside — Ascorbyl Glucoside — brightening — stable vitamin C derivative that converts to ascorbic acid on the skin
+- [x] Ascorbyl Glucoside — Ascorbyl Glucoside — brightening — stable vitamin C derivative that converts to ascorbic acid on the skin
 - [ ] Hexylresorcinol — Hexylresorcinol — brightening — tyrosinase-inhibiting brightening agent, also antioxidant properties
 
 ## Sebum Regulator
 
 - [x] Sulfur — Sulfur — sebum-regulator — long-used keratolytic/sebum-regulating agent for acne-prone skin
-- [ ] Bentonite Clay — Bentonite (Montmorillonite) — sebum-regulator — oil-absorbing clay commonly used in masks for oily/acne-prone skin
+- [x] Bentonite Clay — Bentonite (Montmorillonite) — sebum-regulator — oil-absorbing clay commonly used in masks for oily/acne-prone skin
 - [ ] Sebacic Acid — Sebacic Acid — sebum-regulator — dicarboxylic acid studied alongside azelaic acid for sebum-related concerns
 
 ## Soothing Botanical
@@ -154,7 +154,7 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Bisabolol — Alpha-Bisabolol — soothing-botanical — chamomile-derived anti-inflammatory/soothing compound
 - [x] Allantoin — Allantoin — soothing-botanical — soothing, skin-conditioning agent with long clinical usage history
 - [x] Colloidal Oatmeal — Avena Sativa (Oat) Kernel Flour — soothing-botanical — FDA-recognized skin-protectant, distinct from the existing "oat bran extract" row
-- [ ] Madecassoside — Madecassoside — soothing-botanical — Centella asiatica-derived triterpene, soothing/barrier-repair evidence
+- [x] Madecassoside — Madecassoside — soothing-botanical — Centella asiatica-derived triterpene, soothing/barrier-repair evidence
 - [x] Beta-Glucan — Beta-Glucan (Oat or Yeast-derived) — soothing-botanical — soothing, barrier-supportive polysaccharide
 - [ ] Feverfew Extract — Tanacetum Parthenium Extract — soothing-botanical — anti-inflammatory botanical extract
 - [x] Chamomile Extract — Chamomilla Recutita (Matricaria) Flower Extract — soothing-botanical — classic soothing botanical, source of bisabolol
@@ -174,18 +174,18 @@ already represented, and matter for the Ingredient Combination Checker
 
 - [x] Avobenzone — Avobenzone — uv-filter — broad-spectrum chemical UVA filter
 - [x] Octocrylene — Octocrylene — uv-filter — chemical UV filter, also used to stabilize avobenzone
-- [ ] Homosalate — Homosalate — uv-filter — chemical UVB filter
+- [x] Homosalate — Homosalate — uv-filter — chemical UVB filter
 - [x] Titanium Dioxide — Titanium Dioxide — uv-filter — mineral UV filter, distinct from the existing zinc oxide row
 - [ ] Bemotrizinol — Bemotrizinol (Tinosorb S) — uv-filter — broad-spectrum chemical UV filter, approved in EU/other markets, not FDA-approved in the US
-- [ ] Octisalate — Octisalate (Octyl Salicylate) — uv-filter — chemical UVB filter
+- [x] Octisalate — Octisalate (Octyl Salicylate) — uv-filter — chemical UVB filter
 - [ ] Ensulizole — Ensulizole (Phenylbenzimidazole Sulfonic Acid) — uv-filter — water-soluble chemical UVB filter
 - [ ] Bisoctrizole — Bisoctrizole (Tinosorb M) — uv-filter — broad-spectrum organic/inorganic hybrid UV filter, approved in EU/other markets
 
 ## Cleansing Base
 
 - [ ] Sodium Cocoyl Isethionate — Sodium Cocoyl Isethionate — cleansing-base — mild, coconut-derived surfactant common in "syndet" bars
-- [ ] Decyl Glucoside — Decyl Glucoside — cleansing-base — mild, sugar-derived non-ionic surfactant
-- [ ] Cocamidopropyl Betaine — Cocamidopropyl Betaine — cleansing-base — widely used amphoteric surfactant, foam booster
+- [x] Decyl Glucoside — Decyl Glucoside — cleansing-base — mild, sugar-derived non-ionic surfactant
+- [x] Cocamidopropyl Betaine — Cocamidopropyl Betaine — cleansing-base — widely used amphoteric surfactant, foam booster
 - [ ] Sodium Lauroyl Sarcosinate — Sodium Lauroyl Sarcosinate — cleansing-base — mild anionic surfactant used in gentle cleansers
 - [ ] Lauryl Glucoside — Lauryl Glucoside — cleansing-base — sugar-derived non-ionic surfactant
 - [ ] Disodium Cocoamphodiacetate — Disodium Cocoamphodiacetate — cleansing-base — mild amphoteric surfactant used in baby/sensitive-skin cleansers
@@ -198,13 +198,13 @@ already represented, and matter for the Ingredient Combination Checker
 ## Preservative (new category)
 
 - [x] Phenoxyethanol — Phenoxyethanol — preservative — one of the most widely used cosmetic preservatives, extensive safety review history
-- [ ] Potassium Sorbate — Potassium Sorbate — preservative — commonly used preservative, often paired with other systems
-- [ ] Sodium Benzoate — Sodium Benzoate — preservative — commonly used preservative
+- [x] Potassium Sorbate — Potassium Sorbate — preservative — commonly used preservative, often paired with other systems
+- [x] Sodium Benzoate — Sodium Benzoate — preservative — commonly used preservative
 - [ ] Ethylhexylglycerin — Ethylhexylglycerin — preservative — preservative-booster/deodorizing co-ingredient, also mild emollient
-- [ ] Benzyl Alcohol — Benzyl Alcohol — preservative — widely used preservative, also functions as a solvent/fragrance ingredient
+- [x] Benzyl Alcohol — Benzyl Alcohol — preservative — widely used preservative, also functions as a solvent/fragrance ingredient
 - [ ] Caprylyl Glycol — Caprylyl Glycol — preservative — preservative-booster and humectant co-ingredient
 - [ ] Sodium Dehydroacetate — Sodium Dehydroacetate — preservative — broad-spectrum preservative, often paired with benzyl alcohol
-- [ ] Chlorphenesin — Chlorphenesin — preservative — preservative with additional antimicrobial/anti-irritant claims
+- [x] Chlorphenesin — Chlorphenesin — preservative — preservative with additional antimicrobial/anti-irritant claims
 
 ## Chelator (new category)
 
@@ -215,15 +215,26 @@ already represented, and matter for the Ingredient Combination Checker
 
 ---
 
-**Running total added from this list**: 49 / 123 processed (2026-10-13, weekly
-pipeline firing 3 processed 7 more — Bromelain, Idebenone, Beta Carotene,
-Palmitoyl Tripeptide-1, Glyceryl Stearate, Cocoa Butter, Macadamia Oil; several
-other candidates searched this firing (Propanediol, Mango Butter, Tartaric
-Acid, Inulin, Pentylene Glycol, Cetyl Alcohol, Superoxide Dismutase) returned
-no usable citation and were left unprocessed rather than forced — the
-remaining budget went to an 22-row demand-queue backlog instead of the full
-25+ new-ingredient target — see `INGREDIENT_CONTENT_STATUS.md` for the live
-cursor and full batch log). Previously: 42/123 as of 2026-10-06 (weekly
+**Running total added from this list**: 69 / 123 processed (2026-10-20, weekly
+pipeline firing 4 processed 16 new — Pentylene Glycol, Lycopene, Palmitoyl
+Pentapeptide-4, Acetyl Octapeptide-3, Sunflower Seed Oil, Cetyl Alcohol,
+4-Butylresorcinol, Ascorbyl Glucoside, Madecassoside, Homosalate, Octisalate,
+Cocamidopropyl Betaine, Decyl Glucoside, Benzyl Alcohol, Caprylic/Capric
+Triglyceride, Chlorphenesin — plus retroactively ticked 4 candidates found to
+already be live under the same name (Mel Extract/Honey, Bentonite Clay,
+Potassium Sorbate, Sodium Benzoate — the latter three were added via the
+demand queue in firing 3, not via direct candidates-list research, and had
+been left unticked). Several more candidates were searched this firing
+(Propanediol, Inulin, Tartaric Acid, Superoxide Dismutase, Meadowfoam Seed
+Oil, Sebacic Acid, Marshmallow Root Extract, Lactobacillus Ferment,
+Phenylethyl Resorcinol, Mango Butter, Feverfew Extract, Ectoin, Caprylyl
+Glycol, Palmitoyl Tetrapeptide-7) and returned no usable citation on this
+pass — left unprocessed rather than forced; see `INGREDIENT_CONTENT_STATUS.md`
+for the full batch log. Previously: 49/123 as of 2026-10-13 (weekly pipeline
+firing 3 processed 7 more — Bromelain, Idebenone, Beta Carotene, Palmitoyl
+Tripeptide-1, Glyceryl Stearate, Cocoa Butter, Macadamia Oil; the remaining
+budget went to a 22-row demand-queue backlog instead of the full 25+
+new-ingredient target). Before that: 42/123 as of 2026-10-06 (weekly
 pipeline firing 2 processed 10 — Grape Seed Extract, Sea Buckthorn Oil,
 Rosemary Extract, Squalene, Evening Primrose Oil, Beta-Glucan, Tea Tree Oil,
 Titanium Dioxide, Octocrylene, Disodium EDTA). Before that: 32/123 as of

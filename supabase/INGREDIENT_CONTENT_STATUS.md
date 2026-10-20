@@ -20,16 +20,16 @@ where the last one left off.
 
 | Metric | Value | As of |
 |---|---|---|
-| Total ingredients | 199 | 2026-10-13 (181 after weekly firing 2, + 18 new via weekly pipeline firing 3) |
-| Ingredients with `description` / `function_summary` populated | 163 / 199 | 2026-10-13 (after weekly pipeline firing 3) |
-| Ingredients with `category` populated | 198 / 199 | 2026-10-13 |
-| `ingredient_sources` rows | 241 | 2026-10-13 (after weekly pipeline firing 3) |
+| Total ingredients | 215 | 2026-10-20 (199 after weekly firing 3, + 16 new via weekly pipeline firing 4) |
+| Ingredients with `description` / `function_summary` populated | 179 / 215 | 2026-10-20 (after weekly pipeline firing 4) |
+| Ingredients with `category` populated | 214 / 215 | 2026-10-20 |
+| `ingredient_sources` rows | 267 | 2026-10-20 (after weekly pipeline firing 4) |
 | `ingredient_concerns` rows | ~31 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_interactions` rows | ~19 | 2026-09-21 (pre-existing curated seed) |
 | `ingredient_aliases` rows | 13 | 2026-09-21 (pre-existing curated seed) |
-| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 (49 processed, 74 remaining) | 2026-10-13 |
+| Candidates in `INGREDIENT_EXPANSION_CANDIDATES.md` | 123 (69 processed, 54 remaining) | 2026-10-20 (65 from genuine Track B research across firings 1-4; +4 retroactive ticks this firing for candidates that turned out to already be live under the same name via the demand queue or an earlier firing — Mel Extract/Honey, Bentonite Clay, Potassium Sorbate, Sodium Benzoate — see firing-4 batch-log row) |
 | Products live (of 160 catalogued) | 160 | 2026-09-22 (Phase 5 complete — see `SEED_MIGRATION_STATUS.md`) |
-| `ingredient_generation_requests` rows (pending) | 0 | 2026-10-13 (22 rows drained this firing: 16 published [11 new + 5 duplicates], 6 rejected — see "Demand-driven queue" below) |
+| `ingredient_generation_requests` rows (pending) | 0 | 2026-10-20 (10 rows drained this firing: 4 published [all duplicates of already-published ingredients], 6 rejected — see "Demand-driven queue" below) |
 
 ## Demand-driven queue (`ingredient_generation_requests`)
 
@@ -59,6 +59,17 @@ content is already waiting on these. Mark a row `researched`/`published` (with
 `resolved_ingredient_id` set) once its ingredient lands, or `rejected` with a
 `rejection_reason` if it turns out to be a non-specific/duplicate/un-researchable
 name (same discipline as the Track A skip list above).
+
+**Note (2026-10-20, firing 4):** the demand queue has been lighter the last
+two firings (22-23 pending rows at firings 2-3, only 10 at firing 4) and has
+skewed toward duplicates/generic-phrase rejections rather than genuinely new
+ingredients recently — `api/product-review-sync.ts`'s key-ingredient
+extraction is increasingly re-surfacing names (Rooibos, Kigelia, Shea
+Butter, live probiotics) that earlier firings already catalogued, plus a
+recurring pattern of non-ingredient strings ("SPF 15", "Nourishing
+formula") that are marketing copy, not INCI names. This is expected as the
+catalogue matures — most commonly-reviewed SA product ingredients are now
+covered — and isn't a sign anything is broken.
 
 ## Skip-list verification (batch 09, 2026-09-22)
 
@@ -231,21 +242,24 @@ separate, still-active permanent weekly pipeline
 `supabase/INGREDIENT_EXPANSION_CANDIDATES.md` is consumed top-to-bottom
 within each section, but **not** strictly one section at a time — a batch
 may pick a representative spread across several sections (real, well-
-documented ingredients were prioritized for research efficiency). Cursor:
-**12 / 123 processed** (batch 01, 2026-09-22 — all now `[x]` in the
-candidates file): Betaine, Sodium PCA, Trehalose, Urea (4/13 Humectant —
-next unprocessed: Propanediol), Malic Acid, Citric Acid, Gluconolactone
-(3/5 Exfoliant-AHA/PHA — next unprocessed: Tartaric Acid), Papain
-(1/3 Exfoliant-Enzyme — next unprocessed: Bromelain), Resveratrol, Alpha
-Lipoic Acid (2/17 Antioxidant — next unprocessed: Astaxanthin), Azelaic
-Acid (1/9 Brightening — next unprocessed: 4-Butylresorcinol), Allantoin
-(1/11 Soothing Botanical — next unprocessed: Bisabolol). A future firing
-should scan each section top-to-bottom for the first `[ ]` entry rather
-than assume a single linear cursor. When the file's unprocessed (`[ ]`)
-candidates run low (fewer than ~25 remaining), the firing that notices
-this appends a fresh batch of real, dedupe-checked candidates to that file
-*before* continuing — this is how Track B keeps growing past the current
-123 candidates.
+documented ingredients were prioritized for research efficiency). Cursor
+as of 2026-10-20 (weekly pipeline firing 4): **69 / 123 processed, 54
+remaining** (65 from genuine Track B research, +4 retroactive ticks this
+firing for candidates already live under the same name — see below). A
+future firing should scan each section top-to-bottom for
+the first `[ ]` entry rather than assume a single linear cursor — several
+sections now have only 1-3 unprocessed entries left (Exfoliant-AHA,
+Exfoliant-BHA, Exfoliant-Enzyme, Retinoid, Retinoid Alternative, Sebum
+Regulator all down to a handful). When the file's unprocessed (`[ ]`)
+candidates run low (fewer than ~25 remaining — getting close now), the
+firing that notices this appends a fresh batch of real, dedupe-checked
+candidates to that file *before* continuing — this is how Track B keeps
+growing past the current 123 candidates. Several candidates searched in
+firings 3-4 returned no usable PubMed citation and were deliberately left
+`[ ]` rather than forced (see each firing's batch-log row for the exact
+list) — a future firing can retry these with a broader search (Firecrawl/
+EWG/INCIDecoder, same as the original Track A skip-list resolution) before
+assuming they're permanently unpopulatable.
 
 **Refresh rotation — re-run Phase 3 on already-published ingredients,
 oldest-verified first.** Only relevant once Track A is fully processed and
@@ -281,6 +295,8 @@ limit :remaining_batch_budget;
 | 2026-10-06 | Weekly pipeline firing 2 (demand-queue triage + Track B) | 17 new: Resurrection Plant Extract (Myrothamnus Flabellifolius), Vitamin K1, Nettle Extract, Cocoa Pod Extract, Honey, Rosemary Oil, Phytic Acid (all 7 from the demand queue) + Grape Seed Extract, Sea Buckthorn Oil, Rosemary Extract, Squalene, Evening Primrose Oil, Beta-Glucan, Tea Tree Oil, Titanium Dioxide, Octocrylene, Disodium EDTA (10 from `INGREDIENT_EXPANSION_CANDIDATES.md`) | `20261006050000_ingredient_content_weekly_batch_02.sql` | Drained an unusually large 23-row demand-queue backlog (accumulated since 2026-09-29): 7 real ingredients researched and published, 3 duplicates resolved to existing rows (Aloe→`aloe-vera`, Kigelia→`kigelia-africana`, Ceramide 3→`ceramide-np`), 13 rejected with a logged `rejection_reason` — 11 generic marketing phrases with no identifiable INCI compound ("Organic Botanical Actives", "Collagen-Boosting Ingredients", "Purifying Clay", etc.), plus Pomegranate Sterols and Castor Oil, both researched honestly but with no usable peer-reviewed citation found this batch despite repeated broadened PubMed searches (Pomegranate Sterols: only punicalagin, a different pomegranate compound, has literature; Castor Oil: only found as an unrelated formulation excipient). From the candidates list, Madecassoside was dropped after its only candidate citation turned out to be about asiaticoside (a different Centella asiatica constituent); Cocoa Butter and Ectoin were dropped after multiple 0-result PubMed searches. This came in at 17 new ingredients, under the usual 25+ target, because the demand-queue triage (23 rows, many requiring multiple broadened search rounds) consumed most of the session's research budget — no refresh-rotation budget was spent either; both should be prioritized by the next firing. Notable honest findings: Vitamin K1's citation is a real AAO technology assessment finding topical vitamin K cream equivalent to placebo for bruising (against the common marketing claim); Titanium Dioxide and Octocrylene's citations disclose real, balanced formulation-research considerations (persistent free radicals; photodegradation/systemic absorption) rather than one-sided claims; Resurrection Plant Extract (Myrothamnus flabellifolius) is corroborated by two real South African studies (2024 + 2026, University of Limpopo). Live-verified after migration: 181 total ingredients, 145/181 populated, 222 `ingredient_sources` rows, `ingredient_generation_requests` at 0 pending (20 published, 26 rejected overall). Security advisors re-checked clean (no new findings introduced; the pre-existing `rls_enabled_no_policy` INFO findings are unrelated and unchanged). Several `apply_migration`/`execute_sql` calls hit transient 60s tool-level timeouts this firing despite `pg_stat_activity` showing no actual DB-side query running — retrying (sometimes 2-3 times, in smaller batches) always succeeded; not a sign of a slow query or lock contention. |
 
 | 2026-10-13 | Weekly pipeline firing 3 (demand-queue triage + Track B) | 18 new: Telomerase, Propolis, Sweet Almond Oil, Thermal Spring Water, Tallow, Witch Hazel, Sodium Benzoate, Fulvic Acid, Citrus Aurantium Flower Extract, Bentonite Clay, Potassium Sorbate (11 from the demand queue) + Bromelain, Idebenone, Beta Carotene, Palmitoyl Tripeptide-1, Glyceryl Stearate, Cocoa Butter, Macadamia Oil (7 from `INGREDIENT_EXPANSION_CANDIDATES.md`) | `20261013050000_ingredient_content_weekly_batch_03.sql` | Drained a 22-row demand-queue backlog (accumulated since 2026-10-06): 11 real ingredients researched and published, 5 resolved as duplicates of existing catalogue rows (Turmeric→`turmeric-extract`, CBD Isolate→`cbd`, Green Tea→`green-tea-extract`, Vitamin B5→`panthenol`, Retinal→`retinaldehyde`), and 6 rejected with a logged `rejection_reason` — 3 generic marketing phrases ("Micro-particles", "Advanced Spectral Technology", "SPF50+ UV Filters") and 3 proprietary trade names/mismatches with no usable citation found this batch ("Diamond" — the only diamond+skin literature found concerns diamond-tip microdermabrasion *devices*, not diamond powder formulated into a cream, a mismatch rather than a real citation; "Hydromanil" and "Procerad" are Lipotec/Sederma trade names with zero independent search results). From the candidates list, several more searches (Propanediol, Mango Butter, Tartaric Acid, Inulin, Pentylene Glycol, Cetyl Alcohol, Superoxide Dismutase) returned zero or mismatched results and were left unprocessed. This landed 18 new ingredients, again under the 25+ target, because the demand-queue triage (22 rows, several requiring multiple broadened search rounds) consumed most of the research budget — no refresh-rotation budget was spent either; both should be prioritized by the next firing. Notable honest findings matching this project's "report the real evidence, including negative findings" discipline: Cocoa Butter's own citation states cocoa butter and olive oil are "not effective for preventing SG [stretch marks] or reducing the severity of lesions" — directly against its best-known marketing claim; Telomerase's citation is explicitly speculative (no topical cosmetic trial exists); Tallow's citation is a scoping review finding "significant research gaps" rather than validated benefit; Beta Carotene's citation notes carotenoids "remain underresearched in human populations" for sunless-tanning use. "Bentonite Clay" and "Citrus Aurantium Flower Extract" (renamed from the demand-queue's "Neroli Oil" — no direct literature exists for the distilled essential oil itself, only the flower extract, disclosed honestly in the description) are genuinely new rows, not duplicates of any existing catalogue entry. Live-verified after migration: 199 total ingredients, 163/199 populated, 241 `ingredient_sources` rows, `ingredient_generation_requests` at 0 pending (36 published, 32 rejected overall). Security advisors re-checked clean (no new findings introduced; only pre-existing INFO/WARN rows, same as prior firings). |
+
+| 2026-10-20 | Weekly pipeline firing 4 (demand-queue triage + Track B) | 16 new, all from `INGREDIENT_EXPANSION_CANDIDATES.md`: Pentylene Glycol, Lycopene, Palmitoyl Pentapeptide-4, Acetyl Octapeptide-3, Sunflower Seed Oil, Cetyl Alcohol, 4-Butylresorcinol, Ascorbyl Glucoside, Madecassoside, Homosalate, Octisalate, Cocamidopropyl Betaine, Decyl Glucoside, Benzyl Alcohol, Caprylic/Capric Triglyceride, Chlorphenesin | `20261020050000_ingredient_content_weekly_batch_04.sql` | A light demand-queue week (10 pending rows, vs. 22-23 in the two prior firings): 4 real duplicates of already-published ingredients resolved (Organic Rooibos -> `rooibos-extract`, Kigelia Extract -> `kigelia-africana`, Live Probiotics -> `live-lactobacillus-cultures`, Organic Shea Butter -> `shea-butter`), 6 rejected with a logged `rejection_reason` (None listed, Essential oils, SPF 15, Nourishing formula, Gentle cleansing agents, Microbiome-Balancing Actives — all generic phrases or not an ingredient at all) — no new-ingredient creation was needed from the demand queue this firing. All budget therefore went to Track B: 16 new ingredients researched from the candidates list, landing under the 25+ target again (same recurring pattern as firings 2 and 3) because each candidate needed its own careful PubMed search/verification pass rather than because of demand-queue load this time — several more candidates were searched and found to have no usable citation this firing and were left unprocessed (Propanediol, Inulin, Tartaric Acid, Superoxide Dismutase, Meadowfoam Seed Oil, Sebacic Acid, Marshmallow Root Extract, Lactobacillus Ferment, Phenylethyl Resorcinol, Mango Butter, Feverfew Extract, Ectoin, Caprylyl Glycol, Palmitoyl Tetrapeptide-7). One candidate on the list, "Mel Extract (Honey)", was found via a live query to already be published and verified under slug `honey` (verification_status `verified`, i.e. a human had already upgraded it beyond automation's `partially_verified` ceiling) — left untouched and ticked off the candidates file as already done, rather than re-researched or duplicated. While auditing the candidates file this firing, three more items were found in the same state — ticked `[ ]` (unprocessed) in the candidates file despite already being live, because they'd been added via the demand queue in firing 3 rather than via direct candidates-list research: Bentonite Clay, Potassium Sorbate and Sodium Benzoate (all three published in `20261013050000_ingredient_content_weekly_batch_03.sql`). All four were ticked `[x]` as a bookkeeping correction this firing (bringing the running total from 49 to 69, not 65 — see the corrected count above), with no new migration needed for them. Notable honest findings matching this project's "report the real evidence, including negative findings" discipline: pentylene glycol's own citation found real contact allergy in 6.74% of patch-tested patients, directly against its "gentle propylene-glycol alternative" marketing; chlorphenesin's and cocamidopropyl betaine's citations are predominantly real safety/irritancy data rather than efficacy claims; homosalate's and octisalate's citations cover real human systemic-absorption/photostability concerns alongside their UV-filter function, consistent with the 2025 "non-GRASE" review that groups them together; caprylic/capric triglyceride's citation is a real case report of allergic contact dermatitis from this "natural emollient," not an efficacy study. 4-Butylresorcinol is the one `strong`-evidence row this firing (a real multicenter single-blind RCT showing it far outperforms hydroquinone, arbutin and kojic acid as a tyrosinase inhibitor). No refresh-rotation budget was spent this firing (same situation as firings 2 and 3) — this should be prioritized by a future firing with a lighter demand-queue/candidate-research load. Live-verified after migration: 215 total ingredients, 179/215 populated, 267 `ingredient_sources` rows, `ingredient_generation_requests` at 0 pending (40 published, 38 rejected overall). Security advisors re-checked clean (no new findings introduced; only the same pre-existing `rls_enabled_no_policy`/`SECURITY DEFINER` INFO/WARN rows seen in every prior firing). |
 
 *(Append a new row after every batch — do not overwrite history. Include
 "insufficient evidence" skips by name so a future firing doesn't
