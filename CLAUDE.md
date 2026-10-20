@@ -62,6 +62,14 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## Homepage hero stats (2026-10-17)
+
+The stat tiles under the hero CTA (`stats` in `src/components/Hero.tsx`) show content, not audience: 200+ reviews, 125+ ingredient profiles, Daily SA briefings, 10 podcast episodes. They are deliberate floors; update them when the catalogue clearly outgrows them, and never reintroduce member counts or ratings there. About.tsx still mentions 3.7K+ members in its timeline (historical).
+
+## PayFast re-enabled (2026-10-17)
+
+`PAYFAST_ENABLED = true` in `src/lib/payments.ts` (supersedes the "PayFast is temporarily OFF" bullet under the 2026-09-28 follow-up batch; its e2e assertion was flipped). It only works once the Edge Function secrets `PAYFAST_MERCHANT_ID`, `PAYFAST_MERCHANT_KEY`, `PAYFAST_PASSPHRASE` (and `PAYFAST_MODE=live` for real charges) are set and the sandbox test in overhaul 06 has been run; without them Keep membership hides "Pay with PayFast" and `initialize_subscription` answers 503.
+
 ## Review pipeline scale-up: 5-10/day, 60% local / 40% Imports (2026-10-09) — standing notes
 
 Branch `claude/product-review-pipeline-scaling-0q894e`. Migration `20261009140000_review_pipeline_volume_and_imports.sql` (source_type gains `retailer`, usage providers `parallel-search`/`nimble-search`, cron `0 5,7,9,11,13 * * *`).
