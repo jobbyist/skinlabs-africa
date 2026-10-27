@@ -87,12 +87,12 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Lycopene — Lycopene — antioxidant — carotenoid antioxidant, often tomato-derived
 - [ ] Superoxide Dismutase — Superoxide Dismutase (SOD) — antioxidant — enzymatic antioxidant studied for oxidative-stress protection
 - [ ] Schisandra Extract — Schisandra Chinensis Fruit Extract — antioxidant — adaptogenic botanical with antioxidant evidence
-- [ ] Baicalin — Scutellaria Baicalensis Root Extract — antioxidant — flavonoid antioxidant, also studied for soothing properties
+- [x] Baicalin — Scutellaria Baicalensis Root Extract — antioxidant — flavonoid antioxidant, also studied for soothing properties
 - [ ] Edelweiss Extract — Leontopodium Alpinum Extract — antioxidant — alpine-botanical antioxidant used in high-altitude-stress skincare positioning
 
 ## Retinoid
 
-- [ ] Hydroxypinacolone Retinoate — Hydroxypinacolone Retinoate (HPR) — retinoid — "retinoid ester" that binds retinoic acid receptors without requiring conversion, marketed as lower-irritation
+- [x] Hydroxypinacolone Retinoate — Hydroxypinacolone Retinoate (HPR) — retinoid — "retinoid ester" that binds retinoic acid receptors without requiring conversion, marketed as lower-irritation
 - [ ] Retinyl Retinoate — Retinyl Retinoate — retinoid — hybrid retinyl-ester/retinoic-acid-ester form, marketed as a stabilized retinoid option
 
 ## Retinoid Alternative
@@ -136,12 +136,12 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Azelaic Acid — Azelaic Acid — brightening — dicarboxylic acid, dual brightening/anti-inflammatory/anti-acne evidence base
 - [x] 4-Butylresorcinol — 4-Butylresorcinol — brightening — tyrosinase-inhibiting brightening agent
 - [ ] Phenylethyl Resorcinol — Phenylethyl Resorcinol — brightening — tyrosinase-inhibiting brightening agent (marketed as "Symwhite")
-- [ ] Mulberry Extract — Morus Alba Root Extract — brightening — botanical tyrosinase inhibitor
-- [ ] Bearberry Extract — Arctostaphylos Uva-Ursi Leaf Extract — brightening — natural source of arbutin, tyrosinase-inhibiting botanical
+- [x] Mulberry Extract — Morus Alba Root Extract — brightening — botanical tyrosinase inhibitor
+- [x] Bearberry Extract — Arctostaphylos Uva-Ursi Leaf Extract — brightening — natural source of arbutin, tyrosinase-inhibiting botanical
 - [ ] Ethyl Ascorbic Acid — 3-O-Ethyl Ascorbic Acid — brightening — stable vitamin C derivative, distinct entry from the existing ascorbic acid/L-ascorbic acid rows
 - [x] Magnesium Ascorbyl Phosphate — Magnesium Ascorbyl Phosphate — brightening — stable, water-soluble vitamin C derivative
 - [x] Ascorbyl Glucoside — Ascorbyl Glucoside — brightening — stable vitamin C derivative that converts to ascorbic acid on the skin
-- [ ] Hexylresorcinol — Hexylresorcinol — brightening — tyrosinase-inhibiting brightening agent, also antioxidant properties
+- [x] Hexylresorcinol — Hexylresorcinol — brightening — tyrosinase-inhibiting brightening agent, also antioxidant properties
 
 ## Sebum Regulator
 
@@ -176,9 +176,9 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Octocrylene — Octocrylene — uv-filter — chemical UV filter, also used to stabilize avobenzone
 - [x] Homosalate — Homosalate — uv-filter — chemical UVB filter
 - [x] Titanium Dioxide — Titanium Dioxide — uv-filter — mineral UV filter, distinct from the existing zinc oxide row
-- [ ] Bemotrizinol — Bemotrizinol (Tinosorb S) — uv-filter — broad-spectrum chemical UV filter, approved in EU/other markets, not FDA-approved in the US
+- [x] Bemotrizinol — Bemotrizinol (Tinosorb S) — uv-filter — broad-spectrum chemical UV filter, approved in EU/other markets, not FDA-approved in the US
 - [x] Octisalate — Octisalate (Octyl Salicylate) — uv-filter — chemical UVB filter
-- [ ] Ensulizole — Ensulizole (Phenylbenzimidazole Sulfonic Acid) — uv-filter — water-soluble chemical UVB filter
+- [x] Ensulizole — Ensulizole (Phenylbenzimidazole Sulfonic Acid) — uv-filter — water-soluble chemical UVB filter
 - [ ] Bisoctrizole — Bisoctrizole (Tinosorb M) — uv-filter — broad-spectrum organic/inorganic hybrid UV filter, approved in EU/other markets
 
 ## Cleansing Base
@@ -193,7 +193,7 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Repair Technology
 
-- [ ] Ectoin — Ectoin — repair-technology — extremolyte compound studied for cell-protectant/osmolyte properties under environmental stress
+- [x] Ectoin — Ectoin — repair-technology — extremolyte compound studied for cell-protectant/osmolyte properties under environmental stress
 
 ## Preservative (new category)
 
@@ -215,8 +215,18 @@ already represented, and matter for the Ingredient Combination Checker
 
 ---
 
-**Running total added from this list**: 69 / 123 processed (2026-10-20, weekly
-pipeline firing 4 processed 16 new — Pentylene Glycol, Lycopene, Palmitoyl
+**Running total added from this list**: 77 / 123 processed (2026-10-27, weekly
+pipeline firing 5 processed 7 new — Baicalin, Hexylresorcinol, Bearberry
+Extract, Mulberry Extract, Bemotrizinol, Ensulizole, Hydroxypinacolone
+Retinoate — plus retroactively ticked 1 candidate ("Ectoin") researched via
+the demand queue this firing (published as `ectoine`) rather than via direct
+candidates-list processing. A further round of candidates was searched this
+firing (Camellia Oil, sh-Oligopeptide-1, Schisandra Extract, Sodium Lauroyl
+Sarcosinate, Bisoctrizole, Ethylhexylglycerin, Polysorbate 20) and returned no
+usable or unambiguous citation — left unprocessed rather than forced; see
+`INGREDIENT_CONTENT_STATUS.md` for the full batch log. Previously: 69/123 as
+of 2026-10-20 (weekly pipeline firing 4 processed 16 new — Pentylene Glycol,
+Lycopene, Palmitoyl
 Pentapeptide-4, Acetyl Octapeptide-3, Sunflower Seed Oil, Cetyl Alcohol,
 4-Butylresorcinol, Ascorbyl Glucoside, Madecassoside, Homosalate, Octisalate,
 Cocamidopropyl Betaine, Decyl Glucoside, Benzyl Alcohol, Caprylic/Capric
