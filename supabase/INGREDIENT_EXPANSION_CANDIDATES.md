@@ -43,14 +43,14 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Trehalose — Trehalose — humectant — disaccharide with documented water-retention and stress-protectant properties for skin cells
 - [ ] Propanediol — Propanediol — humectant — 1,3-propanediol, plant-derived humectant/solvent increasingly used in place of propylene glycol
 - [ ] Inulin — Inulin — humectant — plant-derived polysaccharide (often chicory root) with film-forming/humectant properties
-- [ ] Xylitylglucoside — Xylitylglucoside — humectant — part of the "aquaxyl" moisturizing complex family, supports skin hydration
+- [x] Xylitylglucoside — Xylitylglucoside — humectant — part of the "aquaxyl" moisturizing complex family, supports skin hydration
 - [ ] Glycereth-26 — Glycereth-26 — humectant — polyethylene glycol ether of glycerin, humectant/emulsifier
 - [x] Urea — Urea — humectant — natural moisturizing factor component, also mild keratolytic at higher concentrations
 - [x] Sodium Lactate — Sodium Lactate — humectant — natural moisturizing factor component, pH-adjusting humectant
 - [ ] Saccharide Isomerate — Saccharide Isomerate — humectant — plant-sugar-derived humectant studied for sustained hydration
 - [x] Mel Extract (Honey) — Mel — humectant — long-used natural humectant with documented moisture-retention properties
 - [x] Pentylene Glycol — Pentylene Glycol — humectant — humectant/solvent, also mild preservative-boosting co-ingredient
-- [ ] Chlorella Vulgaris Extract — Algae Extract — humectant — algae-derived extract used for hydration/conditioning claims
+- [x] Chlorella Vulgaris Extract — Algae Extract — humectant — algae-derived extract used for hydration/conditioning claims
 
 ## Exfoliant — AHA / PHA
 
@@ -62,7 +62,7 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Exfoliant — BHA
 
-- [ ] Betaine Salicylate — Betaine Salicylate — exfoliant-bha — salicylic-acid-derived BHA marketed as a gentler alternative
+- [x] Betaine Salicylate — Betaine Salicylate — exfoliant-bha — salicylic-acid-derived BHA marketed as a gentler alternative
 
 ## Exfoliant — Enzyme
 
@@ -88,16 +88,16 @@ already represented, and matter for the Ingredient Combination Checker
 - [ ] Superoxide Dismutase — Superoxide Dismutase (SOD) — antioxidant — enzymatic antioxidant studied for oxidative-stress protection
 - [ ] Schisandra Extract — Schisandra Chinensis Fruit Extract — antioxidant — adaptogenic botanical with antioxidant evidence
 - [x] Baicalin — Scutellaria Baicalensis Root Extract — antioxidant — flavonoid antioxidant, also studied for soothing properties
-- [ ] Edelweiss Extract — Leontopodium Alpinum Extract — antioxidant — alpine-botanical antioxidant used in high-altitude-stress skincare positioning
+- [x] Edelweiss Extract — Leontopodium Alpinum Extract — antioxidant — alpine-botanical antioxidant used in high-altitude-stress skincare positioning
 
 ## Retinoid
 
 - [x] Hydroxypinacolone Retinoate — Hydroxypinacolone Retinoate (HPR) — retinoid — "retinoid ester" that binds retinoic acid receptors without requiring conversion, marketed as lower-irritation
-- [ ] Retinyl Retinoate — Retinyl Retinoate — retinoid — hybrid retinyl-ester/retinoic-acid-ester form, marketed as a stabilized retinoid option
+- [x] Retinyl Retinoate — Retinyl Retinoate — retinoid — hybrid retinyl-ester/retinoic-acid-ester form, marketed as a stabilized retinoid option
 
 ## Retinoid Alternative
 
-- [ ] Rambutan Extract — Nephelium Lappaceum Peel Extract — retinoid-alternative — botanical marketed as a plant-based retinol-alternative active, distinct from bakuchiol
+- [x] Rambutan Extract — Nephelium Lappaceum Peel Extract — retinoid-alternative — botanical marketed as a plant-based retinol-alternative active, distinct from bakuchiol
 - [ ] Bidens Pilosa Extract — Bidens Pilosa Extract — retinoid-alternative — botanical studied for retinol-like skin-renewal marketing claims
 
 ## Peptide
@@ -107,9 +107,9 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Acetyl Octapeptide-3 — Acetyl Octapeptide-3 (SNAP-8-type) — peptide — neurotransmitter-inhibiting "Botox-like" peptide
 - [ ] Palmitoyl Tetrapeptide-7 — Palmitoyl Tetrapeptide-7 — peptide — signal peptide targeting inflammation/collagen pathways
 - [ ] sh-Oligopeptide-1 — sh-Oligopeptide-1 (EGF) — peptide — recombinant epidermal growth factor analogue
-- [ ] Palmitoyl Hexapeptide-12 — Palmitoyl Hexapeptide-12 — peptide — signal peptide marketed for firmness/collagen-signaling claims
+- [x] Palmitoyl Hexapeptide-12 — Palmitoyl Hexapeptide-12 — peptide — signal peptide marketed for firmness/collagen-signaling claims
 - [ ] Nonapeptide-1 — Nonapeptide-1 (Melitane-type) — peptide — peptide marketed for pigmentation-related signaling
-- [ ] Pentapeptide-18 — Pentapeptide-18 (Leuphasyl-type) — peptide — neurotransmitter-modulating peptide, "Botox-like" positioning distinct from Acetyl Octapeptide-3
+- [x] Pentapeptide-18 — Pentapeptide-18 (Leuphasyl-type) — peptide — neurotransmitter-modulating peptide, "Botox-like" positioning distinct from Acetyl Octapeptide-3
 - [ ] Diaminobutyroyl Benzylamide Diacetate — Diaminobutyroyl Benzylamide Diacetate (Syn-Ake-type) — peptide — snake-venom-mimetic peptide marketed for expression-line claims
 
 ## Barrier / Lipid
@@ -161,13 +161,13 @@ already represented, and matter for the Ingredient Combination Checker
 - [x] Tea Tree Oil — Melaleuca Alternifolia Leaf Oil — soothing-botanical — antimicrobial/soothing essential oil, well-studied for acne-prone skin use
 - [ ] Willowherb Extract — Epilobium Angustifolium Extract — soothing-botanical — anti-inflammatory botanical, often used in sensitive-skin formulations
 - [ ] Marshmallow Root Extract — Althaea Officinalis Root Extract — soothing-botanical — mucilage-rich soothing botanical
-- [ ] Houttuynia Cordata Extract — Houttuynia Cordata Extract — soothing-botanical — botanical popular in Korean skincare for soothing/calming claims
+- [x] Houttuynia Cordata Extract — Houttuynia Cordata Extract — soothing-botanical — botanical popular in Korean skincare for soothing/calming claims
 
 ## Probiotic
 
 - [x] Bifida Ferment Lysate — Bifida Ferment Lysate — probiotic — fermented probiotic-derived ingredient studied for barrier/microbiome support
 - [ ] Lactobacillus Ferment — Lactobacillus Ferment — probiotic — fermented ingredient studied for skin microbiome support
-- [ ] Saccharomyces Ferment — Saccharomyces Ferment — probiotic — yeast-fermentation-derived ingredient studied for skin-conditioning claims
+- [x] Saccharomyces Ferment — Saccharomyces Ferment — probiotic — yeast-fermentation-derived ingredient studied for skin-conditioning claims
 - [ ] Lactococcus Ferment Lysate — Lactococcus Ferment Lysate — probiotic — fermented ingredient studied for barrier/microbiome support
 
 ## UV Filter
@@ -183,12 +183,12 @@ already represented, and matter for the Ingredient Combination Checker
 
 ## Cleansing Base
 
-- [ ] Sodium Cocoyl Isethionate — Sodium Cocoyl Isethionate — cleansing-base — mild, coconut-derived surfactant common in "syndet" bars
+- [x] Sodium Cocoyl Isethionate — Sodium Cocoyl Isethionate — cleansing-base — mild, coconut-derived surfactant common in "syndet" bars
 - [x] Decyl Glucoside — Decyl Glucoside — cleansing-base — mild, sugar-derived non-ionic surfactant
 - [x] Cocamidopropyl Betaine — Cocamidopropyl Betaine — cleansing-base — widely used amphoteric surfactant, foam booster
 - [ ] Sodium Lauroyl Sarcosinate — Sodium Lauroyl Sarcosinate — cleansing-base — mild anionic surfactant used in gentle cleansers
-- [ ] Lauryl Glucoside — Lauryl Glucoside — cleansing-base — sugar-derived non-ionic surfactant
-- [ ] Disodium Cocoamphodiacetate — Disodium Cocoamphodiacetate — cleansing-base — mild amphoteric surfactant used in baby/sensitive-skin cleansers
+- [x] Lauryl Glucoside — Lauryl Glucoside — cleansing-base — sugar-derived non-ionic surfactant
+- [x] Disodium Cocoamphodiacetate — Disodium Cocoamphodiacetate — cleansing-base — mild amphoteric surfactant used in baby/sensitive-skin cleansers
 - [ ] Polysorbate 20 — Polysorbate 20 — cleansing-base — non-ionic surfactant/solubilizer used in micellar and cleansing formulas
 
 ## Repair Technology
@@ -203,20 +203,30 @@ already represented, and matter for the Ingredient Combination Checker
 - [ ] Ethylhexylglycerin — Ethylhexylglycerin — preservative — preservative-booster/deodorizing co-ingredient, also mild emollient
 - [x] Benzyl Alcohol — Benzyl Alcohol — preservative — widely used preservative, also functions as a solvent/fragrance ingredient
 - [ ] Caprylyl Glycol — Caprylyl Glycol — preservative — preservative-booster and humectant co-ingredient
-- [ ] Sodium Dehydroacetate — Sodium Dehydroacetate — preservative — broad-spectrum preservative, often paired with benzyl alcohol
+- [x] Sodium Dehydroacetate — Sodium Dehydroacetate — preservative — broad-spectrum preservative, often paired with benzyl alcohol
 - [x] Chlorphenesin — Chlorphenesin — preservative — preservative with additional antimicrobial/anti-irritant claims
 
 ## Chelator (new category)
 
 - [x] Disodium EDTA — Disodium EDTA — chelator — chelating agent that binds trace metal ions to stabilize formulations
 - [ ] Sodium Phytate — Sodium Phytate — chelator — plant-derived (phytic acid salt) chelating agent, natural alternative to EDTA
-- [ ] Tetrasodium EDTA — Tetrasodium EDTA — chelator — higher-substitution EDTA salt, same chelating function as disodium EDTA
+- [x] Tetrasodium EDTA — Tetrasodium EDTA — chelator — higher-substitution EDTA salt, same chelating function as disodium EDTA
 - [ ] Trisodium Ethylenediamine Disuccinate — Trisodium Ethylenediamine Disuccinate (EDDS) — chelator — biodegradable EDTA alternative chelating agent
 
 ---
 
-**Running total added from this list**: 77 / 123 processed (2026-10-27, weekly
-pipeline firing 5 processed 7 new — Baicalin, Hexylresorcinol, Bearberry
+**Running total added from this list**: 92 / 123 processed (2026-11-03, weekly
+pipeline firing 6 processed 15 new — Xylitylglucoside, Chlorella Vulgaris
+Extract, Betaine Salicylate, Edelweiss Extract, Retinyl Retinoate, Rambutan
+Extract, Houttuynia Cordata Extract, Palmitoyl Hexapeptide-12, Pentapeptide-18,
+Sodium Cocoyl Isethionate, Lauryl Glucoside, Tetrasodium EDTA, Sodium
+Dehydroacetate, Disodium Cocoamphodiacetate, Saccharomyces Ferment — the most
+in a single Track B pass so far. A further round of candidates was searched
+this firing (Pumpkin Enzyme, Bidens Pilosa Extract, Ethyl Ascorbic Acid,
+Willowherb Extract, Sodium Phytate, Glycereth-26, Lactococcus Ferment Lysate)
+and returned zero usable citations — left unprocessed rather than forced; see
+`INGREDIENT_CONTENT_STATUS.md` for the full batch log. Previously: 77/123 as
+of 2026-10-27 (weekly pipeline firing 5 processed 7 new — Baicalin, Hexylresorcinol, Bearberry
 Extract, Mulberry Extract, Bemotrizinol, Ensulizole, Hydroxypinacolone
 Retinoate — plus retroactively ticked 1 candidate ("Ectoin") researched via
 the demand queue this firing (published as `ectoine`) rather than via direct
