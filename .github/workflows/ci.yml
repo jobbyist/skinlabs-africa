@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - uses: oven-sh/setup-bun@v2
       - run: npm install --legacy-peer-deps
+      # The TanStack build reads dist/index.html (src/routes/__root.tsx), so the SPA build runs first.
+      - run: npx vite build
       # tsc needs src/routeTree.gen.ts, which the TanStack build generates.
       - run: NITRO_PRESET=vercel npx vite build --config vite.tanstack-start.config.ts
       - run: npx tsc -p tsconfig.app.json --noEmit
