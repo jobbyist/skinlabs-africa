@@ -62,6 +62,10 @@ bullets under "Major systems" have the detail; these are the rules to keep.
   after 1 Nov 2026. (The Routine Builder question was resolved on 2026-09-28:
   it is now an Insider capability.)
 
+## Supabase free-plan usage (2026-11-04)
+
+The org (`suwdffjrspemmzxcnogg`) is on the **free plan** and also holds a second project, "Cannaplug 012" (`khltynzzcjhlujxbgyod`, 32 MB, untouched). Measured on SkinLabs: database 303 MB, of which `cron.job_run_details` was 257 MB (196k rows; pg_cron never prunes itself), and `email-processor` ran 1,435×/day, almost always to claim nothing. API traffic and storage (~1.4 MB) were small. Migration `20261104090000_free_plan_usage_cron_hygiene.sql` (**applied live**): `purge_cron_history()` keeps 3 days and runs daily (`purge-cron-history`, 03:41 UTC); `email-outbox-processor` now has the same `WHERE EXISTS` gate as the other per-minute jobs; plus a partial index on due outbox rows. A one-off `VACUUM FULL cron.job_run_details` cut the database to **56 MB**. Rules: every new `* * * * *` / `*/N` job that calls an Edge Function must be gated by `WHERE EXISTS (work is due)`; any new log/event table needs a retention plan.
+
 ## Homepage hero stats (2026-10-17)
 
 The stat tiles under the hero CTA (`stats` in `src/components/Hero.tsx`) show content, not audience: 200+ reviews, 125+ ingredient profiles, Daily SA briefings, 10 podcast episodes. They are deliberate floors; update them when the catalogue clearly outgrows them, and never reintroduce member counts or ratings there. About.tsx still mentions 3.7K+ members in its timeline (historical).
